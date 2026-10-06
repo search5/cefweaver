@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.19)
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 # Project name.
-project(cefspark)
+project(cefweaver)
 
 # Use folders in the resulting project files.
 set_property(GLOBAL PROPERTY OS_FOLDERS ON)
@@ -158,5 +158,5 @@ add_subdirectory(native/cefsubprocess)
 
 PRINT_CEF_CONFIG()
 
-message(STATUS "*** CEFSPARK CONFIGURATION SETTINGS ***")
+message(STATUS "*** CEFWEAVER CONFIGURATION SETTINGS ***")
 message(STATUS "Python executable:            ${PYTHON_EXECUTABLE}")

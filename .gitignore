@@ -128,7 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea
-cefspark_build
+cefweaver_build
 cef_binary*
 external_bin
 clang-format

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "cefspark"
+name = "cefweaver"
 version = "0.1.0"
 description = "GUI toolkit for embedding a Chromium widget in desktop applications"
 authors = ["Jiho Lee <search5@gmail.com>"]
@@ -7,14 +7,13 @@ readme = ["README.rst", "CHANGELOG.rst", "LICENSE"]
 keywords = ["cefpython"]
 license = "BSD-3-Clause"
 classifiers = [
-    "Development Status :: 6 - Mature",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -26,9 +25,9 @@ classifiers = [
     "Topic :: Multimedia",
     "Topic :: Software Development :: User Interfaces"
 ]
-repository = "https://github.com/search5/cefspark"
+repository = "https://github.com/search5/cefweaver"
 # packages = [{ include = "poetry_cython_example" }]
-include = [{ path = "cefspark/**/*.so", format = "wheel" }]
+include = [{ path = "cefweaver/**/*.so", format = "wheel" }]
 
 
 [tool.poetry.dependencies]

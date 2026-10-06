@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'CEFSpark'
+project = 'CEFWeaver'
 copyright = '2023, Lee Persy Ji-Ho'
 author = 'Lee Persy Ji-Ho'
 release = 'none'

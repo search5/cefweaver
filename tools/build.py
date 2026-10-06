@@ -16,7 +16,7 @@ def get_numpy_include():
     try:
         import numpy as np
     except ImportError:
-        raise SystemExit("CEFSpark requires NumPy for setup")
+        raise SystemExit("CEFWeaver requires NumPy for setup")
     return np.get_include()
 
 
