@@ -1,21 +1,24 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools>=77", "Cython>=3.0", "cmake>=3.28.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "cefweaver"
 version = "0.1.0"
 description = "GUI toolkit for embedding a Chromium widget in desktop applications"
-authors = ["Jiho Lee <search5@gmail.com>"]
-readme = ["README.rst", "CHANGELOG.rst", "LICENSE"]
-keywords = ["cefpython"]
+readme = "README.rst"
+requires-python = ">=3.11"
 license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [{ name = "Jiho Lee", email = "search5@gmail.com" }]
+keywords = ["cefpython"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Natural Language :: English",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Desktop Environment",
@@ -23,20 +26,26 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Browsers",
     "Topic :: Multimedia",
-    "Topic :: Software Development :: User Interfaces"
+    "Topic :: Software Development :: User Interfaces",
 ]
-repository = "https://github.com/search5/cefweaver"
-# packages = [{ include = "poetry_cython_example" }]
-include = [{ path = "cefweaver/**/*.so", format = "wheel" }]
+dependencies = [
+    "numpy>=1.26.2",
+]
 
+[project.urls]
+Repository = "https://github.com/search5/cefweaver"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-numpy = "^1.26.2"
-sphinx = "^7.2.6"
-cmake = "^3.28.1"
+[dependency-groups]
+dev = [
+    "cmake>=3.28.1",
+    "Cython>=3.0",
+]
+docs = [
+    "sphinx>=7.2.6",
+]
 
+[tool.setuptools.packages.find]
+include = ["cefweaver*"]
 
-[build-system]
-requires = ["poetry-core", "setuptools", "Cython"]
-build-backend = "poetry.core.masonry.api"
+[tool.setuptools.package-data]
+cefweaver = ["*.so", "*.pyd", "*.dylib"]
