@@ -25,7 +25,14 @@ set_property(GLOBAL PROPERTY OS_FOLDERS ON)
 
 # Specify the CEF distribution version.
 if(NOT DEFINED CEF_VERSION)
-  set(CEF_VERSION "120.1.8+ge6b45b0+chromium-120.0.6099.109")
+  set(CEF_VERSION "154.0.34+g14c5a08+chromium-154.0.8037.98")
+endif()
+
+# macOS needs the CEF framework loader, helper app bundles and a Cocoa message
+# loop integration, none of which are implemented yet.
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+  message(FATAL_ERROR "cefweaver does not support macOS yet. "
+                      "Supported platforms: Linux, Windows.")
 endif()
 
 # Determine the platform.
@@ -58,9 +65,36 @@ endif()
 # Add this project's cmake/ directory to the module path.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# Download and extract the CEF binary distribution (executes DownloadCEF.cmake).
-include(DownloadCEF)
-DownloadCEF("${CEF_PLATFORM}" "${CEF_VERSION}" "${CMAKE_SOURCE_DIR}/third_party/cef")
+# Resolve the CEF binary distribution. Priority:
+#   1. -DCEF_ROOT=<path>  (self-built CEF or an already extracted prebuilt)
+#   2. CEF_ROOT environment variable
+#   3. Download the prebuilt distribution (executes DownloadCEF.cmake).
+if(NOT CEF_ROOT AND DEFINED ENV{CEF_ROOT})
+  file(TO_CMAKE_PATH "$ENV{CEF_ROOT}" CEF_ROOT)
+endif()
+
+if(CEF_ROOT)
+  if(NOT EXISTS "${CEF_ROOT}/cmake/FindCEF.cmake")
+    message(FATAL_ERROR "CEF_ROOT is not a valid CEF binary distribution "
+                        "(cmake/FindCEF.cmake not found): ${CEF_ROOT}")
+  endif()
+  message(STATUS "Using existing CEF distribution: ${CEF_ROOT}")
+else()
+  include(DownloadCEF)
+  DownloadCEF("${CEF_PLATFORM}" "${CEF_VERSION}" "${CMAKE_SOURCE_DIR}/third_party/cef")
+endif()
+
+# Record the resolved location for tools/prepare.py. CEF_ROOT itself is not
+# cached, so that a previous run cannot pin an old version.
+set(CEFWEAVER_CEF_ROOT "${CEF_ROOT}" CACHE INTERNAL "Resolved CEF distribution")
+
+# Report the CEF version actually in use (it may differ from CEF_VERSION when
+# CEF_ROOT is supplied externally).
+if(EXISTS "${CEF_ROOT}/include/cef_version.h")
+  file(STRINGS "${CEF_ROOT}/include/cef_version.h" CEF_VERSION_LINE
+       REGEX "^#define CEF_VERSION \"")
+  message(STATUS "CEF version in use: ${CEF_VERSION_LINE}")
+endif()
 
 # Add the CEF binary distribution's cmake/ directory to the module path.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
@@ -100,40 +134,43 @@ message(STATUS "Using Python: ${PYTHON_EXECUTABLE}")
 # make_readme.py script.
 file(COPY "${CEF_ROOT}/README.txt" DESTINATION "${CMAKE_BINARY_DIR}")
 
-# Download clang-format from Google Storage.
-if(OS_WINDOWS)
-  set(GS_PLATFORM "win32")
-  set(GS_HASHPATH "win/clang-format.exe.sha1")
-  set(GS_OUTPATH "win/clang-format.exe")
-elseif(OS_MACOSX)
-  set(GS_PLATFORM "darwin")
-  if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64")
-    set(GS_HASHPATH "mac/clang-format.arm64.sha1")
-  else()
-    set(GS_HASHPATH "mac/clang-format.x64.sha1")
+option(CEFWEAVER_FETCH_CLANG_FORMAT "Download clang-format from Google Storage" OFF)
+if(CEFWEAVER_FETCH_CLANG_FORMAT)
+  # Download clang-format from Google Storage.
+  if(OS_WINDOWS)
+    set(GS_PLATFORM "win32")
+    set(GS_HASHPATH "win/clang-format.exe.sha1")
+    set(GS_OUTPATH "win/clang-format.exe")
+  elseif(OS_MACOSX)
+    set(GS_PLATFORM "darwin")
+    if("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+      set(GS_HASHPATH "mac/clang-format.arm64.sha1")
+    else()
+      set(GS_HASHPATH "mac/clang-format.x64.sha1")
+    endif()
+    set(GS_OUTPATH "mac/clang-format")
+  elseif(OS_LINUX)
+    set(GS_PLATFORM "linux*")
+    set(GS_HASHPATH "linux64/clang-format.sha1")
+    set(GS_OUTPATH "linux64/clang-format")
   endif()
-  set(GS_OUTPATH "mac/clang-format")
-elseif(OS_LINUX)
-  set(GS_PLATFORM "linux*")
-  set(GS_HASHPATH "linux64/clang-format.sha1")
-  set(GS_OUTPATH "linux64/clang-format")
-endif()
 
-message(STATUS "Downloading clang-format from Google Storage...")
-execute_process(
-  COMMAND "${PYTHON_EXECUTABLE}"
-          "tools/buildtools/download_from_google_storage.py"
-          "--no_resume"
-          "--platform=${GS_PLATFORM}"
-          "--no_auth"
-          "--bucket" "chromium-clang-format"
-          "-s" "tools/buildtools/${GS_HASHPATH}"
-          "-o" "tools/buildtools/${GS_OUTPATH}"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  RESULT_VARIABLE EXECUTE_RV
-  )
-if(NOT EXECUTE_RV STREQUAL "0")
-  message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
+  message(STATUS "Downloading clang-format from Google Storage...")
+  execute_process(
+    COMMAND "${PYTHON_EXECUTABLE}"
+            "tools/buildtools/download_from_google_storage.py"
+            "--no_resume"
+            "--platform=${GS_PLATFORM}"
+            "--no_auth"
+            "--bucket" "chromium-clang-format"
+            "-s" "tools/buildtools/${GS_HASHPATH}"
+            "-o" "tools/buildtools/${GS_OUTPATH}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    RESULT_VARIABLE EXECUTE_RV
+    )
+  if(NOT EXECUTE_RV STREQUAL "0")
+    message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
+  endif()
 endif()
 
 

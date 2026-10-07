@@ -69,6 +69,7 @@ public:
   void CloseAllBrowsers(bool force_close);
 
   bool IsClosing() const { return is_closing_; }
+  bool HasOpenBrowsers() const { return !browser_list_.empty(); }
 
   // Returns true if the Chrome runtime is enabled.
   static bool IsChromeRuntimeEnabled();
@@ -112,7 +113,7 @@ private:
   using BrowserList = std::list<CefRefPtr<CefBrowser>>;
   BrowserList browser_list_;
 
-  bool m_IsReadyToExecuteJs;
+  bool m_IsReadyToExecuteJs = false;
   std::vector<JavascriptBinding> m_JavascriptBindings;
   std::vector<JavascriptPythonBinding> m_JavascriptPythonBindings;
   bool is_closing_;

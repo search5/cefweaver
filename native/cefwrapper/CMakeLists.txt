@@ -27,6 +27,9 @@ set(CEFSIMPLE_SRCS
 set(CEFSIMPLE_SRCS_WINDOWS
         cef_wrapper_client_handler_win.cc
   )
+set(CEFSIMPLE_SRCS_LINUX
+        cef_wrapper_client_handler_linux.cc
+  )
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
 source_group(cefsimple FILES ${CEFSIMPLE_SRCS})
 
@@ -83,4 +86,18 @@ if(OS_WINDOWS)
   #COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
 
   # COPY_SINGLE_FILE(${CEF_TARGET} "./Release/cefwrapper.lib" "../../../src/PyCef_Dev/lib/cefwrapper.lib")
+endif()
+
+#
+# Linux configuration.
+#
+if(OS_LINUX)
+  # Static library linked into the Python extension module (a shared object),
+  # so it must be position independent.
+  add_library(${CEF_TARGET} STATIC ${CEFSIMPLE_SRCS})
+  SET_LIBRARY_TARGET_PROPERTIES(${CEF_TARGET})
+  set_target_properties(${CEF_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  add_dependencies(${CEF_TARGET} libcef_dll_wrapper)
+  target_include_directories(${CEF_TARGET} PUBLIC ${CEF_INCLUDE_PATH})
+  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} ${CMAKE_DL_LIBS})
 endif()

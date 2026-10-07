@@ -1,19 +1,22 @@
-#include <windows.h>
-
 #include "include/cef_app.h"
 #include "include/cef_command_line.h"
+#include "../cefwrapper/cef_wrapper_app.h"
+#include "../cefwrapper/javascript_binding.h"
+
+#if defined(OS_WIN)
+#include <windows.h>
 #include "include/cef_sandbox_win.h"
-#include "src/cefwrapper/cef_wrapper_app.h"
-#include "src/cefwrapper/javascript_binding.h"
+#endif
 
 
-#if defined(CEF_USE_SANDBOX)
+#if defined(OS_WIN) && defined(CEF_USE_SANDBOX)
 // The cef_sandbox.lib static library may not link successfully with all VS
 // versions.
 #pragma comment(lib, "cef_sandbox.lib")
 #endif
 
 
+#if defined(OS_WIN)
 int APIENTRY wWinMain(HINSTANCE hInstance,
                       HINSTANCE hPrevInstance,
                       LPTSTR lpCmdLine,
@@ -36,3 +39,19 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 
   return 0;
 }
+#else
+// Chromium's zygote forks the child processes and they leave through this
+// frame, with a stack canary that no longer matches the one stored on entry.
+// A stack protector check here would abort every such child at exit
+// ("stack smashing detected"), so it is disabled for this function only.
+__attribute__((no_stack_protector))
+int main(int argc, char *argv[]) {
+  CefMainArgs main_args(argc, argv);
+  std::vector<JavascriptBinding>placeHolder;
+  std::vector<JavascriptPythonBinding>placeHolderPython;
+  CefRefPtr<CefWrapperApp> app(new CefWrapperApp("", placeHolder, placeHolderPython));
+
+  // Returns the process exit code for sub-processes (>= 0).
+  return CefExecuteProcess(main_args, app.get(), nullptr);
+}
+#endif

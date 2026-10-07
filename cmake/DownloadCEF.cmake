@@ -14,7 +14,10 @@ function(DownloadCEF platform version download_dir)
   set(CEF_DOWNLOAD_DIR "${download_dir}")
 
   # The location where we expect the extracted binary distribution.
-  set(CEF_ROOT "${CEF_DOWNLOAD_DIR}/${CEF_DISTRIBUTION}" CACHE INTERNAL "CEF_ROOT")
+  # Deliberately not cached: a cached value could not be told apart from a
+  # user-supplied CEF_ROOT and would pin an old version on later runs.
+  set(CEF_ROOT "${CEF_DOWNLOAD_DIR}/${CEF_DISTRIBUTION}")
+  set(CEF_ROOT "${CEF_ROOT}" PARENT_SCOPE)
 
   # Download and/or extract the binary distribution if necessary.
   if(NOT IS_DIRECTORY "${CEF_ROOT}")

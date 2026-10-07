@@ -44,10 +44,10 @@ public:
   {
     return StringValue;
   }
-  int Type;
-  int IntValue;
-  bool BoolValue;
-  double DoubleValue;
+  int Type = -1;  // -1: a JavaScript type that is not converted
+  int IntValue = 0;
+  bool BoolValue = false;
+  double DoubleValue = 0.0;
   std::string StringValue;
 };
 typedef void (*js_python_callback_object_ptr);
@@ -56,9 +56,9 @@ typedef void (*js_binding_function_ptr)();
 
 class JavascriptPythonBinding {
 public:
-  js_python_bindings_handler_function_ptr HandlerFunction;
+  js_python_bindings_handler_function_ptr HandlerFunction = nullptr;
   std::string MessageTopic;
-  js_python_callback_object_ptr PythonCallbackObject;
+  js_python_callback_object_ptr PythonCallbackObject = nullptr;
 
 
   JavascriptPythonBinding(){}
@@ -84,6 +84,6 @@ public:
     function = pFunction;
   }
   std::string functionName;
-  js_binding_function_ptr function;
+  js_binding_function_ptr function = nullptr;
 };
 #endif // JAVASCRIPT_BINDING_H

@@ -48,4 +48,39 @@ docs = [
 include = ["cefweaver*"]
 
 [tool.setuptools.package-data]
-cefweaver = ["*.so", "*.pyd", "*.dylib"]
+# The CEF runtime is copied into cefweaver/ by tools/prepare.py (Linux).
+cefweaver = [
+    "*.so", "*.so.*", "*.pyd", "*.dylib",
+    "*.pak", "*.dat", "*.bin", "*.json",
+    "locales/*", "cefsubprocess",
+]
+
+# The native libraries must be prepared first with `python tools/prepare.py`,
+# which also links the CEF distribution at build/native/cef.
+# Linux only for now: the library names and directories below differ on Windows.
+[[tool.setuptools.ext-modules]]
+name = "cefweaver._cefweaver"
+sources = ["cefweaver/_cefweaver.pyx"]
+language = "c++"
+include-dirs = ["build/native/cef", "native/cefwrapper"]
+library-dirs = [
+    "build/native/native/cefwrapper",
+    "build/native/libcef_dll_wrapper",
+    "build/native/cef/Release",
+]
+# Relink when the native libraries or headers change; without this setuptools only
+# compares the .pyx/.cpp timestamps and silently reuses a stale build.
+depends = [
+    "cefweaver/cefwrapper.pxd",
+    "native/cefwrapper/library.h",
+    "native/cefwrapper/javascript_binding.h",
+    "build/native/native/cefwrapper/libcefwrapper.a",
+    "build/native/libcef_dll_wrapper/libcef_dll_wrapper.a",
+    "build/native/cef/Release/libcef.so",
+]
+# Order matters for the static libraries: cefwrapper uses cef_dll_wrapper.
+libraries = ["cefwrapper", "cef_dll_wrapper", "cef", "dl", "pthread"]
+# Must match how the CEF wrapper libraries were compiled (see flags.make).
+define-macros = [["NDEBUG", "1"], ["_FILE_OFFSET_BITS", "64"]]
+extra-compile-args = ["-std=c++20"]
+extra-link-args = ["-Wl,-rpath,$ORIGIN"]

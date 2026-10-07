@@ -1,0 +1,12 @@
+# The CEF runtime staged by tools/prepare.py belongs in the wheel only.
+# (A wheel cannot be built from the sdist alone either: it needs the native
+# libraries prepared by tools/prepare.py, so build with `uv build --wheel`.)
+exclude cefweaver/libcef.so
+exclude cefweaver/libvk_swiftshader.so
+exclude cefweaver/*.so.*
+exclude cefweaver/cefsubprocess
+exclude cefweaver/*.pak
+exclude cefweaver/*.dat
+exclude cefweaver/*.bin
+exclude cefweaver/vk_swiftshader_icd.json
+prune cefweaver/locales

@@ -19,6 +19,20 @@ CefRefPtr<CefBrowser> CefWrapperApp::GetBrowser()
 void CefWrapperApp::OnBeforeCommandLineProcessing(
     const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
   //command_line->AppendSwitch("allow-file-access-from-files");
+  if (!process_type.empty()) {
+    return;  // child processes inherit the browser process switches
+  }
+  for (const auto &entry : m_CommandLineSwitches) {
+    if (entry.second.empty()) {
+      command_line->AppendSwitch(entry.first);
+    } else {
+      command_line->AppendSwitchWithValue(entry.first, entry.second);
+    }
+  }
+}
+
+void CefWrapperApp::AddCommandLineSwitch(std::string name, std::string value) {
+  m_CommandLineSwitches.emplace_back(std::move(name), std::move(value));
 }
 
 CefWrapperApp::CefWrapperApp(std::string start_url, std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings) {

@@ -11,27 +11,30 @@ void SimpleRenderProcessHandler::OnBrowserCreated(
     CEF_REQUIRE_RENDERER_THREAD();
 
 
-    if (extra_info->HasKey("JSCallbacks"))
+    // extra_info is null for browsers that were not created by this wrapper.
+    if (!extra_info)
     {
-        CefRefPtr<CefBinaryValue>callbackList = extra_info->GetBinary("JSCallbacks");
-        JavascriptBinding callbacks[100];
-        m_Javascript_Bindings = std::vector<JavascriptBinding>();
-        callbackList->GetData(&callbacks[0], (sizeof(JavascriptBinding) * 100), 0);
-        int size = extra_info->GetInt("JSCallbacksSize");
-        for (int i = 0; i < size; ++i) {
-          m_Javascript_Bindings.push_back(callbacks[i]);
-        }
+      return;
     }
 
-    if (extra_info->HasKey("JSNativePythonApi"))
+    // The renderer only needs the names: calls are forwarded to the browser
+    // process, which owns the handler functions.
+    if (extra_info->HasKey("JSCallbackNames"))
     {
-      CefRefPtr<CefBinaryValue>callbackList = extra_info->GetBinary("JSNativePythonApi");
-      JavascriptPythonBinding callbacks[100];
+      CefRefPtr<CefListValue> names = extra_info->GetList("JSCallbackNames");
+      m_Javascript_Bindings = std::vector<JavascriptBinding>();
+      for (size_t i = 0; i < names->GetSize(); ++i) {
+        m_Javascript_Bindings.push_back(JavascriptBinding(names->GetString(i), nullptr));
+      }
+    }
+
+    if (extra_info->HasKey("JSNativePythonApiNames"))
+    {
+      CefRefPtr<CefListValue> names = extra_info->GetList("JSNativePythonApiNames");
       m_Javascript_Python_Bindings = std::vector<JavascriptPythonBinding>();
-      callbackList->GetData(&callbacks[0], (sizeof(JavascriptPythonBinding) * 100), 0);
-      int size = extra_info->GetInt("JSNativePythonApiSize");
-      for (int i = 0; i < size; ++i) {
-        m_Javascript_Python_Bindings.push_back(callbacks[i]);
+      for (size_t i = 0; i < names->GetSize(); ++i) {
+        m_Javascript_Python_Bindings.push_back(
+            JavascriptPythonBinding(nullptr, names->GetString(i), nullptr));
       }
     }
 }

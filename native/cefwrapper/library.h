@@ -10,8 +10,10 @@
 class CefWrapper {
 public:
   CefWrapper();
-  void InitCefSimple(std::string start_url);
-  void ExecuteJavascript(std::string code);
+  // Returns false if CEF could not be initialized.
+  bool InitCefSimple(std::string start_url);
+  // Returns false if the code was not run (no page yet, or still loading).
+  bool ExecuteJavascript(std::string code);
   void ShutdownCefSimple();
   bool IsRunning();
   bool IsReadyToExecuteJavascript();
@@ -23,13 +25,22 @@ public:
       js_python_callback_object_ptr python_callback_object);
   void SetCustomCefSubprocessPath(std::string cefsub_path);
   void SetCustomCefCachePath(std::string cef_cache_path);
-  void LoadUrl(std::string url);
+  void SetCustomCefResourcesPath(std::string cef_resources_path);
+  // Must be called before InitCefSimple(). An empty value adds a bare switch.
+  void AddCommandLineSwitch(std::string name, std::string value);
+  // Returns false if there is no browser yet.
+  bool LoadUrl(std::string url);
 
 private:
     CefRefPtr<CefWrapperApp> m_App;
 
     bool m_UseCustomCefSubPath = false;
     std::string m_CustomCefSubPath = "";
+
+    std::vector<std::pair<std::string, std::string>> m_CommandLineSwitches;
+
+    bool m_UseCustomCefResourcesPath = false;
+    std::string m_CustomCefResourcesPath = "";
 
     bool m_UseCustomCefCachePath = false;
     std::string m_CustomCefCachePath = "";

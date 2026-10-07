@@ -62,22 +62,27 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
 #endif
 
   CefRefPtr<CefDictionaryValue> extra = CefDictionaryValue::Create();
+  // Only the names cross the process boundary. The binding objects hold
+  // std::string and function pointers of this process, so they must not be
+  // copied as raw memory into the renderer process.
   if(!m_JavascriptBindings.empty())
   {
-
-    CefRefPtr<CefBinaryValue> val = CefBinaryValue::Create(static_cast<void*>(m_JavascriptBindings.data()),  (sizeof(JavascriptBinding) * m_JavascriptBindings.size())
-    );
-    extra->SetBinary("JSCallbacks", val);
-    extra->SetInt("JSCallbacksSize", (int)m_JavascriptBindings.size());
+    CefRefPtr<CefListValue> names = CefListValue::Create();
+    for (size_t i = 0; i < m_JavascriptBindings.size(); ++i)
+    {
+      names->SetString(i, m_JavascriptBindings[i].functionName);
+    }
+    extra->SetList("JSCallbackNames", names);
   }
 
   if(!m_JavascriptPythonBindings.empty())
   {
-
-    CefRefPtr<CefBinaryValue> val = CefBinaryValue::Create(static_cast<void*>(m_JavascriptPythonBindings.data()),  (sizeof(JavascriptPythonBinding) * m_JavascriptPythonBindings.size())
-    );
-    extra->SetBinary("JSNativePythonApi", val);
-    extra->SetInt("JSNativePythonApiSize", (int)m_JavascriptPythonBindings.size());
+    CefRefPtr<CefListValue> names = CefListValue::Create();
+    for (size_t i = 0; i < m_JavascriptPythonBindings.size(); ++i)
+    {
+      names->SetString(i, m_JavascriptPythonBindings[i].MessageTopic);
+    }
+    extra->SetList("JSNativePythonApiNames", names);
   }
 
   Browser = CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,

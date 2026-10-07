@@ -28,12 +28,16 @@ public:
       CefRefPtr<CefCommandLine> command_line) override;
 
   void LoadUrl(std::string url);
+  // Switches are applied to the browser process command line, from which CEF
+  // passes them on to the child processes.
+  void AddCommandLineSwitch(std::string name, std::string value);
   void
   OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) override;
 
 private:
   std::vector<JavascriptBinding> m_Javascript_Bindings;
   std::vector<JavascriptPythonBinding> m_Javascript_Python_Bindings;
+  std::vector<std::pair<std::string, std::string>> m_CommandLineSwitches;
 
   IMPLEMENT_REFCOUNTING(CefWrapperApp);
 };

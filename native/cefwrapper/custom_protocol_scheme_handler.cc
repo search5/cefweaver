@@ -21,7 +21,7 @@ public:
 
     std::string url = request->GetURL();
 
-    if (url.starts_with("zen://")) {
+    if (url.rfind("zen://", 0) == 0) {
 
       std::string filePath = url.substr(6);
       size_t sep = filePath.find_last_of('.');
@@ -52,7 +52,7 @@ public:
   }
 
   void GetResponseHeaders(CefRefPtr<CefResponse> response,
-                          int64 &response_length,
+                          int64_t &response_length,
                           CefString &redirectUrl) override {
     CEF_REQUIRE_IO_THREAD();
 
