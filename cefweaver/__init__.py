@@ -17,6 +17,7 @@ if sys.platform.startswith("linux"):
 elif sys.platform == "win32":
     os.add_dll_directory(_package_dir)  # libcef.dll next to the module (not tested yet)
 
-from ._cefweaver import CefApp  # noqa: E402
+from . import _cefweaver  # noqa: E402
+from ._cefweaver import *  # noqa: E402,F401,F403  (the public names are listed in __all__)
 
-__all__ = ["CefApp"]
+__all__ = list(_cefweaver.__all__)

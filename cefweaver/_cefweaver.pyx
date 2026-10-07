@@ -17,9 +17,13 @@ the JavaScript bindings below) is delivered inside ``do_message_loop_work()``.
 
 import os
 import sys
+from urllib.parse import urlsplit
 
+from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
+from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
+from cefweaver.cef_api cimport *
 from cefweaver.cefwrapper cimport CefValueWrapper, CefWrapper
 
 
@@ -65,6 +69,57 @@ cdef void _dispatch(void* callback, int args_size, CefValueWrapper* args) noexce
             pass
 
 
+# The wrappers generated from the CEF headers by tools/gen/generate.py: Request, Response,
+# ResourceHandler, SchemeHandlerFactory, register_scheme_handler_factory(), ...
+include "cef_api.pxi"
+
+
+class _StaticResource(ResourceHandler):
+    """Serves one in-memory resource (used by CefApp.add_resource)."""
+
+    def __init__(self, data, mime_type, status, headers):
+        self._data = data
+        self._mime_type = mime_type
+        self._status = status
+        self._headers = headers
+        self._offset = 0
+
+    def open(self, request, callback):
+        return True, True  # handled, and the response can be read right away
+
+    def get_response_headers(self, response):
+        response.set_mime_type(self._mime_type)
+        response.set_status(self._status)
+        for name, value in self._headers.items():
+            response.set_header_by_name(name, value, True)
+        return len(self._data), ""
+
+    def read(self, data_out, callback):
+        count = min(len(data_out), len(self._data) - self._offset)
+        if count <= 0:
+            return False, 0  # the end of the resource
+        data_out[:count] = self._data[self._offset:self._offset + count]
+        self._offset += count
+        return True, count
+
+    def cancel(self):
+        pass
+
+
+def _resource_key(url):
+    parts = urlsplit(url)
+    return "%s://%s%s" % (parts.scheme, parts.netloc, parts.path or "/")
+
+
+class _StaticResourceFactory(SchemeHandlerFactory):
+    def __init__(self):
+        self.resources = {}
+
+    def create(self, browser, frame, scheme_name, request):
+        resource = self.resources.get(_resource_key(request.get_url()))
+        return _StaticResource(*resource) if resource is not None else None
+
+
 cdef class CefApp:
     """An embedded Chromium (CEF) instance.
 
@@ -84,12 +139,16 @@ cdef class CefApp:
     cdef bint _initialized
     cdef bint _shut_down
     cdef list _callbacks  # keeps the bound callables alive: C++ holds raw pointers
+    cdef object _resources  # _StaticResourceFactory, created by add_resource()
+    cdef set _resource_hosts
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
         self._initialized = False
         self._shut_down = False
         self._callbacks = []
+        self._resources = None
+        self._resource_hosts = set()
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -197,6 +256,28 @@ cdef class CefApp:
             done = self._wrapper.ExecuteJavascript(value)
         return done
 
+    def add_resource(self, url, content, mime_type="text/html", headers=None, int status=200):
+        """Serve ``content`` for ``url`` (http or https) without a network access.
+
+        Call it after ``initialize()`` and before the page is loaded. The query
+        and fragment of a requested URL are ignored.
+        """
+        self._require_running()
+        parts = urlsplit(url)
+        if parts.scheme not in ("http", "https") or not parts.hostname:
+            raise ValueError("expected an absolute http or https URL, not %r" % (url,))
+        if isinstance(content, str):
+            content = content.encode("utf-8")
+        if self._resources is None:
+            self._resources = _StaticResourceFactory()
+        self._resources.resources[_resource_key(url)] = (
+            bytes(content), mime_type, status, dict(headers or {}))
+        host = (parts.scheme, parts.hostname)
+        if host not in self._resource_hosts:
+            if not register_scheme_handler_factory(parts.scheme, parts.hostname, self._resources):
+                raise RuntimeError("CEF did not accept the scheme handler for %s://%s" % host)
+            self._resource_hosts.add(host)
+
     # -- state -------------------------------------------------------------------
 
     @property
@@ -207,3 +288,6 @@ cdef class CefApp:
     def is_ready_to_execute_javascript(self):
         return (self._initialized and not self._shut_down
                 and self._wrapper.IsReadyToExecuteJavascript())
+
+
+__all__ = ["CefApp"] + __generated_all__

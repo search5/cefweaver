@@ -57,6 +57,17 @@ Python API (Linux, early preview)
         app.do_message_loop_work()
     app.shutdown()
 
+Pages can also be served from memory, without a network access::
+
+    app.add_resource("http://app.test/index.html", "<h1>hello</h1>")
+    app.load_url("http://app.test/index.html")
+
+The CEF classes are available as generated, PEP 8 style wrappers
+(``cefweaver.Request``, ``cefweaver.ResourceHandler``,
+``cefweaver.SchemeHandlerFactory``, ``cefweaver.register_scheme_handler_factory()``,
+...). They are generated from the CEF headers by ``tools/gen``; the part of the CEF
+API covered so far is listed in ``tools/gen/COVERAGE.txt``.
+
 CEF runs with an external message pump: the thread that calls ``initialize()`` is
 the CEF UI thread, and JavaScript bindings are called inside ``do_message_loop_work()``.
 On Linux ``libcef.so``, ``icudtl.dat``, the ``.pak`` files, ``locales/`` and the

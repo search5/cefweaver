@@ -76,13 +76,32 @@ class ApiWithoutCef(unittest.TestCase):
         with self.assertRaises(TypeError):
             cefweaver.CefApp().add_javascript_binding("x", 3)
 
+    def test_generated_names_are_public_and_pep8(self):
+        for name in ("Request", "Response", "Callback", "ResourceHandler", "SchemeHandlerFactory",
+                     "register_scheme_handler_factory", "get_mime_type"):
+            self.assertIn(name, cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.Callback, "continue_"))  # Continue() is a keyword
+        self.assertTrue(hasattr(cefweaver.Request, "get_url"))  # GetURL()
+        self.assertEqual(cefweaver.get_mime_type("html"), "text/html")
+
+    def test_library_objects_cannot_be_created_directly(self):
+        with self.assertRaises(TypeError):
+            cefweaver.Request()
+        request = cefweaver.Request.create()
+        request.set_url("http://example.test/a?b=1")
+        self.assertEqual(request.get_url(), "http://example.test/a?b=1")
+
+    def test_add_resource_needs_a_running_cef(self):
+        with self.assertRaises(RuntimeError):
+            cefweaver.CefApp().add_resource("http://a.test/", "x")
+
 
 @unittest.skipUnless(RUNTIME_OK and HAS_X, "needs the Linux wheel with the CEF runtime "
                      "and a virtual X server (see the module docstring)")
 class WithCef(unittest.TestCase):
     def assertClean(self, result):
         # A TimeoutError in the script names the awaited event in its traceback.
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertNotIn("stack smashing", result.stderr)
 
     def test_javascript_to_python_binding_and_shutdown(self):
@@ -134,6 +153,117 @@ class WithCef(unittest.TestCase):
         """)
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
+
+    def test_add_resource_serves_pages_without_a_network(self):
+        result = run_cef("""
+            got = {}
+            app.add_javascript_binding("report", lambda key, *v: got.setdefault(key, v))
+            big = bytes((i * 7 + 3) % 251 for i in range(300000))  # read in several chunks
+            app.initialize("about:blank")
+            app.add_resource("http://res.test/index.html",
+                             '<meta charset="utf-8"><title>가짜 페이지</title>'
+                             '<script src="/app.js"></script>', headers={"X-Test": "yes"})
+            app.add_resource("http://res.test/app.js", '''
+                report('page', document.title, location.href);
+                fetch('/big.bin').then(r => r.arrayBuffer()).then(b => {
+                  const a = new Uint8Array(b); let h = 0;
+                  for (let i = 0; i < a.length; i++) h = (h * 31 + a[i]) % 1000000007;
+                  report('big', a.length, h);
+                });
+                fetch('/index.html').then(r => report('headers', r.status,
+                    r.headers.get('content-type'), r.headers.get('x-test')));
+                fetch('/gone.html?x=1').then(r => report('gone', r.status));
+            ''', mime_type="text/javascript")
+            app.add_resource("http://res.test/big.bin", big, mime_type="application/octet-stream")
+            app.add_resource("http://res.test/gone.html", "gone", status=404)
+            assert app.load_url("http://res.test/index.html") is True
+            wait_until(app, lambda: {"page", "big", "headers", "gone"} <= set(got), "the resources")
+            h = 0
+            for byte in big:
+                h = (h * 31 + byte) % 1000000007
+            assert got["page"] == ("가짜 페이지", "http://res.test/index.html"), got
+            assert got["big"] == (len(big), h), got["big"]
+            assert got["headers"] == (200, "text/html", "yes"), got["headers"]
+            assert got["gone"] == (404,), got["gone"]
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_resource_handler_can_answer_later_from_another_thread(self):
+        # The generated low-level API: a handler that continues asynchronously.
+        result = run_cef("""
+            import threading
+            got = []
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            body = b"<script>report('late answer')</script>"
+
+            class LateHandler(cefweaver.ResourceHandler):
+                sent = False
+
+                def open(self, request, callback):
+                    threading.Timer(0.3, callback.continue_).start()
+                    return True, False  # handled, but not yet: continue_() will tell
+                def get_response_headers(self, response):
+                    response.set_mime_type("text/html")
+                    response.set_status(200)
+                    return len(body), ""
+                def read(self, data_out, callback):
+                    if self.sent:
+                        return False, 0  # the end of the response
+                    self.sent = True
+                    data_out[:len(body)] = body
+                    return True, len(body)
+                def cancel(self):
+                    pass
+
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    assert isinstance(request, cefweaver.Request)
+                    assert scheme_name == "http"
+                    return LateHandler()
+
+            app.initialize("about:blank")
+            assert cefweaver.register_scheme_handler_factory("http", "late.test", Factory())
+            app.load_url("http://late.test/")
+            wait_until(app, lambda: got, "the delayed answer")
+            assert got == [("late answer",)], got
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_exceptions_in_a_resource_handler_do_not_crash(self):
+        result = run_cef("""
+            got = []
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+
+            class Broken(cefweaver.ResourceHandler):
+                def open(self, request, callback):
+                    raise RuntimeError("broken on purpose")
+
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    if request.get_url().endswith("/broken"):
+                        return Broken()
+                    raise ValueError("factory failed on purpose")
+
+            app.initialize("about:blank")
+            cefweaver.register_scheme_handler_factory("http", "err.test", Factory())
+            app.add_resource("http://ok.test/", "<script>report('still alive')</script>")
+            app.load_url("http://err.test/broken")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the failed load")
+            app.load_url("http://ok.test/")
+            wait_until(app, lambda: got, "a page after the failures")
+            assert got == [("still alive",)], got
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+        self.assertIn("broken on purpose", result.stderr)  # reported through sys.excepthook
 
 
 if __name__ == "__main__":

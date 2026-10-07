@@ -32,11 +32,31 @@ env -u WAYLAND_DISPLAY xvfb-run -a python -m unittest discover -s tests -v
 - 시험은 설치된 wheel을 대상으로 하며, 가상 X 서버에서 실행해야 합니다. Wayland 환경에서는 Chromium이 실제 화면에 창을 열 수 있습니다.
 - 지원 플랫폼은 Linux x86_64입니다. Windows는 미검증이고 macOS는 지원하지 않습니다.
 
+## 바인딩 생성기 (`tools/gen/`)
+
+CEF API 전체를 손으로 중계하지 않고, CEF 헤더에서 Python 바인딩을 **생성**합니다. 파서는 CEF의 공식 헤더 파서(`tools/gen/vendor/`, 출처와 라이선스는 그 안의 `README.txt`)이고, 입력은 사용 중인 배포본의 헤더(`build/native/cef/include`)입니다.
+
+```sh
+python tools/gen/generate.py            # 생성 파일 갱신
+python tools/gen/generate.py --check    # 생성 파일이 최신인지 확인 (시험에도 포함)
+python tools/gen/generate.py --report   # 커버리지 보고서 출력 (tools/gen/COVERAGE.txt)
+```
+
+생성되는 파일은 모두 저장소에 커밋하며 **직접 고치지 않습니다**: `native/cefwrapper/generated/cefweaver_proxies.h`(핸들러를 Python 객체로 위임하는 C++ 프록시), `cefweaver/cef_api.pxd`, `cefweaver/cef_api.pxi`(Cython), `cefweaver/_cefweaver.pyi`(타입 스텁, `tools/gen/handwritten.pyi`의 `CefApp` 부분 포함). CEF 버전을 바꾸면 `prepare.py` 다음에 `generate.py`를 실행합니다.
+
+- **범위**: `tools/gen/scope.py`의 클래스와 함수 목록입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드(보고서의 "class ... is not generated yet")도 함께 열립니다.
+- **타입**: `tools/gen/typesys.py`가 모든 C++ 타입을 분류합니다. 지원하지 못하는 타입은 건너뛰지 않고 **이유와 함께** 보고서에 남습니다. 새 타입을 지원하려면 `typesys.py`에 종류를 추가하고 세 방출기(`emit_cpp.py`, `emit_cython.py`, `emit_pyi.py`)에 변환을 추가합니다. 현재 보고서 기준으로 남은 장애물은 값 타입 구조체, 벡터, 소유 포인터, 맵 순입니다.
+- **이름 규칙(PEP 8)**: `Cef` 접두사를 뗍니다(`CefResourceHandler` → `ResourceHandler`). 메서드와 인자는 snake_case이고(`GetURL` → `get_url`), 예약어는 밑줄을 붙입니다(`Continue` → `continue_`).
+- **시그니처 규칙**: 핸들러(CEF가 호출하는 쪽) 메서드는 출력 인자를 **반환값으로** 돌려줍니다. 반환값이 있으면 그것이 먼저이고, 값이 하나면 그대로, 둘 이상이면 튜플입니다(`open` → `(handled, handle_request)`). `void* + 크기` 쌍은 쓰기 가능한 `memoryview` 하나입니다(호출이 끝나면 무효화됩니다). `None`은 헤더가 `optional_param`으로 표시한 곳에만 허용됩니다.
+- **핸들러**: Python 기반 클래스를 상속하며, 재정의하지 않은 메서드는 C++ 기반 클래스의 기본 동작을 따릅니다. 예외는 `sys.excepthook`으로 보고되고 CEF로 전파되지 않습니다.
+- **GIL**: CEF를 부르는 호출은 `with nogil`, CEF가 부르는 콜백은 `with gil`입니다.
+- **초기화 전**: `libcef`는 API 버전이 설정되기 전에 라이브러리 객체를 쓰면 프로세스를 중단시킵니다. 생성된 모듈이 불러올 때 `cef_api_hash()`를 호출해서 `Request.create()` 같은 호출이 초기화 전에도 안전합니다.
+
 ## 시험 작성 원칙
 
 java-cef의 시험(`java/tests/junittests/`, 위키의 `run-and-test.md`)을 참고해서 정한 원칙입니다.
 
 - **조건을 기다립니다.** 고정 시간만큼 기다리지 않고, 기다리는 사건을 `wait_until(app, 조건, "설명")`으로 지정합니다. 시간 제한은 상한일 뿐이며, 초과하면 무엇을 기다렸는지 밝히는 `TimeoutError`로 실패합니다. java-cef의 `awaitCompletion()`(`CountDownLatch`)에 해당합니다.
 - **CEF를 띄우는 시험은 프로세스를 분리합니다.** CEF는 프로세스당 한 번만 초기화할 수 있습니다. java-cef는 `TestSetupExtension`으로 JVM 하나에서 CEF를 공유하지만, 우리는 한 시험의 크래시가 다른 시험을 막지 않도록 시험마다 새 프로세스에서 실행합니다. 시험이 많아져 비용이 커지면 공유 방식을 검토합니다.
-- **외부 네트워크를 쓰지 않습니다.** 지금은 `data:` URL을 씁니다. java-cef처럼 가짜 URL과 리소스 핸들러(`addResource`)로 응답을 주는 방식은 C++ 래퍼에 해당 API가 생긴 뒤에 도입합니다.
+- **외부 네트워크를 쓰지 않습니다.** 가짜 URL의 응답은 `app.add_resource()`로 주고(java-cef의 `addResource`에 해당), 핸들러의 세부 동작은 생성된 `ResourceHandler`와 `SchemeHandlerFactory`를 직접 구현해서 시험합니다. 간단한 페이지는 `data:` URL도 씁니다.
 - **정상 종료까지 확인합니다.** 종료 코드가 0이고 stderr에 `stack smashing`이 없어야 합니다(서브프로세스 종료 결함의 회귀 방지).

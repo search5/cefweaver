@@ -53,6 +53,7 @@ cefweaver = [
     "*.so", "*.so.*", "*.pyd", "*.dylib",
     "*.pak", "*.dat", "*.bin", "*.json",
     "locales/*", "cefsubprocess",
+    "*.pyi", "py.typed",
 ]
 
 # The native libraries must be prepared first with `python tools/prepare.py`,
@@ -72,6 +73,9 @@ library-dirs = [
 # compares the .pyx/.cpp timestamps and silently reuses a stale build.
 depends = [
     "cefweaver/cefwrapper.pxd",
+    "cefweaver/cef_api.pxd",
+    "cefweaver/cef_api.pxi",
+    "native/cefwrapper/generated/cefweaver_proxies.h",
     "native/cefwrapper/library.h",
     "native/cefwrapper/javascript_binding.h",
     "build/native/native/cefwrapper/libcefwrapper.a",
