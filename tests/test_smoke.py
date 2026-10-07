@@ -13,7 +13,6 @@ its script in a separate Python process.
 import os
 import subprocess
 import sys
-import tempfile
 import textwrap
 import unittest
 
@@ -33,11 +32,16 @@ PRELUDE = """
 import base64, sys, tempfile, time
 import cefweaver
 
-def pump(app, seconds, until=lambda: False):
-    end = time.time() + seconds
-    while time.time() < end and not until():
+def wait_until(app, condition, what, timeout=30):
+    # CEF runs on this thread's message loop, so waiting means pumping it.
+    # The timeout is only an upper bound: the loop ends as soon as `condition`
+    # holds, and a timeout is reported as a failure naming what was awaited.
+    end = time.time() + timeout
+    while not condition():
+        if time.time() > end:
+            raise TimeoutError("timed out waiting for " + what)
         app.do_message_loop_work()
-        time.sleep(0.01)
+        time.sleep(0.005)
 
 def page(body):
     html = '<html><head><meta charset="utf-8"></head><body>' + body + '</body></html>'
@@ -77,6 +81,7 @@ class ApiWithoutCef(unittest.TestCase):
                      "and a virtual X server (see the module docstring)")
 class WithCef(unittest.TestCase):
     def assertClean(self, result):
+        # A TimeoutError in the script names the awaited event in its traceback.
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn("stack smashing", result.stderr)
 
@@ -86,7 +91,7 @@ class WithCef(unittest.TestCase):
             app.add_javascript_binding("report", lambda *a: got.append(a))
             app.initialize(page('<script>window.addEventListener("load",'
                                 '()=>report(1, "é한글", true, 2.5, "x"))</script>'))
-            pump(app, 20, lambda: got)
+            wait_until(app, lambda: got, "the JavaScript call")
             assert got == [(1, "é한글", True, 2.5, "x")], got
             app.shutdown()
             assert not app.is_running
@@ -102,7 +107,7 @@ class WithCef(unittest.TestCase):
             app.add_javascript_binding("noargs", lambda *a: got.append(a))
             app.add_javascript_binding("boom", boom)
             app.initialize(page('<script>addEventListener("load",()=>{noargs();boom();noargs(7)})</script>'))
-            pump(app, 20, lambda: len(got) == 2)
+            wait_until(app, lambda: len(got) == 2, "both noargs() calls")
             assert got == [(), (7,)], got
             app.shutdown()
             print("OK")
@@ -117,12 +122,12 @@ class WithCef(unittest.TestCase):
             app.add_javascript_binding("report", lambda *a: got.append(a))
             app.initialize("about:blank")
             assert app.execute_javascript("1") is False          # page still loading
-            pump(app, 5, lambda: app.is_ready_to_execute_javascript)
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the first page")
             assert app.load_url(page('<script>report("second")</script>')) is True
-            pump(app, 15, lambda: got)
-            pump(app, 3, lambda: app.is_ready_to_execute_javascript)
+            wait_until(app, lambda: got, "the script of the loaded page")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page load to end")
             assert app.execute_javascript('report("exec")') is True
-            pump(app, 10, lambda: len(got) == 2)
+            wait_until(app, lambda: len(got) == 2, "the execute_javascript() call")
             assert got == [("second",), ("exec",)], got
             app.shutdown()
             print("OK")
