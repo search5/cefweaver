@@ -8,6 +8,43 @@
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저, 데모 페이지, `JavascriptBridge` 함수 |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 위젯을 구동해 점검하는 스크립트 |
 
+## quickstart
+
+GTK 3에 페이지를 띄우는 가장 작은 프로그램입니다(`quickstart.py`). 주소를 인자로 줄 수 있고, 창을 닫으면 브라우저를 먼저 닫은 뒤 끝납니다. 이 코드가 실제로 뜨고 정상 종료하는지는 `tests/test_ui.py`의 `Quickstarts`가 확인합니다.
+
+```python
+import sys
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import GLib, Gtk  # noqa: E402
+
+from cefweaver import ui  # noqa: E402
+from cefweaver.ui.toolkits.gtk3 import CefWidget, GlibLoop  # noqa: E402
+
+URL = sys.argv[1] if len(sys.argv) > 1 else "https://example.org/"
+
+session = ui.Session(GlibLoop())                      # CEF, run by the GLib loop
+widget = CefWidget(session)                           # the browser, a Gtk.DrawingArea
+widget.connect("browser-ready", lambda w: w.load_url(URL))
+widget.connect("title-changed", lambda w, title: print("title:", title, flush=True))
+window = Gtk.Window(title="cefweaver")
+window.set_default_size(900, 640)
+window.add(widget)
+window.connect("delete-event", lambda w, e: session.shutdown(Gtk.main_quit) or True)   # close the browser first
+window.show_all()
+
+
+def start():
+    session.start(widget)
+    return False
+
+
+GLib.idle_add(start)
+Gtk.main()
+```
+
 ## 환경 (uv)
 
 Ubuntu에서 PyGObject를 소스에서 빌드하므로 개발 패키지가 필요합니다.

@@ -30,9 +30,6 @@ from kivy.uix.widget import Widget
 from cefweaver import types, ui
 from cefweaver.ui import keys
 
-SHIFT, CONTROL, ALT = keys.SHIFT, keys.CONTROL, keys.ALT
-LEFT_BUTTON, MIDDLE_BUTTON, RIGHT_BUTTON = keys.LEFT_BUTTON, keys.MIDDLE_BUTTON, keys.RIGHT_BUTTON
-
 _K = Keyboard.keycodes
 _KEYS = {
     _K["backspace"]: keys.VK_BACK, _K["tab"]: keys.VK_TAB, _K["enter"]: keys.VK_RETURN, _K["escape"]: keys.VK_ESCAPE,

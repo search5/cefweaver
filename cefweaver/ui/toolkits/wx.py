@@ -20,9 +20,6 @@ import wx
 from cefweaver import types, ui
 from cefweaver.ui import keys
 
-SHIFT, CONTROL, ALT = keys.SHIFT, keys.CONTROL, keys.ALT
-LEFT_BUTTON, MIDDLE_BUTTON, RIGHT_BUTTON = keys.LEFT_BUTTON, keys.MIDDLE_BUTTON, keys.RIGHT_BUTTON
-
 _KEYS = {
     wx.WXK_BACK: keys.VK_BACK, wx.WXK_TAB: keys.VK_TAB, wx.WXK_RETURN: keys.VK_RETURN, wx.WXK_NUMPAD_ENTER: keys.VK_RETURN,
     wx.WXK_ESCAPE: keys.VK_ESCAPE, wx.WXK_SPACE: keys.VK_SPACE, wx.WXK_PAGEUP: keys.VK_PRIOR, wx.WXK_PAGEDOWN: keys.VK_NEXT,

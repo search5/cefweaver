@@ -150,3 +150,6 @@ cefweaver/cefsubprocess
 .serena/
 examples/*/uv.lock
 examples/*/.venv-*/
+
+# The cache CEF makes in the working directory when no cache path is set
+cache/

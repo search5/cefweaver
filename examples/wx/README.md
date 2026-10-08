@@ -8,6 +8,32 @@
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`) |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 
+## quickstart
+
+wxPython에 페이지를 띄우는 가장 작은 프로그램입니다(`quickstart.py`). 주소를 인자로 줄 수 있고, 창을 닫으면 브라우저를 먼저 닫은 뒤 끝납니다. 이 코드가 실제로 뜨고 정상 종료하는지는 `tests/test_ui.py`의 `Quickstarts`가 확인합니다.
+
+```python
+import sys
+
+import wx
+
+from cefweaver import ui
+from cefweaver.ui.toolkits.wx import CefPanel, WxLoop
+
+URL = sys.argv[1] if len(sys.argv) > 1 else "https://example.org/"
+
+app = wx.App()
+session = ui.Session(WxLoop())                        # CEF, run by the wx loop
+frame = wx.Frame(None, title="cefweaver", size=(900, 640))
+panel = CefPanel(frame, session)                      # the browser, a wx.Panel
+panel.on_ready = lambda: panel.load_url(URL)
+panel.on_title = lambda title: print("title:", title, flush=True)
+frame.Bind(wx.EVT_CLOSE, lambda event: session.shutdown(frame.Destroy))   # close the browser first
+frame.Show()
+wx.CallAfter(session.start, panel)
+app.MainLoop()
+```
+
 ## 환경 (uv)
 
 wxPython은 PyPI에 Linux wheel이 없어서 wxPython 사이트의 인덱스(`find-links`)를 `pyproject.toml`에 적었습니다. 이 인덱스는 응답이 느려서(요청 하나에 20초 이상) 첫 `uv sync`에 몇 분이 걸립니다. 주소의 `ubuntu-24.04`는 배포판에 맞게 바꾸십시오.

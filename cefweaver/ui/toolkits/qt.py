@@ -39,9 +39,6 @@ else:
 from cefweaver import types, ui
 from cefweaver.ui import keys
 
-SHIFT, CONTROL, ALT = keys.SHIFT, keys.CONTROL, keys.ALT
-LEFT_BUTTON, MIDDLE_BUTTON, RIGHT_BUTTON = keys.LEFT_BUTTON, keys.MIDDLE_BUTTON, keys.RIGHT_BUTTON
-
 _KEYS = {
     Qt.Key.Key_Backspace: keys.VK_BACK, Qt.Key.Key_Tab: keys.VK_TAB, Qt.Key.Key_Backtab: keys.VK_TAB,
     Qt.Key.Key_Return: keys.VK_RETURN, Qt.Key.Key_Enter: keys.VK_RETURN, Qt.Key.Key_Escape: keys.VK_ESCAPE,

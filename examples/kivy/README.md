@@ -8,6 +8,46 @@ Kivy `Widget`에 cefweaver의 오프스크린 브라우저를 그리는 예제�
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`), `App` |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`). Kivy의 루프를 한 번씩 직접 돌립니다 |
 
+## quickstart
+
+Kivy에 페이지를 띄우는 가장 작은 프로그램입니다(`quickstart.py`). 주소를 인자로 줄 수 있고, 창을 닫으면 브라우저를 먼저 닫은 뒤 끝납니다. 이 코드가 실제로 뜨고 정상 종료하는지는 `tests/test_ui.py`의 `Quickstarts`가 확인합니다.
+
+```python
+import os
+import sys
+
+os.environ.setdefault("KIVY_NO_ARGS", "1")
+
+from kivy.app import App  # noqa: E402
+from kivy.clock import Clock  # noqa: E402
+from kivy.config import Config  # noqa: E402
+
+Config.set("kivy", "exit_on_escape", "0")             # Escape is a key of the page
+
+from kivy.core.window import Window  # noqa: E402
+
+from cefweaver import ui  # noqa: E402
+from cefweaver.ui.toolkits.kivy import CefView, KivyLoop  # noqa: E402
+
+URL = sys.argv[1] if len(sys.argv) > 1 else "https://example.org/"
+
+
+class Quickstart(App):
+    def build(self):
+        self.session = ui.Session(KivyLoop())         # CEF, run by the Kivy clock
+        self.view = CefView(self.session)             # the browser, a Widget
+        self.view.bind(on_ready=lambda view: view.load_url(URL),
+                       on_title=lambda view, title: print("title:", title, flush=True))
+        Window.bind(on_request_close=lambda *args: self.session.shutdown(self.stop) or True)   # close the browser first
+        return self.view
+
+    def on_start(self):
+        Clock.schedule_once(lambda dt: self.session.start(self.view), 0)
+
+
+Quickstart().run()
+```
+
 ## 환경 (uv)
 
 Kivy wheel이 SDL2를 가져오므로 시스템 패키지가 필요 없습니다(클립보드는 Kivy가 `xsel`을 찾아 씁니다).

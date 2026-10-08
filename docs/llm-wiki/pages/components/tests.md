@@ -11,7 +11,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 네 파일에 392개(통합 183, 생성기 120, UI 88, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 네 파일에 398개(통합 183, 생성기 120, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -149,7 +149,9 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 
 ## tests/test_ui.py: UI 어댑터 시험
 
-`cefweaver.ui`의 시험입니다([UI 어댑터 API](../reference/ui-api.md)). 87개는 가짜 브라우저(호출을 기록)와 가짜 어댑터로 CEF 프로세스 없이 실행합니다: 마우스(위치, 수정 키, 클릭 횟수를 세는 규칙, 툴킷이 주는 횟수), 키(`RAWKEYDOWN`, `CHAR`, `KEYUP`, Ctrl이나 Alt에서의 생략, Enter와 Tab과 BackSpace의 `CHAR`), 문자와 입력기 글자, 조합, 클립보드 키(능력에 따라 가로채기와 통과), 그리기와 팝업과 커서와 선택 텍스트, 제목과 주소와 로딩, 나가는 드래그(어댑터가 없을 때의 중계, 있을 때의 `start_drag_out`)와 들어오는 드래그(단계별, `leave` 미루기, 한꺼번에 오는 드롭의 대기), 키 코드와 수정 키 상수, 위젯 기반 클래스(`BrowserWidget`의 위임과 훅), 툴킷 모듈(여섯 개의 존재, 툴킷을 임포트하지 않음, 서로 임포트하지 않음, 뷰의 비공개 속성을 쓰지 않음, `Checked:`와 `Not checked:`), 세션의 시작 대상, PNG 쓰기와 뷰의 snapshot과 프레임의 `change`, 그림 저장소(`PictureStore`: 처음, dirty rect의 행, 잘림, 크기 변경, 복사본, 팝업), 표 객체(`KeyTable`, 수정 키 표 셋, `CursorTable`), 드래그 시작 전략(`immediate`, `posted`, `on_motion`)과 데이터 없는 단계. 1개(`WithCef.test_a_browser_runs_in_the_headless_adapter`)는 `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림, 클릭, 입력, 한글 확정, 외부 드롭, 크기 변경, 정상 종료를 확인합니다(5번 연속 통과).
+`cefweaver.ui`의 시험입니다([UI 어댑터 API](../reference/ui-api.md)). 92개는 가짜 브라우저(호출을 기록)와 가짜 어댑터로 CEF 프로세스 없이 실행합니다: 마우스(위치, 수정 키, 클릭 횟수를 세는 규칙, 툴킷이 주는 횟수), 키(`RAWKEYDOWN`, `CHAR`, `KEYUP`, Ctrl이나 Alt에서의 생략, Enter와 Tab과 BackSpace의 `CHAR`), 문자와 입력기 글자, 조합, 클립보드 키(능력에 따라 가로채기와 통과), 그리기와 팝업과 커서와 선택 텍스트, 제목과 주소와 로딩, 나가는 드래그(어댑터가 없을 때의 중계, 있을 때의 `start_drag_out`)와 들어오는 드래그(단계별, `leave` 미루기, 한꺼번에 오는 드롭의 대기), 키 코드와 수정 키 상수, 위젯 기반 클래스(`BrowserWidget`의 위임과 훅), 툴킷 모듈(여섯 개의 존재, 툴킷을 임포트하지 않음, 서로 임포트하지 않음, 뷰의 비공개 속성을 쓰지 않음, `Checked:`와 `Not checked:`), 세션의 시작 대상, PNG 쓰기와 뷰의 snapshot과 프레임의 `change`, 그림 저장소(`PictureStore`: 처음, dirty rect의 행, 잘림, 크기 변경, 복사본, 팝업), 표 객체(`KeyTable`, 수정 키 표 셋, `CursorTable`), 드래그 시작 전략(`immediate`, `posted`, `on_motion`)과 데이터 없는 단계. 1개(`WithCef.test_a_browser_runs_in_the_headless_adapter`)는 `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림, 클릭, 입력, 한글 확정, 외부 드롭, 크기 변경, 정상 종료를 확인합니다(5번 연속 통과).
+
+`WithCef`와 별개로 `Quickstarts`는 예제의 uv 환경이 있을 때 여섯 툴킷(일곱 환경)의 `quickstart.py`를 실제로 실행해 첫 제목을 받고 창을 닫아 정상 종료를 확인합니다(환경이 없으면 건너뜀). `QuickstartDocs`는 README가 quickstart 파일의 코드를 그대로 싣는지, 코드가 40줄 이하인지 확인합니다.
 
 ## tests/test_wiki.py: 위키 점검
 

@@ -8,6 +8,43 @@
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`) |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 
+## quickstart
+
+Qt에 페이지를 띄우는 가장 작은 프로그램입니다(`quickstart.py`). 주소를 인자로 줄 수 있고, 창을 닫으면 브라우저를 먼저 닫은 뒤 끝납니다. 이 코드가 실제로 뜨고 정상 종료하는지는 `tests/test_ui.py`의 `Quickstarts`가 확인합니다.
+
+```python
+import sys
+
+from cefweaver import ui
+from cefweaver.ui.toolkits.qt import CefWidget, QApplication, QTimer, QtLoop
+
+URL = sys.argv[1] if len(sys.argv) > 1 else "https://example.org/"
+
+app = QApplication(sys.argv[:1])
+session = ui.Session(QtLoop())                        # CEF, run by the Qt loop
+
+
+class Window(CefWidget):                              # the browser, a QWidget
+    closing = False
+
+    def closeEvent(self, event):
+        if self.closing:
+            event.accept()
+            return
+        event.ignore()                                # close the browser first, then the window
+        self.closing = True
+        session.shutdown(lambda: QTimer.singleShot(0, self.close))
+
+
+window = Window(session)
+window.browser_ready_signal.connect(lambda: window.load_url(URL))
+window.title_changed.connect(lambda title: print("title:", title, flush=True))
+window.resize(900, 640)
+window.show()
+QTimer.singleShot(0, lambda: session.start(window))
+sys.exit(app.exec())
+```
+
 ## 환경 (uv)
 
 ```sh

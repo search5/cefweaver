@@ -8,6 +8,7 @@ sources:
   - cefweaver/ui/session.py
   - cefweaver/ui/keys.py
   - cefweaver/ui/headless.py
+  - examples/tk/quickstart.py
   - cefweaver/ui/toolkits/__init__.py
   - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/toolkits/qt.py
@@ -56,6 +57,10 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 - 클립보드 키는 어댑터에 `clipboard_get`과 `clipboard_set`이 있고 `native_clipboard`가 없을 때만 뷰가 처리합니다(키를 뗄 때도 소비).
 - 로딩이 끝나면 `notify_screen_info_changed()`를 부릅니다([F67](verified-findings-handlers.md)).
 - `leave`는 한 박자 미루고(GTK는 놓기 직전에 `leave`를 보냄), 한꺼번에 오는 드롭은 `dragover`의 답(`update_drag_cursor`)을 기다린 뒤 놓되 0.5초가 한계입니다([F69](verified-findings-handlers.md)).
+
+## 사용: quickstart
+
+툴킷마다 `examples/<툴킷>/quickstart.py`가 가장 작은 프로그램입니다(Tk는 15줄 안팎: `ui.Session(TkLoop(root))`, `CefCanvas(root, session)`, `on_ready`에서 `load_url`, 창을 닫을 때 `session.shutdown(root.destroy)`, `session.start(canvas)`). 같은 코드가 각 예제의 `README.md`와 프로젝트의 `README.rst`(Tk)에 실려 있고, 시험이 파일과 문서가 어긋나지 않는지(`QuickstartDocs`), 그리고 **실제로 뜨고 창을 닫으면 종료 코드 0으로 끝나는지**(`Quickstarts`: 데이터 URL을 띄워 제목을 받고 WM_DELETE_WINDOW를 보냄) 확인합니다. `Quickstarts`는 예제의 uv 환경이 있고 X 서버가 있을 때만 돌고 아니면 건너뜁니다. 어댑터를 쓰는 사용자는 이 코드 외에 복사할 것이 없습니다(키 표와 커서 표 같은 툴킷의 어휘는 어댑터 모듈 안에 있음).
 
 ## 툴킷별 어댑터는 패키지에 둡니다
 

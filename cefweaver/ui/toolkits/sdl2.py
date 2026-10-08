@@ -33,9 +33,6 @@ import sdl2                                                      # noqa: E402
 from cefweaver import types, ui                                  # noqa: E402
 from cefweaver.ui import keys                                    # noqa: E402
 
-SHIFT, CONTROL, ALT = keys.SHIFT, keys.CONTROL, keys.ALT
-LEFT_BUTTON, MIDDLE_BUTTON, RIGHT_BUTTON = keys.LEFT_BUTTON, keys.MIDDLE_BUTTON, keys.RIGHT_BUTTON
-
 _KEYS = {
     sdl2.SDLK_BACKSPACE: keys.VK_BACK, sdl2.SDLK_TAB: keys.VK_TAB, sdl2.SDLK_RETURN: keys.VK_RETURN,
     sdl2.SDLK_KP_ENTER: keys.VK_RETURN, sdl2.SDLK_ESCAPE: keys.VK_ESCAPE, sdl2.SDLK_SPACE: keys.VK_SPACE,

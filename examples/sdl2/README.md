@@ -8,6 +8,30 @@ SDL2 창에 cefweaver의 오프스크린 브라우저를 그리는 예제입니�
 | `browser.py` | 데모 페이지가 있는 브라우저. `Alt+←`, `Alt+→`는 뒤로와 앞으로, `F5`는 새로 고침 |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 
+## quickstart
+
+SDL2에 페이지를 띄우는 가장 작은 프로그램입니다(`quickstart.py`). 주소를 인자로 줄 수 있고, 창을 닫으면 브라우저를 먼저 닫은 뒤 끝납니다. 이 코드가 실제로 뜨고 정상 종료하는지는 `tests/test_ui.py`의 `Quickstarts`가 확인합니다.
+
+```python
+import sys
+
+from cefweaver.ui.toolkits.sdl2 import SdlBrowser
+
+URL = sys.argv[1] if len(sys.argv) > 1 else "https://example.org/"
+
+
+class Browser(SdlBrowser):                            # the window, the browser and the event loop in one
+    def browser_title(self, title):
+        super().browser_title(title)
+        print("title:", title, flush=True)
+
+
+browser = Browser()
+browser.on_ready = lambda: browser.load_url(URL)
+browser.start("about:blank")
+browser.run()                                         # until the window is closed
+```
+
 ## 환경 (uv)
 
 `pysdl2-dll`이 SDL2와 SDL2_image를 가져오므로 시스템 패키지가 필요 없습니다.

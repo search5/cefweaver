@@ -30,16 +30,13 @@ import cefweaver  # noqa: E402
 from cefweaver import types, ui  # noqa: E402
 from cefweaver.ui import keys  # noqa: E402
 
-SHIFT, CONTROL, ALT = keys.SHIFT, keys.CONTROL, keys.ALT
-LEFT_BUTTON, MIDDLE_BUTTON, RIGHT_BUTTON = keys.LEFT_BUTTON, keys.MIDDLE_BUTTON, keys.RIGHT_BUTTON
-
 _WINDOWS_KEYS = {  # Gdk keyval name -> the Windows virtual key code CEF expects
     "BackSpace": keys.VK_BACK, "Tab": keys.VK_TAB, "ISO_Left_Tab": keys.VK_TAB, "Return": keys.VK_RETURN,
     "KP_Enter": keys.VK_RETURN, "Escape": keys.VK_ESCAPE, "space": keys.VK_SPACE, "Page_Up": keys.VK_PRIOR,
     "Page_Down": keys.VK_NEXT, "End": keys.VK_END, "Home": keys.VK_HOME, "Left": keys.VK_LEFT, "Up": keys.VK_UP,
     "Right": keys.VK_RIGHT, "Down": keys.VK_DOWN, "Insert": keys.VK_INSERT, "Delete": keys.VK_DELETE,
     "Shift_L": keys.VK_SHIFT, "Shift_R": keys.VK_SHIFT, "Control_L": keys.VK_CONTROL, "Control_R": keys.VK_CONTROL,
-    "Alt_L": keys.VK_ALT, "Alt_R": keys.VK_ALT, "Caps_Lock": 20,
+    "Alt_L": keys.VK_ALT, "Alt_R": keys.VK_ALT, "Caps_Lock": keys.VK_CAPITAL,
 }
 _CURSORS = {  # CursorType -> a CSS cursor name
     types.CursorType.POINTER: "default", types.CursorType.HAND: "pointer", types.CursorType.IBEAM: "text",

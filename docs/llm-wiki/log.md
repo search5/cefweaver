@@ -331,3 +331,7 @@
 ## [2026-10-08] schema | 툴킷별 어댑터를 패키지로 (cefweaver.ui.toolkits)
 
 - `examples/*/cef*.py` 여섯 개를 `cefweaver/ui/toolkits/{gtk3,qt,tk,sdl2,wx,kivy}.py`로 옮겼습니다(`git mv`). 예제 디렉터리에는 데모 브라우저와 점검만 남습니다. 패키지에 두는 이유(핵심 API가 아직 바뀜, 책임질 사람이 없음)와 나누는 기준(외부 이슈와 PR이 처리 속도를 넘을 때)을 `ui-api.md`에 기록했습니다. 모듈은 서로 임포트하지 않고 지연 임포트이며, `pyproject.toml`에 선택 의존성(qt, gtk3, tk, sdl2, kivy)을 더했습니다. 설치본 기준으로 전체 시험 392개와 여섯 예제의 점검이 통과합니다.
+
+## [2026-10-08] ingest | quickstart와 어댑터 정리
+
+- 여섯 어댑터 모듈에서 쓰이지 않던 별명(`SHIFT, CONTROL, ALT`, 단추 상수)을 지우고, 키 표의 숫자 20을 `keys.VK_CAPITAL`로 바꿨습니다. 드래그 동작 변환(GTK와 Qt)은 툴킷마다 달라질 수 있어서 통합하지 않기로 했습니다. 예제마다 `quickstart.py`를 만들고(코드는 예제 README와 `README.rst`에 그대로 실음), 시험이 문서와 파일의 일치(`QuickstartDocs`)와 실제 실행·정상 종료(`Quickstarts`)를 확인합니다.

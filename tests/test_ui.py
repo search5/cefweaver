@@ -639,6 +639,7 @@ class Keys(unittest.TestCase):
         self.assertEqual((keys.vk_for_function(1), keys.vk_for_function(12)), (112, 123))
         self.assertEqual(keys.vk_for_char("한"), 0)      # no virtual key: the text comes by text()
         self.assertEqual((keys.VK_LEFT, keys.VK_DELETE), (37, 46))
+        self.assertEqual(keys.VK_CAPITAL, 20)                       # Caps Lock
 
     def test_the_modifier_flags_are_the_event_flags_of_cef(self):
         self.assertEqual((keys.SHIFT, keys.CONTROL, keys.ALT), (types.EventFlags.SHIFT_DOWN, types.EventFlags.CONTROL_DOWN, types.EventFlags.ALT_DOWN))
@@ -934,6 +935,17 @@ class ToolkitModules(unittest.TestCase):
                 for module in modules:
                     self.assertNotIn("toolkits", module, "%s imports %s" % (name, module))
 
+    def test_the_modules_keep_no_aliases_of_the_library_constants(self):
+        import re
+        for name in TOOLKITS:
+            found = re.findall(r"(?<![\w.])(SHIFT|CONTROL|ALT|LEFT_BUTTON|MIDDLE_BUTTON|RIGHT_BUTTON)\b", self.source(name))
+            self.assertEqual(found, [], "%s keeps aliases (write keys.SHIFT and so on)" % name)
+
+    def test_the_modules_have_no_bare_virtual_key_numbers(self):
+        import re
+        for name in TOOLKITS:
+            self.assertEqual(re.findall(r'"\w+":\s*\d+,', self.source(name)), [], name)    # a key table entry with a bare number
+
     def test_the_modules_use_only_the_public_side_of_the_view(self):
         import re
         for name in TOOLKITS:
@@ -1042,6 +1054,137 @@ class WithCef(unittest.TestCase):
         self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertNotIn("stack smashing", result.stderr)
         self.assertIn("OK", result.stdout)
+
+
+# -- the quickstarts of the examples run for real -----------------------------------------------------------------
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+QUICKSTARTS = (          # (example, its uv environment, what keeps the toolkit on X11)
+    ("gtk3", ".venv", {"GDK_BACKEND": "x11"}),
+    ("qt", ".venv", {"QT_QPA_PLATFORM": "xcb"}),
+    ("qt", ".venv-pyside", {"QT_QPA_PLATFORM": "xcb"}),
+    ("tk", ".venv", {}),
+    ("sdl2", ".venv", {"SDL_VIDEODRIVER": "x11"}),
+    ("wx", ".venv", {"GDK_BACKEND": "x11"}),
+    ("kivy", ".venv", {"SDL_VIDEODRIVER": "x11", "KIVY_NO_CONSOLELOG": "1"}),
+)
+
+
+def send_delete_window(window):
+    """Ask a window to close, as the close button does (WM_DELETE_WINDOW), without a window manager."""
+    import ctypes
+    x = ctypes.CDLL("libX11.so.6")
+    x.XOpenDisplay.restype = ctypes.c_void_p
+    x.XInternAtom.restype = ctypes.c_ulong
+    x.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+    x.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.c_void_p]
+
+    class Message(ctypes.Structure):
+        _fields_ = [("type", ctypes.c_int), ("serial", ctypes.c_ulong), ("send_event", ctypes.c_int),
+                    ("display", ctypes.c_void_p), ("window", ctypes.c_ulong), ("message_type", ctypes.c_ulong),
+                    ("format", ctypes.c_int), ("data", ctypes.c_long * 5)]
+
+    class Event(ctypes.Union):
+        _fields_ = [("message", Message), ("pad", ctypes.c_long * 24)]
+    display = x.XOpenDisplay(None)
+    event = Event()
+    event.message.type, event.message.window, event.message.format = 33, window, 32      # ClientMessage
+    event.message.message_type = x.XInternAtom(display, b"WM_PROTOCOLS", 0)
+    event.message.data[0] = x.XInternAtom(display, b"WM_DELETE_WINDOW", 0)
+    x.XSendEvent(display, window, 0, 0, ctypes.byref(event))
+    x.XFlush(display)
+
+
+def code_after_the_docstring(path):
+    import ast
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    first = ast.parse(text).body[0]
+    return "\n".join(text.split("\n")[first.end_lineno:]).strip("\n") + "\n"
+
+
+class QuickstartDocs(unittest.TestCase):
+    """The documentation shows the code of the quickstart files, not a copy that can drift away from them."""
+
+    def test_each_example_readme_shows_the_code_of_its_quickstart(self):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+            code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
+            with open(os.path.join(ROOT, "examples", example, "README.md"), encoding="utf-8") as f:
+                self.assertIn(code, f.read(), "examples/%s/README.md does not show quickstart.py" % example)
+
+    def test_the_readme_of_the_project_shows_the_tk_quickstart(self):
+        code = code_after_the_docstring(os.path.join(ROOT, "examples", "tk", "quickstart.py"))
+        indented = "".join(("    " + line if line else line) + "\n" for line in code.rstrip("\n").split("\n"))
+        with open(os.path.join(ROOT, "README.rst"), encoding="utf-8") as f:
+            self.assertIn(indented, f.read())
+
+    def test_a_quickstart_is_short(self):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+            code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
+            self.assertLessEqual(len(code.splitlines()), 40, example)     # it is what a user reads first
+
+
+class Quickstarts(unittest.TestCase):
+    """examples/<toolkit>/quickstart.py is the program the documentation shows: it must show a page and, when its window
+    is closed, end cleanly. Runs where the example has its uv environment (examples/<toolkit>/README.md) and an X
+    server, else it is skipped."""
+
+    def window_of(self, pid):
+        import time
+        end = time.time() + 15
+        while time.time() < end:
+            found = subprocess.run(["xdotool", "search", "--onlyvisible", "--pid", str(pid)], capture_output=True, text=True).stdout.split()
+            if not found:                  # Tk does not tell the process: the only window of the display is it
+                found = subprocess.run(["xdotool", "search", "--onlyvisible", "--maxdepth", "1", "--name", "."],
+                                       capture_output=True, text=True).stdout.split()
+            if found:
+                return int(found[0])
+            time.sleep(0.3)
+        self.fail("the window of the quickstart did not appear")
+
+    def run_quickstart(self, example, venv, pins):
+        import shutil
+        import tempfile
+        import threading
+        import time
+        python = os.path.join(ROOT, "examples", example, venv, "bin", "python")
+        env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XDG_SESSION_TYPE")}
+        env.update(pins)
+        # in a directory of its own: without a cache path CEF makes "cache" in the working directory
+        scratch = tempfile.mkdtemp(prefix="cefweaver-quickstart-")
+        self.addCleanup(shutil.rmtree, scratch, True)
+        process = subprocess.Popen([python, os.path.join(ROOT, "examples", example, "quickstart.py"),
+                                    "data:text/html,<title>quickstart</title><p>hi"],
+                                   cwd=scratch, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        lines, errors = [], []
+        threading.Thread(target=lambda: lines.extend(iter(process.stdout.readline, "")), daemon=True).start()
+        threading.Thread(target=lambda: errors.extend(iter(process.stderr.readline, "")), daemon=True).start()
+        try:
+            end = time.time() + 60
+            while "title: quickstart\n" not in lines:
+                self.assertIsNone(process.poll(), "ended before the page was shown: " + "".join(errors)[-1500:])
+                self.assertLess(time.time(), end, "no title in 60 s: " + "".join(errors)[-1500:])
+                time.sleep(0.2)
+            send_delete_window(self.window_of(process.pid))
+            self.assertEqual(process.wait(timeout=40), 0, "".join(errors)[-1500:])
+        finally:
+            if process.poll() is None:
+                process.kill()
+        self.assertNotIn("stack smashing", "".join(errors))
+
+    def test_each_quickstart_shows_a_page_and_ends_cleanly_when_its_window_is_closed(self):
+        import shutil
+        if not os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY") or not shutil.which("xdotool"):
+            self.skipTest("needs an X server (not a Wayland session) and xdotool")
+        ran = 0
+        for example, venv, pins in QUICKSTARTS:
+            if not os.path.isfile(os.path.join(ROOT, "examples", example, venv, "bin", "python")):
+                continue
+            with self.subTest(example=example, environment=venv):
+                self.run_quickstart(example, venv, pins)
+                ran += 1
+        if not ran:
+            self.skipTest("no example has its uv environment")
 
 
 if __name__ == "__main__":
