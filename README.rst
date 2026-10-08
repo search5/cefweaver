@@ -85,6 +85,9 @@ The CEF classes are available as generated, PEP 8 style wrappers
 API covered so far is listed in the generated wiki page
 ``docs/llm-wiki/pages/reference/coverage-report.md``.
 
+Browsers use the Alloy runtime style (as java-cef does). CEF can be initialized
+only once per process, also after ``shutdown()``.
+
 CEF runs with an external message pump: the thread that calls ``initialize()`` is
 the CEF UI thread, and JavaScript bindings are called inside ``do_message_loop_work()``.
 On Linux ``libcef.so``, ``icudtl.dat``, the ``.pak`` files, ``locales/`` and the

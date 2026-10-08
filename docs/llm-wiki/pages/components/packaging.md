@@ -22,7 +22,7 @@ updated: 2026-10-08
 | `language` | `c++` | |
 | `include-dirs` | `build/native/cef`, `native/cefwrapper` | CEF 헤더(`prepare.py`가 만든 링크)와 래퍼 헤더 |
 | `library-dirs` | `build/native/native/cefwrapper`, `build/native/libcef_dll_wrapper`, `build/native/cef/Release` | 세 라이브러리가 흩어져 있습니다. |
-| `libraries` | `cefwrapper`, `cef_dll_wrapper`, `cef`, `dl`, `pthread` | 정적 라이브러리는 순서가 중요합니다(`cefwrapper`가 `cef_dll_wrapper`를 씀). |
+| `libraries` | `cefwrapper`, `cef_dll_wrapper`, `cef`, `X11`(창 제목 설정), `dl`, `pthread` | 정적 라이브러리는 순서가 중요합니다(`cefwrapper`가 `cef_dll_wrapper`를 씀). |
 | `define-macros` | `NDEBUG=1`, `_FILE_OFFSET_BITS=64` | 래퍼 라이브러리를 컴파일한 정의(`flags.make`)와 맞춰야 합니다. |
 | `extra-compile-args` | `-std=c++20` | CEF 154가 C++20으로 컴파일됩니다. |
 | `extra-link-args` | `-Wl,-rpath,$ORIGIN` | 같은 디렉터리의 `libcef.so`를 찾습니다. |
@@ -50,7 +50,7 @@ setuptools(distutils)는 `.pyx`와 `.cpp`의 수정 시각만 비교하고 **정
 
 ## wheel의 특성
 
-- 태그는 `cp313-cp313-linux_x86_64`처럼 로컬 플랫폼 태그입니다. PyPI에 올리려면 manylinux 규격(`auditwheel`)이 필요하며 다루지 않았습니다.
+- 태그는 `cp313-cp313-linux_x86_64`처럼 로컬 플랫폼 태그입니다. PyPI에 올리려면 manylinux 규격이 필요한데, `auditwheel show`는 이 wheel에 `linux_x86_64`만 허용했습니다(빌드 호스트의 glibc 2.43 심볼과, CEF가 요구하는 허용 목록 밖의 시스템 라이브러리 때문. F24).
 - 크기: 약 148MB(스테이징 후 `libcef.so`를 strip한 값). 설치하면 약 363MB입니다.
 
 ## 메타데이터의 불일치

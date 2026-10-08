@@ -59,6 +59,9 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   url = StartUrl;
 
   CefWindowInfo window_info;
+  // Alloy style only, as in java-cef: it adds the client callbacks (DoClose, ...) and
+  // supports a client-provided parent window and windowless rendering.
+  window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
 
 #if defined(OS_WIN)
   // On Windows we need to specify certain flags that will be passed to

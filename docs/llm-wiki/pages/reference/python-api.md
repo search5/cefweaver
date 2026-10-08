@@ -26,7 +26,7 @@ updated: 2026-10-08
 | `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")` |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
-| `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")` |
+| `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
 | `shutdown()` | CEF 종료. 시작하지 않았거나 이미 종료했으면 아무것도 하지 않습니다. |
 | `load_url(url) -> bool` | 브라우저가 없으면 `False` |
@@ -94,7 +94,9 @@ app.set_client(MyClient())
 app.initialize("https://example.com")
 ```
 
-`do_close`는 이 래퍼에서 호출되지 않습니다. 헤더가 `DoClose`를 Alloy 스타일 브라우저에만 부른다고 밝히고, 래퍼의 브라우저는 Chrome 스타일이기 때문입니다([실험으로 확인한 사실](verified-findings.md) F17). 닫기를 막거나 닫기 전에 일을 하려면 `on_before_close`를 쓰고, 닫는 쪽은 `browser.get_host().close_browser(False)`입니다.
+`do_close`는 닫기를 시작할 때 호출되고(`host.close_browser(False)` 등), `True`를 돌려주면 닫기가 취소됩니다. 다시 `close_browser`를 부르면(이번에 `False`를 돌려주면) `on_before_close`로 이어집니다. 래퍼의 브라우저는 Alloy 스타일이라서 가능한 동작입니다([실험으로 확인한 사실](verified-findings.md) F18).
+
+`send_mouse_*` 같은 입력은 **첫 프레임이 렌더링되기 전에 보내면 버려집니다**(페이지에서 `requestAnimationFrame` 콜백이 불리는 것으로 알 수 있습니다).
 
 ## 브라우저 호스트
 

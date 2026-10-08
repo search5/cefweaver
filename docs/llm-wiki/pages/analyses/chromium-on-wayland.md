@@ -45,7 +45,8 @@ Linux 6.17, Wayland 세션(`XDG_SESSION_TYPE=wayland`, `WAYLAND_DISPLAY=wayland-
 - **눈으로 본 화면**: 확인한 것은 페이지가 스스로 측정해 보고한 값뿐이고 스크린샷 도구가 없었습니다. 창이 실제로 뜨고 배경색과 제목이 보였는지는 사용자가 확인해야 합니다.
 - XWayland에서 나온 `Message 0 rejected by interface blink.mojom.WidgetHost` 오류의 원인(종료 중 일회성으로 보이나 조사하지 않았습니다).
 - `devicePixelRatio`가 1인 것이 이 화면의 실제 배율과 맞는지. 고해상도 배율에서의 Wayland와 XWayland의 선명도 차이.
-- 창 제목은 Linux에서 `PlatformTitleChange`가 비어 있어서(`cef_wrapper_client_handler_linux.cc`) 페이지의 `<title>`이 창에 반영되지 않았을 가능성이 높습니다.
+- 이 조사는 **Chrome 스타일** 창으로 했습니다. 래퍼는 이후 Alloy 스타일로 바뀌었고(F18), Alloy 스타일에서 네이티브 Wayland가 되는지는 확인하지 않았습니다. 시험은 X11(`ozone-platform=x11`)로만 실행합니다.
+- 창 제목은 이 조사 당시 Linux에서 `PlatformTitleChange`가 비어 있었습니다. Alloy 전환과 함께 X11로 설정하도록 구현했습니다.
 - GUI 툴킷 임베딩이 Wayland에서 되는지.
 
 ## 임베딩에 관한 근거

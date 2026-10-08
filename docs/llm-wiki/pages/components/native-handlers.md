@@ -35,6 +35,7 @@ updated: 2026-10-08
 ## CefWrapperBrowserProcessHandler
 
 - `OnContextInitialized()`(UI 스레드): 클라이언트 핸들러를 만들고, 렌더러 핸들러에 바인딩을 알리고, 바인딩 **이름 목록**을 `extra_info`에 담아 `CefBrowserHost::CreateBrowserSync()`로 브라우저를 만들어 `Browser` 멤버에 저장합니다. Windows에서는 `SetAsPopup`을 씁니다.
+- 브라우저는 **Alloy 스타일**로 만듭니다(`window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY`). java-cef와 같은 설정이며 이유는 [설계 결정 기록](../reference/design-decisions.md)에 있습니다.
 - `GetDefaultClient()`는 클라이언트 핸들러를 돌려줍니다.
 - 싱글턴(`GetInstance()`)입니다.
 
@@ -49,7 +50,7 @@ updated: 2026-10-08
 | 이벤트 | 순서 |
 | --- | --- |
 | `OnAfterCreated` | 래퍼(브라우저 목록에 추가), 그다음 사용자 |
-| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false`. **이 래퍼의 브라우저(Chrome 스타일)에서는 `DoClose`가 호출되지 않습니다**([실험으로 확인한 사실](../reference/verified-findings.md) F17). |
+| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false`. Alloy 스타일 브라우저에서만 호출되며 닫기를 막는 것을 시험으로 확인했습니다([실험으로 확인한 사실](../reference/verified-findings.md) F18). |
 | `OnBeforeClose` | 사용자 먼저(브라우저가 아직 목록에 있음), 그다음 래퍼(목록에서 제거) |
 | `OnLoadStart`, `OnLoadingStateChange`, `OnLoadEnd`, `OnTitleChange` | 래퍼, 그다음 사용자 |
 | `OnLoadError` | 사용자 먼저, 그다음 래퍼(오류 페이지로 교체) |
@@ -58,11 +59,11 @@ updated: 2026-10-08
 | 콜백 | 동작 |
 | --- | --- |
 | `OnAfterCreated` / `OnBeforeClose` | 브라우저 목록(`browser_list_`)을 관리합니다. `OnBeforeClose`는 `g_IsRunning`을 끄고 목록이 비면 `CefQuitMessageLoop()`을 부릅니다(외부 펌프에서는 효과가 없습니다). |
-| `DoClose` | 마지막 브라우저이면 `is_closing_`을 켜고 닫기를 허용합니다. 호출되지 않으므로 `is_closing_`은 켜지지 않습니다. |
+| `DoClose` | 마지막 브라우저이면 `is_closing_`을 켜고 닫기를 허용합니다. |
 | `OnLoadStart` / `OnLoadingStateChange` | 준비 플래그 `m_IsReadyToExecuteJs`를 로딩 중에는 끄고 끝나면 켭니다(초기값은 `false`). |
 | `OnLoadEnd` | 페이지에서 `window.dispatchEvent(new Event('cefready'))`를 실행합니다. 페이지가 `addEventListener('cefready', ...)`로 로드 완료를 알 수 있습니다. |
 | `OnLoadError` | 오류가 `ERR_ABORTED`가 아니면 오류 내용을 담은 `data:` URI 페이지를 보여 줍니다(Chrome 런타임이 아닐 때). |
-| `OnTitleChange` | `PlatformTitleChange`를 부릅니다. Windows 구현(`cef_wrapper_client_handler_win.cc`)은 `SetWindowText`로 창 제목을 바꾸고, **Linux 구현(`..._linux.cc`)은 비어 있습니다.** |
+| `OnTitleChange` | `PlatformTitleChange`를 부릅니다. Windows 구현(`cef_wrapper_client_handler_win.cc`)은 `SetWindowText`로 창 제목을 바꿉니다. **Linux 구현(`..._linux.cc`)은 X11로** `_NET_WM_NAME`과 `WM_NAME`을 최상위 창에 설정합니다(`cef_get_xdisplay()`, `GetWindowHandle()`에서 `XQueryTree`로 루트의 자식까지 올라감). Alloy 스타일 창은 제목이 없어서 필요하고, `libX11`을 링크합니다. |
 | `OnProcessMessageReceived` | 렌더러가 보낸 `javascript-python-binding`, `javascript-binding` 메시지를 풀어 등록된 핸들러를 부릅니다([JavaScript 바인딩](../concepts/javascript-bindings.md)). |
 | 컨텍스트 메뉴 | "Show DevTools", "Close DevTools", "Inspect Element" 항목을 추가하고 `ShowDevTools`/`CloseDevTools`를 구현합니다. |
 

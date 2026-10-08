@@ -67,7 +67,7 @@ app.shutdown()
 
 ## 한 프로세스에 한 번
 
-`CefApp` 문서는 프로세스당 한 번만 초기화할 수 있다고 적습니다. 시험도 이 때문에 CEF를 띄우는 시험마다 새 프로세스에서 실행합니다([시험](../components/tests.md)). `shutdown()` 뒤에 다시 `initialize()`를 시도해 보지는 않았습니다.
+`CefApp` 문서는 프로세스당 한 번만 초기화할 수 있다고 적습니다. 시험도 이 때문에 CEF를 띄우는 시험마다 새 프로세스에서 실행합니다([시험](../components/tests.md)). `shutdown()` 뒤에 다시 `initialize()`를 시도하면 세그멘테이션 오류가 나서(F20) 지금은 `RuntimeError`로 막습니다.
 
 ## 관련 페이지
 

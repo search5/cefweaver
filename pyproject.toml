@@ -83,7 +83,7 @@ depends = [
     "build/native/cef/Release/libcef.so",
 ]
 # Order matters for the static libraries: cefwrapper uses cef_dll_wrapper.
-libraries = ["cefwrapper", "cef_dll_wrapper", "cef", "dl", "pthread"]
+libraries = ["cefwrapper", "cef_dll_wrapper", "cef", "X11", "dl", "pthread"]
 # Must match how the CEF wrapper libraries were compiled (see flags.make).
 define-macros = [["NDEBUG", "1"], ["_FILE_OFFSET_BITS", "64"]]
 extra-compile-args = ["-std=c++20"]

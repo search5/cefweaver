@@ -120,6 +120,11 @@ class _StaticResourceFactory(SchemeHandlerFactory):
         return _StaticResource(*resource) if resource is not None else None
 
 
+# CEF can be initialized once per process: a second CefInitialize() after CefShutdown()
+# crashes the process (segmentation fault), so it is refused here.
+cdef bint _cef_was_shut_down = False
+
+
 cdef class CefApp:
     """An embedded Chromium (CEF) instance.
 
@@ -132,7 +137,7 @@ cdef class CefApp:
             app.do_message_loop_work()
         app.shutdown()
 
-    Only one instance can be initialized per process.
+    CEF can be initialized only once per process, also after ``shutdown()``.
     """
 
     cdef CefWrapper* _wrapper
@@ -227,6 +232,9 @@ cdef class CefApp:
         cdef bint ok
         if self._initialized:
             raise RuntimeError("initialize() was already called")
+        if _cef_was_shut_down:
+            raise RuntimeError("CEF can be initialized only once per process, "
+                               "and it was shut down already")
         with nogil:
             ok = self._wrapper.InitCefSimple(url)
         if not ok:
@@ -246,6 +254,8 @@ cdef class CefApp:
         with nogil:
             self._wrapper.ShutdownCefSimple()
         self._shut_down = True
+        global _cef_was_shut_down
+        _cef_was_shut_down = True
 
     # -- browser ---------------------------------------------------------------
 

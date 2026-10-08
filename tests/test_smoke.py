@@ -15,6 +15,7 @@ its script in a separate Python process.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -472,7 +473,7 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
-    def test_mouse_events_carry_their_coordinates_to_the_page(self):
+    def test_mouse_events_reach_the_page_at_their_coordinates(self):
         result = run_cef("""
             got, boxes = [], []
             class Life(cefweaver.LifeSpanHandler):
@@ -485,20 +486,21 @@ class WithCef(unittest.TestCase):
                     return self.life
             app.add_javascript_binding("report", lambda *a: got.append(a))
             app.set_client(MyClient())
-            app.initialize(page("<script>document.addEventListener('mousedown',"
+            app.initialize(page("<script>requestAnimationFrame(() => report('frame'));"
+                                "document.addEventListener('mousedown',"
                                 "e => report(e.clientX, e.clientY, e.button));</script>"))
             wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
             host = boxes[0].get_host()
             MOUSE_LEFT = 0
+            # Input sent before the first frame is rendered is dropped, not queued.
+            wait_until(app, lambda: ("frame",) in got, "the first frame")
+            got.clear()
             # A MouseEvent and a plain tuple of the same fields are both accepted.
             host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), MOUSE_LEFT, False, 1)
             wait_until(app, lambda: len(got) == 1, "the first mouse down")
             host.send_mouse_click_event((150, 100, 0), MOUSE_LEFT, False, 1)
             wait_until(app, lambda: len(got) == 2, "the second mouse down")
-            (x1, y1, b1), (x2, y2, b2) = got
-            # The window may offset the view, so compare the distance between the clicks.
-            assert (x2 - x1, y2 - y1) == (100, 40), got
-            assert b1 == b2 == 0, got
+            assert got == [(50, 60, 0), (150, 100, 0)], got  # no offset, and x and y are not swapped
             for bad in ((1, 2), "xyz", None):
                 try:
                     host.send_mouse_move_event(bad, False)
@@ -543,21 +545,43 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
-    def test_close_browser_ends_the_browser_and_do_close_is_not_called_for_chrome_style(self):
-        # The header says DoClose() is called for Alloy style browsers only. The wrapper
-        # creates Chrome style ones (runtime style 1), so do_close can neither be called nor
-        # veto a close. This test records that; if it fails, the wrapper changed its style and
-        # the documentation of do_close and of this limitation has to change.
+    def test_the_browsers_are_alloy_style(self):
+        # The wrapper creates Alloy style browsers, as java-cef does: the style that adds
+        # the client callbacks (do_close, ...), supports a client-provided parent window and
+        # windowless rendering. If this fails the wrapper changed its style, and the
+        # documentation of do_close and of the window title has to change with it.
+        result = run_cef("""
+            boxes = []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.set_client(MyClient())
+            app.initialize(page("style"))
+            wait_until(app, lambda: boxes, "the browser")
+            assert boxes[0].get_host().get_runtime_style() == 2  # CEF_RUNTIME_STYLE_ALLOY
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_do_close_can_keep_the_browser_open(self):
         result = run_cef("""
             events, boxes = [], []
+            allow = [False]
             class Life(cefweaver.LifeSpanHandler):
                 def on_after_created(self, browser):
                     boxes.append(browser)
                 def do_close(self, browser):
-                    events.append("do_close")
-                    return True
+                    events.append(("do_close", allow[0]))
+                    return not allow[0]  # True keeps the browser open
                 def on_before_close(self, browser):
-                    events.append("before_close")
+                    events.append(("before_close",))
             class MyClient(cefweaver.Client):
                 def __init__(self):
                     self.life = Life()
@@ -567,11 +591,185 @@ class WithCef(unittest.TestCase):
             app.initialize(page("closing"))
             wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
             host = boxes[0].get_host()
-            assert host.get_runtime_style() == 1  # CEF_RUNTIME_STYLE_CHROME
+
             host.close_browser(False)
-            wait_until(app, lambda: "before_close" in events, "the browser to close")
+            wait_until(app, lambda: events, "do_close")
+            # Nothing happens after a veto, so this waits a bounded time for nothing to happen.
+            for _ in range(100):
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            assert events == [("do_close", False)], events
+            assert app.is_running
+
+            allow[0] = True
+            host.close_browser(False)
+            wait_until(app, lambda: ("before_close",) in events, "the browser to close")
             wait_until(app, lambda: not app.is_running, "the application to stop")
-            assert events == ["before_close"], events
+            assert events == [("do_close", False), ("do_close", True), ("before_close",)], events
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    @unittest.skipUnless(shutil.which("xwininfo"), "needs xwininfo to read the window names")
+    def test_the_window_title_follows_the_page_title(self):
+        result = run_cef("""
+            import subprocess
+            titles = []
+            class Display(cefweaver.DisplayHandler):
+                def on_title_change(self, browser, title):
+                    titles.append(title)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.display = Display()
+                def get_display_handler(self):
+                    return self.display
+            import re
+            def has_title():
+                # A top-level window is a direct child of the root: five spaces of indent.
+                tree = subprocess.run(["xwininfo", "-root", "-tree"], capture_output=True,
+                                      text=True).stdout
+                return re.search(r'^ {5}0x[0-9a-f]+ "Window Title Test"', tree, re.M) is not None
+            app.set_client(MyClient())
+            app.initialize(page("<title>Window Title Test</title>x"))
+            wait_until(app, lambda: "Window Title Test" in titles, "the page title")
+            wait_until(app, has_title, "the title of the top-level window")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_initialize_after_shutdown_raises_instead_of_crashing(self):
+        # CEF can be initialized once per process: a second initialize() after shutdown()
+        # used to crash the process (segmentation fault).
+        result = run_cef("""
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            app.shutdown()
+            again = cefweaver.CefApp()
+            try:
+                again.initialize("about:blank")
+            except RuntimeError as error:
+                assert "once" in str(error), error
+                print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_the_process_can_end_without_shutdown(self):
+        # Handlers and a request in flight are still alive when the interpreter exits.
+        result = run_cef("""
+            class Handler(cefweaver.ResourceHandler):
+                def open(self, request, callback):
+                    return True, True
+                def get_response_headers(self, response):
+                    response.set_status(200)
+                    return -1, ""
+                def read(self, data_out, callback):
+                    return False, 0
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    return Handler()
+            class Load(cefweaver.LoadHandler):
+                pass
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.load = Load()
+                def get_load_handler(self):
+                    return self.load
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            cefweaver.register_scheme_handler_factory("http", "exit.test", Factory())
+            app.load_url("http://exit.test/a")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            app.load_url("http://exit.test/b")
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_path_the_factory_declines_goes_on_to_the_default_handling(self):
+        # create() returning None leaves the request to CEF, which here means the network:
+        # the made-up host cannot be resolved, so the load fails (ERR_NAME_NOT_RESOLVED, -105).
+        result = run_cef("""
+            asked, errors, ends = [], [], []
+            class Handler(cefweaver.ResourceHandler):
+                def open(self, request, callback):
+                    return True, True
+                def get_response_headers(self, response):
+                    response.set_status(200)
+                    response.set_mime_type("text/html")
+                    return 3, ""
+                def read(self, data_out, callback):
+                    if asked.count("served"):
+                        return False, 0
+                    asked.append("served")
+                    data_out[:3] = b"ok\\n"
+                    return True, 3
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    url = request.get_url()
+                    asked.append(url)
+                    return Handler() if url.endswith("/served") else None
+            class Load(cefweaver.LoadHandler):
+                def on_load_end(self, browser, frame, http_status_code):
+                    ends.append(frame.get_url())
+                def on_load_error(self, browser, frame, error_code, error_text, failed_url):
+                    errors.append((error_code, failed_url))
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.load = Load()
+                def get_load_handler(self):
+                    return self.load
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            cefweaver.register_scheme_handler_factory("http", "partial.test", Factory())
+            app.load_url("http://partial.test/served")
+            wait_until(app, lambda: "http://partial.test/served" in ends, "the served page")
+            assert not errors, errors
+            app.load_url("http://partial.test/declined")
+            wait_until(app, lambda: errors, "the load error", timeout=30)
+            assert "http://partial.test/declined" in asked, asked  # the factory was asked
+            assert errors[0][1] == "http://partial.test/declined", errors
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread(self):
+        result = run_cef("""
+            import threading
+            main = threading.get_ident()
+            threads = {}
+            class Handler(cefweaver.ResourceHandler):
+                def open(self, request, callback):
+                    threads["open"] = threading.get_ident()
+                    return True, True
+                def get_response_headers(self, response):
+                    threads["get_response_headers"] = threading.get_ident()
+                    response.set_status(200)
+                    return 1, ""
+                def read(self, data_out, callback):
+                    threads["read"] = threading.get_ident()
+                    if "done" in threads:
+                        return False, 0
+                    threads["done"] = 1
+                    data_out[:1] = b"x"
+                    return True, 1
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    threads["create"] = threading.get_ident()
+                    return Handler()
+            app.initialize("about:blank")
+            cefweaver.register_scheme_handler_factory("http", "thread.test", Factory())
+            app.load_url("http://thread.test/")
+            wait_until(app, lambda: "read" in threads, "the resource to be read")
+            for name in ("create", "open", "get_response_headers", "read"):
+                assert threads[name] != main, (name, threads)
             app.shutdown()
             print("OK")
         """)

@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 56개(통합 23, 생성기 32, 위키 점검 1) 있습니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 62개(통합 29, 생성기 32, 위키 점검 1) 있습니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -38,9 +38,15 @@ updated: 2026-10-08
 | | `test_a_client_without_handlers_and_broken_handlers_do_not_disturb_the_wrapper` | 클라이언트와 핸들러의 예외가 보고되고 래퍼는 정상 |
 | | `test_set_client_must_come_before_initialize` | 초기화 뒤의 `set_client`는 `RuntimeError` |
 | | `test_browser_host_gives_back_its_browser_and_sets_the_zoom` | `get_host`와 `get_browser`의 일치, `get_browser_by_identifier`, 줌 설정 |
-| | `test_mouse_events_carry_their_coordinates_to_the_page` | 두 클릭 사이의 거리와 버튼, `MouseEvent`와 일반 튜플, 잘못된 인자의 `TypeError` |
+| | `test_mouse_events_reach_the_page_at_their_coordinates` | 첫 프레임을 기다린 뒤 두 클릭의 정확한 좌표와 버튼, `MouseEvent`와 일반 튜플, 잘못된 인자의 `TypeError` |
 | | `test_auto_resize_reports_the_content_size_to_the_display_handler` | `on_auto_resize`가 `Size`를 받음(구조체 입력의 Python 경로) |
-| | `test_close_browser_ends_the_browser_and_do_close_is_not_called_for_chrome_style` | 닫기가 `on_before_close`와 종료로 이어짐, `do_close`는 호출되지 않음(특성 시험) |
+| | `test_the_browsers_are_alloy_style` | `get_runtime_style() == 2`(스타일을 바꾸면 이 시험이 실패해서 문서를 고치게 함) |
+| | `test_do_close_can_keep_the_browser_open` | 첫 닫기가 `do_close(True)`로 취소되고 두 번째가 `on_before_close`와 종료로 이어짐 |
+| | `test_the_window_title_follows_the_page_title` | 최상위 창(루트의 직접 자식)에 페이지 제목이 설정됨(`xwininfo`가 없으면 건너뜀) |
+| | `test_initialize_after_shutdown_raises_instead_of_crashing` | `shutdown()` 뒤 `initialize()`는 `RuntimeError`(전에는 세그멘테이션 오류) |
+| | `test_the_process_can_end_without_shutdown` | 핸들러가 살아 있고 요청이 진행 중인 채 종료해도 정상 종료 |
+| | `test_a_path_the_factory_declines_goes_on_to_the_default_handling` | `create()`가 `None`이면 CEF 기본 처리로 넘어가 `on_load_error` |
+| | `test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread` | 리소스 핸들러 콜백이 메인 스레드가 아님 |
 
 ## tests/test_generator.py: 생성기 시험
 

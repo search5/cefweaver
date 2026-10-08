@@ -44,3 +44,11 @@
 - `scope.py`에 `CefBrowserHost`를 추가해 53개 메서드가 열렸습니다. 범위 안의 메서드가 109개에서 163개로 늘었습니다.
 - 발견: 래퍼의 브라우저는 Chrome 스타일이라 `do_close`가 호출되지 않습니다(F17). 앞서 "구현했으나 시험하지 못함"으로 적은 항목을 도달할 수 없는 경로로 바로잡았습니다.
 - 갱신: [생성 범위와 커버리지](pages/reference/generated-api-coverage.md), [Python API 참조](pages/reference/python-api.md), [알려진 제약과 미검증 항목](pages/reference/known-constraints.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F17), [C++ 핸들러](pages/components/native-handlers.md), [시험](pages/components/tests.md), [설계 결정 기록](pages/reference/design-decisions.md) 외.
+
+## [2026-10-08] ingest | Alloy 스타일 전환과 미검증 항목의 확인
+
+- 사용자의 제안(java-cef처럼 Alloy 스타일만 지원)에 따라 java-cef 위키와 소스(`CefBrowser_N.cpp`)로 근거를 확인하고, 래퍼에 `runtime_style = ALLOY`를 설정했습니다. 전환의 부작용을 실험으로 찾았습니다: 창 제목이 비어 있음(X11로 설정하도록 구현), 첫 프레임 전의 입력이 버려짐, 이전에 알 수 없던 마우스 오프셋은 Chrome 스타일의 창 장식 때문이었음(F18).
+- `do_close`가 이제 호출되고 닫기 거부가 시험으로 확인되었습니다. 앞서 도달할 수 없다고 적은 항목(F17의 이전 서술)을 바로잡았습니다.
+- Windows를 제외한 미검증 항목을 실행해서 확인했습니다: 리소스 핸들러 콜백의 스레드(F19), `shutdown()` 뒤 재초기화(F20, 세그멘테이션 오류를 `RuntimeError`로 고침), 종료 없이 끝나기(F21), 팩토리가 거절한 경로(F22), 다른 CEF 버전 147과 152의 헤더(F23), manylinux(F24, 불가), GIL 교착(F25, 변형 빌드로 재현).
+- 확인하지 못한 채 남은 것: `--build-cef`의 실제 소스 빌드와 `use_allocator=none`(디스크 여유 64GB, 요구 약 120GB), 구조체 출력의 Python 경로(오프스크린 렌더링 필요), 서브프로세스 `stack smashing`의 원인 메커니즘, Alloy 스타일에서의 네이티브 Wayland(실제 화면에 창을 열어야 함), 다른 버전의 `libcef`로 실제 실행.
+- 갱신: [설계 결정 기록](pages/reference/design-decisions.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F17 정정, F18 ~ F25), [알려진 제약과 미검증 항목](pages/reference/known-constraints.md), [C++ 핸들러](pages/components/native-handlers.md), [Python API 참조](pages/reference/python-api.md), [프로세스 모델과 스레드](pages/concepts/process-model-and-threads.md), [시험](pages/components/tests.md), [패키징](pages/components/packaging.md), [Chromium의 Wayland와 X11 동작](pages/analyses/chromium-on-wayland.md) 외.

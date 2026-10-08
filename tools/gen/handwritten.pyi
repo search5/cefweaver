@@ -5,7 +5,7 @@ from typing import Any, NamedTuple
 class CefApp:
     """An embedded Chromium (CEF) instance.
 
-    Only one instance can be initialized per process.
+    CEF can be initialized only once per process, also after `shutdown()`.
     """
 
     def __init__(self) -> None: ...
