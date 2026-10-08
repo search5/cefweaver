@@ -3,7 +3,7 @@ name = "cefweaver-wx-example"
 version = "0.1.0"
 description = "An offscreen cefweaver browser in a wxPython window"
 requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
-dependencies = ["cefweaver", "wxpython>=4.2"]
+dependencies = ["cefweaver", "wxpython>=4.2", "pygame>=2.5"]   # pygame: the sound of the page, as wx cannot play a stream
 
 [tool.uv]
 package = false

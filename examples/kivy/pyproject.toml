@@ -3,7 +3,7 @@ name = "cefweaver-kivy-example"
 version = "0.1.0"
 description = "An offscreen cefweaver browser in a Kivy widget"
 requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
-dependencies = ["cefweaver", "kivy>=2.3"]
+dependencies = ["cefweaver", "kivy>=2.3", "pygame>=2.5"]   # pygame: the sound of the page, as Kivy cannot play a stream
 
 [tool.uv]
 package = false

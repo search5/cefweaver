@@ -121,6 +121,23 @@ class Adapter:
         drops = core.js("window.drops")
         core.check(drops == [{"text": "from-another-program", "files": []}], "a text drop (SDL_DROPTEXT) reaches the page", drops)
         core.snapshot("10-dragged")
+        self.sink_checks(core)
+
+    def sink_checks(self, core):
+        """The audio sink of SDL on the real device, with silence (volume 0): what is written is played, in time."""
+        from cefweaver.ui.toolkits.sdl2 import SdlSink
+        sink = SdlSink(volume=0.0)
+        sink.start(44100, 2)
+        packet = bytes(4 * 2 * 1024)
+        for _ in range(43):                                  # one second, the speed of a stream
+            sink.write(packet, 1024)
+            self.settle(1024 / 44100)
+        self.settle(0.2)
+        stats = sink.stats()
+        sink.stop()
+        core.check(stats["written"] == 43 * 1024 and stats["dropped"] == 0, "the SDL sink takes all that is written", stats)
+        core.check(stats["consumed"] >= stats["written"] - 4 * 1024 and stats["underruns"] <= 2,
+                   "the device plays it as fast as it comes (a small latency, no gaps)", stats)
 
 
 def main():

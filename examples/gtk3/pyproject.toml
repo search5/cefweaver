@@ -7,6 +7,7 @@ dependencies = [
     "cefweaver",
     "pygobject>=3.50",                   # built from source: libgirepository-dev, libcairo2-dev, gir1.2-gtk-3.0
     "pycairo>=1.26",
+    "pygame>=2.5",                       # the sound of the page, as GTK has no stream to play (GStreamer is not used)
 ]
 
 [tool.uv]

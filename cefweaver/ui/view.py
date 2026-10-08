@@ -15,6 +15,7 @@ import time
 import cefweaver
 from cefweaver import types
 
+from . import audio as _audio
 from . import keys
 from .adapter import DragPayload, Frame
 from .picture import PictureStore
@@ -35,8 +36,11 @@ class BrowserView:
     to CEF.
     """
 
-    def __init__(self, adapter):
+    def __init__(self, adapter, audio=None, pygame_sink=None):
         self.adapter = adapter
+        self.audio_sink = self._choose_sink(adapter, audio, pygame_sink)
+        self.audio_muted = False
+        self.on_audio_error = lambda message: None
         self.client = _Handlers(self)
         self.browser = None
         self.picture_size = (0, 0)
@@ -60,9 +64,59 @@ class BrowserView:
         self._leaving = False
         self._over_answered = False
 
+    @staticmethod
+    def _choose_sink(adapter, audio, pygame_sink):
+        """``audio``: None (CEF plays the sound), a sink, or ``"auto"``: the sink of the toolkit adapter
+        (``adapter.audio_sink()``), else pygame if it is installed, else None (CEF plays the sound)."""
+        if audio is None:
+            return None
+        if isinstance(audio, str):
+            if audio != "auto":
+                raise TypeError('audio must be a sink, "auto" or None, not %r' % (audio,))
+            make = getattr(adapter, "audio_sink", None)
+            sink = make() if make is not None else None
+            if sink is not None:
+                return sink
+            return (pygame_sink or _audio.pygame_sink)()
+        if not _audio.is_sink(audio):
+            raise TypeError("audio must be a sink (start, write, stop), 'auto' or None, not %r" % (audio,))
+        return audio
+
     @property
     def capabilities(self):
         return frozenset(getattr(self.adapter, "capabilities", ()))
+
+    # -- the sound of the page -------------------------------------------------------------------
+
+    def _sink_call(self, name, *args):
+        sink = self.audio_sink
+        if sink is None:
+            return
+        try:
+            getattr(sink, name)(*args)
+        except Exception as error:                          # a failing sink must not go on failing 40 times a second
+            self.audio_sink = None
+            try:
+                sink.stop()
+            except Exception:
+                pass
+            self.on_audio_error("%s: %s" % (type(error).__name__, error))
+
+    def _audio_started(self, sample_rate, channels):
+        self._sink_call("start", sample_rate, channels)
+
+    def _audio_packet(self, planes):
+        if self.audio_muted or self.audio_sink is None:
+            return
+        samples, frames = _audio.interleave(planes)
+        self._sink_call("write", samples, frames)
+
+    def _audio_stopped(self):
+        self._sink_call("stop")
+
+    def _audio_error(self, message):
+        self._sink_call("stop")
+        self.on_audio_error(message)
 
     # -- the browser -----------------------------------------------------------------------------
 
@@ -371,9 +425,13 @@ class _Handlers(cefweaver.Client):
         super().__init__()
         self.render, self.life = _Render(view), _Life(view)
         self.display, self.load = _Display(view), _Load(view)
+        self.audio, self.view = _Audio(view), view
 
     def get_render_handler(self):
         return self.render
+
+    def get_audio_handler(self):
+        return self.audio if self.view.audio_sink is not None else None     # without a sink CEF plays the sound
 
     def get_life_span_handler(self):
         return self.life
@@ -383,6 +441,23 @@ class _Handlers(cefweaver.Client):
 
     def get_load_handler(self):
         return self.load
+
+
+class _Audio(cefweaver.AudioHandler):
+    def __init__(self, view):
+        self.v = view
+
+    def on_audio_stream_started(self, browser, params, channels):
+        self.v._audio_started(params.sample_rate, channels)
+
+    def on_audio_stream_packet(self, browser, data, pts):
+        self.v._audio_packet(data)
+
+    def on_audio_stream_stopped(self, browser):
+        self.v._audio_stopped()
+
+    def on_audio_stream_error(self, browser, message):
+        self.v._audio_error(message)
 
 
 class _Render(cefweaver.RenderHandler):

@@ -110,10 +110,10 @@ class CefView(ui.BrowserWidget, Widget):
 
     __events__ = ("on_title", "on_address", "on_loading", "on_ready")
 
-    def __init__(self, runtime, **kwargs):
+    def __init__(self, runtime, audio=None, **kwargs):
         super().__init__(**kwargs)
         self.runtime = runtime
-        self.attach_view(KivyAdapter(self))
+        self.attach_view(KivyAdapter(self), audio=audio)
         self.texture = self.popup_texture = None
         self.picture = (0, 0)
         self._buttons = set()

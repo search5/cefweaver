@@ -54,7 +54,7 @@ updated: 2026-10-08
 | 핸들러의 추가 메서드 | `DisplayHandler` 6, `RenderHandler` 6(스크롤, IME, 텍스트 선택, 터치, 가상 키보드), `RequestHandler` 4, `DevToolsMessageObserver` 3, `LifeSpanHandler`, `DownloadHandler`, `DragHandler`, `Client`(프로세스 메시지), `RequestContextHandler` 각 1 | 24 |
 | 라이브러리 클래스의 추가 메서드 | `BrowserHost` 35(IME, 터치, 줌, 탐색 항목 등), `RequestContext` 18(웹사이트 설정, 색상 등), `CommandLine` 10, `Frame` 5, `DownloadItem` 4, `Response` 4, `DragData` 3, `Browser` 2, `URLRequest` 2, `PostData` 1 | 84 |
 | 쿠키 콜백 | `SetCookieCallback`, `DeleteCookiesCallback`(java-cef는 완료 콜백만) | 2 |
-| 오디오 | `AudioHandler` 5(스트림 시작, 패킷, 정지, 오류, 매개변수), `Client.get_audio_handler` 1 ([F72](verified-findings-media.md)) | 6 |
+| 오디오 | (UI: 싱크로 재생, [F74](verified-findings-media.md)) `AudioHandler` 5(스트림 시작, 패킷, 정지, 오류, 매개변수), `Client.get_audio_handler` 1 ([F72](verified-findings-media.md)) | 6 |
 | 권한(마이크, 카메라) | `PermissionHandler` 3, `MediaAccessCallback` 2, `PermissionPromptCallback` 1, `Client.get_permission_handler` 1 ([F71](verified-findings-media.md)) | 7 |
 | 그 밖 | `SSLInfo`, `UnresponsiveProcessCallback` | 3 |
 

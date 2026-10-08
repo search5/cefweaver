@@ -152,10 +152,10 @@ class TkAdapter:
 class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
     """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
 
-    def __init__(self, master, runtime, **options):
+    def __init__(self, master, runtime, audio=None, **options):
         super().__init__(master, highlightthickness=0, background="white", takefocus=True, **options)
         self.runtime = runtime
-        self.attach_view(TkAdapter(self, runtime.adapter))
+        self.attach_view(TkAdapter(self, runtime.adapter), audio=audio)
         self.view_width, self.view_height = 800, 600
         self.image = None                               # the picture (PIL) and what Tk shows of it
         self.photo = None

@@ -31,7 +31,7 @@ os.environ.setdefault("SDL_HINT_RENDER_DRIVER", "software")
 import sdl2                                                      # noqa: E402
 
 from cefweaver import types, ui                                  # noqa: E402
-from cefweaver.ui import keys                                    # noqa: E402
+from cefweaver.ui import audio, keys                              # noqa: E402
 
 _KEYS = {
     sdl2.SDLK_BACKSPACE: keys.VK_BACK, sdl2.SDLK_TAB: keys.VK_TAB, sdl2.SDLK_RETURN: keys.VK_RETURN,
@@ -68,6 +68,65 @@ def modifier_flags(mod, buttons=0):
     return _MODIFIERS.flags(mod, buttons)
 
 
+class SdlSink:
+    """An audio sink of SDL: the device is opened in queue mode (``SDL_QueueAudio``, no Python callback in SDL's audio
+    thread), at most ``max_latency`` seconds are queued (older sound is dropped) and a little sound (``prebuffer``) is
+    collected before it plays, and again after the queue ran empty. ``volume`` (0.0 to 1.0) is applied to the samples.
+    ``stats()`` tells what happened."""
+
+    def __init__(self, volume=1.0, max_latency=0.5, prebuffer=0.1):
+        self.volume, self.max_latency, self.prebuffer = volume, max_latency, prebuffer
+        self._device = 0
+        self._rate = self._channels = 0
+        self._playing = False
+        self._counters = dict(written=0, dropped=0, underruns=0)
+
+    def start(self, sample_rate, channels):
+        self.stop()
+        if sdl2.SDL_InitSubSystem(sdl2.SDL_INIT_AUDIO) != 0:
+            raise RuntimeError("SDL audio: %s" % sdl2.SDL_GetError().decode())
+        wanted = sdl2.SDL_AudioSpec(sample_rate, sdl2.AUDIO_F32SYS, channels, 1024)       # no callback: a queue
+        obtained = sdl2.SDL_AudioSpec(0, 0, 0, 0)
+        device = sdl2.SDL_OpenAudioDevice(None, 0, wanted, obtained, 0)           # 0: SDL converts to what the device has
+        if device == 0:
+            raise RuntimeError("no audio device: %s" % sdl2.SDL_GetError().decode())
+        self._device, self._rate, self._channels, self._playing = device, sample_rate, channels, False
+
+    def write(self, samples, frames):
+        device = self._device
+        if not device:
+            return
+        samples = audio.apply_volume(samples, self.volume)
+        queued = sdl2.SDL_GetQueuedAudioSize(device)
+        if self._playing and queued == 0:                                       # it ran empty: collect again
+            sdl2.SDL_PauseAudioDevice(device, 1)
+            self._playing = False
+            self._counters["underruns"] += 1
+        limit = int(self._rate * self.max_latency) * self._channels * 4
+        if queued > limit:                                                      # the application cannot keep up
+            sdl2.SDL_ClearQueuedAudio(device)
+            self._counters["dropped"] += queued // (4 * self._channels)
+            queued = 0
+        sdl2.SDL_QueueAudio(device, samples, len(samples))
+        self._counters["written"] += frames
+        if not self._playing and queued + len(samples) >= int(self._rate * self.prebuffer) * self._channels * 4:
+            sdl2.SDL_PauseAudioDevice(device, 0)
+            self._playing = True
+
+    def stop(self):
+        device, self._device = self._device, 0
+        if device:
+            sdl2.SDL_CloseAudioDevice(device)
+        self._playing = False
+
+    def stats(self):
+        queued = (sdl2.SDL_GetQueuedAudioSize(self._device) // (4 * self._channels)) if self._device else 0
+        counters = dict(self._counters)
+        counters["queued"] = queued
+        counters["consumed"] = counters["written"] - counters["dropped"] - queued
+        return counters
+
+
 class _Timer:
     def __init__(self, function):
         self.function = function
@@ -81,7 +140,7 @@ class SdlBrowser(ui.BrowserWidget):
 
     capabilities = frozenset()      # no drag source and no clipboard CEF could use: the view does both
 
-    def __init__(self, switches=(), cache_path=None, width=900, height=640, title="cefweaver SDL2"):
+    def __init__(self, switches=(), cache_path=None, width=900, height=640, title="cefweaver SDL2", audio=None):
         if sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO) != 0:
             raise RuntimeError("SDL_Init: %s" % sdl2.SDL_GetError().decode())
         sdl2.SDL_SetHint(b"SDL_IME_SHOW_UI", b"1")
@@ -108,7 +167,7 @@ class SdlBrowser(ui.BrowserWidget):
         self.quit = False
         self._closing = False
         # CEF
-        self.attach_view(self)
+        self.attach_view(self, audio=audio)
         self.on_ready = lambda: None                    # set by the application: the browser exists, load a page
         self.session = ui.Session(self, switches, cache_path)
         self.app, self.bridge = self.session.app, self.session.bridge
@@ -127,6 +186,10 @@ class SdlBrowser(ui.BrowserWidget):
         timer = _Timer(function)
         heapq.heappush(self._timers, (time.monotonic() + seconds, next(self._sequence), timer))
         return timer
+
+    def audio_sink(self):
+        """``BrowserView(audio="auto")`` plays the sound of the page with the audio of SDL."""
+        return SdlSink()
 
     def view_size(self):
         return self.width, self.height

@@ -133,6 +133,116 @@ class QtLoop(QObject):
         return _Timer(self, seconds, function)
 
 
+def _multimedia():
+    """QtMultimedia of the binding in use: (QAudioFormat, QAudioSink, QMediaDevices), or None if it is not there."""
+    try:
+        if BINDING == "pyqt6":
+            from PyQt6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
+        else:
+            from PySide6.QtMultimedia import QAudioFormat, QAudioSink, QMediaDevices
+    except ImportError:
+        return None
+    return QAudioFormat, QAudioSink, QMediaDevices
+
+
+class QtSink:
+    """An audio sink of Qt: a ``QAudioSink`` (QtMultimedia) in push mode. The sound comes in the audio thread of CEF
+    and the sink belongs to the GUI thread, so everything is posted to it (in order). The sink holds about
+    ``latency`` seconds. ``volume`` (0.0 to 1.0) is the volume of the ``QAudioSink``. ``stats()`` tells what happened."""
+
+    def __init__(self, loop, volume=1.0, latency=0.1, max_latency=0.5):
+        self.loop, self.latency, self.max_latency = loop, latency, max_latency
+        self._volume = volume
+        self._sink = self._io = None
+        self._rate = self._channels = 0
+        self._pending = bytearray()
+        self._counters = dict(written=0, dropped=0, underruns=0)
+        self._timer = None
+        self._processed = 0
+        self._was_idle = True
+
+    def _processed_frames(self, sink):
+        return int(sink.processedUSecs() * self._rate / 1_000_000)
+
+    @property
+    def volume(self):
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
+        self.loop.post(lambda: self._sink.setVolume(value) if self._sink is not None else None)
+
+    # called in the thread of CEF's audio stream: they only post
+    def start(self, sample_rate, channels):
+        self.loop.post(lambda: self._start(sample_rate, channels))
+
+    def write(self, samples, frames):
+        self.loop.post(lambda: self._write(samples, frames))
+
+    def stop(self):
+        self.loop.post(self._stop)
+
+    # in the GUI thread
+    def _start(self, sample_rate, channels):
+        self._stop()
+        QAudioFormat, QAudioSink, QMediaDevices = _multimedia()
+        form = QAudioFormat()
+        form.setSampleRate(sample_rate)
+        form.setChannelCount(channels)
+        form.setSampleFormat(QAudioFormat.SampleFormat.Float)
+        sink = QAudioSink(QMediaDevices.defaultAudioOutput(), form)
+        sink.setBufferSize(int(sample_rate * self.latency) * channels * 4)
+        sink.setVolume(self._volume)
+        self._sink, self._io = sink, sink.start()
+        self._rate, self._channels = sample_rate, channels
+        self._pending.clear()
+        self._timer = QTimer(self.loop)
+        self._timer.timeout.connect(self._flush)
+        self._timer.start(5)                                    # the sink takes more as it plays
+
+    def _write(self, samples, frames):
+        if self._io is None:
+            return
+        self._pending += samples
+        self._counters["written"] += frames
+        limit = int(self._rate * self.max_latency) * self._channels * 4
+        if len(self._pending) > limit:                          # the application cannot keep up
+            extra = len(self._pending) - limit
+            del self._pending[:extra]
+            self._counters["dropped"] += extra // (4 * self._channels)
+        self._flush()
+
+    def _flush(self):
+        if self._sink is not None:
+            idle = "Idle" in str(self._sink.state())            # it ran empty (polled: the signal does not convert in PySide)
+            if idle and not self._was_idle and self._counters["written"]:
+                self._counters["underruns"] += 1
+            self._was_idle = idle
+        if self._io is not None and self._pending:
+            taken = self._io.write(bytes(self._pending))
+            if taken > 0:
+                del self._pending[:taken]
+
+    def _stop(self):
+        if self._timer is not None:
+            self._timer.stop()
+            self._timer = None
+        sink, self._sink, self._io = self._sink, None, None
+        if sink is not None:
+            self._processed = self._processed_frames(sink)
+            sink.stop()
+        self._pending.clear()
+
+    def stats(self):
+        queued = len(self._pending) // (4 * max(1, self._channels))
+        counters = dict(self._counters)
+        counters["queued"] = queued
+        # what the device has played, as QAudioSink counts it (in the GUI thread: that is where it may be asked)
+        counters["consumed"] = self._processed_frames(self._sink) if self._sink is not None else self._processed
+        return counters
+
+
 class QtAdapter:
     """``ui.ToolkitAdapter`` for a ``CefWidget``. Qt has a drag source for the page (``drag_out``). Qt reads the
     X selection synchronously while CEF, in this thread, would have to answer it: the view does the clipboard
@@ -149,6 +259,13 @@ class QtAdapter:
 
     def call_later(self, seconds, function):
         return self.loop.call_later(seconds, function)
+
+    def audio_sink(self):
+        """``BrowserView(audio="auto")`` plays the sound of the page with QtMultimedia, if there is an output device."""
+        parts = _multimedia()
+        if parts is None or parts[2].defaultAudioOutput().isNull():
+            return None
+        return QtSink(self.loop)
 
     def view_size(self):
         return self.w.width(), self.w.height()
@@ -190,10 +307,10 @@ class CefWidget(ui.BrowserWidget, QWidget):
     loading_changed = Signal(bool, bool, bool)
     browser_ready_signal = Signal()
 
-    def __init__(self, runtime, parent=None):
+    def __init__(self, runtime, parent=None, audio=None):
         super().__init__(parent)
         self.runtime = runtime
-        self.attach_view(QtAdapter(self, runtime.adapter))
+        self.attach_view(QtAdapter(self, runtime.adapter), audio=audio)
         self.image = None
         self.popup_image = None
         self.cursor_rect = QRect(0, 0, 1, 20)

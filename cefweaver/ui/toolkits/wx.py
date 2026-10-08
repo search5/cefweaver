@@ -156,11 +156,11 @@ class _DropTarget(wx.DropTarget):
 class CefPanel(ui.BrowserWidget, wx.Panel):
     """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
 
-    def __init__(self, parent, runtime):
+    def __init__(self, parent, runtime, audio=None):
         super().__init__(parent, style=wx.WANTS_CHARS)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.runtime = runtime
-        self.attach_view(WxAdapter(self))
+        self.attach_view(WxAdapter(self), audio=audio)
         self.bitmap = self.popup_bitmap = None
         self.picture = (0, 0)
         self.on_title = self.on_address = lambda value: None

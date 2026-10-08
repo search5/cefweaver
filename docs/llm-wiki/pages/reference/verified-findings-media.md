@@ -7,7 +7,10 @@ sources:
   - native/cefwrapper/cef_wrapper_client_handler.h
   - tools/gen/typesys.py
   - cefweaver/bridge.py
-updated: 2026-10-08
+  - cefweaver/ui/audio.py
+  - cefweaver/ui/toolkits/sdl2.py
+  - cefweaver/ui/toolkits/qt.py
+updated: 2026-10-09
 ---
 
 # 실행해서 확인한 미디어 (F71부터)
@@ -44,6 +47,22 @@ updated: 2026-10-08
 - **발견한 결함(수정함)**: 점검을 만들다가 `JavascriptBridge`에 노출한 함수가 **하나도 없으면** 렌더러의 shim이 설치되지 않아(`window.__cefweaverBridge`가 `undefined`) `evaluate`와 `execute_function`이 동작하지 않는 것을 찾았습니다. 시험은 항상 함수를 노출해서 드러나지 않았습니다. 브리지를 만들 때 이름 목록을 `"[]"`로라도 설정하도록 고쳤습니다(시험 `test_a_bridge_that_exposes_nothing_still_evaluates_and_calls_the_page`).
 - **발견한 한계(미수정)**: `bridge.evaluate`는 유튜브와 GitHub에서 Trusted Types/CSP 때문에 `EvalError`입니다([알려진 제약](known-constraints.md)).
 - **확인하지 못한 것**: 실제로 소리가 나는지(아무도 듣지 않는 가짜 출력으로만 했음), 실제 화면(Wayland)과 GPU 가속, 광고가 붙는 영상, 동의 창이 뜨는 지역, 로그인, DRM이 걸린 영상(Widevine이 없음), 장시간 재생, 다른 해상도로의 크기 변경 중 재생. 영상이 한 번만 확인된 것이고 네트워크 상태에 따라 달라질 수 있습니다.
+
+## F74: 페이지의 소리를 싱크로 재생하기 (2026-10-09)
+
+`BrowserView(adapter, audio="auto")`는 툴킷의 `audio_sink()`가 있으면 그것을(SDL2: `SDL_QueueAudio`, Qt: `QAudioSink`), 없으면 pygame의 `PygameSink`를 씁니다. 가짜 출력(`disable-audio-output`)과 음량 0으로 YouTube를 15초 재생해서 확인했습니다.
+
+| 환경 | 싱크 | 15초 동안 | 끊김 |
+| --- | --- | --- | --- |
+| sdl2 | `SdlSink` | 약 69만 frame 기록, 거의 전부 소비 | 0 |
+| qt (PyQt6, PySide6) | `QtSink` | 약 69~70만 frame 기록, 전부 소비 | 0 |
+| gtk3, tk, wx, kivy | `PygameSink` | 약 67~71만 frame 기록, 거의 전부 소비 | 0 |
+
+- **교착 (원인 확인)**: pygame의 `AudioDevice.close()`는 GIL을 쥔 채 SDL 오디오 스레드를 기다리고, 그 스레드는 Python 콜백을 실행하려고 GIL을 기다립니다. 콜백이 계속 도는 동안 닫으면 8번 중 7번 멈췄습니다(`faulthandler`로 `stop`에서 멈춘 것을 확인). `ctypes`로 `SDL_CloseAudioDevice`를 부르면(GIL을 놓음) 40번 열고 닫아도 멈추지 않아서 `_close_device`가 그렇게 합니다.
+- **끊김 방지**: 기록 간격의 흔들림이 들리지 않도록 처음과 비었다가 다시 찰 때 약 0.1초(pygame은 0.04초)를 모은 뒤 재생합니다. 40 ms로는 SDL 싱크가 smoke에서 10번 끊겼고 100 ms에서 0이었습니다.
+- **지연 상한**: 응용이 따라가지 못하면 0.5초를 넘는 오래된 소리를 버립니다(`dropped`).
+- **PySide6**: `QAudioSink.stateChanged`에 슬롯을 연결하면 `QAudio::State` 변환 오류가 납니다. 신호 대신 `state()`를 주기적으로 읽습니다.
+- **확인하지 못한 것**: 실제 스피커로 들리는 소리(허락 없이 소리를 내지 않았습니다), 소리와 화면의 어긋남 정도.
 
 ## 관련 페이지
 

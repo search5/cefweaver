@@ -176,10 +176,10 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         "browser-ready": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, runtime):
+    def __init__(self, runtime, audio=None):
         super().__init__()
         self.runtime = runtime
-        self.attach_view(GtkAdapter(self))
+        self.attach_view(GtkAdapter(self), audio=audio)
         self.view_width, self.view_height = 800, 600    # in GTK pixels, until the first allocation
         self.surface = None
         self.popup_surface = None

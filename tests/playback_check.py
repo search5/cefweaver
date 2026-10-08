@@ -35,11 +35,22 @@ SWITCHES = [("disable-audio-output", ""), ("autoplay-policy", "no-user-gesture-r
 
 # -- inside: the program that plays ------------------------------------------------------------------------
 
-def inside_toolkit(quickstart, url, seconds):
-    """Run the quickstart of an example with the probe; print the states and PROBE DONE."""
+def inside_toolkit(quickstart, url, seconds, audio):
+    """Run the quickstart of an example with the probe; print the states and PROBE DONE. With ``audio`` the view
+    plays the sound through a sink (``audio="auto"``: the sink of the toolkit, else pygame) at volume 0."""
     from cefweaver import ui
-    probes = []
+    probes, views = [], []
     init, start = ui.Session.__init__, ui.Session.start
+    if audio:
+        view_init = ui.BrowserView.__init__
+
+        def browser_view_init(self, adapter, *args, **options):
+            options["audio"] = "auto"
+            view_init(self, adapter, *args, **options)
+            if self.audio_sink is not None:
+                self.audio_sink.volume = 0.0                    # the whole path runs, nobody hears it
+            views.append(self)
+        ui.BrowserView.__init__ = browser_view_init
 
     def session_init(self, adapter, switches=(), cache_path=None):
         init(self, adapter, list(switches) + SWITCHES, cache_path)
@@ -59,6 +70,9 @@ def inside_toolkit(quickstart, url, seconds):
             while probes:
                 print("STATE %s" % json.dumps(dict(probes.pop(), clock=round(elapsed, 2), pictures=len(seen)),
                                               ensure_ascii=False), flush=True)
+            sink = view.audio_sink
+            if audio and sink is not None and hasattr(sink, "stats"):
+                print("AUDIO %s" % json.dumps(dict(sink.stats(), sink=type(sink).__name__, clock=round(elapsed, 2))), flush=True)
             if view.browser is not None:
                 view.browser.get_main_frame().execute_java_script("if (window.__probe) window.__probe(%s);" % STATE, "", 0)
             if elapsed >= seconds:
@@ -123,6 +137,24 @@ def judge(states, windowed):
     return reasons
 
 
+def judge_sound(sounds):
+    """The reasons why the sound did not reach the sink as it should (an empty list: it did). A sound card plays 44100 or
+    48000 frames a second; the sink should have been given about that many."""
+    if len(sounds) < 3:
+        return ["the sink told fewer than 3 times (%d): is there one?" % len(sounds)]
+    first, last = sounds[0], sounds[-1]
+    seconds = last["clock"] - first["clock"]
+    frames = last["written"] - first["written"]
+    reasons = []
+    if frames < 0.7 * 44100 * seconds:
+        reasons.append("the sink was given %d frames in %.1f s (at least %d expected)" % (frames, seconds, 0.7 * 44100 * seconds))
+    if last["consumed"] < 0.8 * last["written"]:
+        reasons.append("the device took only %d of %d frames" % (last["consumed"], last["written"]))
+    if last["underruns"] > 8:
+        reasons.append("the sound broke up %d times" % last["underruns"])
+    return reasons
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("target", help="windowed, or an example: gtk3, qt, tk, sdl2, wx, kivy")
@@ -130,13 +162,15 @@ def main():
     parser.add_argument("--venv", default=".venv", help="the uv environment of the example")
     parser.add_argument("--seconds", type=float, default=24.0)
     parser.add_argument("--url", default=URL)
+    parser.add_argument("--audio", action="store_true",
+                        help="play the sound through the sink of the toolkit (else pygame) at volume 0 and check it")
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.inside:
         if args.target == "windowed":
             inside_windowed(args.url, args.seconds)
         else:
-            inside_toolkit(os.path.join(ROOT, "examples", args.target, "quickstart.py"), args.url, args.seconds)
+            inside_toolkit(os.path.join(ROOT, "examples", args.target, "quickstart.py"), args.url, args.seconds, args.audio)
         return 0
 
     windowed = args.target == "windowed"
@@ -145,7 +179,7 @@ def main():
     env.update(pin.split("=", 1) for pin in args.pins)
     scratch = tempfile.mkdtemp(prefix="cefweaver-playback-")        # CEF makes its cache in the working directory
     process = subprocess.Popen([python, os.path.abspath(__file__), args.target, "--inside", "--seconds", str(args.seconds),
-                                "--url", args.url], cwd=scratch, env=env,
+                                "--url", args.url] + (["--audio"] if args.audio else []), cwd=scratch, env=env,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     lines, errors = [], []
     threading.Thread(target=lambda: [lines.append(l) for l in iter(process.stdout.readline, "")], daemon=True).start()
@@ -154,11 +188,14 @@ def main():
     while not any("PROBE DONE" in l for l in lines) and process.poll() is None and time.time() < end:
         time.sleep(0.3)
     states = [json.loads(l[len("STATE "):]) for l in lines if l.startswith("STATE ")]
+    sounds = [json.loads(l[len("AUDIO "):]) for l in lines if l.startswith("AUDIO ")]
     for s in states:
         print("  T+%5.1fs video %5.1fs paused=%-5s ready=%s %sx%s err=%s ad=%s pictures=%d" % (
             s["clock"], s["t"] or 0, s["paused"], s["ready"], s["w"], s["h"], s["err"], s["ad"], s["pictures"]))
     if states:
         print("  page:", states[-1]["title"])
+    if args.audio:
+        print("  sound:", ("%s %s" % (sounds[-1]["sink"], {k: v for k, v in sounds[-1].items() if k not in ("sink", "clock")})) if sounds else "no sink")
     code = None
     if process.poll() is None:
         if windowed:
@@ -176,6 +213,8 @@ def main():
     else:
         code = process.returncode
     reasons = judge(states, windowed)
+    if args.audio:
+        reasons += judge_sound(sounds)
     if code != 0:
         reasons.append("ended with %s" % (code,))
     if any("stack smashing" in l for l in errors):

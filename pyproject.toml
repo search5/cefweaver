@@ -39,6 +39,7 @@ gtk3 = ["PyGObject>=3.42", "pycairo>=1.20"]
 tk = ["Pillow>=10"]
 sdl2 = ["pysdl2>=0.9.16", "pysdl2-dll"]
 kivy = ["kivy>=2.3"]
+pygame = ["pygame>=2.5"]            # the sound of the page for toolkits that cannot play a stream (cefweaver.ui.audio.PygameSink)
 # wxPython: PyPI has only the source (a very long build); take a wheel from
 # https://extras.wxpython.org/wxPython4/extras/ for your system, see examples/wx/pyproject.toml
 

@@ -16,8 +16,9 @@ class BrowserWidget:
 
     view = None
 
-    def attach_view(self, adapter):
-        self.view = BrowserView(adapter)
+    def attach_view(self, adapter, **options):
+        """Make the ``view``. ``options`` are those of ``BrowserView`` (``audio=``)."""
+        self.view = BrowserView(adapter, **options)
         self.view.on_title = self.browser_title
         self.view.on_address = self.browser_address
         self.view.on_loading = self.browser_loading

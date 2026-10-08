@@ -351,3 +351,7 @@
 ## [2026-10-08] query | 유튜브 영상 재생 확인 (F73)
 
 - 기본 CEF 앱과 오프스크린 여섯 툴킷(일곱 환경)에서 지정된 유튜브 영상이 재생되는 것을 확인했습니다(소리는 가짜 출력). 수동 점검 도구 `tests/playback_check.py`와 절차 페이지를 더했습니다. 찾아서 고친 결함: 노출한 함수가 없는 `JavascriptBridge`에는 shim이 설치되지 않음. 고치지 않은 한계: `evaluate`가 엄격한 CSP/Trusted Types 페이지(유튜브, GitHub)에서 `EvalError`.
+
+## [2026-10-09] ingest | 페이지 소리 재생 싱크 (F74)
+
+- `cefweaver.ui.audio`(`interleave`, `apply_volume`, `PygameSink`)와 `BrowserView(audio=)`, 툴킷 싱크(`SdlSink`, `QtSink`)를 더했습니다. 나머지 툴킷은 pygame을 씁니다(예제 의존성과 `pygame` extra). pygame `AudioDevice.close()`의 GIL 교착을 확인하고 피했습니다. `tests/playback_check.py --audio`로 일곱 환경에서 YouTube 소리가 싱크에 도달하는 것을 확인했습니다(음량 0).

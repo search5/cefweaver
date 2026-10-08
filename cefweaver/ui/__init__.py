@@ -11,7 +11,7 @@ from .session import Session
 from .tables import CursorTable, EventModifiers, KeyTable, MaskModifiers, NamedModifiers, function_range
 from .view import BrowserView
 from .widget import BrowserWidget
-from . import keys
+from . import audio, keys
 
 __all__ = ["BrowserView", "BrowserWidget", "CursorTable", "DragPayload", "EventModifiers", "Frame", "KeyTable", "MaskModifiers",
-           "NamedModifiers", "PictureChange", "PictureStore", "Session", "write_png", "ToolkitAdapter", "function_range", "keys"]
+           "NamedModifiers", "PictureChange", "PictureStore", "Session", "write_png", "ToolkitAdapter", "audio", "function_range", "keys"]

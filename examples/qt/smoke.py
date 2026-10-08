@@ -177,6 +177,28 @@ class Adapter:
         check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget is source and target)", drops)
         core.snapshot("10-dragged")
         os.unlink(temporary.name)
+        self.sink_checks(core)
+
+    def sink_checks(self, core):
+        """The audio sink of Qt on the real device, with silence (volume 0): what is written is played, in time."""
+        from cefweaver.ui.toolkits.qt import QtSink, _multimedia
+        parts = _multimedia()
+        if parts is None or parts[2].defaultAudioOutput().isNull():
+            return                                           # no output device
+        sink = QtSink(self.runtime.adapter)
+        sink.volume = 0.0
+        sink.start(44100, 2)
+        packet = bytes(4 * 2 * 1024)
+        for _ in range(43):
+            sink.write(packet, 1024)
+            self.settle(1024 / 44100)
+        self.settle(0.3)
+        stats = sink.stats()
+        sink.stop()
+        self.settle(0.1)
+        core.check(stats["written"] == 43 * 1024 and stats["dropped"] == 0, "the Qt sink takes all that is written", stats)
+        core.check(stats["consumed"] >= stats["written"] - 6 * 1024 and stats["underruns"] <= 3,
+                   "the device plays it as fast as it comes (a small latency, no gaps)", stats)
 
 
 def main():

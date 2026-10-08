@@ -12,6 +12,7 @@ sources:
   - cefweaver/ui/toolkits/__init__.py
   - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/toolkits/qt.py
+  - cefweaver/ui/audio.py
   - cefweaver/ui/toolkits/tk.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/wx.py
@@ -84,6 +85,10 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 | `qt` | 573줄에서 396줄 | 27개 통과: PyQt6와 PySide6 모두, 배율 1과 2 | 시그널이 `post`를, `QTimer`가 `call_later`를 맡음. 복사와 붙여넣기 모두 뷰가 Qt 클립보드로 처리(붙여넣기는 일반 텍스트만. 이식 전에는 CEF에 맡겼음) |
 
 GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친 것: 인터페이스에서 고친 것 셋: `BrowserView.commit_text()`(입력기가 확정한 글자는 ASCII 한 글자도 입력기 경로로. `text()`는 한 글자를 키로 만듦), `DragPayload`의 시작 위치 `x`, `y`, 새 드래그가 시작할 때 `drag_operation`을 복사로 되돌리기. 또 `Session`이 툴킷에 요구하는 것은 `post`와 `call_later`뿐이라 위젯(과 그 어댑터)이 생기기 전에 CEF를 만들 수 있습니다(`GlibLoop`).
+
+## 소리 출력 (audio)
+
+`BrowserView(adapter, audio=...)`: `"auto"`(기본 없음: `None`이면 소리를 받지 않음), 싱크 객체, 또는 `None`. 싱크는 `start(sample_rate, channels)`, `write(samples, frames)`(frames x channels개의 little-endian float32, 인터리브), `stop()`을 가집니다(CEF의 오디오 스레드에서 불리므로 막으면 안 됨). `"auto"`는 어댑터의 `audio_sink()`(SDL2 `SdlSink`, Qt `QtSink`), 없으면 `cefweaver.ui.audio.PygameSink`(`pip install cefweaver[pygame]`), 그것도 없으면 소리 없음입니다. 싱크가 예외를 내면 떼어내고 `on_audio_error`로 한 번 알립니다. `BrowserWidget.attach_view(adapter, audio=...)`가 그대로 넘깁니다. 확인한 내용은 [F74](verified-findings-media.md)입니다.
 
 ## 아직 하지 않은 것
 

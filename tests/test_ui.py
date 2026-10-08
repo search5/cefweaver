@@ -750,6 +750,12 @@ class WidgetBase(unittest.TestCase):
         view.client.get_life_span_handler().on_after_created(FakeBrowser(calls))
         self.assertEqual(widget.events, [("title", "t"), ("address", "http://a/"), ("loading", True, False, False), ("ready",)])
 
+    def test_the_options_of_the_view_can_be_given_by_the_widget(self):
+        sink = FakeSink()
+        widget = ui.BrowserWidget()
+        view = widget.attach_view(FakeAdapter(), audio=sink)
+        self.assertIs(view.audio_sink, sink)
+
     def test_a_widget_without_hooks_works_too(self):
         class Plain(ui.BrowserWidget):
             def __init__(self):
@@ -950,6 +956,201 @@ class ToolkitModules(unittest.TestCase):
         import re
         for name in TOOLKITS:
             self.assertEqual(re.findall(r"\bview\._\w+", self.source(name)), [], name)
+
+
+class FakeSink:
+    """An audio sink that writes down what it is given."""
+
+    def __init__(self):
+        self.calls = []
+
+    def start(self, sample_rate, channels):
+        self.calls.append(("start", sample_rate, channels))
+
+    def write(self, samples, frames):
+        self.calls.append(("write", samples, frames))
+
+    def stop(self):
+        self.calls.append(("stop",))
+
+
+def floats(*values):
+    import array
+    return memoryview(array.array("f", values))
+
+
+class AudioOutput(unittest.TestCase):
+    """The sound of the page goes to a sink the application (or the toolkit) gives; without one CEF plays it."""
+
+    PARAMS = types.AudioParameters(types.ChannelLayout.LAYOUT_STEREO, 44100, 1024)
+
+    def test_without_a_sink_cef_plays_the_sound_itself(self):
+        view, _, _ = make_view()
+        self.assertIsNone(view.client.get_audio_handler())
+
+    def test_a_sink_gets_the_stream_as_interleaved_samples(self):
+        import array
+        sink = FakeSink()
+        view = ui.BrowserView(FakeAdapter(), audio=sink)
+        handler = view.client.get_audio_handler()
+        self.assertIsNotNone(handler)
+        handler.on_audio_stream_started(None, self.PARAMS, 2)
+        handler.on_audio_stream_packet(None, [floats(1, 2, 3), floats(10, 20, 30)], 1234)
+        handler.on_audio_stream_stopped(None)
+        self.assertEqual(sink.calls[0], ("start", 44100, 2))
+        kind, samples, frames = sink.calls[1]
+        self.assertEqual((kind, frames), ("write", 3))
+        self.assertEqual(list(array.array("f", samples)), [1, 10, 2, 20, 3, 30])      # left, right, left, right ...
+        self.assertEqual(sink.calls[2], ("stop",))
+
+    def test_a_mono_stream_is_the_samples_as_they_are(self):
+        import array
+        sink = FakeSink()
+        view = ui.BrowserView(FakeAdapter(), audio=sink)
+        handler = view.client.get_audio_handler()
+        handler.on_audio_stream_started(None, self.PARAMS, 1)
+        handler.on_audio_stream_packet(None, [floats(0.5, -0.5)], 0)
+        self.assertEqual(list(array.array("f", sink.calls[1][1])), [0.5, -0.5])
+
+    def test_a_muted_view_drops_the_packets_but_keeps_the_stream(self):
+        sink = FakeSink()
+        view = ui.BrowserView(FakeAdapter(), audio=sink)
+        handler = view.client.get_audio_handler()
+        handler.on_audio_stream_started(None, self.PARAMS, 1)
+        view.audio_muted = True
+        handler.on_audio_stream_packet(None, [floats(1, 2)], 0)
+        view.audio_muted = False
+        handler.on_audio_stream_packet(None, [floats(3, 4)], 0)
+        self.assertEqual([c[0] for c in sink.calls], ["start", "write"])
+        self.assertEqual(sink.calls[1][2], 2)
+
+    def test_an_error_of_the_stream_stops_the_sink_and_is_told(self):
+        sink = FakeSink()
+        view = ui.BrowserView(FakeAdapter(), audio=sink)
+        told = []
+        view.on_audio_error = told.append
+        handler = view.client.get_audio_handler()
+        handler.on_audio_stream_started(None, self.PARAMS, 2)
+        handler.on_audio_stream_error(None, "device lost")
+        self.assertEqual((sink.calls[-1], told), (("stop",), ["device lost"]))
+
+    def test_a_sink_that_fails_is_dropped_once_and_told_not_every_packet(self):
+        class Broken(FakeSink):
+            def write(self, samples, frames):
+                raise OSError("no device")
+        sink, told = Broken(), []
+        view = ui.BrowserView(FakeAdapter(), audio=sink)
+        view.on_audio_error = told.append
+        handler = view.client.get_audio_handler()
+        handler.on_audio_stream_started(None, self.PARAMS, 1)
+        for _ in range(5):
+            handler.on_audio_stream_packet(None, [floats(1, 2)], 0)
+        self.assertEqual(len(told), 1)
+        self.assertIn("no device", told[0])
+        self.assertEqual(sink.calls[-1], ("stop",))                  # the sink is let go of
+
+    def test_auto_takes_the_sink_of_the_adapter(self):
+        adapter = FakeAdapter()
+        mine = FakeSink()
+        adapter.audio_sink = lambda: mine
+        view = ui.BrowserView(adapter, audio="auto")
+        self.assertIs(view.audio_sink, mine)
+
+    def test_auto_without_a_sink_of_the_toolkit_takes_pygame_if_it_is_there(self):
+        view_with = ui.BrowserView(FakeAdapter(), audio="auto", pygame_sink=lambda: "pygame")
+        self.assertEqual(view_with.audio_sink, "pygame")
+        view_without = ui.BrowserView(FakeAdapter(), audio="auto", pygame_sink=lambda: None)   # pygame is not installed
+        self.assertIsNone(view_without.audio_sink)
+        self.assertIsNone(view_without.client.get_audio_handler())             # then CEF plays it itself
+
+    def test_a_toolkit_sink_wins_over_pygame(self):
+        adapter = FakeAdapter()
+        adapter.audio_sink = lambda: "toolkit"
+        view = ui.BrowserView(adapter, audio="auto", pygame_sink=lambda: "pygame")
+        self.assertEqual(view.audio_sink, "toolkit")
+
+    def test_audio_must_be_a_sink_auto_or_none(self):
+        with self.assertRaises(TypeError):
+            ui.BrowserView(FakeAdapter(), audio=42)
+
+
+class Interleaving(unittest.TestCase):
+    def test_planes_become_one_buffer_of_frames(self):
+        import array
+        samples, frames = ui.audio.interleave([floats(1, 2), floats(3, 4), floats(5, 6)])
+        self.assertEqual(frames, 2)
+        self.assertEqual(list(array.array("f", samples)), [1, 3, 5, 2, 4, 6])
+
+    def test_no_planes_are_no_frames(self):
+        self.assertEqual(ui.audio.interleave([]), (b"", 0))
+
+
+class PygameSinkOnADevice(unittest.TestCase):
+    """The pygame sink on the real audio device, with silence (volume 0) so that nothing is heard. Skipped without
+    pygame or without an audio device."""
+
+    def make(self):
+        try:
+            sink = ui.audio.PygameSink(volume=0.0)
+        except ImportError:
+            self.skipTest("pygame is not installed")
+        return sink
+
+    def feed(self, sink, seconds, rate=44100, channels=2):
+        import array
+        import time
+        packet = array.array("f", bytes(4 * 1024 * channels)).tobytes()
+        end = time.monotonic() + seconds
+        fed = 0
+        while time.monotonic() < end:
+            sink.write(packet, 1024)
+            fed += 1024
+            time.sleep(1024 / rate)
+        return fed
+
+    def test_a_stream_is_played_as_fast_as_it_comes_and_ends_cleanly(self):
+        sink = self.make()
+        try:
+            sink.start(44100, 2)
+        except Exception as error:
+            self.skipTest("no audio device to open: %s" % error)
+        fed = self.feed(sink, 1.0)
+        import time
+        time.sleep(0.2)
+        stats = sink.stats()
+        sink.stop()
+        self.assertEqual(stats["written"], fed)
+        self.assertGreaterEqual(stats["consumed"], fed - 3 * 1024)           # the device took what was written
+        self.assertLessEqual(stats["queued"], 3 * 1024, stats)               # and no big pile is left: the latency is small
+        self.assertEqual(stats["dropped"], 0)
+        self.assertLessEqual(stats["underruns"], 3, stats)
+
+    def test_a_stream_can_start_again(self):
+        sink = self.make()
+        try:
+            sink.start(48000, 1)
+        except Exception as error:
+            self.skipTest("no audio device to open: %s" % error)
+        self.feed(sink, 0.2, rate=48000, channels=1)
+        sink.stop()
+        sink.start(44100, 2)                                                 # another page, another stream
+        self.feed(sink, 0.2)
+        sink.stop()
+
+    def test_what_the_application_cannot_keep_up_with_is_dropped_not_piled_up(self):
+        sink = self.make()
+        try:
+            sink.start(44100, 2)
+        except Exception as error:
+            self.skipTest("no audio device to open: %s" % error)
+        sink.device_paused = True
+        import array
+        big = array.array("f", bytes(4 * 44100 * 2)).tobytes()               # a second of sound at once, three times
+        for _ in range(3):
+            sink.write(big, 44100)
+        self.assertLessEqual(sink.stats()["queued"], int(44100 * sink.max_latency) + 1024)
+        self.assertGreater(sink.stats()["dropped"], 0)
+        sink.stop()
 
 
 class Navigation(unittest.TestCase):
