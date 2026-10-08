@@ -79,7 +79,12 @@ class ToolkitAdapter(Protocol):
 - 클립보드는 GTK 3만 CEF에 맡겨도 통과했습니다. 나머지는 같은 스레드의 교착 때문에 위젯이 처리해야 했으므로 `native_clipboard` 능력이 갈립니다([툴킷 예제](../reference/toolkit-examples.md)).
 - 확인하지 못한 것은 이식으로도 달라지지 않습니다: 실제 입력기, HiDPI(Qt 외), Wayland 네이티브.
 
+## 구현 상태 (2단계)
+
+`cefweaver.ui`로 구현했습니다([UI 어댑터 API](../reference/ui-api.md)). 초안에서 바뀐 것: 키 입력은 `key()`가 클립보드 키를 처리하면 True를 돌려줍니다. 놓는 순간만 아는 툴킷을 위해 `drop()`(한꺼번에)을 따로 두었고, 단계별 `drag_enter` 등과 나눴습니다. 나가는 드래그는 `begin_drag`가 능력(`drag_out`)에 따라 갈립니다. 툴킷 없이 시험하고 스크립트에 쓰도록 `HeadlessAdapter`를 더했습니다.
+
 ## 관련 페이지
 
+- [UI 어댑터 API](../reference/ui-api.md)
 - [툴킷 예제](../reference/toolkit-examples.md)와 [GTK 3 예제](../reference/gtk3-example.md)
 - [오프스크린 렌더링](../reference/offscreen-rendering.md)

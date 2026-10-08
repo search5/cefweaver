@@ -299,3 +299,7 @@
 ## [2026-10-08] query | UI 어댑터 설계 (1단계)
 
 - 여섯 예제의 위젯 코드를 비교해 공통인 것(라이브러리가 맡을 것)과 툴킷마다 다른 것(어댑터가 맡을 것)을 표로 정리하고 `ToolkitAdapter`, `BrowserView` 초안을 `analyses/ui-adapter-design.md`에 남겼습니다.
+
+## [2026-10-08] ingest | cefweaver.ui (UI 어댑터 2단계)
+
+- `BrowserView`, `ToolkitAdapter`, `Session`, `keys`, `HeadlessAdapter`를 구현했습니다. 단위 시험 47개와 실제 브라우저 시험 1개를 더해 시험은 352개입니다. 새 페이지 `ui-api.md`, F70(`get_file_name` 중단 관찰 포함), `ui-adapter-design.md`에 구현 상태를 적었습니다.

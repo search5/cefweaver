@@ -4,13 +4,14 @@ type: component
 sources:
   - tests/test_smoke.py
   - tests/test_generator.py
+  - tests/test_ui.py
   - CLAUDE.md
 updated: 2026-10-08
 ---
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 304개(통합 183, 생성기 120, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 네 파일에 352개(통합 183, 생성기 120, UI 48, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -145,6 +146,10 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 - 문자열 벡터: 라이브러리 메서드의 출력 인자(`get_frame_names`)와 핸들러의 입력(`on_favicon_url_change`)의 분류, 그 밖의 벡터가 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `list[str]`. 생성된 C++ 프록시 실행 시험에도 벡터 전달이 들어 있습니다.
 - `CefBrowserHost`가 범위에 있고 `Browser.get_host`로 닿는지, 구조체와 열거형 인자의 분류, 열리지 않는 메서드의 이유
 - 생성 파일이 최신인지, 두 번 생성한 결과가 같은지
+
+## tests/test_ui.py: UI 어댑터 시험
+
+`cefweaver.ui`의 시험입니다([UI 어댑터 API](../reference/ui-api.md)). 47개는 가짜 브라우저(호출을 기록)와 가짜 어댑터로 CEF 프로세스 없이 실행합니다: 마우스(위치, 수정 키, 클릭 횟수를 세는 규칙, 툴킷이 주는 횟수), 키(`RAWKEYDOWN`, `CHAR`, `KEYUP`, Ctrl이나 Alt에서의 생략, Enter와 Tab과 BackSpace의 `CHAR`), 문자와 입력기 글자, 조합, 클립보드 키(능력에 따라 가로채기와 통과), 그리기와 팝업과 커서와 선택 텍스트, 제목과 주소와 로딩, 나가는 드래그(어댑터가 없을 때의 중계, 있을 때의 `start_drag_out`)와 들어오는 드래그(단계별, `leave` 미루기, 한꺼번에 오는 드롭의 대기), 키 코드와 수정 키 상수. 1개(`WithCef.test_a_browser_runs_in_the_headless_adapter`)는 `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림, 클릭, 입력, 한글 확정, 외부 드롭, 크기 변경, 정상 종료를 확인합니다(5번 연속 통과).
 
 ## tests/test_wiki.py: 위키 점검
 

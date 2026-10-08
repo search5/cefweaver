@@ -27,7 +27,7 @@
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
 - [루트 CMake와 CEF 다운로드](pages/components/root-cmake.md): 루트 CMakeLists.txt, DownloadCEF.cmake, 네이티브 타깃의 CMake
-- [시험 (tests/)](pages/components/tests.md): tests/의 시험 304개(통합, 생성기, 위키 점검)와 설계 원칙
+- [시험 (tests/)](pages/components/tests.md): tests/의 시험 352개(통합, 생성기, UI, 위키 점검)와 설계 원칙
 - [tools/build_cef.py](pages/components/tool-build-cef.md): tools/build_cef.py의 소스 빌드 흐름, 명령, GN_DEFINES, 한계
 - [tools/prepare.py](pages/components/tool-prepare.md): tools/prepare.py의 흐름, 옵션, 버전 조회, 스테이징
 
@@ -59,6 +59,7 @@
 - [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [GTK 3 예제 (오프스크린 위젯)](pages/reference/gtk3-example.md): `examples/gtk3/`의 위젯과 uv 환경, 실제로 돌려 확인한 것(27개 점검: 입력, 한글, 복사와 붙여넣기, 드래그 앤 드롭, HiDPI), 발견한 결함과 우회
 - [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)](pages/reference/toolkit-examples.md): `examples/`의 다섯 예제(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것
+- [UI 어댑터 API (cefweaver.ui)](pages/reference/ui-api.md): `BrowserView`, `ToolkitAdapter`, `Session`, `HeadlessAdapter`와 입력 메서드, 능력 선언, 예제에서 옮겨 온 규칙
 - [공유 텍스처 (GPU 가속 페인트)](pages/reference/shared-textures.md): `shared_texture`, `on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`, 규칙과 GPU 환경, 픽셀 내용을 확인하지 못한 것
 - [JavascriptBridge](pages/reference/javascript-bridge.md): JSON으로 Python 함수를 페이지에 노출(`Promise`, 콜백, `execute_function`, `evaluate`, `origins`), 렌더러에 Python 없이 메시지 라우터 위에서 동작
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약

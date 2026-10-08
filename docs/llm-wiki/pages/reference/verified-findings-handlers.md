@@ -160,6 +160,11 @@ updated: 2026-10-08
 - **확인함**: `tkinterdnd2`의 루트(`TkinterDnD.Tk()`)는 CEF 시작 시 `Unknown sequence number`로 프로세스를 중단시킵니다. `XInitThreads` 호출과 정적 X11 링크 가설은 아니었습니다. **원인 미확인.**
 - **확인함(uv)**: wxPython은 PyPI에 Linux wheel이 없어 `find-links`로는 uv가 PyPI의 소스 배포본을 골라 오래 빌드합니다. wxPython 사이트의 wheel 주소를 `tool.uv.sources`에 직접 적어야 설치됩니다(해석에 2분, 이 사이트는 요청 하나에 20초 이상).
 
+## F70. UI 어댑터 (cefweaver.ui)
+
+- **확인함**: `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림(페이지의 색), 클릭(제목이 바뀜), 키와 한글 확정(입력란), 외부 드롭, 크기 변경, 정상 종료가 `BrowserView`와 `Session`만으로 동작합니다(5번 연속 통과). 단위 시험 47개는 가짜 브라우저로 이벤트 변환을 확인합니다([UI 어댑터 API](ui-api.md)).
+- **확인함**: `DragData.get_file_name()`은 CEF를 초기화하기 전에 부르면 프로세스를 중단시키고(`Trace/breakpoint trap`, 종료 코드 133), 초기화한 뒤에는 `add_file`로 파일을 넣은 데이터에서도 빈 문자열을 돌려줍니다. 같은 데이터의 `get_file_names()`와 `get_file_paths()`는 초기화 전에도 값을 줍니다. **초기화 전에 중단하는 원인은 조사하지 않았습니다.** 파일 이름은 `get_file_paths()`로 얻습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)
