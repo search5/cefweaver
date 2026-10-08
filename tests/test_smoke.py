@@ -1958,10 +1958,14 @@ class WithCef(unittest.TestCase):
         screen = [None]  # a ScreenInfo to give, or None to leave the screen to CEF
         dragged, drag_return = [], [False]  # what start_dragging() got, and what it answers
         popups = []  # on_popup_show() and on_popup_size() calls
+        ranges = []  # on_ime_composition_range_changed(): (selected range, [bounds of the characters])
+        probe = [None]  # a function (blue, green, red) -> bool: paints count the pixels it accepts
         app.add_javascript_binding("report", lambda *a: js.append(a))
         class Render(cefweaver.RenderHandler):
             def get_view_rect(self, browser):
                 return cefweaver.Rect(0, 0, size[0], size[1])
+            def on_ime_composition_range_changed(self, browser, selected_range, character_bounds):
+                ranges.append((tuple(selected_range), [tuple(r) for r in character_bounds]))
             def on_popup_show(self, browser, show):
                 popups.append(("show", show))
             def on_popup_size(self, browser, rect):
@@ -1981,7 +1985,11 @@ class WithCef(unittest.TestCase):
                     writable = True
                 except TypeError:
                     writable = False
-                paints.append(dict(type=type, rects=list(dirty_rects), writable=writable,
+                found = 0
+                if probe[0] is not None and type == types.PaintElementType.VIEW:
+                    pixels = bytes(buffer)
+                    found = sum(1 for i in range(0, len(pixels), 4) if probe[0](*pixels[i:i + 3]))
+                paints.append(dict(type=type, rects=list(dirty_rects), writable=writable, found=found,
                                    nbytes=len(buffer), width=width, height=height,
                                    first=bytes(buffer[:4]), view=buffer))
         class Life(cefweaver.LifeSpanHandler):
@@ -3192,6 +3200,92 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    CROSS_SITE_SCRIPT = """
+        import http.server
+        FUNCTIONS = ('<script>function ask(r, p) { window.cefQuery({request: r, persistent: !!p,'
+                     'onSuccess: function (x) { report("ok", r, x); },'
+                     'onFailure: function (c, m) { report("fail", r, c); }}); }</script>')
+        def serve(pages):
+            class PageHandler(http.server.BaseHTTPRequestHandler):
+                def log_message(self, *args):
+                    pass
+                def do_GET(self):
+                    body = pages.get(self.path, "").encode()
+                    self.send_response(200 if self.path in pages else 404)
+                    self.send_header("Content-Type", "text/html")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+            server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), PageHandler)
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            return server.server_address[1]
+        child_port = serve({"/child": FUNCTIONS + "<script>report('child-frame');</script>"})
+        # 127.0.0.1 and localhost are different sites: the child is cross-site
+        child_url = "http://localhost:%d/child" % child_port
+        main_port = serve({"/main": FUNCTIONS + "<script>requestAnimationFrame(() => report('main-frame'));</script>"
+                                    "<iframe src='%s'></iframe>" % child_url})
+    """
+
+    def test_a_cross_site_iframe_loads_and_its_queries_reach_the_handler(self):
+        self.run_query_script(prelude=self.CROSS_SITE_SCRIPT, body="""
+            seen = []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append((frame.is_main(), frame.get_url()))
+                    callback.success("pong:" + request + ":" + str(frame.is_main()))
+                    return True
+            app.add_query_handler(Handler())
+            start()
+            app.load_url("http://127.0.0.1:%d/main" % main_port)
+            wait_until(app, lambda: ("main-frame",) in js and ("child-frame",) in js, "both frames")
+            # the child frame has its own process: the main frame is answered too
+            browser = boxes[0]
+            frames = {browser.get_frame_by_identifier(i).get_url(): i for i in browser.get_frame_identifiers()}
+            assert child_url in frames, frames
+            browser.get_frame_by_identifier(frames[child_url]).execute_java_script("ask('from child')", "", 0)
+            # (the first query of the main frame is sometimes lost while the child frame attaches:
+            # known-constraints.md, so it is sent again until it is answered)
+            send_until(app, lambda: app.execute_javascript("ask('from main')"),
+                       lambda: "from main" in answers(), "the answer for the main frame")
+            wait_until(app, lambda: "from child" in answers(), "the answer for the child frame")
+            found = answers()
+            assert found["from child"] == ("ok", "pong:from child:False"), found
+            assert found["from main"] == ("ok", "pong:from main:True"), found
+            assert (False, child_url) in seen, seen
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_cross_site_iframe_of_added_resources_loads_and_asks(self):
+        self.run_query_script(body="""
+            CHILD = ('<script>function ask(r, p) { window.cefQuery({request: r, persistent: !!p,'
+                     'onSuccess: function (x) { report("ok", r, x); },'
+                     'onFailure: function (c, m) { report("fail", r, c); }}); }'
+                     'report("child-frame");</script>')
+            MAIN = ('<script>report("main-frame");</script>'
+                    '<iframe src="http://other.test/child.html"></iframe>')
+            seen = []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append(frame.is_main())
+                    callback.success("pong")
+                    return True
+            app.add_query_handler(Handler())
+            start()
+            app.add_resource("http://one.test/main.html", MAIN)
+            app.add_resource("http://other.test/child.html", CHILD)
+            app.load_url("http://one.test/main.html")
+            wait_until(app, lambda: ("main-frame",) in js and ("child-frame",) in js, "both frames")
+            browser = boxes[0]
+            frames = {browser.get_frame_by_identifier(i).get_url(): i for i in browser.get_frame_identifiers()}
+            browser.get_frame_by_identifier(frames["http://other.test/child.html"]).execute_java_script(
+                "ask('from child')", "", 0)
+            wait_until(app, lambda: ("ok", "from child", "pong") in js, "the answer for the child")
+            assert seen == [False], seen
+            app.shutdown()
+            print("OK")
+        """)
+
     # -- offscreen input beyond one letter, touch, IME, and the popup of a <select> ------------
 
     def test_keys_beyond_a_letter_edit_and_move_in_an_offscreen_input(self):
@@ -3278,6 +3372,66 @@ class WithCef(unittest.TestCase):
             app.execute_javascript("report('value', i.value)")
             wait_until(app, lambda: js, "the value")
             assert js[-1] == ("value", "\\uac00\\ub098"), js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_korean_composition_reports_the_character_bounds_and_draws_its_underline(self):
+        self.run_osr_script("""
+            WHITE = "<style>html, body { margin: 0; background: white; } " \
+                    "input { position: fixed; left: 10px; top: 20px; width: 150px; height: 30px; " \
+                    "font-size: 20px; border: 0; padding: 0; outline: none; }</style>"
+            start(WHITE + '<input id="i" autofocus>'
+                  '<script>var i = document.getElementById("i");'
+                  '["compositionstart", "compositionupdate", "compositionend"].forEach(n =>'
+                  'i.addEventListener(n, e => report(n, e.data)));</script>')
+            host = boxes[0].get_host()
+            host.set_focus(True)
+            probe[0] = lambda b, g, r: not (b > 250 and g > 250 and r > 250)   # the non-white pixels
+            nothing = cefweaver.Range(0xFFFFFFFF, 0xFFFFFFFF)
+            Style = types.CompositionUnderlineStyle
+            def underline(length, thick=0, style=Style.SOLID, color=0xFF000000):
+                return [cefweaver.CompositionUnderline(cefweaver.Range(0, length), color, 0, thick, style)]
+            def compose(text, underlines):
+                host.ime_set_composition(text, underlines, nothing, cefweaver.Range(len(text), len(text)))
+            def last_bounds():
+                return ranges[-1][1] if ranges else []
+            def pixels_with(underlines, text="\uac01"):
+                # the number of non-white pixels of the next paint of the composition
+                before = len(paints)
+                compose(text, underlines)
+                wait_until(app, lambda: len(paints) > before, "the paint of the composition")
+                for _ in range(20):                                # the last paint wins
+                    app.do_message_loop_work(); time.sleep(0.01)
+                return paints[-1]["found"]
+            # a syllable is built letter by letter, as a Korean input method does
+            send_until(app, lambda: compose("\u3131", underline(1)),
+                       lambda: ("compositionupdate", "\u3131") in js, "the first letter")
+            for text in ("\uac00", "\uac01"):                       # ga, gag
+                compose(text, underline(1))
+                wait_until(app, lambda: ("compositionupdate", text) in js, "the update to " + text)
+            # the bounds of the characters are for the candidate window
+            wait_until(app, lambda: len(last_bounds()) == 1, "the bounds of one character")
+            x, y, w, h = last_bounds()[0]
+            assert 10 <= x < 170 and 20 <= y < 50 and w > 0 and h > 0, last_bounds()   # inside the input
+            compose("\uac01\ub098", underline(2))                  # a second syllable
+            wait_until(app, lambda: len(last_bounds()) == 2, "the bounds of two characters")
+            assert last_bounds()[0][0] == x and last_bounds()[1][0] > x, last_bounds()
+            # the underline is drawn from the description: its thickness and style show in the paint
+            compose("\uac01", underline(1))
+            wait_until(app, lambda: len(last_bounds()) == 1, "one character again")
+            default = pixels_with([])
+            thin = pixels_with(underline(1))
+            thick = pixels_with(underline(1, thick=1))
+            dotted = pixels_with(underline(1, style=Style.DOT))
+            assert thick > thin, (thin, thick)                     # a thick line has more pixels
+            assert len({default, thin, dotted}) == 3, (default, thin, dotted)
+            host.ime_commit_text("\uac01\ub098", nothing, 0)
+            wait_until(app, lambda: any(r[0] == "compositionend" for r in js), "the end of the composition")
+            del js[:]
+            app.execute_javascript("report('value', i.value)")
+            wait_until(app, lambda: js, "the value")
+            assert js[-1] == ("value", "\uac01\ub098"), js
             app.shutdown()
             print("OK")
         """)

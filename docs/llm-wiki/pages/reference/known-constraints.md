@@ -44,10 +44,10 @@ updated: 2026-10-08
 
 - **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
 
-- **오프스크린 렌더링에는 GPU 가속 페인트가 없습니다.** 팝업 영역 그리기, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과는 확인했습니다([F55](verified-findings-handlers.md)). 시험하지 않은 것: 렌더 핸들러가 없을 때, 한글 조합 중의 밑줄이나 후보 창 위치. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
+- **오프스크린 렌더링에는 GPU 가속 페인트가 없습니다.** 팝업 영역 그리기, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과, 한글 조합의 글자 경계와 밑줄 모양은 확인했습니다([F55](verified-findings-handlers.md), F56). `CompositionUnderline.color`는 화면에 반영되지 않았습니다(F56). 시험하지 않은 것: 렌더 핸들러가 없을 때. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).
-- **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.
+- **교차 사이트 iframe에서 메인 프레임의 첫 질의가 간혹 유실됩니다.** 자식 프레임이 붙는 중에 메인 프레임에서 처음 보낸 `cefQuery`가 핸들러에 오지 않는 일이 몇 번에 한 번 있고, 다시 보내면 답이 옵니다(자식 프레임이 없으면 일어나지 않음). 원인은 조사하지 않았습니다([F57](verified-findings-handlers.md)). 교차 사이트 iframe 자체는 F37의 결함을 고쳐 로드됩니다.
 
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
 - **Python은 브라우저 프로세스에만 있어서 렌더러 쪽 동작을 정할 수 없습니다.** 프로세스 메시지로 받을 수 있는 것은 렌더러의 C++ 코드가 보내는 메시지뿐이고, 지금은 진단용 `cefweaver-pong`(`cefweaver-ping`에 대한 답)이 전부입니다. JavaScript와의 통신은 `add_javascript_binding`(기본형 인자, 반환값 없음)과 java-cef와 같은 메시지 라우터(`window.cefQuery`, 문자열 또는 바이트 요청과 비동기 응답)입니다([메시지 라우터](message-router.md)). 페이지에 `cefQuery`가 생기려면 첫 질의 핸들러를 `initialize()` 전에 더해야 합니다. cefpython처럼 JavaScript 콜백과 Python 콜백을 인자로 주고받는 일은 하지 않습니다([분석](../analyses/js-python-messaging.md)).

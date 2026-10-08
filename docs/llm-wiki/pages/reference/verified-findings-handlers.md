@@ -1,14 +1,16 @@
 ---
-title: 실행해서 확인한 핸들러 (F55)
+title: 실행해서 확인한 핸들러 (F55부터)
 type: reference
 sources:
   - tests/test_smoke.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
+  - native/cefwrapper/javascript_bindings_handler.h
+  - native/cefwrapper/javascript_python_binding_handler.h
 updated: 2026-10-08
 ---
 
-# 실행해서 확인한 핸들러 (F55)
+# 실행해서 확인한 핸들러 (F55부터)
 
 생성만 하고 실행하지 못했던 핸들러와 오프스크린 입력을 가상 X 서버에서 실행해 확인했습니다. 시험은 [시험](../components/tests.md)에 있습니다.
 
@@ -23,6 +25,24 @@ updated: 2026-10-08
 - **터치**: `touch-events` 스위치를 켜고 `send_touch_event`로 누름과 뗌을 보내면 페이지에 `touchstart`와 `touchend`가 옵니다.
 - **IME**: `ime_set_composition`이 `compositionupdate`를, `ime_commit_text`가 `compositionend`와 입력란의 값을 만듭니다.
 - **팝업 영역**: `<select>`를 클릭하면 `RenderHandler.on_popup_show(browser, True)`, `on_popup_size`, `PaintElementType.POPUP`의 `on_paint`가 오고, 버퍼 크기가 `너비 × 높이 × 4`이며 `on_popup_size`의 `Rect`와 같습니다.
+
+## F56. 한글 조합
+
+- **방법**: 흰 바탕의 입력란에 `ㄱ`, `가`, `각`, `각나` 순서로 `ime_set_composition`을 보내고, 렌더 핸들러의 `on_ime_composition_range_changed`와 `on_paint`의 픽셀을 관찰했습니다. 시험은 3번 연속 통과했습니다.
+- **결과**:
+  - 글자마다 `compositionupdate`가 오고, 조합이 끝난 뒤 `ime_commit_text`로 확정하면 입력란의 값이 바뀝니다.
+  - `on_ime_composition_range_changed(browser, selected_range, character_bounds)`의 `character_bounds`는 조합 중인 글자 수만큼의 `Rect`이고, 입력란 안에 있으며, 둘째 글자의 `x`가 첫째 글자보다 큽니다. 후보 창을 놓을 위치로 쓸 수 있습니다.
+  - 밑줄은 `CompositionUnderline`의 두께와 모양이 화면에 반영됩니다. 밑줄 목록이 비었을 때, 얇은 실선, 굵은 실선, 점선의 흰색이 아닌 픽셀 수가 각각 다르고, 굵은 쪽이 더 많습니다.
+- **발견(색은 반영되지 않음)**: 밑줄 색을 빨강, 파랑, 초록으로 바꿔 보내도 화면의 색 있는 픽셀은 거의 없었고(0~1개), 밑줄은 글자색(검정)으로 그려졌습니다. Chromium이 색을 쓰지 않는지 CEF가 전달하지 않는지는 조사하지 않았습니다. 그래서 `CompositionUnderline.color`는 기대하지 않는 편이 안전합니다.
+
+## F57. 교차 사이트 iframe의 렌더러 종료와 해결
+
+- **방법**: 로컬 HTTP 서버 둘(`127.0.0.1`과 `localhost`는 다른 사이트)로 메인 페이지와 자식 페이지를 제공하고, 바인딩과 라우터를 하나씩 켜 가며 자식이 스크립트를 실행하는지 서버 요청(`fetch`)으로 확인했습니다.
+- **결과**:
+  - 바인딩과 라우터가 모두 꺼졌거나 라우터만 켜졌을 때는 교차 사이트 자식이 정상으로 로드되고 스크립트가 돕니다(cefsimple도 같음).
+  - `add_javascript_binding`이 켜지면 자식의 `report()` 호출에서 렌더러가 죽었습니다. 렌더러 쪽 `Execute`가 `browser->GetMainFrame()->SendProcessMessage`를 불렀는데, 교차 사이트 자식의 렌더러 프로세스에서는 메인 프레임이 원격 프레임이라 `GetMainFrame()`이 널이기 때문입니다.
+  - 호출한 V8 컨텍스트의 프레임(`CefV8Context::GetCurrentContext()->GetFrame()`)에서 메시지를 보내도록 고쳤습니다(두 바인딩 핸들러). 이제 자식 프레임의 `report()`와 메시지 라우터 질의가 브라우저에 닿고, 질의는 자식 프레임(`frame.is_main()`이 `False`)으로 알려집니다. 서로 다른 렌더러 프로세스에 있는 프레임의 라우터가 이것으로 확인되었습니다.
+- **미해결 관찰**: 자식 프레임이 붙는 중에 메인 프레임에서 처음 보낸 질의가 간혹(몇 번에 한 번) 유실됩니다. 다시 보내면 답이 옵니다. 자식 프레임이 없는 같은 흐름에서는 8번 모두 정상이었습니다. 원인은 조사하지 않았습니다([알려진 제약](known-constraints.md)).
 
 ## 관련 페이지
 

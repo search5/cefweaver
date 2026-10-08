@@ -64,7 +64,16 @@ public:
           }
         }
         javascript_binding_message_args->SetList(1, javascript_args);
-        m_Browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, javascript_binding_message);
+        // Send from the frame that made the call. In the process of a cross-site child frame the
+        // main frame is remote and GetMainFrame() is null.
+        CefRefPtr<CefV8Context> context = CefV8Context::GetCurrentContext();
+        CefRefPtr<CefFrame> frame = context ? context->GetFrame() : nullptr;
+        if (!frame) {
+          frame = m_Browser->GetMainFrame();
+        }
+        if (frame) {
+          frame->SendProcessMessage(PID_BROWSER, javascript_binding_message);
+        }
         return true;
       }
     }

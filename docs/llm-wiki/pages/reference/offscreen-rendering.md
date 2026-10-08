@@ -57,7 +57,7 @@ app.set_client(MyClient())
 - **`start_dragging`(`CefDragData`), `on_accelerated_paint`(포인터가 있는 구조체), `get_accessibility_handler`는 생성되지 않습니다**(보고서에 이유가 있음). java-cef는 `StartDragging`까지 구현합니다.
 - 렌더 핸들러가 없는 오프스크린 브라우저는 시험하지 않았습니다(`get_view_rect`가 없으면 빈 크기).
 - 팝업(`PaintElementType.POPUP`)의 `on_paint`와 `on_popup_show`, `on_popup_size`는 `<select>`의 드롭다운으로 확인했습니다([F55](verified-findings-handlers.md)).
-- 키보드는 `Backspace`, `Delete`, 화살표, `Shift`+문자, 한글(`CHAR`), `Enter`까지 확인했고, 터치와 IME도 페이지의 이벤트와 입력값으로 확인했습니다(F55). 시험하지 않은 것은 조합 중의 밑줄 표시와 후보 창 위치입니다.
+- 키보드는 `Backspace`, `Delete`, 화살표, `Shift`+문자, 한글(`CHAR`), `Enter`까지 확인했고, 터치와 IME도 페이지의 이벤트와 입력값으로 확인했습니다(F55). 한글 조합은 글자 경계(`on_ime_composition_range_changed`)와 밑줄의 두께와 모양까지 확인했고 밑줄 색은 반영되지 않았습니다(F56).
 - GPU 가속 페인트(`on_accelerated_paint`)는 쓰지 않습니다. CPU 버퍼만 받습니다.
 
 ## 관련 페이지

@@ -20,11 +20,10 @@ updated: 2026-10-08
 - **영향**: 이전의 "자식 프로세스가 물려받습니다"라는 서술(`native-library-api.md`, `native-handlers.md`, `cef_wrapper_app.cc`의 주석)이 틀려서 고쳤습니다. 스위치를 자식에게도 보내는 옵션은 **만들지 않기로 했습니다**: java-cef도 같은 한계이고 사용자가 "java-cef만큼만" 가기로 했습니다(아래 비교와 [설계 결정 기록](design-decisions.md)).
 - **java-cef와의 비교**(소스 확인, 실행하지는 않음): 스위치를 주는 길은 `CefApp.getInstance(args, settings)`의 `args`와 `CefAppHandler.onBeforeCommandLineProcessing`뿐이고, 그 훅은 `process_type`이 비었을 때(브라우저 프로세스)만 Java로 전달됩니다(`client_app.cpp:34`). `OnBeforeChildProcessLaunch`는 `native/`에 없습니다. 자식에게 값을 보낼 때는 스위치 대신 `extra_info`(라우터 설정), 프로세스 메시지(`AddMessageRouter`), 부모 PID 이름의 임시 파일(커스텀 스킴)을 씁니다.
 
-## F37. 교차 사이트 iframe이 로드되지 않는다
+## F37. 교차 사이트 iframe이 로드되지 않는다 (해결됨)
 
-- **방법**: `add_resource`로 `http://a.test/main.html`(iframe 포함)과 자식 페이지를 두 호스트에 제공하고 `LoadHandler`로 관찰했습니다.
-- **결과**: 같은 사이트(`a.test`)의 iframe은 로드되고(`load-end` 200, `iframe-onload`), 다른 사이트(`b.test`)의 iframe은 오류도 로드 완료도 없이 멈춥니다. `site-per-process` 유무와 질의 핸들러 유무와 관계없이 같았고, `b.test`를 메인 프레임으로 여는 것은 정상이었습니다.
-- **미확인**: 원인(두 번째 호스트의 스킴 핸들러, 프로세스 전환, CEF 문제 등)과 cefsimple에서도 같은지는 조사하지 않았습니다. 그래서 사이트 격리로 프로세스가 갈리는 프레임에서 메시지 라우터가 동작하는지는 **확인하지 못했습니다.**
+- **처음 관찰**: `add_resource`로 두 호스트(`a.test`, `b.test`)를 제공하고 `add_javascript_binding`의 `report`를 켠 채 시험했을 때, 같은 사이트의 iframe은 로드되고 다른 사이트의 iframe은 오류도 로드 완료도 없이 멈췄습니다.
+- **원인과 해결**: 멈춘 것이 아니라 자식 프레임의 렌더러가 죽고 있었습니다. 원인을 [F57](verified-findings-handlers.md)에서 찾아 고쳤습니다. 바인딩이 꺼진 상태에서는 처음부터 교차 사이트 프레임이 로드되었습니다.
 
 ## F38. 오프스크린 렌더링
 
