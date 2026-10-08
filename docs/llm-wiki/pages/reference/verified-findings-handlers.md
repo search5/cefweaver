@@ -139,6 +139,10 @@ updated: 2026-10-08
   - `use-gl=angle`, `use-angle=vulkan`, `enable-features=Vulkan,VulkanFromANGLE,DefaultANGLEVulkan`에서 텍스처가 옵니다(DevTools의 `SystemInfo`로 ANGLE Vulkan, NVIDIA를 확인). `info.format`은 `BGRA_8888`, `modifier`는 0(선형), 평면 1개(stride 1024, 크기 102400, 200x100 + 정렬), `extra.coded_size`는 200x100, 더티 사각형이 함께 옵니다. 디스크립터는 콜백 안에서 열려 있고(`os.fstat`), 페이지를 바꾸면 새 프레임이 옵니다. `on_paint`는 불리지 않습니다. 이 시험(`CEFWEAVER_TEST_GPU=1`)은 3번 연속 통과했습니다.
 - **확인하지 못한 것(픽셀 내용)**: 위 설정에서 텍스처가 **모두 0**으로 읽혔습니다. 같은 설정의 일반 경로(`on_paint`)에서는 빨간 픽셀이 나오므로 페이지는 그려지고 있습니다. 해 본 것: `mmap`으로 읽기(`read_plane`), EGL로 가져와 외부 텍스처로 샘플링하고 `glReadPixels`(렌더 대상에 붙이는 방식은 `GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT`로 막힘), 콜백 안과 콜백 뒤 1.5초 뒤(복제한 디스크립터), 페이지를 초록으로 바꾼 뒤, `transparent`를 켜고 끄기, Mesa EGL 강제(`__EGL_VENDOR_LIBRARY_FILENAMES`). 모두 0이었고 AMD 내장 GPU(RADV)로 강제하는 시도는 GPU 프로세스가 종료되어 비교하지 못했습니다. **원인(드라이버의 암묵적 동기화 부재, CEF/Chromium, 우리 쪽)은 가르지 못했습니다.** 그러므로 CEF의 한계로 적지 않습니다. 가르는 방법: Mesa만 쓰는 GPU(Intel, AMD 전용 기기)에서 `CEFWEAVER_TEST_GPU_PIXELS=1`로 같은 시험 실행, 또는 CEF 예제 `cefclient`의 오프스크린 공유 텍스처와 비교.
 
+## F67. GTK 3 예제
+
+실제 GTK 3 창에서 돌린 결과는 [GTK 3 예제](gtk3-example.md)에 있습니다. 요약: 19개 점검이 1배와 2배(HiDPI)에서 모두 통과했고, `on_after_created`에서 `CefApp`을 쓸 수 없던 결함을 고쳤으며, 뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않는 현상(원인 미확인, `notify_screen_info_changed()`로 우회)을 찾았습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

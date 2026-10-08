@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 302개(통합 181, 생성기 120, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 303개(통합 182, 생성기 120, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -67,6 +67,7 @@ updated: 2026-10-08
 | `WithCef` | `test_cef_asks_for_message_loop_work_from_any_thread_when_the_application_asks_for_it`, `test_cef_does_not_schedule_work_unless_the_application_asks_for_it`, `test_a_message_pump_runs_cef_by_the_deadlines_cef_gives_and_never_waits_long` | 설정을 켰을 때만 훅이 여러 스레드에서 불림, `MessagePump`의 기한만으로 페이지 로드(F62) |
 | `ApiWithoutCef` | `test_a_browser_cannot_be_created_before_cef_runs` | CEF가 돌기 전의 `create_browser`는 `RuntimeError` |
 | `WithCef` | `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`, `test_each_browser_has_its_own_transparency`, `test_the_bindings_and_the_router_work_in_every_browser`, `test_closing_one_browser_leaves_the_others_and_the_app_running`, `test_a_browser_can_have_a_request_context_of_its_own`, `test_a_windowed_app_can_create_windowed_and_offscreen_browsers`, `test_create_browser_checks_its_arguments` | 둘째 브라우저의 그림과 투명도, 바인딩과 라우터, 하나를 닫아도 계속 도는 앱과 첫 브라우저의 준비 표시, 브라우저별 요청 컨텍스트, 창과 오프스크린의 혼합, 인자 검사(F60) |
+| `WithCef` | `test_the_app_can_be_used_from_on_after_created_of_the_first_browser` | 첫 브라우저의 `on_after_created`(`initialize()`가 끝나기 전)에서 `add_resource`, `load_url`, `execute_javascript`가 거부되지 않고 `load_url`이 `True`, 페이지가 로드됨(F67) |
 | `ApiWithoutCef` | `test_shared_textures_are_a_flag_and_the_info_is_a_value_type`, `test_read_plane_copies_the_bytes_of_a_descriptor_from_its_offset` | `shared_texture`의 기본값과 형식 검사, `AcceleratedPaintInfo`의 기본값, `read_plane`이 오프셋부터 복사하고 잘못된 디스크립터에 `OSError` |
 | `WithCef` | `test_a_shared_texture_browser_gets_a_frame_one_way_or_the_other` | 켠 브라우저가 텍스처든 `on_paint`든 한쪽으로만 프레임을 받음(GPU 없는 Xvfb에서는 `on_paint`, F66) |
 | `WithCef` | `test_a_shared_texture_arrives_as_dmabuf_planes_in_place_of_pixels` | `CEFWEAVER_TEST_GPU=1`일 때만. 실제 GPU와 디스플레이에서 평면, 디스크립터, 형식, 더티 사각형, 새 프레임(F66) |

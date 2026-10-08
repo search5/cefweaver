@@ -271,3 +271,7 @@
 ## [2026-10-08] ingest | 공유 텍스처 (F66)
 
 - `CefApp.shared_texture`, `RenderHandler.on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`을 더했습니다. 생성기는 구조체 배열(+개수)과 C++ 클래스가 없는 C 구조체, 플랫폼별 정의(Linux)를 읽습니다. 실제 GPU에서 텍스처와 메타데이터 도착을 확인했고 픽셀 내용(모두 0)은 원인을 찾지 못해 "미확인"으로 기록했습니다.
+
+## [2026-10-08] ingest | GTK 3 예제 (F67)
+
+- `examples/gtk3/`(uv 환경, `CefWidget`, 데모 브라우저, 실제 X 이벤트로 구동하는 `smoke.py`)를 만들어 돌렸습니다. 19개 점검이 1배와 2배에서 통과했습니다. `on_after_created`에서 `CefApp`을 쓸 수 없던 결함을 고쳤고, 뒤로 가기 캐시로 복원된 페이지의 크기 변경 문제(원인 미확인)와 우회를 기록했습니다.

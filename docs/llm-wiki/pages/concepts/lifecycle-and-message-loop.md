@@ -40,6 +40,8 @@ app.shutdown()
 
 브라우저는 `CefWrapperBrowserProcessHandler::OnContextInitialized()`에서 `CreateBrowserSync()`로 만들어지고 `Browser` 멤버에 저장됩니다. 시험에서 `initialize()` 직후 메시지 루프를 한 번도 돌리지 않았는데 `load_url()`이 `True`를 돌려주었으므로, 관찰된 바로는 브라우저가 `initialize()` 안에서 이미 만들어집니다. 이것이 CEF의 보장인지는 확인하지 않았습니다. 창은 Linux에서 부모 없이 최상위 창으로 만들어지고, Windows에서는 `SetAsPopup`을 씁니다.
 
+첫 브라우저는 `initialize()` 안에서 만들어지므로 `LifeSpanHandler.on_after_created`는 `initialize()`가 끝나기 전에 불립니다. 그 안에서도 `add_resource`, `load_url` 같은 `CefApp` 메서드를 쓸 수 있습니다([F67](../reference/verified-findings-handlers.md)). `execute_javascript`는 페이지가 아직 없어 `False`를 돌려줍니다.
+
 ## 메시지 루프와 상태
 
 `do_message_loop_work()`는 `CefDoMessageLoopWork()`를 한 번 실행합니다. 호출하지 않으면 CEF가 아무것도 처리하지 못합니다.

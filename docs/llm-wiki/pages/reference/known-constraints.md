@@ -38,6 +38,7 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
+- **뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않을 수 있습니다.** GTK 예제에서 링크 클릭 → 뒤로 가기 뒤에 창 크기를 바꿔도 `innerWidth`가 이전 값에 머물렀습니다(그림은 새 크기). `notify_screen_info_changed()` 또는 `was_hidden` 토글이 깨우고 `disable-features=BackForwardCache`로 피합니다. 순수 오프스크린 스크립트에서는 재현되지 않아 **원인이 CEF인지 위젯인지는 확인하지 못했습니다**([F67](verified-findings-handlers.md), [GTK 3 예제](gtk3-example.md)).
 - **`BrowserSettings`의 글꼴 크기 4개는 유지되지 않고 `default_encoding`은 반영되지 않습니다**(CEF 154, **CEF의 한계로 검증함**). 래퍼 없이 `cefsimple`에 같은 설정을 넣어도 Chrome 스타일과 Alloy 스타일 모두에서 같습니다([검증 방법](../procedures/verify-cef-limits.md), F64). `data:` 이미지는 `image_loading`을 꺼도 로드됩니다(Blink). 글꼴 이름, JavaScript, `http:` 이미지, 로컬 저장소, 배경색은 유지됩니다.
 - **`DragData.get_file_name()`은 파일 내용이 있는 드래그에서만 부릅니다.** 없을 때 부르면 프로세스가 죽습니다. CEF가 확인 없이 Chromium의 함수를 부르고 그 안의 `CHECK`가 실패합니다(F54, 소스로 호출 경로를 확인함).
 
