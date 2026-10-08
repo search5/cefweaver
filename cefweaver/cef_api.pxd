@@ -30,6 +30,8 @@ cdef extern from "include/internal/cef_string.h":
 cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_errorcode_t:
         pass
+    ctypedef enum cef_log_severity_t:
+        pass
     ctypedef enum cef_referrer_policy_t:
         pass
     ctypedef enum cef_resource_type_t:
@@ -52,6 +54,14 @@ cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceSkipCallback(CefBaseRefCounted)
 cdef extern from "include/cef_response.h":
     cdef cppclass CefResponse(CefBaseRefCounted)
+cdef extern from "include/cef_client.h":
+    cdef cppclass CefClient(CefBaseRefCounted)
+cdef extern from "include/cef_display_handler.h":
+    cdef cppclass CefDisplayHandler(CefBaseRefCounted)
+cdef extern from "include/cef_life_span_handler.h":
+    cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
+cdef extern from "include/cef_load_handler.h":
+    cdef cppclass CefLoadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
@@ -158,6 +168,18 @@ cdef extern from "include/cef_response.h":
         CefRefPtr[CefResponse] Create() nogil
 
 # Client classes (implemented by the application; Cython only needs the type)
+cdef extern from "include/cef_client.h":
+    cdef cppclass CefClient(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_display_handler.h":
+    cdef cppclass CefDisplayHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_life_span_handler.h":
+    cdef cppclass CefLifeSpanHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_load_handler.h":
+    cdef cppclass CefLoadHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted):
         pass
@@ -175,6 +197,45 @@ cdef extern from "include/cef_parser.h":
 
 # Proxies for the client classes (native/cefwrapper/generated/cefweaver_proxies.h)
 cdef extern from "generated/cefweaver_proxies.h":
+    cdef cppclass CwClientCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        CefDisplayHandler* (*fn_get_display_handler)(void*) noexcept
+        CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
+        CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
+    cdef cppclass CwClientProxy(CefClient):
+        CwClientProxy(const CwClientCallbacks&)
+    cdef cppclass CwDisplayHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_address_change)(void*, CefBrowser*, CefFrame*, const CefString*) noexcept
+        void (*fn_on_title_change)(void*, CefBrowser*, const CefString*) noexcept
+        void (*fn_on_fullscreen_mode_change)(void*, CefBrowser*, cpp_bool) noexcept
+        cpp_bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) noexcept
+        void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) noexcept
+        cpp_bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) noexcept
+        void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) noexcept
+        void (*fn_on_media_access_change)(void*, CefBrowser*, cpp_bool, cpp_bool) noexcept
+    cdef cppclass CwDisplayHandlerProxy(CefDisplayHandler):
+        CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks&)
+    cdef cppclass CwLifeSpanHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_before_popup_aborted)(void*, CefBrowser*, int) noexcept
+        void (*fn_on_after_created)(void*, CefBrowser*) noexcept
+        cpp_bool (*fn_do_close)(void*, CefBrowser*) noexcept
+        void (*fn_on_before_close)(void*, CefBrowser*) noexcept
+    cdef cppclass CwLifeSpanHandlerProxy(CefLifeSpanHandler):
+        CwLifeSpanHandlerProxy(const CwLifeSpanHandlerCallbacks&)
+    cdef cppclass CwLoadHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_loading_state_change)(void*, CefBrowser*, cpp_bool, cpp_bool, cpp_bool) noexcept
+        void (*fn_on_load_start)(void*, CefBrowser*, CefFrame*, int) noexcept
+        void (*fn_on_load_end)(void*, CefBrowser*, CefFrame*, int) noexcept
+        void (*fn_on_load_error)(void*, CefBrowser*, CefFrame*, int, const CefString*, const CefString*) noexcept
+    cdef cppclass CwLoadHandlerProxy(CefLoadHandler):
+        CwLoadHandlerProxy(const CwLoadHandlerCallbacks&)
     cdef cppclass CwResourceHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

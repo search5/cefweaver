@@ -14,13 +14,15 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 87 methods/functions in 9 classes, 3 global functions
+Generated now: 106 methods/functions in 13 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    10  class
+    26  class
+     5  struct-like value type
      4  multimap of values
-     2  vector of values
-  ----  16 skipped
+     3  vector of values
+     1  struct
+  ----  39 skipped
 
 If every class were generated, the type support alone would cover 1287 of 1598 methods/functions (81%).
 What blocks the rest, by type:
@@ -72,7 +74,7 @@ Per class (supported/total methods, when every class is generated):
     CefButton                              library   6/6  
     CefButtonDelegate                      client    2/2  
   * CefCallback                            library   2/2  
-    CefClient                              client   19/19 
+  * CefClient                              client   19/19 
     CefCommandHandler                      client    5/5  
     CefCommandLine                         library  19/23 
     CefCompletionCallback                  client    1/1  
@@ -92,7 +94,7 @@ Per class (supported/total methods, when every class is generated):
     CefDialogHandler                       client    0/1  
     CefDictionaryValue                     library  29/30 
     CefDisplay                             library   5/16 
-    CefDisplayHandler                      client    8/13 
+  * CefDisplayHandler                      client    8/13 
     CefDownloadHandler                     client    3/3  
     CefDownloadImageCallback               client    1/1  
     CefDownloadItem                        library  18/20 
@@ -111,9 +113,9 @@ Per class (supported/total methods, when every class is generated):
     CefKeyboardHandler                     client    0/2  
     CefLabelButton                         library  10/12 
     CefLayout                              library   3/3  
-    CefLifeSpanHandler                     client    4/6  
+  * CefLifeSpanHandler                     client    4/6  
     CefListValue                           library  29/29 
-    CefLoadHandler                         client    4/4  
+  * CefLoadHandler                         client    4/4  
     CefMediaAccessCallback                 library   2/2  
     CefMediaObserver                       client    2/4  
     CefMediaRoute                          library   4/5  

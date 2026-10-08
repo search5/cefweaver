@@ -20,7 +20,7 @@ updated: 2026-10-08
 
 # C++ 핸들러
 
-`native/cefwrapper/`의 손으로 쓴 CEF 핸들러들입니다. 원래 cef-wrapper 예제에서 가져온 구조이며 모든 동작이 이 클래스들 안에 고정되어 있습니다(사용자 객체로 위임하는 구조가 아닙니다. 그 구조로 바꾸는 일이 다음 단계의 핵심입니다. [생성기의 한계와 다음 단계](../reference/generated-api-coverage.md)).
+`native/cefwrapper/`의 손으로 쓴 CEF 핸들러들입니다. 원래 cef-wrapper 예제에서 가져온 구조입니다. 래퍼가 스스로 해야 하는 일(브라우저 목록, 준비 플래그, 오류 페이지, 창 제목, JavaScript 바인딩, 컨텍스트 메뉴)은 이 클래스들에 고정되어 있고, **표시, 수명 주기, 로드 이벤트는 사용자의 `Client`로 위임**됩니다(`CefApp.set_client()`, 아래 `CefWrapperClientHandler`와 [핸들러 프록시 구조](../concepts/handler-proxies.md)).
 
 ## CefWrapperApp (`cef_wrapper_app.*`)
 
@@ -40,7 +40,20 @@ updated: 2026-10-08
 
 ## CefWrapperClientHandler
 
-`CefClient`, `CefDisplayHandler`, `CefLifeSpanHandler`, `CefLoadHandler`, `CefContextMenuHandler`를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
+`CefClient`, `CefContextMenuHandler`와, 표시, 수명 주기, 로드 핸들러의 **생성된 전달 클래스**(`CwDisplayHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`)를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
+
+생성자는 사용자의 클라이언트(`user_client`, 생성된 `CwClientProxy`)를 선택 인자로 받습니다. `GetDisplayHandler()`, `GetLifeSpanHandler()`, `GetLoadHandler()`는 CEF가 물을 때마다 `user_client->GetXxxHandler()`를 불러 그 결과를 전달 대상(`forward_..._handler_`)에 넣고 자기 자신을 돌려줍니다. 사용자의 클라이언트가 없으면 전달 대상이 비어 있어서 전달 클래스가 CEF 기반 클래스의 동작을 합니다. 컨텍스트 메뉴 핸들러와 `OnProcessMessageReceived`는 생성 범위 밖이라 위임하지 않습니다.
+
+래퍼의 일과 사용자 핸들러의 호출 순서는 다음과 같습니다.
+
+| 이벤트 | 순서 |
+| --- | --- |
+| `OnAfterCreated` | 래퍼(브라우저 목록에 추가), 그다음 사용자 |
+| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false` |
+| `OnBeforeClose` | 사용자 먼저(브라우저가 아직 목록에 있음), 그다음 래퍼(목록에서 제거) |
+| `OnLoadStart`, `OnLoadingStateChange`, `OnLoadEnd`, `OnTitleChange` | 래퍼, 그다음 사용자 |
+| `OnLoadError` | 사용자 먼저, 그다음 래퍼(오류 페이지로 교체) |
+| 그 밖의 표시, 수명 주기 이벤트 | 전달 클래스가 사용자에게 곧바로 전달 |
 
 | 콜백 | 동작 |
 | --- | --- |

@@ -7,7 +7,7 @@
 - [아키텍처 개요](pages/concepts/architecture-overview.md): 계층 구조, 두 갈래의 Python 인터페이스, 빌드 흐름의 전체 그림
 - [바인딩 생성기의 설계](pages/concepts/binding-generator.md): CEF 헤더에서 바인딩을 생성하는 파이프라인, 타입 종류, 규칙, 범위
 - [CEF 확보 방식](pages/concepts/cef-acquisition.md): prebuilt, 기존 배포본, 소스 빌드의 세 가지 확보 방식
-- [핸들러 프록시 구조](pages/concepts/handler-proxies.md): 핸들러를 Python 객체로 위임하는 함수 포인터 표와 프록시, 값 전달 규칙
+- [핸들러 프록시 구조](pages/concepts/handler-proxies.md): 핸들러를 Python 객체로 위임하는 함수 포인터 표와 프록시, 래퍼의 핸들러가 이벤트를 넘기는 전달 클래스, 값 전달 규칙
 - [JavaScript 바인딩](pages/concepts/javascript-bindings.md): JS에서 Python 콜백까지의 여섯 단계, 값 변환, 이름만 보내는 이유
 - [수명 주기와 메시지 루프](pages/concepts/lifecycle-and-message-loop.md): initialize, 외부 메시지 펌프, 창 닫기, shutdown의 순서와 상태
 - [플랫폼 지원 현황](pages/concepts/platform-support.md): Linux, Windows, macOS, ARM의 지원 상태와 근거
@@ -22,7 +22,7 @@
 - [생성기 모듈 (tools/gen)](pages/components/generator-modules.md): tools/gen의 모듈별 역할과 의존 방향
 - [사용하지 않는 코드와 유산](pages/components/legacy-code.md): 호출되지 않는 코드와 원래 환경에 고정된 부분
 - [cefsubprocess 실행 파일](pages/components/native-cefsubprocess.md): 서브프로세스 실행 파일, 플랫폼별 main, no_stack_protector
-- [C++ 핸들러](pages/components/native-handlers.md): CefWrapperApp, 브라우저 프로세스, 클라이언트, 렌더러 핸들러
+- [C++ 핸들러](pages/components/native-handlers.md): CefWrapperApp, 브라우저 프로세스, 클라이언트(사용자 Client로 이벤트 위임과 순서), 렌더러 핸들러
 - [CefWrapper 클래스](pages/components/native-library-api.md): CefWrapper 클래스의 메서드, 경로 함수, 전역 상태, 약점
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
@@ -44,11 +44,11 @@
 ## 참조 (reference)
 
 - [설계 결정 기록](pages/reference/design-decisions.md): 빌드, 바인딩, 런타임, 시험, 저장소 운영의 결정과 이유
-- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 84+3개와 제외 16개, 전체 81% 중 남은 장애물, 생성기의 한계와 다음 단계
+- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 103+3개와 제외 39개, 전체 81% 중 남은 장애물, 생성기의 한계와 다음 단계
 - [커버리지 보고서 (생성됨)](pages/reference/coverage-report.md): 생성기가 쓰는 보고서 전문(제외된 메서드의 사유, 클래스별 지원 비율)
 - [용어집](pages/reference/glossary.md): CEF, 프로세스, 생성기, 위키 용어 정의
 - [알려진 제약과 미검증 항목](pages/reference/known-constraints.md): 미검증 항목, 한계, 문서와 메타데이터의 불일치, 환경 제약
-- [Python API 참조](pages/reference/python-api.md): CefApp의 메서드 표와 생성된 이름, 규칙
+- [Python API 참조](pages/reference/python-api.md): CefApp의 메서드 표(set_client 포함)와 생성된 이름, 규칙, 브라우저 이벤트 받기 예
 - [관련 프로젝트와 그 위키](pages/reference/related-projects.md): cefpython, java-cef, CEF와 그 위키, 참고한 것
 - [소스 트리 지도](pages/reference/source-tree-map.md): 저장소 트리와 파일 종류별 편집 방법
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)

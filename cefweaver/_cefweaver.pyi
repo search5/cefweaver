@@ -18,6 +18,7 @@ class CefApp:
     def set_cache_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
     def set_resources_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
     def add_command_line_switch(self, name: str, value: str = "") -> None: ...
+    def set_client(self, client: Client | None) -> None: ...
     def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None: ...
     def initialize(self, start_url: str = "about:blank") -> None: ...
     def do_message_loop_work(self) -> None: ...
@@ -387,6 +388,270 @@ class Response:
     @staticmethod
     def create() -> Response:
         """Create a new CefResponse object."""
+        ...
+
+
+class Client:
+    """Implement this interface to provide handler implementations."""
+    def get_display_handler(self) -> DisplayHandler | None:
+        """Return the handler for browser display state events."""
+        ...
+    def get_life_span_handler(self) -> LifeSpanHandler | None:
+        """Return the handler for browser life span events."""
+        ...
+    def get_load_handler(self) -> LoadHandler | None:
+        """Return the handler for browser load status events."""
+        ...
+
+
+class DisplayHandler:
+    """Implement this interface to handle events related to browser display state.
+    The methods of this class will be called on the UI thread.
+    """
+    def on_address_change(self, browser: Browser, frame: Frame, url: str) -> None:
+        """Called when a frame's address has changed."""
+        ...
+    def on_title_change(self, browser: Browser, title: str | None) -> None:
+        """Called when the page title changes."""
+        ...
+    def on_fullscreen_mode_change(self, browser: Browser, fullscreen: bool) -> None:
+        """Called when web content in the page has toggled fullscreen mode. If
+        |fullscreen| is true the content will automatically be sized to fill the
+        browser content area. If |fullscreen| is false the content will
+        automatically return to its original size and position. With Alloy style
+        the client is responsible for triggering the fullscreen transition (for
+        example, by calling CefWindow::SetFullscreen when using Views). With
+        Chrome style the fullscreen transition will be triggered automatically.
+        The CefWindowDelegate::OnWindowFullscreenTransition method will be called
+        during the fullscreen transition for notification purposes.
+        """
+        ...
+    def on_tooltip(self, browser: Browser) -> tuple[bool, str]:
+        """Called when the browser is about to display a tooltip. |text| contains the
+        text that will be displayed in the tooltip. To handle the display of the
+        tooltip yourself return true. Otherwise, you can optionally modify |text|
+        and then return false to allow the browser to display the tooltip.
+        When window rendering is disabled the application is responsible for
+        drawing tooltips and the return value is ignored.
+        """
+        ...
+    def on_status_message(self, browser: Browser, value: str | None) -> None:
+        """Called when the browser receives a status message. |value| contains the
+        text that will be displayed in the status message.
+        """
+        ...
+    def on_console_message(self, browser: Browser, level: int, message: str | None, source: str | None, line: int) -> bool:
+        """Called to display a console message. Return true to stop the message from
+        being output to the console.
+        """
+        ...
+    def on_loading_progress_change(self, browser: Browser, progress: float) -> None:
+        """Called when the overall page loading progress has changed. |progress|
+        ranges from 0.0 to 1.0.
+        """
+        ...
+    def on_media_access_change(self, browser: Browser, has_video_access: bool, has_audio_access: bool) -> None:
+        """Called when the browser's access to an audio and/or video source has
+        changed.
+        """
+        ...
+
+
+class LifeSpanHandler:
+    """Implement this interface to handle events related to browser life span. The
+    methods of this class will be called on the UI thread unless otherwise
+    indicated.
+    """
+    def on_before_popup_aborted(self, browser: Browser, popup_id: int) -> None:
+        """Called on the UI thread if a new popup browser is aborted. This only
+        occurs if the popup is allowed in OnBeforePopup and creation fails before
+        OnAfterCreated is called for the new popup browser. The |browser| value is
+        the source of the popup request (opener browser). The |popup_id| value
+        uniquely identifies the popup in the context of the opener browser, and is
+        the same value that was passed to OnBeforePopup.
+
+        Any client state associated with pending popups should be cleared in
+        OnBeforePopupAborted, OnAfterCreated of the popup browser, or
+        OnBeforeClose of the opener browser. OnBeforeClose of the opener browser
+        may be called before this method in cases where the opener is closing
+        during popup creation, in which case CefBrowserHost::IsValid will return
+        false in this method.
+        """
+        ...
+    def on_after_created(self, browser: Browser) -> None:
+        """Called after a new browser is created. It is now safe to begin performing
+        actions with |browser|. CefFrameHandler callbacks related to initial main
+        frame creation will arrive before this callback. See CefFrameHandler
+        documentation for additional usage information.
+        """
+        ...
+    def do_close(self, browser: Browser) -> bool:
+        """Called when an Alloy style browser is ready to be closed, meaning that the
+        close has already been initiated and that JavaScript unload handlers have
+        already executed or should be ignored. This may result directly from a
+        call to CefBrowserHost::[Try]CloseBrowser() or indirectly if the browser's
+        top-level parent window was created by CEF and the user attempts to
+        close that window (by clicking the 'X', for example). DoClose() will not
+        be called if the browser's host window/view has already been destroyed
+        (via parent window/view hierarchy tear-down, for example), as it is no
+        longer possible to customize the close behavior at that point.
+
+        An application should handle top-level parent window close notifications
+        by calling CefBrowserHost::TryCloseBrowser() or
+        CefBrowserHost::CloseBrowser(false) instead of allowing the window to
+        close immediately (see the examples below). This gives CEF an opportunity
+        to process JavaScript unload handlers and optionally cancel the close
+        before DoClose() is called.
+
+        When windowed rendering is enabled CEF will create an internal child
+        window/view to host the browser. In that case returning false from
+        DoClose() will send the standard close notification to the browser's
+        top-level parent window (e.g. WM_CLOSE on Windows, performClose: on OS X,
+        \"delete_event\" on Linux or CefWindowDelegate::CanClose() callback from
+        Views).
+
+        When windowed rendering is disabled there is no internal window/view
+        and returning false from DoClose() will cause the browser object to be
+        destroyed immediately.
+
+        If the browser's top-level parent window requires a non-standard close
+        notification then send that notification from DoClose() and return true.
+        You are still required to complete the browser close as soon as possible
+        (either by calling [Try]CloseBrowser() or by proceeding with window/view
+        hierarchy tear-down), otherwise the browser will be left in a partially
+        closed state that interferes with proper functioning. Top-level windows
+        created on the browser process UI thread can alternately call
+        CefBrowserHost::IsReadyToBeClosed() in the close handler to check close
+        status instead of relying on custom DoClose() handling. See documentation
+        on that method for additional details.
+
+        The CefLifeSpanHandler::OnBeforeClose() method will be called after
+        DoClose() (if DoClose() is called) and immediately before the browser
+        object is destroyed. The application should only exit after
+        OnBeforeClose() has been called for all existing browsers.
+
+        The below examples describe what should happen during window close when
+        the browser is parented to an application-provided top-level window.
+
+        Example 1: Using CefBrowserHost::TryCloseBrowser(). This is recommended
+        for clients using standard close handling and windows created on the
+        browser process UI thread.
+        1.  User clicks the window close button which sends a close notification
+            to the application's top-level window.
+        2.  Application's top-level window receives the close notification and
+            calls TryCloseBrowser() (similar to calling CloseBrowser(false)).
+            TryCloseBrowser() returns false so the client cancels the window
+            close.
+        3.  JavaScript 'onbeforeunload' handler executes and shows the close
+            confirmation dialog (which can be overridden via
+            CefJSDialogHandler::OnBeforeUnloadDialog()).
+        4.  User approves the close.
+        5.  JavaScript 'onunload' handler executes.
+        6.  Application's DoClose() handler is called and returns false by
+            default.
+        7.  CEF sends a close notification to the application's top-level window
+            (because DoClose() returned false).
+        8.  Application's top-level window receives the close notification and
+            calls TryCloseBrowser(). TryCloseBrowser() returns true so the client
+            allows the window close.
+        9.  Application's top-level window is destroyed, triggering destruction
+            of the child browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object
+            is destroyed.
+        11. Application exits by calling CefQuitMessageLoop() if no other browsers
+            exist.
+
+        Example 2: Using CefBrowserHost::CloseBrowser(false) and implementing the
+        DoClose() callback. This is recommended for clients using non-standard
+        close handling or windows that were not created on the browser process UI
+        thread.
+        1.  User clicks the window close button which sends a close notification
+            to the application's top-level window.
+        2.  Application's top-level window receives the close notification and:
+            A. Calls CefBrowserHost::CloseBrowser(false).
+            B. Cancels the window close.
+        3.  JavaScript 'onbeforeunload' handler executes and shows the close
+            confirmation dialog (which can be overridden via
+            CefJSDialogHandler::OnBeforeUnloadDialog()).
+        4.  User approves the close.
+        5.  JavaScript 'onunload' handler executes.
+        6.  Application's DoClose() handler is called. Application will:
+            A. Set a flag to indicate that the next top-level window close attempt
+               will be allowed.
+            B. Return false.
+        7.  CEF sends a close notification to the application's top-level window
+            (because DoClose() returned false).
+        8.  Application's top-level window receives the close notification and
+            allows the window to close based on the flag from #6A.
+        9.  Application's top-level window is destroyed, triggering destruction
+            of the child browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object
+            is destroyed.
+        11. Application exits by calling CefQuitMessageLoop() if no other browsers
+            exist.
+        """
+        ...
+    def on_before_close(self, browser: Browser) -> None:
+        """Called just before a browser is destroyed. Release all references to the
+        browser object and do not attempt to execute any methods on the browser
+        object (other than IsValid, GetIdentifier or IsSame) after this callback
+        returns. CefFrameHandler callbacks related to final main frame
+        destruction, and OnBeforePopupAborted callbacks for any pending popups,
+        will arrive after this callback and CefBrowser::IsValid will return false
+        at that time. Any in-progress network requests associated with |browser|
+        will be aborted when the browser is destroyed, and
+        CefResourceRequestHandler callbacks related to those requests may still
+        arrive on the IO thread after this callback. See CefFrameHandler and
+        DoClose() documentation for additional usage information.
+        """
+        ...
+
+
+class LoadHandler:
+    """Implement this interface to handle events related to browser load status.
+    The methods of this class will be called on the browser process UI thread or
+    render process main thread (TID_RENDERER).
+    """
+    def on_loading_state_change(self, browser: Browser, is_loading: bool, can_go_back: bool, can_go_forward: bool) -> None:
+        """Called when the loading state has changed. This callback will be executed
+        twice -- once when loading is initiated either programmatically or by user
+        action, and once when loading is terminated due to completion,
+        cancellation of failure. It will be called before any calls to OnLoadStart
+        and after all calls to OnLoadError and/or OnLoadEnd.
+        """
+        ...
+    def on_load_start(self, browser: Browser, frame: Frame, transition_type: int) -> None:
+        """Called after a navigation has been committed and before the browser begins
+        loading contents in the frame. The |frame| value will never be empty --
+        call the IsMain() method to check if this frame is the main frame.
+        |transition_type| provides information about the source of the navigation
+        and an accurate value is only available in the browser process. Multiple
+        frames may be loading at the same time. Sub-frames may start or continue
+        loading after the main frame load has ended. This method will not be
+        called for same page navigations (fragments, history state, etc.) or for
+        navigations that fail or are canceled before commit. For notification of
+        overall browser load status use OnLoadingStateChange instead.
+        """
+        ...
+    def on_load_end(self, browser: Browser, frame: Frame, http_status_code: int) -> None:
+        """Called when the browser is done loading a frame. The |frame| value will
+        never be empty -- call the IsMain() method to check if this frame is the
+        main frame. Multiple frames may be loading at the same time. Sub-frames
+        may start or continue loading after the main frame load has ended. This
+        method will not be called for same page navigations (fragments, history
+        state, etc.) or for navigations that fail or are canceled before commit.
+        For notification of overall browser load status use OnLoadingStateChange
+        instead.
+        """
+        ...
+    def on_load_error(self, browser: Browser, frame: Frame, error_code: int, error_text: str | None, failed_url: str) -> None:
+        """Called when a navigation fails or is canceled. This method may be called
+        by itself if before commit or in combination with OnLoadStart/OnLoadEnd if
+        after commit. |errorCode| is the error code number, |errorText| is the
+        error text and |failedUrl| is the URL that failed to load.
+        See net\\base\\net_error_list.h for complete descriptions of the error
+        codes.
+        """
         ...
 
 

@@ -4,7 +4,12 @@ For every client-side CEF class (a handler) the header declares
 
   * `Cw<Name>Callbacks`: a table of function pointers plus the owner (`py`);
   * `Cw<Name>Proxy`: a class that implements the CEF class and forwards each
-    virtual method to the matching entry of the table.
+    virtual method to the matching entry of the table;
+  * `Cw<Name>Forward`: a base class for hand-written handlers that observe an event
+    and still pass it on. It forwards each method to `forward_<name>_` (another
+    object of the CEF class, usually a proxy) or, when that is empty, behaves like the
+    CEF base class. It has no reference counting of its own, so one object can
+    derive from the forwarders of several handlers and count references once.
 
 The Cython module fills the table with functions that call the Python object. A
 method the Python class does not override has no entry, and the proxy then
@@ -160,6 +165,44 @@ def _method(model, cls, plan):
     return out
 
 
+def _forward_method(model, cls, plan, member):
+    params = ", ".join(declaration(p) for p in plan.params)
+    const = " const" if plan.const_method else ""
+    args = ", ".join(call_arguments(plan))
+    out = []
+    out.append("  %s %s(%s)%s override {" % (plan.ret_spelled, plan.cef_name, params, const))
+    out.append("    if (!%s) {" % member)
+    if model.is_pure_virtual(cls, plan.node):
+        out.append("      %s" % _default_return(plan))
+    else:
+        call = "%s::%s(%s)" % (cls.get_name(), plan.cef_name, args)
+        if isinstance(plan.ret, Void):
+            out.append("      %s;" % call)
+            out.append("      return;")
+        else:
+            out.append("      return %s;" % call)
+    out.append("    }")
+    call = "%s->%s(%s)" % (member, plan.cef_name, args)
+    out.append("    %s%s;" % ("" if isinstance(plan.ret, Void) else "return ", call))
+    out.append("  }")
+    return out
+
+
+def _forwarder(model, cls, plans):
+    name = py_class_name(cls.get_name())
+    member = "forward_%s_" % snake_case(name)
+    lines = ["class Cw%sForward : public %s {" % (name, cls.get_name()),
+             " protected:",
+             "  CefRefPtr<%s> %s;" % (cls.get_name(), member),
+             "",
+             " public:"]
+    for plan in plans:
+        lines += _forward_method(model, cls, plan, member)
+        lines.append("")
+    lines[-1:] = ["};", ""]
+    return lines
+
+
 def emit(model, scope, plans_by_class, banner):
     lines = [
         "// " + banner,
@@ -179,6 +222,7 @@ def emit(model, scope, plans_by_class, banner):
         plans = [p for p in plans_by_class[cls.get_name()] if p.supported and not p.static]
         lines.append("// ---- %s ----" % cls.get_name())
         lines.append("")
+        lines += _forwarder(model, cls, plans)
         lines.append("struct Cw%sCallbacks {" % name)
         lines.append("  void* py = nullptr;  // owner, released through |release|")
         lines.append("  void (*release)(void* py) = nullptr;")

@@ -92,6 +92,13 @@ updated: 2026-10-08
 
 Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 시험 24개를 모두 통과했습니다(생성된 Cython 코드 포함). 3.15는 시험하지 않았습니다.
 
+## F15. 클라이언트 핸들러의 이벤트와 래퍼의 동작
+
+- **방법**: `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`를 상속한 객체를 `set_client()`로 넘기고 `data:` 페이지와 닫힌 로컬 포트의 URL을 로드했습니다(`tests/test_smoke.py`의 시험 4개).
+- **결과**: 한 번의 로드에서 `on_after_created`, `on_load_start`(주 프레임), `on_loading_state_change`(`True`와 `False`), `on_title_change`, `on_load_end` 순으로 이벤트가 왔고 생성이 시작보다 앞, 시작이 종료보다 앞이었습니다. 모든 콜백은 `initialize()`를 부른 스레드(`MainThread`)에서 실행되었습니다. 닫힌 포트의 오류는 `error_code == -102`(`ERR_CONNECTION_REFUSED`)와 요청한 URL로 왔고, 래퍼는 이어서 `data:` 오류 페이지를 로드했습니다. 사용자의 `on_load_end`와 클라이언트의 getter가 예외를 일으켜도 `sys.excepthook`으로 보고될 뿐 래퍼의 준비 플래그와 JS 바인딩은 정상이었고, 종료할 때 `on_before_close`가 전달되었습니다.
+- **변이 시험**: 전달 호출 두 곳(`OnLoadEnd`, `OnBeforeClose`)을 일부러 지우자 새 시험 3개가 실패했고 실패 메시지가 기다린 사건을 가리켰습니다. 복구하자 모두 통과했습니다.
+- **영향**: 위임 구조가 의도대로 동작합니다. 확인하지 못한 것은 [알려진 제약과 미검증 항목](known-constraints.md)에 적었습니다.
+
 ## 관련 페이지
 
 - [알려진 제약과 미검증 항목](known-constraints.md)

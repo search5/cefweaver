@@ -28,6 +28,11 @@ void CefWrapperBrowserProcessHandler::SetJavascriptBindings(std::vector<Javascri
   GetInstance()->m_JavascriptPythonBindings = javascript_python_bindings;
 }
 
+void CefWrapperBrowserProcessHandler::SetUserClient(CefRefPtr<CefClient> client)
+{
+  GetInstance()->m_UserClient = client;
+}
+
 CefRefPtr<CefClient> CefWrapperBrowserProcessHandler::GetDefaultClient()
 {
   return CefWrapperClientHandler::GetInstance();
@@ -44,7 +49,7 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
 
   //RegisterSchemeHandlerFactory();
 
-  CefRefPtr<CefWrapperClientHandler> handler(new CefWrapperClientHandler(use_views, m_JavascriptBindings, m_JavascriptPythonBindings));
+  CefRefPtr<CefWrapperClientHandler> handler(new CefWrapperClientHandler(use_views, m_JavascriptBindings, m_JavascriptPythonBindings, m_UserClient));
   SimpleRenderProcessHandler::getInstance()->SetJavascriptBindings(
       m_JavascriptBindings, m_JavascriptPythonBindings);
 

@@ -17,9 +17,12 @@ public:
   /* Static access method. */
   static CefRefPtr<CefWrapperBrowserProcessHandler> GetInstance();
   static void SetJavascriptBindings(std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings);
+  // The client whose handlers get the browser events (empty for none). Set before CEF starts.
+  static void SetUserClient(CefRefPtr<CefClient> client);
   static void SetStartUrl(std::string url);
   static void LoadUrl(std::string url);
   CefRefPtr<CefBrowser>Browser;
+  CefRefPtr<CefClient> m_UserClient;
   std::vector<JavascriptBinding> m_JavascriptBindings;
   std::vector<JavascriptPythonBinding> m_JavascriptPythonBindings;
   CefRefPtr<CefClient> GetDefaultClient()  override;

@@ -6,13 +6,522 @@
 
 #include "include/cef_browser.h"
 #include "include/cef_callback.h"
+#include "include/cef_client.h"
+#include "include/cef_display_handler.h"
 #include "include/cef_frame.h"
+#include "include/cef_life_span_handler.h"
+#include "include/cef_load_handler.h"
 #include "include/cef_request.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
 
+// ---- CefClient ----
+
+class CwClientForward : public CefClient {
+ protected:
+  CefRefPtr<CefClient> forward_client_;
+
+ public:
+  CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetDisplayHandler();
+    }
+    return forward_client_->GetDisplayHandler();
+  }
+
+  CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetLifeSpanHandler();
+    }
+    return forward_client_->GetLifeSpanHandler();
+  }
+
+  CefRefPtr<CefLoadHandler> GetLoadHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetLoadHandler();
+    }
+    return forward_client_->GetLoadHandler();
+  }
+};
+
+struct CwClientCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
+  CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
+  CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
+};
+
+class CwClientProxy : public CefClient {
+ public:
+  explicit CwClientProxy(const CwClientCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwClientProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
+    if (!cb_.fn_get_display_handler) {
+      return CefClient::GetDisplayHandler();
+    }
+    CefDisplayHandler* raw = cb_.fn_get_display_handler(cb_.py);
+    CefRefPtr<CefDisplayHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
+    if (!cb_.fn_get_life_span_handler) {
+      return CefClient::GetLifeSpanHandler();
+    }
+    CefLifeSpanHandler* raw = cb_.fn_get_life_span_handler(cb_.py);
+    CefRefPtr<CefLifeSpanHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefLoadHandler> GetLoadHandler() override {
+    if (!cb_.fn_get_load_handler) {
+      return CefClient::GetLoadHandler();
+    }
+    CefLoadHandler* raw = cb_.fn_get_load_handler(cb_.py);
+    CefRefPtr<CefLoadHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+ private:
+  CwClientCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwClientProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwClientProxy);
+};
+
+// ---- CefDisplayHandler ----
+
+class CwDisplayHandlerForward : public CefDisplayHandler {
+ protected:
+  CefRefPtr<CefDisplayHandler> forward_display_handler_;
+
+ public:
+  void OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnAddressChange(browser, frame, url);
+      return;
+    }
+    forward_display_handler_->OnAddressChange(browser, frame, url);
+  }
+
+  void OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnTitleChange(browser, title);
+      return;
+    }
+    forward_display_handler_->OnTitleChange(browser, title);
+  }
+
+  void OnFullscreenModeChange(CefRefPtr<CefBrowser> browser, bool fullscreen) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnFullscreenModeChange(browser, fullscreen);
+      return;
+    }
+    forward_display_handler_->OnFullscreenModeChange(browser, fullscreen);
+  }
+
+  bool OnTooltip(CefRefPtr<CefBrowser> browser, CefString& text) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::OnTooltip(browser, text);
+    }
+    return forward_display_handler_->OnTooltip(browser, text);
+  }
+
+  void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnStatusMessage(browser, value);
+      return;
+    }
+    forward_display_handler_->OnStatusMessage(browser, value);
+  }
+
+  bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::OnConsoleMessage(browser, level, message, source, line);
+    }
+    return forward_display_handler_->OnConsoleMessage(browser, level, message, source, line);
+  }
+
+  void OnLoadingProgressChange(CefRefPtr<CefBrowser> browser, double progress) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnLoadingProgressChange(browser, progress);
+      return;
+    }
+    forward_display_handler_->OnLoadingProgressChange(browser, progress);
+  }
+
+  void OnMediaAccessChange(CefRefPtr<CefBrowser> browser, bool has_video_access, bool has_audio_access) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnMediaAccessChange(browser, has_video_access, has_audio_access);
+      return;
+    }
+    forward_display_handler_->OnMediaAccessChange(browser, has_video_access, has_audio_access);
+  }
+};
+
+struct CwDisplayHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_address_change)(void*, CefBrowser*, CefFrame*, const CefString*) = nullptr;
+  void (*fn_on_title_change)(void*, CefBrowser*, const CefString*) = nullptr;
+  void (*fn_on_fullscreen_mode_change)(void*, CefBrowser*, bool) = nullptr;
+  bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) = nullptr;
+  void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) = nullptr;
+  bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) = nullptr;
+  void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) = nullptr;
+  void (*fn_on_media_access_change)(void*, CefBrowser*, bool, bool) = nullptr;
+};
+
+class CwDisplayHandlerProxy : public CefDisplayHandler {
+ public:
+  explicit CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDisplayHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url) override {
+    if (!cb_.fn_on_address_change) {
+      CefDisplayHandler::OnAddressChange(browser, frame, url);
+      return;
+    }
+    cb_.fn_on_address_change(cb_.py, browser.get(), frame.get(), &url);
+  }
+
+  void OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) override {
+    if (!cb_.fn_on_title_change) {
+      CefDisplayHandler::OnTitleChange(browser, title);
+      return;
+    }
+    cb_.fn_on_title_change(cb_.py, browser.get(), &title);
+  }
+
+  void OnFullscreenModeChange(CefRefPtr<CefBrowser> browser, bool fullscreen) override {
+    if (!cb_.fn_on_fullscreen_mode_change) {
+      CefDisplayHandler::OnFullscreenModeChange(browser, fullscreen);
+      return;
+    }
+    cb_.fn_on_fullscreen_mode_change(cb_.py, browser.get(), fullscreen);
+  }
+
+  bool OnTooltip(CefRefPtr<CefBrowser> browser, CefString& text) override {
+    if (!cb_.fn_on_tooltip) {
+      return CefDisplayHandler::OnTooltip(browser, text);
+    }
+    CefString out_text;
+    bool result = cb_.fn_on_tooltip(cb_.py, browser.get(), &out_text);
+    text = out_text;
+    return result;
+  }
+
+  void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override {
+    if (!cb_.fn_on_status_message) {
+      CefDisplayHandler::OnStatusMessage(browser, value);
+      return;
+    }
+    cb_.fn_on_status_message(cb_.py, browser.get(), &value);
+  }
+
+  bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override {
+    if (!cb_.fn_on_console_message) {
+      return CefDisplayHandler::OnConsoleMessage(browser, level, message, source, line);
+    }
+    bool result = cb_.fn_on_console_message(cb_.py, browser.get(), static_cast<int>(level), &message, &source, line);
+    return result;
+  }
+
+  void OnLoadingProgressChange(CefRefPtr<CefBrowser> browser, double progress) override {
+    if (!cb_.fn_on_loading_progress_change) {
+      CefDisplayHandler::OnLoadingProgressChange(browser, progress);
+      return;
+    }
+    cb_.fn_on_loading_progress_change(cb_.py, browser.get(), progress);
+  }
+
+  void OnMediaAccessChange(CefRefPtr<CefBrowser> browser, bool has_video_access, bool has_audio_access) override {
+    if (!cb_.fn_on_media_access_change) {
+      CefDisplayHandler::OnMediaAccessChange(browser, has_video_access, has_audio_access);
+      return;
+    }
+    cb_.fn_on_media_access_change(cb_.py, browser.get(), has_video_access, has_audio_access);
+  }
+
+ private:
+  CwDisplayHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDisplayHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDisplayHandlerProxy);
+};
+
+// ---- CefLifeSpanHandler ----
+
+class CwLifeSpanHandlerForward : public CefLifeSpanHandler {
+ protected:
+  CefRefPtr<CefLifeSpanHandler> forward_life_span_handler_;
+
+ public:
+  void OnBeforePopupAborted(CefRefPtr<CefBrowser> browser, int popup_id) override {
+    if (!forward_life_span_handler_) {
+      CefLifeSpanHandler::OnBeforePopupAborted(browser, popup_id);
+      return;
+    }
+    forward_life_span_handler_->OnBeforePopupAborted(browser, popup_id);
+  }
+
+  void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_life_span_handler_) {
+      CefLifeSpanHandler::OnAfterCreated(browser);
+      return;
+    }
+    forward_life_span_handler_->OnAfterCreated(browser);
+  }
+
+  bool DoClose(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_life_span_handler_) {
+      return CefLifeSpanHandler::DoClose(browser);
+    }
+    return forward_life_span_handler_->DoClose(browser);
+  }
+
+  void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_life_span_handler_) {
+      CefLifeSpanHandler::OnBeforeClose(browser);
+      return;
+    }
+    forward_life_span_handler_->OnBeforeClose(browser);
+  }
+};
+
+struct CwLifeSpanHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_before_popup_aborted)(void*, CefBrowser*, int) = nullptr;
+  void (*fn_on_after_created)(void*, CefBrowser*) = nullptr;
+  bool (*fn_do_close)(void*, CefBrowser*) = nullptr;
+  void (*fn_on_before_close)(void*, CefBrowser*) = nullptr;
+};
+
+class CwLifeSpanHandlerProxy : public CefLifeSpanHandler {
+ public:
+  explicit CwLifeSpanHandlerProxy(const CwLifeSpanHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwLifeSpanHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnBeforePopupAborted(CefRefPtr<CefBrowser> browser, int popup_id) override {
+    if (!cb_.fn_on_before_popup_aborted) {
+      CefLifeSpanHandler::OnBeforePopupAborted(browser, popup_id);
+      return;
+    }
+    cb_.fn_on_before_popup_aborted(cb_.py, browser.get(), popup_id);
+  }
+
+  void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_after_created) {
+      CefLifeSpanHandler::OnAfterCreated(browser);
+      return;
+    }
+    cb_.fn_on_after_created(cb_.py, browser.get());
+  }
+
+  bool DoClose(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_do_close) {
+      return CefLifeSpanHandler::DoClose(browser);
+    }
+    bool result = cb_.fn_do_close(cb_.py, browser.get());
+    return result;
+  }
+
+  void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_before_close) {
+      CefLifeSpanHandler::OnBeforeClose(browser);
+      return;
+    }
+    cb_.fn_on_before_close(cb_.py, browser.get());
+  }
+
+ private:
+  CwLifeSpanHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwLifeSpanHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwLifeSpanHandlerProxy);
+};
+
+// ---- CefLoadHandler ----
+
+class CwLoadHandlerForward : public CefLoadHandler {
+ protected:
+  CefRefPtr<CefLoadHandler> forward_load_handler_;
+
+ public:
+  void OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward) override {
+    if (!forward_load_handler_) {
+      CefLoadHandler::OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
+      return;
+    }
+    forward_load_handler_->OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
+  }
+
+  void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) override {
+    if (!forward_load_handler_) {
+      CefLoadHandler::OnLoadStart(browser, frame, transition_type);
+      return;
+    }
+    forward_load_handler_->OnLoadStart(browser, frame, transition_type);
+  }
+
+  void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override {
+    if (!forward_load_handler_) {
+      CefLoadHandler::OnLoadEnd(browser, frame, httpStatusCode);
+      return;
+    }
+    forward_load_handler_->OnLoadEnd(browser, frame, httpStatusCode);
+  }
+
+  void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString& errorText, const CefString& failedUrl) override {
+    if (!forward_load_handler_) {
+      CefLoadHandler::OnLoadError(browser, frame, errorCode, errorText, failedUrl);
+      return;
+    }
+    forward_load_handler_->OnLoadError(browser, frame, errorCode, errorText, failedUrl);
+  }
+};
+
+struct CwLoadHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_loading_state_change)(void*, CefBrowser*, bool, bool, bool) = nullptr;
+  void (*fn_on_load_start)(void*, CefBrowser*, CefFrame*, int) = nullptr;
+  void (*fn_on_load_end)(void*, CefBrowser*, CefFrame*, int) = nullptr;
+  void (*fn_on_load_error)(void*, CefBrowser*, CefFrame*, int, const CefString*, const CefString*) = nullptr;
+};
+
+class CwLoadHandlerProxy : public CefLoadHandler {
+ public:
+  explicit CwLoadHandlerProxy(const CwLoadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwLoadHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward) override {
+    if (!cb_.fn_on_loading_state_change) {
+      CefLoadHandler::OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
+      return;
+    }
+    cb_.fn_on_loading_state_change(cb_.py, browser.get(), isLoading, canGoBack, canGoForward);
+  }
+
+  void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, TransitionType transition_type) override {
+    if (!cb_.fn_on_load_start) {
+      CefLoadHandler::OnLoadStart(browser, frame, transition_type);
+      return;
+    }
+    cb_.fn_on_load_start(cb_.py, browser.get(), frame.get(), static_cast<int>(transition_type));
+  }
+
+  void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override {
+    if (!cb_.fn_on_load_end) {
+      CefLoadHandler::OnLoadEnd(browser, frame, httpStatusCode);
+      return;
+    }
+    cb_.fn_on_load_end(cb_.py, browser.get(), frame.get(), httpStatusCode);
+  }
+
+  void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode, const CefString& errorText, const CefString& failedUrl) override {
+    if (!cb_.fn_on_load_error) {
+      CefLoadHandler::OnLoadError(browser, frame, errorCode, errorText, failedUrl);
+      return;
+    }
+    cb_.fn_on_load_error(cb_.py, browser.get(), frame.get(), static_cast<int>(errorCode), &errorText, &failedUrl);
+  }
+
+ private:
+  CwLoadHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwLoadHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwLoadHandlerProxy);
+};
+
 // ---- CefResourceHandler ----
+
+class CwResourceHandlerForward : public CefResourceHandler {
+ protected:
+  CefRefPtr<CefResourceHandler> forward_resource_handler_;
+
+ public:
+  bool Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) override {
+    if (!forward_resource_handler_) {
+      return CefResourceHandler::Open(request, handle_request, callback);
+    }
+    return forward_resource_handler_->Open(request, handle_request, callback);
+  }
+
+  bool ProcessRequest(CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override {
+    if (!forward_resource_handler_) {
+      return CefResourceHandler::ProcessRequest(request, callback);
+    }
+    return forward_resource_handler_->ProcessRequest(request, callback);
+  }
+
+  void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t& response_length, CefString& redirectUrl) override {
+    if (!forward_resource_handler_) {
+      return;
+    }
+    forward_resource_handler_->GetResponseHeaders(response, response_length, redirectUrl);
+  }
+
+  bool Skip(int64_t bytes_to_skip, int64_t& bytes_skipped, CefRefPtr<CefResourceSkipCallback> callback) override {
+    if (!forward_resource_handler_) {
+      return CefResourceHandler::Skip(bytes_to_skip, bytes_skipped, callback);
+    }
+    return forward_resource_handler_->Skip(bytes_to_skip, bytes_skipped, callback);
+  }
+
+  bool Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) override {
+    if (!forward_resource_handler_) {
+      return CefResourceHandler::Read(data_out, bytes_to_read, bytes_read, callback);
+    }
+    return forward_resource_handler_->Read(data_out, bytes_to_read, bytes_read, callback);
+  }
+
+  bool ReadResponse(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefCallback> callback) override {
+    if (!forward_resource_handler_) {
+      return CefResourceHandler::ReadResponse(data_out, bytes_to_read, bytes_read, callback);
+    }
+    return forward_resource_handler_->ReadResponse(data_out, bytes_to_read, bytes_read, callback);
+  }
+
+  void Cancel() override {
+    if (!forward_resource_handler_) {
+      return;
+    }
+    forward_resource_handler_->Cancel();
+  }
+};
 
 struct CwResourceHandlerCallbacks {
   void* py = nullptr;  // owner, released through |release|
@@ -109,6 +618,19 @@ class CwResourceHandlerProxy : public CefResourceHandler {
 };
 
 // ---- CefSchemeHandlerFactory ----
+
+class CwSchemeHandlerFactoryForward : public CefSchemeHandlerFactory {
+ protected:
+  CefRefPtr<CefSchemeHandlerFactory> forward_scheme_handler_factory_;
+
+ public:
+  CefRefPtr<CefResourceHandler> Create(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& scheme_name, CefRefPtr<CefRequest> request) override {
+    if (!forward_scheme_handler_factory_) {
+      return nullptr;
+    }
+    return forward_scheme_handler_factory_->Create(browser, frame, scheme_name, request);
+  }
+};
 
 struct CwSchemeHandlerFactoryCallbacks {
   void* py = nullptr;  // owner, released through |release|

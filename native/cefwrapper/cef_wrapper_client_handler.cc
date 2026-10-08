@@ -41,7 +41,8 @@ std::string GetDataURI(const std::string &data, const std::string &mime_type) {
 } // namespace
 
 CefWrapperClientHandler::CefWrapperClientHandler(
-    bool use_views, std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings) : use_views_(use_views), is_closing_(false) {
+    bool use_views, std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings,
+    CefRefPtr<CefClient> user_client) : use_views_(use_views), user_client_(user_client), is_closing_(false) {
   DCHECK(!g_instance);
   m_JavascriptBindings = javascript_bindings;
   m_JavascriptPythonBindings = javascript_python_bindings;
@@ -132,6 +133,7 @@ void CefWrapperClientHandler::OnTitleChange(CefRefPtr<CefBrowser> browser,
     // Set the title of the window using platform APIs.
     PlatformTitleChange(browser, title);
   }
+  CwDisplayHandlerForward::OnTitleChange(browser, title);
 }
 
 void CefWrapperClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
@@ -139,10 +141,16 @@ void CefWrapperClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
 
   // Add to the list of existing browsers.
   browser_list_.push_back(browser);
+  CwLifeSpanHandlerForward::OnAfterCreated(browser);
 }
 
 bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
+
+  // The user's handler can keep the browser open by returning true.
+  if (CwLifeSpanHandlerForward::DoClose(browser)) {
+    return true;
+  }
 
   // Closing the main window requires special handling. See the DoClose()
   // documentation in the CEF header for a detailed destription of this
@@ -159,6 +167,8 @@ bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
 
 void CefWrapperClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
+
+  CwLifeSpanHandlerForward::OnBeforeClose(browser);
 
   // Remove from the list of existing browsers.
   BrowserList::iterator bit = browser_list_.begin();
@@ -180,6 +190,8 @@ void CefWrapperClientHandler::OnLoadError(CefRefPtr<CefBrowser> browser,
                                 const CefString &errorText,
                                 const CefString &failedUrl) {
   CEF_REQUIRE_UI_THREAD();
+
+  CwLoadHandlerForward::OnLoadError(browser, frame, errorCode, errorText, failedUrl);
 
   // Allow Chrome to show the error page.
   if (IsChromeRuntimeEnabled())
@@ -263,12 +275,14 @@ void CefWrapperClientHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser,
 {
   std::string code = "const event = new Event('cefready'); window.dispatchEvent(event);";
   frame->ExecuteJavaScript(code, frame->GetURL(), 0);
+  CwLoadHandlerForward::OnLoadEnd(browser, frame, httpStatusCode);
 }
 bool CefWrapperClientHandler::IsReadyToExecuteJs() { return m_IsReadyToExecuteJs; }
 void CefWrapperClientHandler::OnLoadStart(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
     CefLoadHandler::TransitionType transition_type) {
   m_IsReadyToExecuteJs = false;
+  CwLoadHandlerForward::OnLoadStart(browser, frame, transition_type);
 }
 bool CefWrapperClientHandler::OnProcessMessageReceived(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
@@ -349,4 +363,5 @@ void CefWrapperClientHandler::OnLoadingStateChange(
   {
     m_IsReadyToExecuteJs = false;
   }
+  CwLoadHandlerForward::OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
 }

@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 9개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 100개 가운데 84개가 생성되고 16개가 제외되며, 함수 3개를 더해 87개입니다.
+범위(`scope.py`)는 클래스 13개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 142개 가운데 103개가 생성되고 39개가 제외되며, 함수 3개를 더해 106개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -27,8 +27,12 @@ updated: 2026-10-08
 | `CefResponse` | 라이브러리 | 16/18 | 헤더 맵(멀티맵) 2 |
 | `CefFrame` | 라이브러리 | 20/26 | `CefStringVisitor`, `CefV8Context`, `CefDOMVisitor`, `CefURLRequest`, `CefProcessMessage`가 범위 밖(6) |
 | `CefBrowser` | 라이브러리 | 18/21 | `CefBrowserHost`가 범위 밖(1), 벡터 2 |
+| `CefClient` | 핸들러 | 3/19 | 다른 핸들러 15개가 범위 밖(`CefRequestHandler`, `CefContextMenuHandler` 등), `CefProcessMessage`가 범위 밖(1) |
+| `CefLoadHandler` | 핸들러 | 4/4 | |
+| `CefLifeSpanHandler` | 핸들러 | 4/6 | 값 타입 `CefPopupFeatures`(`on_before_popup`), 구조체 `cef_window_info_t`(`on_before_dev_tools_popup`) |
+| `CefDisplayHandler` | 핸들러 | 8/13 | 값 타입 구조체 4(`CefRect` 2, `CefSize`, `CefCursorHandle`), 벡터 1(`on_favicon_url_change`) |
 
-제외된 16개의 사유는 범위 밖 클래스 10, 멀티맵 4, 벡터 2입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
+제외된 39개의 사유는 범위 밖 클래스 26, 값 타입 구조체 5와 구조체 1, 멀티맵 4, 벡터 3입니다. 범위 밖 클래스 가운데 16개는 `CefClient`가 돌려줄 다른 핸들러와 `CefProcessMessage`입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
 
 ## 모든 클래스를 범위에 넣는다면
 
@@ -60,17 +64,20 @@ updated: 2026-10-08
 ### 한계와 미검증
 
 - Windows와 다른 CEF 버전에서의 재생성은 확인하지 못했습니다. 파서는 CEF master의 것(2026-09-29)이고 154 헤더에서 정상 동작했지만, 다른 버전의 헤더에서는 시험하지 않았습니다.
-- 현재 범위는 9개 클래스입니다. `CefLoadHandler`, `CefRequestHandler`, `CefClient` 같은 나머지 핸들러는 아직 생성하지 않았습니다. 그 전에 `CefWrapperClientHandler`를 사용자 객체로 위임하는 구조로 바꾸는 설계 결정이 필요하고, 이것이 다음 단계의 핵심입니다.
+- `CefClient`는 표시, 수명 주기, 로드 핸들러만 돌려줄 수 있습니다. 나머지 핸들러 15개(`CefRequestHandler`, `CefContextMenuHandler`, `CefKeyboardHandler`, `CefFocusHandler` 등)와 `OnProcessMessageReceived`는 생성하지 않았습니다. 래퍼가 컨텍스트 메뉴와 JavaScript 바인딩 메시지를 스스로 처리하므로, 이 둘을 사용자에게 열려면 래퍼의 처리와 사용자의 처리를 어떻게 합칠지 정해야 합니다.
+- `on_before_popup`(`CefPopupFeatures`, `cef_window_info_t`)과 창 크기, 커서에 관한 표시 핸들러 메서드는 값 타입 구조체를 지원한 뒤에 열립니다.
 - 헤더의 한국어 설명(`cef_origin` 위키)은 아직 스텁에 쓰지 않았고 헤더의 영어 주석을 그대로 쓰고 있습니다.
 - 대상 클래스를 상속하는 클래스(예: `CefDictionaryValue` 계열)는 아직 처리하지 않습니다.
-- 그 변경은 문서와 시험이 생성기, 모듈 연결, 시험이라는 여러 묶음에 걸쳐 있고 묶음별 커밋은 `cef_api.pxi` 없이 빌드되지 않아서, 합의한 기준(파일이 겹치면 한 번에)대로 커밋 하나로 했습니다.
+- 생성기를 만든 변경(기준 커밋 `f9e459c`)은 문서와 시험이 생성기, 모듈 연결, 시험이라는 여러 묶음에 걸쳐 있고 묶음별 커밋은 `cef_api.pxi` 없이 빌드되지 않아서, 합의한 기준(파일이 겹치면 한 번에)대로 커밋 하나로 했습니다.
 
-### 다음 단계 (결정 필요)
+### 다음 단계
 
-1. 핸들러 위임 구조로 `CefClient`를 바꾸고 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`를 범위에 추가합니다. 핸들러가 가장 흔한 사용 경로입니다.
-2. 보고서 1순위인 값 타입 구조체(`CefRect`, `CefPoint` 등)를 지원해서 한꺼번에 많은 메서드를 엽니다(115 + 18건).
+`CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했습니다([설계 결정 기록](design-decisions.md), 시험 6개). 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다. 확인하지 못한 항목 전체는 [알려진 제약과 미검증 항목](known-constraints.md)에 있습니다.
+1. 값 타입 구조체(`CefRect`, `CefPoint` 등)를 지원해서 한꺼번에 많은 메서드를 엽니다(115 + 18건, 지금 범위 안의 핸들러에서도 6건).
+2. 나머지 핸들러를 `CefClient`에 추가합니다. 컨텍스트 메뉴와 프로세스 메시지는 위의 "합치는 방법" 결정이 먼저입니다.
+
+확인하지 못한 항목 전체는 [알려진 제약과 미검증 항목](known-constraints.md)에 있습니다.
 
 ## 관련 페이지
 

@@ -11,14 +11,15 @@ updated: 2026-10-08
 
 # 핸들러 프록시 구조
 
-CEF의 핸들러(애플리케이션이 구현하는 클래스, 파서 용어로 client-side)를 Python 클래스로 구현하게 하는 장치입니다. 지금은 `ResourceHandler`와 `SchemeHandlerFactory`가 이 방식이며, 이후 핸들러도 같은 구조로 생성됩니다.
+CEF의 핸들러(애플리케이션이 구현하는 클래스, 파서 용어로 client-side)를 Python 클래스로 구현하게 하는 장치입니다. 지금은 `ResourceHandler`, `SchemeHandlerFactory`, `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`가 이 방식이며, 이후 핸들러도 같은 구조로 생성됩니다.
 
 ## 구성
 
-핸들러 클래스마다 생성기가 두 가지를 만듭니다(`native/cefwrapper/generated/cefweaver_proxies.h`).
+핸들러 클래스마다 생성기가 세 가지를 만듭니다(`native/cefwrapper/generated/cefweaver_proxies.h`).
 
 - `Cw<이름>Callbacks`: 함수 포인터 표입니다. 소유자(`void* py`), 해제 함수(`release`), 메서드마다 `fn_<메서드>` 항목이 있습니다.
 - `Cw<이름>Proxy`: CEF 클래스를 상속해 모든 가상 메서드를 구현하는 C++ 클래스입니다. 각 메서드는 표의 항목을 부릅니다.
+- `Cw<이름>Forward`: 손으로 쓴 핸들러가 이벤트를 **관찰하고도 사용자에게 넘기게** 하는 기반 클래스입니다([전달 클래스](#전달-클래스)).
 
 Cython 쪽(`cefweaver/cef_api.pxi`)은 Python 기반 클래스(예: `class ResourceHandler`), 메서드마다 CEF가 부르는 **트램펄린** 함수(`noexcept with gil`), 표를 채우고 프록시를 만드는 `_g_make_*`, CEF에 넘길 참조(+1)를 만드는 `_g_export_*`, CEF 객체를 감싸는 `_wrap_*`를 만듭니다.
 
@@ -29,6 +30,15 @@ CEF 스레드 --> Cw...Proxy::Method() --> 표의 함수 포인터 --> 트램펄
 ## 재정의하지 않은 메서드
 
 `_g_make_*`는 `getattr(type(obj), 이름) is not 기반클래스.이름`일 때만 표에 항목을 넣습니다. 즉 **사용자가 재정의한 메서드만** 표에 들어갑니다. 항목이 없으면 프록시는 CEF 기반 클래스의 구현을 그대로 부릅니다(`CefResourceHandler::Open(...)`). 메서드가 순수 가상(`= 0`)이면 기반 클래스에 구현이 없으므로 반환 형식의 기본값(`false`, `0`, 빈 참조)을 돌려줍니다. 순수 가상 여부는 파서가 알려 주지 않아서 `Model.is_pure_virtual()`이 헤더 본문에서 찾습니다. 이 감지가 처음에 틀려서 순수 가상 함수를 호출하는 코드가 생성된 적이 있습니다([설계 결정 기록](../reference/design-decisions.md)).
+
+## 전달 클래스
+
+래퍼는 이벤트를 사용자에게 넘기기 전에 스스로 해야 할 일이 있습니다(로드가 끝나면 준비 플래그를 켜는 것 등). 그래서 사용자의 핸들러를 CEF에 곧바로 넘기지 않고, 래퍼의 핸들러가 CEF의 호출을 받아 자기 일을 한 뒤 사용자의 핸들러로 넘깁니다.
+
+`Cw<이름>Forward`는 이 "넘기기"를 생성한 코드입니다. `forward_<이름>_`(해당 CEF 클래스의 `CefRefPtr`) 멤버에 대상이 있으면 그 대상의 같은 메서드를 부르고, 비어 있으면 CEF 기반 클래스의 구현(순수 가상이면 반환 형식의 기본값)을 부릅니다. 인자는 선언 그대로 전달되므로 값 변환이 필요 없고, 출력 인자는 참조로 그대로 이어집니다.
+
+- **참조 계수를 구현하지 않습니다.** 한 객체가 `CwDisplayHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`를 함께 상속하고 `IMPLEMENT_REFCOUNTING`을 한 번만 쓰게 하기 위해서입니다. 이 조합이 컴파일되는지는 생성기 시험(`test_forwarders_combine_in_one_reference_counted_class`)이 실제 컴파일러로 확인합니다.
+- 전달 대상은 래퍼의 `Get...Handler()`가 CEF가 물을 때마다 사용자의 클라이언트에서 다시 얻어 넣습니다. 그래서 사용자의 `get_load_handler()`는 이벤트마다 Python에서 실행될 수 있고, 매번 새 객체를 돌려줘도 됩니다.
 
 ## 값의 전달 방식
 
@@ -58,3 +68,4 @@ CEF 스레드 --> Cw...Proxy::Method() --> 표의 함수 포인터 --> 트램펄
 - [리소스 제공](resource-serving.md)
 - [생성기 모듈](../components/generator-modules.md)
 - [프로세스 모델과 스레드](process-model-and-threads.md)
+- [C++ 핸들러](../components/native-handlers.md)

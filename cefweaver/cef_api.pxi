@@ -930,6 +930,564 @@ cdef object _wrap_Response(CefRefPtr[CefResponse] ref):
     return obj
 
 
+class Client:
+    """Implement this interface to provide handler implementations."""
+
+    def get_display_handler(self):
+        """Return the handler for browser display state events."""
+        return None
+
+    def get_life_span_handler(self):
+        """Return the handler for browser life span events."""
+        return None
+
+    def get_load_handler(self):
+        """Return the handler for browser load status events."""
+        return None
+
+
+cdef CefDisplayHandler* _Client_get_display_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_display_handler()
+        _r0 = _r
+        return _g_export_DisplayHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefLifeSpanHandler* _Client_get_life_span_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_life_span_handler()
+        _r0 = _r
+        return _g_export_LifeSpanHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefLoadHandler* _Client_get_load_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_load_handler()
+        _r0 = _r
+        return _g_export_LoadHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+
+cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
+    cdef CefRefPtr[CefClient] ref
+    cdef CwClientCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, Client):
+        raise TypeError("expected a Client or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "get_display_handler", None) is not Client.get_display_handler:
+        cb.fn_get_display_handler = _Client_get_display_handler
+    if getattr(cls, "get_life_span_handler", None) is not Client.get_life_span_handler:
+        cb.fn_get_life_span_handler = _Client_get_life_span_handler
+    if getattr(cls, "get_load_handler", None) is not Client.get_load_handler:
+        cb.fn_get_load_handler = _Client_get_load_handler
+    ref = CefRefPtr[CefClient](<CefClient*>new CwClientProxy(cb))
+    return ref
+
+
+cdef CefClient* _g_export_Client(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefClient] ref = _g_make_Client(obj)
+    cdef CefClient* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class DisplayHandler:
+    """Implement this interface to handle events related to browser display state.
+    The methods of this class will be called on the UI thread.
+    """
+
+    def on_address_change(self, browser, frame, url):
+        """Called when a frame's address has changed."""
+        return None
+
+    def on_title_change(self, browser, title):
+        """Called when the page title changes."""
+        return None
+
+    def on_fullscreen_mode_change(self, browser, fullscreen):
+        """Called when web content in the page has toggled fullscreen mode. If
+        |fullscreen| is true the content will automatically be sized to fill the
+        browser content area. If |fullscreen| is false the content will
+        automatically return to its original size and position. With Alloy style
+        the client is responsible for triggering the fullscreen transition (for
+        example, by calling CefWindow::SetFullscreen when using Views). With
+        Chrome style the fullscreen transition will be triggered automatically.
+        The CefWindowDelegate::OnWindowFullscreenTransition method will be called
+        during the fullscreen transition for notification purposes.
+        """
+        return None
+
+    def on_tooltip(self, browser):
+        """Called when the browser is about to display a tooltip. |text| contains the
+        text that will be displayed in the tooltip. To handle the display of the
+        tooltip yourself return true. Otherwise, you can optionally modify |text|
+        and then return false to allow the browser to display the tooltip.
+        When window rendering is disabled the application is responsible for
+        drawing tooltips and the return value is ignored.
+        """
+        return False, ""
+
+    def on_status_message(self, browser, value):
+        """Called when the browser receives a status message. |value| contains the
+        text that will be displayed in the status message.
+        """
+        return None
+
+    def on_console_message(self, browser, level, message, source, line):
+        """Called to display a console message. Return true to stop the message from
+        being output to the console.
+        """
+        return False
+
+    def on_loading_progress_change(self, browser, progress):
+        """Called when the overall page loading progress has changed. |progress|
+        ranges from 0.0 to 1.0.
+        """
+        return None
+
+    def on_media_access_change(self, browser, has_video_access, has_audio_access):
+        """Called when the browser's access to an audio and/or video source has
+        changed.
+        """
+        return None
+
+
+cdef void _DisplayHandler_on_address_change(void* py, CefBrowser* browser, CefFrame* frame, const CefString* url) noexcept with gil:
+    try:
+        _r = (<object>py).on_address_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_str(url[0]))
+    except BaseException:
+        _g_report()
+
+cdef void _DisplayHandler_on_title_change(void* py, CefBrowser* browser, const CefString* title) noexcept with gil:
+    try:
+        _r = (<object>py).on_title_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(title[0]))
+    except BaseException:
+        _g_report()
+
+cdef void _DisplayHandler_on_fullscreen_mode_change(void* py, CefBrowser* browser, cpp_bool fullscreen) noexcept with gil:
+    try:
+        _r = (<object>py).on_fullscreen_mode_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), fullscreen)
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _DisplayHandler_on_tooltip(void* py, CefBrowser* browser, CefString* text) noexcept with gil:
+    try:
+        _r = (<object>py).on_tooltip(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+        _r0, _r1 = _r
+        text[0] = _g_cef(_r1)
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _DisplayHandler_on_status_message(void* py, CefBrowser* browser, const CefString* value) noexcept with gil:
+    try:
+        _r = (<object>py).on_status_message(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(value[0]))
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _DisplayHandler_on_console_message(void* py, CefBrowser* browser, int level, const CefString* message, const CefString* source, int line) noexcept with gil:
+    try:
+        _r = (<object>py).on_console_message(_wrap_Browser(CefRefPtr[CefBrowser](browser)), level, _g_str(message[0]), _g_str(source[0]), line)
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _DisplayHandler_on_loading_progress_change(void* py, CefBrowser* browser, double progress) noexcept with gil:
+    try:
+        _r = (<object>py).on_loading_progress_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), progress)
+    except BaseException:
+        _g_report()
+
+cdef void _DisplayHandler_on_media_access_change(void* py, CefBrowser* browser, cpp_bool has_video_access, cpp_bool has_audio_access) noexcept with gil:
+    try:
+        _r = (<object>py).on_media_access_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), has_video_access, has_audio_access)
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDisplayHandler] _g_make_DisplayHandler(object obj) except *:
+    cdef CefRefPtr[CefDisplayHandler] ref
+    cdef CwDisplayHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DisplayHandler):
+        raise TypeError("expected a DisplayHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_address_change", None) is not DisplayHandler.on_address_change:
+        cb.fn_on_address_change = _DisplayHandler_on_address_change
+    if getattr(cls, "on_title_change", None) is not DisplayHandler.on_title_change:
+        cb.fn_on_title_change = _DisplayHandler_on_title_change
+    if getattr(cls, "on_fullscreen_mode_change", None) is not DisplayHandler.on_fullscreen_mode_change:
+        cb.fn_on_fullscreen_mode_change = _DisplayHandler_on_fullscreen_mode_change
+    if getattr(cls, "on_tooltip", None) is not DisplayHandler.on_tooltip:
+        cb.fn_on_tooltip = _DisplayHandler_on_tooltip
+    if getattr(cls, "on_status_message", None) is not DisplayHandler.on_status_message:
+        cb.fn_on_status_message = _DisplayHandler_on_status_message
+    if getattr(cls, "on_console_message", None) is not DisplayHandler.on_console_message:
+        cb.fn_on_console_message = _DisplayHandler_on_console_message
+    if getattr(cls, "on_loading_progress_change", None) is not DisplayHandler.on_loading_progress_change:
+        cb.fn_on_loading_progress_change = _DisplayHandler_on_loading_progress_change
+    if getattr(cls, "on_media_access_change", None) is not DisplayHandler.on_media_access_change:
+        cb.fn_on_media_access_change = _DisplayHandler_on_media_access_change
+    ref = CefRefPtr[CefDisplayHandler](<CefDisplayHandler*>new CwDisplayHandlerProxy(cb))
+    return ref
+
+
+cdef CefDisplayHandler* _g_export_DisplayHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDisplayHandler] ref = _g_make_DisplayHandler(obj)
+    cdef CefDisplayHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class LifeSpanHandler:
+    """Implement this interface to handle events related to browser life span. The
+    methods of this class will be called on the UI thread unless otherwise
+    indicated.
+    """
+
+    def on_before_popup_aborted(self, browser, popup_id):
+        """Called on the UI thread if a new popup browser is aborted. This only
+        occurs if the popup is allowed in OnBeforePopup and creation fails before
+        OnAfterCreated is called for the new popup browser. The |browser| value is
+        the source of the popup request (opener browser). The |popup_id| value
+        uniquely identifies the popup in the context of the opener browser, and is
+        the same value that was passed to OnBeforePopup.
+
+        Any client state associated with pending popups should be cleared in
+        OnBeforePopupAborted, OnAfterCreated of the popup browser, or
+        OnBeforeClose of the opener browser. OnBeforeClose of the opener browser
+        may be called before this method in cases where the opener is closing
+        during popup creation, in which case CefBrowserHost::IsValid will return
+        false in this method.
+        """
+        return None
+
+    def on_after_created(self, browser):
+        """Called after a new browser is created. It is now safe to begin performing
+        actions with |browser|. CefFrameHandler callbacks related to initial main
+        frame creation will arrive before this callback. See CefFrameHandler
+        documentation for additional usage information.
+        """
+        return None
+
+    def do_close(self, browser):
+        """Called when an Alloy style browser is ready to be closed, meaning that the
+        close has already been initiated and that JavaScript unload handlers have
+        already executed or should be ignored. This may result directly from a
+        call to CefBrowserHost::[Try]CloseBrowser() or indirectly if the browser's
+        top-level parent window was created by CEF and the user attempts to
+        close that window (by clicking the 'X', for example). DoClose() will not
+        be called if the browser's host window/view has already been destroyed
+        (via parent window/view hierarchy tear-down, for example), as it is no
+        longer possible to customize the close behavior at that point.
+
+        An application should handle top-level parent window close notifications
+        by calling CefBrowserHost::TryCloseBrowser() or
+        CefBrowserHost::CloseBrowser(false) instead of allowing the window to
+        close immediately (see the examples below). This gives CEF an opportunity
+        to process JavaScript unload handlers and optionally cancel the close
+        before DoClose() is called.
+
+        When windowed rendering is enabled CEF will create an internal child
+        window/view to host the browser. In that case returning false from
+        DoClose() will send the standard close notification to the browser's
+        top-level parent window (e.g. WM_CLOSE on Windows, performClose: on OS X,
+        \"delete_event\" on Linux or CefWindowDelegate::CanClose() callback from
+        Views).
+
+        When windowed rendering is disabled there is no internal window/view
+        and returning false from DoClose() will cause the browser object to be
+        destroyed immediately.
+
+        If the browser's top-level parent window requires a non-standard close
+        notification then send that notification from DoClose() and return true.
+        You are still required to complete the browser close as soon as possible
+        (either by calling [Try]CloseBrowser() or by proceeding with window/view
+        hierarchy tear-down), otherwise the browser will be left in a partially
+        closed state that interferes with proper functioning. Top-level windows
+        created on the browser process UI thread can alternately call
+        CefBrowserHost::IsReadyToBeClosed() in the close handler to check close
+        status instead of relying on custom DoClose() handling. See documentation
+        on that method for additional details.
+
+        The CefLifeSpanHandler::OnBeforeClose() method will be called after
+        DoClose() (if DoClose() is called) and immediately before the browser
+        object is destroyed. The application should only exit after
+        OnBeforeClose() has been called for all existing browsers.
+
+        The below examples describe what should happen during window close when
+        the browser is parented to an application-provided top-level window.
+
+        Example 1: Using CefBrowserHost::TryCloseBrowser(). This is recommended
+        for clients using standard close handling and windows created on the
+        browser process UI thread.
+        1.  User clicks the window close button which sends a close notification
+            to the application's top-level window.
+        2.  Application's top-level window receives the close notification and
+            calls TryCloseBrowser() (similar to calling CloseBrowser(false)).
+            TryCloseBrowser() returns false so the client cancels the window
+            close.
+        3.  JavaScript 'onbeforeunload' handler executes and shows the close
+            confirmation dialog (which can be overridden via
+            CefJSDialogHandler::OnBeforeUnloadDialog()).
+        4.  User approves the close.
+        5.  JavaScript 'onunload' handler executes.
+        6.  Application's DoClose() handler is called and returns false by
+            default.
+        7.  CEF sends a close notification to the application's top-level window
+            (because DoClose() returned false).
+        8.  Application's top-level window receives the close notification and
+            calls TryCloseBrowser(). TryCloseBrowser() returns true so the client
+            allows the window close.
+        9.  Application's top-level window is destroyed, triggering destruction
+            of the child browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object
+            is destroyed.
+        11. Application exits by calling CefQuitMessageLoop() if no other browsers
+            exist.
+
+        Example 2: Using CefBrowserHost::CloseBrowser(false) and implementing the
+        DoClose() callback. This is recommended for clients using non-standard
+        close handling or windows that were not created on the browser process UI
+        thread.
+        1.  User clicks the window close button which sends a close notification
+            to the application's top-level window.
+        2.  Application's top-level window receives the close notification and:
+            A. Calls CefBrowserHost::CloseBrowser(false).
+            B. Cancels the window close.
+        3.  JavaScript 'onbeforeunload' handler executes and shows the close
+            confirmation dialog (which can be overridden via
+            CefJSDialogHandler::OnBeforeUnloadDialog()).
+        4.  User approves the close.
+        5.  JavaScript 'onunload' handler executes.
+        6.  Application's DoClose() handler is called. Application will:
+            A. Set a flag to indicate that the next top-level window close attempt
+               will be allowed.
+            B. Return false.
+        7.  CEF sends a close notification to the application's top-level window
+            (because DoClose() returned false).
+        8.  Application's top-level window receives the close notification and
+            allows the window to close based on the flag from #6A.
+        9.  Application's top-level window is destroyed, triggering destruction
+            of the child browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object
+            is destroyed.
+        11. Application exits by calling CefQuitMessageLoop() if no other browsers
+            exist.
+        """
+        return False
+
+    def on_before_close(self, browser):
+        """Called just before a browser is destroyed. Release all references to the
+        browser object and do not attempt to execute any methods on the browser
+        object (other than IsValid, GetIdentifier or IsSame) after this callback
+        returns. CefFrameHandler callbacks related to final main frame
+        destruction, and OnBeforePopupAborted callbacks for any pending popups,
+        will arrive after this callback and CefBrowser::IsValid will return false
+        at that time. Any in-progress network requests associated with |browser|
+        will be aborted when the browser is destroyed, and
+        CefResourceRequestHandler callbacks related to those requests may still
+        arrive on the IO thread after this callback. See CefFrameHandler and
+        DoClose() documentation for additional usage information.
+        """
+        return None
+
+
+cdef void _LifeSpanHandler_on_before_popup_aborted(void* py, CefBrowser* browser, int popup_id) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_popup_aborted(_wrap_Browser(CefRefPtr[CefBrowser](browser)), popup_id)
+    except BaseException:
+        _g_report()
+
+cdef void _LifeSpanHandler_on_after_created(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_after_created(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _LifeSpanHandler_do_close(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).do_close(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _LifeSpanHandler_on_before_close(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_close(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefLifeSpanHandler] _g_make_LifeSpanHandler(object obj) except *:
+    cdef CefRefPtr[CefLifeSpanHandler] ref
+    cdef CwLifeSpanHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, LifeSpanHandler):
+        raise TypeError("expected a LifeSpanHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_before_popup_aborted", None) is not LifeSpanHandler.on_before_popup_aborted:
+        cb.fn_on_before_popup_aborted = _LifeSpanHandler_on_before_popup_aborted
+    if getattr(cls, "on_after_created", None) is not LifeSpanHandler.on_after_created:
+        cb.fn_on_after_created = _LifeSpanHandler_on_after_created
+    if getattr(cls, "do_close", None) is not LifeSpanHandler.do_close:
+        cb.fn_do_close = _LifeSpanHandler_do_close
+    if getattr(cls, "on_before_close", None) is not LifeSpanHandler.on_before_close:
+        cb.fn_on_before_close = _LifeSpanHandler_on_before_close
+    ref = CefRefPtr[CefLifeSpanHandler](<CefLifeSpanHandler*>new CwLifeSpanHandlerProxy(cb))
+    return ref
+
+
+cdef CefLifeSpanHandler* _g_export_LifeSpanHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefLifeSpanHandler] ref = _g_make_LifeSpanHandler(obj)
+    cdef CefLifeSpanHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class LoadHandler:
+    """Implement this interface to handle events related to browser load status.
+    The methods of this class will be called on the browser process UI thread or
+    render process main thread (TID_RENDERER).
+    """
+
+    def on_loading_state_change(self, browser, is_loading, can_go_back, can_go_forward):
+        """Called when the loading state has changed. This callback will be executed
+        twice -- once when loading is initiated either programmatically or by user
+        action, and once when loading is terminated due to completion,
+        cancellation of failure. It will be called before any calls to OnLoadStart
+        and after all calls to OnLoadError and/or OnLoadEnd.
+        """
+        return None
+
+    def on_load_start(self, browser, frame, transition_type):
+        """Called after a navigation has been committed and before the browser begins
+        loading contents in the frame. The |frame| value will never be empty --
+        call the IsMain() method to check if this frame is the main frame.
+        |transition_type| provides information about the source of the navigation
+        and an accurate value is only available in the browser process. Multiple
+        frames may be loading at the same time. Sub-frames may start or continue
+        loading after the main frame load has ended. This method will not be
+        called for same page navigations (fragments, history state, etc.) or for
+        navigations that fail or are canceled before commit. For notification of
+        overall browser load status use OnLoadingStateChange instead.
+        """
+        return None
+
+    def on_load_end(self, browser, frame, http_status_code):
+        """Called when the browser is done loading a frame. The |frame| value will
+        never be empty -- call the IsMain() method to check if this frame is the
+        main frame. Multiple frames may be loading at the same time. Sub-frames
+        may start or continue loading after the main frame load has ended. This
+        method will not be called for same page navigations (fragments, history
+        state, etc.) or for navigations that fail or are canceled before commit.
+        For notification of overall browser load status use OnLoadingStateChange
+        instead.
+        """
+        return None
+
+    def on_load_error(self, browser, frame, error_code, error_text, failed_url):
+        """Called when a navigation fails or is canceled. This method may be called
+        by itself if before commit or in combination with OnLoadStart/OnLoadEnd if
+        after commit. |errorCode| is the error code number, |errorText| is the
+        error text and |failedUrl| is the URL that failed to load.
+        See net\\base\\net_error_list.h for complete descriptions of the error
+        codes.
+        """
+        return None
+
+
+cdef void _LoadHandler_on_loading_state_change(void* py, CefBrowser* browser, cpp_bool is_loading, cpp_bool can_go_back, cpp_bool can_go_forward) noexcept with gil:
+    try:
+        _r = (<object>py).on_loading_state_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), is_loading, can_go_back, can_go_forward)
+    except BaseException:
+        _g_report()
+
+cdef void _LoadHandler_on_load_start(void* py, CefBrowser* browser, CefFrame* frame, int transition_type) noexcept with gil:
+    try:
+        _r = (<object>py).on_load_start(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), transition_type)
+    except BaseException:
+        _g_report()
+
+cdef void _LoadHandler_on_load_end(void* py, CefBrowser* browser, CefFrame* frame, int http_status_code) noexcept with gil:
+    try:
+        _r = (<object>py).on_load_end(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), http_status_code)
+    except BaseException:
+        _g_report()
+
+cdef void _LoadHandler_on_load_error(void* py, CefBrowser* browser, CefFrame* frame, int error_code, const CefString* error_text, const CefString* failed_url) noexcept with gil:
+    try:
+        _r = (<object>py).on_load_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), error_code, _g_str(error_text[0]), _g_str(failed_url[0]))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefLoadHandler] _g_make_LoadHandler(object obj) except *:
+    cdef CefRefPtr[CefLoadHandler] ref
+    cdef CwLoadHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, LoadHandler):
+        raise TypeError("expected a LoadHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_loading_state_change", None) is not LoadHandler.on_loading_state_change:
+        cb.fn_on_loading_state_change = _LoadHandler_on_loading_state_change
+    if getattr(cls, "on_load_start", None) is not LoadHandler.on_load_start:
+        cb.fn_on_load_start = _LoadHandler_on_load_start
+    if getattr(cls, "on_load_end", None) is not LoadHandler.on_load_end:
+        cb.fn_on_load_end = _LoadHandler_on_load_end
+    if getattr(cls, "on_load_error", None) is not LoadHandler.on_load_error:
+        cb.fn_on_load_error = _LoadHandler_on_load_error
+    ref = CefRefPtr[CefLoadHandler](<CefLoadHandler*>new CwLoadHandlerProxy(cb))
+    return ref
+
+
+cdef CefLoadHandler* _g_export_LoadHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefLoadHandler] ref = _g_make_LoadHandler(obj)
+    cdef CefLoadHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class ResourceHandler:
     """Class used to implement a custom request handler interface. The methods of
     this class will be called on the IO thread unless otherwise indicated.
@@ -1239,4 +1797,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Browser", "Callback", "Frame", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["Browser", "Callback", "Frame", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "Client", "DisplayHandler", "LifeSpanHandler", "LoadHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

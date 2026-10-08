@@ -62,6 +62,22 @@ Pages can also be served from memory, without a network access::
     app.add_resource("http://app.test/index.html", "<h1>hello</h1>")
     app.load_url("http://app.test/index.html")
 
+Browser events (load, life span and display handlers) go to the handlers of a
+``Client``, which is given before ``initialize()``::
+
+    class Load(cefweaver.LoadHandler):
+        def on_load_end(self, browser, frame, http_status_code):
+            print("loaded", frame.get_url())
+
+    class MyClient(cefweaver.Client):
+        def __init__(self):
+            self.load = Load()
+
+        def get_load_handler(self):
+            return self.load
+
+    app.set_client(MyClient())
+
 The CEF classes are available as generated, PEP 8 style wrappers
 (``cefweaver.Request``, ``cefweaver.ResourceHandler``,
 ``cefweaver.SchemeHandlerFactory``, ``cefweaver.register_scheme_handler_factory()``,

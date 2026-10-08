@@ -24,6 +24,7 @@ updated: 2026-10-08
 | `set_cache_path(path)` | 캐시와 프로필 디렉터리. 기본: 현재 디렉터리의 `cache/` |
 | `set_resources_path(path)` | `CefSettings.resources_dir_path`로 전달. Linux에서는 `icudtl.dat` 위치에 영향이 없습니다. |
 | `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")` |
+| `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
 | `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
@@ -41,7 +42,7 @@ updated: 2026-10-08
 | 종류 | 이름 |
 | --- | --- |
 | CEF가 구현하는 클래스(래퍼) | `Request`, `Response`, `Callback`, `ResourceReadCallback`, `ResourceSkipCallback`, `Browser`, `Frame` |
-| 애플리케이션이 구현하는 클래스(상속해서 씀) | `ResourceHandler`, `SchemeHandlerFactory` |
+| 애플리케이션이 구현하는 클래스(상속해서 씀) | `ResourceHandler`, `SchemeHandlerFactory`, `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler` |
 | 전역 함수 | `register_scheme_handler_factory(scheme_name, domain_name, factory) -> bool`, `clear_scheme_handler_factories() -> bool`, `get_mime_type(extension) -> str` |
 
 규칙은 다음과 같습니다([바인딩 생성기의 설계](../concepts/binding-generator.md), [핸들러 프록시 구조](../concepts/handler-proxies.md)).
@@ -68,6 +69,30 @@ class Late(cefweaver.ResourceHandler):
     def read(self, data_out, callback):
         return False, 0
 ```
+
+## 브라우저 이벤트 받기
+
+`Client`의 `get_load_handler()`, `get_life_span_handler()`, `get_display_handler()`가 핸들러를 돌려주면 `set_client()`로 넘긴 뒤 이벤트가 그 핸들러의 메서드로 옵니다. 콜백은 `initialize()`를 부른 스레드에서 `do_message_loop_work()` 안에 실행됩니다(시험에서 확인). 래퍼가 스스로 하는 일(`is_ready_to_execute_javascript`, 오류 페이지, JS 바인딩)은 그대로 동작합니다.
+
+```python
+class Load(cefweaver.LoadHandler):
+    def on_load_end(self, browser, frame, http_status_code):
+        print("loaded", frame.get_url())
+    def on_load_error(self, browser, frame, error_code, error_text, failed_url):
+        print("failed", failed_url, error_code)   # 예: -102 (ERR_CONNECTION_REFUSED)
+
+class MyClient(cefweaver.Client):
+    def __init__(self):
+        self.load = Load()
+    def get_load_handler(self):
+        return self.load
+
+app = cefweaver.CefApp()
+app.set_client(MyClient())
+app.initialize("https://example.com")
+```
+
+`DoClose`에서 `True`를 돌려주면 닫기를 막는 동작은 구현했으나 시험하지 않았습니다([알려진 제약과 미검증 항목](known-constraints.md)).
 
 ## 관련 페이지
 

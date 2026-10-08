@@ -193,6 +193,19 @@ cdef class CefApp:
         self._require_not_initialized()
         self._wrapper.AddCommandLineSwitch(_utf8(name), _utf8(value))
 
+    def set_client(self, client):
+        """Receive the browser events in the handlers of ``client`` (a ``Client``).
+
+        ``client.get_load_handler()``, ``get_life_span_handler()`` and
+        ``get_display_handler()`` are asked each time CEF needs the handler, and the
+        handlers they return get the events (``on_load_end``, ``on_title_change``,
+        ...), on the thread that called ``initialize()``, inside
+        ``do_message_loop_work()``. What the wrapper does for itself (the ready flag, the
+        error page, the JavaScript bindings) keeps working. ``None`` removes the client.
+        """
+        self._require_not_initialized()
+        self._wrapper.SetClient(_g_make_Client(client))
+
     def add_javascript_binding(self, name, callback):
         """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
 

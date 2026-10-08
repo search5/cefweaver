@@ -30,9 +30,13 @@ public:
   void AddCommandLineSwitch(std::string name, std::string value);
   // Returns false if there is no browser yet.
   bool LoadUrl(std::string url);
+  // The client whose display, life span and load handlers get the browser events. Must
+  // be called before InitCefSimple(); an empty reference removes it.
+  void SetClient(CefRefPtr<CefClient> client);
 
 private:
     CefRefPtr<CefWrapperApp> m_App;
+    CefRefPtr<CefClient> m_Client;
 
     bool m_UseCustomCefSubPath = false;
     std::string m_CustomCefSubPath = "";

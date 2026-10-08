@@ -64,6 +64,7 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
 #endif
 
   m_App = CefRefPtr<CefWrapperApp>(new CefWrapperApp( start_url, m_Javascript_Bindings, m_Javascript_Python_Bindings));
+  CefWrapperBrowserProcessHandler::SetUserClient(m_Client);
   for (const auto &entry : m_CommandLineSwitches) {
     m_App->AddCommandLineSwitch(entry.first, entry.second);
   }
@@ -143,6 +144,7 @@ void CefWrapper::ShutdownCefSimple() {
     }
   }
   CefWrapperBrowserProcessHandler::GetInstance()->Browser = nullptr;
+  CefWrapperBrowserProcessHandler::SetUserClient(nullptr);  // releases the Python objects
   handler = nullptr;
   CefShutdown();
   m_App = nullptr;
@@ -182,6 +184,9 @@ void CefWrapper::SetCustomCefResourcesPath(std::string cef_resources_path) {
 void CefWrapper::SetCustomCefCachePath(std::string cef_cache_path) {
   m_UseCustomCefCachePath = true;
   m_CustomCefCachePath = cef_cache_path;
+}
+void CefWrapper::SetClient(CefRefPtr<CefClient> client) {
+  m_Client = client;
 }
 bool CefWrapper::LoadUrl(std::string url) {
   if (!m_App) {

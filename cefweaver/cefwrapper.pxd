@@ -7,6 +7,8 @@
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
+from cefweaver.cef_api cimport CefClient, CefRefPtr
+
 
 cdef extern from "javascript_binding.h":
     cdef cppclass CefValueWrapper:
@@ -39,3 +41,4 @@ cdef extern from "library.h":
         void SetCustomCefResourcesPath(string path)
         void AddCommandLineSwitch(string name, string value)
         cpp_bool LoadUrl(string url) nogil
+        void SetClient(CefRefPtr[CefClient] client)

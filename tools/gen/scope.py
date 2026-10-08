@@ -20,6 +20,10 @@ LIBRARY_CLASSES = [
 CLIENT_CLASSES = [
     "CefResourceHandler",
     "CefSchemeHandlerFactory",
+    "CefClient",
+    "CefLoadHandler",
+    "CefLifeSpanHandler",
+    "CefDisplayHandler",
 ]
 
 # Global functions.

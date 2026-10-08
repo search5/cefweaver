@@ -18,10 +18,10 @@ updated: 2026-10-08
 
 | 파일 | 줄 수 | 내용 |
 | --- | --- | --- |
-| `native/cefwrapper/generated/cefweaver_proxies.h` | 약 150 | 핸들러(클라이언트 쪽 클래스)마다 함수 포인터 표 `Cw<이름>Callbacks`와 프록시 `Cw<이름>Proxy` |
-| `cefweaver/cef_api.pxd` | 약 195 | Cython 선언: `CefRefPtr`, `CefString`, 열거형, 범위 안 클래스의 C++ 선언, 전역 함수, 프록시와 표 |
-| `cefweaver/cef_api.pxi` | 약 1,240 | 라이브러리 클래스의 `cdef class` 래퍼와 `_wrap_*`, 핸들러의 Python 기반 클래스와 트램펄린, `_g_make_*`, `_g_export_*`, 전역 함수, `__generated_all__` |
-| `cefweaver/_cefweaver.pyi` | 약 520 | 타입 스텁. `tools/gen/handwritten.pyi`(손으로 쓴 `CefApp` 부분)를 앞에 붙입니다. |
+| `native/cefwrapper/generated/cefweaver_proxies.h` | 약 670 | 핸들러(클라이언트 쪽 클래스)마다 함수 포인터 표 `Cw<이름>Callbacks`, 프록시 `Cw<이름>Proxy`, 전달 클래스 `Cw<이름>Forward` |
+| `cefweaver/cef_api.pxd` | 약 255 | Cython 선언: `CefRefPtr`, `CefString`, 열거형, 범위 안 클래스의 C++ 선언, 전역 함수, 프록시와 표 |
+| `cefweaver/cef_api.pxi` | 약 1,800 | 라이브러리 클래스의 `cdef class` 래퍼와 `_wrap_*`, 핸들러의 Python 기반 클래스와 트램펄린, `_g_make_*`, `_g_export_*`, 전역 함수, `__generated_all__` |
+| `cefweaver/_cefweaver.pyi` | 약 780 | 타입 스텁. `tools/gen/handwritten.pyi`(손으로 쓴 `CefApp` 부분)를 앞에 붙입니다. |
 | `docs/llm-wiki/pages/reference/coverage-report.md` | 약 230 | 커버리지 보고서. 위키 페이지로 쓰이며(`generated: true`) 내용이 같으면 `updated`를 유지합니다. |
 
 (줄 수는 154 배포본에서 생성한 시점의 값입니다.)

@@ -5,7 +5,10 @@ need them are skipped when they are missing.
 """
 
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,7 +16,12 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Enum, LibRef, Prim, Str, Void  # noqa: E402
+from typesys import ClientRef, Enum, LibRef, Prim, Str, Void  # noqa: E402
+
+def generate_outputs():
+    import generate
+    return generate.OUTPUTS
+
 
 HAS_HEADERS = os.path.isfile(os.path.join(CEF_ROOT, "include", "cef_version.h"))
 
@@ -110,6 +118,64 @@ class WithHeaders(unittest.TestCase):
         self.assertIsInstance(plan.params[0].kind, Str)
         plan = self.plan("CefResponse", "SetStatus")
         self.assertEqual(plan.params[0].kind, Prim("int", "int"))
+
+    # -- CefClient and the handlers it hands out ---------------------------------
+
+    def test_the_client_and_its_handlers_are_generated(self):
+        for name in ("CefClient", "CefLoadHandler", "CefLifeSpanHandler", "CefDisplayHandler"):
+            self.assertTrue(self.scope.is_client(name), name)
+
+    def test_client_getters_return_handlers(self):
+        plan = self.plan("CefClient", "GetLoadHandler")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.ret, ClientRef("CefLoadHandler"))
+
+    def test_handlers_that_are_not_generated_yet_are_reported(self):
+        plan = self.plan("CefClient", "GetRequestHandler")
+        self.assertFalse(plan.supported)
+        self.assertIn("CefRequestHandler is not generated yet", plan.reason)
+
+    def test_enumerations_reach_the_load_handler(self):
+        plan = self.plan("CefLoadHandler", "OnLoadError")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins],
+                         ["browser", "frame", "error_code", "error_text", "failed_url"])
+
+    # -- forwarding, which lets the wrapper observe an event and still call the user -----
+
+    def generated(self, key):
+        import generate
+        return generate.build_all(CEF_ROOT)[key]
+
+    def test_a_forwarder_is_generated_for_every_handler(self):
+        header = self.generated("proxies")
+        for name in ("LoadHandler", "LifeSpanHandler", "DisplayHandler", "ResourceHandler"):
+            self.assertIn("class Cw%sForward : public Cef%s {" % (name, name), header)
+        self.assertIn("forward_load_handler_->OnLoadEnd(", header)
+
+    @unittest.skipUnless(shutil.which("c++"), "needs a C++ compiler")
+    def test_forwarders_combine_in_one_reference_counted_class(self):
+        # The wrapper implements the client and three handlers in one object, as the
+        # hand-written handler always did. That works only if the forwarders carry no
+        # reference counting of their own and leave no method abstract.
+        source = (
+            '#include "cefweaver_proxies.h"\n'
+            "class Combined : public CefClient, public CwDisplayHandlerForward,\n"
+            "                 public CwLifeSpanHandlerForward, public CwLoadHandlerForward {\n"
+            "  IMPLEMENT_REFCOUNTING(Combined);\n"
+            "};\n"
+            "CefRefPtr<CefClient> make() { return new Combined; }\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "combined.cc")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(source)
+            result = subprocess.run(
+                ["c++", "-std=c++20", "-fsyntax-only", "-I" + CEF_ROOT,
+                 "-I" + os.path.dirname(generate_outputs()["proxies"]), path],
+                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+
 
     def test_generated_files_are_up_to_date(self):
         import generate

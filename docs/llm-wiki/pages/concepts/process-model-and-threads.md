@@ -29,7 +29,7 @@ Chromium은 여러 프로세스로 동작하며, cefweaver에서는 다음과 �
 
 ## UI 스레드는 Python 스레드
 
-`library.cpp`에서 `settings.multi_threaded_message_loop = true`는 주석 처리되어 있습니다. 즉 **외부 메시지 펌프** 방식이고, `CefInitialize()`를 호출한 스레드가 CEF의 UI 스레드가 됩니다. 사용자는 그 스레드에서 `CefApp.do_message_loop_work()`를 반복 호출해야 하고, UI 스레드에서 실행되는 모든 콜백(JavaScript 바인딩, 클라이언트 핸들러)은 이 호출 안에서 실행됩니다. 시험에서 바인딩 콜백의 스레드 이름이 `MainThread`로 찍히는 것을 확인했습니다([실험으로 확인한 사실](../reference/verified-findings.md)).
+`library.cpp`에서 `settings.multi_threaded_message_loop = true`는 주석 처리되어 있습니다. 즉 **외부 메시지 펌프** 방식이고, `CefInitialize()`를 호출한 스레드가 CEF의 UI 스레드가 됩니다. 사용자는 그 스레드에서 `CefApp.do_message_loop_work()`를 반복 호출해야 하고, UI 스레드에서 실행되는 모든 콜백(JavaScript 바인딩, 클라이언트 핸들러)은 이 호출 안에서 실행됩니다. 시험에서 바인딩 콜백과, 표시, 수명 주기, 로드 핸들러 콜백이 모두 `initialize()`를 부른 스레드에서 실행되는 것을 확인했습니다(바인딩 콜백은 스레드 이름이 `MainThread`로 찍혔습니다. [실험으로 확인한 사실](../reference/verified-findings.md)).
 
 ## 다른 스레드의 콜백
 

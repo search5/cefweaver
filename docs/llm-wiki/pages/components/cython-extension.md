@@ -18,7 +18,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 | 파일 | 역할 |
 | --- | --- |
 | `cefweaver/_cefweaver.pyx` | 모듈 본체(약 290줄). `CefApp` 클래스, JS 바인딩 중계, `add_resource` 구현. 생성된 `cef_api.pxi`를 `include`합니다. |
-| `cefweaver/cefwrapper.pxd` | `CefWrapper`와 `CefValueWrapper`의 C++ 선언. 블록될 수 있는 메서드는 `nogil`입니다. |
+| `cefweaver/cefwrapper.pxd` | `CefWrapper`(`SetClient` 포함)와 `CefValueWrapper`의 C++ 선언. 블록될 수 있는 메서드는 `nogil`입니다. |
 | `cefweaver/cef_api.pxd`, `cef_api.pxi` | 생성 파일([생성된 파일](generated-files.md)) |
 | `cefweaver/__init__.py` | 패키지 진입점 |
 | `cefweaver/_cefweaver.pyi`, `py.typed` | 타입 스텁(생성). PEP 561 표식 |

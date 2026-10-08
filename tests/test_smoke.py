@@ -95,6 +95,21 @@ class ApiWithoutCef(unittest.TestCase):
         request.set_url("http://example.test/a?b=1")
         self.assertEqual(request.get_url(), "http://example.test/a?b=1")
 
+    def test_the_client_and_its_handlers_are_public(self):
+        for name in ("Client", "LoadHandler", "LifeSpanHandler", "DisplayHandler"):
+            self.assertIn(name, cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.Client, "get_load_handler"))
+        self.assertTrue(hasattr(cefweaver.LoadHandler, "on_load_end"))
+
+    def test_set_client_checks_its_argument(self):
+        app = cefweaver.CefApp()
+        with self.assertRaises(TypeError):
+            app.set_client(object())
+        with self.assertRaises(TypeError):
+            app.set_client(cefweaver.LoadHandler())  # a handler, not a client
+        app.set_client(cefweaver.Client())
+        app.set_client(None)  # removes it again
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -268,6 +283,147 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
         self.assertIn("broken on purpose", result.stderr)  # reported through sys.excepthook
+
+
+    def test_client_handlers_receive_events_and_the_wrapper_keeps_working(self):
+        result = run_cef("""
+            import threading
+            events, titles = [], []
+            got = []
+            main_thread = threading.get_ident()
+            threads = set()  # the threads the handlers ran on
+
+            class Load(cefweaver.LoadHandler):
+                def on_loading_state_change(self, browser, is_loading, can_go_back, can_go_forward):
+                    threads.add(threading.get_ident())
+                    events.append(("state", is_loading))
+                def on_load_start(self, browser, frame, transition_type):
+                    threads.add(threading.get_ident())
+                    events.append(("start", frame.is_main()))
+                def on_load_end(self, browser, frame, http_status_code):
+                    threads.add(threading.get_ident())
+                    events.append(("end", frame.is_main(), isinstance(http_status_code, int)))
+
+            class Display(cefweaver.DisplayHandler):
+                def on_title_change(self, browser, title):
+                    threads.add(threading.get_ident())
+                    titles.append(title)
+
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    threads.add(threading.get_ident())
+                    events.append(("created", browser.get_identifier() > 0))
+                def on_before_close(self, browser):
+                    threads.add(threading.get_ident())
+                    events.append(("closing",))
+
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.load, self.display, self.life = Load(), Display(), Life()
+                def get_load_handler(self):
+                    return self.load
+                def get_display_handler(self):
+                    return self.display
+                def get_life_span_handler(self):
+                    return self.life
+
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            app.set_client(MyClient())
+            app.initialize(page("<title>제목</title><script>report('js')</script>"))
+            wait_until(app, lambda: ("end", True, True) in events and titles, "the load events")
+
+            # What the wrapper does for itself still happens.
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the ready flag")
+            wait_until(app, lambda: got, "the JavaScript binding")
+            assert got == [("js",)], got
+            assert titles[-1] == "제목", titles
+            assert ("created", True) in events, events
+            assert events.index(("created", True)) < events.index(("start", True)), events
+            assert events.index(("start", True)) < events.index(("end", True, True)), events
+            assert ("state", True) in events and ("state", False) in events, events
+            # The UI thread is the thread that called initialize().
+            assert threads == {main_thread}, (threads, main_thread)
+
+            app.shutdown()
+            assert ("closing",) in events, events  # forwarded while shutting down
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_on_load_error_reports_the_failure_and_the_wrapper_still_shows_its_page(self):
+        result = run_cef("""
+            import socket
+            sock = socket.socket()
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+            sock.close()  # nothing listens here any more
+
+            errors, ends = [], []
+            class Load(cefweaver.LoadHandler):
+                def on_load_error(self, browser, frame, error_code, error_text, failed_url):
+                    errors.append((error_code, error_text, failed_url))
+                def on_load_end(self, browser, frame, http_status_code):
+                    ends.append(frame.get_url())
+
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.load = Load()
+                def get_load_handler(self):
+                    return self.load
+
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            app.load_url("http://127.0.0.1:%d/" % port)
+            wait_until(app, lambda: errors, "the load error")
+            code, text, url = errors[0]
+            assert code == -102, errors  # ERR_CONNECTION_REFUSED
+            assert url == "http://127.0.0.1:%d/" % port, errors
+            # The wrapper replaces a failed page with an error page (a data: URL).
+            wait_until(app, lambda: any(u.startswith("data:") for u in ends), "the error page")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_client_without_handlers_and_broken_handlers_do_not_disturb_the_wrapper(self):
+        result = run_cef("""
+            got = []
+            class Load(cefweaver.LoadHandler):
+                def on_load_end(self, browser, frame, http_status_code):
+                    raise RuntimeError("load handler broken on purpose")
+
+            class Broken(cefweaver.Client):
+                def get_load_handler(self):
+                    return Load()
+                def get_display_handler(self):
+                    raise ValueError("client broken on purpose")
+
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            app.set_client(Broken())
+            app.initialize(page("<title>t</title><script>report('alive')</script>"))
+            wait_until(app, lambda: got, "the JavaScript binding")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the ready flag")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+        self.assertIn("load handler broken on purpose", result.stderr)
+        self.assertIn("client broken on purpose", result.stderr)
+
+    def test_set_client_must_come_before_initialize(self):
+        result = run_cef("""
+            app.initialize("about:blank")
+            try:
+                app.set_client(cefweaver.Client())
+            except RuntimeError:
+                print("OK")
+            app.shutdown()
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
 
 
 if __name__ == "__main__":

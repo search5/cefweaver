@@ -21,6 +21,7 @@ updated: 2026-10-08
 | `void DoCefMessageLoopWork()` | `CefDoMessageLoopWork()` 한 번 |
 | `void ShutdownCefSimple()` | 브라우저를 닫고 `CefShutdown()` |
 | `bool LoadUrl(std::string)` | 브라우저가 없으면 `false` |
+| `void SetClient(CefRefPtr<CefClient>)` | 표시, 수명 주기, 로드 이벤트를 받을 클라이언트(생성된 `CwClientProxy`). 초기화 전에만 의미가 있고, 초기화 때 브라우저 프로세스 핸들러가 받아 `CefWrapperClientHandler`에 넘깁니다. 종료 때 해제됩니다. |
 | `bool ExecuteJavascript(std::string)` | 실행하지 못하면(`CefApp` 없음, 브라우저 없음, 로딩 중) `false` |
 | `bool IsRunning()`, `bool IsReadyToExecuteJavascript()` | 상태 |
 | `void AddJavascriptPythonBinding(name, handler, owner)` | Python 호출 바인딩. 초기화 전에만 의미가 있습니다(초기화 때 `CefWrapperApp`으로 복사됩니다). |

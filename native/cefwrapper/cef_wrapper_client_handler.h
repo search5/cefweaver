@@ -5,20 +5,30 @@
 
 #include <list>
 
+#include "generated/cefweaver_proxies.h"
 #include "include/wrapper/cef_helpers.h"
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
 
 
+// The client of every browser. It does what the wrapper needs for itself (the list of
+// browsers, the ready flag, the error page, the window title, the JavaScript bindings)
+// and passes the display, life span and load events on to the handlers of the user's
+// client (`user_client`, a generated proxy of a Python object), if there is one.
+//
+// The Cw...Forward base classes are generated (cefweaver_proxies.h). Each forwards to
+// the handler in its forward_..._ member, which GetDisplayHandler() and the like fill
+// from the user's client every time CEF asks for the handler.
 class CefWrapperClientHandler : public CefClient,
-                      public CefDisplayHandler,
-                      public CefLifeSpanHandler,
-                      public CefLoadHandler,
+                      public CwDisplayHandlerForward,
+                      public CwLifeSpanHandlerForward,
+                      public CwLoadHandlerForward,
                       public CefContextMenuHandler {
 public:
 
   explicit CefWrapperClientHandler(bool use_views,
-                std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings);
+                std::vector<JavascriptBinding> javascript_bindings, std::vector<JavascriptPythonBinding> javascript_python_bindings,
+                CefRefPtr<CefClient> user_client = nullptr);
 
   void OnLoadStart(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                    TransitionType transition_type) override;
@@ -45,11 +55,20 @@ public:
   void CloseDevTools(CefRefPtr<CefBrowser> browser);
 
   // CefClient methods:
-  CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
+  CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
+    forward_display_handler_ = user_client_ ? user_client_->GetDisplayHandler() : nullptr;
+    return this;
+  }
 
-  CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
+  CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
+    forward_life_span_handler_ = user_client_ ? user_client_->GetLifeSpanHandler() : nullptr;
+    return this;
+  }
 
-  CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
+  CefRefPtr<CefLoadHandler> GetLoadHandler() override {
+    forward_load_handler_ = user_client_ ? user_client_->GetLoadHandler() : nullptr;
+    return this;
+  }
 
   // CefDisplayHandler methods:
   void OnTitleChange(CefRefPtr<CefBrowser> browser,
@@ -108,6 +127,9 @@ private:
 
   // True if the application is using the Views framework.
   const bool use_views_;
+
+  // The client given by the user (empty if there is none).
+  CefRefPtr<CefClient> user_client_;
 
   // List of existing m_Browser windows. Only accessed on the CEF UI thread.
   using BrowserList = std::list<CefRefPtr<CefBrowser>>;
