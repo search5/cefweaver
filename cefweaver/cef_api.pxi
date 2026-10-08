@@ -142,7 +142,11 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 # Value type structs: the named tuples are defined in cefweaver/types.py
-from cefweaver.types import AudioParameters, BrowserSettings, Cookie, Insets, KeyEvent, LinuxWindowProperties, MediaSinkDeviceInfo, MouseEvent, PdfPrintSettings, Point, PopupFeatures, Range, Rect, RequestContextSettings, ScreenInfo, Size, TaskInfo, TouchEvent, TouchHandleState, URLParts, BoxLayoutSettings, CompositionUnderline, DraggableRegion
+from cefweaver.types import AcceleratedPaintNativePixmapPlane, AudioParameters, BrowserSettings, Cookie, Insets, KeyEvent, LinuxWindowProperties, MediaSinkDeviceInfo, MouseEvent, PdfPrintSettings, Point, PopupFeatures, Range, Rect, RequestContextSettings, ScreenInfo, Size, TaskInfo, TouchEvent, TouchHandleState, URLParts, AcceleratedPaintInfoCommon, BoxLayoutSettings, CompositionUnderline, DraggableRegion, AcceleratedPaintInfo
+
+cdef inline object _g_from_AcceleratedPaintNativePixmapPlane(const CefAcceleratedPaintNativePixmapPlane* value):
+    return AcceleratedPaintNativePixmapPlane(value.stride, value.offset, value.size, value.fd)
+
 
 cdef inline object _g_from_AudioParameters(const CefAudioParameters* value):
     return AudioParameters(_g_enum(_types.ChannelLayout, value.channel_layout), value.sample_rate, value.frames_per_buffer)
@@ -531,6 +535,10 @@ cdef inline int _g_to_URLParts(object obj, CefURLParts* out) except -1:
     return 0
 
 
+cdef inline object _g_from_AcceleratedPaintInfoCommon(const CefAcceleratedPaintInfoCommon* value):
+    return AcceleratedPaintInfoCommon(value.timestamp, _g_from_Size(<const CefSize*>&value.coded_size), _g_from_Rect(<const CefRect*>&value.visible_rect), _g_from_Rect(<const CefRect*>&value.content_rect), _g_from_Size(<const CefSize*>&value.source_size), _g_from_Rect(<const CefRect*>&value.capture_update_rect), _g_from_Rect(<const CefRect*>&value.region_capture_rect), value.capture_counter, value.has_capture_update_rect, value.has_region_capture_rect, value.has_source_size, value.has_capture_counter)
+
+
 cdef inline object _g_from_BoxLayoutSettings(const CefBoxLayoutSettings* value):
     return BoxLayoutSettings(value.horizontal, value.inside_border_horizontal_spacing, value.inside_border_vertical_spacing, _g_from_Insets(<const CefInsets*>&value.inside_border_insets), value.between_child_spacing, _g_enum(_types.AxisAlignment, value.main_axis_alignment), _g_enum(_types.AxisAlignment, value.cross_axis_alignment), value.minimum_cross_axis_size, value.default_flex)
 
@@ -581,6 +589,10 @@ cdef inline int _g_to_DraggableRegion(object obj, CefDraggableRegion* out) excep
     _g_to_Rect(_f0, <CefRect*>&out.bounds)
     out.draggable = _f1
     return 0
+
+
+cdef inline object _g_from_AcceleratedPaintInfo(const CefAcceleratedPaintInfo* value):
+    return AcceleratedPaintInfo(tuple([_g_from_AcceleratedPaintNativePixmapPlane(<const CefAcceleratedPaintNativePixmapPlane*>&value.planes[_i]) for _i in range(min(value.plane_count, 4))]), value.modifier, _g_enum(_types.ColorType, value.format), _g_from_AcceleratedPaintInfoCommon(<const CefAcceleratedPaintInfoCommon*>&value.extra))
 
 
 # Lists
@@ -10193,6 +10205,26 @@ class RenderHandler:
         """
         return None
 
+    def on_accelerated_paint(self, browser, type, dirty_rects, info):
+        """Called when an element has been rendered to the shared texture handle.
+        |type| indicates whether the element is the view or the popup widget.
+        |dirtyRects| contains the set of rectangles in pixel coordinates that need
+        to be repainted. |info| contains the shared handle; on Windows it is a
+        HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
+        D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
+        opened with Metal or OpenGL, and on Linux it contains several planes, each
+        with an fd to the underlying system native buffer.
+
+        The underlying implementation uses a pool to deliver frames. As a result,
+        the handle may differ every frame depending on how many frames are
+        in-progress. The handle's resource cannot be cached and cannot be accessed
+        outside of this callback. It should be reopened each time this callback is
+        executed and the contents should be copied to a texture owned by the
+        client application. The contents of |info| will be released back to the
+        pool after this callback returns.
+        """
+        return None
+
     def get_touch_handle_size(self, browser, orientation):
         """Called to retrieve the size of the touch handle for the specified
         |orientation|.
@@ -10320,6 +10352,12 @@ cdef void _RenderHandler_on_paint(void* py, CefBrowser* browser, int type, const
     except BaseException:
         _g_report()
 
+cdef void _RenderHandler_on_accelerated_paint(void* py, CefBrowser* browser, int type, const vector[CefRect]* dirty_rects, const CefAcceleratedPaintInfo* info) noexcept with gil:
+    try:
+        _r = (<object>py).on_accelerated_paint(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.PaintElementType, type), _g_list_Rect(dirty_rects), _g_from_AcceleratedPaintInfo(info))
+    except BaseException:
+        _g_report()
+
 cdef void _RenderHandler_get_touch_handle_size(void* py, CefBrowser* browser, int orientation, CefSize* size) noexcept with gil:
     try:
         _r = (<object>py).get_touch_handle_size(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.HorizontalAlignment, orientation))
@@ -10400,6 +10438,8 @@ cdef CefRefPtr[CefRenderHandler] _g_make_RenderHandler(object obj) except *:
         cb.fn_on_popup_size = _RenderHandler_on_popup_size
     if getattr(cls, "on_paint", None) is not RenderHandler.on_paint:
         cb.fn_on_paint = _RenderHandler_on_paint
+    if getattr(cls, "on_accelerated_paint", None) is not RenderHandler.on_accelerated_paint:
+        cb.fn_on_accelerated_paint = _RenderHandler_on_accelerated_paint
     if getattr(cls, "get_touch_handle_size", None) is not RenderHandler.get_touch_handle_size:
         cb.fn_get_touch_handle_size = _RenderHandler_get_touch_handle_size
     if getattr(cls, "on_touch_handle_state_changed", None) is not RenderHandler.on_touch_handle_state_changed:
@@ -11734,4 +11774,4 @@ def currently_on(int thread_id):
     return _r
 
 
-__generated_all__ = ["AudioParameters", "BrowserSettings", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "Task", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type", "post_task", "post_delayed_task", "currently_on"]
+__generated_all__ = ["AcceleratedPaintNativePixmapPlane", "AudioParameters", "BrowserSettings", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "AcceleratedPaintInfoCommon", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AcceleratedPaintInfo", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "Task", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type", "post_task", "post_delayed_task", "currently_on"]

@@ -11,7 +11,7 @@ import keyword
 import os
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 VENDOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
 if VENDOR_DIR not in sys.path:
@@ -52,7 +52,7 @@ def py_param_name(cef_name):
 
 # The field types a struct may have to be handled as plain data: C type -> Python type.
 _FIELD_TYPES = {
-    "bool": "bool", "int": "int", "int16_t": "int", "uint16_t": "int", "int32_t": "int",
+    "bool": "bool", "int": "int", "int8_t": "int", "uint8_t": "int", "int16_t": "int", "uint16_t": "int", "int32_t": "int",
     "uint32_t": "int", "int64_t": "int", "uint64_t": "int", "float": "float", "double": "float",
     "cef_color_t": "int", "char16_t": "int",
 }
@@ -68,6 +68,8 @@ class StructField:
     enum: bool = False  # `py` is the Python enumeration of the member (`cpp` is its C name)
     string: bool = False  # a cef_string_t member (str)
     time: bool = False  # a cef_basetime_t member (a datetime)
+    array: int = 0  # a C array of this many structs (`struct` is the element): a tuple in Python
+    count: str = ""  # the member that tells how many elements of the array are valid (not a field)
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,7 @@ class StructInfo:
     cls: str  # the C++ class CEF uses in signatures, e.g. CefRect
     cname: str  # the C struct it derives from, e.g. cef_rect_t
     fields: tuple
+    raw: bool = False  # a plain C struct that has no C++ class (Cython gets an alias with `cls`)
 
 
 def _strip_comments(text):
@@ -84,6 +87,13 @@ def _strip_comments(text):
 
 # Structs that are not value types of the API.
 INIT_ONLY_STRUCTS = ("CefSettings",)
+
+# Plain C structs without a C++ class that are members of structs the API passes: the name
+# the Python class gets (as if CEF had a C++ class) and the C struct.
+RAW_STRUCTS = {
+    "CefAcceleratedPaintNativePixmapPlane": "cef_accelerated_paint_native_pixmap_plane_t",
+    "CefAcceleratedPaintInfoCommon": "cef_accelerated_paint_info_common_t",
+}
 
 
 def _drop_conditionals(body):
@@ -102,7 +112,7 @@ def _drop_conditionals(body):
     return "\n".join(kept)
 
 
-def parse_struct_fields(body, nested=None, enums=None):
+def parse_struct_fields(body, nested=None, enums=None, constants=None):
     """Fields of a C struct body, or None if any member is not plain data.
 
     Plain data means a primitive type per member, an enumeration (`enums` maps the C name to
@@ -112,16 +122,27 @@ def parse_struct_fields(body, nested=None, enums=None):
     """
     nested = nested or {}
     enums = enums or {}
+    constants = constants or {}
     fields = []
     for index, statement in enumerate(s for s in _drop_conditionals(_strip_comments(body)).split(";")
                                       if s.strip()):
         statement = " ".join(statement.split())
+        array = re.match(r"^([A-Za-z_][\w ]*?) (\w+) ?\[ ?(\w+) ?\]$", statement)
+        if array:  # an array of structs: `cef_x_t planes[kMaxPlanes]`
+            ctype, cname, size = array.groups()
+            length = int(size) if size.isdigit() else constants.get(size)
+            if ctype not in nested or not length:
+                return None
+            fields.append(StructField(cname, py_param_name(cname), ctype,
+                                      "tuple[%s, ...]" % py_class_name(nested[ctype]), nested[ctype],
+                                      array=length))
+            continue
         found = re.match(r"^([A-Za-z_][\w ]*?) (\w+)$", statement)
         if not found:
             return None
-        if found.group(2) == "size":
-            if index == 0 and found.group(1) == "size_t":
-                continue
+        if found.group(2) == "size" and found.group(1) == "size_t":
+            if index == 0:
+                continue  # the version header
             return None
         ctype, cname = found.groups()
         if ctype == "cef_string_t":
@@ -138,6 +159,13 @@ def parse_struct_fields(body, nested=None, enums=None):
                                       py_class_name(nested[ctype]), nested[ctype]))
         else:
             return None
+    # `planes[4]` with `plane_count`: the count says how many are valid and is not a field
+    for index, f in enumerate(list(fields)):
+        if f.array:
+            count = f.cname[:-1] + "_count" if f.cname.endswith("s") else f.cname + "_count"
+            if any(g.cname == count and g.cpp == "int" for g in fields):
+                fields[fields.index(f)] = replace(f, count=count)
+                fields = [g for g in fields if g.cname != count]
     return tuple(fields) or None
 
 
@@ -398,12 +426,16 @@ class Model:
         wrappers = os.path.join(internal, "cef_types_wrappers.h")
         if not os.path.isfile(wrappers):
             return {}
-        bodies = {}
-        for filename in sorted(os.listdir(internal)):
-            if filename.endswith(".h"):
-                text = self._read(os.path.join(internal, filename))
-                for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
-                    bodies[match.group(2)] = match.group(1)
+        bodies, constants = {}, {}
+        # Some structs differ by platform (cef_accelerated_paint_info_t): the later definition
+        # wins and Linux, the platform of this binding, comes last.
+        filenames = sorted(f for f in os.listdir(internal) if f.endswith(".h"))
+        filenames.sort(key=lambda f: f.endswith("_linux.h"))
+        for filename in filenames:
+            text = self._read(os.path.join(internal, filename))
+            for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
+                bodies[match.group(2)] = match.group(1)
+            constants.update((n, int(v)) for n, v in re.findall(r"^#define\s+(k\w+)\s+(\d+)\s*$", text, re.M))
         # `class CefRect : public cef_rect_t {`, and the ones with a size header:
         # `class CefScreenInfo : public CefStructBaseSimple<cef_screen_info_t> {` and
         # `using CefKeyEvent = CefStructBaseSimple<cef_key_event_t>;`
@@ -418,6 +450,10 @@ class Model:
         for c, tr in re.findall(r"\busing\s+(Cef\w+)\s*=\s*CefStructBase<\s*(Cef\w+Traits)\s*>\s*;", text):
             if tr in traits:
                 classes[c] = traits[tr]
+        # C structs that have no C++ class but are members of one that has (the planes of a shared
+        # texture): read like the others, flagged `raw`.
+        raw = {c: cn for c, cn in RAW_STRUCTS.items() if cn in bodies}
+        classes.update(raw)
         # CefSettings only starts CEF (cefweaver.Settings is its Python form); no method takes it.
         for name in INIT_ONLY_STRUCTS:
             classes.pop(name, None)
@@ -433,9 +469,9 @@ class Model:
                 if cls in structs or cname not in bodies:
                     continue
                 known = {cn: c for cn, c in by_cname.items() if c in structs}
-                fields = parse_struct_fields(bodies[cname], known, enum_names)
+                fields = parse_struct_fields(bodies[cname], known, enum_names, constants)
                 if fields:
-                    structs[cls] = StructInfo(cls, cname, fields)
+                    structs[cls] = StructInfo(cls, cname, fields, cls in raw)
                     progress = True
         return dict(sorted(structs.items()))
 

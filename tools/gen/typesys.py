@@ -74,6 +74,8 @@ class Struct(Kind):
 
     cls: str  # the C++ class, e.g. CefRect
     fields: tuple  # of model.StructField
+    raw: bool = False  # a C struct without a C++ class (cname is its name)
+    cname: str = ""
 
 
 @dataclass(frozen=True)

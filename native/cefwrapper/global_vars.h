@@ -15,6 +15,9 @@ inline std::atomic<bool> g_Offscreen{false};
 // An offscreen browser paints nothing clear (default) or is opaque; the colour (ARGB) is
 // CefSettings.background_color, which an opaque offscreen browser uses (0: white).
 inline std::atomic<bool> g_Transparent{true};
+// An offscreen browser gives CEF's shared textures (dmabufs) to OnAcceleratedPaint() instead of
+// pixels to OnPaint().
+inline std::atomic<bool> g_SharedTexture{false};
 inline std::atomic<unsigned int> g_BackgroundColor{0};
 // Frames per second of an offscreen browser (CEF accepts 1 to 60).
 inline std::atomic<int> g_WindowlessFrameRate{30};

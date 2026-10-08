@@ -688,6 +688,43 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([(f.cname, f.cpp) for f in mouse.fields],
                          [("x", "int"), ("y", "int"), ("modifiers", "uint32_t")])
 
+    def test_an_array_of_structs_with_its_count_is_one_tuple_field(self):
+        # cef_accelerated_paint_info_t holds `planes[kAcceleratedPaintMaxPlanes]` and `plane_count`
+        # (the Linux layout: the one of this platform); the count is not a field of its own.
+        info = self.model.structs["CefAcceleratedPaintInfo"]
+        by_name = {f.name: f for f in info.fields}
+        self.assertEqual(sorted(by_name), ["extra", "format", "modifier", "planes"])
+        planes = by_name["planes"]
+        self.assertEqual((planes.array, planes.count, planes.struct),
+                         (4, "plane_count", "CefAcceleratedPaintNativePixmapPlane"))
+        self.assertEqual(by_name["format"].py, "ColorType")
+        self.assertEqual(by_name["extra"].struct, "CefAcceleratedPaintInfoCommon")
+
+    def test_a_c_struct_without_a_cpp_class_is_read_when_a_struct_has_it_as_a_member(self):
+        plane = self.model.structs["CefAcceleratedPaintNativePixmapPlane"]
+        self.assertTrue(plane.raw)                                  # no C++ class: a C struct
+        self.assertEqual([(f.name, f.cpp) for f in plane.fields],
+                         [("stride", "uint32_t"), ("offset", "uint64_t"), ("size", "uint64_t"), ("fd", "int")])
+        common = self.model.structs["CefAcceleratedPaintInfoCommon"]
+        names = [f.name for f in common.fields]
+        for expected in ("timestamp", "coded_size", "visible_rect", "capture_update_rect",
+                         "capture_counter", "has_capture_update_rect"):
+            self.assertIn(expected, names)
+        self.assertNotIn("size", names)                              # the version header
+
+    def test_the_accelerated_paint_callback_is_generated_with_the_info_struct(self):
+        plan = self.plan("CefRenderHandler", "OnAcceleratedPaint")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[3].kind, Struct)
+        self.assertEqual(plan.params[3].kind.cls, "CefAcceleratedPaintInfo")
+        types_text = self.generated("types")
+        self.assertIn("class AcceleratedPaintInfo(NamedTuple):", types_text)
+        self.assertIn("planes: tuple[AcceleratedPaintNativePixmapPlane, ...] = ()", types_text)
+        self.assertIn("class AcceleratedPaintNativePixmapPlane(NamedTuple):", types_text)
+        stub = self.generated("pyi")
+        self.assertIn("def on_accelerated_paint(self, browser: Browser, type: PaintElementType, "
+                      "dirty_rects: list[Rect], info: AcceleratedPaintInfo) -> None", stub)
+
     def test_a_cef_typedef_of_an_enumeration_is_that_enumeration(self):
         # `typedef cef_thread_id_t CefThreadId;` is how CefPostTask() names the thread
         self.assertEqual(self.model.enum_aliases["CefThreadId"], "cef_thread_id_t")
@@ -742,7 +779,7 @@ class WithHeaders(unittest.TestCase):
         for name in ("CefTouchEvent", "CefTouchHandleState", "CefCompositionUnderline"):
             self.assertIn(name, self.model.structs)
         # What has pointers or strings stays out.
-        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefSettings"):
+        for name in ("CefCursorInfo", "CefSettings"):
             self.assertNotIn(name, self.model.structs, name)
 
     def test_methods_that_take_the_new_structs_are_generated(self):
@@ -779,8 +816,8 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([f.cname for f in range_.fields], ["from", "to"])
 
     def test_structs_that_are_not_plain_data_stay_unsupported(self):
-        # Pointers, arrays, strings: not plain data.
-        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefSettings"):
+        # Pointers and the start-up settings: not plain data (an array of structs is: AcceleratedPaintInfo).
+        for name in ("CefCursorInfo", "CefSettings"):
             self.assertNotIn(name, self.model.structs, name)
 
     def test_a_struct_input_of_a_handler(self):

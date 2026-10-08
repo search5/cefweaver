@@ -87,8 +87,10 @@ cdef extern from "library.h":
         void SetIntSetting(string name, long long value)
         CefRefPtr[CefBrowser] CreateBrowser(string url, int offscreen, int transparent,
                                             CefRefPtr[CefRequestContext] request_context,
-                                            const CefBrowserSettings* settings)
+                                            const CefBrowserSettings* settings, int shared_texture)
         void SetBrowserSettings(const CefBrowserSettings& settings)
+        void SetSharedTexture(cpp_bool enabled)
+        cpp_bool SharedTexture()
         void SetTransparent(cpp_bool transparent)
         cpp_bool Transparent()
         void SetOffscreen(cpp_bool enabled)

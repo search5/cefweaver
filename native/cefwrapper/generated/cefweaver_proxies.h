@@ -2185,6 +2185,14 @@ class CwRenderHandlerForward : public CefRenderHandler {
     forward_render_handler_->OnPaint(browser, type, dirtyRects, buffer, width, height);
   }
 
+  void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const CefAcceleratedPaintInfo& info) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnAcceleratedPaint(browser, type, dirtyRects, info);
+      return;
+    }
+    forward_render_handler_->OnAcceleratedPaint(browser, type, dirtyRects, info);
+  }
+
   void GetTouchHandleSize(CefRefPtr<CefBrowser> browser, cef_horizontal_alignment_t orientation, CefSize& size) override {
     if (!forward_render_handler_) {
       CefRenderHandler::GetTouchHandleSize(browser, orientation, size);
@@ -2259,6 +2267,7 @@ struct CwRenderHandlerCallbacks {
   void (*fn_on_popup_show)(void*, CefBrowser*, bool) = nullptr;
   void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) = nullptr;
   void (*fn_on_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, void*, size_t, int, int) = nullptr;
+  void (*fn_on_accelerated_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, const CefAcceleratedPaintInfo*) = nullptr;
   void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
   void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) = nullptr;
   bool (*fn_start_dragging)(void*, CefBrowser*, CefDragData*, int, int, int) = nullptr;
@@ -2340,6 +2349,14 @@ class CwRenderHandlerProxy : public CefRenderHandler {
       return;
     }
     cb_.fn_on_paint(cb_.py, browser.get(), static_cast<int>(type), &dirtyRects, const_cast<void*>(buffer), static_cast<size_t>(width) * static_cast<size_t>(height) * 4, width, height);
+  }
+
+  void OnAcceleratedPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const CefAcceleratedPaintInfo& info) override {
+    if (!cb_.fn_on_accelerated_paint) {
+      CefRenderHandler::OnAcceleratedPaint(browser, type, dirtyRects, info);
+      return;
+    }
+    cb_.fn_on_accelerated_paint(cb_.py, browser.get(), static_cast<int>(type), &dirtyRects, &info);
   }
 
   void GetTouchHandleSize(CefRefPtr<CefBrowser> browser, cef_horizontal_alignment_t orientation, CefSize& size) override {

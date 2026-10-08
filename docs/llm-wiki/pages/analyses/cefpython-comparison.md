@@ -60,7 +60,7 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 | 2 (**완료**, F63) | `post_task`, `is_thread`(UI 스레드로 보내기) | 툴킷과 CEF가 다른 스레드에서 얽힐 때 필요하고, 예약 훅과 함께 쓰입니다. |
 | 3 (**완료**, [F64](../reference/verified-findings-handlers.md)) | 브라우저 설정(`BrowserSettings`) | 글꼴, 기본 인코딩, JavaScript나 로컬 저장소 끄기 등을 위젯 하나마다 정합니다. CEF 154의 필드를 구조체로 열면 됩니다(생성기가 문자열 필드를 지원). java-cef 수준을 넘음. |
 | 4 (**완료**, [JavascriptBridge](../reference/javascript-bridge.md)) | JS와 Python의 풍부한 통신 | 위젯 앞 화면(HTML)과 Python의 연결이 임베딩 응용의 핵심입니다. 렌더러에 Python을 두지 않고 메시지 라우터 위에서 JSON으로 목록, 사전, `None`, 반환값, 콜백을 주고받는 보조 계층으로 풀 수 있습니다. java-cef 수준을 넘음. |
-| 5 | GPU 가속 페인트(`on_accelerated_paint`) | 복사 없이 텍스처를 넘기는 최적화입니다. 위젯이 CPU 버퍼로 충분한 동안은 미룹니다. |
+| 5 (**기능 완료, 내용은 미확인**, [공유 텍스처](../reference/shared-textures.md)) | GPU 가속 페인트(`on_accelerated_paint`) | 복사 없이 텍스처를 넘기는 최적화입니다. 콜백과 메타데이터는 확인했고 픽셀 내용은 이 환경에서 확인하지 못했습니다. |
 
 채우지 않을 것: 창 임베딩(`SetAsChild`, `WindowUtils`, `DpiAware`), 렌더러의 Python, 막는 `MessageLoop`(툴킷이 루프를 가짐), `ShowDevTools`(원격 디버깅 포트로 대신함), 플랫폼 전용과 오래된 항목.
 

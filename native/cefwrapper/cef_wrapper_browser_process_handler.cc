@@ -66,7 +66,8 @@ bool CefWrapperBrowserProcessHandler::OnAlreadyRunningAppRelaunch(
 
 CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
     const std::string& url, bool offscreen, bool transparent,
-    CefRefPtr<CefRequestContext> request_context, const CefBrowserSettings* settings) {
+    CefRefPtr<CefRequestContext> request_context, const CefBrowserSettings* settings,
+    bool shared_texture) {
   CEF_REQUIRE_UI_THREAD();
   CefRefPtr<CefWrapperBrowserProcessHandler> self = GetInstance();
   CefBrowserSettings browser_settings = settings ? *settings : self->m_BrowserSettings;
@@ -78,6 +79,7 @@ CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
   if (offscreen) {
     // No window: CEF draws into the buffer of the user's render handler.
     window_info.SetAsWindowless(kNullWindowHandle);
+    window_info.shared_texture_enabled = shared_texture;
     if (browser_settings.windowless_frame_rate == 0) {
       browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
     }
@@ -146,7 +148,8 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   SimpleRenderProcessHandler::getInstance()->SetJavascriptBindings(
       m_JavascriptBindings, m_JavascriptPythonBindings);
 
-  Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext);
+  Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext,
+                          nullptr, g_SharedTexture.load());
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
 }

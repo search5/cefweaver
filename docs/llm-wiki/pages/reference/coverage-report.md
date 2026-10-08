@@ -14,7 +14,7 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 694 methods/functions in 73 classes, 6 global functions
+Generated now: 695 methods/functions in 73 classes, 6 global functions
 
 Skipped inside the generated classes (type not supported yet):
     20  class
@@ -22,11 +22,10 @@ Skipped inside the generated classes (type not supported yet):
      3  a library method returning a client object
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  pointer to
-     1  struct-like value type
      1  another overload of CreateContext is generated (Python has one name)
-  ----  31 skipped
+  ----  30 skipped
 
-If every class were generated, the type support alone would cover 2137 of 2255 methods/functions (95%).
+If every class were generated, the type support alone would cover 2138 of 2255 methods/functions (95%).
 What blocks the rest, by type:
     32  ownptr pointer
     19  a library method returning a client object
@@ -36,7 +35,6 @@ What blocks the rest, by type:
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      4  another overload of Create is generated (Python has one name)
-     3  struct-like value type
      2  pointer to
      2  CEF keeps the pointer the handler returns, so the bytes would have to outlive every use
      2  a pointer into memory that V8 owns and can free while Python still holds it
@@ -44,6 +42,7 @@ What blocks the rest, by type:
      2  class
      2  another overload of GetAttribute is generated (Python has one name)
      2  another overload of MoveToAttribute is generated (Python has one name)
+     2  struct-like value type
      1  another overload of SetChildRefPtrClient is generated (Python has one name)
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  client object parameter client passed to the application
@@ -165,7 +164,7 @@ Per class (supported/total methods, when every class is generated):
   * CefPrintSettings                       library  23/23 
   * CefProcessMessage                      library   7/7  
   * CefReadHandler                         client    5/5  
-  * CefRenderHandler                       client   16/17 
+  * CefRenderHandler                       client   17/17 
     CefRenderProcessHandler                client    9/9  
   * CefRequest                             library  23/23 
   * CefRequestContext                      library  30/32 
@@ -272,7 +271,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefPostData                      1  1 methods
   CefProcessMessage                6  the whole class
   CefReadHandler                   5  the whole class
-  CefRenderHandler                 6  6 methods
+  CefRenderHandler                 7  7 methods
   CefRequestContext               18  18 methods
   CefRequestContextHandler         1  1 methods
   CefRequestHandler                4  4 methods
@@ -289,7 +288,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  290 methods
+  ----  291 methods
 ```
 
 ## 관련 페이지

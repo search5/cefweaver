@@ -82,13 +82,18 @@ class CefApp:
     def create_browser(self, url: str = "about:blank", offscreen: bool | None = None,
                        transparent: bool | None = None,
                        request_context: RequestContext | None = None,
-                       settings: BrowserSettings | None = None) -> Browser: ...
+                       settings: BrowserSettings | None = None,
+                       shared_texture: bool | None = None) -> Browser: ...
     @staticmethod
     def get_version() -> Version: ...
     @property
     def browser_settings(self) -> BrowserSettings: ...
     @browser_settings.setter
     def browser_settings(self, value: BrowserSettings) -> None: ...
+    @property
+    def shared_texture(self) -> bool: ...
+    @shared_texture.setter
+    def shared_texture(self, value: bool) -> None: ...
     @property
     def transparent(self) -> bool: ...
     @transparent.setter
@@ -177,6 +182,7 @@ from .types import (
     ZoomCommand,
 )
 from .types import (
+    AcceleratedPaintNativePixmapPlane as AcceleratedPaintNativePixmapPlane,
     AudioParameters as AudioParameters,
     BrowserSettings as BrowserSettings,
     Cookie as Cookie,
@@ -197,9 +203,11 @@ from .types import (
     TouchEvent as TouchEvent,
     TouchHandleState as TouchHandleState,
     URLParts as URLParts,
+    AcceleratedPaintInfoCommon as AcceleratedPaintInfoCommon,
     BoxLayoutSettings as BoxLayoutSettings,
     CompositionUnderline as CompositionUnderline,
     DraggableRegion as DraggableRegion,
+    AcceleratedPaintInfo as AcceleratedPaintInfo,
 )
 
 
@@ -4098,6 +4106,25 @@ class RenderHandler:
         will be |width|*|height|*4 bytes in size and represents a BGRA image with
         an upper-left origin. This method is only called when
         CefWindowInfo::shared_texture_enabled is set to false.
+        """
+        ...
+    def on_accelerated_paint(self, browser: Browser, type: PaintElementType, dirty_rects: list[Rect], info: AcceleratedPaintInfo) -> None:
+        """Called when an element has been rendered to the shared texture handle.
+        |type| indicates whether the element is the view or the popup widget.
+        |dirtyRects| contains the set of rectangles in pixel coordinates that need
+        to be repainted. |info| contains the shared handle; on Windows it is a
+        HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
+        D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
+        opened with Metal or OpenGL, and on Linux it contains several planes, each
+        with an fd to the underlying system native buffer.
+
+        The underlying implementation uses a pool to deliver frames. As a result,
+        the handle may differ every frame depending on how many frames are
+        in-progress. The handle's resource cannot be cached and cannot be accessed
+        outside of this callback. It should be reopened each time this callback is
+        executed and the contents should be copied to a texture owned by the
+        client application. The contents of |info| will be released back to the
+        pool after this callback returns.
         """
         ...
     def get_touch_handle_size(self, browser: Browser, orientation: HorizontalAlignment) -> Size | tuple[int, int]:

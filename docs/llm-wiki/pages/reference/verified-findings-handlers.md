@@ -129,6 +129,16 @@ updated: 2026-10-08
 - **안정성**: 브리지 시험 6개를 묶어 5번 연속 통과했고(한 번의 실행에 약 2.5초), 다른 사이트의 프레임 시험은 따로 4번 연속 통과했습니다. 간헐적 실패는 보이지 않았습니다.
 - **안전**: `origins`를 정하지 않으면 모든 프레임이 노출한 함수를 부를 수 있습니다. 바깥 페이지가 올라올 수 있는 응용은 `origins`를 정해야 합니다.
 
+## F66. 공유 텍스처 (GPU 가속 페인트)
+
+사용법과 규칙은 [공유 텍스처](shared-textures.md)에 있습니다. 여기에는 실행해서 확인한 것을 적습니다.
+
+- **GPU가 없는 환경(Xvfb)**: DRI3가 없어 `gbm device is missing`이 나고, CEF는 `on_accelerated_paint` 대신 `on_paint`로 그림을 줍니다(`shared_texture`를 켜도). 그래서 켜진 브라우저가 어느 쪽으로든 프레임을 받고 충돌하지 않는 것을 항상 시험합니다. `headless` 플랫폼에서도 텍스처는 오지 않았습니다.
+- **실제 GPU(NVIDIA RTX 4060 Laptop, 독점 드라이버 580, XWayland `DISPLAY=:0`, 오프스크린이라 창은 열리지 않음)**:
+  - 기본 설정과 `use-angle=gl`에서는 텍스처가 오지 않고 `OzoneImageBacking::ProduceSkiaGanesh failed to create GL representation`이 납니다.
+  - `use-gl=angle`, `use-angle=vulkan`, `enable-features=Vulkan,VulkanFromANGLE,DefaultANGLEVulkan`에서 텍스처가 옵니다(DevTools의 `SystemInfo`로 ANGLE Vulkan, NVIDIA를 확인). `info.format`은 `BGRA_8888`, `modifier`는 0(선형), 평면 1개(stride 1024, 크기 102400, 200x100 + 정렬), `extra.coded_size`는 200x100, 더티 사각형이 함께 옵니다. 디스크립터는 콜백 안에서 열려 있고(`os.fstat`), 페이지를 바꾸면 새 프레임이 옵니다. `on_paint`는 불리지 않습니다. 이 시험(`CEFWEAVER_TEST_GPU=1`)은 3번 연속 통과했습니다.
+- **확인하지 못한 것(픽셀 내용)**: 위 설정에서 텍스처가 **모두 0**으로 읽혔습니다. 같은 설정의 일반 경로(`on_paint`)에서는 빨간 픽셀이 나오므로 페이지는 그려지고 있습니다. 해 본 것: `mmap`으로 읽기(`read_plane`), EGL로 가져와 외부 텍스처로 샘플링하고 `glReadPixels`(렌더 대상에 붙이는 방식은 `GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT`로 막힘), 콜백 안과 콜백 뒤 1.5초 뒤(복제한 디스크립터), 페이지를 초록으로 바꾼 뒤, `transparent`를 켜고 끄기, Mesa EGL 강제(`__EGL_VENDOR_LIBRARY_FILENAMES`). 모두 0이었고 AMD 내장 GPU(RADV)로 강제하는 시도는 GPU 프로세스가 종료되어 비교하지 못했습니다. **원인(드라이버의 암묵적 동기화 부재, CEF/Chromium, 우리 쪽)은 가르지 못했습니다.** 그러므로 CEF의 한계로 적지 않습니다. 가르는 방법: Mesa만 쓰는 GPU(Intel, AMD 전용 기기)에서 `CEFWEAVER_TEST_GPU_PIXELS=1`로 같은 시험 실행, 또는 CEF 예제 `cefclient`의 오프스크린 공유 텍스처와 비교.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

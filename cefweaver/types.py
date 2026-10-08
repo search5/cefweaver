@@ -1723,6 +1723,14 @@ class ZoomCommand(enum.IntEnum):
     IN = 2
 
 
+class AcceleratedPaintNativePixmapPlane(NamedTuple):
+    """The CEF value type CefAcceleratedPaintNativePixmapPlane. Anywhere one is expected, a tuple with the same fields works too."""
+    stride: int = 0
+    offset: int = 0
+    size: int = 0
+    fd: int = 0
+
+
 class AudioParameters(NamedTuple):
     """The CEF value type CefAudioParameters. Anywhere one is expected, a tuple with the same fields works too."""
     channel_layout: ChannelLayout = 0
@@ -1950,6 +1958,22 @@ class URLParts(NamedTuple):
     fragment: str = ""
 
 
+class AcceleratedPaintInfoCommon(NamedTuple):
+    """The CEF value type CefAcceleratedPaintInfoCommon. Anywhere one is expected, a tuple with the same fields works too."""
+    timestamp: int = 0
+    coded_size: Size = Size()
+    visible_rect: Rect = Rect()
+    content_rect: Rect = Rect()
+    source_size: Size = Size()
+    capture_update_rect: Rect = Rect()
+    region_capture_rect: Rect = Rect()
+    capture_counter: int = 0
+    has_capture_update_rect: int = 0
+    has_region_capture_rect: int = 0
+    has_source_size: int = 0
+    has_capture_counter: int = 0
+
+
 class BoxLayoutSettings(NamedTuple):
     """The CEF value type CefBoxLayoutSettings. Anywhere one is expected, a tuple with the same fields works too."""
     horizontal: int = 0
@@ -1978,7 +2002,18 @@ class DraggableRegion(NamedTuple):
     draggable: int = 0
 
 
+class AcceleratedPaintInfo(NamedTuple):
+    """The CEF value type CefAcceleratedPaintInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    planes: tuple[AcceleratedPaintNativePixmapPlane, ...] = ()
+    modifier: int = 0
+    format: ColorType = 0
+    extra: AcceleratedPaintInfoCommon = AcceleratedPaintInfoCommon()
+
+
 __all__ = [
+    "AcceleratedPaintInfo",
+    "AcceleratedPaintInfoCommon",
+    "AcceleratedPaintNativePixmapPlane",
     "AlphaType",
     "AudioParameters",
     "AxisAlignment",

@@ -279,14 +279,18 @@ void CefWrapper::SetBrowserSettings(const CefBrowserSettings& settings) {
 }
 CefRefPtr<CefBrowser> CefWrapper::CreateBrowser(std::string url, int offscreen, int transparent,
                                                 CefRefPtr<CefRequestContext> request_context,
-                                                const CefBrowserSettings* settings) {
+                                                const CefBrowserSettings* settings,
+                                                int shared_texture) {
   if (!m_App || !g_IsRunning || !m_App->GetBrowser() || !CefCurrentlyOn(TID_UI)) {
     return nullptr;
   }
   return CefWrapperBrowserProcessHandler::CreateBrowser(
       url, offscreen < 0 ? g_Offscreen.load() : offscreen != 0,
-      transparent < 0 ? g_Transparent.load() : transparent != 0, request_context, settings);
+      transparent < 0 ? g_Transparent.load() : transparent != 0, request_context, settings,
+      shared_texture < 0 ? g_SharedTexture.load() : shared_texture != 0);
 }
+void CefWrapper::SetSharedTexture(bool enabled) { g_SharedTexture.store(enabled); }
+bool CefWrapper::SharedTexture() { return g_SharedTexture.load(); }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }
 void CefWrapper::SetBridgeNames(std::string json) { BridgeNames() = json; }

@@ -267,3 +267,7 @@
 ## [2026-10-08] ingest | JavascriptBridge (F65)
 
 - `cefweaver.JavascriptBridge`, `JsCallback`을 더했습니다. 렌더러에 Python을 두지 않고 렌더러의 C++가 고정된 JS 조각만 실행해 `window.<이름>`을 정의하고, 호출은 메시지 라우터의 JSON 질의로 갑니다. 4번(cefpython의 풍부한 JS 통신)이 끝났습니다.
+
+## [2026-10-08] ingest | 공유 텍스처 (F66)
+
+- `CefApp.shared_texture`, `RenderHandler.on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`을 더했습니다. 생성기는 구조체 배열(+개수)과 C++ 클래스가 없는 C 구조체, 플랫폼별 정의(Linux)를 읽습니다. 실제 GPU에서 텍스처와 메타데이터 도착을 확인했고 픽셀 내용(모두 0)은 원인을 찾지 못해 "미확인"으로 기록했습니다.

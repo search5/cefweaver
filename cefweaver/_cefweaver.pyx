@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 
 from cefweaver.settings import Settings as _Settings
 
-from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
+from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
@@ -402,13 +402,13 @@ cdef class CefApp:
     # -- configuration (before initialize) ------------------------------------
 
     def create_browser(self, url="about:blank", offscreen=None, transparent=None,
-                       request_context=None, settings=None):
+                       request_context=None, settings=None, shared_texture=None):
         """Create a further browser (java-cef's ``CefClient.createBrowser()``) and return it as a
         ``Browser``. It uses the app's client, JavaScript bindings and message router.
 
         ``offscreen`` and ``transparent`` (``True`` or ``False``) decide for this browser; ``None``
         takes ``CefApp.offscreen`` and ``CefApp.transparent``. ``request_context`` is a
-        ``RequestContext`` for it (``None``: the global one). ``settings`` (a ``types.BrowserSettings``)
+        ``RequestContext`` for it (``None``: the global one). ``shared_texture`` is ``CefApp.shared_texture`` for this browser. ``settings`` (a ``types.BrowserSettings``)
         are the ones of this browser (``None``: ``CefApp.browser_settings``). Call it on the thread that called
         ``initialize()``, after the first browser exists. A windowed browser gets a window of its
         own. ``load_url()`` and ``execute_javascript()`` address the first browser only; use the
@@ -416,6 +416,7 @@ cdef class CefApp:
         cdef string value
         cdef int osr = -1
         cdef int clear = -1
+        cdef int shared = -1
         cdef CefRefPtr[CefRequestContext] context
         cdef CefRefPtr[CefBrowser] ref
         cdef CefBrowserSettings cpp_settings
@@ -430,6 +431,10 @@ cdef class CefApp:
             if not isinstance(transparent, bool):
                 raise TypeError("transparent must be a bool or None")
             clear = 1 if transparent else 0
+        if shared_texture is not None:
+            if not isinstance(shared_texture, bool):
+                raise TypeError("shared_texture must be a bool or None")
+            shared = 1 if shared_texture else 0
         if request_context is not None:
             if not isinstance(request_context, RequestContext):
                 raise TypeError("request_context must be a RequestContext or None")
@@ -441,7 +446,7 @@ cdef class CefApp:
             settings_ptr = &cpp_settings
         self._require_running()
         value = _utf8(url)
-        ref = self._wrapper.CreateBrowser(value, osr, clear, context, settings_ptr)
+        ref = self._wrapper.CreateBrowser(value, osr, clear, context, settings_ptr, shared)
         if not ref.get():
             raise RuntimeError("a browser can be created on the thread of initialize() once the "
                                "first browser exists")
@@ -621,6 +626,20 @@ cdef class CefApp:
     def transparent(self, value):
         self._require_not_initialized()
         self._wrapper.SetTransparent(bool(value))
+
+    @property
+    def shared_texture(self):
+        """Whether an offscreen browser gives CEF's shared textures (GPU memory, on Linux dmabuf
+        file descriptors) to ``RenderHandler.on_accelerated_paint()`` instead of pixels to
+        ``on_paint()`` (off by default). Needs a GPU. Before ``initialize()`` only."""
+        return bool(self._wrapper.SharedTexture())
+
+    @shared_texture.setter
+    def shared_texture(self, value):
+        self._require_not_initialized()
+        if not isinstance(value, bool):
+            raise TypeError("shared_texture must be a bool")
+        self._wrapper.SetSharedTexture(value)
 
     @property
     def windowless_frame_rate(self):

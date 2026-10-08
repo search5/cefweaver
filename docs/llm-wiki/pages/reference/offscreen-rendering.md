@@ -54,11 +54,11 @@ app.set_client(MyClient())
 
 ## 제약
 
-- **`start_dragging`(`CefDragData`), `on_accelerated_paint`(포인터가 있는 구조체), `get_accessibility_handler`는 생성되지 않습니다**(보고서에 이유가 있음). java-cef는 `StartDragging`까지 구현합니다.
+- `get_accessibility_handler`는 생성되지 않습니다(보고서에 이유가 있음). `start_dragging`은 열려 있고(F54), `on_accelerated_paint`는 구조체 배열을 읽도록 생성기를 넓혀 열었습니다([공유 텍스처](shared-textures.md)).
 - 렌더 핸들러가 없는 오프스크린 브라우저는 시험하지 않았습니다(`get_view_rect`가 없으면 빈 크기).
 - 팝업(`PaintElementType.POPUP`)의 `on_paint`와 `on_popup_show`, `on_popup_size`는 `<select>`의 드롭다운으로 확인했습니다([F55](verified-findings-handlers.md)).
 - 키보드는 `Backspace`, `Delete`, 화살표, `Shift`+문자, 한글(`CHAR`), `Enter`까지 확인했고, 터치와 IME도 페이지의 이벤트와 입력값으로 확인했습니다(F55). 한글 조합은 글자 경계(`on_ime_composition_range_changed`)와 밑줄의 두께와 모양까지 확인했고 밑줄 색은 반영되지 않았습니다(F56).
-- GPU 가속 페인트(`on_accelerated_paint`)는 쓰지 않습니다. CPU 버퍼만 받습니다.
+- GPU 가속 페인트(`on_accelerated_paint`)는 `CefApp.shared_texture`로 켭니다. 기본은 CPU 버퍼(`on_paint`)입니다. 사용법, 규칙, 확인하지 못한 것은 [공유 텍스처](shared-textures.md)에 있습니다.
 
 ## 투명도
 

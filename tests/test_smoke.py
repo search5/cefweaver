@@ -91,6 +91,33 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_shared_textures_are_a_flag_and_the_info_is_a_value_type(self):
+        app = cefweaver.CefApp()
+        self.assertIs(app.shared_texture, False)
+        app.shared_texture = True
+        self.assertIs(app.shared_texture, True)
+        with self.assertRaises(TypeError):
+            app.shared_texture = "yes"
+        info = cefweaver.types.AcceleratedPaintInfo()
+        self.assertEqual((info.planes, info.modifier), ((), 0))
+        plane = cefweaver.types.AcceleratedPaintNativePixmapPlane(stride=4, offset=0, size=8, fd=3)
+        self.assertEqual((plane.stride, plane.fd), (4, 3))
+        self.assertIsNone(cefweaver.RenderHandler().on_accelerated_paint(None, 0, [], info))
+        app.shutdown()
+
+    def test_read_plane_copies_the_bytes_of_a_descriptor_from_its_offset(self):
+        # a temporary file stands in for a dmabuf: the mapping is the same
+        data = bytes(range(256)) * 16
+        with tempfile.TemporaryFile() as handle:
+            fd = handle.fileno()
+            handle.write(data)
+            handle.flush()
+            plane = cefweaver.types.AcceleratedPaintNativePixmapPlane(stride=64, offset=128, size=1024, fd=fd)
+            self.assertEqual(cefweaver.read_plane(plane), data[128:128 + 1024])
+            self.assertEqual(cefweaver.read_plane(plane, 10), data[128:138])
+            with self.assertRaises(OSError):
+                cefweaver.read_plane(plane._replace(fd=-1))
+
     def test_a_javascript_bridge_checks_what_it_exposes(self):
         app = cefweaver.CefApp()
         bridge = cefweaver.JavascriptBridge(app)
@@ -3634,6 +3661,144 @@ class WithCef(unittest.TestCase):
             app.shutdown()
             print("OK")
         """)
+
+    # -- GPU accelerated painting (shared textures) -------------------------------------------
+
+    DMABUF_SCRIPT = """
+        import os
+        T = cefweaver.types
+        frames = []                                           # what on_accelerated_paint got
+        pixel_paints = []                                     # on_paint() calls: none with shared textures
+        class Shared(cefweaver.RenderHandler):
+            def get_view_rect(self, browser):
+                return cefweaver.Rect(0, 0, 200, 100)
+            def get_screen_info(self, browser):
+                return False, cefweaver.ScreenInfo(1.0, 24, 8, 0, cefweaver.Rect(0, 0, 0, 0), cefweaver.Rect(0, 0, 0, 0))
+            def on_paint(self, browser, type, dirty_rects, buffer, width, height):
+                pixel_paints.append(type)
+            def on_accelerated_paint(self, browser, type, dirty_rects, info):
+                inside = []
+                for plane in info.planes:
+                    try:
+                        inside.append((plane.fd, os.fstat(plane.fd).st_mode, plane.stride, plane.offset, plane.size))
+                    except OSError as error:
+                        inside.append((plane.fd, error))
+                pixels = None
+                if info.planes and info.modifier == 0:
+                    try:
+                        pixels = cefweaver.read_plane(info.planes[0])
+                    except OSError as error:
+                        pixels = None
+                frames.append(dict(type=type, rects=list(dirty_rects), info=info, inside=inside, pixels=pixels,
+                                   browser=browser.get_identifier()))
+        class Client2(cefweaver.Client):
+            def __init__(self):
+                self.render, self.life = Shared(), Life()
+            def get_render_handler(self):
+                return self.render
+            def get_life_span_handler(self):
+                return self.life
+        app.offscreen = True
+        app.shared_texture = True
+    """
+
+    # The GPU: a shared texture needs a display server with DRI3 and a GPU whose driver exports
+    # dmabufs to ANGLE. Xvfb has none (CEF says "gbm device is missing" and draws with on_paint
+    # instead), so these two run only with CEFWEAVER_TEST_GPU=1 on a real display (DISPLAY=:0,
+    # XWayland; no window is opened). On the proprietary NVIDIA driver ANGLE has to use Vulkan;
+    # CEFWEAVER_TEST_GPU_SWITCHES replaces the switches ("name=value;name=value").
+    GPU_SWITCHES = ("ignore-gpu-blocklist;use-gl=angle;use-angle=vulkan;"
+                    "enable-features=Vulkan,VulkanFromANGLE,DefaultANGLEVulkan")
+
+    def run_gpu_script(self, body):
+        import textwrap
+        text = os.environ.get("CEFWEAVER_TEST_GPU_SWITCHES", self.GPU_SWITCHES)
+        switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";")]
+        reader = open(os.path.join(os.path.dirname(__file__), "egl_dmabuf.py"), encoding="utf-8").read()
+        head = "SWITCHES = %r\nREADER = %r\n" % (switches, reader)
+        result = run_cef(head + textwrap.dedent(self.OSR_SCRIPT) + textwrap.dedent(self.DMABUF_SCRIPT)
+                         + textwrap.dedent(body), timeout=120, without=("WAYLAND_DISPLAY", "XDG_SESSION_TYPE"))
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    @unittest.skipUnless(os.environ.get("CEFWEAVER_TEST_GPU") == "1",
+                         "needs a GPU and a real display: CEFWEAVER_TEST_GPU=1")
+    def test_a_shared_texture_arrives_as_dmabuf_planes_in_place_of_pixels(self):
+        self.run_gpu_script("""
+            for name, value in SWITCHES:
+                app.add_command_line_switch(name, value)
+            app.set_client(Client2())
+            app.initialize(page(RED))
+            wait_until(app, lambda: frames, "a shared texture", timeout=45)
+            for _ in range(50):
+                app.do_message_loop_work(); time.sleep(0.01)
+            frame = frames[-1]
+            info = frame["info"]
+            assert isinstance(info, T.AcceleratedPaintInfo), info
+            assert frame["type"] == T.PaintElementType.VIEW, frame["type"]
+            assert len(info.planes) >= 1 and info.planes[0].stride >= 200 * 4 and info.planes[0].size > 0, info
+            assert info.planes[0].fd >= 0 and isinstance(info.format, T.ColorType), info
+            assert info.extra.coded_size.width >= 200 and info.extra.coded_size.height >= 100, info.extra
+            assert frame["inside"] and all(len(x) == 5 for x in frame["inside"]), frame["inside"]   # open in the call
+            assert frame["rects"], frame                                    # the dirty rectangles come as well
+            assert not pixel_paints, "on_paint was called as well"
+            # new frames come with changes of the page
+            before = len(frames)
+            app.execute_javascript("document.body.style.background = 'rgb(0, 255, 0)'")
+            wait_until(app, lambda: len(frames) > before, "a frame after the change")
+            app.shutdown()
+            print("OK")
+        """)
+
+    @unittest.skipUnless(os.environ.get("CEFWEAVER_TEST_GPU_PIXELS") == "1",
+                         "needs a GPU whose shared textures hold the picture: CEFWEAVER_TEST_GPU_PIXELS=1")
+    def test_the_pixels_of_a_shared_texture_are_those_of_the_page(self):
+        # Not run by default: on the NVIDIA laptop this was written on, the textures read as all
+        # zero both by mmap and by EGL, also long after the call (F66, cause not found).
+        self.run_gpu_script("""
+            for name, value in SWITCHES:
+                app.add_command_line_switch(name, value)
+            exec(READER, globals())
+            reader = []
+            seen = []
+            class Reading(Shared):
+                def on_accelerated_paint(self, browser, type, dirty_rects, info):
+                    if not reader:
+                        reader.append(Reader())
+                    plane = info.planes[0]
+                    seen.append((info.modifier, cefweaver.read_plane(plane) if info.modifier == 0 else None,
+                                 reader[0].read(plane, info.modifier, 200, 100)))
+            Shared.on_accelerated_paint = Reading.on_accelerated_paint
+            app.set_client(Client2())
+            app.initialize(page(RED))
+            wait_until(app, lambda: seen, "a texture")
+            for _ in range(50):
+                app.do_message_loop_work(); time.sleep(0.01)
+            modifier, mapped, drawn = seen[-1]
+            stride = 1024
+            if mapped is not None:                                # BGRA through the mapping
+                assert mapped[100 * 4 + 50 * stride: 100 * 4 + 50 * stride + 4] == b"\\x00\\x00\\xff\\xff", mapped[:8]
+            middle = (50 * 200 + 100) * 4
+            assert drawn[middle: middle + 4] == b"\\xff\\x00\\x00\\xff", drawn[middle: middle + 4]    # RGBA through EGL
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_shared_texture_browser_gets_a_frame_one_way_or_the_other(self):
+        # With a GPU it is a shared texture. Without one (Xvfb) CEF draws with on_paint instead and
+        # the browser works: the application has to handle both.
+        self.run_osr_script(prelude=self.DMABUF_SCRIPT, body="""
+            app.set_client(Client2())
+            app.initialize(page(RED))
+            assert app.shared_texture is True
+            wait_until(app, lambda: frames or pixel_paints, "a frame, as a texture or as pixels")
+            for _ in range(50):
+                app.do_message_loop_work(); time.sleep(0.01)
+            assert not (frames and pixel_paints), (len(frames), len(pixel_paints))   # one way
+            app.shutdown()
+            print("OK")
+        """)
+
 
     # -- the handlers that were generated and not yet run -----------------------------------
 

@@ -63,6 +63,8 @@ def emit(model, banner):
                 default = '""'
             elif f.time:
                 default = "None"
+            elif f.array:
+                default = "()"  # an empty tuple of the elements
             elif f.struct:
                 default = "%s()" % f.py
             else:

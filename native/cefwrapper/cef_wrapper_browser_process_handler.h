@@ -30,7 +30,8 @@ public:
   static CefRefPtr<CefBrowser> CreateBrowser(const std::string& url, bool offscreen,
                                              bool transparent,
                                              CefRefPtr<CefRequestContext> request_context,
-                                             const CefBrowserSettings* settings = nullptr);
+                                             const CefBrowserSettings* settings = nullptr,
+                                             bool shared_texture = false);
   static void SetBrowserSettings(const CefBrowserSettings& settings);
   CefRefPtr<CefBrowser>Browser;
   CefRefPtr<CefClient> m_UserClient;

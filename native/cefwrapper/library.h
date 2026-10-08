@@ -50,10 +50,12 @@ public:
   // is not the UI thread.
   CefRefPtr<CefBrowser> CreateBrowser(std::string url, int offscreen, int transparent,
                                       CefRefPtr<CefRequestContext> request_context,
-                                      const CefBrowserSettings* settings);
+                                      const CefBrowserSettings* settings, int shared_texture);
   // The settings of the first browser and of the ones made without settings.
   void SetBrowserSettings(const CefBrowserSettings& settings);
   void SetTransparent(bool transparent);
+  void SetSharedTexture(bool enabled);
+  bool SharedTexture();
   bool Transparent();
   void SetRequestContext(CefRefPtr<CefRequestContext> context);
   bool Offscreen();
