@@ -10,6 +10,8 @@ The widget is for one browser (the one ``initialize()`` makes). More browsers wo
 ``CefApp.create_browser()`` and one widget each.
 """
 
+import os
+
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -42,6 +44,35 @@ _CURSORS = {  # CursorType -> a CSS cursor name
     types.CursorType.ALIAS: "alias", types.CursorType.CONTEXTMENU: "context-menu",
     types.CursorType.VERTICALTEXT: "vertical-text",
 }
+
+
+_COPY, _LINK, _MOVE = types.DragOperationsMask.COPY, types.DragOperationsMask.LINK, types.DragOperationsMask.MOVE
+_DRAG_TARGETS = [Gtk.TargetEntry.new("text/plain", 0, 0), Gtk.TargetEntry.new("text/uri-list", 0, 1),
+                 Gtk.TargetEntry.new("text/html", 0, 2), Gtk.TargetEntry.new("UTF8_STRING", 0, 3)]
+
+
+def gdk_actions(ops):
+    """The Gdk.DragAction of the drag operations CEF allows."""
+    actions = Gdk.DragAction(0)
+    if ops & _COPY:
+        actions |= Gdk.DragAction.COPY
+    if ops & _MOVE:
+        actions |= Gdk.DragAction.MOVE
+    if ops & _LINK:
+        actions |= Gdk.DragAction.LINK
+    return actions
+
+
+def cef_operations(actions):
+    """The drag operations of a Gdk.DragAction."""
+    ops = types.DragOperationsMask(0)
+    if actions & Gdk.DragAction.COPY:
+        ops |= _COPY
+    if actions & Gdk.DragAction.MOVE:
+        ops |= _MOVE
+    if actions & Gdk.DragAction.LINK:
+        ops |= _LINK
+    return ops
 
 
 def windows_key_code(event):
@@ -188,6 +219,12 @@ class _Render(cefweaver.RenderHandler):
         self.w.set_cef_cursor(cursor)
         return True
 
+    def start_dragging(self, browser, drag_data, allowed_ops, x, y):
+        return self.w.begin_drag(drag_data, allowed_ops, x, y)
+
+    def update_drag_cursor(self, browser, operation):
+        self.w.set_drag_operation(operation)
+
     def on_ime_composition_range_changed(self, browser, selected_range, character_bounds):
         if character_bounds:                            # where the candidate window goes
             last = character_bounds[-1]
@@ -262,6 +299,20 @@ class CefWidget(Gtk.DrawingArea):
         self.im.connect("preedit-changed", self._on_preedit_changed)
         self.im.connect("preedit-end", self._on_preedit_end)
         self._click_count = 1
+        # drag and drop: this widget is a drop target of text, links and files, and the source of
+        # what the page starts to drag
+        self.drag_operation = _COPY                     # what CEF says it would do with the drop
+        self._drop_state = None                         # None, "asking" (GTK is fetching the data), "entered"
+        self._drag_context, self._drag_time = None, 0   # of the drag over this widget (for the late answers of CEF)
+        self._dropped = False
+        self._drag_out = None
+        self.drag_dest_set(0, _DRAG_TARGETS, Gdk.DragAction.COPY | Gdk.DragAction.MOVE | Gdk.DragAction.LINK)
+        self.connect("drag-motion", self._on_drag_motion)
+        self.connect("drag-leave", self._on_drag_leave)
+        self.connect("drag-drop", self._on_drag_drop)
+        self.connect("drag-data-received", self._on_drag_data_received)
+        self.connect("drag-data-get", self._on_drag_data_get)
+        self.connect("drag-end", self._on_drag_end)
         self.connect("realize", lambda w: self.im.set_client_window(self.get_window()))
         self.connect("unrealize", lambda w: self.im.set_client_window(None))
         self.connect("size-allocate", self._on_size_allocate)
@@ -465,3 +516,148 @@ class CefWidget(Gtk.DrawingArea):
 
     def _on_preedit_end(self, context):
         self._host(lambda h: h.ime_cancel_composition())
+
+    # -- drag and drop: into the page --------------------------------------------------------------
+
+    def _gdk_action(self, context):
+        """What GTK shows for the drop: what CEF would do, among what the source offers."""
+        offered = context.get_actions()
+        for operation, action in ((_COPY, Gdk.DragAction.COPY), (_MOVE, Gdk.DragAction.MOVE), (_LINK, Gdk.DragAction.LINK)):
+            if self.drag_operation & operation and offered & action:
+                return action
+        return context.get_suggested_action() if self.drag_operation else Gdk.DragAction(0)
+
+    def set_drag_operation(self, operation):
+        """CEF answers a drag_target_drag_over() later, from the renderer: tell GTK again what
+        the drop would do, or the answer to the motion that came before it is the one GTK keeps
+        (and a drag over a drop zone is refused)."""
+        self.drag_operation = operation
+        if self._drop_state == "entered" and self._drag_context is not None:
+            Gdk.drag_status(self._drag_context, self._gdk_action(self._drag_context), self._drag_time)
+
+    def _on_drag_motion(self, widget, context, x, y, time):
+        self._drag_context, self._drag_time = context, time
+        if self.browser is None:
+            return False
+        if self._drop_state is None:
+            target = self.drag_dest_find_target(context, None)
+            if target is None or target.name() == "NONE":
+                return False
+            self._drop_state = "asking"                 # GTK needs the data before CEF can be told
+            self.drag_get_data(context, target, time)
+        elif self._drop_state == "entered":
+            event = types.MouseEvent(int(x), int(y), 0)
+            ops = cef_operations(context.get_actions())
+            self._host(lambda h: h.drag_target_drag_over(event, ops))
+        Gdk.drag_status(context, self._gdk_action(context), time)
+        return True
+
+    def _on_drag_data_received(self, widget, context, x, y, selection, info, time):
+        if self._drop_state != "asking":
+            return
+        data = self._drag_data_of(selection)
+        if data is None:
+            self._drop_state = None
+            return
+        self._drop_state = "entered"
+        event = types.MouseEvent(int(x), int(y), 0)
+        ops = cef_operations(context.get_actions())
+        self._host(lambda h: h.drag_target_drag_enter(data, event, ops))
+        Gdk.drag_status(context, self._gdk_action(context), time)
+
+    @staticmethod
+    def _drag_data_of(selection):
+        data = cefweaver.DragData.create()
+        target = selection.get_target().name()
+        if target == "text/uri-list":
+            for uri in selection.get_uris() or []:
+                path = GLib.filename_from_uri(uri)[0] if uri.startswith("file://") else None
+                if path:
+                    data.add_file(path, os.path.basename(path))
+                else:
+                    data.set_link_url(uri)
+        elif target == "text/html":
+            data.set_fragment_html(bytes(selection.get_data()).decode("utf-8", "replace"))
+        else:
+            text = selection.get_text()
+            if text is None:
+                return None
+            data.set_fragment_text(text)
+        return data
+
+    def _on_drag_leave(self, widget, context, time):
+        # GTK sends drag-leave before drag-drop too: decide in an idle callback, after the drop
+        self._dropped = False
+        GLib.idle_add(self._finish_leave)
+
+    def _finish_leave(self):
+        if not self._dropped and self._drop_state in ("entered", "asking"):
+            if self._drop_state == "entered":
+                self._host(lambda h: h.drag_target_drag_leave())
+            self._drop_state = None
+            self.drag_operation = _COPY
+        return False
+
+    def _on_drag_drop(self, widget, context, x, y, time):
+        if self._drop_state != "entered":
+            return False
+        self._dropped = True
+        event = types.MouseEvent(int(x), int(y), 0)
+        ops = cef_operations(context.get_actions())
+        self._host(lambda h: (h.drag_target_drag_over(event, ops), h.drag_target_drop(event)))
+        self._drop_state = None
+        self._drag_context = None
+        Gtk.drag_finish(context, True, False, time)
+        return True
+
+    # -- drag and drop: out of the page ------------------------------------------------------------
+
+    def begin_drag(self, data, allowed_ops, x, y):
+        """CEF's start_dragging(): a GTK drag of what the page drags (text, a link, files, HTML)."""
+        text = data.get_fragment_text() or data.get_link_url()
+        uris = []
+        if data.is_file():
+            ok, paths = data.get_file_paths()
+            uris = [GLib.filename_to_uri(path) for path in paths] if ok else []
+        elif data.is_link():
+            uris = [data.get_link_url()]
+        html = data.get_fragment_html()
+        entries = []
+        if text:
+            entries += [Gtk.TargetEntry.new("text/plain", 0, 0), Gtk.TargetEntry.new("UTF8_STRING", 0, 3)]
+        if uris:
+            entries.append(Gtk.TargetEntry.new("text/uri-list", 0, 1))
+        if html:
+            entries.append(Gtk.TargetEntry.new("text/html", 0, 2))
+        if not entries:
+            return False
+        self._drag_out = dict(text=text, uris=uris, html=html, data=data)
+        actions = gdk_actions(allowed_ops) or Gdk.DragAction.COPY
+        context = self.drag_begin_with_coordinates(Gtk.TargetList.new(entries), actions, 1, None, int(x), int(y))
+        if context is None:
+            self._drag_out = None
+            return False
+        return True
+
+    def _on_drag_data_get(self, widget, context, selection, info, time):
+        out = self._drag_out
+        if out is None:
+            return
+        name = selection.get_target().name()
+        if name in ("text/plain", "UTF8_STRING"):
+            selection.set_text(out["text"], -1)
+        elif name == "text/uri-list":
+            selection.set_uris(out["uris"])
+        elif name == "text/html":
+            selection.set(selection.get_target(), 8, out["html"].encode("utf-8"))
+
+    def _on_drag_end(self, widget, context):
+        if self._drag_out is None:
+            return
+        self._drag_out = None
+        pointer = self.get_display().get_default_seat().get_pointer()
+        _, px, py = pointer.get_position()           # screen, x, y
+        window = self.get_window()
+        _, ox, oy = window.get_origin() if window is not None else (False, 0, 0)
+        operation = cef_operations(context.get_selected_action())
+        self._host(lambda h: (h.drag_source_ended_at(int(px - ox), int(py - oy), operation), h.drag_source_system_drag_ended()))

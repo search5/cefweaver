@@ -34,6 +34,10 @@ DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title
  <select id="fruit"><option>apple</option><option>banana</option><option>cherry</option></select>
  <a id="link" href="http://demo.test/other">a link</a></p>
 <div id="log">waiting for Python...</div>
+<p id="para">Selectable paragraph text</p>
+<p><textarea id="area" rows="2" cols="28" placeholder="paste here"></textarea>
+ <span id="src" draggable="true" style="display:inline-block;padding:6px;background:#fe9;border:1px solid #cb5">drag me</span>
+ <span id="zone" style="display:inline-block;padding:6px 20px;background:#9fe;border:1px solid #5cb">drop zone</span></p>
 <div class="tall">scroll me (device pixel ratio: <b id="dpr"></b>)</div>
 <script>
  function log(text) { document.getElementById("log").textContent += text + "\\n"; }
@@ -42,6 +46,15 @@ DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title
  appReady({dpr: window.devicePixelRatio, width: innerWidth, agent: navigator.userAgent})
    .then(function (answer) { document.getElementById("log").textContent = answer + "\\n"; });
  window.fromPython = function (message) { log("from Python: " + message); return message.length; };
+ window.drops = [];
+ document.getElementById("src").addEventListener("dragstart", function (e) { e.dataTransfer.setData("text/plain", "dragged-from-page"); });
+ var zone = document.getElementById("zone");
+ // a drop zone cancels dragenter as well as dragover (the HTML drag and drop rules)
+ ["dragenter", "dragover"].forEach(function (name) { zone.addEventListener(name, function (e) { e.preventDefault(); }); });
+ zone.addEventListener("drop", function (e) {
+   e.preventDefault();
+   window.drops.push({text: e.dataTransfer.getData("text/plain"), files: Array.prototype.map.call(e.dataTransfer.files, function (f) { return f.name; })});
+ });
  window.compositions = [];
  ["compositionstart", "compositionupdate", "compositionend"].forEach(function (name) {
    document.getElementById("text").addEventListener(name, function (e) { window.compositions.push(name + ":" + e.data); });

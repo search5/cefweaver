@@ -141,7 +141,7 @@ updated: 2026-10-08
 
 ## F67. GTK 3 예제
 
-실제 GTK 3 창에서 돌린 결과는 [GTK 3 예제](gtk3-example.md)에 있습니다. 요약: 19개 점검이 1배와 2배(HiDPI)에서 모두 통과했고, `on_after_created`에서 `CefApp`을 쓸 수 없던 결함을 고쳤으며, 뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않는 현상(원인 미확인, `notify_screen_info_changed()`로 우회)을 찾았습니다.
+실제 GTK 3 창에서 돌린 결과는 [GTK 3 예제](gtk3-example.md)에 있습니다. 요약: 27개 점검(복사와 붙여넣기, 드래그 앤 드롭 포함)이 1배와 2배(HiDPI)에서 모두 통과했고, `on_after_created`에서 `CefApp`을 쓸 수 없던 결함을 고쳤으며, 뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않는 현상(원인 미확인, `notify_screen_info_changed()`로 우회)을 찾았습니다.
 
 ## 관련 페이지
 

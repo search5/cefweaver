@@ -1,7 +1,9 @@
 """Runs the GTK 3 example for real on a (virtual) X display and checks what a user would see:
 the page is drawn, the mouse and the keys reach it, Hangul can be composed, the page calls
 Python and Python calls the page, a <select> popup is drawn, the wheel scrolls, links and
-history work, the window resizes the page, and everything shuts down.
+history work, the window resizes the page, copy, cut and paste go through the GTK clipboard,
+text and files are dropped on the page and elements of the page are dragged out of it and
+within it, and everything shuts down.
 
     xvfb-run -a uv run python smoke.py [screenshot-directory]      # GDK_SCALE=2 for a HiDPI run
 
@@ -209,6 +211,131 @@ except TimeoutError:
     raise
 check(js("innerWidth") == view.view_width, "resizing the window resizes the page", (js("innerWidth"), view.view_width))
 snapshot("8-resized")
+
+# 9. copy, cut and paste through the GTK clipboard
+clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+
+
+def clipboard_text(expected, timeout=5):
+    try:
+        spin(lambda: clipboard.wait_for_text() == expected, "the clipboard to hold %r" % expected, timeout)
+        return True
+    except TimeoutError:
+        return False
+
+
+window.resize(900, 700)
+settle(1.0)
+click("#text")
+xdo("key", "ctrl+a")
+xdo("type", "--delay", 40, "copy me")
+settle(0.4)
+xdo("key", "ctrl+a")
+settle(0.4)
+xdo("key", "ctrl+c")
+check(clipboard_text("copy me"), "Ctrl+C copies the selection of an input to the GTK clipboard", clipboard.wait_for_text())
+xdo("key", "ctrl+x")
+settle(0.5)
+check(js("document.getElementById('text').value") == "" and clipboard_text("copy me"), "Ctrl+X cuts it (the input is empty)",
+      js("document.getElementById('text').value"))
+clipboard.set_text("붙여넣기 text", -1)
+click("#area")
+xdo("key", "ctrl+v")
+settle(0.6)
+check(js("document.getElementById('area').value") == "붙여넣기 text", "Ctrl+V pastes the clipboard (Hangul too) into a textarea",
+      js("document.getElementById('area').value"))
+xdo("key", "ctrl+a")
+xdo("key", "BackSpace")
+settle(0.3)
+x, y = rect_of("#para")
+xdo("mousemove", *point(x, y))
+settle(0.1)
+xdo("click", "--repeat", 3, "--delay", 60, 1)
+settle(0.6)
+xdo("key", "ctrl+c")
+check(clipboard_text("Selectable paragraph text") or "Selectable paragraph text" in (clipboard.wait_for_text() or ""),
+      "Ctrl+C copies selected text of the page (not editable)", clipboard.wait_for_text())
+snapshot("9-clipboard")
+
+# 10. drag and drop. A drag source and a drop target of GTK sit under the page.
+import tempfile                                   # noqa: E402
+
+box = window.get_child()
+source = Gtk.EventBox()
+source.add(Gtk.Label(label="  drag text from GTK  "))
+source.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [Gtk.TargetEntry.new("text/plain", 0, 0)], Gdk.DragAction.COPY)
+source.connect("drag-data-get", lambda w, ctx, data, info, t: data.set_text("from-gtk", -1))
+file_source = Gtk.EventBox()
+file_source.add(Gtk.Label(label="  drag a file from GTK  "))
+file_source.drag_source_set(Gdk.ModifierType.BUTTON1_MASK, [Gtk.TargetEntry.new("text/uri-list", 0, 0)], Gdk.DragAction.COPY)
+temporary = tempfile.NamedTemporaryFile(suffix=".txt", prefix="dragged-", delete=False)
+temporary.write(b"file body")
+temporary.close()
+file_source.connect("drag-data-get", lambda w, ctx, data, info, t: data.set_uris([GLib.filename_to_uri(temporary.name)]))
+target = Gtk.Entry()
+target.set_placeholder_text("drop text from the page here")
+row = Gtk.Box(spacing=8)
+for widget in (source, file_source, target):
+    row.pack_start(widget, True, True, 4)
+box.pack_end(row, False, False, 6)
+row.show_all()
+settle(1.0)
+
+
+def center_of(widget):
+    """The middle of a widget in the device pixels of the X server (for xdotool)."""
+    allocation = widget.get_allocation()
+    top = widget.get_toplevel()
+    _, base_x, base_y = top.get_window().get_origin()
+    x, y = widget.translate_coordinates(top, allocation.width // 2, allocation.height // 2)
+    scale = widget.get_scale_factor()
+    return int((base_x + x) * scale), int((base_y + y) * scale)
+
+
+def drag(start, end):
+    """A real drag with the pointer: press, move in small steps (GTK starts a drag after a few pixels), release."""
+    xdo("mousemove", *start)
+    settle(0.2)
+    xdo("mousedown", 1)
+    settle(0.2)
+    sx, sy = start
+    ex, ey = end
+    for step in range(1, 13):
+        xdo("mousemove", sx + (ex - sx) * step // 12, sy + (ey - sy) * step // 12)
+        settle(0.08)
+    settle(0.3)
+    xdo("mouseup", 1)
+    settle(0.8)
+
+
+def zone_point():
+    x, y = rect_of("#zone")
+    return point(x, y)
+
+
+# 10a. text from GTK into the page
+js("window.drops = []")
+drag(center_of(source), zone_point())
+drops = js("window.drops")
+check(drops == [{"text": "from-gtk", "files": []}], "text dragged from GTK is dropped on the page", drops)
+# 10b. a file from GTK into the page
+js("window.drops = []")
+drag(center_of(file_source), zone_point())
+drops = js("window.drops")
+check(len(drops) == 1 and drops[0]["files"] == [os.path.basename(temporary.name)], "a file dragged from GTK is dropped on the page",
+      (drops, os.path.basename(temporary.name)))
+# 10c. an element of the page into a GTK widget
+x, y = rect_of("#src")
+drag(point(x, y), center_of(target))
+check(target.get_text() == "dragged-from-page", "an element dragged out of the page is dropped on a GTK entry", target.get_text())
+# 10d. an element of the page onto another place of the page
+js("window.drops = []")
+x, y = rect_of("#src")
+drag(point(x, y), zone_point())
+drops = js("window.drops")
+check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget is source and target)", drops)
+snapshot("10-dragged")
+os.unlink(temporary.name)
 
 # 9. shutdown
 done = []

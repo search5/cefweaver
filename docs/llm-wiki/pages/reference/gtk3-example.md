@@ -21,15 +21,17 @@ updated: 2026-10-08
 
 ## 확인한 것 (실제 GTK 창, Xvfb, 3번 연속과 HiDPI)
 
-`smoke.py`가 실제 X 이벤트(xdotool)로 구동해 19개를 점검하고 `ALL OK`로 끝납니다. 1배와 `GDK_SCALE=2` 모두 통과했습니다.
+`smoke.py`가 실제 X 이벤트(xdotool)로 구동해 27개를 점검하고 `ALL OK`로 끝납니다. 1배와 `GDK_SCALE=2` 모두 통과했고 1배는 3번 연속 통과했습니다.
 
 - 그림의 크기가 위젯과 같고(HiDPI에서는 장치 픽셀) 페이지의 `devicePixelRatio`가 화면 배율과 같습니다. 스크린샷으로 선명함을 확인했습니다.
 - 제목이 창에, 주소가 주소창에 반영되고 클릭으로 입력란에 포커스가 가며, 입력한 키와 BackSpace와 `Ctrl+A`가 입력란에 닿습니다.
 - 한글 조합(`set_preedit`)과 확정(`commit_text`)이 입력란에 들어가고 페이지가 `compositionupdate`를 봅니다.
 - 페이지가 Python을 부르고(`add(2, 3)`, `appReady`), Python이 페이지를 불러 값을 받습니다(`evaluate`).
 - `<select>`의 팝업이 그려지고 `Escape`로 닫힙니다. 휠이 스크롤하고, 링크 클릭으로 이동하면 주소창이 따라가며 뒤로 가기가 됩니다. 창 크기가 페이지 크기가 됩니다.
+- **복사, 잘라내기, 붙여넣기**: `Ctrl+C`가 입력란의 선택과 일반 문단의 선택을 GTK 클립보드에 넣고, `Ctrl+X`가 잘라내며, `Ctrl+V`가 GTK 클립보드의 텍스트(한글 포함)를 붙여 넣습니다. **위젯에 따로 쓴 코드는 없습니다.** 키 이벤트를 CEF에 그대로 전달하면 Chromium이 자체 클립보드(X11 선택)로 처리하고 그것이 GTK 클립보드와 오갑니다(구현 전에 통과해서 확인).
+- **드래그 앤 드롭** (실제 XDND, 마우스를 누른 채 움직임): GTK의 텍스트를 페이지에 떨어뜨림, GTK의 **파일**을 페이지에 떨어뜨림(`ondrop`의 `files`에 이름이 옴), 페이지의 `draggable` 요소를 GTK 입력란에 떨어뜨림, 페이지 안에서 끌어다 놓음(위젯이 원본이자 대상).
 - 창을 닫으면 브라우저가 닫히고 CEF가 종료됩니다.
-- 확인하지 못한 것: 실제 한글 입력기(ibus, fcitx)와의 동작(Xvfb에 없음), 복사와 붙여넣기, 드래그 앤 드롭, Wayland 네이티브 GTK.
+- 확인하지 못한 것: 실제 한글 입력기(ibus, fcitx)와의 동작(Xvfb에 없음), 서식이 있는(HTML) 붙여넣기와 이미지 복사, Wayland 네이티브 GTK.
 
 ## 발견한 것
 
@@ -37,6 +39,15 @@ updated: 2026-10-08
 2. **뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않음(원인 미확인, 우회 있음)**: 링크 클릭으로 이동했다가 뒤로 가면, 위젯과 CEF가 그리는 그림은 새 크기를 따르는데 페이지의 `innerWidth`는 이전 값(900)에 머뭅니다. `reload`한 페이지는 정상입니다. `disable-features=BackForwardCache`를 주면 사라집니다. 일반 `was_resized()`, 포커스 토글, `invalidate`는 소용없고 `notify_screen_info_changed()`와 `was_hidden(True)` 뒤 `was_hidden(False)`는 페이지를 깨웁니다. 그래서 위젯이 로딩이 끝날 때마다 `notify_screen_info_changed()`를 부릅니다. **GTK 없이 순수 cefweaver 오프스크린 스크립트에서는 재현되지 않았고**(포커스, 마우스 이동, 화면 정보, 브리지와 라우터, 대기 시간을 바꿔 가며 확인), 예제의 최소 재현(`클릭으로 이동 → 뒤로 → 창 크기 변경`)에서는 결정적입니다. 원인이 CEF인지 위젯인지 가르지 못했으므로 CEF의 한계로 적지 않습니다.
 3. **uv와 로컬 wheel**: wheel을 다시 만들면 `uv.lock`의 해시가 어긋나 `uv sync`가 멈춥니다(`--upgrade-package cefweaver`로 해결). PyGObject와 pycairo는 PyPI에서 소스 빌드로 설치되었고(`libgirepository-2.0-dev`, `libcairo2-dev` 필요) 약 5초 걸렸습니다.
 4. **HiDPI 좌표(시험 쪽)**: GTK는 논리 픽셀로, X 서버와 xdotool은 장치 픽셀로 셉니다. 위젯은 GTK의 논리 좌표를 그대로 CEF에 주면 맞고, 시험이 xdotool에 줄 때 배율을 곱해야 했습니다.
+
+## 드래그 앤 드롭에서 찾은 것
+
+OSR 수준의 시험(CEF의 `drag_target_*`와 `start_dragging`)이 통과해도 툴킷 쪽 번역이 맞는 것은 아니어서, 실제 GTK 드래그로 시험해서 위젯의 결함 둘을 찾았습니다.
+
+1. **CEF의 응답이 비동기**: `drag_target_drag_over`에 대한 `update_drag_cursor`(드롭 동작)는 렌더러에서 나중에 옵니다. 그 전의 응답(0)으로만 GTK에 알리면 드롭 영역 위에서도 GTK가 드롭을 거부합니다. 응답이 올 때 `Gdk.drag_status`를 다시 불러야 합니다(위젯의 `set_drag_operation`).
+2. **드래그 종료 처리의 오류가 CEF의 드래그 상태를 막음**: `drag-end`에서 예외가 나 `drag_source_ended_at`을 부르지 못하자 이어지는 드롭이 실패했습니다.
+
+또 GTK는 드롭 대상이 먼저 데이터를 요청해야 내용을 알 수 있어(`drag_get_data`), CEF에 `drag_target_drag_enter`를 부르기 전에 비동기로 받아야 하고, `drag-drop` 직전에도 `drag-leave`가 오므로 이탈과 드롭을 구분합니다. **페이지 쪽 규칙**으로, 드롭 영역은 `dragover`뿐 아니라 `dragenter`도 `preventDefault` 해야 합니다(다른 요소에서 들어와 영역으로 옮기는 드래그가 거부됨. CEF 직접 호출로 가려 확인).
 
 ## 관련 페이지
 
