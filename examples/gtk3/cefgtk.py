@@ -79,34 +79,23 @@ def cef_operations(actions):
     return ops
 
 
+_KEYS = ui.KeyTable({Gdk.keyval_from_name(name): code for name, code in _WINDOWS_KEYS.items()},
+                    function=ui.function_range(Gdk.KEY_F1),
+                    char=lambda keyval: chr(Gdk.keyval_to_unicode(keyval)) if Gdk.keyval_to_unicode(keyval) else None,
+                    others_as_code_point=True)
+_MODIFIERS = ui.MaskModifiers(
+    shift=Gdk.ModifierType.SHIFT_MASK, control=Gdk.ModifierType.CONTROL_MASK, alt=Gdk.ModifierType.MOD1_MASK,
+    left=Gdk.ModifierType.BUTTON1_MASK, middle=Gdk.ModifierType.BUTTON2_MASK, right=Gdk.ModifierType.BUTTON3_MASK)
+_CURSOR_NAMES = ui.CursorTable(_CURSORS, default=None)
+
+
 def windows_key_code(event):
     """The virtual key code of a GTK key event (letters and digits are their ASCII capitals)."""
-    name = Gdk.keyval_name(event.keyval) or ""
-    if name in _WINDOWS_KEYS:
-        return _WINDOWS_KEYS[name]
-    if name.startswith("F") and name[1:].isdigit() and 1 <= int(name[1:]) <= 12:
-        return keys.vk_for_function(int(name[1:]))
-    unicode_value = Gdk.keyval_to_unicode(event.keyval)
-    if unicode_value:
-        return ord(chr(unicode_value).upper()) if unicode_value < 128 else unicode_value
-    return 0
+    return _KEYS.code(event.keyval)
 
 
 def key_modifiers(state):
-    flags = 0
-    if state & Gdk.ModifierType.SHIFT_MASK:
-        flags |= SHIFT
-    if state & Gdk.ModifierType.CONTROL_MASK:
-        flags |= CONTROL
-    if state & Gdk.ModifierType.MOD1_MASK:
-        flags |= ALT
-    if state & Gdk.ModifierType.BUTTON1_MASK:
-        flags |= LEFT_BUTTON
-    if state & Gdk.ModifierType.BUTTON2_MASK:
-        flags |= MIDDLE_BUTTON
-    if state & Gdk.ModifierType.BUTTON3_MASK:
-        flags |= RIGHT_BUTTON
-    return flags
+    return _MODIFIERS.flags(state)
 
 
 class _Source:
@@ -330,7 +319,7 @@ class CefWidget(Gtk.DrawingArea):
     def set_cef_cursor(self, cursor):
         window = self.get_window()
         if window is not None:
-            name = _CURSORS.get(cursor)
+            name = _CURSOR_NAMES.get(cursor)
             window.set_cursor(Gdk.Cursor.new_from_name(window.get_display(), name) if name else None)
 
     def _on_size_allocate(self, widget, allocation):

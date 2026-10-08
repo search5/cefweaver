@@ -36,30 +36,18 @@ _CURSORS = {
 }
 
 
+_KEYTABLE = ui.KeyTable(_KEYS, function=ui.function_range(wx.WXK_F1),
+                        char=lambda code: chr(code) if 0x20 <= code < 0x7F else None)
+_MODIFIERS = ui.EventModifiers()
+_CURSOR_SHAPES = ui.CursorTable(_CURSORS, default=wx.CURSOR_ARROW)
+
+
 def windows_key_code(code):
-    if code in _KEYS:
-        return _KEYS[code]
-    if wx.WXK_F1 <= code <= wx.WXK_F12:
-        return keys.vk_for_function(code - wx.WXK_F1 + 1)
-    return keys.vk_for_char(chr(code)) if 0x20 <= code < 0x7F else 0
+    return _KEYTABLE.code(code)
 
 
 def modifier_flags(event):
-    flags = 0
-    if event.ShiftDown():
-        flags |= SHIFT
-    if event.ControlDown():
-        flags |= CONTROL
-    if event.AltDown():
-        flags |= ALT
-    if isinstance(event, wx.MouseEvent):
-        if event.LeftIsDown():
-            flags |= LEFT_BUTTON
-        if event.MiddleIsDown():
-            flags |= MIDDLE_BUTTON
-        if event.RightIsDown():
-            flags |= RIGHT_BUTTON
-    return flags
+    return _MODIFIERS.flags(event)
 
 
 class _Later:
@@ -117,7 +105,7 @@ class WxAdapter(WxLoop):
         self.p.present_frame(frame)
 
     def set_cursor(self, cursor):
-        self.p.SetCursor(wx.Cursor(_CURSORS.get(cursor, wx.CURSOR_ARROW)))
+        self.p.SetCursor(wx.Cursor(_CURSOR_SHAPES.get(cursor)))
 
     def clipboard_get(self):
         data = wx.TextDataObject()

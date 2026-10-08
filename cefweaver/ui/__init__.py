@@ -7,7 +7,9 @@ and calls the input methods of ``BrowserView`` from its events; ``Session`` runs
 
 from .adapter import DragPayload, Frame, ToolkitAdapter
 from .session import Session
+from .tables import CursorTable, EventModifiers, KeyTable, MaskModifiers, NamedModifiers, function_range
 from .view import BrowserView
 from . import keys
 
-__all__ = ["BrowserView", "DragPayload", "Frame", "Session", "ToolkitAdapter", "keys"]
+__all__ = ["BrowserView", "CursorTable", "DragPayload", "EventModifiers", "Frame", "KeyTable", "MaskModifiers",
+           "NamedModifiers", "Session", "ToolkitAdapter", "function_range", "keys"]

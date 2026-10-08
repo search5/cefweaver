@@ -45,29 +45,18 @@ _CURSORS = {
     types.CursorType.ROWRESIZE: "size_ns", types.CursorType.EASTWESTRESIZE: "size_we",
     types.CursorType.NORTHSOUTHRESIZE: "size_ns",
 }
+_KEYTABLE = ui.KeyTable(_KEYS, function=ui.function_range(_K["f1"]),
+                        char=lambda key: chr(key) if 0x20 <= key < 0x7F else None)
+_MODIFIERS = ui.NamedModifiers()
+_CURSOR_NAMES = ui.CursorTable(_CURSORS, default="arrow")
+
+
 def windows_key_code(key):
-    if key in _KEYS:
-        return _KEYS[key]
-    if _K["f1"] <= key <= _K["f1"] + 11:
-        return keys.vk_for_function(key - _K["f1"] + 1)
-    return keys.vk_for_char(chr(key)) if 0x20 <= key < 0x7F else 0
+    return _KEYTABLE.code(key)
 
 
 def modifier_flags(modifiers, buttons=()):
-    flags = 0
-    if "shift" in modifiers:
-        flags |= SHIFT
-    if "ctrl" in modifiers:
-        flags |= CONTROL
-    if "alt" in modifiers:
-        flags |= ALT
-    if "left" in buttons:
-        flags |= LEFT_BUTTON
-    if "middle" in buttons:
-        flags |= MIDDLE_BUTTON
-    if "right" in buttons:
-        flags |= RIGHT_BUTTON
-    return flags
+    return _MODIFIERS.flags(modifiers, buttons)
 
 
 class KivyLoop:
@@ -116,7 +105,7 @@ class KivyAdapter(KivyLoop):
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
-        Window.set_system_cursor(_CURSORS.get(cursor, "arrow"))
+        Window.set_system_cursor(_CURSOR_NAMES.get(cursor))
 
     def clipboard_get(self):
         return Clipboard.paste()

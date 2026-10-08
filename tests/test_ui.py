@@ -646,6 +646,56 @@ class Keys(unittest.TestCase):
                          (types.EventFlags.LEFT_MOUSE_BUTTON, types.EventFlags.MIDDLE_MOUSE_BUTTON, types.EventFlags.RIGHT_MOUSE_BUTTON))
 
 
+class Tables(unittest.TestCase):
+    def test_a_key_table_gives_the_virtual_key_code_of_a_toolkit_key(self):
+        table = ui.KeyTable({"Left": keys.VK_LEFT, "Return": keys.VK_RETURN},
+                            function=lambda name: int(name[1:]) if name[0] == "F" and name[1:].isdigit() else None,
+                            char=lambda name: name if len(name) == 1 else None)
+        self.assertEqual(table.code("Left"), keys.VK_LEFT)       # a special key
+        self.assertEqual(table.code("F5"), keys.vk_for_function(5))
+        self.assertEqual((table.code("a"), table.code("5")), (65, 53))   # the key of a character
+        self.assertEqual(table.code("Menu"), 0)                  # unknown
+        self.assertEqual(table.code("F13"), 0)                   # not a function key CEF knows
+
+    def test_a_key_table_can_give_the_code_point_of_a_letter_that_has_no_virtual_key(self):
+        table = ui.KeyTable({}, char=lambda key: key, others_as_code_point=True)
+        self.assertEqual((table.code("a"), table.code("한")), (65, ord("한")))
+        self.assertEqual(ui.KeyTable({}, char=lambda key: key).code("한"), 0)
+
+    def test_a_function_key_range_is_a_function(self):
+        function = ui.function_range(100)                    # the key code of F1 in some toolkit
+        self.assertEqual((function(100), function(111), function(99), function(112)), (1, 12, None, None))
+
+    def test_modifiers_from_masks(self):
+        table = ui.MaskModifiers(shift=1, control=4, alt=8, left=0x100, right=0x400)
+        self.assertEqual(table.flags(1 | 4), keys.SHIFT | keys.CONTROL)
+        self.assertEqual(table.flags(8 | 0x100 | 0x400), keys.ALT | keys.LEFT_BUTTON | keys.RIGHT_BUTTON)
+        self.assertEqual(table.flags(0), 0)
+        self.assertEqual(ui.MaskModifiers(shift=1).flags(4), 0)                       # a modifier the toolkit does not have
+
+    def test_modifiers_and_buttons_from_two_sources(self):
+        table = ui.MaskModifiers(shift=1, control=4, left=0x1)
+        self.assertEqual(table.flags(4, buttons=0x1), keys.CONTROL | keys.LEFT_BUTTON)
+
+    def test_modifiers_from_names(self):
+        table = ui.NamedModifiers()
+        self.assertEqual(table.flags(["ctrl", "shift"], buttons={"left"}), keys.CONTROL | keys.SHIFT | keys.LEFT_BUTTON)
+
+    def test_modifiers_from_an_event(self):
+        class Event:
+            def ShiftDown(self): return True
+            def ControlDown(self): return False
+            def AltDown(self): return True
+            def LeftIsDown(self): return False
+            def MiddleIsDown(self): return True
+            def RightIsDown(self): return False
+        self.assertEqual(ui.EventModifiers().flags(Event()), keys.SHIFT | keys.ALT | keys.MIDDLE_BUTTON)
+
+    def test_a_cursor_table_has_a_default(self):
+        table = ui.CursorTable({types.CursorType.HAND: "hand2"}, default="arrow")
+        self.assertEqual((table.get(types.CursorType.HAND), table.get(types.CursorType.WAIT)), ("hand2", "arrow"))
+
+
 class Navigation(unittest.TestCase):
     def test_navigation_goes_to_the_browser(self):
         view, _, calls = make_view()

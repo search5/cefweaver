@@ -27,6 +27,9 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 | `Session(adapter, switches, cache_path)` | `CefApp`, `JavascriptBridge`, `MessagePump`. CEF의 깨움을 `adapter.post`로, 기한을 `adapter.call_later`로 받아 폴링 없이 돌립니다. `start(view, url)`, `shutdown(done)` |
 | `Frame` | `present()`가 받는 그림: `kind`(`VIEW`, `POPUP`, `POPUP_HIDDEN`), `width`, `height`, `buffer`(BGRA, 호출 동안만 유효), `dirty_rects`, 팝업은 `rect` |
 | `keys` | CEF 이벤트 플래그(`SHIFT`, `CONTROL`, `ALT`, 단추)와 가상 키 코드(`VK_*`), `vk_for_char`, `vk_for_function` |
+| `KeyTable`, `function_range` | 툴킷 키의 가상 키 코드: 특수 키 표, 기능 키 범위(`function_range(첫 기능 키 코드)`), 문자 키(`char`), 가상 키가 없는 글자는 코드 포인트(`others_as_code_point`) |
+| `MaskModifiers`, `NamedModifiers`, `EventModifiers` | 툴킷의 수정 키와 단추 상태를 CEF 플래그로: 비트 마스크(GTK, Tk, SDL2, Qt), 이름 목록(Kivy), 이벤트에 묻기(wx). 단추가 따로 오는 툴킷은 `flags(state, buttons)` |
+| `CursorTable` | `types.CursorType`에 대한 툴킷의 커서와 기본값 |
 | `headless.HeadlessAdapter` | 툴킷 없는 어댑터: 자체 루프(`run_until`, `run_for`), 마지막 그림 보관, `save_png`, `pixel` |
 
 ## 툴킷이 부르는 입력

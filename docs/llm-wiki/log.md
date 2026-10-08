@@ -311,3 +311,7 @@
 ## [2026-10-08] ingest | 여섯 예제를 cefweaver.ui로 이식 완료
 
 - GTK 3(663줄에서 555), Tk(464에서 326), SDL2(547에서 405), Kivy(530에서 333), wx(547에서 369), Qt(573에서 458)로 위젯 파일이 줄었고, 각 예제의 점검은 바꾸지 않고 통과했습니다(Qt는 PyQt6, PySide6, 배율 1과 2). 이식 중 라이브러리에 더한 것: `commit_text()`, `DragPayload.x/y`, 드래그 시작 시 `drag_operation` 초기화. Qt의 붙여넣기는 이제 일반 텍스트만 다룹니다.
+
+## [2026-10-08] ingest | 키, 수정 키, 커서 표를 객체로 (cefweaver.ui)
+
+- 여섯 위젯이 각자 갖던 `windows_key_code`, `modifier_flags`, 커서 사전 조회를 `KeyTable`, `MaskModifiers`/`NamedModifiers`/`EventModifiers`, `CursorTable`로 올렸습니다. 위젯에는 툴킷의 이름 표만 남습니다. 여섯 예제의 점검은 바뀌지 않고 통과합니다.

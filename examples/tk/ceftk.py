@@ -42,30 +42,19 @@ _CURSORS = {
 }
 
 
+_KEYTABLE = ui.KeyTable(_KEYS,
+                        function=lambda name: int(name[1:]) if name.startswith("F") and name[1:].isdigit() else None,
+                        char=lambda name: name if len(name) == 1 else None)
+_MODIFIERS = ui.MaskModifiers(shift=0x1, control=0x4, alt=0x8, left=0x100, middle=0x200, right=0x400)
+_CURSOR_NAMES = ui.CursorTable(_CURSORS, default="arrow")
+
+
 def windows_key_code(event):
-    name = event.keysym
-    if name in _KEYS:
-        return _KEYS[name]
-    if name.startswith("F") and name[1:].isdigit() and 1 <= int(name[1:]) <= 12:
-        return keys.vk_for_function(int(name[1:]))
-    return keys.vk_for_char(name) if len(name) == 1 else 0
+    return _KEYTABLE.code(event.keysym)
 
 
 def modifier_flags(state):
-    flags = 0
-    if state & 0x1:
-        flags |= SHIFT
-    if state & 0x4:
-        flags |= CONTROL
-    if state & 0x8:
-        flags |= ALT
-    if state & 0x100:
-        flags |= LEFT_BUTTON
-    if state & 0x200:
-        flags |= MIDDLE_BUTTON
-    if state & 0x400:
-        flags |= RIGHT_BUTTON
-    return flags
+    return _MODIFIERS.flags(state)
 
 
 class _After:
@@ -161,7 +150,7 @@ class TkAdapter:
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
-        self.w.configure(cursor=_CURSORS.get(cursor, "arrow"))
+        self.w.configure(cursor=_CURSOR_NAMES.get(cursor))
 
     def clipboard_get(self):
         try:

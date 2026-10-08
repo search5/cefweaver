@@ -60,33 +60,23 @@ _CURSORS = {
 _COPY, _LINK, _MOVE = types.DragOperationsMask.COPY, types.DragOperationsMask.LINK, types.DragOperationsMask.MOVE
 
 
+_KEYTABLE = ui.KeyTable({int(qt_key): code for qt_key, code in _KEYS.items()},
+                        function=ui.function_range(int(Qt.Key.Key_F1)),
+                        char=lambda key: chr(key) if 0x20 <= key < 0x7F else None)    # Qt's letters are the capitals
+_MODIFIERS = ui.MaskModifiers(
+    shift=Qt.KeyboardModifier.ShiftModifier, control=Qt.KeyboardModifier.ControlModifier,
+    alt=Qt.KeyboardModifier.AltModifier, left=Qt.MouseButton.LeftButton, middle=Qt.MouseButton.MiddleButton,
+    right=Qt.MouseButton.RightButton)
+_CURSOR_SHAPES = ui.CursorTable(_CURSORS, default=Qt.CursorShape.ArrowCursor)
+
+
 def windows_key_code(key):
     """The virtual key code of a Qt key (letters and digits are their ASCII capitals)."""
-    key = int(key)
-    for qt_key, code in _KEYS.items():
-        if int(qt_key) == key:
-            return code
-    if int(Qt.Key.Key_F1) <= key <= int(Qt.Key.Key_F12):
-        return keys.vk_for_function(key - int(Qt.Key.Key_F1) + 1)
-    return key if 0x20 <= key < 0x7F else 0
+    return _KEYTABLE.code(int(key))
 
 
-def modifier_flags(modifiers, buttons=None):
-    flags = 0
-    if modifiers & Qt.KeyboardModifier.ShiftModifier:
-        flags |= SHIFT
-    if modifiers & Qt.KeyboardModifier.ControlModifier:
-        flags |= CONTROL
-    if modifiers & Qt.KeyboardModifier.AltModifier:
-        flags |= ALT
-    if buttons is not None:
-        if buttons & Qt.MouseButton.LeftButton:
-            flags |= LEFT_BUTTON
-        if buttons & Qt.MouseButton.MiddleButton:
-            flags |= MIDDLE_BUTTON
-        if buttons & Qt.MouseButton.RightButton:
-            flags |= RIGHT_BUTTON
-    return flags
+def modifier_flags(modifiers, buttons=Qt.MouseButton.NoButton):
+    return _MODIFIERS.flags(modifiers, buttons)
 
 
 def drop_actions(ops):
@@ -189,7 +179,7 @@ class QtAdapter:
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
-        self.w.setCursor(QCursor(_CURSORS.get(cursor, Qt.CursorShape.ArrowCursor)))
+        self.w.setCursor(QCursor(_CURSOR_SHAPES.get(cursor)))
 
     def set_ime_rect(self, x, y, width, height):         # where the candidate window goes
         self.w.cursor_rect = QRect(x, y, width, height)

@@ -54,29 +54,19 @@ _CURSORS = {
 }
 
 
+_KEYTABLE = ui.KeyTable(_KEYS, function=ui.function_range(sdl2.SDLK_F1),
+                        char=lambda sym: chr(sym) if 0x20 <= sym < 0x7F else None)
+_MODIFIERS = ui.MaskModifiers(shift=sdl2.KMOD_SHIFT, control=sdl2.KMOD_CTRL, alt=sdl2.KMOD_ALT,
+                              left=sdl2.SDL_BUTTON_LMASK, middle=sdl2.SDL_BUTTON_MMASK, right=sdl2.SDL_BUTTON_RMASK)
+_CURSOR_SHAPES = ui.CursorTable(_CURSORS, default=sdl2.SDL_SYSTEM_CURSOR_ARROW)
+
+
 def windows_key_code(sym):
-    if sym in _KEYS:
-        return _KEYS[sym]
-    if sdl2.SDLK_F1 <= sym <= sdl2.SDLK_F12:
-        return keys.vk_for_function(sym - sdl2.SDLK_F1 + 1)
-    return keys.vk_for_char(chr(sym)) if 0x20 <= sym < 0x7F else 0
+    return _KEYTABLE.code(sym)
 
 
 def modifier_flags(mod, buttons=0):
-    flags = 0
-    if mod & sdl2.KMOD_SHIFT:
-        flags |= SHIFT
-    if mod & sdl2.KMOD_CTRL:
-        flags |= CONTROL
-    if mod & sdl2.KMOD_ALT:
-        flags |= ALT
-    if buttons & sdl2.SDL_BUTTON_LMASK:
-        flags |= LEFT_BUTTON
-    if buttons & sdl2.SDL_BUTTON_MMASK:
-        flags |= MIDDLE_BUTTON
-    if buttons & sdl2.SDL_BUTTON_RMASK:
-        flags |= RIGHT_BUTTON
-    return flags
+    return _MODIFIERS.flags(mod, buttons)
 
 
 class _Timer:
@@ -191,7 +181,7 @@ class SdlBrowser:
         self._dirty = True
 
     def set_cursor(self, cursor):
-        shape = _CURSORS.get(cursor, sdl2.SDL_SYSTEM_CURSOR_ARROW)
+        shape = _CURSOR_SHAPES.get(cursor)
         if shape not in self._cursors:
             self._cursors[shape] = sdl2.SDL_CreateSystemCursor(shape)
         sdl2.SDL_SetCursor(self._cursors[shape])
