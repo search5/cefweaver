@@ -23,6 +23,13 @@ def generate_outputs():
     return generate.OUTPUTS
 
 
+def generated_text(key):
+    """What the generator makes under `key`; the outputs made of several files ("pxi", "types") as one text."""
+    import generate
+    files = generate.build_all(CEF_ROOT)
+    return generate.whole(files, key) if key in generate.SPLIT else files[key]
+
+
 HAS_HEADERS = os.path.isfile(os.path.join(CEF_ROOT, "include", "cef_version.h"))
 
 
@@ -460,8 +467,7 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("class PdfPrintCallback:", stub)
         self.assertIn("def on_pdf_print_finished(self, path: str, ok: bool) -> None:", stub)
         self.assertIn("def print_to_pdf(self, path: str, settings: PdfPrintSettings | tuple[", stub)
-        with open(generate_outputs()["types"], encoding="utf-8") as f:
-            types_text = f.read()
+        types_text = generated_text("types")
         self.assertIn("class PdfPrintSettings(NamedTuple):", types_text)
         self.assertIn("    page_ranges: str = \"\"\n", types_text)
         self.assertIn("    scale: float = 0.0\n", types_text)
@@ -575,8 +581,7 @@ class WithHeaders(unittest.TestCase):
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
-        with open(files["pxi"], encoding="utf-8") as f:
-            self.assertIn("PyBUF_READ", f.read())
+        self.assertIn("PyBUF_READ", generated_text("pxi"))
         with open(files["pyi"], encoding="utf-8") as f:
             stub = f.read()
         self.assertIn("class RenderHandler:", stub)
@@ -636,8 +641,7 @@ class WithHeaders(unittest.TestCase):
     # -- forwarding, which lets the wrapper observe an event and still call the user -----
 
     def generated(self, key):
-        import generate
-        return generate.build_all(CEF_ROOT)[key]
+        return generated_text(key)
 
     def test_a_forwarder_is_generated_for_every_handler(self):
         header = self.generated("proxies")
@@ -800,8 +804,7 @@ class WithHeaders(unittest.TestCase):
 
     def test_the_new_structs_are_in_the_types_module_and_the_stub(self):
         files = generate_outputs()
-        with open(files["types"], encoding="utf-8") as f:
-            types_text = f.read()
+        types_text = generated_text("types")
         self.assertIn("class KeyEvent(NamedTuple):", types_text)
         self.assertIn("    type: KeyEventType = 0\n", types_text)
         self.assertIn("    x_set: int = 0\n", types_text)
@@ -1057,9 +1060,25 @@ class WithHeaders(unittest.TestCase):
             self.assertTrue(reason, cname)
 
     def generated_types(self):
-        namespace = {}
-        exec(compile(self.generated("types"), "types.py", "exec"), namespace)
-        return namespace
+        """The generated `types` package, imported from a copy in a temporary directory."""
+        import importlib
+        import tempfile
+        import generate
+        files = generate.build_all(CEF_ROOT)
+        directory = tempfile.mkdtemp()
+        package = os.path.join(directory, "cefweaver_types_under_test")
+        os.makedirs(package)
+        for key, text in files.items():
+            if key == "types" or key.startswith("types:"):
+                name = "__init__.py" if key == "types" else key.split(":", 1)[1]
+                with open(os.path.join(package, name), "w", encoding="utf-8") as f:
+                    f.write(text)
+        sys.path.insert(0, directory)
+        try:
+            module = importlib.import_module("cefweaver_types_under_test")
+        finally:
+            sys.path.remove(directory)
+        return vars(module)
 
     def test_the_types_module_defines_enumerations_and_value_types(self):
         import enum
@@ -1283,10 +1302,11 @@ class WithHeaders(unittest.TestCase):
         import generate
         files = generate.build_all(CEF_ROOT)
         for key, text in files.items():
-            path = generate.OUTPUTS[key]
+            path = generate.output_path(key)
             with open(path, encoding="utf-8", newline="") as f:
                 self.assertEqual(f.read(), text,
                                  "%s is out of date: run python tools/gen/generate.py" % path)
+        self.assertEqual(generate.stale_files(files), [], "files that are no output any more: run python tools/gen/generate.py")
 
     def test_generation_is_deterministic(self):
         import generate

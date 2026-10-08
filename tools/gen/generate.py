@@ -31,13 +31,46 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 OUTPUTS = {
     "proxies": os.path.join(ROOT, "native", "cefwrapper", "generated", "cefweaver_proxies.h"),
     "pxd": os.path.join(ROOT, "cefweaver", "cef_api.pxd"),
-    "pxi": os.path.join(ROOT, "cefweaver", "cef_api.pxi"),
+    "pxi": os.path.join(ROOT, "cefweaver", "cef_api.pxi"),  # the index; the parts are in SPLIT["pxi"]
     "pyi": os.path.join(ROOT, "cefweaver", "_cefweaver.pyi"),
-    "types": os.path.join(ROOT, "cefweaver", "types.py"),
+    "types": os.path.join(ROOT, "cefweaver", "types", "__init__.py"),  # the index; see SPLIT["types"]
     # A page of the wiki (docs/llm-wiki); the front matter field `generated: true` exempts it
     # from the page length check of the wiki lint.
     "coverage": os.path.join(ROOT, "docs", "llm-wiki", "pages", "reference", "coverage-report.md"),
 }
+# Outputs made of several files: the directory of the parts and their extension. `build_all` has the index
+# under the key ("pxi") and every part under "pxi:<file name>"; a file in the directory that is no part
+# is stale (a class that went away) and --check reports it.
+SPLIT = {
+    "pxi": (os.path.join(ROOT, "cefweaver", "api"), ".pxi"),
+    "types": (os.path.join(ROOT, "cefweaver", "types"), ".py"),
+}
+
+
+def output_path(key):
+    """The file of a key of `build_all`: "pxi" is the index, "pxi:cef_browser.pxi" a part."""
+    group, _, name = key.partition(":")
+    return os.path.join(SPLIT[group][0], name) if name else OUTPUTS[group]
+
+
+def whole(files, group):
+    """The text of a split output as one: the index and then the parts (for tests and for reading)."""
+    keys = [group] + sorted(k for k in files if k.startswith(group + ":"))
+    return "\n".join(files[k] for k in keys)
+
+
+def stale_files(files):
+    """Files in the directories of the split outputs that `files` does not produce any more."""
+    wanted = {os.path.normpath(output_path(k)) for k in files}
+    stale = []
+    for group, (directory, extension) in SPLIT.items():
+        if not os.path.isdir(directory):
+            continue
+        for name in sorted(os.listdir(directory)):
+            path = os.path.normpath(os.path.join(directory, name))
+            if name.endswith(extension) and path not in wanted:
+                stale.append(path)
+    return stale
 
 
 def cef_version(cef_root):
@@ -104,12 +137,16 @@ def build_all(cef_root):
     files = {
         "proxies": emit_cpp.emit(model, scope, plans_by_class, banner),
         "pxd": emit_cython.emit_pxd(model, scope, plans_by_class, function_plans, banner),
-        "pxi": emit_cython.emit_pxi(model, scope, plans_by_class, function_plans, banner),
         "pyi": emit_pyi.emit(model, scope, plans_by_class, function_plans, handwritten, banner),
-        "types": emit_types.emit(model, banner),
         "coverage": coverage_page(build_report(model, scope, Scope.everything(model)),
                                   cef_version(cef_root)),
     }
+    pxi = emit_cython.emit_pxi(model, scope, plans_by_class, function_plans, banner)
+    files["pxi"] = pxi.pop("index")
+    files.update(("pxi:" + name, text) for name, text in pxi.items())
+    types = emit_types.emit(model, banner)
+    files["types"] = types.pop("__init__.py")
+    files.update(("types:" + name, text) for name, text in types.items())
     return files
 
 
@@ -127,7 +164,7 @@ def main():
     files = build_all(args.cef_root)
     stale = []
     for key, text in files.items():
-        path = OUTPUTS[key]
+        path = output_path(key)
         current = None
         if os.path.exists(path):
             with open(path, encoding="utf-8", newline="") as f:
@@ -138,6 +175,10 @@ def main():
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8", newline="\n") as f:
                     f.write(text)
+    for path in stale_files(files):
+        stale.append(os.path.relpath(path, ROOT))
+        if not args.check:
+            os.remove(path)
     if args.check:
         if stale:
             sys.exit("out of date (run python tools/gen/generate.py): " + ", ".join(stale))
