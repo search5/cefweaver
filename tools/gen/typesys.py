@@ -297,6 +297,15 @@ SIZED_BUFFERS = {
 }
 # The item count of the methods above is the length of the buffer: not given to Python.
 IGNORED_PARAMS = {("CefReadHandler", "Read", "n"), ("CefWriteHandler", "Write", "n")}
+# Parameters java-cef does not pass to Java (the floor of the API is java-cef's, and java-cef
+# stops there): of a popup only the URL and the frame name, of a cursor change only its type,
+# of a certificate error not the ssl_info.
+IGNORED_PARAMS |= {("CefLifeSpanHandler", "OnBeforePopup", name) for name in (
+    "popup_id", "target_disposition", "user_gesture", "popupFeatures", "windowInfo", "client",
+    "settings", "extra_info", "no_javascript_access")}
+IGNORED_PARAMS |= {("CefDisplayHandler", "OnCursorChange", "cursor"),
+                   ("CefDisplayHandler", "OnCursorChange", "custom_cursor_info"),
+                   ("CefRequestHandler", "OnCertificateError", "ssl_info")}
 CLAMPED_RETURNS = {("CefReadHandler", "Read"): "n", ("CefWriteHandler", "Write"): "n"}
 
 # Library methods with `ptr, size, n` (fread/fwrite): "in" copies bytes in, "out" fills them.
@@ -428,8 +437,10 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                 i += 2
                 continue
             if client_side and (owner, method.get_name(), name) in IGNORED_PARAMS:
+                # still declared as the header does (a reference, a pointer, const)
                 plan.params.append(ParamPlan(name, py_param_name(name), analysis.get_type(),
-                                             Ignored()))
+                                             Ignored(), const=analysis.is_const(),
+                                             byref=analysis.is_byref(), byaddr=analysis.is_byaddr()))
                 i += 1
                 continue
             if client_side and analysis.get_type() == "CefEventHandle":

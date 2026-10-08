@@ -21,11 +21,10 @@ updated: 2026-10-08
 
 ## 바닥의 격차 (java-cef는 열고 우리는 아직 안 연 것)
 
-시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 78개입니다.
+시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 76개입니다.
 
 | 묶음 | 항목 | 필요한 것 |
 | --- | --- | --- |
-| 작은 인자 처리 | `LifeSpanHandler.OnBeforePopup`, `DisplayHandler.OnCursorChange`, `RequestHandler.OnCertificateError`의 `ssl_info` | java-cef가 Java로 넘기지 않는 인자를 무시(`target_url`과 `target_frame_name`만, 커서는 종류만) |
 | 헤더 맵 | `Request.GetHeaderMap`/`SetHeaderMap`/`Set`, `Response.GetHeaderMap`/`SetHeaderMap` | 멀티맵 ↔ `dict` |
 | 창 핸들 | `BrowserHost.GetWindowHandle` | 플랫폼 핸들 ↔ 정수 |
 | 콜백과 방문자 | `Frame.GetSource`/`GetText`(문자열 방문자), `BrowserHost.RunFileDialog`, `PrintToPDF`(PDF 설정 구조체), `AddDevToolsMessageObserver`(+관찰자, `Registration`) | 클래스 추가, 문자열이 있는 구조체 |
@@ -34,6 +33,10 @@ updated: 2026-10-08
 | URL 요청 | `CefURLRequest`(5), `CefURLRequestClient`(5) | 클래스 추가 |
 | 요청 컨텍스트 | `CefRequestContext`(3), `CefRequestContextHandler`(1) | 설정 구조체, 값 컨테이너(이미 있음) |
 | 기타 | `CefCommandLine`(12), `CefSchemeRegistrar`(1), 앱 훅(명령줄 처리, 사용자 스킴 등록) | 맵(`GetSwitches`), 클래스 추가 |
+
+### 메운 격차
+
+- 팝업(`OnBeforePopup`), 커서 변경(`OnCursorChange`), 인증서 오류의 `ssl_info`: java-cef가 넘기지 않는 인자를 무시하는 규칙으로([검증](verified-findings.md) F46).
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 

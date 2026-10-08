@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 191개(통합 93, 생성기 97, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 196개(통합 95, 생성기 100, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -43,6 +43,7 @@ updated: 2026-10-08
 | `ApiWithoutCef` | `test_binary_values_take_and_give_bytes` | `BinaryValue.create`와 `get_data`: 바이트열 종류, 오프셋, 남은 것보다 큰 요청, 빈 데이터는 `None`, 잘못된 인자(`TypeError`, 음수는 `OverflowError`), 리스트에 넣은 뒤 소유권 |
 | `ApiWithoutCef` | `test_streams_read_and_write_bytes_in_items`, `test_python_objects_can_be_the_source_and_the_sink_of_a_stream`, `test_a_zip_reader_reads_a_file_of_the_archive` | 파일 스트림의 항목 단위 읽기와 쓰기(항목 크기, 부분 읽기, 끝, `seek`), 메모리 스트림, Python의 `ReadHandler`와 `WriteHandler`, `zipfile`로 만든 ZIP의 파일 읽기와 열린 파일이 없을 때의 `RuntimeError` |
 | `ApiWithoutCef` | `test_a_request_carries_post_data_made_of_bytes` | `PostDataElement.set_to_bytes`/`get_bytes`(크기가 앞인 규약, 부분, 남은 것보다 큰 요청, 잘못된 인자), `PostData`와 `Request.set_post_data`로 왕복 |
+| `WithCef` | `test_the_life_span_handler_decides_about_a_popup_from_its_url_and_name`, `test_the_display_handler_gets_the_cursor_type` | `on_before_popup(browser, frame, target_url, target_frame_name)`가 `True`면 `window.open`이 `null`, `False`면 두 번째 브라우저가 생김, 마우스를 `cursor:pointer` 위로 옮기면 `on_cursor_change`가 `CursorType.HAND`를 받음 |
 | `WithCef` | `test_the_request_handler_can_cancel_a_navigation`, `test_the_resource_request_handler_sees_and_can_cancel_resources`, `test_the_router_and_the_users_request_handler_both_get_the_navigation` | `on_before_browse`가 `True`면 페이지가 로드되지 않음, `get_resource_request_handler`가 돌려준 핸들러의 `on_before_resource_load`가 이미지를 취소하고 `on_resource_load_complete`가 상태와 바이트 수를 줌, 메시지 라우터와 사용자의 핸들러가 한 탐색을 나눠 받음(사용자가 취소하면 질의가 열려 있음) |
 | `WithCef` | `test_the_keyboard_handler_sees_key_events_before_the_page`, `test_the_print_handler_sees_the_start_the_settings_and_the_reset` | 오프스크린에서 보낸 키 이벤트가 `on_pre_key_event`로 먼저 옴(`KeyEvent`), `host.print()`의 `on_print_start`, `on_print_settings`(`PrintSettings`), `on_print_reset` |
 | `WithCef` | `test_the_focus_handler_sees_the_focus_of_the_browser`, `test_javascript_dialogs_are_answered_by_the_handler`, `test_the_file_dialog_gets_the_files_from_the_handler`, `test_a_download_is_saved_where_the_handler_says` | `set_focus`가 `on_set_focus`(`FocusSource`)와 `on_got_focus`로 감, `alert`/`confirm`/`prompt`에 핸들러가 답함, 파일 입력을 눌러 핸들러가 고른 파일이 페이지에 들어감, 첨부 파일이 핸들러가 정한 경로에 저장됨 |

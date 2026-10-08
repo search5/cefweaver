@@ -6642,6 +6642,14 @@ class DisplayHandler:
         """
         return None
 
+    def on_cursor_change(self, browser, type):
+        """Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
+        |custom_cursor_info| will be populated with the custom cursor information.
+        Return true if the cursor change was handled or false for default
+        handling.
+        """
+        return False
+
     def on_media_access_change(self, browser, has_video_access, has_audio_access):
         """Called when the browser's access to an audio and/or video source has
         changed.
@@ -6743,6 +6751,15 @@ cdef void _DisplayHandler_on_loading_progress_change(void* py, CefBrowser* brows
     except BaseException:
         _g_report()
 
+cdef cpp_bool _DisplayHandler_on_cursor_change(void* py, CefBrowser* browser, int type) noexcept with gil:
+    try:
+        _r = (<object>py).on_cursor_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.CursorType, type))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 cdef void _DisplayHandler_on_media_access_change(void* py, CefBrowser* browser, cpp_bool has_video_access, cpp_bool has_audio_access) noexcept with gil:
     try:
         _r = (<object>py).on_media_access_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), has_video_access, has_audio_access)
@@ -6799,6 +6816,8 @@ cdef CefRefPtr[CefDisplayHandler] _g_make_DisplayHandler(object obj) except *:
         cb.fn_on_auto_resize = _DisplayHandler_on_auto_resize
     if getattr(cls, "on_loading_progress_change", None) is not DisplayHandler.on_loading_progress_change:
         cb.fn_on_loading_progress_change = _DisplayHandler_on_loading_progress_change
+    if getattr(cls, "on_cursor_change", None) is not DisplayHandler.on_cursor_change:
+        cb.fn_on_cursor_change = _DisplayHandler_on_cursor_change
     if getattr(cls, "on_media_access_change", None) is not DisplayHandler.on_media_access_change:
         cb.fn_on_media_access_change = _DisplayHandler_on_media_access_change
     if getattr(cls, "on_contents_bounds_change", None) is not DisplayHandler.on_contents_bounds_change:
@@ -7227,6 +7246,51 @@ class LifeSpanHandler:
     indicated.
     """
 
+    def on_before_popup(self, browser, frame, target_url, target_frame_name):
+        """Called on the UI thread before a new popup browser is created. The
+        |browser| and |frame| values represent the source of the popup request
+        (opener browser and frame). The |popup_id| value uniquely identifies the
+        popup in the context of the opener browser. The |target_url| and
+        |target_frame_name| values indicate where the popup browser should
+        navigate and may be empty if not specified with the request. The
+        |target_disposition| value indicates where the user intended to open the
+        popup (e.g. current tab, new tab, etc). The |user_gesture| value will be
+        true if the popup was opened via explicit user gesture (e.g. clicking a
+        link) or false if the popup opened automatically (e.g. via the
+        DomContentLoaded event). The |popupFeatures| structure contains additional
+        information about the requested popup window. To allow creation of the
+        popup browser optionally modify |windowInfo|, |client|, |settings| and
+        |no_javascript_access| and return false. To cancel creation of the popup
+        browser return true. The |client| and |settings| values will default to
+        the source browser's values. If the |no_javascript_access| value is set to
+        false the new browser will not be scriptable and may not be hosted in the
+        same renderer process as the source browser. Any modifications to
+        |windowInfo| will be ignored if the parent browser is wrapped in a
+        CefBrowserView. The |extra_info| parameter provides an opportunity to
+        specify extra information specific to the created popup browser that will
+        be passed to CefRenderProcessHandler::OnBrowserCreated() in the render
+        process.
+
+        If popup browser creation succeeds then OnAfterCreated will be called for
+        the new popup browser. If popup browser creation fails, and if the opener
+        browser has not yet been destroyed, then OnBeforePopupAborted will be
+        called for the opener browser. See OnBeforePopupAborted documentation for
+        additional details.
+
+        A default popup window is created if this method returns false without
+        setting a parent window handle via CefWindowInfo (for native-hosted
+        popups), or without implementing
+        CefBrowserViewDelegate::OnPopupBrowserViewCreated (for Views-hosted
+        popups). The default popup window type depends on the parent browser
+        configuration:
+        - Views-hosted parent: Creates a Views-hosted popup window.
+        - Native-hosted Alloy style parent: Creates a native popup window.
+        - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
+          default; set CefSettings.use_views_default_popup to true to instead
+          create a Views-hosted popup window.
+        """
+        return False
+
     def on_before_popup_aborted(self, browser, popup_id):
         """Called on the UI thread if a new popup browser is aborted. This only
         occurs if the popup is allowed in OnBeforePopup and creation fails before
@@ -7375,6 +7439,15 @@ class LifeSpanHandler:
         return None
 
 
+cdef cpp_bool _LifeSpanHandler_on_before_popup(void* py, CefBrowser* browser, CefFrame* frame, const CefString* target_url, const CefString* target_frame_name) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_popup(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_str(target_url[0]), _g_str(target_frame_name[0]))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 cdef void _LifeSpanHandler_on_before_popup_aborted(void* py, CefBrowser* browser, int popup_id) noexcept with gil:
     try:
         _r = (<object>py).on_before_popup_aborted(_wrap_Browser(CefRefPtr[CefBrowser](browser)), popup_id)
@@ -7415,6 +7488,8 @@ cdef CefRefPtr[CefLifeSpanHandler] _g_make_LifeSpanHandler(object obj) except *:
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "on_before_popup", None) is not LifeSpanHandler.on_before_popup:
+        cb.fn_on_before_popup = _LifeSpanHandler_on_before_popup
     if getattr(cls, "on_before_popup_aborted", None) is not LifeSpanHandler.on_before_popup_aborted:
         cb.fn_on_before_popup_aborted = _LifeSpanHandler_on_before_popup_aborted
     if getattr(cls, "on_after_created", None) is not LifeSpanHandler.on_after_created:
@@ -8261,7 +8336,7 @@ class RequestHandler:
         """
         return False
 
-    def on_certificate_error(self, browser, cert_error, request_url, ssl_info, callback):
+    def on_certificate_error(self, browser, cert_error, request_url, callback):
         """Called on the UI thread to handle requests for URLs with an invalid
         SSL certificate. Return true and call CefCallback methods either in this
         method or at a later time to continue or cancel the request. Return false
@@ -8359,9 +8434,9 @@ cdef cpp_bool _RequestHandler_get_auth_credentials(void* py, CefBrowser* browser
         _g_report()
         return 0
 
-cdef cpp_bool _RequestHandler_on_certificate_error(void* py, CefBrowser* browser, int cert_error, const CefString* request_url, CefSSLInfo* ssl_info, CefCallback* callback) noexcept with gil:
+cdef cpp_bool _RequestHandler_on_certificate_error(void* py, CefBrowser* browser, int cert_error, const CefString* request_url, CefCallback* callback) noexcept with gil:
     try:
-        _r = (<object>py).on_certificate_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.ErrorCode, cert_error), _g_str(request_url[0]), _wrap_SSLInfo(CefRefPtr[CefSSLInfo](ssl_info)), _wrap_Callback(CefRefPtr[CefCallback](callback)))
+        _r = (<object>py).on_certificate_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.ErrorCode, cert_error), _g_str(request_url[0]), _wrap_Callback(CefRefPtr[CefCallback](callback)))
         _r0 = _r
         return _r0
     except BaseException:

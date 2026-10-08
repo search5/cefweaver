@@ -51,6 +51,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_context_menu_type_flags_t:
         pass
+    ctypedef enum cef_cursor_type_t:
+        pass
     ctypedef enum cef_download_interrupt_reason_t:
         pass
     ctypedef enum cef_drag_operations_mask_t:
@@ -1047,6 +1049,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) noexcept
         cpp_bool (*fn_on_auto_resize)(void*, CefBrowser*, const CefSize*) noexcept
         void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) noexcept
+        cpp_bool (*fn_on_cursor_change)(void*, CefBrowser*, int) noexcept
         void (*fn_on_media_access_change)(void*, CefBrowser*, cpp_bool, cpp_bool) noexcept
         cpp_bool (*fn_on_contents_bounds_change)(void*, CefBrowser*, const CefRect*) noexcept
         cpp_bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
@@ -1093,6 +1096,7 @@ cdef extern from "generated/cefweaver_proxies.h":
     cdef cppclass CwLifeSpanHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
+        cpp_bool (*fn_on_before_popup)(void*, CefBrowser*, CefFrame*, const CefString*, const CefString*) noexcept
         void (*fn_on_before_popup_aborted)(void*, CefBrowser*, int) noexcept
         void (*fn_on_after_created)(void*, CefBrowser*) noexcept
         cpp_bool (*fn_do_close)(void*, CefBrowser*) noexcept
@@ -1167,7 +1171,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_on_open_url_from_tab)(void*, CefBrowser*, CefFrame*, const CefString*, int, cpp_bool) noexcept
         CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, cpp_bool, cpp_bool, const CefString*, cpp_bool*) noexcept
         cpp_bool (*fn_get_auth_credentials)(void*, CefBrowser*, const CefString*, cpp_bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) noexcept
-        cpp_bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefSSLInfo*, CefCallback*) noexcept
+        cpp_bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefCallback*) noexcept
         void (*fn_on_render_view_ready)(void*, CefBrowser*) noexcept
         cpp_bool (*fn_on_render_process_unresponsive)(void*, CefBrowser*, CefUnresponsiveProcessCallback*) noexcept
         void (*fn_on_render_process_responsive)(void*, CefBrowser*) noexcept

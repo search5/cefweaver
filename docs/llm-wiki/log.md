@@ -164,3 +164,7 @@
 ## [2026-10-08] schema | java-cef의 목록을 바닥으로 삼는다
 
 - 사용자의 결정: java-cef가 여는 것은 바닥(java-cef의 동작에 맞춰 모두 구현), 그보다 더 연 것은 닫지 않고 위키에 정리. 범위를 java-cef 안으로 줄이려던 작업은 중단하고 되돌렸습니다. `tools/gen/surface.py`(java-cef의 네이티브 코드에서 뽑은 목록)와 `derive_surface.py`, 보고서의 격차와 바닥 위 절, 격차를 고정하는 시험을 더했습니다. 격차는 389개 가운데 78개입니다.
+
+## [2026-10-08] ingest | 격차 메우기 1: java-cef가 넘기지 않는 인자의 무시
+
+- `OnBeforePopup`(URL과 프레임 이름만), `OnCursorChange`(종류만), `OnCertificateError`(`ssl_info` 없이)를 java-cef의 방식으로 열었습니다. F46. 격차 78개에서 76개.

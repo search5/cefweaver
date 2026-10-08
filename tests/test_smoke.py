@@ -2326,6 +2326,57 @@ class WithCef(unittest.TestCase):
         """)
 
 
+    def test_the_life_span_handler_decides_about_a_popup_from_its_url_and_name(self):
+        self.run_query_script(prelude=self.SITE_SCRIPT, body="""
+            asked = []
+            class Life2(Life):
+                def on_before_popup(self, browser, frame, target_url, target_frame_name):
+                    asked.append((frame.is_main(), target_url, target_frame_name))
+                    return target_url.endswith("/denied")           # True cancels the popup
+            class Client2(MyClient):
+                def __init__(self):
+                    self.life = Life2()
+            MyClient = Client2
+            start_site()
+            app.add_resource(SITE + "/denied", "<p>no</p>")
+            app.add_resource(SITE + "/granted", "<p>yes</p>")
+            app.execute_javascript("report('denied', window.open('%s/denied', 'one') === null)" % SITE)
+            wait_until(app, lambda: any(r[0] == "denied" for r in js), "the first popup")
+            assert ("denied", True) in js, js                      # the popup was canceled
+            app.execute_javascript("report('granted', window.open('%s/granted', 'two') === null)" % SITE)
+            wait_until(app, lambda: len(boxes) == 2 and ("granted", False) in js,
+                       "the second browser")
+            assert asked == [(True, SITE + "/denied", "one"), (True, SITE + "/granted", "two")], asked
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_display_handler_gets_the_cursor_type(self):
+        self.run_osr_script("""
+            kinds = []
+            class Display(cefweaver.DisplayHandler):
+                def on_cursor_change(self, browser, type):
+                    kinds.append(type)
+                    return False                      # CEF changes the cursor
+            class Client2(MyClient):
+                def get_display_handler(self):
+                    return self.display
+                def __init__(self):
+                    super().__init__()
+                    self.display = Display()
+            MyClient = Client2
+            start('<div style="position:fixed;left:0;top:0;width:200px;height:100px;'
+                  'cursor:pointer"></div>')
+            host = boxes[0].get_host()
+            def move():
+                host.send_mouse_move_event((50, 50, 0), False)
+            send_until(app, move, lambda: types.CursorType.HAND in kinds, "the hand cursor")
+            assert all(isinstance(k, types.CursorType) for k in kinds), kinds
+            app.shutdown()
+            print("OK")
+        """)
+
+
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))
               and os.environ.get("CEFWEAVER_TEST_WAYLAND") == "1")
 

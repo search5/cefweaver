@@ -186,6 +186,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **java-cef와의 비교**(소스 확인): 날짜는 `java.util.Date`로 바꾸는 한 방향이고 밀리초로 줄입니다. 스트림은 드래그 데이터의 `GetFileContents`용 `WriteHandler` 하나뿐입니다.
 - **영향**: 열린 메서드가 늘었고(타입 지원 92%) `void*` 때문에 막힌 것은 일부러 제외한 9개로 줄었습니다([바이트열과 시간](bytes-and-times.md)).
 
+## F46. java-cef가 넘기지 않는 인자의 무시 (팝업, 커서, 인증서 오류)
+
+- **방법**: java-cef가 Java로 넘기는 인자만 Python으로 넘기고 나머지는 무시(`IGNORED_PARAMS`)하도록 하고, 창 있는 브라우저에서 `window.open`과 오프스크린에서 커서 변경을 시험했습니다.
+- **결과**:
+  - `on_before_popup(browser, frame, target_url, target_frame_name)`가 `True`를 돌려주면 팝업이 취소되고 `window.open`이 `null`이며, `False`면 팝업이 열립니다. 오프스크린 브라우저는 사용자 핸들러를 부르지 않고 막습니다(java-cef와 같음).
+  - `on_cursor_change(browser, type)`이 `CursorType` 멤버로 옵니다(`cursor:pointer` 위에서 `HAND`).
+  - `on_certificate_error(browser, cert_error, request_url, callback)`는 `ssl_info` 없이 생성됩니다(실행은 TLS 서버가 필요해 확인하지 않음).
+- **발견**: 무시하는 인자도 C++ 쪽에서는 헤더와 똑같이 선언해야 해서(`CefWindowInfo&`, `bool*`, `const CefCursorInfo&`) `Ignored`가 참조, 포인터, const를 보존합니다.
+- **영향**: 바닥의 격차 3개가 메워졌습니다([java-cef 동등성](java-cef-parity.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

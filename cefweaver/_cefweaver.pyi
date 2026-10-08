@@ -96,6 +96,7 @@ from .types import (
     ContextMenuMediaStateFlags,
     ContextMenuMediaType,
     ContextMenuTypeFlags,
+    CursorType,
     DownloadInterruptReason,
     DragOperationsMask,
     DuplexMode,
@@ -2695,6 +2696,13 @@ class DisplayHandler:
         ranges from 0.0 to 1.0.
         """
         ...
+    def on_cursor_change(self, browser: Browser, type: CursorType) -> bool:
+        """Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
+        |custom_cursor_info| will be populated with the custom cursor information.
+        Return true if the cursor change was handled or false for default
+        handling.
+        """
+        ...
     def on_media_access_change(self, browser: Browser, has_video_access: bool, has_audio_access: bool) -> None:
         """Called when the browser's access to an audio and/or video source has
         changed.
@@ -2868,6 +2876,50 @@ class LifeSpanHandler:
     methods of this class will be called on the UI thread unless otherwise
     indicated.
     """
+    def on_before_popup(self, browser: Browser, frame: Frame, target_url: str, target_frame_name: str) -> bool:
+        """Called on the UI thread before a new popup browser is created. The
+        |browser| and |frame| values represent the source of the popup request
+        (opener browser and frame). The |popup_id| value uniquely identifies the
+        popup in the context of the opener browser. The |target_url| and
+        |target_frame_name| values indicate where the popup browser should
+        navigate and may be empty if not specified with the request. The
+        |target_disposition| value indicates where the user intended to open the
+        popup (e.g. current tab, new tab, etc). The |user_gesture| value will be
+        true if the popup was opened via explicit user gesture (e.g. clicking a
+        link) or false if the popup opened automatically (e.g. via the
+        DomContentLoaded event). The |popupFeatures| structure contains additional
+        information about the requested popup window. To allow creation of the
+        popup browser optionally modify |windowInfo|, |client|, |settings| and
+        |no_javascript_access| and return false. To cancel creation of the popup
+        browser return true. The |client| and |settings| values will default to
+        the source browser's values. If the |no_javascript_access| value is set to
+        false the new browser will not be scriptable and may not be hosted in the
+        same renderer process as the source browser. Any modifications to
+        |windowInfo| will be ignored if the parent browser is wrapped in a
+        CefBrowserView. The |extra_info| parameter provides an opportunity to
+        specify extra information specific to the created popup browser that will
+        be passed to CefRenderProcessHandler::OnBrowserCreated() in the render
+        process.
+
+        If popup browser creation succeeds then OnAfterCreated will be called for
+        the new popup browser. If popup browser creation fails, and if the opener
+        browser has not yet been destroyed, then OnBeforePopupAborted will be
+        called for the opener browser. See OnBeforePopupAborted documentation for
+        additional details.
+
+        A default popup window is created if this method returns false without
+        setting a parent window handle via CefWindowInfo (for native-hosted
+        popups), or without implementing
+        CefBrowserViewDelegate::OnPopupBrowserViewCreated (for Views-hosted
+        popups). The default popup window type depends on the parent browser
+        configuration:
+        - Views-hosted parent: Creates a Views-hosted popup window.
+        - Native-hosted Alloy style parent: Creates a native popup window.
+        - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
+          default; set CefSettings.use_views_default_popup to true to instead
+          create a Views-hosted popup window.
+        """
+        ...
     def on_before_popup_aborted(self, browser: Browser, popup_id: int) -> None:
         """Called on the UI thread if a new popup browser is aborted. This only
         occurs if the popup is allowed in OnBeforePopup and creation fails before
@@ -3321,7 +3373,7 @@ class RequestHandler:
         request immediately.
         """
         ...
-    def on_certificate_error(self, browser: Browser, cert_error: ErrorCode, request_url: str, ssl_info: SSLInfo, callback: Callback) -> bool:
+    def on_certificate_error(self, browser: Browser, cert_error: ErrorCode, request_url: str, callback: Callback) -> bool:
         """Called on the UI thread to handle requests for URLs with an invalid
         SSL certificate. Return true and call CefCallback methods either in this
         method or at a later time to continue or cancel the request. Return false

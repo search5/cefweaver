@@ -186,7 +186,13 @@ bool CefWrapperClientHandler::OnBeforePopup(
     CefRefPtr<CefClient>& client, CefBrowserSettings& settings,
     CefRefPtr<CefDictionaryValue>& extra_info, bool* no_javascript_access) {
   CEF_REQUIRE_UI_THREAD();
-  return browser->GetHost()->IsWindowRenderingDisabled();  // true cancels the popup
+  if (browser->GetHost()->IsWindowRenderingDisabled()) {
+    return true;  // true cancels the popup: an offscreen browser has no window for it
+  }
+  // The user's handler decides (java-cef's too): true cancels the popup.
+  return CwLifeSpanHandlerForward::OnBeforePopup(
+      browser, frame, popup_id, target_url, target_frame_name, target_disposition, user_gesture,
+      popupFeatures, windowInfo, client, settings, extra_info, no_javascript_access);
 }
 
 bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {

@@ -624,6 +624,13 @@ class CwDisplayHandlerForward : public CefDisplayHandler {
     forward_display_handler_->OnLoadingProgressChange(browser, progress);
   }
 
+  bool OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::OnCursorChange(browser, cursor, type, custom_cursor_info);
+    }
+    return forward_display_handler_->OnCursorChange(browser, cursor, type, custom_cursor_info);
+  }
+
   void OnMediaAccessChange(CefRefPtr<CefBrowser> browser, bool has_video_access, bool has_audio_access) override {
     if (!forward_display_handler_) {
       CefDisplayHandler::OnMediaAccessChange(browser, has_video_access, has_audio_access);
@@ -659,6 +666,7 @@ struct CwDisplayHandlerCallbacks {
   bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) = nullptr;
   bool (*fn_on_auto_resize)(void*, CefBrowser*, const CefSize*) = nullptr;
   void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) = nullptr;
+  bool (*fn_on_cursor_change)(void*, CefBrowser*, int) = nullptr;
   void (*fn_on_media_access_change)(void*, CefBrowser*, bool, bool) = nullptr;
   bool (*fn_on_contents_bounds_change)(void*, CefBrowser*, const CefRect*) = nullptr;
   bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) = nullptr;
@@ -745,6 +753,14 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
       return;
     }
     cb_.fn_on_loading_progress_change(cb_.py, browser.get(), progress);
+  }
+
+  bool OnCursorChange(CefRefPtr<CefBrowser> browser, CefCursorHandle cursor, cef_cursor_type_t type, const CefCursorInfo& custom_cursor_info) override {
+    if (!cb_.fn_on_cursor_change) {
+      return CefDisplayHandler::OnCursorChange(browser, cursor, type, custom_cursor_info);
+    }
+    bool result = cb_.fn_on_cursor_change(cb_.py, browser.get(), static_cast<int>(type));
+    return result;
   }
 
   void OnMediaAccessChange(CefRefPtr<CefBrowser> browser, bool has_video_access, bool has_audio_access) override {
@@ -1150,6 +1166,13 @@ class CwLifeSpanHandlerForward : public CefLifeSpanHandler {
   CefRefPtr<CefLifeSpanHandler> forward_life_span_handler_;
 
  public:
+  bool OnBeforePopup(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int popup_id, const CefString& target_url, const CefString& target_frame_name, WindowOpenDisposition target_disposition, bool user_gesture, const CefPopupFeatures& popupFeatures, CefWindowInfo& windowInfo, CefRefPtr<CefClient>& client, CefBrowserSettings& settings, CefRefPtr<CefDictionaryValue>& extra_info, bool* no_javascript_access) override {
+    if (!forward_life_span_handler_) {
+      return CefLifeSpanHandler::OnBeforePopup(browser, frame, popup_id, target_url, target_frame_name, target_disposition, user_gesture, popupFeatures, windowInfo, client, settings, extra_info, no_javascript_access);
+    }
+    return forward_life_span_handler_->OnBeforePopup(browser, frame, popup_id, target_url, target_frame_name, target_disposition, user_gesture, popupFeatures, windowInfo, client, settings, extra_info, no_javascript_access);
+  }
+
   void OnBeforePopupAborted(CefRefPtr<CefBrowser> browser, int popup_id) override {
     if (!forward_life_span_handler_) {
       CefLifeSpanHandler::OnBeforePopupAborted(browser, popup_id);
@@ -1185,6 +1208,7 @@ class CwLifeSpanHandlerForward : public CefLifeSpanHandler {
 struct CwLifeSpanHandlerCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  bool (*fn_on_before_popup)(void*, CefBrowser*, CefFrame*, const CefString*, const CefString*) = nullptr;
   void (*fn_on_before_popup_aborted)(void*, CefBrowser*, int) = nullptr;
   void (*fn_on_after_created)(void*, CefBrowser*) = nullptr;
   bool (*fn_do_close)(void*, CefBrowser*) = nullptr;
@@ -1198,6 +1222,14 @@ class CwLifeSpanHandlerProxy : public CefLifeSpanHandler {
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  bool OnBeforePopup(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int popup_id, const CefString& target_url, const CefString& target_frame_name, WindowOpenDisposition target_disposition, bool user_gesture, const CefPopupFeatures& popupFeatures, CefWindowInfo& windowInfo, CefRefPtr<CefClient>& client, CefBrowserSettings& settings, CefRefPtr<CefDictionaryValue>& extra_info, bool* no_javascript_access) override {
+    if (!cb_.fn_on_before_popup) {
+      return CefLifeSpanHandler::OnBeforePopup(browser, frame, popup_id, target_url, target_frame_name, target_disposition, user_gesture, popupFeatures, windowInfo, client, settings, extra_info, no_javascript_access);
+    }
+    bool result = cb_.fn_on_before_popup(cb_.py, browser.get(), frame.get(), &target_url, &target_frame_name);
+    return result;
   }
 
   void OnBeforePopupAborted(CefRefPtr<CefBrowser> browser, int popup_id) override {
@@ -2077,7 +2109,7 @@ struct CwRequestHandlerCallbacks {
   bool (*fn_on_open_url_from_tab)(void*, CefBrowser*, CefFrame*, const CefString*, int, bool) = nullptr;
   CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, bool, bool, const CefString*, bool*) = nullptr;
   bool (*fn_get_auth_credentials)(void*, CefBrowser*, const CefString*, bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) = nullptr;
-  bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefSSLInfo*, CefCallback*) = nullptr;
+  bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefCallback*) = nullptr;
   void (*fn_on_render_view_ready)(void*, CefBrowser*) = nullptr;
   bool (*fn_on_render_process_unresponsive)(void*, CefBrowser*, CefUnresponsiveProcessCallback*) = nullptr;
   void (*fn_on_render_process_responsive)(void*, CefBrowser*) = nullptr;
@@ -2137,7 +2169,7 @@ class CwRequestHandlerProxy : public CefRequestHandler {
     if (!cb_.fn_on_certificate_error) {
       return CefRequestHandler::OnCertificateError(browser, cert_error, request_url, ssl_info, callback);
     }
-    bool result = cb_.fn_on_certificate_error(cb_.py, browser.get(), static_cast<int>(cert_error), &request_url, ssl_info.get(), callback.get());
+    bool result = cb_.fn_on_certificate_error(cb_.py, browser.get(), static_cast<int>(cert_error), &request_url, callback.get());
     return result;
   }
 

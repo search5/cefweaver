@@ -354,10 +354,8 @@ class WithHeaders(unittest.TestCase):
         "CefDevToolsMessageObserver": None, "CefDragData": None, "CefRequestContext": None,
         "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
         "CefURLRequestClient": None,
-        "CefDisplayHandler": ["OnCursorChange"],
         "CefDragHandler": ["OnDragEnter"],
         "CefFrame": ["GetSource", "GetText"],
-        "CefLifeSpanHandler": ["OnBeforePopup"],
         "CefRenderHandler": ["StartDragging"],
         "CefRequest": ["GetHeaderMap", "Set", "SetHeaderMap"],
         "CefResourceRequestHandler": ["GetCookieAccessFilter"],
@@ -384,6 +382,29 @@ class WithHeaders(unittest.TestCase):
                       + list(self.model.classes[name].get_static_funcs())}
             if name not in ("CefBrowser", "CefBrowserHost", "CefFrame", "CefClient"):
                 self.assertTrue(methods & header, name)  # it opens something that exists
+
+    def test_arguments_java_cef_does_not_pass_are_left_out(self):
+        # java-cef gives Java the URL and the frame name of a popup, the cursor type, and the
+        # certificate error without its ssl_info: the rest is not given to Python.
+        plan = self.plan("CefLifeSpanHandler", "OnBeforePopup")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "frame", "target_url",
+                                                      "target_frame_name"])
+        plan = self.plan("CefDisplayHandler", "OnCursorChange")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "type"])
+        plan = self.plan("CefRequestHandler", "OnCertificateError")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertNotIn("ssl_info", [p.name for p in plan.ins])
+        stub = self.generated("pyi")
+        self.assertIn("def on_before_popup(self, browser: Browser, frame: Frame, target_url: str, "
+                      "target_frame_name: str) -> bool:", stub)
+        self.assertIn("def on_cursor_change(self, browser: Browser, type: CursorType) -> bool:", stub)
+        with open(generate_outputs()["proxies"], encoding="utf-8") as f:
+            header = f.read()
+        # the C++ side still declares every parameter of the CEF method
+        self.assertIn("CefWindowInfo& windowInfo", header)
+        self.assertIn("bool* no_javascript_access", header)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
