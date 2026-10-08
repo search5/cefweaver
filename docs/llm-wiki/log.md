@@ -303,3 +303,7 @@
 ## [2026-10-08] ingest | cefweaver.ui (UI 어댑터 2단계)
 
 - `BrowserView`, `ToolkitAdapter`, `Session`, `keys`, `HeadlessAdapter`를 구현했습니다. 단위 시험 47개와 실제 브라우저 시험 1개를 더해 시험은 352개입니다. 새 페이지 `ui-api.md`, F70(`get_file_name` 중단 관찰 포함), `ui-adapter-design.md`에 구현 상태를 적었습니다.
+
+## [2026-10-08] ingest | GTK 3 예제를 cefweaver.ui로 이식 (3단계)
+
+- `examples/gtk3/cefgtk.py`를 `GtkAdapter`, `GlibLoop`, `CefWidget`(이벤트 전달)으로 바꿔 663줄에서 555줄로 줄였고, 점검 27개가 바뀌지 않고 통과했습니다(1배 3번, 배율 2). 라이브러리에는 `commit_text()`, `DragPayload.x/y`, 드래그 시작 시 `drag_operation` 초기화를 더했습니다. 배율 2의 드래그 점검은 화면이 작으면 실패하며(이식 전도 같음) 2560x2048 화면에서 통과합니다.

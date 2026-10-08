@@ -43,9 +43,13 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 - 로딩이 끝나면 `notify_screen_info_changed()`를 부릅니다([F67](verified-findings-handlers.md)).
 - `leave`는 한 박자 미루고(GTK는 놓기 직전에 `leave`를 보냄), 한꺼번에 오는 드롭은 `dragover`의 답(`update_drag_cursor`)을 기다린 뒤 놓되 0.5초가 한계입니다([F69](verified-findings-handlers.md)).
 
+## 이식 결과 (3단계)
+
+GTK 3 예제를 이 API 위로 옮겼고([GTK 3 예제](gtk3-example.md)) 기존 점검 27개가 하나도 바뀌지 않고 통과했습니다. 인터페이스에서 고친 것 셋: `BrowserView.commit_text()`(입력기가 확정한 글자는 ASCII 한 글자도 입력기 경로로. `text()`는 한 글자를 키로 만듦), `DragPayload`의 시작 위치 `x`, `y`, 새 드래그가 시작할 때 `drag_operation`을 복사로 되돌리기. 또 `Session`이 툴킷에 요구하는 것은 `post`와 `call_later`뿐이라 위젯(과 그 어댑터)이 생기기 전에 CEF를 만들 수 있습니다(`GlibLoop`).
+
 ## 아직 하지 않은 것
 
-- 여섯 예제를 이 API로 이식하기(계획의 3단계). 이식으로 인터페이스의 결함이 드러날 수 있습니다.
+- 나머지 다섯 예제(Qt, Tk, SDL2, wx, Kivy)를 이 API로 이식하기.
 - 한 세션에 브라우저 하나만 다룹니다.
 - 툴킷별 공식 어댑터는 패키지에 넣지 않았습니다(`examples/`에 둘 예정).
 

@@ -3,6 +3,7 @@ title: GTK 3 예제 (오프스크린 위젯)
 type: reference
 sources:
   - examples/gtk3/cefgtk.py
+  - cefweaver/ui/view.py
   - examples/gtk3/browser.py
   - examples/gtk3/smoke.py
   - examples/gtk3/pyproject.toml
@@ -16,12 +17,14 @@ updated: 2026-10-08
 
 ## 구성
 
+**`cefweaver.ui` 위에 있습니다**([UI 어댑터 API](ui-api.md)). 핸들러, 이벤트 조립, 클릭 횟수, 입력기 호출, 드래그 앤 드롭의 순서는 `BrowserView`가 맡고, 이 파일은 GTK가 해야 하는 일만 합니다(663줄에서 555줄). 아래 `Runtime`은 `ui.Session`의 얇은 하위 클래스입니다.
+
 - **`Runtime`**: `CefApp` 하나, `JavascriptBridge`, `MessagePump`를 만들고 GLib 메인 루프에 잇습니다. `MessagePump`의 `wake`(CEF의 어느 스레드에서나 불림)는 `GLib.idle_add`로, 기한은 `GLib.timeout_add`로 받으므로 폴링이 없습니다([F62](verified-findings-handlers.md)).
 - **`CefWidget`**: `on_paint`의 BGRA 버퍼를 더러운 사각형의 행만 `bytearray`에 복사해 cairo `ImageSurface`(ARGB32)로 그립니다. HiDPI는 `set_device_scale`로 맞춥니다. 팝업(`<select>`)은 두 번째 표면으로 그립니다. 마우스, 휠, 키는 GTK 이벤트를 CEF 이벤트로 바꾸고(`windows_key_code` 표, 수정자, `RAWKEYDOWN`/`CHAR`/`KEYUP`), 한글은 `Gtk.IMMulticontext`의 `commit`과 `preedit-changed`를 `ime_commit_text`와 `ime_set_composition`으로 잇습니다. `on_ime_composition_range_changed`의 글자 경계로 입력기의 후보 창 위치를 정합니다.
 
 ## 확인한 것 (실제 GTK 창, Xvfb, 3번 연속과 HiDPI)
 
-`smoke.py`가 실제 X 이벤트(xdotool)로 구동해 27개를 점검하고 `ALL OK`로 끝납니다. 1배와 `GDK_SCALE=2` 모두 통과했고 1배는 3번 연속 통과했습니다.
+`smoke.py`가 실제 X 이벤트(xdotool)로 구동해 27개를 점검하고 `ALL OK`로 끝납니다. 1배와 `GDK_SCALE=2` 모두 통과했고 1배는 3번 연속 통과했습니다. **`cefweaver.ui` 위로 옮긴 뒤에도 점검을 하나도 바꾸지 않고 같은 27개가 통과했습니다**(1배 3번과 배율 2). 배율 2는 창이 장치 픽셀로 1280x1024 화면을 넘으므로 `xvfb-run -s "-screen 0 2560x2048x24"`로 실행합니다(작은 화면에서는 아래쪽 드래그 원본 위젯이 화면 밖에 놓여 드래그 점검 3개가 실패했고, 이식 전의 위젯도 같았습니다).
 
 - 그림의 크기가 위젯과 같고(HiDPI에서는 장치 픽셀) 페이지의 `devicePixelRatio`가 화면 배율과 같습니다. 스크린샷으로 선명함을 확인했습니다.
 - 제목이 창에, 주소가 주소창에 반영되고 클릭으로 입력란에 포커스가 가며, 입력한 키와 BackSpace와 `Ctrl+A`가 입력란에 닿습니다.
