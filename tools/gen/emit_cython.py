@@ -17,7 +17,7 @@ from emit_cpp import (field_name, table_in_types, table_out_type, table_param_ty
                       table_ret_type)
 from model import py_class_name, py_method_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Void
+from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -26,7 +26,9 @@ _BUILTIN_CY = {
 
 
 def cy_c(cpp):
-    """A C++ type as Cython spells it in declarations (also `bool*` -> `cpp_bool*`)."""
+    """A C++ type as Cython spells it in declarations (`bool*` -> `cpp_bool*`,
+    `std::vector<CefString>` -> `vector[CefString]`)."""
+    cpp = re.sub(r"std::vector<(\w+)>", r"vector[\1]", cpp)
     return re.sub(r"\bbool\b", "cpp_bool", cpp)
 
 
@@ -100,6 +102,8 @@ def _cy_method_signature(plan):
             args.append("const CefString&")
         elif isinstance(kind, Struct):
             args.append("const %s&" % kind.cls)
+        elif isinstance(kind, Vector):
+            args.append("vector[CefString]&")  # an output parameter of a library method
         elif isinstance(kind, LibRef):
             args.append("CefRefPtr[%s]" % kind.cls)
         elif isinstance(kind, ClientRef):
@@ -136,6 +140,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         "from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t",
         "from libcpp cimport bool as cpp_bool",
         "from libcpp.string cimport string",
+        "from libcpp.vector cimport vector",
         "",
         'cdef extern from "include/cef_base.h":',
         "    cdef cppclass CefBaseRefCounted:",
@@ -275,6 +280,14 @@ cdef object _g_str(const CefString& value):
     return value.ToString().decode("utf-8", "replace")
 
 
+cdef inline list _g_str_list(const vector[CefString]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_g_str(values[0][i]))
+    return result
+
+
 cdef void _g_report() noexcept:
     """Report the exception being handled (inside a callback called by CEF)."""
     try:
@@ -336,6 +349,8 @@ def _annotation(kind):
         return "str"
     if isinstance(kind, (LibRef, ClientRef, Struct)):
         return py_class_name(kind.cls)
+    if isinstance(kind, Vector):
+        return "list[str]"
     if isinstance(kind, Void):
         return "None"
     raise AssertionError(kind)
@@ -353,6 +368,12 @@ def _library_method(plan, owner_py):
     decls, pre, call_args = [], [], []
     for i, param in enumerate(plan.params):
         kind, n = param.kind, param.name
+        if param.out:
+            # An output parameter of a library method: a local that is returned to Python.
+            assert isinstance(kind, Vector), kind
+            decls.append("cdef vector[CefString] _a%d" % i)
+            call_args.append("_a%d" % i)
+            continue
         if isinstance(kind, Prim):
             sig.append("%s %s" % (cy_arg(kind.cpp), n))
             call_args.append(n)
@@ -420,18 +441,26 @@ def _library_method(plan, owner_py):
     call = "%s%s(%s)" % (receiver, plan.cef_name, ", ".join(call_args))
     body.append(base + "with nogil:")
     body.append(base + "    %s%s" % ("" if isinstance(ret, Void) else "_r = ", call))
-    if isinstance(ret, Void):
-        body.append(base + "return None")
-    elif isinstance(ret, Prim):
-        body.append(base + "return _r")
+    values = []  # what the Python method returns: the return value, then the output parameters
+    if isinstance(ret, Prim):
+        values.append("_r")
     elif isinstance(ret, Enum):
-        body.append(base + "return <int>_r")
+        values.append("<int>_r")
     elif isinstance(ret, Str):
-        body.append(base + "return _g_str(_r)")
+        values.append("_g_str(_r)")
     elif isinstance(ret, LibRef):
-        body.append(base + "return _wrap_%s(_r)" % py_class_name(ret.cls))
+        values.append("_wrap_%s(_r)" % py_class_name(ret.cls))
     elif isinstance(ret, Struct):
-        body.append(base + "return _g_from_%s(&_r)" % py_class_name(ret.cls))
+        values.append("_g_from_%s(&_r)" % py_class_name(ret.cls))
+    for i, param in enumerate(plan.params):
+        if param.out:
+            values.append("_g_str_list(&_a%d)" % i)
+    if not values:
+        body.append(base + "return None")
+    elif len(values) == 1:
+        body.append(base + "return " + values[0])
+    else:
+        body.append(base + "return (" + ", ".join(values) + ")")
     return lines + body
 
 
@@ -472,6 +501,8 @@ def _trampoline(plan, cls_py):
             py_args.append("_g_str(%s[0])" % n)
         elif isinstance(kind, Struct):
             py_args.append("_g_from_%s(%s)" % (py_class_name(kind.cls), n))
+        elif isinstance(kind, Vector):
+            py_args.append("_g_str_list(%s)" % n)
         elif isinstance(kind, LibRef):
             py_args.append("_wrap_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
         elif isinstance(kind, Buffer):

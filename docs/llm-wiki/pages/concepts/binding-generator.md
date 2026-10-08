@@ -53,6 +53,7 @@ report.py       커버리지 보고서
 | `LibRef` | 생성 범위 안의 CEF 구현 클래스의 `CefRefPtr<T>` | 래퍼 객체(널이면 `None`) |
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
 | `Struct` | 필드가 모두 기본형인 값 타입(`CefRect`, `CefPoint`, `CefSize`, `CefInsets`, `CefRange`, `CefMouseEvent`) | 이름 있는 튜플(`Rect(x, y, width, height)`). 받는 쪽에는 같은 필드의 튜플도 됩니다. |
+| `Vector` | `std::vector<CefString>`(요소가 문자열인 벡터만) | `list[str]` |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍 | `memoryview` |
 
 파서의 `result_type`을 기준으로 삼되 두 가지는 따로 처리합니다. 첫째, 파서의 `is_result_struct_enum()`은 "참조나 포인터가 아니다"라는 어림짐작일 뿐이라서 쓰지 않고, 열거형은 헤더에서 `typedef enum`을 직접 찾아 구분합니다. 둘째, 파서의 `get_result_ptr_type_root()`는 C++ 클래스명이 아니라 C API 이름(`cef_request_t`)을 돌려주므로 선언된 타입 문자열(`CefRefPtr<CefRequest>`)에서 이름을 뽑습니다(이 오류로 초기 보고서의 수치가 틀렸다가 고쳤습니다).
@@ -68,8 +69,8 @@ report.py       커버리지 보고서
 
 ## 메서드 계획 규칙
 
-- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 출력 인자는 아직 미지원입니다(구조체도 마찬가지). 클라이언트 객체를 반환하는 메서드도 미지원입니다. 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
-- 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형, 구조체)는 Python 메서드의 반환값이 됩니다. 구조체를 값으로 **반환**하는 핸들러 메서드는 아직 미지원입니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
+- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 출력 인자는 문자열 벡터만 지원합니다(`names = browser.get_frame_names()`처럼 Python 반환값이 됩니다. 반환값이 있으면 그것이 먼저이고 튜플). 구조체와 기본형 출력 인자는 아직 미지원입니다. 클라이언트 객체를 반환하는 메서드도 미지원입니다. 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
+- 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형, 구조체)는 Python 메서드의 반환값이 됩니다. 문자열 벡터는 입력(`const std::vector<CefString>&`)으로만 받고 `list[str]`로 전달됩니다. 구조체를 값으로 **반환**하는 핸들러 메서드는 아직 미지원입니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
 - `void*`와 크기는 `Buffer` 하나로 합쳐집니다(핸들러 쪽만).
 - 헤더가 `optional_param`으로 표시한 인자만 `None`을 허용합니다. 라이브러리 메서드에 허용되지 않은 곳에 `None`을 넘기면 C++가 죽는 대신 `TypeError`입니다.
 - 이름: `Cef` 접두사를 떼고 클래스는 그대로, 메서드와 인자는 snake_case, 예약어는 밑줄을 붙입니다(`Continue` → `continue_`).
@@ -80,9 +81,9 @@ report.py       커버리지 보고서
 
 ## 아직 없는 것
 
-- 벡터, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(`size` 머리, 열거형 필드가 있는 `CefKeyEvent`, `CefPopupFeatures` 등)
+- 문자열이 아닌 요소의 벡터, 라이브러리 메서드에 주는 벡터, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(`size` 머리, 열거형 필드가 있는 `CefKeyEvent`, `CefPopupFeatures` 등)
 - 상속 관계가 있는 라이브러리 클래스(부모 클래스가 `CefBaseRefCounted`가 아닌 경우)
-- 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환
+- 라이브러리 메서드의 출력 인자(문자열 벡터 제외), 핸들러 메서드의 구조체 반환과 벡터 출력
 - 헤더 주석의 한국어 번역(`cef_origin` 위키의 설명)을 스텁에 쓰는 일
 
 남은 일과 순서는 [생성기의 한계와 다음 단계](../reference/generated-api-coverage.md)에 있습니다.

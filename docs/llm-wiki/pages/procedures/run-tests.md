@@ -23,7 +23,7 @@ env -u WAYLAND_DISPLAY xvfb-run -a .venv-test/bin/python -P -m unittest discover
 
 기대 결과는 `Ran 25 tests ... OK`(약 3.6초, 건너뛴 시험 없음)입니다. 실행에는 세 가지가 중요합니다.
 
-1. **`-P`가 필수입니다.** 저장소 루트에서 `-P` 없이 실행하면 소스 트리의 `cefweaver/`(확장 모듈이 없음)가 설치된 wheel을 가려서 `import cefweaver`가 실패하고, CEF 시험 29개가 **건너뛰어진 채 `OK (skipped=11)`로 끝납니다.** 성공처럼 보이므로 `Ran 24 tests` 뒤에 `skipped`가 있는지 반드시 봅니다. 이 오류가 `CLAUDE.md`와 시험 파일의 안내에 있었고 고쳤습니다.
+1. **`-P`가 필수입니다.** 저장소 루트에서 `-P` 없이 실행하면 소스 트리의 `cefweaver/`(확장 모듈이 없음)가 설치된 wheel을 가려서 `import cefweaver`가 실패하고, CEF 시험 32개가 **건너뛰어진 채 `OK (skipped=11)`로 끝납니다.** 성공처럼 보이므로 `Ran 24 tests` 뒤에 `skipped`가 있는지 반드시 봅니다. 이 오류가 `CLAUDE.md`와 시험 파일의 안내에 있었고 고쳤습니다.
 2. **가상 X 서버(`xvfb-run`)와 `env -u WAYLAND_DISPLAY`**: 시험이 실제 화면에 창을 열지 않게 합니다. Wayland 세션에서는 Chromium이 `WAYLAND_DISPLAY`를 보고 실제 화면에 창을 엽니다. 시험은 `DISPLAY`가 없거나 `WAYLAND_DISPLAY`가 있으면 CEF 시험을 건너뛰도록 되어 있어서, 건너뛴 시험이 있다면 환경부터 확인합니다.
 3. **설치된 wheel을 대상으로 합니다.** wheel을 새로 만들었다면 `--reinstall`로 다시 설치합니다.
 

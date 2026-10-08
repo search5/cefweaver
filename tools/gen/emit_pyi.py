@@ -17,8 +17,11 @@ def _param_annotation(param, client_side):
     if isinstance(param.kind, Struct) and not client_side:
         return _value_annotation(param.kind)
     text = _annotation(param.kind)
-    # None is accepted only where the header says optional_param.
-    return text + " | None" if param.optional else text
+    # A library method accepts None only where the header says optional_param. A handler
+    # gets None only for an object that CEF does not pass; strings, structs and lists are
+    # always given (empty when there is nothing).
+    nullable = param.optional and (not client_side or isinstance(param.kind, (LibRef, ClientRef)))
+    return text + " | None" if nullable else text
 
 
 def _return_annotation(plan, client_side):
@@ -32,7 +35,10 @@ def _return_annotation(plan, client_side):
         return parts[0] if len(parts) == 1 else "tuple[%s]" % ", ".join(parts)
     text = _annotation(plan.ret)
     if isinstance(plan.ret, LibRef) and not (plan.static and plan.cef_name == "Create"):
-        return text + " | None"  # CEF may return no object; a Create() factory never does
+        text += " | None"  # CEF may return no object; a Create() factory never does
+    if plan.outs:  # output parameters of a library method are returned after the return value
+        parts = ([] if isinstance(plan.ret, Void) else [text]) + [_annotation(p.kind) for p in plan.outs]
+        return parts[0] if len(parts) == 1 else "tuple[%s]" % ", ".join(parts)
     return text
 
 

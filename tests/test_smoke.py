@@ -129,6 +129,10 @@ class ApiWithoutCef(unittest.TestCase):
             self.assertTrue(hasattr(cefweaver.BrowserHost, name), name)
         self.assertTrue(hasattr(cefweaver.Browser, "get_host"))
 
+    def test_browser_lists_its_frames_as_lists_of_strings(self):
+        self.assertTrue(hasattr(cefweaver.Browser, "get_frame_names"))
+        self.assertTrue(hasattr(cefweaver.Browser, "get_frame_identifiers"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -770,6 +774,61 @@ class WithCef(unittest.TestCase):
             wait_until(app, lambda: "read" in threads, "the resource to be read")
             for name in ("create", "open", "get_response_headers", "read"):
                 assert threads[name] != main, (name, threads)
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_a_browser_lists_the_names_and_identifiers_of_its_frames(self):
+        result = run_cef("""
+            boxes = []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.set_client(MyClient())
+            # (An srcdoc iframe in a data: page never finishes loading, so use about:blank.)
+            app.initialize(page("<iframe name='inner' src='about:blank'></iframe>"))
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
+            browser = boxes[0]
+            wait_until(app, lambda: "inner" in browser.get_frame_names(), "the child frame")
+            names = browser.get_frame_names()
+            identifiers = browser.get_frame_identifiers()
+            assert isinstance(names, list) and all(isinstance(n, str) for n in names), names
+            assert isinstance(identifiers, list) and all(isinstance(i, str) for i in identifiers)
+            assert len(identifiers) == len(names) >= 2, (names, identifiers)
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_favicon_urls_reach_the_display_handler_as_a_list_of_strings(self):
+        result = run_cef("""
+            icons = []
+            class Display(cefweaver.DisplayHandler):
+                def on_favicon_url_change(self, browser, icon_urls):
+                    icons.append(icon_urls)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.display = Display()
+                def get_display_handler(self):
+                    return self.display
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            app.add_resource("http://fav.test/icon.png", b"\\x89PNG", mime_type="image/png")
+            app.add_resource("http://fav.test/",
+                             "<html><head><link rel='icon' href='/icon.png'></head><body>x</body></html>")
+            app.load_url("http://fav.test/")
+            wait_until(app, lambda: icons, "the favicon notification")
+            assert isinstance(icons[-1], list) and icons[-1], icons
+            assert icons[-1] == ["http://fav.test/icon.png"], icons
             app.shutdown()
             print("OK")
         """)

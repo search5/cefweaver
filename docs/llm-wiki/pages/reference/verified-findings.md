@@ -160,6 +160,13 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **방법**: `shutdown()`의 `with nogil`을 지운 변형 빌드와 정상 빌드에서 같은 시나리오를 실행했습니다. 끝나지 않는 응답(`read`가 계속 데이터를 돌려줌)을 IO 쪽 스레드가 읽는 중에 `shutdown()`을 호출하고, `faulthandler.dump_traceback_later(25)`로 감시했습니다.
 - **결과**: 정상 빌드는 0.03초에 끝났고 그 사이에도 Python 콜백이 계속 불렸습니다(읽기 165회에서 338회). 변형 빌드는 3번 모두 `shutdown()`에서 반환하지 않아 25초에 감시 타이머가 프로세스를 끝냈습니다. 규칙(CEF를 부르는 호출은 GIL을 놓는다)이 필요하다는 근거입니다.
 
+## F26. 문자열 벡터와 프레임
+
+- **방법**: `browser.get_frame_names()`, `get_frame_identifiers()`(라이브러리의 출력 인자)와 `on_favicon_url_change`(핸들러의 입력)를 실행했습니다.
+- **결과**: 둘 다 `list[str]`로 오고 내용이 맞습니다(프레임 이름 `inner`, 아이콘 URL `http://fav.test/icon.png`). 이름 목록의 순서는 일정하지 않았습니다. 식별자는 `5-<16진수>` 꼴의 문자열입니다.
+- **부수 발견**: `<iframe srcdoc=...>`가 들어 있는 `data:` 페이지는 시작 URL이든 `load_url`이든 **로드가 끝나지 않습니다**(`on_load_end`가 오지 않고 로딩 상태가 계속 참). 같은 iframe이 `http://` 페이지(`add_resource`)나 `src='about:blank'`이면 정상입니다. 원인은 조사하지 않았고, 시험은 `about:blank` iframe을 씁니다.
+- **부수 수정**: 핸들러가 받는 문자열, 구조체, 목록은 `optional_param` 표시와 상관없이 `None`이 아니라 값(빈 값 포함)으로 옵니다. 스텁이 `title: str | None`처럼 잘못 적었던 5곳을 고쳤습니다. 라이브러리 메서드의 입력만 `None`을 허용합니다.
+
 ## 관련 페이지
 
 - [알려진 제약과 미검증 항목](known-constraints.md)

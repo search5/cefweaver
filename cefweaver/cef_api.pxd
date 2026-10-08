@@ -4,6 +4,7 @@
 from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
+from libcpp.vector cimport vector
 
 cdef extern from "include/cef_base.h":
     cdef cppclass CefBaseRefCounted:
@@ -137,6 +138,8 @@ cdef extern from "include/cef_browser.h":
         CefRefPtr[CefFrame] GetFrameByIdentifier(const CefString&) nogil
         CefRefPtr[CefFrame] GetFrameByName(const CefString&) nogil
         size_t GetFrameCount() nogil
+        void GetFrameIdentifiers(vector[CefString]&) nogil
+        void GetFrameNames(vector[CefString]&) nogil
 
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowserHost(CefBaseRefCounted):
@@ -316,6 +319,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*release)(void*) noexcept
         void (*fn_on_address_change)(void*, CefBrowser*, CefFrame*, const CefString*) noexcept
         void (*fn_on_title_change)(void*, CefBrowser*, const CefString*) noexcept
+        void (*fn_on_favicon_url_change)(void*, CefBrowser*, const vector[CefString]*) noexcept
         void (*fn_on_fullscreen_mode_change)(void*, CefBrowser*, cpp_bool) noexcept
         cpp_bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) noexcept
         void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) noexcept

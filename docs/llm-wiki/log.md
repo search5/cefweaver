@@ -52,3 +52,11 @@
 - Windows를 제외한 미검증 항목을 실행해서 확인했습니다: 리소스 핸들러 콜백의 스레드(F19), `shutdown()` 뒤 재초기화(F20, 세그멘테이션 오류를 `RuntimeError`로 고침), 종료 없이 끝나기(F21), 팩토리가 거절한 경로(F22), 다른 CEF 버전 147과 152의 헤더(F23), manylinux(F24, 불가), GIL 교착(F25, 변형 빌드로 재현).
 - 확인하지 못한 채 남은 것: `--build-cef`의 실제 소스 빌드와 `use_allocator=none`(디스크 여유 64GB, 요구 약 120GB), 구조체 출력의 Python 경로(오프스크린 렌더링 필요), 서브프로세스 `stack smashing`의 원인 메커니즘, Alloy 스타일에서의 네이티브 Wayland(실제 화면에 창을 열어야 함), 다른 버전의 `libcef`로 실제 실행.
 - 갱신: [설계 결정 기록](pages/reference/design-decisions.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F17 정정, F18 ~ F25), [알려진 제약과 미검증 항목](pages/reference/known-constraints.md), [C++ 핸들러](pages/components/native-handlers.md), [Python API 참조](pages/reference/python-api.md), [프로세스 모델과 스레드](pages/concepts/process-model-and-threads.md), [시험](pages/components/tests.md), [패키징](pages/components/packaging.md), [Chromium의 Wayland와 X11 동작](pages/analyses/chromium-on-wayland.md) 외.
+
+## [2026-10-08] ingest | 문자열 벡터와 라이브러리 출력 인자(첫 사례)
+
+- 위키의 다음 단계 1순위였던 벡터를 시험 먼저로 구현했습니다. 대부분의 벡터(20건)가 `std::vector<CefString>`이고 범위 안에서 실행으로 검증할 수 있는 사용처가 둘뿐이어서(`browser.get_frame_names()`, `on_favicon_url_change`) 이 방향 둘로 한정하고 나머지는 이유와 함께 보고합니다. 라이브러리 메서드의 출력 인자를 Python 반환값으로 돌려주는 규칙의 첫 사례이기도 합니다.
+- 지원 비율이 모든 클래스를 넣었을 때 85%에서 86%로, 범위 안의 메서드가 163개에서 166개로 늘었습니다(`CefBrowser` 21/21).
+- 스텁 수정: 핸들러가 받는 문자열, 구조체, 목록에 잘못 붙던 `| None` 5곳을 고쳤습니다.
+- `data:` 페이지의 `srcdoc` iframe이 로드를 끝내지 못하는 현상을 발견했습니다(F26, 원인 미조사).
+- 갱신: [생성 범위와 커버리지](pages/reference/generated-api-coverage.md), [바인딩 생성기의 설계](pages/concepts/binding-generator.md), [Python API 참조](pages/reference/python-api.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F26), [시험](pages/components/tests.md) 외.

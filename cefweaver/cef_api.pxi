@@ -34,6 +34,14 @@ cdef object _g_str(const CefString& value):
     return value.ToString().decode("utf-8", "replace")
 
 
+cdef inline list _g_str_list(const vector[CefString]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_g_str(values[0][i]))
+    return result
+
+
 cdef void _g_report() noexcept:
     """Report the exception being handled (inside a callback called by CEF)."""
     try:
@@ -355,6 +363,22 @@ cdef class Browser:
         with nogil:
             _r = _p.GetFrameCount()
         return _r
+
+    def get_frame_identifiers(self):
+        """Returns the identifiers of all existing frames."""
+        cdef vector[CefString] _a0
+        cdef CefBrowser* _p = self._ptr()
+        with nogil:
+            _p.GetFrameIdentifiers(_a0)
+        return _g_str_list(&_a0)
+
+    def get_frame_names(self):
+        """Returns the names of all existing frames."""
+        cdef vector[CefString] _a0
+        cdef CefBrowser* _p = self._ptr()
+        with nogil:
+            _p.GetFrameNames(_a0)
+        return _g_str_list(&_a0)
 
 
 cdef object _wrap_Browser(CefRefPtr[CefBrowser] ref):
@@ -1820,6 +1844,10 @@ class DisplayHandler:
         """Called when the page title changes."""
         return None
 
+    def on_favicon_url_change(self, browser, icon_urls):
+        """Called when the page icon changes."""
+        return None
+
     def on_fullscreen_mode_change(self, browser, fullscreen):
         """Called when web content in the page has toggled fullscreen mode. If
         |fullscreen| is true the content will automatically be sized to fill the
@@ -1918,6 +1946,12 @@ cdef void _DisplayHandler_on_title_change(void* py, CefBrowser* browser, const C
     except BaseException:
         _g_report()
 
+cdef void _DisplayHandler_on_favicon_url_change(void* py, CefBrowser* browser, const vector[CefString]* icon_urls) noexcept with gil:
+    try:
+        _r = (<object>py).on_favicon_url_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str_list(icon_urls))
+    except BaseException:
+        _g_report()
+
 cdef void _DisplayHandler_on_fullscreen_mode_change(void* py, CefBrowser* browser, cpp_bool fullscreen) noexcept with gil:
     try:
         _r = (<object>py).on_fullscreen_mode_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), fullscreen)
@@ -2006,6 +2040,8 @@ cdef CefRefPtr[CefDisplayHandler] _g_make_DisplayHandler(object obj) except *:
         cb.fn_on_address_change = _DisplayHandler_on_address_change
     if getattr(cls, "on_title_change", None) is not DisplayHandler.on_title_change:
         cb.fn_on_title_change = _DisplayHandler_on_title_change
+    if getattr(cls, "on_favicon_url_change", None) is not DisplayHandler.on_favicon_url_change:
+        cb.fn_on_favicon_url_change = _DisplayHandler_on_favicon_url_change
     if getattr(cls, "on_fullscreen_mode_change", None) is not DisplayHandler.on_fullscreen_mode_change:
         cb.fn_on_fullscreen_mode_change = _DisplayHandler_on_fullscreen_mode_change
     if getattr(cls, "on_tooltip", None) is not DisplayHandler.on_tooltip:

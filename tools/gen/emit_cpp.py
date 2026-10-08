@@ -18,7 +18,7 @@ virtual methods).
 """
 
 from model import py_class_name, snake_case
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Void
+from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 
 def field_name(plan):
@@ -36,6 +36,8 @@ def table_in_types(param):
         return ["const CefString*"]
     if isinstance(kind, Struct):
         return ["const %s*" % kind.cls]
+    if isinstance(kind, Vector):
+        return ["const std::vector<CefString>*"]
     if isinstance(kind, LibRef):
         return [kind.cls + "*"]
     if isinstance(kind, Buffer):
@@ -137,7 +139,7 @@ def _method(model, cls, plan):
             args.append(name)
         elif isinstance(kind, Enum):
             args.append("static_cast<int>(%s)" % name)
-        elif isinstance(kind, (Str, Struct)):
+        elif isinstance(kind, (Str, Struct, Vector)):
             args.append("&%s" % name)
         elif isinstance(kind, LibRef):
             args.append("%s.get()" % name)
@@ -221,6 +223,7 @@ def emit(model, scope, plans_by_class, banner):
     headers = sorted({model.header_path(c) for c in scope.client_classes} |
                      {model.header_path(c) for c in scope.library_classes})
     lines += ['#include "%s"' % h for h in headers]
+    lines.append("#include <vector>")
     lines.append("")
 
     for cls in scope.client_classes:

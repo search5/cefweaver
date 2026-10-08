@@ -15,6 +15,7 @@
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
+#include <vector>
 
 // ---- CefClient ----
 
@@ -131,6 +132,14 @@ class CwDisplayHandlerForward : public CefDisplayHandler {
     forward_display_handler_->OnTitleChange(browser, title);
   }
 
+  void OnFaviconURLChange(CefRefPtr<CefBrowser> browser, const std::vector<CefString>& icon_urls) override {
+    if (!forward_display_handler_) {
+      CefDisplayHandler::OnFaviconURLChange(browser, icon_urls);
+      return;
+    }
+    forward_display_handler_->OnFaviconURLChange(browser, icon_urls);
+  }
+
   void OnFullscreenModeChange(CefRefPtr<CefBrowser> browser, bool fullscreen) override {
     if (!forward_display_handler_) {
       CefDisplayHandler::OnFullscreenModeChange(browser, fullscreen);
@@ -204,6 +213,7 @@ struct CwDisplayHandlerCallbacks {
   void (*release)(void* py) = nullptr;
   void (*fn_on_address_change)(void*, CefBrowser*, CefFrame*, const CefString*) = nullptr;
   void (*fn_on_title_change)(void*, CefBrowser*, const CefString*) = nullptr;
+  void (*fn_on_favicon_url_change)(void*, CefBrowser*, const std::vector<CefString>*) = nullptr;
   void (*fn_on_fullscreen_mode_change)(void*, CefBrowser*, bool) = nullptr;
   bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) = nullptr;
   void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) = nullptr;
@@ -238,6 +248,14 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
       return;
     }
     cb_.fn_on_title_change(cb_.py, browser.get(), &title);
+  }
+
+  void OnFaviconURLChange(CefRefPtr<CefBrowser> browser, const std::vector<CefString>& icon_urls) override {
+    if (!cb_.fn_on_favicon_url_change) {
+      CefDisplayHandler::OnFaviconURLChange(browser, icon_urls);
+      return;
+    }
+    cb_.fn_on_favicon_url_change(cb_.py, browser.get(), &icon_urls);
   }
 
   void OnFullscreenModeChange(CefRefPtr<CefBrowser> browser, bool fullscreen) override {

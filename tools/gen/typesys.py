@@ -75,6 +75,13 @@ class Struct(Kind):
 
 
 @dataclass(frozen=True)
+class Vector(Kind):
+    """`std::vector<T>` (a list in Python). Only vectors of strings so far."""
+
+    element: Kind
+
+
+@dataclass(frozen=True)
 class Buffer(Kind):
     """`void* data, <integer> size`: a writable memoryview in Python."""
 
@@ -138,7 +145,13 @@ def classify(model, scope, analysis):
             return ClientRef(inner)
         raise Unsupported("class %s is not generated yet" % inner)
 
-    if result in ("vector", "map", "multimap"):
+    if result == "vector":
+        # Only `std::vector<CefString>`; the parser reports the element type of the vector.
+        element = analysis.result_value[0] if analysis.result_value else {}
+        if element.get("result_type") == "string":
+            return Vector(Str())
+        raise Unsupported("vector of values")
+    if result in ("map", "multimap"):
         raise Unsupported(result + " of values")
     if result in ("ownptr", "rawptr"):
         raise Unsupported("%s pointer" % result)
@@ -232,10 +245,14 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             kind = classify(model, scope, analysis)
             out = analysis.is_byref() and not analysis.is_const() and not isinstance(kind, LibRef)
             if out:
-                if not client_side:
+                if not client_side and not isinstance(kind, Vector):
                     raise Unsupported("output parameter %s of a library method" % name)
+                if client_side and isinstance(kind, Vector):
+                    raise Unsupported("output vector %s of a handler method" % name)
                 if isinstance(kind, (LibRef, ClientRef)):
                     raise Unsupported("output parameter %s of object type" % name)
+            elif isinstance(kind, Vector) and not client_side:
+                raise Unsupported("vector of values passed to a library method")
             if isinstance(kind, Void):
                 raise Unsupported("void parameter")
             if isinstance(kind, ClientRef) and client_side:

@@ -17,7 +17,7 @@ updated: 2026-10-08
 
 ## 어떤 타입부터
 
-`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 처음에 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 했고, 값 타입 구조체를 지원한 뒤(2026-10-08)에는 벡터 58, 값 타입 33, 소유 포인터 32, 출력 인자 25 순입니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)). 구조체 종류(`Struct`)가 이 절차를 따른 예입니다: `typesys.py`에 종류, `model.py`에 헤더 읽기, 세 방출기에 변환, `tests/test_generator.py`에 분류와 실제 C++ 실행 시험.
+`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 처음에 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 했고, 값 타입 구조체와 문자열 벡터를 지원한 뒤(2026-10-08)에는 벡터 36, 값 타입 33, 소유 포인터 32, 출력 인자 25 순입니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)). 구조체 종류(`Struct`)가 이 절차를 따른 예입니다: `typesys.py`에 종류, `model.py`에 헤더 읽기, 세 방출기에 변환, `tests/test_generator.py`에 분류와 실제 C++ 실행 시험.
 
 ## 절차
 

@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import ClientRef, Enum, LibRef, Prim, Str, Struct, Void  # noqa: E402
+from typesys import ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -258,11 +258,16 @@ class WithHeaders(unittest.TestCase):
         # struct filled by the table lands in the reference parameter of the CEF method.
         source = (
             '#include "cefweaver_proxies.h"\n'
-            "#include <cstdio>\n"
+            "#include <cstdio>\n#include <string>\n#include <vector>\n"
             "struct Seen { int x, y, width, height; };\n"
             "static bool bounds(void* py, CefBrowser*, const CefRect* r) {\n"
             "  *static_cast<Seen*>(py) = Seen{r->x, r->y, r->width, r->height};\n"
             "  return true;\n"
+            "}\n"
+            "static int icons = 0; static std::string first;\n"
+            "static void favicons(void*, CefBrowser*, const std::vector<CefString>* urls) {\n"
+            "  icons = static_cast<int>(urls->size());\n"
+            "  first = (*urls)[0].ToString();\n"
             "}\n"
             "static bool screen(void*, CefBrowser*, CefRect* rect) {\n"
             "  rect->x = 10; rect->y = 20; rect->width = 30; rect->height = 40;\n"
@@ -274,13 +279,17 @@ class WithHeaders(unittest.TestCase):
             "  cb.py = &seen;\n"
             "  cb.fn_on_contents_bounds_change = bounds;\n"
             "  cb.fn_get_root_window_screen_rect = screen;\n"
+            "  cb.fn_on_favicon_url_change = favicons;\n"
             "  CefRefPtr<CefDisplayHandler> ref = new CwDisplayHandlerProxy(cb);\n"
             "  CefDisplayHandler* handler = ref.get();  // operator-> would need the wrapper library\n"
             "  bool a = handler->OnContentsBoundsChange(nullptr, CefRect(5, 6, 7, 8));\n"
             "  CefRect out(9, 9, 9, 9);\n"
             "  bool b = handler->GetRootWindowScreenRect(nullptr, out);\n"
-            '  std::printf("%d %d,%d,%d,%d %d %d,%d,%d,%d\\n", a, seen.x, seen.y, seen.width,\n'
-            "              seen.height, b, out.x, out.y, out.width, out.height);\n"
+            "  std::vector<CefString> urls;\n"
+            '  urls.push_back(CefString("http://a/1.png")); urls.push_back(CefString("http://a/2.png"));\n'
+            "  handler->OnFaviconURLChange(nullptr, urls);\n"
+            '  std::printf("%d %d,%d,%d,%d %d %d,%d,%d,%d %d %s\\n", a, seen.x, seen.y, seen.width,\n'
+            "              seen.height, b, out.x, out.y, out.width, out.height, icons, first.c_str());\n"
             "  return 0;\n"
             "}\n"
         )
@@ -297,7 +306,7 @@ class WithHeaders(unittest.TestCase):
                 capture_output=True, text=True)
             self.assertEqual(built.returncode, 0, built.stderr[-3000:])
             ran = subprocess.run([exe], capture_output=True, text=True)
-        self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40", ran.stderr)
+        self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40 2 http://a/1.png", ran.stderr)
 
 
     # -- CefBrowserHost -----------------------------------------------------------------
@@ -326,6 +335,40 @@ class WithHeaders(unittest.TestCase):
             plan = self.plan("CefBrowserHost", name)
             self.assertFalse(plan.supported, name)
             self.assertIn(expected, plan.reason, name)
+
+
+    # -- vectors of strings --------------------------------------------------------------
+
+    def test_a_library_method_returns_a_vector_of_strings_through_an_output_parameter(self):
+        plan = self.plan("CefBrowser", "GetFrameNames")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.outs], ["names"])
+        self.assertEqual(plan.outs[0].kind, Vector(Str()))
+        self.assertEqual([name for name, _ in plan.results], ["names"])
+
+    def test_a_handler_receives_a_vector_of_strings(self):
+        plan = self.plan("CefDisplayHandler", "OnFaviconURLChange")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "icon_urls"])
+        self.assertEqual(plan.ins[1].kind, Vector(Str()))
+
+    def test_other_vectors_say_what_is_missing(self):
+        # Elements other than strings, and vectors given to a library method.
+        for cls, name in (("CefBrowserHost", "ImeSetComposition"), ("CefBrowserHost", "RunFileDialog")):
+            plan = self.plan_in(self.everything, cls, name)
+            self.assertFalse(plan.supported, name)
+            self.assertIn("vector", plan.reason, name)
+
+    def test_a_vector_table_entry_is_a_pointer_to_the_vector(self):
+        header = self.generated("proxies")
+        self.assertIn("(*fn_on_favicon_url_change)(void*, CefBrowser*, const std::vector<CefString>*)",
+                      header)
+
+    def test_the_stub_declares_lists_of_strings(self):
+        stub = self.generated("pyi")
+        self.assertIn("def get_frame_names(self) -> list[str]:", stub)
+        self.assertIn("def on_favicon_url_change(self, browser: Browser, icon_urls: list[str]) -> None:",
+                      stub)
 
 
     def test_generated_files_are_up_to_date(self):

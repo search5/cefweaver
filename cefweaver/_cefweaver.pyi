@@ -162,6 +162,12 @@ class Browser:
     def get_frame_count(self) -> int:
         """Returns the number of frames that currently exist."""
         ...
+    def get_frame_identifiers(self) -> list[str]:
+        """Returns the identifiers of all existing frames."""
+        ...
+    def get_frame_names(self) -> list[str]:
+        """Returns the names of all existing frames."""
+        ...
 
 
 class BrowserHost:
@@ -858,8 +864,11 @@ class DisplayHandler:
     def on_address_change(self, browser: Browser, frame: Frame, url: str) -> None:
         """Called when a frame's address has changed."""
         ...
-    def on_title_change(self, browser: Browser, title: str | None) -> None:
+    def on_title_change(self, browser: Browser, title: str) -> None:
         """Called when the page title changes."""
+        ...
+    def on_favicon_url_change(self, browser: Browser, icon_urls: list[str]) -> None:
+        """Called when the page icon changes."""
         ...
     def on_fullscreen_mode_change(self, browser: Browser, fullscreen: bool) -> None:
         """Called when web content in the page has toggled fullscreen mode. If
@@ -882,12 +891,12 @@ class DisplayHandler:
         drawing tooltips and the return value is ignored.
         """
         ...
-    def on_status_message(self, browser: Browser, value: str | None) -> None:
+    def on_status_message(self, browser: Browser, value: str) -> None:
         """Called when the browser receives a status message. |value| contains the
         text that will be displayed in the status message.
         """
         ...
-    def on_console_message(self, browser: Browser, level: int, message: str | None, source: str | None, line: int) -> bool:
+    def on_console_message(self, browser: Browser, level: int, message: str, source: str, line: int) -> bool:
         """Called to display a console message. Return true to stop the message from
         being output to the console.
         """
@@ -1126,7 +1135,7 @@ class LoadHandler:
         instead.
         """
         ...
-    def on_load_error(self, browser: Browser, frame: Frame, error_code: int, error_text: str | None, failed_url: str) -> None:
+    def on_load_error(self, browser: Browser, frame: Frame, error_code: int, error_text: str, failed_url: str) -> None:
         """Called when a navigation fails or is canceled. This method may be called
         by itself if before commit or in combination with OnLoadStart/OnLoadEnd if
         after commit. |errorCode| is the error code number, |errorText| is the
