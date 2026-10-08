@@ -115,6 +115,13 @@ updated: 2026-10-08
 - **발견**: 무시하는 인자도 C++ 쪽에서는 헤더와 똑같이 선언해야 해서(`CefWindowInfo&`, `bool*`, `const CefCursorInfo&`) `Ignored`가 참조, 포인터, const를 보존합니다.
 - **영향**: 바닥의 격차 3개가 메워졌습니다([java-cef 동등성](java-cef-parity.md)).
 
+## F47. 헤더 맵 (멀티맵 ↔ dict)
+
+- **방법**: `Request`와 `Response`의 헤더 맵을 CEF 없이 왕복시켰습니다.
+- **결과**: `set_header_map({...})`로 준 맵이 `get_header_map()`으로 같은 `dict`로 돌아오고, `get_header_by_name("x-token")`은 대소문자를 구분하지 않으며, `Request.set(url, method, post_data, header_map)`이 URL, 메서드, 헤더를 한꺼번에 정합니다. `None`, 튜플 목록, 숫자 값은 `TypeError` 또는 `AttributeError`입니다.
+- **한계**: 헤더 이름이 여러 번 나오는 멀티맵(`Set-Cookie` 등)을 CEF에서 받으면 `dict`로 옮기며 같은 키는 마지막 값만 남습니다. java-cef의 `Map<String, String>`과 같습니다.
+- **영향**: 바닥의 격차 5개가 메워졌습니다. 전 API에서 맵 때문에 막히는 메서드가 없어졌습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

@@ -168,3 +168,7 @@
 ## [2026-10-08] ingest | 격차 메우기 1: java-cef가 넘기지 않는 인자의 무시
 
 - `OnBeforePopup`(URL과 프레임 이름만), `OnCursorChange`(종류만), `OnCertificateError`(`ssl_info` 없이)를 java-cef의 방식으로 열었습니다. F46. 격차 78개에서 76개.
+
+## [2026-10-08] ingest | 격차 메우기 2: 헤더 맵
+
+- 문자열 멀티맵과 맵(`HeaderMap`, `SwitchMap`)을 `dict[str, str]`로 여는 `StrMap` 종류를 더해 `Request`, `Response`의 헤더 맵 메서드 5개를 열었습니다(java-cef의 `Map`과 같음). F47. 격차 76개에서 71개.

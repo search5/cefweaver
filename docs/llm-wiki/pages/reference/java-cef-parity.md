@@ -21,11 +21,10 @@ updated: 2026-10-08
 
 ## 바닥의 격차 (java-cef는 열고 우리는 아직 안 연 것)
 
-시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 76개입니다.
+시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 71개입니다.
 
 | 묶음 | 항목 | 필요한 것 |
 | --- | --- | --- |
-| 헤더 맵 | `Request.GetHeaderMap`/`SetHeaderMap`/`Set`, `Response.GetHeaderMap`/`SetHeaderMap` | 멀티맵 ↔ `dict` |
 | 창 핸들 | `BrowserHost.GetWindowHandle` | 플랫폼 핸들 ↔ 정수 |
 | 콜백과 방문자 | `Frame.GetSource`/`GetText`(문자열 방문자), `BrowserHost.RunFileDialog`, `PrintToPDF`(PDF 설정 구조체), `AddDevToolsMessageObserver`(+관찰자, `Registration`) | 클래스 추가, 문자열이 있는 구조체 |
 | 드래그 | `CefDragData`(24), `DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter` | `DragData`, 쓰기 핸들러 |
@@ -36,6 +35,7 @@ updated: 2026-10-08
 
 ### 메운 격차
 
+- 헤더 맵(`Request.GetHeaderMap`/`SetHeaderMap`/`Set`, `Response.GetHeaderMap`/`SetHeaderMap`): 문자열 멀티맵 ↔ `dict`([검증](verified-findings-more.md) F47).
 - 팝업(`OnBeforePopup`), 커서 변경(`OnCursorChange`), 인증서 오류의 `ssl_info`: java-cef가 넘기지 않는 인자를 무시하는 규칙으로([검증](verified-findings-more.md) F46).
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)

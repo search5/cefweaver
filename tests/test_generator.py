@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -357,9 +357,7 @@ class WithHeaders(unittest.TestCase):
         "CefDragHandler": ["OnDragEnter"],
         "CefFrame": ["GetSource", "GetText"],
         "CefRenderHandler": ["StartDragging"],
-        "CefRequest": ["GetHeaderMap", "Set", "SetHeaderMap"],
         "CefResourceRequestHandler": ["GetCookieAccessFilter"],
-        "CefResponse": ["GetHeaderMap", "SetHeaderMap"],
     }
 
     def test_the_gaps_to_the_java_cef_floor_are_the_listed_ones(self):
@@ -406,6 +404,23 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("CefWindowInfo& windowInfo", header)
         self.assertIn("bool* no_javascript_access", header)
 
+    def test_header_maps_are_dicts_as_in_java_cef(self):
+        # std::multimap<CefString, CefString> is a Java Map in java-cef, a dict here.
+        for cls, name in (("CefRequest", "GetHeaderMap"), ("CefRequest", "SetHeaderMap"),
+                          ("CefRequest", "Set"), ("CefResponse", "GetHeaderMap"),
+                          ("CefResponse", "SetHeaderMap")):
+            plan = self.plan(cls, name)
+            self.assertTrue(plan.supported, "%s::%s: %s" % (cls, name, plan.reason))
+        plan = self.plan("CefRequest", "GetHeaderMap")
+        self.assertIsInstance(plan.params[0].kind, StrMap)
+        self.assertTrue(plan.params[0].out)
+        stub = self.generated("pyi")
+        for text in ("def get_header_map(self) -> dict[str, str]:",
+                     "def set_header_map(self, header_map: dict[str, str]) -> None:",
+                     "def set(self, url: str, method: str, post_data: PostData | None, "
+                     "header_map: dict[str, str]) -> None:"):
+            self.assertIn(text, stub)
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
@@ -424,9 +439,6 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(plan.ret, Enum("ResourceType", "cef_resource_type_t"))
 
     def test_unsupported_types_are_reported_with_a_reason(self):
-        plan = self.plan("CefRequest", "GetHeaderMap")
-        self.assertFalse(plan.supported)
-        self.assertIn("multimap", plan.reason)
         plan = self.plan("CefDownloadItem", "GetSuggestedFileName")
         self.assertTrue(plan.supported, plan.reason)
         plan = self.plan("CefBrowserHost", "GetNavigationEntries")

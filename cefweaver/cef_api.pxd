@@ -5,6 +5,7 @@ from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 from libcpp.vector cimport vector
+from libcpp.map cimport map as cpp_map, multimap as cpp_multimap
 
 cdef extern from "include/cef_base.h":
     cdef cppclass CefBaseRefCounted:
@@ -790,8 +791,11 @@ cdef extern from "include/cef_request.h":
         cef_referrer_policy_t GetReferrerPolicy() nogil
         CefRefPtr[CefPostData] GetPostData() nogil
         void SetPostData(CefRefPtr[CefPostData]) nogil
+        void GetHeaderMap(cpp_multimap[CefString, CefString]&) nogil
+        void SetHeaderMap(const cpp_multimap[CefString, CefString]&) nogil
         CefString GetHeaderByName(const CefString&) nogil
         void SetHeaderByName(const CefString&, const CefString&, cpp_bool) nogil
+        void Set(const CefString&, const CefString&, CefRefPtr[CefPostData], const cpp_multimap[CefString, CefString]&) nogil
         int GetFlags() nogil
         void SetFlags(int) nogil
         CefString GetFirstPartyForCookies() nogil
@@ -825,6 +829,8 @@ cdef extern from "include/cef_response.h":
         void SetCharset(const CefString&) nogil
         CefString GetHeaderByName(const CefString&) nogil
         void SetHeaderByName(const CefString&, const CefString&, cpp_bool) nogil
+        void GetHeaderMap(cpp_multimap[CefString, CefString]&) nogil
+        void SetHeaderMap(const cpp_multimap[CefString, CefString]&) nogil
         CefString GetURL() nogil
         void SetURL(const CefString&) nogil
         @staticmethod

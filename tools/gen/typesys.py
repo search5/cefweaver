@@ -97,6 +97,15 @@ class Buffer(Kind):
 
 
 @dataclass(frozen=True)
+class StrMap(Kind):
+    """`std::multimap<CefString, CefString>` (a header map) or `std::map<CefString, CefString>`
+    (the switches of a command line): a dict of str in Python, as a Map in java-cef. A key that
+    occurs twice in a multimap keeps its last value."""
+
+    multi: bool
+
+
+@dataclass(frozen=True)
 class Time(Kind):
     """`CefBaseTime`: microseconds since 1601-01-01 UTC (cef_time.h). A timezone-aware
     `datetime` in Python; 0, CEF's null time, is None."""
@@ -213,6 +222,9 @@ def classify(model, scope, analysis):
     if result == "vector":
         return Vector(_vector_element(model, scope, analysis))
     if result in ("map", "multimap"):
+        pair = analysis.result_value or []
+        if len(pair) == 2 and all(item.get("result_type") == "string" for item in pair):
+            return StrMap(multi=result == "multimap")
         raise Unsupported(result + " of values")
     if result in ("ownptr", "rawptr"):
         raise Unsupported("%s pointer" % result)
@@ -456,9 +468,12 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                 i += 1
                 continue
             kind = classify(model, scope, analysis)
+            if client_side and isinstance(kind, StrMap):
+                raise Unsupported("a map in a handler method")
             out = analysis.is_byref() and not analysis.is_const() and not isinstance(kind, LibRef)
             if out:
-                if not client_side and not isinstance(kind, (Vector, Prim, Str, Enum, Struct)):
+                if not client_side and not isinstance(kind, (Vector, Prim, Str, Enum, Struct,
+                                                              StrMap)):
                     raise Unsupported("output parameter %s of a library method" % name)
                 if client_side and isinstance(kind, Vector):
                     raise Unsupported("output vector %s of a handler method" % name)

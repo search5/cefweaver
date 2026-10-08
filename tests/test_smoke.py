@@ -417,6 +417,24 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual(len(elements), 1)
         self.assertEqual(elements[0].get_bytes(15), b"name=value&n=\x00\xff")
 
+    def test_header_maps_are_dicts(self):
+        request = cefweaver.Request.create()
+        request.set_url("http://example.test/")
+        request.set_header_map({"X-Token": "abc", "Accept": "text/html"})
+        self.assertEqual(request.get_header_map(), {"X-Token": "abc", "Accept": "text/html"})
+        self.assertEqual(request.get_header_by_name("x-token"), "abc")   # CEF is case-insensitive
+        request.set_header_map({})
+        self.assertEqual(request.get_header_map(), {})
+        request.set("http://example.test/a", "POST", None, {"Content-Type": "text/plain"})
+        self.assertEqual((request.get_url(), request.get_method()), ("http://example.test/a", "POST"))
+        self.assertEqual(request.get_header_map(), {"Content-Type": "text/plain"})
+        response = cefweaver.Response.create()
+        response.set_header_map({"Set-Cookie": "a=1", "Server": "x"})
+        self.assertEqual(response.get_header_map(), {"Set-Cookie": "a=1", "Server": "x"})
+        for bad in (None, [("a", "b")], {"a": 1}, {1: "b"}):
+            with self.assertRaises((TypeError, AttributeError)):
+                request.set_header_map(bad)
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")

@@ -2007,6 +2007,14 @@ class Request:
     def set_post_data(self, post_data: PostData) -> None:
         """Set the post data."""
         ...
+    def get_header_map(self) -> dict[str, str]:
+        """Get the header values. Will not include the Referer value if any."""
+        ...
+    def set_header_map(self, header_map: dict[str, str]) -> None:
+        """Set the header values. If a Referer value exists in the header map it will
+        be removed and ignored.
+        """
+        ...
     def get_header_by_name(self, name: str) -> str:
         """Returns the first header value for |name| or an empty string if not found.
         Will not return the Referer value if any. Use GetHeaderMap instead if
@@ -2019,6 +2027,9 @@ class Request:
         existing values will not be overwritten. The Referer value cannot be set
         using this method.
         """
+        ...
+    def set(self, url: str, method: str, post_data: PostData | None, header_map: dict[str, str]) -> None:
+        """Set all values at one time."""
         ...
     def get_flags(self) -> int:
         """Get the flags used in combination with CefURLRequest. See
@@ -2134,6 +2145,12 @@ class Response:
         values will be replaced with the new value. If |overwrite| is false any
         existing values will not be overwritten.
         """
+        ...
+    def get_header_map(self) -> dict[str, str]:
+        """Get all response header fields."""
+        ...
+    def set_header_map(self, header_map: dict[str, str]) -> None:
+        """Set all response header fields."""
         ...
     def get_url(self) -> str:
         """Get the resolved URL after redirects or changed as a result of HSTS."""

@@ -6,6 +6,8 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
+from cython.operator cimport dereference as _deref, preincrement as _inc
+from libcpp.utility cimport pair as _pair
 import sys as _sys
 from datetime import datetime as _datetime, timedelta as _timedelta, timezone as _timezone
 from cefweaver import types as _types
@@ -30,6 +32,39 @@ cdef string _g_std(object value) except *:
 cdef CefString _g_cef(object value) except *:
     cdef string s = _g_std(value)
     return CefString(s)
+
+
+# std::map and std::multimap of strings <-> dict (a key twice in a multimap keeps its last value)
+cdef inline dict _g_dict_multimap(cpp_multimap[CefString, CefString]* values):
+    cdef dict result = {}
+    cdef cpp_multimap[CefString, CefString].iterator it = values.begin()
+    while it != values.end():
+        result[_g_str(_deref(it).first)] = _g_str(_deref(it).second)
+        _inc(it)
+    return result
+
+
+cdef inline int _g_multimap_set(object source, cpp_multimap[CefString, CefString]& out) except -1:
+    out.clear()
+    for key, value in source.items():
+        out.insert(_pair[CefString, CefString](_g_cef(key), _g_cef(value)))
+    return 0
+
+
+cdef inline dict _g_dict_map(cpp_map[CefString, CefString]* values):
+    cdef dict result = {}
+    cdef cpp_map[CefString, CefString].iterator it = values.begin()
+    while it != values.end():
+        result[_g_str(_deref(it).first)] = _g_str(_deref(it).second)
+        _inc(it)
+    return result
+
+
+cdef inline int _g_map_set(object source, cpp_map[CefString, CefString]& out) except -1:
+    out.clear()
+    for key, value in source.items():
+        out.insert(_pair[CefString, CefString](_g_cef(key), _g_cef(value)))
+    return 0
 
 
 # CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
@@ -4801,6 +4836,25 @@ cdef class Request:
             _p.SetPostData(_a0)
         return None
 
+    def get_header_map(self):
+        """Get the header values. Will not include the Referer value if any."""
+        cdef cpp_multimap[CefString, CefString] _a0
+        cdef CefRequest* _p = self._ptr()
+        with nogil:
+            _p.GetHeaderMap(_a0)
+        return _g_dict_multimap(&_a0)
+
+    def set_header_map(self, header_map):
+        """Set the header values. If a Referer value exists in the header map it will
+        be removed and ignored.
+        """
+        cdef cpp_multimap[CefString, CefString] _a0
+        cdef CefRequest* _p = self._ptr()
+        _g_multimap_set(header_map, _a0)
+        with nogil:
+            _p.SetHeaderMap(_a0)
+        return None
+
     def get_header_by_name(self, name):
         """Returns the first header value for |name| or an empty string if not found.
         Will not return the Referer value if any. Use GetHeaderMap instead if
@@ -4828,6 +4882,22 @@ cdef class Request:
             _a1 = _g_cef(value)
         with nogil:
             _p.SetHeaderByName(_a0, _a1, overwrite)
+        return None
+
+    def set(self, url, method, PostData post_data, header_map):
+        """Set all values at one time."""
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRefPtr[CefPostData] _a2
+        cdef cpp_multimap[CefString, CefString] _a3
+        cdef CefRequest* _p = self._ptr()
+        _a0 = _g_cef(url)
+        _a1 = _g_cef(method)
+        if post_data is not None:
+            _a2 = post_data._ref
+        _g_multimap_set(header_map, _a3)
+        with nogil:
+            _p.Set(_a0, _a1, _a2, _a3)
         return None
 
     def get_flags(self):
@@ -5135,6 +5205,23 @@ cdef class Response:
             _a1 = _g_cef(value)
         with nogil:
             _p.SetHeaderByName(_a0, _a1, overwrite)
+        return None
+
+    def get_header_map(self):
+        """Get all response header fields."""
+        cdef cpp_multimap[CefString, CefString] _a0
+        cdef CefResponse* _p = self._ptr()
+        with nogil:
+            _p.GetHeaderMap(_a0)
+        return _g_dict_multimap(&_a0)
+
+    def set_header_map(self, header_map):
+        """Set all response header fields."""
+        cdef cpp_multimap[CefString, CefString] _a0
+        cdef CefResponse* _p = self._ptr()
+        _g_multimap_set(header_map, _a0)
+        with nogil:
+            _p.SetHeaderMap(_a0)
         return None
 
     def get_url(self):

@@ -17,7 +17,7 @@ from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -30,6 +30,11 @@ def cy_c(cpp):
     `std::vector<CefString>` -> `vector[CefString]`)."""
     cpp = cpp.replace("std::vector<", "vector[").replace("CefRefPtr<", "CefRefPtr[").replace(">", "]")
     return re.sub(r"\bbool\b", "cpp_bool", cpp)
+
+
+def strmap_cy(kind):
+    """The Cython type of a map of strings."""
+    return "%s[CefString, CefString]" % ("cpp_multimap" if kind.multi else "cpp_map")
 
 
 def vector_cy(kind):
@@ -132,6 +137,8 @@ def _cy_method_signature(plan):
             args += pair[::-1] if kind.size_first else pair
         elif isinstance(kind, Time):
             args.append("CefBaseTime")
+        elif isinstance(kind, StrMap):
+            args.append(strmap_cy(kind) + "&" if param.out else "const %s&" % strmap_cy(kind))
         elif isinstance(kind, ItemBytes):
             args += ["void*" if param.out else "const void*", cy_c(kind.size_cpp),
                      cy_c(kind.size_cpp)]
@@ -184,6 +191,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         "from libcpp cimport bool as cpp_bool",
         "from libcpp.string cimport string",
         "from libcpp.vector cimport vector",
+        "from libcpp.map cimport map as cpp_map, multimap as cpp_multimap",
         "",
         'cdef extern from "include/cef_base.h":',
         "    cdef cppclass CefBaseRefCounted:",
@@ -304,6 +312,8 @@ from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
+from cython.operator cimport dereference as _deref, preincrement as _inc
+from libcpp.utility cimport pair as _pair
 import sys as _sys
 from datetime import datetime as _datetime, timedelta as _timedelta, timezone as _timezone
 from cefweaver import types as _types
@@ -328,6 +338,39 @@ cdef string _g_std(object value) except *:
 cdef CefString _g_cef(object value) except *:
     cdef string s = _g_std(value)
     return CefString(s)
+
+
+# std::map and std::multimap of strings <-> dict (a key twice in a multimap keeps its last value)
+cdef inline dict _g_dict_multimap(cpp_multimap[CefString, CefString]* values):
+    cdef dict result = {}
+    cdef cpp_multimap[CefString, CefString].iterator it = values.begin()
+    while it != values.end():
+        result[_g_str(_deref(it).first)] = _g_str(_deref(it).second)
+        _inc(it)
+    return result
+
+
+cdef inline int _g_multimap_set(object source, cpp_multimap[CefString, CefString]& out) except -1:
+    out.clear()
+    for key, value in source.items():
+        out.insert(_pair[CefString, CefString](_g_cef(key), _g_cef(value)))
+    return 0
+
+
+cdef inline dict _g_dict_map(cpp_map[CefString, CefString]* values):
+    cdef dict result = {}
+    cdef cpp_map[CefString, CefString].iterator it = values.begin()
+    while it != values.end():
+        result[_g_str(_deref(it).first)] = _g_str(_deref(it).second)
+        _inc(it)
+    return result
+
+
+cdef inline int _g_map_set(object source, cpp_map[CefString, CefString]& out) except -1:
+    out.clear()
+    for key, value in source.items():
+        out.insert(_pair[CefString, CefString](_g_cef(key), _g_cef(value)))
+    return 0
 
 
 # CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
@@ -485,6 +528,8 @@ def _annotation(kind):
         return "str"
     if isinstance(kind, Time):
         return "datetime.datetime | None"
+    if isinstance(kind, StrMap):
+        return "dict[str, str]"
     if isinstance(kind, (LibRef, ClientRef, Struct)):
         return py_class_name(kind.cls)
     if isinstance(kind, Vector):
@@ -566,6 +611,8 @@ def _library_method(plan, owner_py):
             # (a struct is also an argument: it is read, changed by CEF and returned).
             if isinstance(kind, Vector):
                 decls.append("cdef %s _a%d" % (vector_cy(kind), i))
+            elif isinstance(kind, StrMap):
+                decls.append("cdef %s _a%d" % (strmap_cy(kind), i))
             elif isinstance(kind, Str):
                 decls.append("cdef CefString _a%d" % i)
             elif isinstance(kind, Enum):
@@ -589,6 +636,11 @@ def _library_method(plan, owner_py):
         elif isinstance(kind, Prim):
             sig.append("%s %s" % (cy_arg(kind.cpp), n))
             call_args.append(n)
+        elif isinstance(kind, StrMap):
+            sig.append(n)
+            decls.append("cdef %s _a%d" % (strmap_cy(kind), i))
+            pre.append("_g_%s_set(%s, _a%d)" % ("multimap" if kind.multi else "map", n, i))
+            call_args.append("_a%d" % i)
         elif isinstance(kind, Time):
             sig.append(n)
             decls.append("cdef CefBaseTime _a%d" % i)
@@ -692,6 +744,8 @@ def _library_method(plan, owner_py):
         elif isinstance(kind, Vector):
             values.append("_g_%s(&_a%d)" % ("str_list" if isinstance(kind.element, Str)
                                             else "list_" + vector_tag(kind), i))
+        elif isinstance(kind, StrMap):
+            values.append("_g_dict_%s(&_a%d)" % ("multimap" if kind.multi else "map", i))
         elif isinstance(kind, Str):
             values.append("_g_str(_a%d)" % i)
         elif isinstance(kind, Enum):
