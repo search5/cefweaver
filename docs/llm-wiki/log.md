@@ -242,3 +242,7 @@
 ## [2026-10-08] ingest | root_cache_path와 창 배경색 확인
 
 - `Settings.root_cache_path`를 더해 java-cef의 `CefSettings` 20개를 모두 열었습니다. 창이 있는 브라우저의 배경색은 "픽셀을 읽을 수 없다"고 적었으나 시도하지 않은 것이었고, `XGetImage`로 읽어 확인했습니다(F58 정정).
+
+## [2026-10-08] query | 채워야 할 격차 판단과 헤드리스 오프스크린 (F61)
+
+- 오프스크린이 X 서버와 Wayland 없이 동작함을 확인해 시험으로 고정했습니다(F61). cefpython과의 격차 가운데 채울 것의 순서(메시지 펌프 예약, 스레드 보내기, 브라우저 설정, JS 통신, 가속 페인트)를 [cefpython 비교](pages/analyses/cefpython-comparison.md)에 적었습니다.

@@ -79,6 +79,11 @@ updated: 2026-10-08
 - **발견(결함, 수정)**: `is_ready_to_execute_javascript`(`execute_javascript`가 실행되는 조건)가 어느 브라우저의 로딩에나 따라 바뀌었습니다. 로딩이 긴 브라우저를 만들면 첫 브라우저의 스크립트 실행이 막혔습니다(팝업도 같았음). 이제 첫 브라우저(`initialize()`가 만든 것)의 로딩만 따릅니다. 또 첫 브라우저가 닫힌 뒤 `execute_javascript`가 널 프레임을 참조할 수 있어 `False`를 돌려주도록 했습니다.
 - **제약**: `load_url()`과 `execute_javascript()`는 첫 브라우저만 다룹니다(다른 브라우저는 `Browser.get_main_frame()`으로). 같은 스레드(`initialize()`를 부른 스레드)에서만 만들 수 있습니다.
 
+## F61. 오프스크린은 디스플레이 서버가 필요 없다
+
+- **방법**: `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`을 지우고 `ozone-platform=headless`로 오프스크린 브라우저를 띄웠습니다.
+- **결과**: X 서버도 Wayland도 없이 그림(`on_paint`), 스크립트 실행, 정상 종료가 모두 동작했습니다. 오프스크린의 픽셀은 창 시스템이 아니라 CEF가 만들어 주므로 창 임베딩(`SetAsChild`)이 필요 없고, Wayland에서 Alloy 창이 죽는 문제(F31)를 피합니다. 네이티브 Wayland(`ozone-platform=wayland`)에서의 오프스크린은 확인하지 않았습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

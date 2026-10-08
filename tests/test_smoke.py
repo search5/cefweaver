@@ -73,7 +73,7 @@ app.add_command_line_switch("ozone-platform", "x11")
 """
 
 
-def run_cef(script, timeout=90, ozone="x11"):
+def run_cef(script, timeout=90, ozone="x11", without=()):
     """Run `script` (after PRELUDE) in a new process; return CompletedProcess."""
     # ozone=None leaves the platform to the wrapper (its default).
     line = '"ozone-platform", "x11"'
@@ -83,7 +83,8 @@ def run_cef(script, timeout=90, ozone="x11"):
     # Everything the run makes (the CEF cache, files of the script) goes into one directory
     # that is removed afterwards: hundreds of runs would fill /tmp otherwise.
     with tempfile.TemporaryDirectory(prefix="cefweaver-run-") as scratch:
-        env = dict(os.environ, TMPDIR=scratch)
+        env = {k: v for k, v in os.environ.items() if k not in without}
+        env["TMPDIR"] = scratch
         return subprocess.run([sys.executable, "-I", "-c", code], capture_output=True,
                               text=True, timeout=timeout, env=env)
 
@@ -3510,6 +3511,22 @@ class WithCef(unittest.TestCase):
             app.shutdown()
             print("OK")
         """)
+
+    def test_an_offscreen_browser_needs_no_display_server_with_the_headless_platform(self):
+        # no X server and no Wayland: the offscreen pixels do not come from a window system
+        import textwrap
+        body = textwrap.dedent("""
+            start(RED)
+            wait_until(app, lambda: any(p["first"] == b"\\x00\\x00\\xff\\xff" for p in paints), "a red frame")
+            app.execute_javascript("report('alive', 1)")
+            wait_until(app, lambda: ("alive", 1) in js, "the script")
+            app.shutdown()
+            print("OK")
+        """)
+        result = run_cef(textwrap.dedent(self.OSR_SCRIPT) + body, ozone="headless",
+                         without=("DISPLAY", "WAYLAND_DISPLAY", "XDG_SESSION_TYPE"))
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
 
     def test_an_offscreen_page_is_transparent_unless_told_otherwise(self):
         self.run_osr_script("""
