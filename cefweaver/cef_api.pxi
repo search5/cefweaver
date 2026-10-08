@@ -11351,6 +11351,54 @@ cdef inline CefStringVisitor* _g_export_StringVisitor(object obj) except? NULL:
     return raw
 
 
+class Task:
+    """Implement this interface for asynchronous task execution. If the task is
+    posted successfully and if the associated message loop is still running then
+    the Execute() method will be called on the target thread. If the task fails
+    to post then the task object may be destroyed on the source thread instead
+    of the target thread. For this reason be cautious when performing work in
+    the task object destructor.
+    """
+
+    def execute(self):
+        """Method that will be executed on the target thread."""
+        return None
+
+
+cdef void _Task_execute(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).execute()
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefTask] _g_make_Task(object obj) except *:
+    cdef CefRefPtr[CefTask] ref
+    cdef CwTaskCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, Task):
+        raise TypeError("expected a Task or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "execute", None) is not Task.execute:
+        cb.fn_execute = _Task_execute
+    ref = CefRefPtr[CefTask](<CefTask*>new CwTaskProxy(cb))
+    return ref
+
+
+cdef inline CefTask* _g_export_Task(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefTask] ref = _g_make_Task(obj)
+    cdef CefTask* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class URLRequestClient:
     """Interface that should be implemented by the CefURLRequest client. The
     methods of this class will be called on the same thread that created the
@@ -11647,4 +11695,43 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "BrowserSettings", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+def post_task(int thread_id, task):
+    """Post a task for execution on the specified thread. Equivalent to
+    using CefTaskRunner::GetForThread(threadId)->PostTask(task).
+    """
+    cdef CefRefPtr[CefTask] _a1
+    cdef cpp_bool _r
+    if task is None:
+        raise TypeError("task must not be None")
+    _a1 = _g_make_Task(task)
+    with nogil:
+        _r = CefPostTask(<cef_thread_id_t>thread_id, _a1)
+    return _r
+
+
+def post_delayed_task(int thread_id, task, int64_t delay_ms):
+    """Post a task for delayed execution on the specified thread. Equivalent to
+    using CefTaskRunner::GetForThread(threadId)->PostDelayedTask(task,
+    delay_ms).
+    """
+    cdef CefRefPtr[CefTask] _a1
+    cdef cpp_bool _r
+    if task is None:
+        raise TypeError("task must not be None")
+    _a1 = _g_make_Task(task)
+    with nogil:
+        _r = CefPostDelayedTask(<cef_thread_id_t>thread_id, _a1, delay_ms)
+    return _r
+
+
+def currently_on(int thread_id):
+    """Returns true if called on the specified thread. Equivalent to using
+    CefTaskRunner::GetForThread(threadId)->BelongsToCurrentThread().
+    """
+    cdef cpp_bool _r
+    with nogil:
+        _r = CefCurrentlyOn(<cef_thread_id_t>thread_id)
+    return _r
+
+
+__generated_all__ = ["AudioParameters", "BrowserSettings", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "Task", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type", "post_task", "post_delayed_task", "currently_on"]

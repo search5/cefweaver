@@ -319,6 +319,7 @@ class Model:
         self.classes = {c.get_name(): c for c in header.get_classes()}
         self.functions = {f.get_name(): f for f in header.get_funcs()}
         self.enums = self._find_enums()
+        self.enum_aliases = self._find_enum_aliases()
         self.enum_defs, self.enum_skipped = self._read_enums()
         self.structs = self._find_structs()
 
@@ -340,6 +341,19 @@ class Model:
                 for match in re.finditer(r"typedef\s+enum\s*\w*\s*\{.*?\}\s*(\w+)\s*;", text, re.S):
                     names.add(match.group(1))
         return names
+
+    def _find_enum_aliases(self):
+        """`typedef cef_thread_id_t CefThreadId;`: the C++ names of enumerations, {CefThreadId: cef_thread_id_t}."""
+        aliases = {}
+        include = os.path.join(self.cef_root, "include")
+        for dirpath, _, files in os.walk(include):
+            for filename in files:
+                if filename.endswith(".h"):
+                    for cname, alias in re.findall(r"^typedef\s+(cef_\w+_t)\s+(Cef\w+)\s*;",
+                                                   self._read(os.path.join(dirpath, filename)), re.M):
+                        if cname in self.enums:
+                            aliases[alias] = cname
+        return aliases
 
     def _read_enums(self):
         """EnumInfo of every enumeration that can be read, and why the others cannot."""

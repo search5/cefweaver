@@ -83,6 +83,7 @@ CLIENT_CLASSES = [
     "CefDevToolsMessageObserver",
     "CefRequestContextHandler",
     "CefURLRequestClient",
+    "CefTask",
 ]
 
 # Global functions.
@@ -90,6 +91,9 @@ FUNCTIONS = [
     "CefRegisterSchemeHandlerFactory",
     "CefClearSchemeHandlerFactories",
     "CefGetMimeType",
+    "CefPostTask",
+    "CefPostDelayedTask",
+    "CefCurrentlyOn",
 ]
 
 

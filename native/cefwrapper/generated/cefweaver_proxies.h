@@ -42,6 +42,7 @@
 #include "include/cef_ssl_info.h"
 #include "include/cef_stream.h"
 #include "include/cef_string_visitor.h"
+#include "include/cef_task.h"
 #include "include/cef_task_manager.h"
 #include "include/cef_unresponsive_process_callback.h"
 #include "include/cef_urlrequest.h"
@@ -3172,6 +3173,50 @@ class CwStringVisitorProxy : public CefStringVisitor {
 
   IMPLEMENT_REFCOUNTING(CwStringVisitorProxy);
   DISALLOW_COPY_AND_ASSIGN(CwStringVisitorProxy);
+};
+
+// ---- CefTask ----
+
+class CwTaskForward : public CefTask {
+ protected:
+  CefRefPtr<CefTask> forward_task_;
+
+ public:
+  void Execute() override {
+    if (!forward_task_) {
+      return;
+    }
+    forward_task_->Execute();
+  }
+};
+
+struct CwTaskCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_execute)(void*) = nullptr;
+};
+
+class CwTaskProxy : public CefTask {
+ public:
+  explicit CwTaskProxy(const CwTaskCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwTaskProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void Execute() override {
+    if (!cb_.fn_execute) {
+      return;
+    }
+    cb_.fn_execute(cb_.py);
+  }
+
+ private:
+  CwTaskCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwTaskProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwTaskProxy);
 };
 
 // ---- CefURLRequestClient ----

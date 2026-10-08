@@ -197,6 +197,10 @@ def classify(model, scope, analysis):
         if spelled in ("CefWindowHandle", "cef_window_handle_t"):
             # an X11 window on Linux (unsigned long); a plain integer in Python
             return Prim("cef_window_handle_t", "int")
+        if spelled in model.enum_aliases and not analysis.is_byaddr():
+            cname = model.enum_aliases[spelled]
+            info = model.enum_defs.get(cname)
+            return Enum(spelled, cname, info.py_name if info else "")
         raise Unsupported("struct-like value type %s" % spelled)
 
     if result == "string":

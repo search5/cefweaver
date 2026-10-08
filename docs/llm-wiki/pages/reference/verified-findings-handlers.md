@@ -93,6 +93,16 @@ updated: 2026-10-08
   - 이 규약을 `cefweaver.MessagePump`(순수 Python)에 담았습니다. `timeout()`은 다음 실행까지의 초(최대 1/30), `run()`은 기한이 되었으면 `do_message_loop_work()`를 부르고 `True`를 돌려줍니다(재진입 방지, 실행 중에 CEF가 요청하면 그 요청을 잃지 않음). `wake(delay)`는 CEF가 요청할 때마다 어느 스레드에서나 불려 잠든 이벤트 루프를 깨웁니다. 폴링 없이 기한만으로 페이지가 로드되는 것을 5번 확인했습니다.
 - **제약**: `on_schedule_message_pump_work`는 다른 훅과 달리 `initialize()`를 부른 스레드에서 불리지 않으므로 그 안에서 CEF나 툴킷의 객체를 만지면 안 됩니다.
 
+## F63. 스레드로 보내는 작업
+
+- **방법**: `cefweaver.Task`를 상속한 객체를 `post_task(ThreadId.UI, task)`, `post_delayed_task(..., delay_ms)`로 보내고, 어느 스레드에서 도는지 `currently_on(thread_id)`와 스레드 번호로 확인했습니다.
+- **결과**:
+  - `post_task`는 어느 스레드에서 불러도 되고, UI 작업은 `post_task` 안이 아니라 메시지 루프(`do_message_loop_work()`) 안에서 `initialize()`를 부른 스레드로 돕니다. 파이썬 스레드에서 보낸 작업도 같습니다.
+  - `ThreadId.IO`로 보낸 작업은 다른 스레드에서 돌고 그 안에서 `currently_on(ThreadId.IO)`가 참입니다. `Task.execute`는 그 스레드에서 GIL을 잡고 실행됩니다.
+  - `post_delayed_task(ThreadId.UI, task, 300)`은 300ms 전에 돌지 않습니다(250ms 이상).
+  - 다른 스레드에서 UI 작업을 보내면 CEF가 메시지 펌프 예약을 요청하므로, `MessagePump`의 기한만으로 돌리는 응용에서도 그 작업이 실행됩니다(F62).
+- **생성기의 수정**: `CefThreadId`는 `typedef cef_thread_id_t CefThreadId;`라는 C++ 별칭이어서 구조체로 오인되어 함수가 만들어지지 않았습니다. 생성기가 `typedef cef_..._t Cef...;` 별칭을 열거형으로 읽도록 고쳤습니다(`CefProcessId`, `CefValueType`도 같은 별칭).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

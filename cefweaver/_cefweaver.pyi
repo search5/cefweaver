@@ -164,6 +164,7 @@ from .types import (
     State,
     TerminationStatus,
     TextInputMode,
+    ThreadId,
     TransitionType,
     URLRequestStatus,
     ValueType,
@@ -4516,6 +4517,19 @@ class StringVisitor:
         ...
 
 
+class Task:
+    """Implement this interface for asynchronous task execution. If the task is
+    posted successfully and if the associated message loop is still running then
+    the Execute() method will be called on the target thread. If the task fails
+    to post then the task object may be destroyed on the source thread instead
+    of the target thread. For this reason be cautious when performing work in
+    the task object destructor.
+    """
+    def execute(self) -> None:
+        """Method that will be executed on the target thread."""
+        ...
+
+
 class URLRequestClient:
     """Interface that should be implemented by the CefURLRequest client. The
     methods of this class will be called on the same thread that created the
@@ -4616,5 +4630,27 @@ def clear_scheme_handler_factories() -> bool:
 def get_mime_type(extension: str) -> str:
     """Returns the mime type for the specified file extension or an empty string if
     unknown.
+    """
+    ...
+
+
+def post_task(thread_id: ThreadId | int, task: Task) -> bool:
+    """Post a task for execution on the specified thread. Equivalent to
+    using CefTaskRunner::GetForThread(threadId)->PostTask(task).
+    """
+    ...
+
+
+def post_delayed_task(thread_id: ThreadId | int, task: Task, delay_ms: int) -> bool:
+    """Post a task for delayed execution on the specified thread. Equivalent to
+    using CefTaskRunner::GetForThread(threadId)->PostDelayedTask(task,
+    delay_ms).
+    """
+    ...
+
+
+def currently_on(thread_id: ThreadId | int) -> bool:
+    """Returns true if called on the specified thread. Equivalent to using
+    CefTaskRunner::GetForThread(threadId)->BelongsToCurrentThread().
     """
     ...

@@ -14,7 +14,7 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 690 methods/functions in 72 classes, 3 global functions
+Generated now: 694 methods/functions in 73 classes, 6 global functions
 
 Skipped inside the generated classes (type not supported yet):
     20  class
@@ -26,17 +26,17 @@ Skipped inside the generated classes (type not supported yet):
      1  another overload of CreateContext is generated (Python has one name)
   ----  31 skipped
 
-If every class were generated, the type support alone would cover 2132 of 2255 methods/functions (95%).
+If every class were generated, the type support alone would cover 2137 of 2255 methods/functions (95%).
 What blocks the rest, by type:
     32  ownptr pointer
     19  a library method returning a client object
     11  rawptr pointer
      8  vector of values
-     8  struct-like value type
      5  struct
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      4  another overload of Create is generated (Python has one name)
+     3  struct-like value type
      2  pointer to
      2  CEF keeps the pointer the handler returns, so the bytes would have to outlive every use
      2  a pointer into memory that V8 owns and can free while Python still holds it
@@ -198,9 +198,9 @@ Per class (supported/total methods, when every class is generated):
   * CefStreamReader                        library   8/8  
   * CefStreamWriter                        library   7/7  
   * CefStringVisitor                       client    1/1  
-    CefTask                                client    1/1  
+  * CefTask                                client    1/1  
   * CefTaskManager                         library   6/6  
-    CefTaskRunner                          library   5/7  
+    CefTaskRunner                          library   7/7  
     CefTestServer                          library   3/3  
     CefTestServerConnection                library   5/5  
     CefTestServerHandler                   client    1/1  
@@ -283,12 +283,13 @@ Generated, and not opened by java-cef (beyond the floor):
   CefSetCookieCallback             1  the whole class
   CefStreamReader                  8  the whole class
   CefStreamWriter                  7  the whole class
+  CefTask                          1  the whole class
   CefTaskManager                   6  the whole class
   CefURLRequest                    2  2 methods
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  289 methods
+  ----  290 methods
 ```
 
 ## 관련 페이지

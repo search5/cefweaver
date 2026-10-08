@@ -688,6 +688,17 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([(f.cname, f.cpp) for f in mouse.fields],
                          [("x", "int"), ("y", "int"), ("modifiers", "uint32_t")])
 
+    def test_a_cef_typedef_of_an_enumeration_is_that_enumeration(self):
+        # `typedef cef_thread_id_t CefThreadId;` is how CefPostTask() names the thread
+        self.assertEqual(self.model.enum_aliases["CefThreadId"], "cef_thread_id_t")
+        scope = self.scope
+        for name in ("CefPostTask", "CefPostDelayedTask", "CefCurrentlyOn"):
+            self.assertIn(name, scope.functions)
+            plan = self.plan_method(self.model, scope, "", self.model.functions[name],
+                                    client_side=False, static=True)
+            self.assertTrue(plan.supported, (name, plan.reason))
+            self.assertEqual(plan.params[0].kind, Enum("CefThreadId", "cef_thread_id_t", "ThreadId"))
+
     def test_conditional_members_of_a_struct_are_left_out_and_the_rest_is_read(self):
         # cef_browser_settings_t has members under `#if CEF_API_ADDED(...)`: they depend on the
         # API version the code is compiled for, so they are not fields; the others are.

@@ -130,6 +130,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_text_input_mode_t:
         pass
+    ctypedef enum cef_thread_id_t:
+        pass
     ctypedef enum cef_touch_event_type_t:
         pass
     ctypedef enum cef_transition_type_t:
@@ -509,6 +511,8 @@ cdef extern from "include/cef_cookie.h":
     cdef cppclass CefSetCookieCallback(CefBaseRefCounted)
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted)
+cdef extern from "include/cef_task.h":
+    cdef cppclass CefTask(CefBaseRefCounted)
 cdef extern from "include/cef_urlrequest.h":
     cdef cppclass CefURLRequestClient(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
@@ -1307,6 +1311,9 @@ cdef extern from "include/cef_cookie.h":
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_task.h":
+    cdef cppclass CefTask(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_urlrequest.h":
     cdef cppclass CefURLRequestClient(CefBaseRefCounted):
         pass
@@ -1321,6 +1328,12 @@ cdef extern from "include/cef_scheme.h":
     cpp_bool CefClearSchemeHandlerFactories() nogil
 cdef extern from "include/cef_parser.h":
     CefString CefGetMimeType(const CefString&) nogil
+cdef extern from "include/cef_task.h":
+    cpp_bool CefPostTask(cef_thread_id_t, CefRefPtr[CefTask]) nogil
+cdef extern from "include/cef_task.h":
+    cpp_bool CefPostDelayedTask(cef_thread_id_t, CefRefPtr[CefTask], int64_t) nogil
+cdef extern from "include/cef_task.h":
+    cpp_bool CefCurrentlyOn(cef_thread_id_t) nogil
 
 # Proxies for the client classes (native/cefwrapper/generated/cefweaver_proxies.h)
 cdef extern from "generated/cefweaver_proxies.h":
@@ -1601,6 +1614,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_visit)(void*, const CefString*) noexcept
     cdef cppclass CwStringVisitorProxy(CefStringVisitor):
         CwStringVisitorProxy(const CwStringVisitorCallbacks&)
+    cdef cppclass CwTaskCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_execute)(void*) noexcept
+    cdef cppclass CwTaskProxy(CefTask):
+        CwTaskProxy(const CwTaskCallbacks&)
     cdef cppclass CwURLRequestClientCallbacks:
         void* py
         void (*release)(void*) noexcept

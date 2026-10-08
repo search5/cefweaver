@@ -91,6 +91,13 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_tasks_and_threads_are_in_the_module(self):
+        task = cefweaver.Task()
+        self.assertTrue(callable(cefweaver.post_task))
+        self.assertTrue(callable(cefweaver.post_delayed_task))
+        self.assertTrue(callable(cefweaver.currently_on))
+        self.assertIsNone(task.execute())                          # the default does nothing
+
     def test_a_message_pump_keeps_the_latest_request_and_a_fall_back_timer(self):
         import threading
 
@@ -3711,6 +3718,91 @@ class WithCef(unittest.TestCase):
             self.assertIn("COOKIE session=1", run(True, False))   # the next process still has it
             run(False, True)
             self.assertNotIn("COOKIE session=1", run(False, False))
+
+    # -- tasks for the threads of CEF ----------------------------------------------------------
+
+    def test_a_task_posted_from_any_thread_runs_on_the_ui_thread_in_the_message_loop(self):
+        self.run_osr_script("""
+            import threading
+            T = cefweaver.types.ThreadId
+            main = threading.get_ident()
+            ran = []
+            class Record(cefweaver.Task):
+                def __init__(self, name):
+                    self.name = name
+                def execute(self):
+                    ran.append((self.name, threading.get_ident(), cefweaver.currently_on(T.UI),
+                                cefweaver.currently_on(T.IO)))
+            start(RED)
+            assert cefweaver.currently_on(T.UI) is True and cefweaver.currently_on(T.IO) is False
+            assert cefweaver.post_task(T.UI, Record("from main")) is True
+            assert ran == [], "a task must not run inside post_task"
+            worker = threading.Thread(target=lambda: ran.append(("worker said", cefweaver.currently_on(T.UI)))
+                                      or cefweaver.post_task(T.UI, Record("from a thread")))
+            worker.start(); worker.join()
+            wait_until(app, lambda: len([r for r in ran if r[0].startswith("from")]) == 2, "both tasks")
+            assert ("worker said", False) in ran                # a Python thread is not the UI thread
+            for name, thread, on_ui, on_io in [r for r in ran if r[0].startswith("from")]:
+                assert thread == main and on_ui is True and on_io is False, (name, ran)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_task_runs_on_the_io_thread_and_a_delayed_task_waits(self):
+        self.run_osr_script("""
+            import threading
+            T = cefweaver.types.ThreadId
+            main = threading.get_ident()
+            ran = {}
+            class Record(cefweaver.Task):
+                def __init__(self, name):
+                    self.name = name
+                def execute(self):
+                    ran[self.name] = (time.time(), threading.get_ident(), cefweaver.currently_on(T.IO))
+            start(RED)
+            assert cefweaver.post_task(T.IO, Record("io")) is True
+            wait_until(app, lambda: "io" in ran, "the task on the IO thread")
+            assert ran["io"][1] != main and ran["io"][2] is True, ran
+            begin = time.time()
+            assert cefweaver.post_delayed_task(T.UI, Record("later"), 300) is True
+            for _ in range(20):                              # 100 ms: not yet
+                app.do_message_loop_work(); time.sleep(0.005)
+            assert "later" not in ran, "ran too early"
+            wait_until(app, lambda: "later" in ran, "the delayed task")
+            assert ran["later"][0] - begin >= 0.25, ran["later"][0] - begin
+            assert ran["later"][1] == main
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_task_from_a_thread_wakes_the_message_pump_of_the_application(self):
+        self.run_osr_script("""
+            import threading
+            T = cefweaver.types.ThreadId
+            woken = threading.Event()
+            pump = cefweaver.MessagePump(app, wake=lambda delay: woken.set())
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize(page(RED))
+            done = []
+            class Finish(cefweaver.Task):
+                def execute(self):
+                    done.append(threading.get_ident())
+            def drive(until):
+                end = time.time() + 20
+                while not until():
+                    assert time.time() < end, "timed out"
+                    wait = pump.timeout()
+                    if wait > 0:
+                        woken.wait(wait); woken.clear()
+                    pump.run()
+            drive(lambda: paints)
+            threading.Thread(target=lambda: cefweaver.post_task(T.UI, Finish())).start()
+            drive(lambda: done)                              # the deadlines of the pump only
+            assert done == [threading.get_ident()], done
+            app.shutdown()
+            print("OK")
+        """)
 
     # -- more than one browser (java-cef: CefClient.createBrowser) ----------------------------
 

@@ -43,7 +43,7 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다(사용자 결정). 총 289개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
+닫지 않고 둡니다(사용자 결정). 총 290개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
 
 | 묶음 | 항목 | 메서드 |
 | --- | --- | --- |
@@ -63,6 +63,7 @@ updated: 2026-10-08
 - **시간, 헤더 맵**: `datetime`(마이크로초)과 `dict`(java-cef는 `Date` 밀리초, `Map`).
 - **래퍼 고유**: `devtools_menu`, `add_javascript_binding`, `add_resource`는 java-cef에 없는 기능입니다(래퍼에서 온 것).
 - **PostData의 추가, 요청 컨텍스트의 `create_context` 중복 오버로드**(첫 번째만).
+- **메시지 펌프 예약과 스레드 작업**(`on_schedule_message_pump_work`, `MessagePump`, `Task`와 `post_task` 등 함수 3개): cefpython에는 있고 java-cef에는 없습니다. GUI 툴킷에 넣기 위해 열었습니다([F62](verified-findings-handlers.md), F63).
 
 ## JNI 목록 밖의 격차 (2026-10-08 점검)
 

@@ -250,3 +250,7 @@
 ## [2026-10-08] ingest | 메시지 펌프 예약 (F62)
 
 - `AppHandler.on_schedule_message_pump_work`, `Settings.external_message_pump`, `cefweaver.MessagePump`를 더했습니다(cefpython에는 있고 java-cef에는 없음). CEF의 규약(대체하는 요청, 1/30초 대비 타이머)을 시험으로 확인하고 `MessagePump`에 담았습니다. 생성기는 `#if CEF_API_ADDED` 멤버를 건너뛰어 `BrowserSettings`를 값 타입으로 만들었습니다.
+
+## [2026-10-08] ingest | 스레드로 보내는 작업 (F63)
+
+- `Task`, `post_task`, `post_delayed_task`, `currently_on`을 생성했습니다(cefpython의 `PostTask`, `PostDelayedTask`, `IsThread`에 해당). 생성기가 `typedef cef_..._t Cef...;` 별칭(`CefThreadId`)을 열거형으로 읽도록 고쳤습니다.
