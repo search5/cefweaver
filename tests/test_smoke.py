@@ -299,6 +299,100 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual(items.get_binary(0).get_data(8, 0), data)
         self.assertIsNone(value.copy())
 
+    def test_streams_read_and_write_bytes_in_items(self):
+        import tempfile, os
+        folder = tempfile.mkdtemp()
+        path = os.path.join(folder, "data.bin")
+        writer = cefweaver.StreamWriter.create_for_file(path)
+        self.assertEqual(writer.write(b"hello"), 5)              # items of one byte
+        self.assertEqual(writer.write(b"abcdef", 2), 3)          # three items of two bytes
+        self.assertEqual(writer.write(b""), 0)
+        with self.assertRaises(ValueError):
+            writer.write(b"abc", 2)                              # not a whole number of items
+        with self.assertRaises(ValueError):
+            writer.write(b"abc", 0)
+        with self.assertRaises(TypeError):
+            writer.write("text")
+        self.assertEqual(writer.tell(), 11)
+        self.assertEqual(writer.flush(), 0)
+        reader = cefweaver.StreamReader.create_for_file(path)
+        self.assertEqual(reader.read(5), b"hello")
+        self.assertEqual(reader.read(2, 2), b"abcd")             # two items of two bytes
+        self.assertEqual(reader.tell(), 9)
+        self.assertEqual(reader.read(100), b"ef")                # less is left than asked for
+        self.assertTrue(reader.eof())
+        self.assertEqual(reader.read(4), b"")
+        self.assertEqual(reader.seek(1, os.SEEK_SET), 0)
+        self.assertEqual(reader.read(3), b"ell")
+        with self.assertRaises(OverflowError):
+            reader.read(-1)
+        data = cefweaver.StreamReader.create_for_data(b"0123456789")
+        self.assertEqual(data.read(4), b"0123")
+        self.assertIsNone(cefweaver.StreamReader.create_for_data(b""))   # CEF has no empty one
+
+    def test_python_objects_can_be_the_source_and_the_sink_of_a_stream(self):
+        class Source(cefweaver.ReadHandler):
+            def __init__(self):
+                self.data, self.offset = b"abcdefghij", 0
+            def read(self, ptr, size):
+                count = min(len(ptr) // size, (len(self.data) - self.offset) // size)
+                ptr[:count * size] = self.data[self.offset:self.offset + count * size]
+                self.offset += count * size
+                return count
+            def seek(self, offset, whence):
+                self.offset = offset
+                return 0
+            def tell(self):
+                return self.offset
+            def eof(self):
+                return int(self.offset >= len(self.data))
+            def may_block(self):
+                return False
+        class Sink(cefweaver.WriteHandler):
+            def __init__(self):
+                self.parts = []
+            def write(self, ptr, size):
+                self.parts.append((bytes(ptr), size))
+                return len(ptr) // size
+            def seek(self, offset, whence):
+                return 0
+            def tell(self):
+                return sum(len(p) for p, _ in self.parts)
+            def flush(self):
+                return 0
+            def may_block(self):
+                return False
+        reader = cefweaver.StreamReader.create_for_handler(Source())
+        self.assertEqual(reader.read(4), b"abcd")
+        self.assertEqual(reader.read(3, 2), b"efghij")           # three items of two bytes
+        self.assertTrue(reader.eof())
+        sink = Sink()
+        writer = cefweaver.StreamWriter.create_for_handler(sink)
+        self.assertEqual(writer.write(b"xyz"), 3)
+        self.assertEqual(writer.write(b"1234", 2), 2)
+        self.assertEqual(sink.parts, [(b"xyz", 1), (b"1234", 2)])
+
+    def test_a_zip_reader_reads_a_file_of_the_archive(self):
+        import tempfile, os, zipfile
+        path = os.path.join(tempfile.mkdtemp(), "a.zip")
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("first.txt", "one" * 100)
+            archive.writestr("second.txt", "two")
+        zip_reader = cefweaver.ZipReader.create(cefweaver.StreamReader.create_for_file(path))
+        self.assertTrue(zip_reader.move_to_first_file())
+        self.assertEqual(zip_reader.get_file_name(), "first.txt")
+        self.assertEqual(zip_reader.get_file_size(), 300)
+        self.assertTrue(zip_reader.open_file(""))
+        self.assertEqual(zip_reader.read_file(100), b"one" * 33 + b"o")  # a part of the file
+        self.assertEqual(zip_reader.read_file(1000), b"ne" + b"one" * 66)  # the rest
+        self.assertEqual(zip_reader.read_file(10), b"")                    # the end of the file
+        self.assertTrue(zip_reader.close_file())
+        self.assertTrue(zip_reader.move_to_next_file())
+        self.assertEqual(zip_reader.get_file_name(), "second.txt")
+        self.assertFalse(zip_reader.move_to_next_file())
+        with self.assertRaises(RuntimeError):
+            zip_reader.read_file(10)                              # no file is open: CEF reports -1
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")

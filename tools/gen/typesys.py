@@ -112,6 +112,15 @@ class Bytes(Kind):
     size_cpp: str  # type of the size parameter
 
 
+@dataclass(frozen=True)
+class ItemBytes(Kind):
+    """`void* ptr, size_t size, size_t n` of a library method (fread/fwrite): `n` items of
+    `size` bytes. In Python `write(data, size=1)` takes bytes and returns the items written,
+    and `read(n, size=1)` returns the bytes read (`n * size` at most)."""
+
+    size_cpp: str
+
+
 _PRIMITIVES = {
     "bool": "bool",
     "int": "int",
@@ -218,6 +227,7 @@ class ParamPlan:
     byref: bool = False
     byaddr: bool = False  # `bool* flag`: an output the handler sets through a pointer
     is_return: bool = False  # the hidden output that carries a struct a handler method returns
+    count_name: str = ""  # ItemBytes only: the C++ name of the item count parameter
     optional: bool = False  # the header marks it optional_param: None is allowed
     size_name: str = ""  # Buffer only: the C++ name of the size parameter
 
@@ -235,6 +245,7 @@ class MethodPlan:
     pure: bool = False
     node: object = None
     const_method: bool = False
+    clamp_return: str = ""  # the parameter that limits the (integer) result of a handler
 
     @property
     def supported(self):
@@ -267,14 +278,28 @@ class MethodPlan:
 SIZED_BUFFERS = {
     # "|buffer| ... contains |width|*|height|*4 bytes of BGRA pixel data" (cef_render_handler.h)
     ("CefRenderHandler", "OnPaint", "buffer"):
-        "static_cast<size_t>(width) * static_cast<size_t>(height) * 4",
+        ("static_cast<size_t>(width) * static_cast<size_t>(height) * 4", True),
+    # fread and fwrite: |n| items of |size| bytes; the Python handler sees the buffer and the
+    # item size, and its result (the items) is limited to |n|.
+    ("CefReadHandler", "Read", "ptr"):
+        ("static_cast<size_t>(size) * static_cast<size_t>(n)", False),
+    ("CefWriteHandler", "Write", "ptr"):
+        ("static_cast<size_t>(size) * static_cast<size_t>(n)", True),
 }
+# The item count of the methods above is the length of the buffer: not given to Python.
+IGNORED_PARAMS = {("CefReadHandler", "Read", "n"), ("CefWriteHandler", "Write", "n")}
+CLAMPED_RETURNS = {("CefReadHandler", "Read"): "n", ("CefWriteHandler", "Write"): "n"}
+
+# Library methods with `ptr, size, n` (fread/fwrite): "in" copies bytes in, "out" fills them.
+ITEM_BYTES = {("CefStreamWriter", "Write"): "in", ("CefStreamReader", "Read"): "out"}
+# A `void*` that CEF only reads and copies, though the header does not say const.
+BYTES_IN_COPY = {("CefStreamReader", "CreateForData", "data")}
 
 
 # Library methods that fill a buffer of the size the caller gives (and return how much they
 # wrote): (class, method) -> the buffer parameter. Others with a pointer and sizes
 # (CefStreamReader::Read: ptr, size, n) have a different meaning for each size.
-BYTES_OUT = {("CefBinaryValue", "GetData"): "buffer"}
+BYTES_OUT = {("CefBinaryValue", "GetData"): "buffer", ("CefZipReader", "ReadFile"): "buffer"}
 
 
 def plan_method(model, scope, owner, method, *, client_side, static=False):
@@ -301,21 +326,34 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             analysis = argument.get_type()
             name = argument.get_name()
             if analysis.get_type() == "void" and analysis.is_byaddr():
-                expr = SIZED_BUFFERS.get((owner, method.get_name(), name))
-                if client_side and expr:
+                entry = SIZED_BUFFERS.get((owner, method.get_name(), name))
+                if client_side and entry:
                     plan.params.append(ParamPlan(
                         name, py_param_name(name), "void*",
-                        Buffer("size_t", size_expr=expr, readonly=True), const=True))
+                        Buffer("size_t", size_expr=entry[0], readonly=entry[1]),
+                        const=entry[1]))
                     i += 1
+                    continue
+                direction = ITEM_BYTES.get((owner, method.get_name()))
+                if not client_side and direction and i + 2 < len(arguments) and all(
+                        _is_size_t(model, scope, a) for a in arguments[i + 1:i + 3]):
+                    # `void* ptr, size_t size, size_t n` -> bytes in or out, in items
+                    plan.params.append(ParamPlan(
+                        name, "data" if direction == "in" else py_param_name(name), "void*",
+                        ItemBytes("size_t"), out=direction == "out", const=direction == "in"))
+                    plan.params[-1].size_name = arguments[i + 1].get_name()
+                    plan.params[-1].count_name = arguments[i + 2].get_name()
+                    i += 3
                     continue
                 if not client_side and i + 1 < len(arguments):
                     size = classify(model, scope, arguments[i + 1].get_type())
                     sized = isinstance(size, Prim) and size.cpp == "size_t"
-                    if sized and analysis.is_const() and not (
+                    copied = (owner, method.get_name(), name) in BYTES_IN_COPY
+                    if sized and (analysis.is_const() or copied) and not (
                             i + 2 < len(arguments) and _is_size_t(model, scope, arguments[i + 2])):
                         # `const void* data, size_t size` -> bytes in
                         plan.params.append(ParamPlan(name, py_param_name(name), "void*",
-                                                     Bytes(size.cpp), const=True))
+                                                     Bytes(size.cpp), const=analysis.is_const()))
                         plan.params[-1].size_name = arguments[i + 1].get_name()
                         i += 2
                         continue
@@ -336,6 +374,11 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                     ParamPlan(name, py_param_name(name), "void*", Buffer(size.cpp)))
                 plan.params[-1].size_name = arguments[i + 1].get_name()
                 i += 2
+                continue
+            if client_side and (owner, method.get_name(), name) in IGNORED_PARAMS:
+                plan.params.append(ParamPlan(name, py_param_name(name), analysis.get_type(),
+                                             Ignored()))
+                i += 1
                 continue
             if client_side and analysis.get_type() == "CefEventHandle":
                 plan.params.append(ParamPlan(name, py_param_name(name), "CefEventHandle", Ignored()))
@@ -370,6 +413,7 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                                          optional=name in optional_names,
                                          inout=out and not client_side and isinstance(kind, Struct)))
             i += 1
+        plan.clamp_return = CLAMPED_RETURNS.get((owner, method.get_name()), "")
         if client_side and isinstance(plan.ret, Struct):
             # A handler returns a struct by value: the table function fills one through a
             # hidden last output parameter, and the proxy returns it.

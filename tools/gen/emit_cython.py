@@ -17,7 +17,7 @@ from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, Bytes, ClientRef, Ignored, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -128,7 +128,10 @@ def _cy_method_signature(plan):
         kind = param.kind
         ref = "&" if param.out else ""  # an output parameter of a library method
         if isinstance(kind, Bytes):
-            args += ["void*" if param.out else "const void*", cy_c(kind.size_cpp)]
+            args += ["const void*" if param.const and not param.out else "void*", cy_c(kind.size_cpp)]
+        elif isinstance(kind, ItemBytes):
+            args += ["void*" if param.out else "const void*", cy_c(kind.size_cpp),
+                     cy_c(kind.size_cpp)]
         elif isinstance(kind, Prim):
             args.append(cy_c(kind.cpp) + ref)
         elif isinstance(kind, Enum):
@@ -460,7 +463,7 @@ def _annotation(kind):
         return "list[%s]" % _annotation(kind.element)
     if isinstance(kind, Void):
         return "None"
-    if isinstance(kind, Bytes):
+    if isinstance(kind, (Bytes, ItemBytes)):
         return "bytes"
     raise AssertionError(kind)
 
@@ -477,6 +480,36 @@ def _library_method(plan, owner_py):
     decls, pre, call_args = [], [], []
     for i, param in enumerate(plan.params):
         kind, n = param.kind, param.name
+        if isinstance(kind, ItemBytes):
+            size = py_param_name(param.size_name)
+            count = py_param_name(param.count_name)
+            if param.out:
+                # fread: `count` items of `size` bytes; the result is the bytes of the items read
+                sig += ["size_t %s" % count, "size_t %s=1" % size]
+                decls += ["cdef bytes _b%d" % i, "cdef char* _c%d" % i]
+                pre += ["if %s == 0:" % size,
+                        '    raise ValueError("size must be at least 1")',
+                        "if %s > (<size_t>-1) // %s:" % (count, size),
+                        '    raise OverflowError("n * size is too large")',
+                        "_b%d = PyBytes_FromStringAndSize(NULL, %s * %s)" % (i, count, size),
+                        "_c%d = _b%d" % (i, i)]
+                call_args += ["<void*>_c%d" % i, size, count]
+            else:
+                # fwrite: the bytes are `count` items of `size` bytes
+                sig += [n, "size_t %s=1" % size]
+                decls += ["cdef const unsigned char[::1] _v%d" % i,
+                          "cdef const void* _a%d = NULL" % i,
+                          "cdef size_t _n%d = 0" % i]
+                pre += ["if %s is None:" % n,
+                        '    raise TypeError("%s must be bytes-like, not None")' % n,
+                        "if %s == 0:" % size,
+                        '    raise ValueError("size must be at least 1")',
+                        "_v%d = %s" % (i, n), "_n%d = _v%d.shape[0]" % (i, i),
+                        "if _n%d %% %s:" % (i, size),
+                        '    raise ValueError("%s is not a whole number of items of %%d bytes" %% %s)' % (n, size),
+                        "if _n%d:" % i, "    _a%d = &_v%d[0]" % (i, i)]
+                call_args += ["_a%d" % i, size, "_n%d // %s" % (i, size)]
+            continue
         if isinstance(kind, Bytes):
             size = py_param_name(param.size_name)
             if param.out:
@@ -496,7 +529,8 @@ def _library_method(plan, owner_py):
                         '    raise TypeError("%s must be bytes-like, not None")' % n,
                         "_v%d = %s" % (i, n), "_n%d = _v%d.shape[0]" % (i, i),
                         "if _n%d:" % i, "    _a%d = &_v%d[0]" % (i, i)]
-                call_args += ["_a%d" % i, "_n%d" % i]
+                # CEF copies what a non-const `void*` points to (CreateForData); it is not written
+                call_args += ["_a%d" % i if param.const else "<void*>_a%d" % i, "_n%d" % i]
             continue
         if param.out:
             # An output parameter of a library method: a local that is returned to Python
@@ -590,8 +624,13 @@ def _library_method(plan, owner_py):
     call = "%s%s(%s)" % (receiver, plan.cef_name, ", ".join(call_args))
     body.append(base + "with nogil:")
     body.append(base + "    %s%s" % ("" if isinstance(ret, Void) else "_r = ", call))
+    if any(isinstance(p.kind, Bytes) and p.out for p in plan.params) and isinstance(ret, Prim) \
+            and ret.cpp == "int":
+        body.append(base + "if _r < 0:")
+        body.append(base + '    raise RuntimeError("CEF reported an error (%s returned %d)" % (' +
+                    '"%s", _r))' % plan.cef_name)
     values = []  # what the Python method returns: the return value, then the output parameters
-    bytes_out = any(isinstance(p.kind, Bytes) and p.out for p in plan.params)
+    bytes_out = any(isinstance(p.kind, (Bytes, ItemBytes)) and p.out for p in plan.params)
     if bytes_out:
         pass  # the return value is the length of the bytes
     elif isinstance(ret, Prim):
@@ -608,7 +647,9 @@ def _library_method(plan, owner_py):
         if not param.out:
             continue
         kind = param.kind
-        if isinstance(kind, Bytes):
+        if isinstance(kind, ItemBytes):
+            values.append("_b%d[:_r * %s]" % (i, py_param_name(param.size_name)))
+        elif isinstance(kind, Bytes):
             values.append("_b%d[:_r]" % i)
         elif isinstance(kind, Vector):
             values.append("_g_%s(&_a%d)" % ("str_list" if isinstance(kind.element, Str)

@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, Bytes, ClientRef, Ignored, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -124,13 +124,12 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(plan.params[0].size_name, "buffer_size")
         self.assertEqual([p.name for p in plan.params], ["buffer", "data_offset"])
 
-    def test_a_pointer_with_two_sizes_stays_unsupported(self):
-        # Write(const void* ptr, size_t size, size_t n): the buffer holds size * n bytes.
-        plan = self.plan_in(self.everything, "CefStreamWriter", "Write")
+    def test_a_pointer_whose_size_is_not_known_stays_unsupported(self):
+        # Only the pointers of the tables (SIZED_BUFFERS, BYTES_OUT, ITEM_BYTES, ...) are given a
+        # size; any other `void*` says why it is not generated.
+        plan = self.plan_in(self.everything, "CefV8Value", "CreateArrayBuffer")
         self.assertFalse(plan.supported)
-        self.assertIn("untyped pointer", plan.reason)
-        plan = self.plan_in(self.everything, "CefStreamReader", "Read")
-        self.assertFalse(plan.supported)
+        self.assertIn("pointer", plan.reason)
 
     def test_the_stub_shows_bytes(self):
         stub = self.generated("pyi")
@@ -213,6 +212,40 @@ class WithHeaders(unittest.TestCase):
         for text in ("class RequestHandler:", "class ResourceRequestHandler:",
                      "class AuthCallback:", "def get_request_handler(self) -> RequestHandler | None:"):
             self.assertIn(text, stub)
+
+    def test_a_pointer_with_size_and_count_is_read_and_written_in_items(self):
+        # Write(const void* ptr, size_t size, size_t n) is fwrite: n items of size bytes. The
+        # Python method takes the bytes and the item size and returns the items written.
+        for name in ("CefStreamReader", "CefStreamWriter", "CefZipReader"):
+            self.assertTrue(self.scope.is_library(name), name)
+        plan = self.plan("CefStreamWriter", "Write")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, ItemBytes)
+        self.assertFalse(plan.params[0].out)
+        plan = self.plan("CefStreamReader", "Read")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, ItemBytes)
+        self.assertTrue(plan.params[0].out)
+        stub = self.generated("pyi")
+        for text in ("def write(self, data: bytes | bytearray | memoryview, size: int = 1) -> int:",
+                     "def read(self, n: int, size: int = 1) -> bytes:",
+                     "def read_file(self, buffer_size: int) -> bytes:",
+                     "def create_for_data(data: bytes | bytearray | memoryview) -> StreamReader | None:"):
+            self.assertIn(text, stub)
+
+    def test_the_stream_handlers_get_a_buffer_of_size_times_count(self):
+        for name in ("CefReadHandler", "CefWriteHandler"):
+            self.assertTrue(self.scope.is_client(name), name)
+        plan = self.plan("CefReadHandler", "Read")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["ptr", "size"])  # n is the buffer's length
+        self.assertFalse(plan.params[0].kind.readonly)
+        plan = self.plan("CefWriteHandler", "Write")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertTrue(plan.params[0].kind.readonly)
+        stub = self.generated("pyi")
+        self.assertIn("def read(self, ptr: memoryview, size: int) -> int:", stub)
+        self.assertIn("def write(self, ptr: memoryview, size: int) -> int:", stub)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))

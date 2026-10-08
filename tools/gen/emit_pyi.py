@@ -3,7 +3,7 @@
 from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
                          struct_tuple_annotation)
 from model import py_class_name, py_param_name
-from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, ItemBytes, Enum, LibRef, Struct, Vector, Void
 
 
 def _value_annotation(kind):
@@ -17,7 +17,7 @@ def _value_annotation(kind):
 def _param_annotation(param, client_side):
     if isinstance(param.kind, Buffer):
         return "memoryview"
-    if isinstance(param.kind, Bytes):
+    if isinstance(param.kind, (Bytes, ItemBytes)):
         return "bytes | bytearray | memoryview"
     if isinstance(param.kind, Vector) and not client_side:
         # Any sequence is accepted; a struct in it may be a plain tuple.
@@ -43,7 +43,7 @@ def _return_annotation(plan, client_side):
         if not parts:
             return "None"
         return parts[0] if len(parts) == 1 else "tuple[%s]" % ", ".join(parts)
-    if any(isinstance(p.kind, Bytes) and p.out for p in plan.params):
+    if any(isinstance(p.kind, (Bytes, ItemBytes)) and p.out for p in plan.params):
         return "bytes"  # the return value is only the length of them
     text = _annotation(plan.ret)
     never_none = plan.static and plan.cef_name == "Create" and not any(
@@ -60,7 +60,13 @@ def _stub(plan, client_side, indent, model, name=None, with_self=True):
     pad = " " * indent
     params = ([] if plan.static or not with_self else ["self"])
     for p in plan.params:
-        if isinstance(p.kind, Bytes) and p.out:
+        if isinstance(p.kind, ItemBytes):
+            size = py_param_name(p.size_name)
+            if p.out:
+                params += ["%s: int" % py_param_name(p.count_name), "%s: int = 1" % size]
+            else:
+                params += ["%s: bytes | bytearray | memoryview" % p.name, "%s: int = 1" % size]
+        elif isinstance(p.kind, Bytes) and p.out:
             params.append("%s: int" % py_param_name(p.size_name))  # how much to read
         elif p in plan.ins:
             params.append("%s: %s" % (p.name, _param_annotation(p, client_side)))

@@ -98,7 +98,7 @@ def declaration(param):
     """The parameter as it is declared in the CEF header."""
     if isinstance(param.kind, Buffer):
         if param.kind.size_expr:
-            return "const void* %s" % param.cef_name
+            return "%svoid* %s" % ("const " if param.kind.readonly else "", param.cef_name)
         return "void* %s, %s %s" % (param.cef_name, param.kind.size_cpp, param.size_name)
     text = ("const " if param.const else "") + param.spelled + (
         "&" if param.byref else "*" if param.byaddr else "")
@@ -189,6 +189,8 @@ def _method(model, cls, plan):
     else:
         out.append("    %s result = %s;" % (plan.ret_spelled, call))
 
+    if plan.clamp_return:  # a Python handler cannot claim more items than the buffer has
+        out.append("    if (result > %s) result = %s;" % (plan.clamp_return, plan.clamp_return))
     for param in plan.outs:
         if param.is_return:
             out.append("    return out_%s;" % param.cef_name)

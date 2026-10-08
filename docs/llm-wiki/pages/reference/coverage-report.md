@@ -14,28 +14,28 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 501 methods/functions in 48 classes, 3 global functions
+Generated now: 538 methods/functions in 53 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
     28  class
+     7  struct-like value type
      7  struct
-     6  struct-like value type
      4  multimap of values
      1  pointer to
      1  a library method returning a client object
-  ----  47 skipped
+  ----  48 skipped
 
-If every class were generated, the type support alone would cover 1454 of 1598 methods/functions (91%).
+If every class were generated, the type support alone would cover 1458 of 1598 methods/functions (91%).
 What blocks the rest, by type:
     32  ownptr pointer
     22  struct-like value type
     19  struct
     11  a library method returning a client object
     11  rawptr pointer
-     9  untyped pointer
      9  multimap of values
      8  vector of values
      7  pointer to
+     5  untyped pointer
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      4  map of values
@@ -146,7 +146,7 @@ Per class (supported/total methods, when every class is generated):
   * CefPrintJobCallback                    library   1/1  
   * CefPrintSettings                       library  23/23 
   * CefProcessMessage                      library   7/7  
-    CefReadHandler                         client    5/5  
+  * CefReadHandler                         client    5/5  
   * CefRenderHandler                       client   16/17 
     CefRenderProcessHandler                client    9/9  
   * CefRequest                             library  20/23 
@@ -177,8 +177,8 @@ Per class (supported/total methods, when every class is generated):
     CefSettingObserver                     client    1/1  
     CefSharedMemoryRegion                  library   2/3  
     CefSharedProcessMessageBuilder         library   4/5  
-    CefStreamReader                        library   6/8  
-    CefStreamWriter                        library   6/7  
+  * CefStreamReader                        library   8/8  
+  * CefStreamWriter                        library   7/7  
     CefStringVisitor                       client    1/1  
     CefTask                                client    1/1  
   * CefTaskManager                         library   5/6  
@@ -219,11 +219,11 @@ Per class (supported/total methods, when every class is generated):
     CefWaitableEvent                       library   6/6  
     CefWindow                              library  42/43 
     CefWindowDelegate                      client   21/23 
-    CefWriteHandler                        client    5/5  
+  * CefWriteHandler                        client    5/5  
     CefX509CertPrincipal                   library   7/7  
     CefX509Certificate                     library   8/10 
     CefXmlReader                           library  30/30 
-    CefZipReader                           library  11/13 
+  * CefZipReader                           library  12/13 
   (* = generated now)
 ```
 

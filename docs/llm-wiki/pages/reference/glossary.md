@@ -35,7 +35,7 @@ updated: 2026-10-08
 | 프록시 (`Cw...Proxy`) | CEF 핸들러 클래스를 상속해 호출을 함수 포인터 표로 위임하는 생성된 C++ 클래스 |
 | 라이브러리 쪽 (library-side) | CEF가 구현하고 애플리케이션이 부르는 클래스(`CefRequest` 등). 헤더의 `source=library` |
 | 클라이언트 쪽 (client-side) | 애플리케이션이 구현하고 CEF가 부르는 클래스(핸들러). 헤더의 `source=client` |
-| 종류 (kind) | 생성기가 C++ 타입을 분류한 결과(`Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Buffer`, `Bytes`, `Ignored`, `Void`) |
+| 종류 (kind) | 생성기가 C++ 타입을 분류한 결과(`Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Buffer`, `Bytes`, `ItemBytes`, `Ignored`, `Void`) |
 | 범위 (scope) | 지금 생성하는 클래스와 함수의 목록(`tools/gen/scope.py`) |
 | 커버리지 보고서 | 생성하지 못한 메서드와 그 사유([커버리지 보고서](coverage-report.md)) |
 | `optional_param` | 헤더가 인자를 `None`(널)을 허용한다고 표시한 것 |

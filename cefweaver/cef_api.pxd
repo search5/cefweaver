@@ -287,12 +287,18 @@ cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefRunQuickMenuCallback(CefBaseRefCounted)
 cdef extern from "include/cef_ssl_info.h":
     cdef cppclass CefSSLInfo(CefBaseRefCounted)
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefStreamReader(CefBaseRefCounted)
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefStreamWriter(CefBaseRefCounted)
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted)
 cdef extern from "include/cef_unresponsive_process_callback.h":
     cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefValue(CefBaseRefCounted)
+cdef extern from "include/cef_zip_reader.h":
+    cdef cppclass CefZipReader(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
@@ -319,6 +325,8 @@ cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted)
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefReadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted)
 cdef extern from "include/cef_request_handler.h":
@@ -329,6 +337,8 @@ cdef extern from "include/cef_resource_request_handler.h":
     cdef cppclass CefResourceRequestHandler(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted)
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefWriteHandler(CefBaseRefCounted)
 
 # Library classes (implemented by CEF)
 cdef extern from "include/cef_auth_callback.h":
@@ -792,6 +802,32 @@ cdef extern from "include/cef_ssl_info.h":
     cdef cppclass CefSSLInfo(CefBaseRefCounted):
         cef_cert_status_t GetCertStatus() nogil
 
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefStreamReader(CefBaseRefCounted):
+        size_t Read(void*, size_t, size_t) nogil
+        int Seek(int64_t, int) nogil
+        int64_t Tell() nogil
+        int Eof() nogil
+        cpp_bool MayBlock() nogil
+        @staticmethod
+        CefRefPtr[CefStreamReader] CreateForFile(const CefString&) nogil
+        @staticmethod
+        CefRefPtr[CefStreamReader] CreateForData(void*, size_t) nogil
+        @staticmethod
+        CefRefPtr[CefStreamReader] CreateForHandler(CefRefPtr[CefReadHandler]) nogil
+
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefStreamWriter(CefBaseRefCounted):
+        size_t Write(const void*, size_t, size_t) nogil
+        int Seek(int64_t, int) nogil
+        int64_t Tell() nogil
+        int Flush() nogil
+        cpp_bool MayBlock() nogil
+        @staticmethod
+        CefRefPtr[CefStreamWriter] CreateForFile(const CefString&) nogil
+        @staticmethod
+        CefRefPtr[CefStreamWriter] CreateForHandler(CefRefPtr[CefWriteHandler]) nogil
+
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted):
         size_t GetTasksCount() nogil
@@ -833,6 +869,22 @@ cdef extern from "include/cef_values.h":
         @staticmethod
         CefRefPtr[CefValue] Create() nogil
 
+cdef extern from "include/cef_zip_reader.h":
+    cdef cppclass CefZipReader(CefBaseRefCounted):
+        cpp_bool MoveToFirstFile() nogil
+        cpp_bool MoveToNextFile() nogil
+        cpp_bool MoveToFile(const CefString&, cpp_bool) nogil
+        cpp_bool Close() nogil
+        CefString GetFileName() nogil
+        int64_t GetFileSize() nogil
+        cpp_bool OpenFile(const CefString&) nogil
+        cpp_bool CloseFile() nogil
+        int ReadFile(void*, size_t) nogil
+        int64_t Tell() nogil
+        cpp_bool Eof() nogil
+        @staticmethod
+        CefRefPtr[CefZipReader] Create(CefRefPtr[CefStreamReader]) nogil
+
 # Client classes (implemented by the application; Cython only needs the type)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
@@ -873,6 +925,9 @@ cdef extern from "include/cef_menu_model_delegate.h":
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefReadHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted):
         pass
@@ -887,6 +942,9 @@ cdef extern from "include/cef_resource_request_handler.h":
         pass
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_stream.h":
+    cdef cppclass CefWriteHandler(CefBaseRefCounted):
         pass
 
 # Global functions
@@ -1032,6 +1090,16 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_get_pdf_paper_size)(void*, CefBrowser*, int, CefSize*) noexcept
     cdef cppclass CwPrintHandlerProxy(CefPrintHandler):
         CwPrintHandlerProxy(const CwPrintHandlerCallbacks&)
+    cdef cppclass CwReadHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        size_t (*fn_read)(void*, void*, size_t, size_t) noexcept
+        int (*fn_seek)(void*, int64_t, int) noexcept
+        int64_t (*fn_tell)(void*) noexcept
+        int (*fn_eof)(void*) noexcept
+        cpp_bool (*fn_may_block)(void*) noexcept
+    cdef cppclass CwReadHandlerProxy(CefReadHandler):
+        CwReadHandlerProxy(const CwReadHandlerCallbacks&)
     cdef cppclass CwRenderHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1095,3 +1163,13 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefResourceHandler* (*fn_create)(void*, CefBrowser*, CefFrame*, const CefString*, CefRequest*) noexcept
     cdef cppclass CwSchemeHandlerFactoryProxy(CefSchemeHandlerFactory):
         CwSchemeHandlerFactoryProxy(const CwSchemeHandlerFactoryCallbacks&)
+    cdef cppclass CwWriteHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        size_t (*fn_write)(void*, void*, size_t, size_t) noexcept
+        int (*fn_seek)(void*, int64_t, int) noexcept
+        int64_t (*fn_tell)(void*) noexcept
+        int (*fn_flush)(void*) noexcept
+        cpp_bool (*fn_may_block)(void*) noexcept
+    cdef cppclass CwWriteHandlerProxy(CefWriteHandler):
+        CwWriteHandlerProxy(const CwWriteHandlerCallbacks&)

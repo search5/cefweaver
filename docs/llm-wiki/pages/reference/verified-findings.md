@@ -167,6 +167,15 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **확인하지 못함**: `get_auth_credentials`(`AuthCallback`)와 `on_certificate_error`는 서버가 필요해 실행하지 않았습니다. `on_render_process_terminated`, `on_open_url_from_tab`, `on_resource_redirect`, `on_resource_response`, `on_protocol_execution`도 실행하지 않았습니다. `get_cookie_access_filter`는 쿠키 구조체 때문에 생성되지 않습니다.
 - **영향**: java-cef의 핸들러 13개를 모두 갖추었습니다.
 
+## F44. 스트림과 ZIP 읽기
+
+- **방법**: CEF를 시작하지 않고 파일, 메모리, Python 핸들러, `zipfile`로 만든 ZIP으로 시험했습니다.
+- **결과**:
+  - `write(b"hello")`는 5, `write(b"abcdef", 2)`는 3(항목 수)이고, 항목의 배수가 아닌 길이는 `ValueError`입니다. `read(5)`, `read(2, 2)`는 바이트열을 돌려주고 끝에서는 짧거나 `b""`입니다. `seek`, `tell`, `eof`가 맞습니다.
+  - `ReadHandler`와 `WriteHandler`를 Python으로 구현해 `create_for_handler`에 주면 `read(4)`, `read(3, 2)`가 핸들러의 `read(buffer, size)`로 가고 항목 수 반환이 바이트열로 바뀌어 돌아옵니다. `write(b"1234", 2)`는 핸들러가 `(b"1234", 2)`를 받고 2를 돌려줍니다.
+  - ZIP의 첫 파일을 열어 100바이트씩 읽으면 앞부분과 나머지가 맞고 끝에서 `b""`입니다. 열린 파일이 없는데 읽으면 CEF가 -1을 돌려주어 `RuntimeError`입니다.
+- **영향**: 앞서 제외한 `CefStreamWriter::Write` 같은 "크기 인자가 둘인" 경우가 표로 열렸습니다([스트림과 ZIP 읽기](streams.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

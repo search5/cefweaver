@@ -152,3 +152,7 @@
 ## [2026-10-08] ingest | 요청 핸들러와 리소스 요청 핸들러 (java-cef의 핸들러 13개 완성)
 
 - `CefRequestHandler`, `CefResourceRequestHandler`와 `CefAuthCallback`, `CefSSLInfo`, `CefUnresponsiveProcessCallback`을 범위에 넣고, 래퍼의 라우터용 요청 핸들러를 `CwRequestHandlerForward`로 바꿔 사용자의 핸들러와 결합했습니다(취소된 탐색은 라우터에 알리지 않음). 시험 4개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 180개가 통과합니다. F43. 인증과 인증서 오류 등은 서버가 필요해 확인하지 못했습니다.
+
+## [2026-10-08] ingest | 스트림과 ZIP 읽기 (크기가 둘인 포인터)
+
+- 사용자의 질문("크기 인자가 둘인 경우는 왜 제외하는가")에 따라 `ItemBytes`를 더했습니다. `CefStreamReader`, `CefStreamWriter`, `CefZipReader`, `CefReadHandler`, `CefWriteHandler`를 범위에 넣고 `ptr, size, n` 규약을 `read(n, size=1)`, `write(data, size=1)`로 엽니다. `ReadFile`의 음수는 `RuntimeError`, 핸들러의 반환값은 `n`으로 제한합니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 185개가 통과합니다. F44. 새 페이지 [스트림과 ZIP 읽기](pages/reference/streams.md).

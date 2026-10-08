@@ -33,9 +33,11 @@
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
 #include "include/cef_ssl_info.h"
+#include "include/cef_stream.h"
 #include "include/cef_task_manager.h"
 #include "include/cef_unresponsive_process_callback.h"
 #include "include/cef_values.h"
+#include "include/cef_zip_reader.h"
 #include "include/views/cef_display.h"
 #include <vector>
 
@@ -1604,6 +1606,116 @@ class CwPrintHandlerProxy : public CefPrintHandler {
   DISALLOW_COPY_AND_ASSIGN(CwPrintHandlerProxy);
 };
 
+// ---- CefReadHandler ----
+
+class CwReadHandlerForward : public CefReadHandler {
+ protected:
+  CefRefPtr<CefReadHandler> forward_read_handler_;
+
+ public:
+  size_t Read(void* ptr, size_t size, size_t n) override {
+    if (!forward_read_handler_) {
+      return size_t();
+    }
+    return forward_read_handler_->Read(ptr, size, n);
+  }
+
+  int Seek(int64_t offset, int whence) override {
+    if (!forward_read_handler_) {
+      return int();
+    }
+    return forward_read_handler_->Seek(offset, whence);
+  }
+
+  int64_t Tell() override {
+    if (!forward_read_handler_) {
+      return int64_t();
+    }
+    return forward_read_handler_->Tell();
+  }
+
+  int Eof() override {
+    if (!forward_read_handler_) {
+      return int();
+    }
+    return forward_read_handler_->Eof();
+  }
+
+  bool MayBlock() override {
+    if (!forward_read_handler_) {
+      return bool();
+    }
+    return forward_read_handler_->MayBlock();
+  }
+};
+
+struct CwReadHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  size_t (*fn_read)(void*, void*, size_t, size_t) = nullptr;
+  int (*fn_seek)(void*, int64_t, int) = nullptr;
+  int64_t (*fn_tell)(void*) = nullptr;
+  int (*fn_eof)(void*) = nullptr;
+  bool (*fn_may_block)(void*) = nullptr;
+};
+
+class CwReadHandlerProxy : public CefReadHandler {
+ public:
+  explicit CwReadHandlerProxy(const CwReadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwReadHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  size_t Read(void* ptr, size_t size, size_t n) override {
+    if (!cb_.fn_read) {
+      return size_t();
+    }
+    size_t result = cb_.fn_read(cb_.py, ptr, static_cast<size_t>(size) * static_cast<size_t>(n), size);
+    if (result > n) result = n;
+    return result;
+  }
+
+  int Seek(int64_t offset, int whence) override {
+    if (!cb_.fn_seek) {
+      return int();
+    }
+    int result = cb_.fn_seek(cb_.py, offset, whence);
+    return result;
+  }
+
+  int64_t Tell() override {
+    if (!cb_.fn_tell) {
+      return int64_t();
+    }
+    int64_t result = cb_.fn_tell(cb_.py);
+    return result;
+  }
+
+  int Eof() override {
+    if (!cb_.fn_eof) {
+      return int();
+    }
+    int result = cb_.fn_eof(cb_.py);
+    return result;
+  }
+
+  bool MayBlock() override {
+    if (!cb_.fn_may_block) {
+      return bool();
+    }
+    bool result = cb_.fn_may_block(cb_.py);
+    return result;
+  }
+
+ private:
+  CwReadHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwReadHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwReadHandlerProxy);
+};
+
 // ---- CefRenderHandler ----
 
 class CwRenderHandlerForward : public CefRenderHandler {
@@ -2412,6 +2524,116 @@ class CwSchemeHandlerFactoryProxy : public CefSchemeHandlerFactory {
 
   IMPLEMENT_REFCOUNTING(CwSchemeHandlerFactoryProxy);
   DISALLOW_COPY_AND_ASSIGN(CwSchemeHandlerFactoryProxy);
+};
+
+// ---- CefWriteHandler ----
+
+class CwWriteHandlerForward : public CefWriteHandler {
+ protected:
+  CefRefPtr<CefWriteHandler> forward_write_handler_;
+
+ public:
+  size_t Write(const void* ptr, size_t size, size_t n) override {
+    if (!forward_write_handler_) {
+      return size_t();
+    }
+    return forward_write_handler_->Write(ptr, size, n);
+  }
+
+  int Seek(int64_t offset, int whence) override {
+    if (!forward_write_handler_) {
+      return int();
+    }
+    return forward_write_handler_->Seek(offset, whence);
+  }
+
+  int64_t Tell() override {
+    if (!forward_write_handler_) {
+      return int64_t();
+    }
+    return forward_write_handler_->Tell();
+  }
+
+  int Flush() override {
+    if (!forward_write_handler_) {
+      return int();
+    }
+    return forward_write_handler_->Flush();
+  }
+
+  bool MayBlock() override {
+    if (!forward_write_handler_) {
+      return bool();
+    }
+    return forward_write_handler_->MayBlock();
+  }
+};
+
+struct CwWriteHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  size_t (*fn_write)(void*, void*, size_t, size_t) = nullptr;
+  int (*fn_seek)(void*, int64_t, int) = nullptr;
+  int64_t (*fn_tell)(void*) = nullptr;
+  int (*fn_flush)(void*) = nullptr;
+  bool (*fn_may_block)(void*) = nullptr;
+};
+
+class CwWriteHandlerProxy : public CefWriteHandler {
+ public:
+  explicit CwWriteHandlerProxy(const CwWriteHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwWriteHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  size_t Write(const void* ptr, size_t size, size_t n) override {
+    if (!cb_.fn_write) {
+      return size_t();
+    }
+    size_t result = cb_.fn_write(cb_.py, const_cast<void*>(ptr), static_cast<size_t>(size) * static_cast<size_t>(n), size);
+    if (result > n) result = n;
+    return result;
+  }
+
+  int Seek(int64_t offset, int whence) override {
+    if (!cb_.fn_seek) {
+      return int();
+    }
+    int result = cb_.fn_seek(cb_.py, offset, whence);
+    return result;
+  }
+
+  int64_t Tell() override {
+    if (!cb_.fn_tell) {
+      return int64_t();
+    }
+    int64_t result = cb_.fn_tell(cb_.py);
+    return result;
+  }
+
+  int Flush() override {
+    if (!cb_.fn_flush) {
+      return int();
+    }
+    int result = cb_.fn_flush(cb_.py);
+    return result;
+  }
+
+  bool MayBlock() override {
+    if (!cb_.fn_may_block) {
+      return bool();
+    }
+    bool result = cb_.fn_may_block(cb_.py);
+    return result;
+  }
+
+ private:
+  CwWriteHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwWriteHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwWriteHandlerProxy);
 };
 
 #endif  // CEFWEAVER_GENERATED_PROXIES_H_

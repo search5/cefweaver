@@ -37,6 +37,9 @@ LIBRARY_CLASSES = [
     "CefAuthCallback",
     "CefSSLInfo",
     "CefUnresponsiveProcessCallback",
+    "CefStreamReader",
+    "CefStreamWriter",
+    "CefZipReader",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -59,6 +62,8 @@ CLIENT_CLASSES = [
     "CefPrintHandler",
     "CefRequestHandler",
     "CefResourceRequestHandler",
+    "CefReadHandler",
+    "CefWriteHandler",
 ]
 
 # Global functions.
