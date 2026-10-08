@@ -1,0 +1,16 @@
+[project]
+name = "cefweaver-wx-example"
+version = "0.1.0"
+description = "An offscreen cefweaver browser in a wxPython window"
+requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
+dependencies = ["cefweaver", "wxpython>=4.2"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+# The wheel of this repository: `uv build --wheel` in the repository root first.
+cefweaver = { path = "../../dist/cefweaver-0.1.0-cp313-cp313-linux_x86_64.whl" }
+# wxPython has no wheels for Linux on PyPI (uv would build the source, which takes very long): its own
+# site has them. GTK 3 for Ubuntu 24.04 and CPython 3.13 here; other systems: the same site.
+wxpython = { url = "https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-24.04/wxpython-4.2.5-cp313-cp313-linux_x86_64.whl" }
