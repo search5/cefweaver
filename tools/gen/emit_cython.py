@@ -15,9 +15,9 @@ import re
 
 from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
-from model import py_class_name, py_method_name
+from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -127,7 +127,9 @@ def _cy_method_signature(plan):
     for param in plan.params:
         kind = param.kind
         ref = "&" if param.out else ""  # an output parameter of a library method
-        if isinstance(kind, Prim):
+        if isinstance(kind, Bytes):
+            args += ["void*" if param.out else "const void*", cy_c(kind.size_cpp)]
+        elif isinstance(kind, Prim):
             args.append(cy_c(kind.cpp) + ref)
         elif isinstance(kind, Enum):
             args.append(kind.cname + ref)
@@ -288,6 +290,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
 
 PRELUDE = '''
 from cpython.buffer cimport PyBUF_READ, PyBUF_WRITE
+from cpython.bytes cimport PyBytes_FromStringAndSize
 from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
@@ -457,6 +460,8 @@ def _annotation(kind):
         return "list[%s]" % _annotation(kind.element)
     if isinstance(kind, Void):
         return "None"
+    if isinstance(kind, Bytes):
+        return "bytes"
     raise AssertionError(kind)
 
 
@@ -472,6 +477,27 @@ def _library_method(plan, owner_py):
     decls, pre, call_args = [], [], []
     for i, param in enumerate(plan.params):
         kind, n = param.kind, param.name
+        if isinstance(kind, Bytes):
+            size = py_param_name(param.size_name)
+            if param.out:
+                # CEF fills a buffer of the size the caller names; the result is `bytes`.
+                sig.append("size_t %s" % size)
+                decls += ["cdef bytes _b%d" % i, "cdef char* _c%d" % i]
+                pre += ["_b%d = PyBytes_FromStringAndSize(NULL, %s)" % (i, size),
+                        "_c%d = _b%d" % (i, i)]  # the pointer is taken before `nogil`
+                call_args += ["<void*>_c%d" % i, size]
+            else:
+                # Any bytes-like object; the memoryview keeps it alive during the call.
+                sig.append(n)
+                decls += ["cdef const unsigned char[::1] _v%d" % i,
+                          "cdef const void* _a%d = NULL" % i,
+                          "cdef size_t _n%d = 0" % i]
+                pre += ["if %s is None:" % n,
+                        '    raise TypeError("%s must be bytes-like, not None")' % n,
+                        "_v%d = %s" % (i, n), "_n%d = _v%d.shape[0]" % (i, i),
+                        "if _n%d:" % i, "    _a%d = &_v%d[0]" % (i, i)]
+                call_args += ["_a%d" % i, "_n%d" % i]
+            continue
         if param.out:
             # An output parameter of a library method: a local that is returned to Python
             # (a struct is also an argument: it is read, changed by CEF and returned).
@@ -565,7 +591,10 @@ def _library_method(plan, owner_py):
     body.append(base + "with nogil:")
     body.append(base + "    %s%s" % ("" if isinstance(ret, Void) else "_r = ", call))
     values = []  # what the Python method returns: the return value, then the output parameters
-    if isinstance(ret, Prim):
+    bytes_out = any(isinstance(p.kind, Bytes) and p.out for p in plan.params)
+    if bytes_out:
+        pass  # the return value is the length of the bytes
+    elif isinstance(ret, Prim):
         values.append("_r")
     elif isinstance(ret, Enum):
         values.append("_g_enum(_types.%s, <int>_r)" % ret.py if ret.py else "<int>_r")
@@ -579,7 +608,9 @@ def _library_method(plan, owner_py):
         if not param.out:
             continue
         kind = param.kind
-        if isinstance(kind, Vector):
+        if isinstance(kind, Bytes):
+            values.append("_b%d[:_r]" % i)
+        elif isinstance(kind, Vector):
             values.append("_g_%s(&_a%d)" % ("str_list" if isinstance(kind.element, Str)
                                             else "list_" + vector_tag(kind), i))
         elif isinstance(kind, Str):

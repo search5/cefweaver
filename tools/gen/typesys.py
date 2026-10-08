@@ -96,6 +96,16 @@ class Buffer(Kind):
     readonly: bool = False
 
 
+@dataclass(frozen=True)
+class Bytes(Kind):
+    """`const void* data, size_t size` of a library method: any bytes-like object in Python.
+    With `out` on its ParamPlan it is `void* buffer, size_t buffer_size` that CEF fills: the
+    Python method takes the size and returns `bytes` (the method's return value, the number of
+    bytes written, only trims them)."""
+
+    size_cpp: str  # type of the size parameter
+
+
 _PRIMITIVES = {
     "bool": "bool",
     "int": "int",
@@ -247,6 +257,12 @@ SIZED_BUFFERS = {
 }
 
 
+# Library methods that fill a buffer of the size the caller gives (and return how much they
+# wrote): (class, method) -> the buffer parameter. Others with a pointer and sizes
+# (CefStreamReader::Read: ptr, size, n) have a different meaning for each size.
+BYTES_OUT = {("CefBinaryValue", "GetData"): "buffer"}
+
+
 def plan_method(model, scope, owner, method, *, client_side, static=False):
     """Decide how one method or function is generated (or why it is not)."""
     plan = MethodPlan(
@@ -278,6 +294,24 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                         Buffer("size_t", size_expr=expr, readonly=True), const=True))
                     i += 1
                     continue
+                if not client_side and i + 1 < len(arguments):
+                    size = classify(model, scope, arguments[i + 1].get_type())
+                    sized = isinstance(size, Prim) and size.cpp == "size_t"
+                    if sized and analysis.is_const() and not (
+                            i + 2 < len(arguments) and _is_size_t(model, scope, arguments[i + 2])):
+                        # `const void* data, size_t size` -> bytes in
+                        plan.params.append(ParamPlan(name, py_param_name(name), "void*",
+                                                     Bytes(size.cpp), const=True))
+                        plan.params[-1].size_name = arguments[i + 1].get_name()
+                        i += 2
+                        continue
+                    if sized and BYTES_OUT.get((owner, method.get_name())) == name:
+                        # `void* buffer, size_t buffer_size` -> bytes out
+                        plan.params.append(ParamPlan(name, py_param_name(name), "void*",
+                                                     Bytes(size.cpp), out=True))
+                        plan.params[-1].size_name = arguments[i + 1].get_name()
+                        i += 2
+                        continue
                 # `void* data, <integer> size` -> Buffer
                 if not client_side or i + 1 >= len(arguments):
                     raise Unsupported("untyped pointer parameter %s" % name)
@@ -313,6 +347,14 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
     except Unsupported as reason:
         plan.reason = str(reason)
     return plan
+
+
+def _is_size_t(model, scope, argument):
+    try:
+        kind = classify(model, scope, argument.get_type())
+    except Unsupported:
+        return False
+    return isinstance(kind, Prim) and kind.cpp == "size_t"
 
 
 def _check_return(kind, client_side):

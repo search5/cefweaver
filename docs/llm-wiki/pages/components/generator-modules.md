@@ -23,7 +23,7 @@ updated: 2026-10-08
 | --- | --- |
 | `generate.py` | 진입점. `build_all(cef_root)`가 모델, 범위, 계획, 방출기를 묶어 파일별 내용을 돌려주고, `main()`이 쓰기, `--check`, `--report`를 처리합니다. 출력 경로는 `OUTPUTS` 딕셔너리에 있습니다. |
 | `model.py` | `Model(cef_root)`: 파서로 헤더를 읽고(`include`, `include/test`, `include/views`), 클래스와 함수 딕셔너리, 열거형 이름 집합(`typedef enum { } 이름;`을 헤더에서 정규식으로 찾음), `is_pure_virtual()`, `header_path()`, `comment()`를 제공합니다. 이름 변환 함수 `snake_case`, `py_class_name`, `py_method_name`, `py_param_name`도 여기 있습니다. |
-| `typesys.py` | 종류(`Void`, `Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Buffer`), `Unsupported` 예외, `classify()`, 계획 자료형 `ParamPlan`, `MethodPlan`, `plan_method()` |
+| `typesys.py` | 종류(`Void`, `Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Buffer`, `Bytes`), `Unsupported` 예외, `classify()`, 계획 자료형 `ParamPlan`, `MethodPlan`, `plan_method()` |
 | `scope.py` | 생성할 클래스와 함수의 목록(`LIBRARY_CLASSES`, `CLIENT_CLASSES`, `FUNCTIONS`), `Scope.current()`와 `Scope.everything()`(커버리지 측정용으로 모든 클래스를 범위에 넣음) |
 | `report.py` | `all_plans()`, `build_report()`. 사유를 `struct`, `class`, `output parameter` 같은 묶음으로 집계합니다. |
 | `emit_cpp.py` | C++ 프록시 헤더 |

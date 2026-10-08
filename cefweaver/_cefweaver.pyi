@@ -165,6 +165,17 @@ class BinaryValue:
     def get_size(self) -> int:
         """Returns the data size."""
         ...
+    def get_data(self, buffer_size: int, data_offset: int) -> bytes:
+        """Read up to |buffer_size| number of bytes into |buffer|. Reading begins at
+        the specified byte |data_offset|. Returns the number of bytes read.
+        """
+        ...
+    @staticmethod
+    def create(data: bytes | bytearray | memoryview) -> BinaryValue | None:
+        """Creates a new object that is not owned by any other object. The specified
+        |data| will be copied.
+        """
+        ...
 
 
 class Browser:
@@ -378,6 +389,39 @@ class BrowserHost:
     def has_dev_tools(self) -> bool:
         """Returns true if this browser currently has an associated DevTools browser.
         Must be called on the browser process UI thread.
+        """
+        ...
+    def send_dev_tools_message(self, message: bytes | bytearray | memoryview) -> bool:
+        """Send a method call message over the DevTools protocol. |message| must be a
+        UTF8-encoded JSON dictionary that contains \"id\" (int), \"method\" (string)
+        and \"params\" (dictionary, optional) values. See the DevTools protocol
+        documentation at https://chromedevtools.github.io/devtools-protocol/ for
+        details of supported methods and the expected \"params\" dictionary
+        contents. |message| will be copied if necessary. This method will return
+        true if called on the UI thread and the message was successfully submitted
+        for validation, otherwise false. Validation will be applied asynchronously
+        and any messages that fail due to formatting errors or missing parameters
+        may be discarded without notification. Prefer ExecuteDevToolsMethod if a
+        more structured approach to message formatting is desired.
+
+        Every valid method call will result in an asynchronous method result or
+        error message that references the sent message \"id\". Event messages are
+        received while notifications are enabled (for example, between method
+        calls for \"Page.enable\" and \"Page.disable\"). All received messages will be
+        delivered to the observer(s) registered with AddDevToolsMessageObserver.
+        See CefDevToolsMessageObserver::OnDevToolsMessage documentation for
+        details of received message contents.
+
+        Usage of the SendDevToolsMessage, ExecuteDevToolsMethod and
+        AddDevToolsMessageObserver methods does not require an active DevTools
+        front-end or remote-debugging session. Other active DevTools sessions will
+        continue to function independently. However, any modification of global
+        browser state by one session may not be reflected in the UI of other
+        sessions.
+
+        Communication with the DevTools front-end (when displayed) can be logged
+        for development purposes by passing the
+        `--devtools-protocol-log-file=<path>` command-line flag.
         """
         ...
     def execute_dev_tools_method(self, message_id: int, method: str, params: DictionaryValue | None) -> int:

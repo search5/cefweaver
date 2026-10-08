@@ -55,8 +55,8 @@ JavaScript 값과 `CefListValue` 사이의 변환, JavaScript 콜백과 Python �
 
 | 항목 | 이유 | java-cef, cefpython | 가능한 방법 |
 | --- | --- | --- | --- |
-| `BinaryValue.create(data, size)` | `const void*`와 크기 쌍을 라이브러리 메서드가 받음(지금 생성기는 클라이언트 쪽의 쓰기 가능한 쌍만 지원) | java-cef는 `ByteBuffer`를 `CefBinaryValue`로 바꾸는 변환을 가짐(`GetCefValueFromJNIObject`). cefpython은 콜백 id를 `CefBinaryValue`에 담아 전달 | 읽기용 버퍼 종류를 더해 `bytes`와 `memoryview` 같은 버퍼 객체를 받음 |
-| `BinaryValue.get_data(buffer, size, offset)` | 호출하는 쪽의 버퍼를 CEF가 채움 | 위와 같음 | `get_data(size, offset) -> bytes`로 바꿔서 돌려줌 |
+| `BinaryValue.create(data, size)` (**열렸음**: `bytes` 같은 바이트열을 받음, 빈 데이터는 CEF가 `nullptr`이라 `None`) | `const void*`와 크기 쌍을 라이브러리 메서드가 받음(지금 생성기는 클라이언트 쪽의 쓰기 가능한 쌍만 지원) | java-cef는 `ByteBuffer`를 `CefBinaryValue`로 바꾸는 변환을 가짐(`GetCefValueFromJNIObject`). cefpython은 콜백 id를 `CefBinaryValue`에 담아 전달 | 읽기용 버퍼 종류를 더해 `bytes`와 `memoryview` 같은 버퍼 객체를 받음 |
+| `BinaryValue.get_data(buffer, size, offset)` (**열렸음**: `get_data(size, offset) -> bytes`) | 호출하는 쪽의 버퍼를 CEF가 채움 | 위와 같음 | `get_data(size, offset) -> bytes`로 바꿔서 돌려줌 |
 | `BinaryValue.get_raw_data()` | CEF가 가진 메모리를 가리키는 `const void*`, 크기는 `get_size()` | | 객체의 수명을 넘어서 쓰면 위험해서 열지 않고 `get_data`로 복사해 `bytes`를 줌 |
 | `ProcessMessage.get_shared_memory_region()` | `CefSharedMemoryRegion`(`Memory()`가 `void*`, `Size()`)이 범위 밖. 지금 렌더러가 공유 메모리 메시지를 만들지 않음 | 둘 다 쓰지 않음 | 보내는 쪽이 생길 때까지 닫아 둠 |
 

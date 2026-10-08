@@ -287,6 +287,9 @@ cdef extern from "include/cef_values.h":
         cpp_bool IsEqual(CefRefPtr[CefBinaryValue]) nogil
         CefRefPtr[CefBinaryValue] Copy() nogil
         size_t GetSize() nogil
+        size_t GetData(void*, size_t, size_t) nogil
+        @staticmethod
+        CefRefPtr[CefBinaryValue] Create(const void*, size_t) nogil
 
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted):
@@ -332,6 +335,7 @@ cdef extern from "include/cef_browser.h":
         void StopFinding(cpp_bool) nogil
         void CloseDevTools() nogil
         cpp_bool HasDevTools() nogil
+        cpp_bool SendDevToolsMessage(const void*, size_t) nogil
         int ExecuteDevToolsMethod(int, const CefString&, CefRefPtr[CefDictionaryValue]) nogil
         void ReplaceMisspelling(const CefString&) nogil
         void AddWordToDictionary(const CefString&) nogil

@@ -54,6 +54,7 @@ report.py       커버리지 보고서
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
 | `Struct` | 필드가 기본형, 열거형, 다른 구조체인 값 타입(`CefRect`, `CefPoint`, `CefMouseEvent`, `CefKeyEvent`, `CefScreenInfo` 등 15개) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Vector` | `std::vector<T>`. 요소는 문자열, 숫자(`bool` 제외), 값 타입 구조체, 라이브러리 객체(`CefRefPtr<T>`, 출력과 핸들러 입력만) | `list[str]`, `list[int]`, `list[Rect]`, `list[Display]` (라이브러리에 주는 쪽은 아무 시퀀스) |
+| `Bytes` | 라이브러리 메서드의 `const void*`와 `size_t` 쌍(뒤에 크기가 또 있으면 제외), 또는 `BYTES_OUT` 표의 `void*`와 `size_t`(`BinaryValue.GetData`) | `bytes` 같은 바이트열 입력, 출력은 `get_data(size, offset) -> bytes` |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍, 또는 크기 인자가 없는 `const void*`(`SIZED_BUFFERS` 표의 크기 식) | 쓰기 가능한 `memoryview`, 후자는 읽기 전용 |
 
 파서의 `result_type`을 기준으로 삼되 두 가지는 따로 처리합니다. 첫째, 파서의 `is_result_struct_enum()`은 "참조나 포인터가 아니다"라는 어림짐작일 뿐이라서 쓰지 않고, 열거형은 헤더에서 `typedef enum`을 직접 찾아 구분합니다. 둘째, 파서의 `get_result_ptr_type_root()`는 C++ 클래스명이 아니라 C API 이름(`cef_request_t`)을 돌려주므로 선언된 타입 문자열(`CefRefPtr<CefRequest>`)에서 이름을 뽑습니다(이 오류로 초기 보고서의 수치가 틀렸다가 고쳤습니다).

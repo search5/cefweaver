@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 30개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 471개 가운데 420개가 생성되고 51개가 제외되며, 함수 3개를 더해 423개입니다.
+범위(`scope.py`)는 클래스 30개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 471개 가운데 423개가 생성되고 48개가 제외되며, 함수 3개를 더해 426개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -39,7 +39,7 @@ updated: 2026-10-08
 | `CefValue` | 라이브러리 | 23/23 | |
 | `CefListValue` | 라이브러리 | 29/29 | |
 | `CefDictionaryValue` | 라이브러리 | 30/30 | |
-| `CefBinaryValue` | 라이브러리 | 6/9 | 타입 없는 포인터 3(`create`, `get_data`, `get_raw_data`) |
+| `CefBinaryValue` | 라이브러리 | 8/9 | 타입 없는 포인터 1(`get_raw_data`, 일부러 열지 않음) |
 | `CefDragHandler` | 핸들러 | 1/2 | 범위 밖 클래스 `CefDragData`(`on_drag_enter`) |
 | `CefBrowserHost` | 라이브러리 | 53/72 | 범위 밖 클래스 7(`CefRequestContext`, `CefNavigationEntry` 등), 값 타입 4(`CefWindowHandle` 2, `CefKeyEvent`, `CefTouchEvent`), 구조체 4(`cef_window_info_t` 3, `cef_pdf_print_settings_t`), 벡터 2(`run_file_dialog`는 라이브러리 메서드에 주는 벡터, `ime_set_composition`은 요소가 문자열이 아님), 핸들러 객체 반환 1(`get_client`), 타입 없는 포인터 1 |
 | `CefClient` | 핸들러 | 6/19 | 다른 핸들러 13개가 범위 밖(`CefRequestHandler`, `CefKeyboardHandler` 등) |
@@ -51,7 +51,7 @@ updated: 2026-10-08
 
 ## 모든 클래스를 범위에 넣는다면
 
-보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,432개(90%)입니다. 지원을 넓힌 순서대로 81%(1,287), 85%(1,354, 값 타입 구조체와 문자열 벡터), 86%(1,373), 87%(1,398, 라이브러리 출력 인자), 89%(1,422, 벡터의 요소 종류 확대), 90%(1,432, 구조체 종류 확대)였습니다. 남은 장애물은 다음과 같습니다.
+보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,446개(90%)입니다. 지원을 넓힌 순서대로 81%(1,287), 85%(1,354, 값 타입 구조체와 문자열 벡터), 86%(1,373), 87%(1,398, 라이브러리 출력 인자), 89%(1,422, 벡터의 요소 종류 확대), 90%(1,432, 구조체 종류 확대)였습니다. 남은 장애물은 다음과 같습니다.
 
 | 개수 | 사유 | 대응 |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ updated: 2026-10-08
 
 1. 나머지 핸들러 12개를 `CefClient`에 추가합니다(요청, 키보드, 포커스, 다운로드 등). `CefRenderHandler`는 추가했습니다([오프스크린 렌더링](offscreen-rendering.md)).
 2. (완료) 구조체 종류를 `size` 머리, 열거형, `char16_t`까지 넓혔습니다(`CefKeyEvent`, `CefScreenInfo`, `CefPopupFeatures`, `CefTouchEvent`, `CefTouchHandleState`, `CefCompositionUnderline`). 남은 구조체는 `CefWindowInfo`, `CefBrowserSettings`, `CefCookie`처럼 문자열이나 포인터가 있는 것입니다.
-3. 읽기용 버퍼 종류의 나머지: 오프스크린 `on_paint`의 `buffer`는 열렸고(크기 규칙 표 `SIZED_BUFFERS`), `BinaryValue.create`(포인터와 명시적인 크기 쌍을 라이브러리 메서드가 받음)와 `get_data`가 남았습니다. 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
+3. (완료) 버퍼 종류: 핸들러의 `on_paint`는 읽기 전용 `memoryview`(크기 규칙 표 `SIZED_BUFFERS`), 라이브러리 메서드의 `const void*`와 `size_t` 쌍은 `bytes` 입력, `BinaryValue.get_data`는 `bytes` 출력(`BYTES_OUT` 표)입니다. 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
 4. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).
 5. 네이티브 Wayland에서 Alloy 스타일이 죽는 원인 조사(나중에 하기로 함). 지금은 `DISPLAY`가 있으면 X11을 기본으로 써서 피했을 뿐입니다. 순수 Wayland 세션(`DISPLAY` 없음)과 GUI 툴킷 임베딩에 필요합니다. 첫 실험은 래퍼를 `cefsimple`처럼 `CefRunMessageLoop`으로 돌려 비교하는 것입니다([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)).
 

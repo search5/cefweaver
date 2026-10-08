@@ -2,8 +2,8 @@
 
 from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
                          struct_tuple_annotation)
-from model import py_class_name
-from typesys import Buffer, ClientRef, Enum, LibRef, Struct, Vector, Void
+from model import py_class_name, py_param_name
+from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Struct, Vector, Void
 
 
 def _value_annotation(kind):
@@ -17,6 +17,8 @@ def _value_annotation(kind):
 def _param_annotation(param, client_side):
     if isinstance(param.kind, Buffer):
         return "memoryview"
+    if isinstance(param.kind, Bytes):
+        return "bytes | bytearray | memoryview"
     if isinstance(param.kind, Vector) and not client_side:
         # Any sequence is accepted; a struct in it may be a plain tuple.
         element = param.kind.element
@@ -41,8 +43,12 @@ def _return_annotation(plan, client_side):
         if not parts:
             return "None"
         return parts[0] if len(parts) == 1 else "tuple[%s]" % ", ".join(parts)
+    if any(isinstance(p.kind, Bytes) and p.out for p in plan.params):
+        return "bytes"  # the return value is only the length of them
     text = _annotation(plan.ret)
-    if isinstance(plan.ret, LibRef) and not (plan.static and plan.cef_name == "Create"):
+    never_none = plan.static and plan.cef_name == "Create" and not any(
+        isinstance(p.kind, Bytes) for p in plan.params)  # BinaryValue.create(b"") is None
+    if isinstance(plan.ret, LibRef) and not never_none:
         text += " | None"  # CEF may return no object; a Create() factory never does
     if plan.outs:  # output parameters of a library method are returned after the return value
         parts = ([] if isinstance(plan.ret, Void) else [text]) + [_annotation(p.kind) for p in plan.outs]
@@ -53,7 +59,11 @@ def _return_annotation(plan, client_side):
 def _stub(plan, client_side, indent, model, name=None, with_self=True):
     pad = " " * indent
     params = ([] if plan.static or not with_self else ["self"])
-    params += ["%s: %s" % (p.name, _param_annotation(p, client_side)) for p in plan.ins]
+    for p in plan.params:
+        if isinstance(p.kind, Bytes) and p.out:
+            params.append("%s: int" % py_param_name(p.size_name))  # how much to read
+        elif p in plan.ins:
+            params.append("%s: %s" % (p.name, _param_annotation(p, client_side)))
     lines = []
     if plan.static and plan.owner:
         lines.append(pad + "@staticmethod")

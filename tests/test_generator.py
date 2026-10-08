@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -105,6 +105,39 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("width", buffer.kind.size_expr)
         self.assertIn("height", buffer.kind.size_expr)
         self.assertEqual(buffer.size_name, "")
+
+    def test_a_library_method_takes_bytes_for_a_pointer_and_size_pair(self):
+        plan = self.plan("CefBinaryValue", "Create")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, Bytes)
+        self.assertFalse(plan.params[0].out)
+        self.assertEqual(plan.params[0].size_name, "data_size")
+        self.assertEqual([p.name for p in plan.ins], ["data"])
+        plan = self.plan("CefBrowserHost", "SendDevToolsMessage")
+        self.assertTrue(plan.supported, plan.reason)
+
+    def test_get_data_returns_bytes_and_takes_the_size_to_read(self):
+        plan = self.plan("CefBinaryValue", "GetData")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, Bytes)
+        self.assertTrue(plan.params[0].out)
+        self.assertEqual(plan.params[0].size_name, "buffer_size")
+        self.assertEqual([p.name for p in plan.params], ["buffer", "data_offset"])
+
+    def test_a_pointer_with_two_sizes_stays_unsupported(self):
+        # Write(const void* ptr, size_t size, size_t n): the buffer holds size * n bytes.
+        plan = self.plan_in(self.everything, "CefStreamWriter", "Write")
+        self.assertFalse(plan.supported)
+        self.assertIn("untyped pointer", plan.reason)
+        plan = self.plan_in(self.everything, "CefStreamReader", "Read")
+        self.assertFalse(plan.supported)
+
+    def test_the_stub_shows_bytes(self):
+        stub = self.generated("pyi")
+        # CEF returns nothing for empty data, so it may be None (unlike other Create()).
+        self.assertIn("def create(data: bytes | bytearray | memoryview) -> BinaryValue | None:",
+                      stub)
+        self.assertIn("def get_data(self, buffer_size: int, data_offset: int) -> bytes:", stub)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
@@ -722,11 +755,14 @@ class WithHeaders(unittest.TestCase):
                          ["LibRef", "LibRef", "Enum", "LibRef"])
         self.assertEqual(plan.ret, Prim("bool", "bool"))
 
-    def test_the_binary_value_reports_its_untyped_pointers(self):
-        for name in ("Create", "GetData", "GetRawData"):
+    def test_the_binary_value_opens_bytes_but_not_the_pointer_to_its_memory(self):
+        for name in ("Create", "GetData"):
             plan = self.plan("CefBinaryValue", name)
-            self.assertFalse(plan.supported, name)
-            self.assertIn("pointer", plan.reason, name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        # The memory belongs to CEF and can end with the object: get_data() copies instead.
+        plan = self.plan("CefBinaryValue", "GetRawData")
+        self.assertFalse(plan.supported)
+        self.assertIn("pointer", plan.reason)
 
     def test_the_value_types_have_a_type_enumeration(self):
         plan = self.plan("CefListValue", "GetType")

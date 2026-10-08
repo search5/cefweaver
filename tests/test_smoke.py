@@ -272,6 +272,33 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual(cefweaver.PopupFeatures._fields[:4], ("x", "x_set", "y", "y_set"))
         self.assertEqual(cefweaver.ScreenInfo._fields[-2:], ("rect", "available_rect"))
 
+    def test_binary_values_take_and_give_bytes(self):
+        data = b"\x00\x01\xfe\xff abc"
+        value = cefweaver.BinaryValue.create(data)
+        self.assertEqual(value.get_size(), 8)
+        self.assertEqual(value.get_data(8, 0), data)
+        self.assertEqual(value.get_data(3, 5), b"abc")       # from an offset
+        self.assertEqual(value.get_data(100, 6), b"bc")      # less is left than asked for
+        self.assertEqual(value.get_data(4, 8), b"")          # nothing is left
+        for other in (bytearray(b"xy"), memoryview(b"xy")):
+            self.assertEqual(cefweaver.BinaryValue.create(other).get_data(2, 0), b"xy")
+        # CEF has no empty binary value: create() gives None for no bytes (values_impl.cc).
+        self.assertIsNone(cefweaver.BinaryValue.create(b""))
+        for bad in ("text", 5, None, [1, 2]):
+            with self.assertRaises(TypeError):
+                cefweaver.BinaryValue.create(bad)
+        with self.assertRaises(OverflowError):
+            value.get_data(-1, 0)
+        # As a copy, and in a list. The list takes the value over (it is not valid afterwards,
+        # as CEF documents), so the copy is made first.
+        duplicate = value.copy()
+        self.assertEqual(duplicate.get_data(8, 0), data)
+        items = cefweaver.ListValue.create()
+        items.set_size(1)
+        items.set_binary(0, value)
+        self.assertEqual(items.get_binary(0).get_data(8, 0), data)
+        self.assertIsNone(value.copy())
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1877,6 +1904,29 @@ class WithCef(unittest.TestCase):
                 raise AssertionError("accepted")
             except TypeError:
                 pass
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_binary_values_travel_in_process_messages(self):
+        self.run_query_script("""
+            received = []
+            class Client2(MyClient):
+                def on_process_message_received(self, browser, frame, source_process, message):
+                    received.append((message.get_name(),
+                                     message.get_argument_list().get_binary(0).get_data(256, 0)))
+                    return True
+            MyClient = Client2
+            start()
+            payload = bytes(range(256))                    # every byte value
+            message = cefweaver.ProcessMessage.create("cefweaver-ping")
+            arguments = message.get_argument_list()
+            arguments.set_size(1)
+            arguments.set_binary(0, cefweaver.BinaryValue.create(payload))
+            boxes[0].get_main_frame().send_process_message(types.ProcessId.RENDERER, message)
+            wait_until(app, lambda: received, "the answer of the renderer")
+            assert received == [("cefweaver-pong", payload)], received
             app.shutdown()
             print("OK")
         """)

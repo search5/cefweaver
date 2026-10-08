@@ -139,7 +139,7 @@ host.send_mouse_click_event(types.MouseEvent(30, 30, 0), types.MouseButtonType.R
 
 ## 프로세스 메시지와 값 컨테이너
 
-`ProcessMessage.create(name)`의 `get_argument_list()`가 `ListValue`입니다. 값 컨테이너(`Value`, `ListValue`, `DictionaryValue`, `BinaryValue`)는 CEF의 메서드를 그대로 중계하고(`set_int(index, value)`, `get_string(index)`, `get_keys()` 등) CEF를 시작하기 전에도 만들 수 있습니다. 값의 종류는 `types.ValueType`입니다. 파이썬 객체와의 변환 함수는 아직 없습니다.
+`ProcessMessage.create(name)`의 `get_argument_list()`가 `ListValue`입니다. 값 컨테이너(`Value`, `ListValue`, `DictionaryValue`, `BinaryValue`)는 CEF의 메서드를 그대로 중계하고(`set_int(index, value)`, `get_string(index)`, `get_keys()` 등) CEF를 시작하기 전에도 만들 수 있습니다. 값의 종류는 `types.ValueType`입니다. `BinaryValue.create(bytes)`와 `get_data(size, offset) -> bytes`는 복사합니다(빈 데이터는 `None`). 파이썬 객체와의 변환 함수는 아직 없습니다.
 
 ```python
 message = cefweaver.ProcessMessage.create("cefweaver-ping")

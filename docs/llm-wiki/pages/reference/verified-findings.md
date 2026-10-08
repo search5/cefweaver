@@ -128,6 +128,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **발견**: `char16_t`는 Cython이 알지 못하는 타입이라 `cdef extern from *: ctypedef unsigned short char16_t`로 알려 주었습니다.
 - **영향**: 구조체 15개가 공개되고 보고서의 타입 지원이 89%에서 90%로 늘었습니다([오프스크린 렌더링](offscreen-rendering.md)).
 
+## F40. 바이트열 입출력 (BinaryValue)
+
+- **방법**: `BinaryValue.create(bytes)`와 `get_data(size, offset)`를 CEF 없이, 그리고 프로세스 메시지로 렌더러를 거쳐 시험했습니다.
+- **결과**:
+  - `bytes`, `bytearray`, `memoryview`를 받아 복사하고, `get_data`는 오프셋과 남은 길이를 지켜 `bytes`를 돌려줍니다(요청이 더 크면 남은 만큼, 끝이면 `b""`). `str`, `int`, `list`, `None`은 `TypeError`, 음수 크기는 `OverflowError`.
+  - 0부터 255까지 모든 바이트가 렌더러를 거쳐 그대로 돌아옵니다.
+  - `create(b"")`는 `None`입니다. CEF의 `CefBinaryValue::Create`가 빈 데이터에 `nullptr`을 돌려줍니다(`cef_origin/libcef/common/values_impl.cc:488-494`). 리스트에 `set_binary`로 넣은 값은 리스트가 소유하므로 원래 객체는 무효가 됩니다(`copy()`가 `None`, CEF의 문서대로).
+- **발견**: `nogil` 안에서는 Python 객체를 `char*`로 바꿀 수 없어 포인터를 `nogil` 앞에서 꺼냅니다.
+- **영향**: 열지 못했던 `BinaryValue.create`와 `get_data`가 열렸습니다. `get_raw_data`는 일부러 열지 않았습니다([알려진 제약과 미검증 항목](known-constraints.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

@@ -136,3 +136,7 @@
 ## [2026-10-08] ingest | 구조체 종류의 확대 (size 머리, 열거형, char16_t)
 
 - 생성기가 `size_t size` 머리, 열거형 멤버, `char16_t`, `CefStructBaseSimple` 정의(`using`과 `class`)의 구조체를 읽습니다. `KeyEvent`, `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline` 등 8개가 공개되어 15개가 되었고, `send_key_event`, `send_touch_event`, `ime_set_composition`, `get_screen_info`가 열렸습니다. 시험 8개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 161개가 통과합니다. F39. 옛 시험 3개(한계를 단정하던 것)를 현재 사실에 맞게 고쳤습니다.
+
+## [2026-10-08] ingest | 바이트열 입출력 (BinaryValue.create, get_data)
+
+- 생성기에 `Bytes` 종류를 더했습니다: 라이브러리 메서드의 `const void*`와 `size_t` 쌍은 바이트열 입력, `BYTES_OUT` 표의 `BinaryValue.GetData`는 `get_data(size, offset) -> bytes`입니다. 크기가 둘인 `CefStreamWriter::Write` 같은 것은 계속 제외합니다. 시험 6개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했고 전체 167개가 통과합니다. F40. 앞서 열지 못한 부분으로 적은 `create`, `get_data`가 열렸습니다.
