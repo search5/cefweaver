@@ -44,7 +44,7 @@ updated: 2026-10-08
 
 - **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
 
-- **오프스크린 렌더링에는 `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다.** 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
+- **오프스크린 렌더링에는 GPU 가속 페인트와 팝업 영역 그리기가 없습니다**(`PaintElementType.POPUP`, `on_popup_show`, `on_popup_size`는 생성되어 있지만 시험하지 않았습니다). 시험하지 않은 것: 렌더 핸들러가 없을 때, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과(호출이 받아들여지는지만 확인). `start_dragging`은 열려 있고 시험했습니다(F54). 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).
 - **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.
@@ -55,7 +55,7 @@ updated: 2026-10-08
 - **네이티브 Wayland에서 Alloy 스타일 브라우저가 죽습니다**(`ozone-platform=wayland`, 크래시 지점은 `libcef` 안, F31). 그래서 `DISPLAY`가 있으면 `x11`(XWayland)이 기본입니다. `DISPLAY`가 없는 순수 Wayland 세션은 해결책이 없고(Chromium이 Wayland를 고르면 죽음), `cefsimple`의 Alloy 스타일은 같은 `libcef`에서 살아 있어서 래퍼 쪽 원인일 수 있으나 찾지 못했습니다. GUI 툴킷에 끼워 넣는 일(`parent_window`)은 X11 핸들이라 Wayland에서 어차피 어렵습니다.
 - **CEF 154.0.34의 문제: `data:`나 `about:blank` 페이지의 `<iframe srcdoc>`가 로드를 끝내지 못합니다**(F27). cefweaver의 문제가 아니며(`cefsimple`도 같음) 고칠 수 없습니다. `add_resource`로 페이지를 제공하거나 `src` iframe을 쓰는 우회가 있고, `expectedFailure` 시험이 CEF의 수정을 알려 줍니다.
 - **준비되기 전의 입력은 버려집니다**(`send_mouse_*`, F18). 대기열에 쌓이지 않고 준비를 알리는 신호도 없습니다(첫 프레임 뒤에도 10번 중 1번은 버려졌음). 호출하는 쪽이 도착할 때까지 다시 보내야 합니다.
-- **Python에 열린 핸들러는 일부**입니다. 로드, 수명 주기, 표시, 드래그, 컨텍스트 메뉴 핸들러와 프로세스 메시지는 `set_client()`로 받을 수 있습니다. 나머지 핸들러 13개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
+- **Python에 열린 핸들러**는 java-cef가 구현하는 13개(컨텍스트 메뉴, 대화상자, 표시, 다운로드, 드래그, 포커스, JS 대화상자, 키보드, 수명 주기, 로드, 인쇄, 렌더, 요청)와 리소스 요청 핸들러, 쿠키 접근 필터, 요청 컨텍스트 핸들러입니다. 오디오, 명령, 찾기, 프레임, 권한 핸들러는 java-cef도 구현하지 않아 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.
 - **JS 값은 네 종류만**(정수, 불리언, 실수, 문자열) 전달되고 반환값은 없습니다. 인자 없는 C++ 바인딩 경로는 Python에 노출하지 않았습니다.
