@@ -35,7 +35,8 @@ class CefWrapperClientHandler : public CefClient,
                       public CwDownloadHandlerForward,
                       public CwKeyboardHandlerForward,
                       public CwPrintHandlerForward,
-                      public CwContextMenuHandlerForward {
+                      public CwContextMenuHandlerForward,
+                      public CwPermissionHandlerForward {
 public:
 
   explicit CefWrapperClientHandler(bool use_views,
@@ -95,6 +96,13 @@ public:
   CefRefPtr<CefDragHandler> GetDragHandler() override {
     forward_drag_handler_ = user_client_ ? user_client_->GetDragHandler() : nullptr;
     return forward_drag_handler_ ? this : nullptr;
+  }
+
+  // Nothing in the wrapper needs the permission requests (microphone, camera): they only go to
+  // the user's handler. Without one CEF decides (the Alloy style denies them).
+  CefRefPtr<CefPermissionHandler> GetPermissionHandler() override {
+    forward_permission_handler_ = user_client_ ? user_client_->GetPermissionHandler() : nullptr;
+    return forward_permission_handler_ ? this : nullptr;
   }
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {

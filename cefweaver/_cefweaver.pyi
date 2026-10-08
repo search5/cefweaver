@@ -164,6 +164,7 @@ from .types import (
     MenuItemType,
     MouseButtonType,
     PaintElementType,
+    PermissionRequestResult,
     PostdataelementType,
     ProcessId,
     QuickMenuEditStateFlags,
@@ -1912,6 +1913,24 @@ class ListValue:
         ...
 
 
+class MediaAccessCallback:
+    """Callback interface used for asynchronous continuation of media access
+    permission requests.
+    """
+    def continue_(self, allowed_permissions: int) -> None:
+        """Call to allow or deny media access. If this callback was initiated in
+        response to a getUserMedia (indicated by
+        CEF_MEDIA_PERMISSION_DEVICE_AUDIO_CAPTURE and/or
+        CEF_MEDIA_PERMISSION_DEVICE_VIDEO_CAPTURE being set) then
+        |allowed_permissions| must match |required_permissions| passed to
+        OnRequestMediaAccessPermission.
+        """
+        ...
+    def cancel(self) -> None:
+        """Cancel the media access request."""
+        ...
+
+
 class MenuModel:
     """Supports creation and modification of menus. See cef_menu_id_t for the
     command ids that have default implementations. All user-defined command ids
@@ -2175,6 +2194,13 @@ class MenuModel:
     @staticmethod
     def create_menu_model(delegate: MenuModelDelegate) -> MenuModel | None:
         """Create a new MenuModel with the specified |delegate|."""
+        ...
+
+
+class PermissionPromptCallback:
+    """Callback interface used for asynchronous continuation of permission prompts."""
+    def continue_(self, result: PermissionRequestResult | int) -> None:
+        """Complete the permissions request with the specified |result|."""
         ...
 
 
@@ -3220,6 +3246,9 @@ class Client:
     def get_focus_handler(self) -> FocusHandler | None:
         """Return the handler for focus events."""
         ...
+    def get_permission_handler(self) -> PermissionHandler | None:
+        """Return the handler for permission requests."""
+        ...
     def get_js_dialog_handler(self) -> JSDialogHandler | None:
         """Return the handler for JavaScript dialogs. If no handler is provided the
         default implementation will be used.
@@ -3983,6 +4012,48 @@ class PdfPrintCallback:
         """Method that will be executed when the PDF printing has completed. |path|
         is the output path. |ok| will be true if the printing completed
         successfully or false otherwise.
+        """
+        ...
+
+
+class PermissionHandler:
+    """Implement this interface to handle events related to permission requests.
+    The methods of this class will be called on the browser process UI thread.
+    """
+    def on_request_media_access_permission(self, browser: Browser, frame: Frame, requesting_origin: str, requested_permissions: int, callback: MediaAccessCallback) -> bool:
+        """Called when a page requests permission to access media.
+        |requesting_origin| is the URL origin requesting permission.
+        |requested_permissions| is a combination of values from
+        cef_media_access_permission_types_t that represent the requested
+        permissions. Return true and call CefMediaAccessCallback methods either in
+        this method or at a later time to continue or cancel the request. Return
+        false to proceed with default handling. With Chrome style, default
+        handling will display the permission request UI. With Alloy style,
+        default handling will deny the request. This method will not be called if
+        the \"--enable-media-stream\" command-line switch is used to grant all
+        permissions.
+        """
+        ...
+    def on_show_permission_prompt(self, browser: Browser, prompt_id: int, requesting_origin: str, requested_permissions: int, callback: PermissionPromptCallback) -> bool:
+        """Called when a page should show a permission prompt. |prompt_id| uniquely
+        identifies the prompt. |requesting_origin| is the URL origin requesting
+        permission. |requested_permissions| is a combination of values from
+        cef_permission_request_types_t that represent the requested permissions.
+        Return true and call CefPermissionPromptCallback::Continue either in this
+        method or at a later time to continue or cancel the request. Return false
+        to proceed with default handling. With Chrome style, default handling will
+        display the permission prompt UI. With Alloy style, default handling is
+        CEF_PERMISSION_RESULT_IGNORE.
+        """
+        ...
+    def on_dismiss_permission_prompt(self, browser: Browser, prompt_id: int, result: PermissionRequestResult) -> None:
+        """Called when a permission prompt handled via OnShowPermissionPrompt is
+        dismissed. |prompt_id| will match the value that was passed to
+        OnShowPermissionPrompt. |result| will be the value passed to
+        CefPermissionPromptCallback::Continue or CEF_PERMISSION_RESULT_IGNORE if
+        the dialog was dismissed for other reasons such as navigation, browser
+        closure, etc. This method will not be called if OnShowPermissionPrompt
+        returned false for |prompt_id|.
         """
         ...
 

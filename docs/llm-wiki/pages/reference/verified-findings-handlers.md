@@ -165,6 +165,16 @@ updated: 2026-10-08
 - **확인함**: `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림(페이지의 색), 클릭(제목이 바뀜), 키와 한글 확정(입력란), 외부 드롭, 크기 변경, 정상 종료가 `BrowserView`와 `Session`만으로 동작합니다(5번 연속 통과). 단위 시험 47개는 가짜 브라우저로 이벤트 변환을 확인합니다([UI 어댑터 API](ui-api.md)).
 - **확인함**: `DragData.get_file_name()`은 CEF를 초기화하기 전에 부르면 프로세스를 중단시키고(`Trace/breakpoint trap`, 종료 코드 133), 초기화한 뒤에는 `add_file`로 파일을 넣은 데이터에서도 빈 문자열을 돌려줍니다. 같은 데이터의 `get_file_names()`와 `get_file_paths()`는 초기화 전에도 값을 줍니다. **초기화 전에 중단하는 원인은 조사하지 않았습니다.** 파일 이름은 `get_file_paths()`로 얻습니다.
 
+## F71. 권한 핸들러 (마이크, 카메라)
+
+방법: 가짜 장치 스위치(`use-fake-device-for-media-stream`)로 장치 없는 환경에서, `http://localhost/`(보안 컨텍스트)의 페이지가 `navigator.mediaDevices.getUserMedia({audio: true})`를 부르게 하고 `PermissionHandler`의 결정에 따른 결과를 제목으로 읽었습니다(`WithCef`의 시험 4개).
+
+- **확인함**: `on_request_media_access_permission`이 출처 `'http://localhost/'`, 권한 `1`(`MediaAccessPermissionTypes.DEVICE_AUDIO_CAPTURE`), 메인 프레임 여부 `True`와 함께 불립니다. `callback.continue_(requested_permissions)`로 허용하면 `granted:1`(오디오 트랙 1개), `callback.cancel()`로 거부하면 `denied:NotAllowedError`입니다.
+- **확인함**: 핸들러가 `False`를 돌려주면(기본 처리) 이 환경의 스타일에서 페이지는 **거부**되고 `denied:NotAllowedError`를 받습니다. 헤더 주석("Alloy 스타일의 기본 처리는 거부")과 같습니다.
+- **확인함**: `enable-media-stream` 스위치(cefpython이 안내하는 방법)를 주면 핸들러가 거부하도록 해 놓아도 `granted:1`이고 **핸들러는 불리지 않습니다**(`asked`가 빔). 헤더 주석("이 스위치를 쓰면 이 메서드는 불리지 않음")과 같습니다.
+- **발견한 결함(수정함)**: 범위에 `PermissionHandler`를 넣고 생성만 해서는 핸들러가 한 번도 불리지 않았습니다. 래퍼의 손으로 쓴 `CefWrapperClientHandler`는 핸들러마다 `Get...Handler()`를 직접 나열하므로 `CwPermissionHandlerForward`를 상속하고 `GetPermissionHandler()`를 더해야 했습니다(이런 핸들러를 더할 때마다 필요한 단계).
+- 확인하지 못한 것: 화면 캡처(`DESKTOP_*`), 비디오(`DEVICE_VIDEO_CAPTURE`), `on_show_permission_prompt`(카메라 PTZ, 클립보드 등의 권한 프롬프트), Chrome 스타일의 기본 처리(권한 UI), 실제 마이크.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

@@ -339,3 +339,7 @@
 ## [2026-10-08] query | java-cef의 오디오와 WebRTC 처리
 
 - java-cef에는 `CefAudioHandler`도 `CefPermissionHandler`도 없음을 소스로 확인했습니다(키보드의 미디어 키 변환과 컨텍스트 메뉴의 `MediaType`만 있음). `java-cef-parity.md`가 `AudioHandler.on_audio_stream_packet`을 "java-cef도 열지 않은 포인터 배열"이라 적은 것은 틀려서 고쳤고, 확인한 내용과 핸들러가 없을 때의 CEF 기본 동작(Alloy는 거부)을 "오디오, WebRTC" 절에 기록했습니다.
+
+## [2026-10-08] ingest | 권한 핸들러를 연다 (F71)
+
+- `PermissionHandler`, `MediaAccessCallback`, `PermissionPromptCallback`을 범위에 넣었습니다. 래퍼의 `CefWrapperClientHandler`에 `GetPermissionHandler()`를 더하지 않으면 핸들러가 불리지 않는 것을 시험이 드러냈습니다. 가짜 장치로 허용, 거부, 기본 처리(거부), `enable-media-stream` 스위치(핸들러를 건너뜀)를 확인했습니다. cefpython의 `cefpython147` 브랜치(CEF 123, 리눅스와 맥 버전 헤더는 옛 값 그대로)도 조사했고 오디오와 권한 핸들러를 감싸지 않았습니다.

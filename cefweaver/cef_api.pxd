@@ -108,6 +108,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_pdf_print_margin_type_t:
         pass
+    ctypedef enum cef_permission_request_result_t:
+        pass
     ctypedef enum cef_pointer_type_t:
         pass
     ctypedef enum cef_postdataelement_type_t:
@@ -440,8 +442,12 @@ cdef extern from "include/cef_jsdialog_handler.h":
     cdef cppclass CefJSDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted)
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefMediaAccessCallback(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefPermissionPromptCallback(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
     cdef cppclass CefPostData(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
@@ -522,6 +528,8 @@ cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefPdfPrintCallback(CefBaseRefCounted)
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefPermissionHandler(CefBaseRefCounted)
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
@@ -922,6 +930,11 @@ cdef extern from "include/cef_values.h":
         @staticmethod
         CefRefPtr[CefListValue] Create() nogil
 
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefMediaAccessCallback(CefBaseRefCounted):
+        void Continue(uint32_t) nogil
+        void Cancel() nogil
+
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted):
         cpp_bool IsSubMenu() nogil
@@ -982,6 +995,10 @@ cdef extern from "include/cef_menu_model.h":
         cpp_bool SetFontListAt(int, const CefString&) nogil
         @staticmethod
         CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
+
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefPermissionPromptCallback(CefBaseRefCounted):
+        void Continue(cef_permission_request_result_t) nogil
 
 cdef extern from "include/cef_request.h":
     cdef cppclass CefPostData(CefBaseRefCounted):
@@ -1311,6 +1328,9 @@ cdef extern from "include/cef_menu_model_delegate.h":
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefPdfPrintCallback(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_permission_handler.h":
+    cdef cppclass CefPermissionHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted):
         pass
@@ -1379,6 +1399,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefDownloadHandler* (*fn_get_download_handler)(void*) noexcept
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefFocusHandler* (*fn_get_focus_handler)(void*) noexcept
+        CefPermissionHandler* (*fn_get_permission_handler)(void*) noexcept
         CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) noexcept
         CefKeyboardHandler* (*fn_get_keyboard_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
@@ -1536,6 +1557,14 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_pdf_print_finished)(void*, const CefString*, cpp_bool) noexcept
     cdef cppclass CwPdfPrintCallbackProxy(CefPdfPrintCallback):
         CwPdfPrintCallbackProxy(const CwPdfPrintCallbackCallbacks&)
+    cdef cppclass CwPermissionHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_on_request_media_access_permission)(void*, CefBrowser*, CefFrame*, const CefString*, uint32_t, CefMediaAccessCallback*) noexcept
+        cpp_bool (*fn_on_show_permission_prompt)(void*, CefBrowser*, uint64_t, const CefString*, uint32_t, CefPermissionPromptCallback*) noexcept
+        void (*fn_on_dismiss_permission_prompt)(void*, CefBrowser*, uint64_t, int) noexcept
+    cdef cppclass CwPermissionHandlerProxy(CefPermissionHandler):
+        CwPermissionHandlerProxy(const CwPermissionHandlerCallbacks&)
     cdef cppclass CwPrintHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

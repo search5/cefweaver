@@ -20,7 +20,9 @@ cdef class FileDialogCallback
 cdef class Frame
 cdef class JSDialogCallback
 cdef class ListValue
+cdef class MediaAccessCallback
 cdef class MenuModel
+cdef class PermissionPromptCallback
 cdef class PostData
 cdef class PostDataElement
 cdef class PrintDialogCallback

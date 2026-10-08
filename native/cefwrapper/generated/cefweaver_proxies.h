@@ -26,6 +26,7 @@
 #include "include/cef_load_handler.h"
 #include "include/cef_menu_model.h"
 #include "include/cef_menu_model_delegate.h"
+#include "include/cef_permission_handler.h"
 #include "include/cef_print_handler.h"
 #include "include/cef_print_settings.h"
 #include "include/cef_process_message.h"
@@ -100,6 +101,13 @@ class CwClientForward : public CefClient {
     return forward_client_->GetFocusHandler();
   }
 
+  CefRefPtr<CefPermissionHandler> GetPermissionHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetPermissionHandler();
+    }
+    return forward_client_->GetPermissionHandler();
+  }
+
   CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override {
     if (!forward_client_) {
       return CefClient::GetJSDialogHandler();
@@ -166,6 +174,7 @@ struct CwClientCallbacks {
   CefDownloadHandler* (*fn_get_download_handler)(void*) = nullptr;
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefFocusHandler* (*fn_get_focus_handler)(void*) = nullptr;
+  CefPermissionHandler* (*fn_get_permission_handler)(void*) = nullptr;
   CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) = nullptr;
   CefKeyboardHandler* (*fn_get_keyboard_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
@@ -256,6 +265,19 @@ class CwClientProxy : public CefClient {
     }
     CefFocusHandler* raw = cb_.fn_get_focus_handler(cb_.py);
     CefRefPtr<CefFocusHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefPermissionHandler> GetPermissionHandler() override {
+    if (!cb_.fn_get_permission_handler) {
+      return CefClient::GetPermissionHandler();
+    }
+    CefPermissionHandler* raw = cb_.fn_get_permission_handler(cb_.py);
+    CefRefPtr<CefPermissionHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -1892,6 +1914,84 @@ class CwPdfPrintCallbackProxy : public CefPdfPrintCallback {
 
   IMPLEMENT_REFCOUNTING(CwPdfPrintCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwPdfPrintCallbackProxy);
+};
+
+// ---- CefPermissionHandler ----
+
+class CwPermissionHandlerForward : public CefPermissionHandler {
+ protected:
+  CefRefPtr<CefPermissionHandler> forward_permission_handler_;
+
+ public:
+  bool OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_origin, uint32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback) override {
+    if (!forward_permission_handler_) {
+      return CefPermissionHandler::OnRequestMediaAccessPermission(browser, frame, requesting_origin, requested_permissions, callback);
+    }
+    return forward_permission_handler_->OnRequestMediaAccessPermission(browser, frame, requesting_origin, requested_permissions, callback);
+  }
+
+  bool OnShowPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, const CefString& requesting_origin, uint32_t requested_permissions, CefRefPtr<CefPermissionPromptCallback> callback) override {
+    if (!forward_permission_handler_) {
+      return CefPermissionHandler::OnShowPermissionPrompt(browser, prompt_id, requesting_origin, requested_permissions, callback);
+    }
+    return forward_permission_handler_->OnShowPermissionPrompt(browser, prompt_id, requesting_origin, requested_permissions, callback);
+  }
+
+  void OnDismissPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, cef_permission_request_result_t result) override {
+    if (!forward_permission_handler_) {
+      CefPermissionHandler::OnDismissPermissionPrompt(browser, prompt_id, result);
+      return;
+    }
+    forward_permission_handler_->OnDismissPermissionPrompt(browser, prompt_id, result);
+  }
+};
+
+struct CwPermissionHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_request_media_access_permission)(void*, CefBrowser*, CefFrame*, const CefString*, uint32_t, CefMediaAccessCallback*) = nullptr;
+  bool (*fn_on_show_permission_prompt)(void*, CefBrowser*, uint64_t, const CefString*, uint32_t, CefPermissionPromptCallback*) = nullptr;
+  void (*fn_on_dismiss_permission_prompt)(void*, CefBrowser*, uint64_t, int) = nullptr;
+};
+
+class CwPermissionHandlerProxy : public CefPermissionHandler {
+ public:
+  explicit CwPermissionHandlerProxy(const CwPermissionHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwPermissionHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnRequestMediaAccessPermission(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& requesting_origin, uint32_t requested_permissions, CefRefPtr<CefMediaAccessCallback> callback) override {
+    if (!cb_.fn_on_request_media_access_permission) {
+      return CefPermissionHandler::OnRequestMediaAccessPermission(browser, frame, requesting_origin, requested_permissions, callback);
+    }
+    bool result = cb_.fn_on_request_media_access_permission(cb_.py, browser.get(), frame.get(), &requesting_origin, requested_permissions, callback.get());
+    return result;
+  }
+
+  bool OnShowPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, const CefString& requesting_origin, uint32_t requested_permissions, CefRefPtr<CefPermissionPromptCallback> callback) override {
+    if (!cb_.fn_on_show_permission_prompt) {
+      return CefPermissionHandler::OnShowPermissionPrompt(browser, prompt_id, requesting_origin, requested_permissions, callback);
+    }
+    bool result = cb_.fn_on_show_permission_prompt(cb_.py, browser.get(), prompt_id, &requesting_origin, requested_permissions, callback.get());
+    return result;
+  }
+
+  void OnDismissPermissionPrompt(CefRefPtr<CefBrowser> browser, uint64_t prompt_id, cef_permission_request_result_t result) override {
+    if (!cb_.fn_on_dismiss_permission_prompt) {
+      CefPermissionHandler::OnDismissPermissionPrompt(browser, prompt_id, result);
+      return;
+    }
+    cb_.fn_on_dismiss_permission_prompt(cb_.py, browser.get(), prompt_id, static_cast<int>(result));
+  }
+
+ private:
+  CwPermissionHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwPermissionHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwPermissionHandlerProxy);
 };
 
 // ---- CefPrintHandler ----

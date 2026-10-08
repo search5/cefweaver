@@ -35,6 +35,10 @@ class Client:
         """Return the handler for focus events."""
         return None
 
+    def get_permission_handler(self):
+        """Return the handler for permission requests."""
+        return None
+
     def get_js_dialog_handler(self):
         """Return the handler for JavaScript dialogs. If no handler is provided the
         default implementation will be used.
@@ -125,6 +129,15 @@ cdef CefFocusHandler* _Client_get_focus_handler(void* py) noexcept with gil:
         _r = (<object>py).get_focus_handler()
         _r0 = _r
         return _g_export_FocusHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefPermissionHandler* _Client_get_permission_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_permission_handler()
+        _r0 = _r
+        return _g_export_PermissionHandler(_r0)
     except BaseException:
         _g_report()
         return NULL
@@ -226,6 +239,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
         cb.fn_get_drag_handler = _Client_get_drag_handler
     if getattr(cls, "get_focus_handler", None) is not Client.get_focus_handler:
         cb.fn_get_focus_handler = _Client_get_focus_handler
+    if getattr(cls, "get_permission_handler", None) is not Client.get_permission_handler:
+        cb.fn_get_permission_handler = _Client_get_permission_handler
     if getattr(cls, "get_js_dialog_handler", None) is not Client.get_js_dialog_handler:
         cb.fn_get_js_dialog_handler = _Client_get_js_dialog_handler
     if getattr(cls, "get_keyboard_handler", None) is not Client.get_keyboard_handler:

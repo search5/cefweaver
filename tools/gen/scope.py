@@ -48,6 +48,8 @@ LIBRARY_CLASSES = [
     "CefURLRequest",
     "CefCommandLine",
     "CefDragData",
+    "CefMediaAccessCallback",
+    "CefPermissionPromptCallback",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -78,6 +80,7 @@ CLIENT_CLASSES = [
     "CefDeleteCookiesCallback",
     "CefCompletionCallback",
     "CefCookieAccessFilter",
+    "CefPermissionHandler",
     "CefStringVisitor",
     "CefRunFileDialogCallback",
     "CefDevToolsMessageObserver",

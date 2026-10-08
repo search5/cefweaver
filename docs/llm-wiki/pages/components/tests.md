@@ -11,7 +11,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 네 파일에 398개(통합 183, 생성기 120, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 네 파일에 402개(통합 187, 생성기 120, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -127,6 +127,8 @@ updated: 2026-10-08
 | | `test_the_process_can_end_without_shutdown` | 핸들러가 살아 있고 요청이 진행 중인 채 종료해도 정상 종료 |
 | | `test_a_path_the_factory_declines_goes_on_to_the_default_handling` | `create()`가 `None`이면 CEF 기본 처리로 넘어가 `on_load_error` |
 | | `test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread` | 리소스 핸들러 콜백이 메인 스레드가 아님 |
+
+권한 핸들러 시험 4개(`WithCef`, 가짜 장치로 `getUserMedia`, [F71](../reference/verified-findings-handlers.md)): 허용하면 `granted:1`과 핸들러가 받은 출처, 권한, 메인 프레임 여부, 취소하면 `denied:NotAllowedError`, `False`(기본 처리)도 거부, `enable-media-stream` 스위치를 주면 핸들러가 거부하도록 되어 있어도 허용되고 핸들러는 불리지 않음.
 
 ## tests/test_generator.py: 생성기 시험
 

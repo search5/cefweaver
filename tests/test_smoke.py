@@ -4696,6 +4696,89 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    # -- media: the permission handler (getUserMedia) -----------------------------------------------
+
+    PERMISSION_SCRIPT = """
+        DECISION = %r
+        # fake devices: no microphone is needed; the permission request still goes to the handler
+        app.add_command_line_switch("use-fake-device-for-media-stream", "")
+        if DECISION == "switch":        # cefpython's way: one switch grants every permission to every page
+            app.add_command_line_switch("enable-media-stream", "")
+        titles, asked = [], []
+        PAGE = ('<title>asking</title><script>navigator.mediaDevices.getUserMedia({audio: true}).then('
+                'function (s) { document.title = "granted:" + s.getAudioTracks().length; },'
+                'function (e) { document.title = "denied:" + e.name; });</script>')
+
+        class Display(cefweaver.DisplayHandler):
+            def on_title_change(self, browser, title):
+                titles.append(title)
+
+        class Life(cefweaver.LifeSpanHandler):
+            def on_after_created(self, browser):
+                app.add_resource("http://localhost/", PAGE)      # localhost: a secure context
+                browser.get_main_frame().load_url("http://localhost/")
+
+        class Permission(cefweaver.PermissionHandler):
+            def on_request_media_access_permission(self, browser, frame, requesting_origin, requested_permissions, callback):
+                asked.append((requesting_origin, int(requested_permissions), frame.is_main()))
+                if DECISION == "default":
+                    return False
+                if DECISION == "allow":
+                    callback.continue_(requested_permissions)
+                else:
+                    callback.cancel()
+                return True
+
+        class MyClient(cefweaver.Client):
+            def __init__(self):
+                self.display, self.life, self.permission = Display(), Life(), Permission()
+            def get_display_handler(self):
+                return self.display
+            def get_life_span_handler(self):
+                return self.life
+            def get_permission_handler(self):
+                return self.permission
+
+        app.set_client(MyClient())
+        app.initialize("about:blank")
+        wait_until(app, lambda: any(t.startswith(("granted", "denied")) for t in titles), "the answer to getUserMedia")
+        answer = [t for t in titles if t.startswith(("granted", "denied"))][-1]
+        print("ANSWER", answer, asked)
+        app.shutdown()
+        print("OK")
+    """
+
+    def permission_run(self, decision):
+        result = run_cef(self.PERMISSION_SCRIPT % decision)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+        line = [l for l in result.stdout.splitlines() if l.startswith("ANSWER")][0]
+        return line[len("ANSWER "):]
+
+    def test_a_permission_handler_that_allows_gives_the_page_the_microphone(self):
+        answer = self.permission_run("allow")
+        self.assertTrue(answer.startswith("granted:1"), answer)
+        self.assertIn("'http://localhost", answer)                   # the origin that asked
+        self.assertIn(", True)", answer)                              # from the main frame
+
+    def test_a_permission_handler_that_cancels_denies_the_page(self):
+        answer = self.permission_run("deny")
+        self.assertTrue(answer.startswith("denied:NotAllowedError"), answer)
+        self.assertIn("'http://localhost", answer)
+
+    def test_the_enable_media_stream_switch_grants_everything_and_the_handler_is_not_asked(self):
+        # the handler would deny; the switch (what cefpython offers) wins, as the header says
+        answer = self.permission_run("switch")
+        self.assertEqual(answer, "granted:1 []")
+
+    def test_without_an_answer_of_the_handler_the_default_is_to_deny_in_the_alloy_style(self):
+        # return False: "default handling", which the header says denies the request in the Alloy style
+        answer = self.permission_run("default")
+        self.assertTrue(answer.startswith("denied:NotAllowedError"), answer)
+        self.assertIn("'http://localhost", answer)                   # the handler was asked all the same
+
+
+
     def test_the_popup_of_a_select_is_drawn_as_a_second_element(self):
         self.run_osr_script("""
             start('<select id="s" style="position:fixed;left:10px;top:10px;width:120px;height:30px">'

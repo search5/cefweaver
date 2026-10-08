@@ -14,16 +14,16 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 695 methods/functions in 73 classes, 6 global functions
+Generated now: 702 methods/functions in 76 classes, 6 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    20  class
+    19  class
      4  struct
      3  a library method returning a client object
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  pointer to
      1  another overload of CreateContext is generated (Python has one name)
-  ----  30 skipped
+  ----  29 skipped
 
 If every class were generated, the type support alone would cover 2138 of 2255 methods/functions (95%).
 What blocks the rest, by type:
@@ -133,7 +133,7 @@ Per class (supported/total methods, when every class is generated):
   * CefLifeSpanHandler                     client    5/6  
   * CefListValue                           library  29/29 
   * CefLoadHandler                         client    4/4  
-    CefMediaAccessCallback                 library   2/2  
+  * CefMediaAccessCallback                 library   2/2  
     CefMediaObserver                       client    4/4  
     CefMediaRoute                          library   5/5  
     CefMediaRouteCreateCallback            client    1/1  
@@ -151,8 +151,8 @@ Per class (supported/total methods, when every class is generated):
     CefPanel                               library  64/65 
     CefPanelDelegate                       client   11/11 
   * CefPdfPrintCallback                    client    1/1  
-    CefPermissionHandler                   client    3/3  
-    CefPermissionPromptCallback            library   1/1  
+  * CefPermissionHandler                   client    3/3  
+  * CefPermissionPromptCallback            library   1/1  
   * CefPostData                            library   8/8  
   * CefPostDataElement                     library   9/9  
     CefPreferenceManager                   library   9/9  
@@ -250,7 +250,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefBinaryValue                   8  the whole class
   CefBrowser                       2  2 methods
   CefBrowserHost                  35  35 methods
-  CefClient                        1  1 methods
+  CefClient                        2  2 methods
   CefCommandLine                  10  10 methods
   CefContextMenuHandler            4  4 methods
   CefContextMenuParams             2  2 methods
@@ -266,8 +266,11 @@ Generated, and not opened by java-cef (beyond the floor):
   CefFrame                         5  5 methods
   CefLifeSpanHandler               1  1 methods
   CefListValue                    29  the whole class
+  CefMediaAccessCallback           2  the whole class
   CefMenuModel                     8  8 methods
   CefMenuModelDelegate             7  the whole class
+  CefPermissionHandler             3  the whole class
+  CefPermissionPromptCallback      1  the whole class
   CefPostData                      1  1 methods
   CefProcessMessage                6  the whole class
   CefReadHandler                   5  the whole class
@@ -288,7 +291,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  291 methods
+  ----  298 methods
 ```
 
 ## 관련 페이지
