@@ -14,7 +14,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import demo  # noqa: E402
-from ceftk import CefCanvas, Runtime  # noqa: E402
+from cefweaver import ui  # noqa: E402
+from ceftk import CefCanvas, TkLoop  # noqa: E402
 
 RootClass = tkinter.Tk
 
@@ -74,7 +75,7 @@ class BrowserWindow:
 def make_runtime(root, window_holder):
     text = os.environ.get("CEFTK_SWITCHES", "")           # "name=value;name=value": Chromium switches
     switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";") if item]
-    runtime = Runtime(root, switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-tk-"))
+    runtime = ui.Session(TkLoop(root), switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-tk-"))
     demo.install(runtime.bridge, lambda info: window_holder[0].messages.append(info))
     return runtime
 

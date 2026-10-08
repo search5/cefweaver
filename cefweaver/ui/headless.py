@@ -15,11 +15,10 @@ It keeps the last picture of the view and runs its own loop (``run_until``): the
 import heapq
 import itertools
 import queue
-import struct
 import time
-import zlib
 
 from .adapter import Frame
+from .picture import write_png
 
 
 class HeadlessAdapter:
@@ -105,19 +104,7 @@ class HeadlessAdapter:
         if self.picture is None:
             raise RuntimeError("no picture yet")
         width, height, bgra = self.picture
-        rows = []
-        for y in range(height):
-            row = bytearray(bgra[y * width * 4:(y + 1) * width * 4])
-            row[0::4], row[2::4] = row[2::4], row[0::4]         # BGRA to RGBA
-            rows.append(b"\x00" + bytes(row))
-
-        def chunk(kind, data):
-            body = kind + data
-            return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
-        png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
-        png += chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b"")
-        with open(path, "wb") as f:
-            f.write(png)
+        write_png(path, width, height, bgra)
 
     def pixel(self, x, y):
         """(red, green, blue, alpha) of a pixel of the last picture."""

@@ -19,7 +19,8 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
-from cefgtk import CefWidget, Runtime  # noqa: E402
+from cefweaver import ui  # noqa: E402
+from cefgtk import CefWidget, GlibLoop  # noqa: E402
 
 DEMO_URL = "http://demo.test/"
 DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>cefweaver GTK 3</title>
@@ -123,7 +124,7 @@ def make_runtime():
     # CEFGTK_SWITCHES="name=value;name=value" gives Chromium command line switches
     text = os.environ.get("CEFGTK_SWITCHES", "")
     switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";") if item]
-    runtime = Runtime(switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-gtk-"))
+    runtime = ui.Session(GlibLoop(), switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-gtk-"))
     window_holder = []
 
     def add(a, b):

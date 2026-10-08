@@ -101,22 +101,8 @@ class TkLoop:
     def call_later(self, seconds, function):
         return _After(self.root, seconds, function)
 
-    def close(self):
+    def release(self):
         self.root.tk.deletefilehandler(self._read)
-
-
-class Runtime(ui.Session):
-    """CEF for a Tk application: ``Runtime(root, ...)``, ``start(widget, url)``, ``shutdown(done)``."""
-
-    def __init__(self, root, switches=(), cache_path=None):
-        self.loop = TkLoop(root)
-        super().__init__(self.loop, switches, cache_path)
-
-    def start(self, widget, url):
-        super().start(widget.view, url)
-
-    def shutdown(self, done=None):
-        super().shutdown(lambda: (self.loop.close(), done and done()))
 
 
 class TkAdapter:
@@ -169,7 +155,7 @@ class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
     def __init__(self, master, runtime, **options):
         super().__init__(master, highlightthickness=0, background="white", takefocus=True, **options)
         self.runtime = runtime
-        self.attach_view(TkAdapter(self, runtime.loop))
+        self.attach_view(TkAdapter(self, runtime.adapter))
         self.view_width, self.view_height = 800, 600
         self.image = None                               # the picture (PIL) and what Tk shows of it
         self.photo = None
@@ -252,12 +238,6 @@ class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
             self.itemconfigure(self.popup_item, image=self.popup_photo, state="normal")
             self.coords(self.popup_item, rect.x, rect.y)
         self.tag_raise(self.popup_item)
-
-    def snapshot(self, path):
-        if self.image is None:
-            return False
-        self.image.convert("RGB").save(path)
-        return True
 
     # -- the mouse -------------------------------------------------------------------------------
 

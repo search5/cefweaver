@@ -68,16 +68,6 @@ class WxLoop:
         return _Later(seconds, function)
 
 
-class Runtime(ui.Session):
-    """CEF for a wx application: ``Runtime(...)``, ``start(panel, url)``, ``shutdown(done)``."""
-
-    def __init__(self, switches=(), cache_path=None):
-        super().__init__(WxLoop(), switches, cache_path)
-
-    def start(self, panel, url):
-        super().start(panel.view, url)
-
-
 class WxAdapter(WxLoop):
     """``ui.ToolkitAdapter`` for a ``CefPanel``. wx has a drag source for the page (``drag_out``) and a text
     clipboard, but not one CEF could use from this thread."""
@@ -234,11 +224,6 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
         rect = self.view.popup_rect
         if self.view.popup_visible and self.popup_bitmap is not None and rect is not None:
             dc.DrawBitmap(self.popup_bitmap, rect.x, rect.y)
-
-    def snapshot(self, path):
-        if self.bitmap is None:
-            return False
-        return self.bitmap.ConvertToImage().SaveFile(path, wx.BITMAP_TYPE_PNG)
 
     # -- the mouse -------------------------------------------------------------------------------
 

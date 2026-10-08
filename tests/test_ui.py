@@ -758,6 +758,85 @@ class WidgetBase(unittest.TestCase):
         widget.view.client.get_life_span_handler().on_after_created(FakeBrowser([]))
 
 
+class SessionTargets(unittest.TestCase):
+    def test_a_session_starts_a_view_or_a_widget_of_a_view(self):
+        view = ui.BrowserView(FakeAdapter())
+
+        class Widget(ui.BrowserWidget):
+            def __init__(self):
+                self.view = view
+        self.assertIs(ui.session.view_of(view), view)
+        self.assertIs(ui.session.view_of(Widget()), view)
+        with self.assertRaises(TypeError):
+            ui.session.view_of(object())
+
+
+def read_png(path):
+    """(width, height, RGBA bytes) of a PNG written by cefweaver.ui (8 bit RGBA, no interlace)."""
+    import struct
+    import zlib
+    with open(path, "rb") as f:
+        data = f.read()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", data[:8]
+    position, width, height, idat = 8, 0, 0, b""
+    while position < len(data):
+        (length,) = struct.unpack(">I", data[position:position + 4])
+        kind, body = data[position + 4:position + 8], data[position + 8:position + 8 + length]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", body[:8])
+        elif kind == b"IDAT":
+            idat += body
+        position += 12 + length
+    raw = zlib.decompress(idat)
+    rows = [raw[y * (1 + width * 4) + 1:(y + 1) * (1 + width * 4)] for y in range(height)]
+    return width, height, b"".join(rows)
+
+
+class Snapshots(unittest.TestCase):
+    def paint(self, view, pixels, width, height, rects=None):
+        view.client.get_render_handler().on_paint(None, types.PaintElementType.VIEW,
+                                                  rects if rects is not None else [cefweaver.Rect(0, 0, width, height)],
+                                                  memoryview(bytes(pixels)), width, height)
+
+    def test_a_png_is_written_without_a_toolkit(self):
+        import tempfile
+        path = os.path.join(tempfile.mkdtemp(), "x.png")
+        ui.write_png(path, 2, 1, bytes([1, 2, 3, 255, 4, 5, 6, 128]))          # BGRA
+        self.assertEqual(read_png(path), (2, 1, bytes([3, 2, 1, 255, 6, 5, 4, 128])))   # RGBA
+
+    def test_the_view_keeps_the_last_picture_and_saves_it(self):
+        import tempfile
+        view, adapter, _ = make_view()
+        path = os.path.join(tempfile.mkdtemp(), "shot.png")
+        self.assertFalse(view.snapshot(path))                      # nothing painted yet
+        self.paint(view, [10, 20, 30, 255] * 4, 2, 2)
+        self.assertTrue(view.snapshot(path))
+        self.assertEqual(read_png(path), (2, 2, bytes([30, 20, 10, 255] * 4)))
+
+    def test_the_picture_follows_the_dirty_rows(self):
+        import tempfile
+        view, _, _ = make_view()
+        self.paint(view, [0, 0, 0, 255] * 4, 2, 2)
+        self.paint(view, [9, 9, 9, 255] * 4, 2, 2, rects=[cefweaver.Rect(0, 1, 2, 1)])
+        path = os.path.join(tempfile.mkdtemp(), "shot.png")
+        view.snapshot(path)
+        self.assertEqual(read_png(path)[2], bytes([0, 0, 0, 255] * 2 + [9, 9, 9, 255] * 2))
+
+    def test_the_frame_tells_the_adapter_what_changed(self):
+        view, adapter, _ = make_view()
+        self.paint(view, [0] * 16, 2, 2)
+        self.paint(view, [1] * 16, 2, 2, rects=[cefweaver.Rect(0, 0, 1, 1)])
+        self.assertEqual([f.change.kind for f in adapter.frames], [ui.PictureStore.NEW, ui.PictureStore.DIRTY])
+        self.assertEqual(adapter.frames[1].change.rects, [cefweaver.Rect(0, 0, 1, 1)])
+        render = view.client.get_render_handler()
+        render.on_popup_show(None, True)
+        render.on_popup_size(None, cefweaver.Rect(1, 1, 1, 1))
+        render.on_paint(None, types.PaintElementType.POPUP, [], memoryview(bytes(4)), 1, 1)
+        render.on_popup_show(None, False)
+        self.assertEqual([f.change.kind for f in adapter.frames[2:]], [ui.PictureStore.POPUP, ui.PictureStore.POPUP_HIDDEN])
+        self.assertEqual(view.store.popup_rect, cefweaver.Rect(1, 1, 1, 1))
+
+
 class Pictures(unittest.TestCase):
     """``ui.PictureStore``: the pixels of the view and of the popup, kept between frames."""
 
@@ -828,6 +907,11 @@ from cefweaver import types, ui
 from cefweaver.ui import keys
 from cefweaver.ui.headless import HeadlessAdapter
 
+class Loop(HeadlessAdapter):
+    closed = False
+    def release(self):
+        self.closed = True
+
 PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>start</title>
 <body style="margin:0;background:#00ff00">
 <button id=b style="position:fixed;left:0;top:0;width:100px;height:50px" onclick="document.title='clicked'">go</button>
@@ -836,9 +920,12 @@ PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>start</title>
      ondragenter="event.preventDefault()" ondragover="event.preventDefault()"
      ondrop="event.preventDefault(); document.title='dropped:' + event.dataTransfer.getData('text/plain')">zone</div>
 \"\"\"
-adapter = HeadlessAdapter(size=(300, 220))
+adapter = Loop(size=(300, 220))
 session = ui.Session(adapter, switches=[("ozone-platform", "x11")], cache_path=tempfile.mkdtemp(prefix="cefweaver-ui-"))
-view = ui.BrowserView(adapter)
+class Widget(ui.BrowserWidget):
+    pass
+widget = Widget()
+view = widget.attach_view(adapter)
 titles, loading = [], []
 view.on_title = titles.append
 view.on_loading = lambda *state: loading.append(state)
@@ -851,7 +938,7 @@ view.on_ready = ready
 def wait_title(text, what):
     adapter.run_until(lambda: titles and titles[-1] == text, what + " (titles: %r)" % titles[-5:])
 
-session.start(view)
+session.start(widget)
 adapter.run_until(lambda: adapter.picture and "start" in titles, "the page")
 adapter.run_for(0.3)
 width, height, _ = adapter.picture
@@ -886,9 +973,13 @@ adapter.size = (260, 180)
 view.resized()
 adapter.run_until(lambda: adapter.picture[:2] == (260, 180), "the picture of the new size")
 
+shot = tempfile.mktemp(suffix=".png")
+assert widget.snapshot(shot), "no picture to save"
+assert open(shot, "rb").read(8) == b"\\x89PNG\\r\\n\\x1a\\n"
 done = []
 session.shutdown(lambda: done.append(True))
 adapter.run_until(lambda: done, "CEF to shut down", 20)
+assert adapter.closed, "the loop was not closed"
 print("OK")
 """
 

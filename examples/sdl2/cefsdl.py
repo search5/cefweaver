@@ -26,7 +26,6 @@ os.environ.setdefault("SDL_VIDEODRIVER", "x11")                 # never the real
 os.environ.setdefault("SDL_HINT_RENDER_DRIVER", "software")
 
 import sdl2                                                      # noqa: E402
-from sdl2 import sdlimage                                        # noqa: E402
 
 from cefweaver import types, ui                                  # noqa: E402
 from cefweaver.ui import keys                                    # noqa: E402
@@ -175,7 +174,6 @@ class SdlBrowser(ui.BrowserWidget):
                 if w > 0 and h > 0:
                     area = sdl2.SDL_Rect(x0, y0, w, h)
                     sdl2.SDL_UpdateTexture(self.texture, ctypes.byref(area), data[y0 * pitch + x0 * 4:], pitch)
-        self._pixels = data
         self._dirty = True
 
     def set_cursor(self, cursor):
@@ -354,12 +352,3 @@ class SdlBrowser(ui.BrowserWidget):
                                    self.popup_size[0], self.popup_size[1])
             sdl2.SDL_RenderCopy(self.renderer, self.popup_texture, None, ctypes.byref(target))
         sdl2.SDL_RenderPresent(self.renderer)
-
-    def snapshot(self, path):
-        if not getattr(self, "_pixels", None):
-            return False
-        width, height = self.picture
-        surface = sdl2.SDL_CreateRGBSurfaceWithFormatFrom(self._pixels, width, height, 32, width * 4, sdl2.SDL_PIXELFORMAT_ARGB8888)
-        result = sdlimage.IMG_SavePNG(surface, path.encode("utf-8"))
-        sdl2.SDL_FreeSurface(surface)
-        return result == 0

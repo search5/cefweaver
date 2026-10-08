@@ -30,7 +30,8 @@ from kivy.uix.button import Button  # noqa: E402
 from kivy.uix.textinput import TextInput  # noqa: E402
 
 import demo  # noqa: E402
-from cefkivy import CefView, Runtime  # noqa: E402
+from cefweaver import ui  # noqa: E402
+from cefkivy import CefView, KivyLoop  # noqa: E402
 
 
 def address(text):
@@ -46,7 +47,7 @@ class Browser:
     def __init__(self, url="demo"):
         text = os.environ.get("CEFKIVY_SWITCHES", "")        # "name=value;name=value": Chromium switches
         switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";") if item]
-        self.runtime = Runtime(switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-kivy-"))
+        self.runtime = ui.Session(KivyLoop(), switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-kivy-"))
         self.messages = []                                   # what the page told Python (the smoke test reads it)
         demo.install(self.runtime.bridge, self.messages.append)
         self.start_url = url

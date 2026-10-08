@@ -4,7 +4,7 @@ Kivy `Widget`에 cefweaver의 오프스크린 브라우저를 그리는 예제�
 
 | 파일 | 내용 |
 | --- | --- |
-| `cefkivy.py` | `cefweaver.ui` 위의 어댑터: `KivyAdapter`(그리기, 위치, 커서, 클립보드), `KivyLoop`(`post`, `call_later`), `CefView`(Kivy 창의 이벤트를 `BrowserView`에 전함), `Runtime`(`ui.Session`) |
+| `cefkivy.py` | `cefweaver.ui` 위의 어댑터: `KivyAdapter`(그리기, 위치, 커서, 클립보드), `KivyLoop`(`post`, `call_later`), `CefView`(Kivy 창의 이벤트를 `BrowserView`에 전함) |
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`), `App` |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`). Kivy의 루프를 한 번씩 직접 돌립니다 |
 

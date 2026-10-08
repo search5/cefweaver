@@ -24,6 +24,7 @@ class Frame:
     buffer: object = None
     dirty_rects: list = field(default_factory=list)
     rect: object = None
+    change: object = None       # a PictureChange: what the view's PictureStore did with the frame (for adapters that wrap its pixels)
 
 
 @dataclass

@@ -17,6 +17,7 @@ from cefweaver import types
 
 from . import keys
 from .adapter import DragPayload, Frame
+from .picture import PictureStore
 
 _NOTHING = (0xFFFFFFFF, 0xFFFFFFFF)         # CefRange::kInvalid: the whole text, or no replacement
 _CHAR_OF_KEY = {keys.VK_RETURN: 13, keys.VK_TAB: 9, keys.VK_BACK: 8}
@@ -39,6 +40,7 @@ class BrowserView:
         self.client = _Handlers(self)
         self.browser = None
         self.picture_size = (0, 0)
+        self.store = PictureStore()                     # the pixels of the view and of the popup, kept for snapshots and for adapters
         self.popup_visible = False
         self.popup_rect = None
         self.selected_text = ""
@@ -89,6 +91,10 @@ class BrowserView:
         self.host(lambda h: h.close_browser(True))
 
     # -- state of the view -----------------------------------------------------------------------
+
+    def snapshot(self, path):
+        """Save the last picture of the view as a PNG file; False if CEF has not painted yet."""
+        return self.store.save_png(path)
 
     def resized(self):
         """The view has another size (the adapter's ``view_size()`` tells which)."""
@@ -399,15 +405,19 @@ class _Render(cefweaver.RenderHandler):
     def on_paint(self, browser, type, dirty_rects, buffer, width, height):
         view = self.v
         if type == types.PaintElementType.POPUP:
-            view.adapter.present(Frame(Frame.POPUP, width, height, buffer, dirty_rects, view.popup_rect))
+            frame = Frame(Frame.POPUP, width, height, buffer, dirty_rects, view.popup_rect)
         else:
             view.picture_size = (width, height)
-            view.adapter.present(Frame(Frame.VIEW, width, height, buffer, dirty_rects))
+            frame = Frame(Frame.VIEW, width, height, buffer, dirty_rects)
+        frame.change = view.store.apply(frame)
+        view.adapter.present(frame)
 
     def on_popup_show(self, browser, show):
         self.v.popup_visible = show
         if not show:
-            self.v.adapter.present(Frame(Frame.POPUP_HIDDEN))
+            frame = Frame(Frame.POPUP_HIDDEN)
+            frame.change = self.v.store.apply(frame)
+            self.v.adapter.present(frame)
 
     def on_popup_size(self, browser, rect):
         self.v.popup_rect = rect

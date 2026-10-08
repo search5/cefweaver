@@ -2,6 +2,18 @@
 
 import cefweaver
 
+from .view import BrowserView
+from .widget import BrowserWidget
+
+
+def view_of(target):
+    """The ``BrowserView`` of what a toolkit application starts: the view, or the widget that has it."""
+    if isinstance(target, BrowserView):
+        return target
+    if isinstance(target, BrowserWidget):
+        return target.view
+    raise TypeError("expected a BrowserView or a BrowserWidget, not %s" % type(target).__name__)
+
 
 class Session:
     """The ``CefApp``, the ``JavascriptBridge`` and the ``MessagePump`` of an application.
@@ -13,7 +25,7 @@ class Session:
         session = ui.Session(adapter, switches=[("disable-gpu", "")])
         view = ui.BrowserView(adapter)
         view.on_ready = lambda: view.load_url("https://example.org/")
-        session.start(view)
+        session.start(widget_or_view)
         ...
         session.shutdown(done=toolkit_quit)
     """
@@ -49,8 +61,10 @@ class Session:
             self.pump.run()
             self._schedule()
 
-    def start(self, view, url="about:blank"):
-        """Start CEF and make the browser of ``view`` (``view.on_ready`` is called when it exists)."""
+    def start(self, target, url="about:blank"):
+        """Start CEF and make the browser of ``target``, a ``BrowserView`` or a ``BrowserWidget`` (its ``on_ready``
+        is called when the browser exists)."""
+        view = view_of(target)
         self.views = [view]
         self.app.set_client(view.client)
         self.app.initialize(url)
@@ -70,6 +84,8 @@ class Session:
             if self._timer is not None and hasattr(self._timer, "cancel"):
                 self._timer.cancel()
             self.app.shutdown()
+            if hasattr(self.adapter, "release"):        # the loop may have something to let go of (a pipe)
+                self.adapter.release()
             if done:
                 done()
         self.adapter.call_later(0.02, finish)

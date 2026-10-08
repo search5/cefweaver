@@ -12,7 +12,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import demo  # noqa: E402
-from cefqt import (BINDING, QApplication, QObject, Qt, QTimer, Runtime, CefWidget)  # noqa: E402
+from cefweaver import ui  # noqa: E402
+from cefqt import (BINDING, QApplication, QObject, Qt, QTimer, QtLoop, CefWidget)  # noqa: E402
 
 if BINDING == "pyqt6":
     from PyQt6.QtGui import QAction
@@ -83,7 +84,7 @@ class BrowserWindow(QMainWindow):
 def make_runtime(window_holder):
     text = os.environ.get("CEFQT_SWITCHES", "")           # "name=value;name=value": Chromium switches
     switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";") if item]
-    runtime = Runtime(switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-qt-"))
+    runtime = ui.Session(QtLoop(), switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-qt-"))
     demo.install(runtime.bridge, lambda info: window_holder[0].messages.append(info))
     return runtime
 

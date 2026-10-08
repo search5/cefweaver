@@ -4,7 +4,7 @@
 
 | 파일 | 내용 |
 | --- | --- |
-| `cefgtk.py` | `cefweaver.ui` 위의 어댑터: `GtkAdapter`(그리기, 위치, 커서, 드래그 시작), `GlibLoop`(`post`, `call_later`), `CefWidget`(GTK 이벤트를 `BrowserView`에 전함), `Runtime`(`ui.Session`) |
+| `cefgtk.py` | `cefweaver.ui` 위의 어댑터: `GtkAdapter`(그리기, 위치, 커서, 드래그 시작), `GlibLoop`(`post`, `call_later`), `CefWidget`(GTK 이벤트를 `BrowserView`에 전함) |
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저, 데모 페이지, `JavascriptBridge` 함수 |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 위젯을 구동해 점검하는 스크립트 |
 

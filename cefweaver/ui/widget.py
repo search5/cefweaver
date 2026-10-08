@@ -67,6 +67,10 @@ class BrowserWidget:
     def close_browser(self):
         self.view.close_browser()
 
+    def snapshot(self, path):
+        """Save the last picture as a PNG file; False if CEF has not painted yet."""
+        return self.view.snapshot(path)
+
     def commit_text(self, text):
         """Text an input method committed (also for tests and for applications that have an input method)."""
         self.view.commit_text(text)

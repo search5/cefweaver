@@ -133,17 +133,6 @@ class QtLoop(QObject):
         return _Timer(self, seconds, function)
 
 
-class Runtime(ui.Session):
-    """CEF for a Qt application: ``Runtime(...)``, ``start(widget, url)``, ``shutdown(done)``."""
-
-    def __init__(self, switches=(), cache_path=None):
-        self.loop = QtLoop()
-        super().__init__(self.loop, switches, cache_path)
-
-    def start(self, widget, url):
-        super().start(widget.view, url)
-
-
 class QtAdapter:
     """``ui.ToolkitAdapter`` for a ``CefWidget``. Qt has a drag source for the page (``drag_out``). Qt reads the
     X selection synchronously while CEF, in this thread, would have to answer it: the view does the clipboard
@@ -204,8 +193,7 @@ class CefWidget(ui.BrowserWidget, QWidget):
     def __init__(self, runtime, parent=None):
         super().__init__(parent)
         self.runtime = runtime
-        self.attach_view(QtAdapter(self, runtime.loop))
-        self.store = ui.PictureStore()                  # the pixels of the picture and of the popup, BGRA, device pixels
+        self.attach_view(QtAdapter(self, runtime.adapter))
         self.image = None
         self.popup_image = None
         self.cursor_rect = QRect(0, 0, 1, 20)
@@ -235,17 +223,17 @@ class CefWidget(ui.BrowserWidget, QWidget):
     # -- painting --------------------------------------------------------------------------------
 
     def present_frame(self, frame):
-        change = self.store.apply(frame)
+        change, store = frame.change, self.view.store
         ratio = self.devicePixelRatioF()
         if change.kind == ui.PictureStore.POPUP_HIDDEN:
             self.popup_image = None
         elif change.kind == ui.PictureStore.POPUP:
-            width, height = self.store.popup_size
-            self.popup_image = QImage(self.store.popup_pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
+            width, height = store.popup_size
+            self.popup_image = QImage(store.popup_pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
             self.popup_image.setDevicePixelRatio(ratio)
         elif change.kind == ui.PictureStore.NEW:
-            width, height = self.store.size
-            self.image = QImage(self.store.pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
+            width, height = store.size
+            self.image = QImage(store.pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
             self.image.setDevicePixelRatio(ratio)
         else:
             for rect in change.rects:                   # only what changed
@@ -262,9 +250,6 @@ class CefWidget(ui.BrowserWidget, QWidget):
         if self.view.popup_visible and self.popup_image is not None and rect is not None:
             painter.drawImage(rect.x, rect.y, self.popup_image)
         painter.end()
-
-    def snapshot(self, path):
-        return self.image is not None and self.image.save(path)
 
     def resizeEvent(self, event):
         self.view.resized()

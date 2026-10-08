@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.join(HERE, "..", "common"))
 import wx  # noqa: E402
 
 import demo  # noqa: E402
-from cefwx import CefPanel, Runtime  # noqa: E402
+from cefweaver import ui  # noqa: E402
+from cefwx import CefPanel, WxLoop  # noqa: E402
 
 
 class BrowserWindow(wx.Frame):
@@ -76,7 +77,7 @@ class BrowserWindow(wx.Frame):
 def make_runtime(window_holder):
     text = os.environ.get("CEFWX_SWITCHES", "")           # "name=value;name=value": Chromium switches
     switches = [tuple(item.split("=", 1)) if "=" in item else (item, "") for item in text.split(";") if item]
-    runtime = Runtime(switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-wx-"))
+    runtime = ui.Session(WxLoop(), switches, cache_path=tempfile.mkdtemp(prefix="cefweaver-wx-"))
     demo.install(runtime.bridge, lambda info: window_holder[0].messages.append(info))
     return runtime
 

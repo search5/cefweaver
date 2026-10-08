@@ -126,16 +126,6 @@ class GlibLoop:
         return _Source(seconds, function)
 
 
-class Runtime(ui.Session):
-    """CEF for a GTK application: ``Runtime(...)``, ``start(widget, url)``, ``shutdown(done)``."""
-
-    def __init__(self, switches=(), cache_path=None):
-        super().__init__(GlibLoop(), switches, cache_path)
-
-    def start(self, widget, url):
-        super().start(widget.view, url)
-
-
 class GtkAdapter(GlibLoop):
     """``ui.ToolkitAdapter`` for a ``CefWidget``. GTK 3 lets CEF do the clipboard keys itself."""
 
@@ -190,7 +180,6 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         self.runtime = runtime
         self.attach_view(GtkAdapter(self))
         self.view_width, self.view_height = 800, 600    # in GTK pixels, until the first allocation
-        self.store = ui.PictureStore()                  # the pixels of the picture and of the popup, BGRA, device pixels
         self.surface = None
         self.popup_surface = None
         self.set_can_focus(True)
@@ -246,17 +235,17 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     # -- painting ------------------------------------------------------------------------------
 
     def present_frame(self, frame):
-        change = self.store.apply(frame)
+        change, store = frame.change, self.view.store
         scale = self.get_scale_factor()
         if change.kind == ui.PictureStore.POPUP_HIDDEN:
             self.popup_surface = None
         elif change.kind == ui.PictureStore.POPUP:
-            width, height = self.store.popup_size
-            self.popup_surface = cairo.ImageSurface.create_for_data(self.store.popup_pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
+            width, height = store.popup_size
+            self.popup_surface = cairo.ImageSurface.create_for_data(store.popup_pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
             self.popup_surface.set_device_scale(scale, scale)
         elif change.kind == ui.PictureStore.NEW:
-            width, height = self.store.size
-            self.surface = cairo.ImageSurface.create_for_data(self.store.pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
+            width, height = store.size
+            self.surface = cairo.ImageSurface.create_for_data(store.pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
             self.surface.set_device_scale(scale, scale)
         else:
             self.surface.mark_dirty()
@@ -275,13 +264,6 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
             cr.set_source_surface(self.popup_surface, self.popup_rect.x, self.popup_rect.y)
             cr.paint()
         return False
-
-    def snapshot(self, path):
-        """Save the picture of the browser as PNG."""
-        if self.surface is None:
-            return False
-        self.surface.write_to_png(path)
-        return True
 
     def set_cef_cursor(self, cursor):
         window = self.get_window()

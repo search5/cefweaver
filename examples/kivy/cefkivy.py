@@ -69,16 +69,6 @@ class KivyLoop:
         return Clock.schedule_once(lambda dt: function(), seconds)   # a ClockEvent: it has cancel()
 
 
-class Runtime(ui.Session):
-    """CEF for a Kivy application: ``Runtime(...)``, ``start(view, url)``, ``shutdown(done)``."""
-
-    def __init__(self, switches=(), cache_path=None):
-        super().__init__(KivyLoop(), switches, cache_path)
-
-    def start(self, widget, url):
-        super().start(widget.view, url)
-
-
 class KivyAdapter(KivyLoop):
     """``ui.ToolkitAdapter`` for a ``CefView``. Kivy has no drag source for the page and no clipboard that
     CEF could use: the view does both."""
@@ -209,12 +199,6 @@ class CefView(ui.BrowserWidget, Widget):
         self._popup_rect_graphic.size = (width, height)
         self._popup_rect_graphic.pos = (self.x + rect.x, self.top - rect.y - height)
         self.canvas.ask_update()
-
-    def snapshot(self, path):
-        if self.texture is None:
-            return False
-        self.texture.save(path, flipped=True)
-        return True
 
     # -- the mouse -------------------------------------------------------------------------------
 

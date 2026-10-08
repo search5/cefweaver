@@ -1,8 +1,29 @@
 """``PictureStore``: the pixels of the view and of the popup, kept between frames."""
 
+import struct
+import zlib
+
 import cefweaver
 
 from .adapter import Frame
+
+
+def write_png(path, width, height, bgra):
+    """Write BGRA pixels (``width * height * 4`` bytes, rows from the top) as an 8 bit RGBA PNG file. Needs no
+    imaging library."""
+    rows = []
+    for y in range(height):
+        row = bytearray(bgra[y * width * 4:(y + 1) * width * 4])
+        row[0::4], row[2::4] = row[2::4], row[0::4]             # BGRA to RGBA
+        rows.append(b"\x00" + bytes(row))
+
+    def chunk(kind, data):
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0))
+    png += chunk(b"IDAT", zlib.compress(b"".join(rows))) + chunk(b"IEND", b"")
+    with open(path, "wb") as f:
+        f.write(png)
 
 
 class PictureChange:
@@ -31,6 +52,13 @@ class PictureStore:
         self.popup_pixels = None
         self.popup_size = (0, 0)
         self.popup_rect = None
+
+    def save_png(self, path):
+        """Save the picture as a PNG file; False if there is none yet."""
+        if self.pixels is None:
+            return False
+        write_png(path, self.size[0], self.size[1], self.pixels)
+        return True
 
     def apply(self, frame):
         if frame.kind == Frame.POPUP_HIDDEN:
