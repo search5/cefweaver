@@ -1,0 +1,201 @@
+"""Runs the Qt example for real on a (virtual) X display, with real X events (xdotool), and checks
+what a user would see (see ../common/checks.py). Also drag and drop between Qt widgets and the page.
+
+    QT_QPA_PLATFORM=xcb xvfb-run -a uv run python smoke.py [screenshot-directory]
+
+Always on X11 (xcb): Qt would otherwise connect to a running Wayland session even under xvfb.
+"""
+
+import os
+import sys
+import tempfile
+import time
+
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+for name in ("WAYLAND_DISPLAY", "XDG_SESSION_TYPE"):
+    os.environ.pop(name, None)
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "..", "common"))
+
+import browser  # noqa: E402
+from cefqt import BINDING, QApplication, QMimeData, QPoint, QTimer, QUrl, Qt  # noqa: E402
+import checks  # noqa: E402
+
+if BINDING == "pyqt6":
+    from PyQt6.QtGui import QDrag
+    from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
+else:
+    from PySide6.QtGui import QDrag
+    from PySide6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
+
+
+class DragSource(QLabel):
+    """A Qt widget that drags text or a file (a drag starts after the pointer moved a little)."""
+
+    def __init__(self, label, make_mime):
+        super().__init__(label)
+        self.make_mime = make_mime
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            drag = QDrag(self)
+            drag.setMimeData(self.make_mime())
+            drag.exec(Qt.DropAction.CopyAction)
+
+
+class Adapter:
+    def __init__(self, app, window):
+        self.app, self.window, self.runtime = app, window, window.runtime
+        self.view = window.view
+        self.scale = int(round(self.view.devicePixelRatioF()))
+        self.messages = window.messages
+        self.clipboard_get = lambda: self.app.clipboard().text()
+        self.clipboard_set = lambda text: self.app.clipboard().setText(text)
+
+    def browser(self):
+        return self.view.browser
+
+    def spin(self, condition, what, timeout=30):
+        end = time.time() + timeout
+        while not condition():
+            if time.time() > end:
+                raise TimeoutError("timed out waiting for " + what)
+            self.app.processEvents()
+            time.sleep(0.005)
+
+    def settle(self, seconds=0.4):
+        end = time.time() + seconds
+        while time.time() < end:
+            self.app.processEvents()
+            time.sleep(0.005)
+
+    def origin(self):
+        point = self.view.mapToGlobal(QPoint(0, 0))
+        return int(point.x() * self.scale), int(point.y() * self.scale)
+
+    def window_id(self):
+        return int(self.window.winId())
+
+    def view_size(self):
+        return self.view.width(), self.view.height()
+
+    def picture_size(self):
+        image = self.view.image
+        return (image.width(), image.height()) if image is not None else (0, 0)
+
+    def title(self):
+        return self.window.windowTitle()
+
+    def address(self):
+        return self.window.entry.text()
+
+    def can_go_back(self):
+        return self.window.back.isEnabled()
+
+    def go_back(self):
+        self.view.go_back()
+
+    def popup_visible(self):
+        return self.view.popup_visible and self.view.popup_image is not None
+
+    def resize_window(self, width, height):
+        self.window.resize(width, height)
+
+    def snapshot(self, path):
+        self.view.snapshot(path)
+
+    def commit_text(self, text):
+        self.view.commit_text(text)
+
+    def set_preedit(self, text, cursor):
+        self.view.set_preedit(text, cursor)
+
+    def shutdown(self):
+        self.window.close()
+        self.spin(lambda: not self.runtime.started, "CEF to shut down", 20)
+
+    def cef_running(self):
+        return self.runtime.app.is_running
+
+    # -- drag and drop between Qt widgets and the page ------------------------------------------
+
+    def extra_checks(self, core):
+        check = core.check
+        temporary = tempfile.NamedTemporaryFile(suffix=".txt", prefix="dragged-", delete=False)
+        temporary.write(b"file body")
+        temporary.close()
+
+        def text_mime():
+            mime = QMimeData()
+            mime.setText("from-qt")
+            return mime
+
+        def file_mime():
+            mime = QMimeData()
+            mime.setUrls([QUrl.fromLocalFile(temporary.name)])
+            return mime
+
+        row = QWidget(self.window)
+        layout = QHBoxLayout(row)
+        text_source = DragSource("  drag text from Qt  ", text_mime)
+        file_source = DragSource("  drag a file from Qt  ", file_mime)
+        target = QLineEdit()
+        target.setPlaceholderText("drop text from the page here")
+        for widget in (text_source, file_source, target):
+            layout.addWidget(widget)
+        # below the page: the page keeps its size, the window grows
+        self.window.resize(self.window.width(), self.window.height() + 60)
+        row.setGeometry(0, self.window.height() - 60, self.window.width(), 56)
+        row.show()
+        self.settle(1.0)
+
+        def center_of(widget):
+            point = widget.mapToGlobal(QPoint(widget.width() // 2, widget.height() // 2))
+            return int(point.x() * self.scale), int(point.y() * self.scale)
+
+        def zone_point():
+            x, y = core.rect_of("#zone")
+            return core.point(x, y)
+
+        core.js("window.drops = []")
+        core.drag(center_of(text_source), zone_point(), threaded=True)
+        drops = core.js("window.drops")
+        check(drops == [{"text": "from-qt", "files": []}], "text dragged from a Qt widget is dropped on the page", drops)
+        core.js("window.drops = []")
+        core.drag(center_of(file_source), zone_point(), threaded=True)
+        drops = core.js("window.drops")
+        check(len(drops) == 1 and drops[0]["files"] == [os.path.basename(temporary.name)], "a file dragged from a Qt widget is dropped on the page",
+              (drops, os.path.basename(temporary.name)))
+        x, y = core.rect_of("#src")
+        core.drag(core.point(x, y), center_of(target), threaded=True)
+        check(target.text() == "dragged-from-page", "an element dragged out of the page is dropped on a Qt line edit", target.text())
+        core.js("window.drops = []")
+        x, y = core.rect_of("#src")
+        core.drag(core.point(x, y), zone_point(), threaded=True)
+        drops = core.js("window.drops")
+        check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget is source and target)", drops)
+        core.snapshot("10-dragged")
+        os.unlink(temporary.name)
+
+
+def main():
+    shots = sys.argv[1] if len(sys.argv) > 1 else None
+    app = QApplication(sys.argv)
+    print("binding", BINDING, "| Qt platform", app.platformName())
+    assert app.platformName() == "xcb", "the checks must run on X11"
+    holder = []
+    runtime = browser.make_runtime(holder)
+    window = browser.BrowserWindow(runtime, "demo")
+    holder.append(window)
+    window.show()
+    adapter = Adapter(app, window)
+    adapter.spin(lambda: window.isVisible() and window.view.width() > 100, "the window")
+    QTimer.singleShot(0, window.start)
+    adapter.spin(lambda: window.messages, "the page to call Python (appReady)")
+    adapter.settle()
+    sys.exit(checks.Checks(adapter, shots).run())
+
+
+if __name__ == "__main__":
+    main()

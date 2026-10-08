@@ -148,4 +148,5 @@ cefweaver/cefsubprocess
 
 # Serena (MCP tool) project data
 .serena/
-examples/gtk3/uv.lock
+examples/*/uv.lock
+examples/*/.venv-*/
