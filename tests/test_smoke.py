@@ -1757,6 +1757,7 @@ class WithCef(unittest.TestCase):
         class Life(cefweaver.LifeSpanHandler):
             def on_after_created(self, browser):
                 boxes.append(browser)
+        handlers = {}  # more handlers of the client: "focus", "js_dialog", "dialog", "download"
         class MyClient(cefweaver.Client):
             def __init__(self):
                 self.render, self.life = Render(), Life()
@@ -1764,6 +1765,14 @@ class WithCef(unittest.TestCase):
                 return self.render
             def get_life_span_handler(self):
                 return self.life
+            def get_focus_handler(self):
+                return handlers.get("focus")
+            def get_js_dialog_handler(self):
+                return handlers.get("js_dialog")
+            def get_dialog_handler(self):
+                return handlers.get("dialog")
+            def get_download_handler(self):
+                return handlers.get("download")
         def start(body):
             app.offscreen = True
             app.set_client(MyClient())
@@ -1927,6 +1936,106 @@ class WithCef(unittest.TestCase):
             boxes[0].get_main_frame().send_process_message(types.ProcessId.RENDERER, message)
             wait_until(app, lambda: received, "the answer of the renderer")
             assert received == [("cefweaver-pong", payload)], received
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    # -- more handlers of the client: focus, JavaScript dialogs, file dialog, downloads ----
+
+    def test_the_focus_handler_sees_the_focus_of_the_browser(self):
+        self.run_osr_script("""
+            events = []
+            class Focus(cefweaver.FocusHandler):
+                def on_set_focus(self, browser, source):
+                    events.append(("set", source))
+                    return False                  # let CEF set the focus
+                def on_got_focus(self, browser):
+                    events.append(("got",))
+            handlers["focus"] = Focus()
+            start(RED)
+            host = boxes[0].get_host()
+            send_until(app, lambda: host.set_focus(True),
+                       lambda: ("got",) in events, "the focus")
+            sources = [e[1] for e in events if e[0] == "set"]
+            assert all(isinstance(x, types.FocusSource) for x in sources), events
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_javascript_dialogs_are_answered_by_the_handler(self):
+        self.run_osr_script("""
+            seen = []
+            class Dialogs(cefweaver.JSDialogHandler):
+                def on_js_dialog(self, browser, origin_url, dialog_type, message_text,
+                                 default_prompt_text, callback):
+                    seen.append((dialog_type, message_text, default_prompt_text))
+                    if dialog_type == types.JSDialogType.PROMPT:
+                        callback.continue_(True, "typed")
+                    else:
+                        callback.continue_(dialog_type == types.JSDialogType.CONFIRM, "")
+                    return True, False             # handled, do not suppress
+            handlers["js_dialog"] = Dialogs()
+            start(RED)
+            app.execute_javascript("alert('a'); report('confirm', confirm('c?'));"
+                                   "report('prompt', prompt('p?', 'dflt'))")
+            wait_until(app, lambda: any(r[0] == "prompt" for r in js), "the dialogs")
+            T = types.JSDialogType
+            assert seen == [(T.ALERT, "a", ""), (T.CONFIRM, "c?", ""), (T.PROMPT, "p?", "dflt")], seen
+            assert ("confirm", True) in js and ("prompt", "typed") in js, js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_file_dialog_gets_the_files_from_the_handler(self):
+        self.run_osr_script("""
+            import os, tempfile
+            folder = tempfile.mkdtemp()
+            path = os.path.join(folder, "chosen.txt")
+            open(path, "w").write("hello")
+            asked = []
+            class Files(cefweaver.DialogHandler):
+                def on_file_dialog(self, browser, mode, title, default_file_path, accept_filters,
+                                   accept_extensions, accept_descriptions, callback):
+                    asked.append((mode, list(accept_filters), list(accept_extensions)))
+                    callback.continue_([path])
+                    return True
+            handlers["dialog"] = Files()
+            start('<input type="file" accept=".txt" style="position:fixed;left:0;top:0;'
+                  'width:200px;height:100px" onchange="report(\\'file\\', this.files[0].name)">')
+            host = boxes[0].get_host()
+            def click():
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, False, 1)
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, True, 1)
+            send_until(app, click, lambda: any(r[0] == "file" for r in js), "the chosen file")
+            assert ("file", "chosen.txt") in js, js
+            assert asked and asked[0][0] == types.FileDialogMode.OPEN, asked
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_download_is_saved_where_the_handler_says(self):
+        self.run_osr_script("""
+            import os, tempfile
+            folder = tempfile.mkdtemp()
+            target = os.path.join(folder, "saved.txt")
+            began, updates = [], []
+            class Downloads(cefweaver.DownloadHandler):
+                def on_before_download(self, browser, download_item, suggested_name, callback):
+                    began.append((suggested_name, download_item.get_url()))
+                    callback.continue_(target, False)    # no dialog
+                    return True
+                def on_download_updated(self, browser, download_item, callback):
+                    updates.append((download_item.is_complete(), download_item.get_received_bytes()))
+            handlers["download"] = Downloads()
+            start(RED)
+            app.add_resource("http://files.test/a.bin", b"0123456789", mime_type="application/octet-stream",
+                             headers={"Content-Disposition": 'attachment; filename="named.txt"'})
+            app.load_url("http://files.test/a.bin")
+            wait_until(app, lambda: updates and updates[-1][0], "the download")
+            assert began == [("named.txt", "http://files.test/a.bin")], began
+            assert updates[-1] == (True, 10), updates
+            assert open(target, "rb").read() == b"0123456789"
             app.shutdown()
             print("OK")
         """)

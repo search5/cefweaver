@@ -8,9 +8,14 @@
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
+#include "include/cef_dialog_handler.h"
 #include "include/cef_display_handler.h"
+#include "include/cef_download_handler.h"
+#include "include/cef_download_item.h"
 #include "include/cef_drag_handler.h"
+#include "include/cef_focus_handler.h"
 #include "include/cef_frame.h"
+#include "include/cef_jsdialog_handler.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_load_handler.h"
 #include "include/cef_menu_model.h"
@@ -41,6 +46,13 @@ class CwClientForward : public CefClient {
     return forward_client_->GetContextMenuHandler();
   }
 
+  CefRefPtr<CefDialogHandler> GetDialogHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetDialogHandler();
+    }
+    return forward_client_->GetDialogHandler();
+  }
+
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
     if (!forward_client_) {
       return CefClient::GetDisplayHandler();
@@ -48,11 +60,32 @@ class CwClientForward : public CefClient {
     return forward_client_->GetDisplayHandler();
   }
 
+  CefRefPtr<CefDownloadHandler> GetDownloadHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetDownloadHandler();
+    }
+    return forward_client_->GetDownloadHandler();
+  }
+
   CefRefPtr<CefDragHandler> GetDragHandler() override {
     if (!forward_client_) {
       return CefClient::GetDragHandler();
     }
     return forward_client_->GetDragHandler();
+  }
+
+  CefRefPtr<CefFocusHandler> GetFocusHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetFocusHandler();
+    }
+    return forward_client_->GetFocusHandler();
+  }
+
+  CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetJSDialogHandler();
+    }
+    return forward_client_->GetJSDialogHandler();
   }
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
@@ -88,8 +121,12 @@ struct CwClientCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
   CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) = nullptr;
+  CefDialogHandler* (*fn_get_dialog_handler)(void*) = nullptr;
   CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
+  CefDownloadHandler* (*fn_get_download_handler)(void*) = nullptr;
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
+  CefFocusHandler* (*fn_get_focus_handler)(void*) = nullptr;
+  CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
   CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
   CefRenderHandler* (*fn_get_render_handler)(void*) = nullptr;
@@ -118,6 +155,19 @@ class CwClientProxy : public CefClient {
     return result;
   }
 
+  CefRefPtr<CefDialogHandler> GetDialogHandler() override {
+    if (!cb_.fn_get_dialog_handler) {
+      return CefClient::GetDialogHandler();
+    }
+    CefDialogHandler* raw = cb_.fn_get_dialog_handler(cb_.py);
+    CefRefPtr<CefDialogHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
     if (!cb_.fn_get_display_handler) {
       return CefClient::GetDisplayHandler();
@@ -131,12 +181,51 @@ class CwClientProxy : public CefClient {
     return result;
   }
 
+  CefRefPtr<CefDownloadHandler> GetDownloadHandler() override {
+    if (!cb_.fn_get_download_handler) {
+      return CefClient::GetDownloadHandler();
+    }
+    CefDownloadHandler* raw = cb_.fn_get_download_handler(cb_.py);
+    CefRefPtr<CefDownloadHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   CefRefPtr<CefDragHandler> GetDragHandler() override {
     if (!cb_.fn_get_drag_handler) {
       return CefClient::GetDragHandler();
     }
     CefDragHandler* raw = cb_.fn_get_drag_handler(cb_.py);
     CefRefPtr<CefDragHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefFocusHandler> GetFocusHandler() override {
+    if (!cb_.fn_get_focus_handler) {
+      return CefClient::GetFocusHandler();
+    }
+    CefFocusHandler* raw = cb_.fn_get_focus_handler(cb_.py);
+    CefRefPtr<CefFocusHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override {
+    if (!cb_.fn_get_js_dialog_handler) {
+      return CefClient::GetJSDialogHandler();
+    }
+    CefJSDialogHandler* raw = cb_.fn_get_js_dialog_handler(cb_.py);
+    CefRefPtr<CefJSDialogHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -340,6 +429,51 @@ class CwContextMenuHandlerProxy : public CefContextMenuHandler {
 
   IMPLEMENT_REFCOUNTING(CwContextMenuHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwContextMenuHandlerProxy);
+};
+
+// ---- CefDialogHandler ----
+
+class CwDialogHandlerForward : public CefDialogHandler {
+ protected:
+  CefRefPtr<CefDialogHandler> forward_dialog_handler_;
+
+ public:
+  bool OnFileDialog(CefRefPtr<CefBrowser> browser, FileDialogMode mode, const CefString& title, const CefString& default_file_path, const std::vector<CefString>& accept_filters, const std::vector<CefString>& accept_extensions, const std::vector<CefString>& accept_descriptions, CefRefPtr<CefFileDialogCallback> callback) override {
+    if (!forward_dialog_handler_) {
+      return CefDialogHandler::OnFileDialog(browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback);
+    }
+    return forward_dialog_handler_->OnFileDialog(browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback);
+  }
+};
+
+struct CwDialogHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_file_dialog)(void*, CefBrowser*, int, const CefString*, const CefString*, const std::vector<CefString>*, const std::vector<CefString>*, const std::vector<CefString>*, CefFileDialogCallback*) = nullptr;
+};
+
+class CwDialogHandlerProxy : public CefDialogHandler {
+ public:
+  explicit CwDialogHandlerProxy(const CwDialogHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDialogHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnFileDialog(CefRefPtr<CefBrowser> browser, FileDialogMode mode, const CefString& title, const CefString& default_file_path, const std::vector<CefString>& accept_filters, const std::vector<CefString>& accept_extensions, const std::vector<CefString>& accept_descriptions, CefRefPtr<CefFileDialogCallback> callback) override {
+    if (!cb_.fn_on_file_dialog) {
+      return CefDialogHandler::OnFileDialog(browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback);
+    }
+    bool result = cb_.fn_on_file_dialog(cb_.py, browser.get(), static_cast<int>(mode), &title, &default_file_path, &accept_filters, &accept_extensions, &accept_descriptions, callback.get());
+    return result;
+  }
+
+ private:
+  CwDialogHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDialogHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDialogHandlerProxy);
 };
 
 // ---- CefDisplayHandler ----
@@ -574,6 +708,84 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
   DISALLOW_COPY_AND_ASSIGN(CwDisplayHandlerProxy);
 };
 
+// ---- CefDownloadHandler ----
+
+class CwDownloadHandlerForward : public CefDownloadHandler {
+ protected:
+  CefRefPtr<CefDownloadHandler> forward_download_handler_;
+
+ public:
+  bool CanDownload(CefRefPtr<CefBrowser> browser, const CefString& url, const CefString& request_method) override {
+    if (!forward_download_handler_) {
+      return CefDownloadHandler::CanDownload(browser, url, request_method);
+    }
+    return forward_download_handler_->CanDownload(browser, url, request_method);
+  }
+
+  bool OnBeforeDownload(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item, const CefString& suggested_name, CefRefPtr<CefBeforeDownloadCallback> callback) override {
+    if (!forward_download_handler_) {
+      return CefDownloadHandler::OnBeforeDownload(browser, download_item, suggested_name, callback);
+    }
+    return forward_download_handler_->OnBeforeDownload(browser, download_item, suggested_name, callback);
+  }
+
+  void OnDownloadUpdated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item, CefRefPtr<CefDownloadItemCallback> callback) override {
+    if (!forward_download_handler_) {
+      CefDownloadHandler::OnDownloadUpdated(browser, download_item, callback);
+      return;
+    }
+    forward_download_handler_->OnDownloadUpdated(browser, download_item, callback);
+  }
+};
+
+struct CwDownloadHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_can_download)(void*, CefBrowser*, const CefString*, const CefString*) = nullptr;
+  bool (*fn_on_before_download)(void*, CefBrowser*, CefDownloadItem*, const CefString*, CefBeforeDownloadCallback*) = nullptr;
+  void (*fn_on_download_updated)(void*, CefBrowser*, CefDownloadItem*, CefDownloadItemCallback*) = nullptr;
+};
+
+class CwDownloadHandlerProxy : public CefDownloadHandler {
+ public:
+  explicit CwDownloadHandlerProxy(const CwDownloadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDownloadHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool CanDownload(CefRefPtr<CefBrowser> browser, const CefString& url, const CefString& request_method) override {
+    if (!cb_.fn_can_download) {
+      return CefDownloadHandler::CanDownload(browser, url, request_method);
+    }
+    bool result = cb_.fn_can_download(cb_.py, browser.get(), &url, &request_method);
+    return result;
+  }
+
+  bool OnBeforeDownload(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item, const CefString& suggested_name, CefRefPtr<CefBeforeDownloadCallback> callback) override {
+    if (!cb_.fn_on_before_download) {
+      return CefDownloadHandler::OnBeforeDownload(browser, download_item, suggested_name, callback);
+    }
+    bool result = cb_.fn_on_before_download(cb_.py, browser.get(), download_item.get(), &suggested_name, callback.get());
+    return result;
+  }
+
+  void OnDownloadUpdated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item, CefRefPtr<CefDownloadItemCallback> callback) override {
+    if (!cb_.fn_on_download_updated) {
+      CefDownloadHandler::OnDownloadUpdated(browser, download_item, callback);
+      return;
+    }
+    cb_.fn_on_download_updated(cb_.py, browser.get(), download_item.get(), callback.get());
+  }
+
+ private:
+  CwDownloadHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDownloadHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDownloadHandlerProxy);
+};
+
 // ---- CefDragHandler ----
 
 class CwDragHandlerForward : public CefDragHandler {
@@ -618,6 +830,182 @@ class CwDragHandlerProxy : public CefDragHandler {
 
   IMPLEMENT_REFCOUNTING(CwDragHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDragHandlerProxy);
+};
+
+// ---- CefFocusHandler ----
+
+class CwFocusHandlerForward : public CefFocusHandler {
+ protected:
+  CefRefPtr<CefFocusHandler> forward_focus_handler_;
+
+ public:
+  void OnTakeFocus(CefRefPtr<CefBrowser> browser, bool next) override {
+    if (!forward_focus_handler_) {
+      CefFocusHandler::OnTakeFocus(browser, next);
+      return;
+    }
+    forward_focus_handler_->OnTakeFocus(browser, next);
+  }
+
+  bool OnSetFocus(CefRefPtr<CefBrowser> browser, FocusSource source) override {
+    if (!forward_focus_handler_) {
+      return CefFocusHandler::OnSetFocus(browser, source);
+    }
+    return forward_focus_handler_->OnSetFocus(browser, source);
+  }
+
+  void OnGotFocus(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_focus_handler_) {
+      CefFocusHandler::OnGotFocus(browser);
+      return;
+    }
+    forward_focus_handler_->OnGotFocus(browser);
+  }
+};
+
+struct CwFocusHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_take_focus)(void*, CefBrowser*, bool) = nullptr;
+  bool (*fn_on_set_focus)(void*, CefBrowser*, int) = nullptr;
+  void (*fn_on_got_focus)(void*, CefBrowser*) = nullptr;
+};
+
+class CwFocusHandlerProxy : public CefFocusHandler {
+ public:
+  explicit CwFocusHandlerProxy(const CwFocusHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwFocusHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnTakeFocus(CefRefPtr<CefBrowser> browser, bool next) override {
+    if (!cb_.fn_on_take_focus) {
+      CefFocusHandler::OnTakeFocus(browser, next);
+      return;
+    }
+    cb_.fn_on_take_focus(cb_.py, browser.get(), next);
+  }
+
+  bool OnSetFocus(CefRefPtr<CefBrowser> browser, FocusSource source) override {
+    if (!cb_.fn_on_set_focus) {
+      return CefFocusHandler::OnSetFocus(browser, source);
+    }
+    bool result = cb_.fn_on_set_focus(cb_.py, browser.get(), static_cast<int>(source));
+    return result;
+  }
+
+  void OnGotFocus(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_got_focus) {
+      CefFocusHandler::OnGotFocus(browser);
+      return;
+    }
+    cb_.fn_on_got_focus(cb_.py, browser.get());
+  }
+
+ private:
+  CwFocusHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwFocusHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwFocusHandlerProxy);
+};
+
+// ---- CefJSDialogHandler ----
+
+class CwJSDialogHandlerForward : public CefJSDialogHandler {
+ protected:
+  CefRefPtr<CefJSDialogHandler> forward_js_dialog_handler_;
+
+ public:
+  bool OnJSDialog(CefRefPtr<CefBrowser> browser, const CefString& origin_url, JSDialogType dialog_type, const CefString& message_text, const CefString& default_prompt_text, CefRefPtr<CefJSDialogCallback> callback, bool& suppress_message) override {
+    if (!forward_js_dialog_handler_) {
+      return CefJSDialogHandler::OnJSDialog(browser, origin_url, dialog_type, message_text, default_prompt_text, callback, suppress_message);
+    }
+    return forward_js_dialog_handler_->OnJSDialog(browser, origin_url, dialog_type, message_text, default_prompt_text, callback, suppress_message);
+  }
+
+  bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser, const CefString& message_text, bool is_reload, CefRefPtr<CefJSDialogCallback> callback) override {
+    if (!forward_js_dialog_handler_) {
+      return CefJSDialogHandler::OnBeforeUnloadDialog(browser, message_text, is_reload, callback);
+    }
+    return forward_js_dialog_handler_->OnBeforeUnloadDialog(browser, message_text, is_reload, callback);
+  }
+
+  void OnResetDialogState(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_js_dialog_handler_) {
+      CefJSDialogHandler::OnResetDialogState(browser);
+      return;
+    }
+    forward_js_dialog_handler_->OnResetDialogState(browser);
+  }
+
+  void OnDialogClosed(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_js_dialog_handler_) {
+      CefJSDialogHandler::OnDialogClosed(browser);
+      return;
+    }
+    forward_js_dialog_handler_->OnDialogClosed(browser);
+  }
+};
+
+struct CwJSDialogHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_js_dialog)(void*, CefBrowser*, const CefString*, int, const CefString*, const CefString*, CefJSDialogCallback*, bool*) = nullptr;
+  bool (*fn_on_before_unload_dialog)(void*, CefBrowser*, const CefString*, bool, CefJSDialogCallback*) = nullptr;
+  void (*fn_on_reset_dialog_state)(void*, CefBrowser*) = nullptr;
+  void (*fn_on_dialog_closed)(void*, CefBrowser*) = nullptr;
+};
+
+class CwJSDialogHandlerProxy : public CefJSDialogHandler {
+ public:
+  explicit CwJSDialogHandlerProxy(const CwJSDialogHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwJSDialogHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnJSDialog(CefRefPtr<CefBrowser> browser, const CefString& origin_url, JSDialogType dialog_type, const CefString& message_text, const CefString& default_prompt_text, CefRefPtr<CefJSDialogCallback> callback, bool& suppress_message) override {
+    if (!cb_.fn_on_js_dialog) {
+      return CefJSDialogHandler::OnJSDialog(browser, origin_url, dialog_type, message_text, default_prompt_text, callback, suppress_message);
+    }
+    bool out_suppress_message = bool();
+    bool result = cb_.fn_on_js_dialog(cb_.py, browser.get(), &origin_url, static_cast<int>(dialog_type), &message_text, &default_prompt_text, callback.get(), &out_suppress_message);
+    suppress_message = out_suppress_message;
+    return result;
+  }
+
+  bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser, const CefString& message_text, bool is_reload, CefRefPtr<CefJSDialogCallback> callback) override {
+    if (!cb_.fn_on_before_unload_dialog) {
+      return CefJSDialogHandler::OnBeforeUnloadDialog(browser, message_text, is_reload, callback);
+    }
+    bool result = cb_.fn_on_before_unload_dialog(cb_.py, browser.get(), &message_text, is_reload, callback.get());
+    return result;
+  }
+
+  void OnResetDialogState(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_reset_dialog_state) {
+      CefJSDialogHandler::OnResetDialogState(browser);
+      return;
+    }
+    cb_.fn_on_reset_dialog_state(cb_.py, browser.get());
+  }
+
+  void OnDialogClosed(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_dialog_closed) {
+      CefJSDialogHandler::OnDialogClosed(browser);
+      return;
+    }
+    cb_.fn_on_dialog_closed(cb_.py, browser.get());
+  }
+
+ private:
+  CwJSDialogHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwJSDialogHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwJSDialogHandlerProxy);
 };
 
 // ---- CefLifeSpanHandler ----

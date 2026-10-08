@@ -49,6 +49,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_context_menu_type_flags_t:
         pass
+    ctypedef enum cef_download_interrupt_reason_t:
+        pass
     ctypedef enum cef_drag_operations_mask_t:
         pass
     ctypedef enum cef_duplex_mode_t:
@@ -57,7 +59,13 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_event_flags_t:
         pass
+    ctypedef enum cef_file_dialog_mode_t:
+        pass
+    ctypedef enum cef_focus_source_t:
+        pass
     ctypedef enum cef_horizontal_alignment_t:
+        pass
+    ctypedef enum cef_jsdialog_type_t:
         pass
     ctypedef enum cef_key_event_type_t:
         pass
@@ -217,6 +225,8 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int draggable
 
 # Forward declarations
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefBeforeDownloadCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefBinaryValue(CefBaseRefCounted)
 cdef extern from "include/cef_browser.h":
@@ -231,8 +241,16 @@ cdef extern from "include/cef_values.h":
     cdef cppclass CefDictionaryValue(CefBaseRefCounted)
 cdef extern from "include/views/cef_display.h":
     cdef cppclass CefDisplay(CefBaseRefCounted)
+cdef extern from "include/cef_download_item.h":
+    cdef cppclass CefDownloadItem(CefBaseRefCounted)
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefDownloadItemCallback(CefBaseRefCounted)
+cdef extern from "include/cef_dialog_handler.h":
+    cdef cppclass CefFileDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted)
+cdef extern from "include/cef_jsdialog_handler.h":
+    cdef cppclass CefJSDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
@@ -261,10 +279,18 @@ cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuHandler(CefBaseRefCounted)
+cdef extern from "include/cef_dialog_handler.h":
+    cdef cppclass CefDialogHandler(CefBaseRefCounted)
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted)
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefDownloadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_drag_handler.h":
     cdef cppclass CefDragHandler(CefBaseRefCounted)
+cdef extern from "include/cef_focus_handler.h":
+    cdef cppclass CefFocusHandler(CefBaseRefCounted)
+cdef extern from "include/cef_jsdialog_handler.h":
+    cdef cppclass CefJSDialogHandler(CefBaseRefCounted)
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
 cdef extern from "include/cef_load_handler.h":
@@ -279,6 +305,10 @@ cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted)
 
 # Library classes (implemented by CEF)
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefBeforeDownloadCallback(CefBaseRefCounted):
+        void Continue(const CefString&, cpp_bool) nogil
+
 cdef extern from "include/cef_values.h":
     cdef cppclass CefBinaryValue(CefBaseRefCounted):
         cpp_bool IsValid() nogil
@@ -467,6 +497,38 @@ cdef extern from "include/views/cef_display.h":
         @staticmethod
         CefRect ConvertScreenRectFromPixels(const CefRect&) nogil
 
+cdef extern from "include/cef_download_item.h":
+    cdef cppclass CefDownloadItem(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsInProgress() nogil
+        cpp_bool IsComplete() nogil
+        cpp_bool IsCanceled() nogil
+        cpp_bool IsInterrupted() nogil
+        cpp_bool IsPaused() nogil
+        cef_download_interrupt_reason_t GetInterruptReason() nogil
+        int64_t GetCurrentSpeed() nogil
+        int GetPercentComplete() nogil
+        int64_t GetTotalBytes() nogil
+        int64_t GetReceivedBytes() nogil
+        CefString GetFullPath() nogil
+        uint32_t GetId() nogil
+        CefString GetURL() nogil
+        CefString GetOriginalUrl() nogil
+        CefString GetSuggestedFileName() nogil
+        CefString GetContentDisposition() nogil
+        CefString GetMimeType() nogil
+
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefDownloadItemCallback(CefBaseRefCounted):
+        void Cancel() nogil
+        void Pause() nogil
+        void Resume() nogil
+
+cdef extern from "include/cef_dialog_handler.h":
+    cdef cppclass CefFileDialogCallback(CefBaseRefCounted):
+        void Continue(const vector[CefString]&) nogil
+        void Cancel() nogil
+
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted):
         cpp_bool IsValid() nogil
@@ -490,6 +552,10 @@ cdef extern from "include/cef_frame.h":
         CefString GetURL() nogil
         CefRefPtr[CefBrowser] GetBrowser() nogil
         void SendProcessMessage(cef_process_id_t, CefRefPtr[CefProcessMessage]) nogil
+
+cdef extern from "include/cef_jsdialog_handler.h":
+    cdef cppclass CefJSDialogCallback(CefBaseRefCounted):
+        void Continue(cpp_bool, const CefString&) nogil
 
 cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted):
@@ -725,11 +791,23 @@ cdef extern from "include/cef_client.h":
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_dialog_handler.h":
+    cdef cppclass CefDialogHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_download_handler.h":
+    cdef cppclass CefDownloadHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_drag_handler.h":
     cdef cppclass CefDragHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_focus_handler.h":
+    cdef cppclass CefFocusHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_jsdialog_handler.h":
+    cdef cppclass CefJSDialogHandler(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted):
@@ -764,8 +842,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         void* py
         void (*release)(void*) noexcept
         CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) noexcept
+        CefDialogHandler* (*fn_get_dialog_handler)(void*) noexcept
         CefDisplayHandler* (*fn_get_display_handler)(void*) noexcept
+        CefDownloadHandler* (*fn_get_download_handler)(void*) noexcept
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
+        CefFocusHandler* (*fn_get_focus_handler)(void*) noexcept
+        CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
         CefRenderHandler* (*fn_get_render_handler)(void*) noexcept
@@ -784,6 +866,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_quick_menu_dismissed)(void*, CefBrowser*, CefFrame*) noexcept
     cdef cppclass CwContextMenuHandlerProxy(CefContextMenuHandler):
         CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks&)
+    cdef cppclass CwDialogHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_on_file_dialog)(void*, CefBrowser*, int, const CefString*, const CefString*, const vector[CefString]*, const vector[CefString]*, const vector[CefString]*, CefFileDialogCallback*) noexcept
+    cdef cppclass CwDialogHandlerProxy(CefDialogHandler):
+        CwDialogHandlerProxy(const CwDialogHandlerCallbacks&)
     cdef cppclass CwDisplayHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -801,12 +889,37 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
     cdef cppclass CwDisplayHandlerProxy(CefDisplayHandler):
         CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks&)
+    cdef cppclass CwDownloadHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_can_download)(void*, CefBrowser*, const CefString*, const CefString*) noexcept
+        cpp_bool (*fn_on_before_download)(void*, CefBrowser*, CefDownloadItem*, const CefString*, CefBeforeDownloadCallback*) noexcept
+        void (*fn_on_download_updated)(void*, CefBrowser*, CefDownloadItem*, CefDownloadItemCallback*) noexcept
+    cdef cppclass CwDownloadHandlerProxy(CefDownloadHandler):
+        CwDownloadHandlerProxy(const CwDownloadHandlerCallbacks&)
     cdef cppclass CwDragHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
         void (*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, const vector[CefDraggableRegion]*) noexcept
     cdef cppclass CwDragHandlerProxy(CefDragHandler):
         CwDragHandlerProxy(const CwDragHandlerCallbacks&)
+    cdef cppclass CwFocusHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_take_focus)(void*, CefBrowser*, cpp_bool) noexcept
+        cpp_bool (*fn_on_set_focus)(void*, CefBrowser*, int) noexcept
+        void (*fn_on_got_focus)(void*, CefBrowser*) noexcept
+    cdef cppclass CwFocusHandlerProxy(CefFocusHandler):
+        CwFocusHandlerProxy(const CwFocusHandlerCallbacks&)
+    cdef cppclass CwJSDialogHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_on_js_dialog)(void*, CefBrowser*, const CefString*, int, const CefString*, const CefString*, CefJSDialogCallback*, cpp_bool*) noexcept
+        cpp_bool (*fn_on_before_unload_dialog)(void*, CefBrowser*, const CefString*, cpp_bool, CefJSDialogCallback*) noexcept
+        void (*fn_on_reset_dialog_state)(void*, CefBrowser*) noexcept
+        void (*fn_on_dialog_closed)(void*, CefBrowser*) noexcept
+    cdef cppclass CwJSDialogHandlerProxy(CefJSDialogHandler):
+        CwJSDialogHandlerProxy(const CwJSDialogHandlerCallbacks&)
     cdef cppclass CwLifeSpanHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

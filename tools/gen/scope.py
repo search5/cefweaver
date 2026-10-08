@@ -27,6 +27,11 @@ LIBRARY_CLASSES = [
     "CefDictionaryValue",
     "CefBinaryValue",
     "CefTaskManager",
+    "CefJSDialogCallback",
+    "CefFileDialogCallback",
+    "CefBeforeDownloadCallback",
+    "CefDownloadItemCallback",
+    "CefDownloadItem",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -41,6 +46,10 @@ CLIENT_CLASSES = [
     "CefDragHandler",
     "CefContextMenuHandler",
     "CefRenderHandler",
+    "CefFocusHandler",
+    "CefJSDialogHandler",
+    "CefDialogHandler",
+    "CefDownloadHandler",
 ]
 
 # Global functions.

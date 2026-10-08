@@ -29,6 +29,10 @@ class CefWrapperClientHandler : public CefClient,
                       public CwLifeSpanHandlerForward,
                       public CwLoadHandlerForward,
                       public CwRenderHandlerForward,
+                      public CwFocusHandlerForward,
+                      public CwJSDialogHandlerForward,
+                      public CwDialogHandlerForward,
+                      public CwDownloadHandlerForward,
                       public CwContextMenuHandlerForward {
 public:
 
@@ -99,6 +103,25 @@ public:
   CefRefPtr<CefRenderHandler> GetRenderHandler() override {
     forward_render_handler_ = user_client_ ? user_client_->GetRenderHandler() : nullptr;
     return forward_render_handler_ ? this : nullptr;
+  }
+
+  // The wrapper does not use the focus, dialog and download events either: they go to the
+  // user's handlers, and CEF keeps its own behavior (a dialog, a download) without one.
+  CefRefPtr<CefFocusHandler> GetFocusHandler() override {
+    forward_focus_handler_ = user_client_ ? user_client_->GetFocusHandler() : nullptr;
+    return forward_focus_handler_ ? this : nullptr;
+  }
+  CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override {
+    forward_js_dialog_handler_ = user_client_ ? user_client_->GetJSDialogHandler() : nullptr;
+    return forward_js_dialog_handler_ ? this : nullptr;
+  }
+  CefRefPtr<CefDialogHandler> GetDialogHandler() override {
+    forward_dialog_handler_ = user_client_ ? user_client_->GetDialogHandler() : nullptr;
+    return forward_dialog_handler_ ? this : nullptr;
+  }
+  CefRefPtr<CefDownloadHandler> GetDownloadHandler() override {
+    forward_download_handler_ = user_client_ ? user_client_->GetDownloadHandler() : nullptr;
+    return forward_download_handler_ ? this : nullptr;
   }
 
   CefRefPtr<CefLoadHandler> GetLoadHandler() override {

@@ -14,16 +14,16 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 426 methods/functions in 30 classes, 3 global functions
+Generated now: 466 methods/functions in 39 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    31  class
+    27  class
      7  struct
-     4  struct-like value type
+     6  struct-like value type
      4  multimap of values
      1  pointer to
      1  a library method returning a client object
-  ----  48 skipped
+  ----  46 skipped
 
 If every class were generated, the type support alone would cover 1446 of 1598 methods/functions (90%).
 What blocks the rest, by type:
@@ -66,7 +66,7 @@ Per class (supported/total methods, when every class is generated):
     CefApp                                 client    4/5  
     CefAudioHandler                        client    4/5  
     CefAuthCallback                        library   2/2  
-    CefBeforeDownloadCallback              library   1/1  
+  * CefBeforeDownloadCallback              library   1/1  
   * CefBinaryValue                         library   8/9  
     CefBoxLayout                           library   2/2  
   * CefBrowser                             library  21/21 
@@ -94,25 +94,25 @@ Per class (supported/total methods, when every class is generated):
     CefDOMVisitor                          client    1/1  
     CefDeleteCookiesCallback               client    1/1  
     CefDevToolsMessageObserver             client    5/5  
-    CefDialogHandler                       client    1/1  
+  * CefDialogHandler                       client    1/1  
   * CefDictionaryValue                     library  30/30 
   * CefDisplay                             library  16/16 
   * CefDisplayHandler                      client   12/13 
-    CefDownloadHandler                     client    3/3  
+  * CefDownloadHandler                     client    3/3  
     CefDownloadImageCallback               client    1/1  
-    CefDownloadItem                        library  18/20 
-    CefDownloadItemCallback                library   3/3  
+  * CefDownloadItem                        library  18/20 
+  * CefDownloadItemCallback                library   3/3  
     CefDragData                            library  28/28 
   * CefDragHandler                         client    2/2  
     CefEndTracingCallback                  client    1/1  
-    CefFileDialogCallback                  library   2/2  
+  * CefFileDialogCallback                  library   2/2  
     CefFindHandler                         client    1/1  
-    CefFocusHandler                        client    3/3  
+  * CefFocusHandler                        client    3/3  
   * CefFrame                               library  26/26 
     CefFrameHandler                        client    5/5  
     CefImage                               library  14/14 
-    CefJSDialogCallback                    library   1/1  
-    CefJSDialogHandler                     client    4/4  
+  * CefJSDialogCallback                    library   1/1  
+  * CefJSDialogHandler                     client    4/4  
     CefKeyboardHandler                     client    0/2  
     CefLabelButton                         library  12/12 
     CefLayout                              library   3/3  

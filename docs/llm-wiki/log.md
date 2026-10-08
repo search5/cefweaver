@@ -140,3 +140,7 @@
 ## [2026-10-08] ingest | 바이트열 입출력 (BinaryValue.create, get_data)
 
 - 생성기에 `Bytes` 종류를 더했습니다: 라이브러리 메서드의 `const void*`와 `size_t` 쌍은 바이트열 입력, `BYTES_OUT` 표의 `BinaryValue.GetData`는 `get_data(size, offset) -> bytes`입니다. 크기가 둘인 `CefStreamWriter::Write` 같은 것은 계속 제외합니다. 시험 6개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했고 전체 167개가 통과합니다. F40. 앞서 열지 못한 부분으로 적은 `create`, `get_data`가 열렸습니다.
+
+## [2026-10-08] ingest | 포커스, JS 대화상자, 파일 대화상자, 다운로드 핸들러
+
+- `CefFocusHandler`, `CefJSDialogHandler`, `CefDialogHandler`, `CefDownloadHandler`와 콜백 5개(`CefDownloadItem` 포함)를 범위에 넣고 래퍼가 사용자의 핸들러로 전달합니다. 시험 5개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 172개가 통과합니다. F41. 생성 범위 페이지의 표에서 낡은 행(`CefBrowserHost` 53/72, `CefClient` 6/19)을 현재 값으로 고쳤습니다.

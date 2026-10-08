@@ -433,6 +433,7 @@ cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:
 
 
 # Forward declarations (the classes refer to each other)
+cdef class BeforeDownloadCallback
 cdef class BinaryValue
 cdef class Browser
 cdef class BrowserHost
@@ -440,7 +441,11 @@ cdef class Callback
 cdef class ContextMenuParams
 cdef class DictionaryValue
 cdef class Display
+cdef class DownloadItem
+cdef class DownloadItemCallback
+cdef class FileDialogCallback
 cdef class Frame
+cdef class JSDialogCallback
 cdef class ListValue
 cdef class MenuModel
 cdef class PrintSettings
@@ -453,6 +458,47 @@ cdef class RunContextMenuCallback
 cdef class RunQuickMenuCallback
 cdef class TaskManager
 cdef class Value
+
+cdef class BeforeDownloadCallback:
+    """Callback interface used to asynchronously continue a download."""
+    cdef CefRefPtr[CefBeforeDownloadCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("BeforeDownloadCallback objects are created by CEF or by a create() function")
+
+    cdef CefBeforeDownloadCallback* _ptr(self) except NULL:
+        cdef CefBeforeDownloadCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("BeforeDownloadCallback has no CEF object")
+        return p
+
+    def continue_(self, download_path, bint show_dialog):
+        """Call to continue the download. Set |download_path| to the full file path
+        for the download including the file name or leave blank to use the
+        suggested name and the default temp directory. Set |show_dialog| to true
+        if you do wish to show the default \"Save As\" dialog.
+        """
+        cdef CefString _a0
+        cdef CefBeforeDownloadCallback* _p = self._ptr()
+        if download_path is not None:
+            _a0 = _g_cef(download_path)
+        with nogil:
+            _p.Continue(_a0, show_dialog)
+        return None
+
+
+cdef object _wrap_BeforeDownloadCallback(CefRefPtr[CefBeforeDownloadCallback] ref):
+    cdef BeforeDownloadCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = BeforeDownloadCallback.__new__(BeforeDownloadCallback)
+    obj._ref = ref
+    return obj
+
 
 cdef class BinaryValue:
     """Class representing a binary value. Can be used on any process and thread."""
@@ -2457,6 +2503,275 @@ cdef object _wrap_Display(CefRefPtr[CefDisplay] ref):
     return obj
 
 
+cdef class DownloadItem:
+    """Class used to represent a download item."""
+    cdef CefRefPtr[CefDownloadItem] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("DownloadItem objects are created by CEF or by a create() function")
+
+    cdef CefDownloadItem* _ptr(self) except NULL:
+        cdef CefDownloadItem* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("DownloadItem has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_in_progress(self):
+        """Returns true if the download is in progress."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsInProgress()
+        return _r
+
+    def is_complete(self):
+        """Returns true if the download is complete."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsComplete()
+        return _r
+
+    def is_canceled(self):
+        """Returns true if the download has been canceled."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsCanceled()
+        return _r
+
+    def is_interrupted(self):
+        """Returns true if the download has been interrupted."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsInterrupted()
+        return _r
+
+    def is_paused(self):
+        """Returns true if the download has been paused."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsPaused()
+        return _r
+
+    def get_interrupt_reason(self):
+        """Returns the most recent interrupt reason."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef cef_download_interrupt_reason_t _r
+        with nogil:
+            _r = _p.GetInterruptReason()
+        return _g_enum(_types.DownloadInterruptReason, <int>_r)
+
+    def get_current_speed(self):
+        """Returns a simple speed estimate in bytes/s."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef int64_t _r
+        with nogil:
+            _r = _p.GetCurrentSpeed()
+        return _r
+
+    def get_percent_complete(self):
+        """Returns the rough percent complete or -1 if the receive total size is
+        unknown.
+        """
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetPercentComplete()
+        return _r
+
+    def get_total_bytes(self):
+        """Returns the total number of bytes."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef int64_t _r
+        with nogil:
+            _r = _p.GetTotalBytes()
+        return _r
+
+    def get_received_bytes(self):
+        """Returns the number of received bytes."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef int64_t _r
+        with nogil:
+            _r = _p.GetReceivedBytes()
+        return _r
+
+    def get_full_path(self):
+        """Returns the full path to the downloaded or downloading file."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFullPath()
+        return _g_str(_r)
+
+    def get_id(self):
+        """Returns the unique identifier for this download."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef uint32_t _r
+        with nogil:
+            _r = _p.GetId()
+        return _r
+
+    def get_url(self):
+        """Returns the URL."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetURL()
+        return _g_str(_r)
+
+    def get_original_url(self):
+        """Returns the original URL before any redirections."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetOriginalUrl()
+        return _g_str(_r)
+
+    def get_suggested_file_name(self):
+        """Returns the suggested file name."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetSuggestedFileName()
+        return _g_str(_r)
+
+    def get_content_disposition(self):
+        """Returns the content disposition."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetContentDisposition()
+        return _g_str(_r)
+
+    def get_mime_type(self):
+        """Returns the mime type."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetMimeType()
+        return _g_str(_r)
+
+
+cdef object _wrap_DownloadItem(CefRefPtr[CefDownloadItem] ref):
+    cdef DownloadItem obj
+    if ref.get() == NULL:
+        return None
+    obj = DownloadItem.__new__(DownloadItem)
+    obj._ref = ref
+    return obj
+
+
+cdef class DownloadItemCallback:
+    """Callback interface used to asynchronously cancel a download."""
+    cdef CefRefPtr[CefDownloadItemCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("DownloadItemCallback objects are created by CEF or by a create() function")
+
+    cdef CefDownloadItemCallback* _ptr(self) except NULL:
+        cdef CefDownloadItemCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("DownloadItemCallback has no CEF object")
+        return p
+
+    def cancel(self):
+        """Call to cancel the download."""
+        cdef CefDownloadItemCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+    def pause(self):
+        """Call to pause the download."""
+        cdef CefDownloadItemCallback* _p = self._ptr()
+        with nogil:
+            _p.Pause()
+        return None
+
+    def resume(self):
+        """Call to resume the download."""
+        cdef CefDownloadItemCallback* _p = self._ptr()
+        with nogil:
+            _p.Resume()
+        return None
+
+
+cdef object _wrap_DownloadItemCallback(CefRefPtr[CefDownloadItemCallback] ref):
+    cdef DownloadItemCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = DownloadItemCallback.__new__(DownloadItemCallback)
+    obj._ref = ref
+    return obj
+
+
+cdef class FileDialogCallback:
+    """Callback interface for asynchronous continuation of file dialog requests."""
+    cdef CefRefPtr[CefFileDialogCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("FileDialogCallback objects are created by CEF or by a create() function")
+
+    cdef CefFileDialogCallback* _ptr(self) except NULL:
+        cdef CefFileDialogCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("FileDialogCallback has no CEF object")
+        return p
+
+    def continue_(self, file_paths):
+        """Continue the file selection. |file_paths| should be a single value or a
+        list of values depending on the dialog mode. An empty |file_paths| value
+        is treated the same as calling Cancel().
+        """
+        cdef vector[CefString] _a0
+        cdef CefFileDialogCallback* _p = self._ptr()
+        _g_str_vector(file_paths, _a0)
+        with nogil:
+            _p.Continue(_a0)
+        return None
+
+    def cancel(self):
+        """Cancel the file selection."""
+        cdef CefFileDialogCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+
+cdef object _wrap_FileDialogCallback(CefRefPtr[CefFileDialogCallback] ref):
+    cdef FileDialogCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = FileDialogCallback.__new__(FileDialogCallback)
+    obj._ref = ref
+    return obj
+
+
 cdef class Frame:
     """Class used to represent a frame in the browser window. When used in the
     browser process the methods of this class may be called on any thread unless
@@ -2678,6 +2993,47 @@ cdef object _wrap_Frame(CefRefPtr[CefFrame] ref):
     if ref.get() == NULL:
         return None
     obj = Frame.__new__(Frame)
+    obj._ref = ref
+    return obj
+
+
+cdef class JSDialogCallback:
+    """Callback interface used for asynchronous continuation of JavaScript dialog
+    requests.
+    """
+    cdef CefRefPtr[CefJSDialogCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("JSDialogCallback objects are created by CEF or by a create() function")
+
+    cdef CefJSDialogCallback* _ptr(self) except NULL:
+        cdef CefJSDialogCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("JSDialogCallback has no CEF object")
+        return p
+
+    def continue_(self, bint success, user_input):
+        """Continue the JS dialog request. Set |success| to true if the OK button was
+        pressed. The |user_input| value should be specified for prompt dialogs.
+        """
+        cdef CefString _a1
+        cdef CefJSDialogCallback* _p = self._ptr()
+        if user_input is not None:
+            _a1 = _g_cef(user_input)
+        with nogil:
+            _p.Continue(success, _a1)
+        return None
+
+
+cdef object _wrap_JSDialogCallback(CefRefPtr[CefJSDialogCallback] ref):
+    cdef JSDialogCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = JSDialogCallback.__new__(JSDialogCallback)
     obj._ref = ref
     return obj
 
@@ -4863,12 +5219,35 @@ class Client:
         """
         return None
 
+    def get_dialog_handler(self):
+        """Return the handler for dialogs. If no handler is provided the default
+        implementation will be used.
+        """
+        return None
+
     def get_display_handler(self):
         """Return the handler for browser display state events."""
         return None
 
+    def get_download_handler(self):
+        """Return the handler for download events. If no handler is returned
+        downloads will be canceled with Alloy style and will proceed with default
+        handling with Chrome style.
+        """
+        return None
+
     def get_drag_handler(self):
         """Return the handler for drag events."""
+        return None
+
+    def get_focus_handler(self):
+        """Return the handler for focus events."""
+        return None
+
+    def get_js_dialog_handler(self):
+        """Return the handler for JavaScript dialogs. If no handler is provided the
+        default implementation will be used.
+        """
         return None
 
     def get_life_span_handler(self):
@@ -4900,6 +5279,15 @@ cdef CefContextMenuHandler* _Client_get_context_menu_handler(void* py) noexcept 
         _g_report()
         return NULL
 
+cdef CefDialogHandler* _Client_get_dialog_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_dialog_handler()
+        _r0 = _r
+        return _g_export_DialogHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef CefDisplayHandler* _Client_get_display_handler(void* py) noexcept with gil:
     try:
         _r = (<object>py).get_display_handler()
@@ -4909,11 +5297,38 @@ cdef CefDisplayHandler* _Client_get_display_handler(void* py) noexcept with gil:
         _g_report()
         return NULL
 
+cdef CefDownloadHandler* _Client_get_download_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_download_handler()
+        _r0 = _r
+        return _g_export_DownloadHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef CefDragHandler* _Client_get_drag_handler(void* py) noexcept with gil:
     try:
         _r = (<object>py).get_drag_handler()
         _r0 = _r
         return _g_export_DragHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefFocusHandler* _Client_get_focus_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_focus_handler()
+        _r0 = _r
+        return _g_export_FocusHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefJSDialogHandler* _Client_get_js_dialog_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_js_dialog_handler()
+        _r0 = _r
+        return _g_export_JSDialogHandler(_r0)
     except BaseException:
         _g_report()
         return NULL
@@ -4969,10 +5384,18 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     cb.release = _g_release
     if getattr(cls, "get_context_menu_handler", None) is not Client.get_context_menu_handler:
         cb.fn_get_context_menu_handler = _Client_get_context_menu_handler
+    if getattr(cls, "get_dialog_handler", None) is not Client.get_dialog_handler:
+        cb.fn_get_dialog_handler = _Client_get_dialog_handler
     if getattr(cls, "get_display_handler", None) is not Client.get_display_handler:
         cb.fn_get_display_handler = _Client_get_display_handler
+    if getattr(cls, "get_download_handler", None) is not Client.get_download_handler:
+        cb.fn_get_download_handler = _Client_get_download_handler
     if getattr(cls, "get_drag_handler", None) is not Client.get_drag_handler:
         cb.fn_get_drag_handler = _Client_get_drag_handler
+    if getattr(cls, "get_focus_handler", None) is not Client.get_focus_handler:
+        cb.fn_get_focus_handler = _Client_get_focus_handler
+    if getattr(cls, "get_js_dialog_handler", None) is not Client.get_js_dialog_handler:
+        cb.fn_get_js_dialog_handler = _Client_get_js_dialog_handler
     if getattr(cls, "get_life_span_handler", None) is not Client.get_life_span_handler:
         cb.fn_get_life_span_handler = _Client_get_life_span_handler
     if getattr(cls, "get_load_handler", None) is not Client.get_load_handler:
@@ -5149,6 +5572,71 @@ cdef inline CefContextMenuHandler* _g_export_ContextMenuHandler(object obj) exce
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefContextMenuHandler] ref = _g_make_ContextMenuHandler(obj)
     cdef CefContextMenuHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class DialogHandler:
+    """Implement this interface to handle dialog events. The methods of this class
+    will be called on the browser process UI thread.
+    """
+
+    def on_file_dialog(self, browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback):
+        """Called to run a file chooser dialog. |mode| represents the type of dialog
+        to display. |title| to the title to be used for the dialog and may be
+        empty to show the default title (\"Open\" or \"Save\" depending on the mode).
+        |default_file_path| is the path with optional directory and/or file name
+        component that should be initially selected in the dialog.
+        |accept_filters| are used to restrict the selectable file types and may be
+        any combination of valid lower-cased MIME types (e.g. \"text/*\" or
+        \"image/*\") and individual file extensions (e.g. \".txt\" or \".png\").
+        |accept_extensions| provides the semicolon-delimited expansion of MIME
+        types to file extensions (if known, or empty string otherwise).
+        |accept_descriptions| provides the descriptions for MIME types (if known,
+        or empty string otherwise). For example, the \"image/*\" mime type might
+        have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        |accept_filters|, |accept_extensions| and |accept_descriptions| will all
+        be the same size. To display a custom dialog return true and execute
+        |callback| either inline or at a later time. To display the default dialog
+        return false. If this method returns false it may be called an additional
+        time for the same dialog (both before and after MIME type expansion).
+        """
+        return False
+
+
+cdef cpp_bool _DialogHandler_on_file_dialog(void* py, CefBrowser* browser, int mode, const CefString* title, const CefString* default_file_path, const vector[CefString]* accept_filters, const vector[CefString]* accept_extensions, const vector[CefString]* accept_descriptions, CefFileDialogCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_file_dialog(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.FileDialogMode, mode), _g_str(title[0]), _g_str(default_file_path[0]), _g_str_list(accept_filters), _g_str_list(accept_extensions), _g_str_list(accept_descriptions), _wrap_FileDialogCallback(CefRefPtr[CefFileDialogCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefDialogHandler] _g_make_DialogHandler(object obj) except *:
+    cdef CefRefPtr[CefDialogHandler] ref
+    cdef CwDialogHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DialogHandler):
+        raise TypeError("expected a DialogHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_file_dialog", None) is not DialogHandler.on_file_dialog:
+        cb.fn_on_file_dialog = _DialogHandler_on_file_dialog
+    ref = CefRefPtr[CefDialogHandler](<CefDialogHandler*>new CwDialogHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefDialogHandler* _g_export_DialogHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDialogHandler] ref = _g_make_DialogHandler(obj)
+    cdef CefDialogHandler* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -5396,6 +5884,100 @@ cdef inline CefDisplayHandler* _g_export_DisplayHandler(object obj) except? NULL
     return raw
 
 
+class DownloadHandler:
+    """Class used to handle file downloads. The methods of this class will called
+    on the browser process UI thread.
+    """
+
+    def can_download(self, browser, url, request_method):
+        """Called before a download begins in response to a user-initiated action
+        (e.g. alt + link click or link click that returns a `Content-Disposition:
+        attachment` response from the server). |url| is the target download URL
+        and |request_method| is the target method (GET, POST, etc). Return true to
+        proceed with the download or false to cancel the download. This method is
+        not called for downloads initiated by CefBrowserHost::StartDownload().
+        """
+        return False
+
+    def on_before_download(self, browser, download_item, suggested_name, callback):
+        """Called before a download begins. |suggested_name| is the suggested name
+        for the download file. Return true and execute |callback| either
+        asynchronously or in this method to continue the download. Return false to
+        proceed with default handling (cancel with Alloy style, default download
+        handling with Chrome style). To cancel the download with either style
+        execute the callback passed to OnDownloadUpdated(). If this method returns
+        true and |callback| is destroyed without being executed, the download will
+        be canceled. Do not keep a reference to |download_item| outside of this
+        method.
+        """
+        return False
+
+    def on_download_updated(self, browser, download_item, callback):
+        """Called when a download's status or progress information has been updated.
+        This may be called multiple times before and after OnBeforeDownload().
+        Execute |callback| either asynchronously or in this method to cancel the
+        download if desired. Do not keep a reference to |download_item| outside of
+        this method.
+        """
+        return None
+
+
+cdef cpp_bool _DownloadHandler_can_download(void* py, CefBrowser* browser, const CefString* url, const CefString* request_method) noexcept with gil:
+    try:
+        _r = (<object>py).can_download(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(url[0]), _g_str(request_method[0]))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _DownloadHandler_on_before_download(void* py, CefBrowser* browser, CefDownloadItem* download_item, const CefString* suggested_name, CefBeforeDownloadCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_download(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_DownloadItem(CefRefPtr[CefDownloadItem](download_item)), _g_str(suggested_name[0]), _wrap_BeforeDownloadCallback(CefRefPtr[CefBeforeDownloadCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _DownloadHandler_on_download_updated(void* py, CefBrowser* browser, CefDownloadItem* download_item, CefDownloadItemCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_download_updated(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_DownloadItem(CefRefPtr[CefDownloadItem](download_item)), _wrap_DownloadItemCallback(CefRefPtr[CefDownloadItemCallback](callback)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDownloadHandler] _g_make_DownloadHandler(object obj) except *:
+    cdef CefRefPtr[CefDownloadHandler] ref
+    cdef CwDownloadHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DownloadHandler):
+        raise TypeError("expected a DownloadHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "can_download", None) is not DownloadHandler.can_download:
+        cb.fn_can_download = _DownloadHandler_can_download
+    if getattr(cls, "on_before_download", None) is not DownloadHandler.on_before_download:
+        cb.fn_on_before_download = _DownloadHandler_on_before_download
+    if getattr(cls, "on_download_updated", None) is not DownloadHandler.on_download_updated:
+        cb.fn_on_download_updated = _DownloadHandler_on_download_updated
+    ref = CefRefPtr[CefDownloadHandler](<CefDownloadHandler*>new CwDownloadHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefDownloadHandler* _g_export_DownloadHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDownloadHandler] ref = _g_make_DownloadHandler(obj)
+    cdef CefDownloadHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class DragHandler:
     """Implement this interface to handle events related to dragging. The methods
     of this class will be called on the UI thread.
@@ -5440,6 +6022,194 @@ cdef inline CefDragHandler* _g_export_DragHandler(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefDragHandler] ref = _g_make_DragHandler(obj)
     cdef CefDragHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class FocusHandler:
+    """Implement this interface to handle events related to focus. The methods of
+    this class will be called on the UI thread.
+    """
+
+    def on_take_focus(self, browser, next):
+        """Called when the browser component is about to loose focus. For instance,
+        if focus was on the last HTML element and the user pressed the TAB key.
+        |next| will be true if the browser is giving focus to the next component
+        and false if the browser is giving focus to the previous component.
+        """
+        return None
+
+    def on_set_focus(self, browser, source):
+        """Called when the browser component is requesting focus. |source| indicates
+        where the focus request is originating from. Return false to allow the
+        focus to be set or true to cancel setting the focus.
+        """
+        return False
+
+    def on_got_focus(self, browser):
+        """Called when the browser component has received focus."""
+        return None
+
+
+cdef void _FocusHandler_on_take_focus(void* py, CefBrowser* browser, cpp_bool next) noexcept with gil:
+    try:
+        _r = (<object>py).on_take_focus(_wrap_Browser(CefRefPtr[CefBrowser](browser)), next)
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _FocusHandler_on_set_focus(void* py, CefBrowser* browser, int source) noexcept with gil:
+    try:
+        _r = (<object>py).on_set_focus(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.FocusSource, source))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _FocusHandler_on_got_focus(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_got_focus(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefFocusHandler] _g_make_FocusHandler(object obj) except *:
+    cdef CefRefPtr[CefFocusHandler] ref
+    cdef CwFocusHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, FocusHandler):
+        raise TypeError("expected a FocusHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_take_focus", None) is not FocusHandler.on_take_focus:
+        cb.fn_on_take_focus = _FocusHandler_on_take_focus
+    if getattr(cls, "on_set_focus", None) is not FocusHandler.on_set_focus:
+        cb.fn_on_set_focus = _FocusHandler_on_set_focus
+    if getattr(cls, "on_got_focus", None) is not FocusHandler.on_got_focus:
+        cb.fn_on_got_focus = _FocusHandler_on_got_focus
+    ref = CefRefPtr[CefFocusHandler](<CefFocusHandler*>new CwFocusHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefFocusHandler* _g_export_FocusHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefFocusHandler] ref = _g_make_FocusHandler(obj)
+    cdef CefFocusHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class JSDialogHandler:
+    """Implement this interface to handle events related to JavaScript dialogs. The
+    methods of this class will be called on the UI thread.
+    """
+
+    def on_js_dialog(self, browser, origin_url, dialog_type, message_text, default_prompt_text, callback):
+        """Called to run a JavaScript dialog. If |origin_url| is non-empty it can be
+        passed to the CefFormatUrlForSecurityDisplay function to retrieve a secure
+        and user-friendly display string. The |default_prompt_text| value will be
+        specified for prompt dialogs only. Set |suppress_message| to true and
+        return false to suppress the message (suppressing messages is preferable
+        to immediately executing the callback as this is used to detect presumably
+        malicious behavior like spamming alert messages in onbeforeunload). Set
+        |suppress_message| to false and return false to use the default
+        implementation (the default implementation will show one modal dialog at a
+        time and suppress any additional dialog requests until the displayed
+        dialog is dismissed). Return true if the application will use a custom
+        dialog or if the callback has been executed immediately. Custom dialogs
+        may be either modal or modeless. If a custom dialog is used the
+        application must execute |callback| once the custom dialog is dismissed.
+        """
+        return False, False
+
+    def on_before_unload_dialog(self, browser, message_text, is_reload, callback):
+        """Called to run a dialog asking the user if they want to leave a page.
+        Return false to use the default dialog implementation. Return true if the
+        application will use a custom dialog or if the callback has been executed
+        immediately. Custom dialogs may be either modal or modeless. If a custom
+        dialog is used the application must execute |callback| once the custom
+        dialog is dismissed.
+        """
+        return False
+
+    def on_reset_dialog_state(self, browser):
+        """Called to cancel any pending dialogs and reset any saved dialog state.
+        Will be called due to events like page navigation irregardless of whether
+        any dialogs are currently pending.
+        """
+        return None
+
+    def on_dialog_closed(self, browser):
+        """Called when the dialog is closed."""
+        return None
+
+
+cdef cpp_bool _JSDialogHandler_on_js_dialog(void* py, CefBrowser* browser, const CefString* origin_url, int dialog_type, const CefString* message_text, const CefString* default_prompt_text, CefJSDialogCallback* callback, cpp_bool* suppress_message) noexcept with gil:
+    try:
+        _r = (<object>py).on_js_dialog(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(origin_url[0]), _g_enum(_types.JSDialogType, dialog_type), _g_str(message_text[0]), _g_str(default_prompt_text[0]), _wrap_JSDialogCallback(CefRefPtr[CefJSDialogCallback](callback)))
+        _r0, _r1 = _r
+        suppress_message[0] = _r1
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _JSDialogHandler_on_before_unload_dialog(void* py, CefBrowser* browser, const CefString* message_text, cpp_bool is_reload, CefJSDialogCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_unload_dialog(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(message_text[0]), is_reload, _wrap_JSDialogCallback(CefRefPtr[CefJSDialogCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _JSDialogHandler_on_reset_dialog_state(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_reset_dialog_state(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef void _JSDialogHandler_on_dialog_closed(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_dialog_closed(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefJSDialogHandler] _g_make_JSDialogHandler(object obj) except *:
+    cdef CefRefPtr[CefJSDialogHandler] ref
+    cdef CwJSDialogHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, JSDialogHandler):
+        raise TypeError("expected a JSDialogHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_js_dialog", None) is not JSDialogHandler.on_js_dialog:
+        cb.fn_on_js_dialog = _JSDialogHandler_on_js_dialog
+    if getattr(cls, "on_before_unload_dialog", None) is not JSDialogHandler.on_before_unload_dialog:
+        cb.fn_on_before_unload_dialog = _JSDialogHandler_on_before_unload_dialog
+    if getattr(cls, "on_reset_dialog_state", None) is not JSDialogHandler.on_reset_dialog_state:
+        cb.fn_on_reset_dialog_state = _JSDialogHandler_on_reset_dialog_state
+    if getattr(cls, "on_dialog_closed", None) is not JSDialogHandler.on_dialog_closed:
+        cb.fn_on_dialog_closed = _JSDialogHandler_on_dialog_closed
+    ref = CefRefPtr[CefJSDialogHandler](<CefJSDialogHandler*>new CwJSDialogHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefJSDialogHandler* _g_export_JSDialogHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefJSDialogHandler] ref = _g_make_JSDialogHandler(obj)
+    cdef CefJSDialogHandler* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -6478,4 +7248,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "Frame", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

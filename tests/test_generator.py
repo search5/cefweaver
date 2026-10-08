@@ -139,6 +139,26 @@ class WithHeaders(unittest.TestCase):
                       stub)
         self.assertIn("def get_data(self, buffer_size: int, data_offset: int) -> bytes:", stub)
 
+    def test_the_dialog_focus_and_download_handlers_are_generated(self):
+        for name in ("CefFocusHandler", "CefJSDialogHandler", "CefDialogHandler",
+                     "CefDownloadHandler"):
+            self.assertTrue(self.scope.is_client(name), name)
+        for name in ("CefJSDialogCallback", "CefFileDialogCallback", "CefBeforeDownloadCallback",
+                     "CefDownloadItemCallback", "CefDownloadItem"):
+            self.assertTrue(self.scope.is_library(name), name)
+        plan = self.plan("CefJSDialogHandler", "OnJSDialog")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([name for name, _ in plan.results], ["return", "suppress_message"])
+        plan = self.plan("CefDialogHandler", "OnFileDialog")
+        self.assertTrue(plan.supported, plan.reason)
+        stub = self.generated("pyi")
+        for text in ("class FocusHandler:", "class JSDialogHandler:", "class DialogHandler:",
+                     "class DownloadHandler:", "class JSDialogCallback:",
+                     "class FileDialogCallback:", "class BeforeDownloadCallback:",
+                     "def get_focus_handler(self)", "def get_js_dialog_handler(self)",
+                     "def get_dialog_handler(self)", "def get_download_handler(self)"):
+            self.assertIn(text, stub)
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()

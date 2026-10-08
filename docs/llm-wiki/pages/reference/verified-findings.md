@@ -138,6 +138,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **발견**: `nogil` 안에서는 Python 객체를 `char*`로 바꿀 수 없어 포인터를 `nogil` 앞에서 꺼냅니다.
 - **영향**: 열지 못했던 `BinaryValue.create`와 `get_data`가 열렸습니다. `get_raw_data`는 일부러 열지 않았습니다([알려진 제약과 미검증 항목](known-constraints.md)).
 
+## F41. 포커스, JS 대화상자, 파일 대화상자, 다운로드 핸들러
+
+- **방법**: 오프스크린 브라우저에서 핸들러를 달고 각 이벤트를 일으켜 보았습니다.
+- **결과**:
+  - `set_focus(True)`가 `on_set_focus(browser, source)`(`FocusSource` 멤버)와 `on_got_focus`로 갑니다.
+  - `alert`, `confirm`, `prompt`가 `on_js_dialog(browser, origin_url, dialog_type, message_text, default_prompt_text, callback)`로 오고 `(handled, suppress_message)`를 돌려줍니다. `callback.continue_(success, user_input)`의 답이 페이지에 가서 `confirm`은 참/거짓, `prompt`는 `"typed"`가 됩니다.
+  - 파일 입력을 마우스로 누르면 `on_file_dialog(browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback)`(`FileDialogMode.OPEN`)이 오고, `callback.continue_([path])`의 파일이 `input.files`에 들어갑니다.
+  - `Content-Disposition: attachment`인 응답이 `on_before_download(browser, download_item, suggested_name, callback)`(`suggested_name == "named.txt"`)으로 오고, `callback.continue_(path, False)`의 경로에 10바이트가 저장되며 `on_download_updated`가 `is_complete()`와 `get_received_bytes()`를 알립니다.
+- **영향**: java-cef의 13개 핸들러 가운데 4개를 더해 10개가 되었습니다(키보드, 인쇄, 요청이 남음, [생성 범위와 커버리지](generated-api-coverage.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

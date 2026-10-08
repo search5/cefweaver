@@ -94,11 +94,15 @@ from .types import (
     ContextMenuMediaStateFlags,
     ContextMenuMediaType,
     ContextMenuTypeFlags,
+    DownloadInterruptReason,
     DragOperationsMask,
     DuplexMode,
     ErrorCode,
     EventFlags,
+    FileDialogMode,
+    FocusSource,
     HorizontalAlignment,
+    JSDialogType,
     LogSeverity,
     MenuColorType,
     MenuItemType,
@@ -133,6 +137,17 @@ from .types import (
     CompositionUnderline as CompositionUnderline,
     DraggableRegion as DraggableRegion,
 )
+
+
+class BeforeDownloadCallback:
+    """Callback interface used to asynchronously continue a download."""
+    def continue_(self, download_path: str | None, show_dialog: bool) -> None:
+        """Call to continue the download. Set |download_path| to the full file path
+        for the download including the file name or leave blank to use the
+        suggested name and the default temp directory. Set |show_dialog| to true
+        if you do wish to show the default \"Save As\" dialog.
+        """
+        ...
 
 
 class BinaryValue:
@@ -1111,6 +1126,94 @@ class Display:
         ...
 
 
+class DownloadItem:
+    """Class used to represent a download item."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        ...
+    def is_in_progress(self) -> bool:
+        """Returns true if the download is in progress."""
+        ...
+    def is_complete(self) -> bool:
+        """Returns true if the download is complete."""
+        ...
+    def is_canceled(self) -> bool:
+        """Returns true if the download has been canceled."""
+        ...
+    def is_interrupted(self) -> bool:
+        """Returns true if the download has been interrupted."""
+        ...
+    def is_paused(self) -> bool:
+        """Returns true if the download has been paused."""
+        ...
+    def get_interrupt_reason(self) -> DownloadInterruptReason:
+        """Returns the most recent interrupt reason."""
+        ...
+    def get_current_speed(self) -> int:
+        """Returns a simple speed estimate in bytes/s."""
+        ...
+    def get_percent_complete(self) -> int:
+        """Returns the rough percent complete or -1 if the receive total size is
+        unknown.
+        """
+        ...
+    def get_total_bytes(self) -> int:
+        """Returns the total number of bytes."""
+        ...
+    def get_received_bytes(self) -> int:
+        """Returns the number of received bytes."""
+        ...
+    def get_full_path(self) -> str:
+        """Returns the full path to the downloaded or downloading file."""
+        ...
+    def get_id(self) -> int:
+        """Returns the unique identifier for this download."""
+        ...
+    def get_url(self) -> str:
+        """Returns the URL."""
+        ...
+    def get_original_url(self) -> str:
+        """Returns the original URL before any redirections."""
+        ...
+    def get_suggested_file_name(self) -> str:
+        """Returns the suggested file name."""
+        ...
+    def get_content_disposition(self) -> str:
+        """Returns the content disposition."""
+        ...
+    def get_mime_type(self) -> str:
+        """Returns the mime type."""
+        ...
+
+
+class DownloadItemCallback:
+    """Callback interface used to asynchronously cancel a download."""
+    def cancel(self) -> None:
+        """Call to cancel the download."""
+        ...
+    def pause(self) -> None:
+        """Call to pause the download."""
+        ...
+    def resume(self) -> None:
+        """Call to resume the download."""
+        ...
+
+
+class FileDialogCallback:
+    """Callback interface for asynchronous continuation of file dialog requests."""
+    def continue_(self, file_paths: Sequence[str]) -> None:
+        """Continue the file selection. |file_paths| should be a single value or a
+        list of values depending on the dialog mode. An empty |file_paths| value
+        is treated the same as calling Cancel().
+        """
+        ...
+    def cancel(self) -> None:
+        """Cancel the file selection."""
+        ...
+
+
 class Frame:
     """Class used to represent a frame in the browser window. When used in the
     browser process the methods of this class may be called on any thread unless
@@ -1206,6 +1309,17 @@ class Frame:
         if the browser is closing, navigating, or if the target process crashes).
         Send an ACK message back from the target process if confirmation is
         required.
+        """
+        ...
+
+
+class JSDialogCallback:
+    """Callback interface used for asynchronous continuation of JavaScript dialog
+    requests.
+    """
+    def continue_(self, success: bool, user_input: str | None) -> None:
+        """Continue the JS dialog request. Set |success| to true if the OK button was
+        pressed. The |user_input| value should be specified for prompt dialogs.
         """
         ...
 
@@ -2109,11 +2223,30 @@ class Client:
         default implementation will be used.
         """
         ...
+    def get_dialog_handler(self) -> DialogHandler | None:
+        """Return the handler for dialogs. If no handler is provided the default
+        implementation will be used.
+        """
+        ...
     def get_display_handler(self) -> DisplayHandler | None:
         """Return the handler for browser display state events."""
         ...
+    def get_download_handler(self) -> DownloadHandler | None:
+        """Return the handler for download events. If no handler is returned
+        downloads will be canceled with Alloy style and will proceed with default
+        handling with Chrome style.
+        """
+        ...
     def get_drag_handler(self) -> DragHandler | None:
         """Return the handler for drag events."""
+        ...
+    def get_focus_handler(self) -> FocusHandler | None:
+        """Return the handler for focus events."""
+        ...
+    def get_js_dialog_handler(self) -> JSDialogHandler | None:
+        """Return the handler for JavaScript dialogs. If no handler is provided the
+        default implementation will be used.
+        """
         ...
     def get_life_span_handler(self) -> LifeSpanHandler | None:
         """Return the handler for browser life span events."""
@@ -2187,6 +2320,33 @@ class ContextMenuHandler:
     def on_quick_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
         """Called when the quick menu for a windowless browser is dismissed
         irregardless of whether the menu was canceled or a command was selected.
+        """
+        ...
+
+
+class DialogHandler:
+    """Implement this interface to handle dialog events. The methods of this class
+    will be called on the browser process UI thread.
+    """
+    def on_file_dialog(self, browser: Browser, mode: FileDialogMode, title: str, default_file_path: str, accept_filters: list[str], accept_extensions: list[str], accept_descriptions: list[str], callback: FileDialogCallback) -> bool:
+        """Called to run a file chooser dialog. |mode| represents the type of dialog
+        to display. |title| to the title to be used for the dialog and may be
+        empty to show the default title (\"Open\" or \"Save\" depending on the mode).
+        |default_file_path| is the path with optional directory and/or file name
+        component that should be initially selected in the dialog.
+        |accept_filters| are used to restrict the selectable file types and may be
+        any combination of valid lower-cased MIME types (e.g. \"text/*\" or
+        \"image/*\") and individual file extensions (e.g. \".txt\" or \".png\").
+        |accept_extensions| provides the semicolon-delimited expansion of MIME
+        types to file extensions (if known, or empty string otherwise).
+        |accept_descriptions| provides the descriptions for MIME types (if known,
+        or empty string otherwise). For example, the \"image/*\" mime type might
+        have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        |accept_filters|, |accept_extensions| and |accept_descriptions| will all
+        be the same size. To display a custom dialog return true and execute
+        |callback| either inline or at a later time. To display the default dialog
+        return false. If this method returns false it may be called an additional
+        time for the same dialog (both before and after MIME type expansion).
         """
         ...
 
@@ -2282,6 +2442,41 @@ class DisplayHandler:
         ...
 
 
+class DownloadHandler:
+    """Class used to handle file downloads. The methods of this class will called
+    on the browser process UI thread.
+    """
+    def can_download(self, browser: Browser, url: str, request_method: str) -> bool:
+        """Called before a download begins in response to a user-initiated action
+        (e.g. alt + link click or link click that returns a `Content-Disposition:
+        attachment` response from the server). |url| is the target download URL
+        and |request_method| is the target method (GET, POST, etc). Return true to
+        proceed with the download or false to cancel the download. This method is
+        not called for downloads initiated by CefBrowserHost::StartDownload().
+        """
+        ...
+    def on_before_download(self, browser: Browser, download_item: DownloadItem, suggested_name: str, callback: BeforeDownloadCallback) -> bool:
+        """Called before a download begins. |suggested_name| is the suggested name
+        for the download file. Return true and execute |callback| either
+        asynchronously or in this method to continue the download. Return false to
+        proceed with default handling (cancel with Alloy style, default download
+        handling with Chrome style). To cancel the download with either style
+        execute the callback passed to OnDownloadUpdated(). If this method returns
+        true and |callback| is destroyed without being executed, the download will
+        be canceled. Do not keep a reference to |download_item| outside of this
+        method.
+        """
+        ...
+    def on_download_updated(self, browser: Browser, download_item: DownloadItem, callback: DownloadItemCallback) -> None:
+        """Called when a download's status or progress information has been updated.
+        This may be called multiple times before and after OnBeforeDownload().
+        Execute |callback| either asynchronously or in this method to cancel the
+        download if desired. Do not keep a reference to |download_item| outside of
+        this method.
+        """
+        ...
+
+
 class DragHandler:
     """Implement this interface to handle events related to dragging. The methods
     of this class will be called on the UI thread.
@@ -2293,6 +2488,69 @@ class DragHandler:
         never be called. If the last draggable region is removed from a document
         this method will be called with an empty vector.
         """
+        ...
+
+
+class FocusHandler:
+    """Implement this interface to handle events related to focus. The methods of
+    this class will be called on the UI thread.
+    """
+    def on_take_focus(self, browser: Browser, next: bool) -> None:
+        """Called when the browser component is about to loose focus. For instance,
+        if focus was on the last HTML element and the user pressed the TAB key.
+        |next| will be true if the browser is giving focus to the next component
+        and false if the browser is giving focus to the previous component.
+        """
+        ...
+    def on_set_focus(self, browser: Browser, source: FocusSource) -> bool:
+        """Called when the browser component is requesting focus. |source| indicates
+        where the focus request is originating from. Return false to allow the
+        focus to be set or true to cancel setting the focus.
+        """
+        ...
+    def on_got_focus(self, browser: Browser) -> None:
+        """Called when the browser component has received focus."""
+        ...
+
+
+class JSDialogHandler:
+    """Implement this interface to handle events related to JavaScript dialogs. The
+    methods of this class will be called on the UI thread.
+    """
+    def on_js_dialog(self, browser: Browser, origin_url: str, dialog_type: JSDialogType, message_text: str, default_prompt_text: str, callback: JSDialogCallback) -> tuple[bool, bool]:
+        """Called to run a JavaScript dialog. If |origin_url| is non-empty it can be
+        passed to the CefFormatUrlForSecurityDisplay function to retrieve a secure
+        and user-friendly display string. The |default_prompt_text| value will be
+        specified for prompt dialogs only. Set |suppress_message| to true and
+        return false to suppress the message (suppressing messages is preferable
+        to immediately executing the callback as this is used to detect presumably
+        malicious behavior like spamming alert messages in onbeforeunload). Set
+        |suppress_message| to false and return false to use the default
+        implementation (the default implementation will show one modal dialog at a
+        time and suppress any additional dialog requests until the displayed
+        dialog is dismissed). Return true if the application will use a custom
+        dialog or if the callback has been executed immediately. Custom dialogs
+        may be either modal or modeless. If a custom dialog is used the
+        application must execute |callback| once the custom dialog is dismissed.
+        """
+        ...
+    def on_before_unload_dialog(self, browser: Browser, message_text: str, is_reload: bool, callback: JSDialogCallback) -> bool:
+        """Called to run a dialog asking the user if they want to leave a page.
+        Return false to use the default dialog implementation. Return true if the
+        application will use a custom dialog or if the callback has been executed
+        immediately. Custom dialogs may be either modal or modeless. If a custom
+        dialog is used the application must execute |callback| once the custom
+        dialog is dismissed.
+        """
+        ...
+    def on_reset_dialog_state(self, browser: Browser) -> None:
+        """Called to cancel any pending dialogs and reset any saved dialog state.
+        Will be called due to events like page navigation irregardless of whether
+        any dialogs are currently pending.
+        """
+        ...
+    def on_dialog_closed(self, browser: Browser) -> None:
+        """Called when the dialog is closed."""
         ...
 
 
