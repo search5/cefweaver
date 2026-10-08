@@ -13,8 +13,8 @@ GIL rules (see also _cefweaver.pyx):
 
 import re
 
-from emit_cpp import (field_name, table_in_types, table_out_type, table_param_types,
-                      table_ret_type)
+from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
+                      table_param_types, table_ret_type)
 from model import py_class_name, py_method_name
 from model import py_class_name as _py_class_name  # noqa: F401
 from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
@@ -28,8 +28,33 @@ _BUILTIN_CY = {
 def cy_c(cpp):
     """A C++ type as Cython spells it in declarations (`bool*` -> `cpp_bool*`,
     `std::vector<CefString>` -> `vector[CefString]`)."""
-    cpp = re.sub(r"std::vector<(\w+)>", r"vector[\1]", cpp)
+    cpp = cpp.replace("std::vector<", "vector[").replace("CefRefPtr<", "CefRefPtr[").replace(">", "]")
     return re.sub(r"\bbool\b", "cpp_bool", cpp)
+
+
+def vector_cy(kind):
+    """The Cython type of a vector: vector[CefString], vector[CefRect], ..."""
+    return "vector[%s]" % cy_c(element_cpp(kind.element))
+
+
+def vector_tag(kind):
+    """Names the conversion functions of a vector: `_g_list_<tag>` and `_g_vector_<tag>`."""
+    element = kind.element
+    if isinstance(element, Str):
+        return "str"
+    if isinstance(element, Prim):
+        return element.cpp.replace(" ", "_")
+    return py_class_name(element.cls)
+
+
+def used_vectors(plans):
+    """The vectors the generated methods use, as {tag: Vector}."""
+    found = {}
+    for plan in plans:
+        for kind in [plan.ret] + [p.kind for p in plan.params]:
+            if isinstance(kind, Vector):
+                found[vector_tag(kind)] = kind
+    return dict(sorted(found.items()))
 
 
 def cy_arg(cpp):
@@ -73,9 +98,16 @@ def all_structs(model):
     """Every value type struct of the headers, as {class name: Struct}.
 
     They are generated whether or not a method in scope uses them: they are part of
-    the public API (a caller builds a Rect to pass it to CEF) and cost nothing.
+    the public API (a caller builds a Rect to pass it to CEF) and cost nothing. A struct
+    that contains another one comes after it.
     """
-    return {cls: Struct(cls, info.fields) for cls, info in sorted(model.structs.items())}
+    ordered, pending = {}, dict(sorted(model.structs.items()))
+    while pending:
+        for cls, info in list(pending.items()):
+            if all(f.struct == "" or f.struct in ordered for f in info.fields):
+                ordered[cls] = Struct(cls, info.fields)
+                del pending[cls]
+    return ordered
 
 
 def _used_typedefs(plans):
@@ -104,7 +136,7 @@ def _cy_method_signature(plan):
         elif isinstance(kind, Struct):
             args.append("%s&" % kind.cls if param.out else "const %s&" % kind.cls)
         elif isinstance(kind, Vector):
-            args.append("vector[CefString]&")
+            args.append(vector_cy(kind) + "&" if param.out else "const %s&" % vector_cy(kind))
         elif isinstance(kind, LibRef):
             args.append("CefRefPtr[%s]" % kind.cls)
         elif isinstance(kind, ClientRef):
@@ -178,6 +210,9 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
     if structs:
         out.append("# Value type structs (plain data, copied to and from Python named tuples)")
         out.append('cdef extern from "include/internal/cef_types_wrappers.h":')
+        for ctype in sorted({f.cpp for s in structs.values() for f in s.fields if f.struct}):
+            out.append("    ctypedef struct %s:  # a field that is another struct" % ctype)
+            out.append("        pass")
         for struct in structs.values():
             out.append("    cdef cppclass %s:" % struct.cls)
             out.append("        %s()" % struct.cls)
@@ -297,6 +332,16 @@ cdef inline list _g_str_list(const vector[CefString]* values):
     return result
 
 
+# Set by CefApp.shutdown(). Releasing a CEF object after CefShutdown() can end the process
+# (CefTaskManager does, when the interpreter frees it on exit), so a library object that is
+# freed afterwards is dropped without a Release(): nothing can use it any more.
+cdef bint _cef_was_shut_down = False
+
+
+cdef inline void _g_forget(void* ref) noexcept:
+    (<void**>ref)[0] = NULL  # a CefRefPtr holds exactly one pointer
+
+
 cdef void _g_report() noexcept:
     """Report the exception being handled (inside a callback called by CEF)."""
     try:
@@ -315,8 +360,14 @@ def _struct_pxi(struct):
     py = py_class_name(struct.cls)
     names = [f.name for f in struct.fields]
     temps = ["_f%d" % i for i in range(len(names))]
+
+    def from_c(f):
+        if f.struct:  # a nested struct: the C struct and its C++ class have the same layout
+            return "_g_from_%s(<const %s*>&value.%s)" % (py_class_name(f.struct), f.struct, f.name)
+        return "value.%s" % f.name
+
     out = ["cdef inline object _g_from_%s(const %s* value):" % (py, struct.cls),
-           "    return %s(%s)" % (py, ", ".join("value.%s" % n for n in names)),
+           "    return %s(%s)" % (py, ", ".join(from_c(f) for f in struct.fields)),
            "",
            "",
            "cdef inline int _g_to_%s(object obj, %s* out) except -1:" % (py, struct.cls),
@@ -325,9 +376,50 @@ def _struct_pxi(struct):
            "    except (TypeError, ValueError):",
            '        raise TypeError("expected a %s (or a sequence of %d values), not %%r" %% (obj,)) from None'
            % (py, len(names))]
-    for n, t in zip(names, temps):
-        out.append("    out.%s = %s" % (n, t))
+    for f, t in zip(struct.fields, temps):
+        if f.struct:
+            out.append("    _g_to_%s(%s, <%s*>&out.%s)" % (py_class_name(f.struct), t, f.struct, f.name))
+        else:
+            out.append("    out.%s = %s" % (f.name, t))
     out.append("    return 0")
+    return out
+
+
+def _vector_helpers(vectors):
+    """Conversions between std::vector and list for every vector a method uses."""
+    out = []
+    for tag, kind in vectors.items():
+        element, cy = kind.element, vector_cy(kind)
+        if isinstance(element, Str):
+            out += ["cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:",
+                    "    out.clear()",
+                    "    for item in seq:",
+                    "        out.push_back(_g_cef(item))",
+                    "    return 0", "", ""]
+            continue  # _g_str_list is in the prelude
+        convert = {Prim: "values[0][i]",
+                   Struct: "_g_from_%s(&values[0][i])" % (py_class_name(element.cls)
+                                                          if isinstance(element, Struct) else ""),
+                   LibRef: "_wrap_%s(values[0][i])" % (py_class_name(element.cls)
+                                                       if isinstance(element, LibRef) else "")}[type(element)]
+        out += ["cdef inline list _g_list_%s(const %s* values):" % (tag, cy),
+                "    cdef list result = []",
+                "    cdef size_t i",
+                "    for i in range(values.size()):",
+                "        result.append(%s)" % convert,
+                "    return result", "", ""]
+        if isinstance(element, LibRef):
+            continue  # a list of objects is only returned (never given to a library method)
+        out += ["cdef inline int _g_vector_%s(object seq, %s& out) except -1:" % (tag, cy)]
+        if isinstance(element, Struct):
+            out += ["    cdef %s item" % element.cls,
+                    "    out.clear()",
+                    "    for obj in seq:",
+                    "        _g_to_%s(obj, &item)" % py_class_name(element.cls),
+                    "        out.push_back(item)"]
+        else:
+            out += ["    out.clear()", "    for item in seq:", "        out.push_back(item)"]
+        out += ["    return 0", "", ""]
     return out
 
 
@@ -354,7 +446,7 @@ def _annotation(kind):
     if isinstance(kind, (LibRef, ClientRef, Struct)):
         return py_class_name(kind.cls)
     if isinstance(kind, Vector):
-        return "list[str]"
+        return "list[%s]" % _annotation(kind.element)
     if isinstance(kind, Void):
         return "None"
     raise AssertionError(kind)
@@ -376,7 +468,7 @@ def _library_method(plan, owner_py):
             # An output parameter of a library method: a local that is returned to Python
             # (a struct is also an argument: it is read, changed by CEF and returned).
             if isinstance(kind, Vector):
-                decls.append("cdef vector[CefString] _a%d" % i)
+                decls.append("cdef %s _a%d" % (vector_cy(kind), i))
             elif isinstance(kind, Str):
                 decls.append("cdef CefString _a%d" % i)
             elif isinstance(kind, Enum):
@@ -391,7 +483,13 @@ def _library_method(plan, owner_py):
                 pre.append("_g_to_%s(%s, &_a%d)" % (py_class_name(kind.cls), n, i))
             call_args.append("_a%d" % i)
             continue
-        if isinstance(kind, Prim):
+        if isinstance(kind, Vector):
+            sig.append(n)
+            decls.append("cdef %s _a%d" % (vector_cy(kind), i))
+            pre.append("_g_%s(%s, _a%d)" % ("str_vector" if isinstance(kind.element, Str)
+                                            else "vector_" + vector_tag(kind), n, i))
+            call_args.append("_a%d" % i)
+        elif isinstance(kind, Prim):
             sig.append("%s %s" % (cy_arg(kind.cpp), n))
             call_args.append(n)
         elif isinstance(kind, Enum):
@@ -474,7 +572,8 @@ def _library_method(plan, owner_py):
             continue
         kind = param.kind
         if isinstance(kind, Vector):
-            values.append("_g_str_list(&_a%d)" % i)
+            values.append("_g_%s(&_a%d)" % ("str_list" if isinstance(kind.element, Str)
+                                            else "list_" + vector_tag(kind), i))
         elif isinstance(kind, Str):
             values.append("_g_str(_a%d)" % i)
         elif isinstance(kind, Enum):
@@ -530,7 +629,8 @@ def _trampoline(plan, cls_py):
         elif isinstance(kind, Struct):
             py_args.append("_g_from_%s(%s)" % (py_class_name(kind.cls), n))
         elif isinstance(kind, Vector):
-            py_args.append("_g_str_list(%s)" % n)
+            py_args.append("_g_%s(%s)" % ("str_list" if isinstance(kind.element, Str)
+                                          else "list_" + vector_tag(kind), n))
         elif isinstance(kind, LibRef):
             py_args.append("_wrap_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
         elif isinstance(kind, Buffer):
@@ -594,6 +694,8 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
     out += PRELUDE.strip("\n").split("\n")
     out.append("")
 
+    vectors = used_vectors([p for plans in plans_by_class.values() for p in plans if p.supported] +
+                           [p for p in function_plans if p.supported])
     structs = all_structs(model)
     if structs:
         out.append("")
@@ -604,6 +706,10 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
             out += _struct_pxi(struct)
             out.append("")
             out.append("")
+
+    if vectors:
+        out.append("# Lists")
+        out += _vector_helpers(vectors)
 
     out.append("# Forward declarations (the classes refer to each other)")
     for cls in lib:
@@ -617,6 +723,10 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
         out.append("cdef class %s:" % py)
         out += _docstring(model.comment(cls), 4)
         out.append("    cdef CefRefPtr[%s] _ref" % cn)
+        out.append("")
+        out.append("    def __dealloc__(self):")
+        out.append("        if _cef_was_shut_down:")
+        out.append("            _g_forget(<void*>&self._ref)")
         out.append("")
         out.append("    def __init__(self):")
         out.append('        raise TypeError("%s objects are created by CEF or by a create() function")' % py)

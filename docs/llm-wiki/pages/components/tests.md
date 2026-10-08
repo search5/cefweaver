@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 96개(통합 40, 생성기 55, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 112개(통합 47, 생성기 64, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -32,6 +32,7 @@ updated: 2026-10-08
 | | `test_the_types_module_has_the_enumerations_and_value_types` | `cefweaver.types`의 `IntEnum`, `IntFlag`, 값 타입이 `cefweaver`의 것과 같은 객체 |
 | | `test_library_methods_return_enumeration_members` | `Request.get_resource_type()`이 `ResourceType` 멤버이고 여전히 `int` |
 | | `test_the_menu_model_and_the_display_are_public` | `MenuModel`, `MenuModelDelegate`, `Display`의 공개 여부 |
+| | `test_print_settings_and_the_drag_handler_are_public`, `test_the_task_manager_is_public` | 새 클래스의 공개 여부 |
 | | `test_set_client_checks_its_argument` | `Client`가 아닌 객체와 핸들러는 `TypeError`, `None`은 허용 |
 | `WithCef` (실제 CEF) | `test_javascript_to_python_binding_and_shutdown` | 네 가지 값 형식(한글 포함)의 전달, 종료 후 `is_running`이 거짓 |
 | | `test_zero_argument_call_and_exceptions_do_not_crash` | 인자 없는 호출, 콜백 예외가 CEF를 죽이지 않음 |
@@ -54,6 +55,11 @@ updated: 2026-10-08
 | | `test_handlers_receive_enumeration_members_and_modifiers_are_flags` | `on_load_error`가 `ErrorCode` 멤버를 받음, `SHIFT_DOWN \| CONTROL_DOWN`이 페이지의 수정자로 도착 |
 | | `test_output_parameters_of_a_library_method_come_back_with_its_result` | `MenuModel`의 가속키(여러 출력)와 색(typedef 정수 출력)이 결과 뒤에 돌아옴 |
 | | `test_a_struct_given_to_a_library_method_is_changed_and_returned` | `Display`의 좌표 변환(배율 2)이 구조체를 읽고 바꿔 돌려줌, 일반 튜플도 받음 |
+| | `test_lists_of_structs_go_into_and_come_out_of_a_library_object` | `PrintSettings`의 `Range` 목록 왕복(`Range`와 일반 튜플), 잘못된 길이의 `TypeError` |
+| | `test_a_list_of_objects_comes_out_of_a_library_method` | `Display.get_all_displays()` |
+| | `test_a_list_of_integers_comes_out_of_a_library_method` | `TaskManager.get_task_ids_list()`의 `(True, [정수...])`, 개수 일치 |
+| | `test_a_library_object_that_outlives_shutdown_does_not_crash_the_process` | 종료 뒤에 해제되는 `TaskManager`가 SIGTRAP을 내지 않음 |
+| | `test_the_drag_handler_receives_the_draggable_regions_as_value_types` | CSS 드래그 영역 → `DraggableRegion(bounds=Rect(...))` 목록 |
 | | `test_initialize_after_shutdown_raises_instead_of_crashing` | `shutdown()` 뒤 `initialize()`는 `RuntimeError`(전에는 세그멘테이션 오류) |
 | | `test_the_process_can_end_without_shutdown` | 핸들러가 살아 있고 요청이 진행 중인 채 종료해도 정상 종료 |
 | | `test_a_path_the_factory_declines_goes_on_to_the_default_handling` | `create()`가 `None`이면 CEF 기본 처리로 넘어가 `on_load_error` |
@@ -69,6 +75,7 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 - 모든 핸들러에 전달 클래스가 생성되는지, 그리고 **실제 C++ 컴파일러**로 클라이언트와 세 핸들러의 전달 클래스를 한 참조 계수 클래스에 합칠 수 있는지(`c++ -fsyntax-only`, 컴파일러가 없으면 건너뜀)
 - 값 타입 구조체: 필드를 C 헤더에서 읽는지, 예약어 필드 이름, 평범한 데이터가 아닌 구조체의 제외, 핸들러의 구조체 입력과 출력, 라이브러리 메서드의 구조체 입력과 반환, 핸들러의 구조체 반환이 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `NamedTuple`
 - **생성된 C++ 프록시를 컴파일해서 실행**: 입력 구조체가 포인터로 전달되고 출력 구조체가 참조 인자에 복사되는지(`libcef.so`가 없으면 건너뜀)
+- 벡터: 구조체, 객체, 정수 목록의 분류와 방향별 허용, 중첩 구조체, 스텁의 `Sequence[...]`와 `list[...]`, 정적 메서드, 표의 요소 타입. 생성된 C++ 프록시 실행 시험에 `CefDraggableRegion` 벡터가 들어 있습니다.
 - 라이브러리 메서드의 출력 인자: 출력 전용(가속키의 여러 출력, typedef 출력, 문자열)과 구조체 입출력의 분류, 핸들러의 출력 인자는 출력 전용인지, 새 클래스가 범위에 있는지, 스텁의 튜플 반환과 `Point | tuple[int, int]`
 - 열거형: 값 읽기(마우스 버튼, 오류 코드, 평가된 시프트와 마스크), 비트 플래그 판별, 전처리 분기, 멤버 중복 없음, 생성된 `types.py`의 실행, 스텁의 임포트와 `ErrorCode`, `MouseButtonType | int`
 - 문자열 벡터: 라이브러리 메서드의 출력 인자(`get_frame_names`)와 핸들러의 입력(`on_favicon_url_change`)의 분류, 그 밖의 벡터가 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `list[str]`. 생성된 C++ 프록시 실행 시험에도 벡터 전달이 들어 있습니다.

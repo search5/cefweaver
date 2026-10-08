@@ -30,7 +30,11 @@ cdef extern from "include/internal/cef_string.h":
 
 ctypedef uint32_t cef_color_t
 cdef extern from "include/internal/cef_types.h":
+    ctypedef enum cef_color_model_t:
+        pass
     ctypedef enum cef_drag_operations_mask_t:
+        pass
+    ctypedef enum cef_duplex_mode_t:
         pass
     ctypedef enum cef_errorcode_t:
         pass
@@ -63,6 +67,8 @@ cdef extern from "include/internal/cef_types.h":
 
 # Value type structs (plain data, copied to and from Python named tuples)
 cdef extern from "include/internal/cef_types_wrappers.h":
+    ctypedef struct cef_rect_t:  # a field that is another struct
+        pass
     cdef cppclass CefInsets:
         CefInsets()
         int top
@@ -92,6 +98,10 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         CefSize()
         int width
         int height
+    cdef cppclass CefDraggableRegion:
+        CefDraggableRegion()
+        cef_rect_t bounds
+        int draggable
 
 # Forward declarations
 cdef extern from "include/cef_browser.h":
@@ -106,6 +116,8 @@ cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
+cdef extern from "include/cef_print_settings.h":
+    cdef cppclass CefPrintSettings(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -114,10 +126,14 @@ cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceSkipCallback(CefBaseRefCounted)
 cdef extern from "include/cef_response.h":
     cdef cppclass CefResponse(CefBaseRefCounted)
+cdef extern from "include/cef_task_manager.h":
+    cdef cppclass CefTaskManager(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted)
+cdef extern from "include/cef_drag_handler.h":
+    cdef cppclass CefDragHandler(CefBaseRefCounted)
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
 cdef extern from "include/cef_load_handler.h":
@@ -234,6 +250,8 @@ cdef extern from "include/views/cef_display.h":
         @staticmethod
         size_t GetDisplayCount() nogil
         @staticmethod
+        void GetAllDisplays(vector[CefRefPtr[CefDisplay]]&) nogil
+        @staticmethod
         CefPoint ConvertScreenPointToPixels(const CefPoint&) nogil
         @staticmethod
         CefPoint ConvertScreenPointFromPixels(const CefPoint&) nogil
@@ -326,6 +344,33 @@ cdef extern from "include/cef_menu_model.h":
         @staticmethod
         CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
 
+cdef extern from "include/cef_print_settings.h":
+    cdef cppclass CefPrintSettings(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsReadOnly() nogil
+        void SetOrientation(cpp_bool) nogil
+        cpp_bool IsLandscape() nogil
+        void SetPrinterPrintableArea(const CefSize&, const CefRect&, cpp_bool) nogil
+        void SetDeviceName(const CefString&) nogil
+        CefString GetDeviceName() nogil
+        void SetDPI(int) nogil
+        int GetDPI() nogil
+        void SetPageRanges(const vector[CefRange]&) nogil
+        size_t GetPageRangesCount() nogil
+        void GetPageRanges(vector[CefRange]&) nogil
+        void SetSelectionOnly(cpp_bool) nogil
+        cpp_bool IsSelectionOnly() nogil
+        void SetCollate(cpp_bool) nogil
+        cpp_bool WillCollate() nogil
+        void SetColorModel(cef_color_model_t) nogil
+        cef_color_model_t GetColorModel() nogil
+        void SetCopies(int) nogil
+        int GetCopies() nogil
+        void SetDuplexMode(cef_duplex_mode_t) nogil
+        cef_duplex_mode_t GetDuplexMode() nogil
+        @staticmethod
+        CefRefPtr[CefPrintSettings] Create() nogil
+
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted):
         cpp_bool IsReadOnly() nogil
@@ -376,12 +421,24 @@ cdef extern from "include/cef_response.h":
         @staticmethod
         CefRefPtr[CefResponse] Create() nogil
 
+cdef extern from "include/cef_task_manager.h":
+    cdef cppclass CefTaskManager(CefBaseRefCounted):
+        size_t GetTasksCount() nogil
+        cpp_bool GetTaskIdsList(vector[int64_t]&) nogil
+        cpp_bool KillTask(int64_t) nogil
+        int64_t GetTaskIdForBrowserId(int) nogil
+        @staticmethod
+        CefRefPtr[CefTaskManager] GetTaskManager() nogil
+
 # Client classes (implemented by the application; Cython only needs the type)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_drag_handler.h":
+    cdef cppclass CefDragHandler(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted):
@@ -413,6 +470,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         void* py
         void (*release)(void*) noexcept
         CefDisplayHandler* (*fn_get_display_handler)(void*) noexcept
+        CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
     cdef cppclass CwClientProxy(CefClient):
@@ -434,6 +492,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
     cdef cppclass CwDisplayHandlerProxy(CefDisplayHandler):
         CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks&)
+    cdef cppclass CwDragHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, const vector[CefDraggableRegion]*) noexcept
+    cdef cppclass CwDragHandlerProxy(CefDragHandler):
+        CwDragHandlerProxy(const CwDragHandlerCallbacks&)
     cdef cppclass CwLifeSpanHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

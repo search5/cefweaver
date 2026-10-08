@@ -271,6 +271,13 @@ class WithHeaders(unittest.TestCase):
             "  icons = static_cast<int>(urls->size());\n"
             "  first = (*urls)[0].ToString();\n"
             "}\n"
+            "static int regions = 0; static int region_w = 0; static int region_flag = 0;\n"
+            "static void dragged(void*, CefBrowser*, CefFrame*,\n"
+            "                    const std::vector<CefDraggableRegion>* list) {\n"
+            "  regions = static_cast<int>(list->size());\n"
+            "  region_w = (*list)[0].bounds.width;\n"
+            "  region_flag = (*list)[0].draggable;\n"
+            "}\n"
             "static bool screen(void*, CefBrowser*, CefRect* rect) {\n"
             "  rect->x = 10; rect->y = 20; rect->width = 30; rect->height = 40;\n"
             "  return true;\n"
@@ -282,6 +289,12 @@ class WithHeaders(unittest.TestCase):
             "  cb.fn_on_contents_bounds_change = bounds;\n"
             "  cb.fn_get_root_window_screen_rect = screen;\n"
             "  cb.fn_on_favicon_url_change = favicons;\n"
+            "  CwDragHandlerCallbacks drag_cb;\n"
+            "  drag_cb.fn_on_draggable_regions_changed = dragged;\n"
+            "  CefRefPtr<CefDragHandler> drag_ref = new CwDragHandlerProxy(drag_cb);\n"
+            "  std::vector<CefDraggableRegion> list;\n"
+            "  list.push_back(CefDraggableRegion(CefRect(1, 2, 300, 40), true));\n"
+            "  drag_ref.get()->OnDraggableRegionsChanged(nullptr, nullptr, list);\n"
             "  CefRefPtr<CefDisplayHandler> ref = new CwDisplayHandlerProxy(cb);\n"
             "  CefDisplayHandler* handler = ref.get();  // operator-> would need the wrapper library\n"
             "  bool a = handler->OnContentsBoundsChange(nullptr, CefRect(5, 6, 7, 8));\n"
@@ -290,8 +303,9 @@ class WithHeaders(unittest.TestCase):
             "  std::vector<CefString> urls;\n"
             '  urls.push_back(CefString("http://a/1.png")); urls.push_back(CefString("http://a/2.png"));\n'
             "  handler->OnFaviconURLChange(nullptr, urls);\n"
-            '  std::printf("%d %d,%d,%d,%d %d %d,%d,%d,%d %d %s\\n", a, seen.x, seen.y, seen.width,\n'
-            "              seen.height, b, out.x, out.y, out.width, out.height, icons, first.c_str());\n"
+            '  std::printf("%d %d,%d,%d,%d %d %d,%d,%d,%d %d %s %d %d %d\\n", a, seen.x, seen.y, seen.width,\n'
+            "              seen.height, b, out.x, out.y, out.width, out.height, icons, first.c_str(),\n"
+            "              regions, region_w, region_flag);\n"
             "  return 0;\n"
             "}\n"
         )
@@ -308,7 +322,7 @@ class WithHeaders(unittest.TestCase):
                 capture_output=True, text=True)
             self.assertEqual(built.returncode, 0, built.stderr[-3000:])
             ran = subprocess.run([exe], capture_output=True, text=True)
-        self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40 2 http://a/1.png", ran.stderr)
+        self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40 2 http://a/1.png 1 300 1", ran.stderr)
 
 
     # -- CefBrowserHost -----------------------------------------------------------------
@@ -356,7 +370,8 @@ class WithHeaders(unittest.TestCase):
 
     def test_other_vectors_say_what_is_missing(self):
         # Elements other than strings, and vectors given to a library method.
-        for cls, name in (("CefBrowserHost", "ImeSetComposition"), ("CefBrowserHost", "RunFileDialog")):
+        for cls, name in (("CefBrowserHost", "ImeSetComposition"),
+                          ("CefTranslatorTest", "SetRefPtrClientList")):
             plan = self.plan_in(self.everything, cls, name)
             self.assertFalse(plan.supported, name)
             self.assertIn("vector", plan.reason, name)
@@ -505,6 +520,66 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("def get_accelerator(self, command_id: int) -> tuple[bool, int, bool, bool, bool]:",
                       stub)
         self.assertIn("def convert_point_to_pixels(self, point: Point | tuple[int, int]) -> Point:", stub)
+
+
+    # -- vectors of structs, objects and integers ------------------------------------------
+
+    def test_a_struct_may_contain_another_struct(self):
+        region = self.model.structs["CefDraggableRegion"]
+        self.assertEqual([(f.name, f.py) for f in region.fields],
+                         [("bounds", "Rect"), ("draggable", "int")])
+        self.assertEqual(region.fields[0].struct, "CefRect")
+        self.assertEqual(region.fields[1].struct, "")
+
+    def test_a_library_method_takes_and_returns_a_vector_of_structs(self):
+        plan = self.plan_in(self.everything, "CefPrintSettings", "GetPageRanges")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Vector(Struct("CefRange", self.model.structs["CefRange"].fields)))
+        plan = self.plan_in(self.everything, "CefPrintSettings", "SetPageRanges")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.ins[0].kind, Vector)
+        self.assertIsInstance(plan.ins[0].kind.element, Struct)
+
+    def test_a_library_method_returns_a_vector_of_objects(self):
+        plan = self.plan_in(self.everything, "CefDisplay", "GetAllDisplays")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Vector(LibRef("CefDisplay")))
+
+    def test_a_library_method_returns_a_vector_of_integers(self):
+        plan = self.plan_in(self.everything, "CefTaskManager", "GetTaskIdsList")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Vector(Prim("int64_t", "int")))
+
+    def test_a_handler_receives_a_vector_of_nested_structs(self):
+        plan = self.plan_in(self.scope, "CefDragHandler", "OnDraggableRegionsChanged")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.ins[-1].kind.element.cls, "CefDraggableRegion")
+
+    def test_vectors_of_things_that_are_not_ready_say_what_is_missing(self):
+        # A list of client objects given to a library method, and lists of classes that
+        # are not generated.
+        plan = self.plan_in(self.everything, "CefTranslatorTest", "SetRefPtrClientList")
+        self.assertFalse(plan.supported)
+        self.assertIn("vector", plan.reason)
+
+    def test_vector_tables_use_the_element_type(self):
+        header = self.generated("proxies")
+        self.assertIn("(*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, "
+                      "const std::vector<CefDraggableRegion>*)", header)
+
+    def test_the_stub_declares_lists_of_the_element_types(self):
+        stub = self.generated("pyi")
+        self.assertIn("def get_page_ranges(self) -> list[Range]:", stub)
+        self.assertIn("def set_page_ranges(self, ranges: Sequence[Range | tuple[int, int]]) -> None:", stub)
+        self.assertIn("    @staticmethod\n    def get_all_displays() -> list[Display]:", stub)  # a static method
+        self.assertIn("regions: list[DraggableRegion]", stub)
+        self.assertIn("def get_task_ids_list(self) -> tuple[bool, list[int]]:", stub)
+
+    def test_the_draggable_region_is_a_value_type_with_a_nested_rect(self):
+        types = self.generated_types()
+        region = types["DraggableRegion"](types["Rect"](0, 0, 100, 50), 1)
+        self.assertEqual(region.bounds.width, 100)
+        self.assertEqual(types["DraggableRegion"]._fields, ("bounds", "draggable"))
 
 
     def test_generated_files_are_up_to_date(self):

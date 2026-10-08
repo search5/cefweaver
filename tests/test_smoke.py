@@ -173,6 +173,16 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertTrue(hasattr(cefweaver.MenuModel, "get_accelerator"))
         self.assertTrue(hasattr(cefweaver.Display, "convert_point_to_pixels"))
 
+    def test_print_settings_and_the_drag_handler_are_public(self):
+        for name in ("PrintSettings", "DragHandler"):
+            self.assertIn(name, cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.PrintSettings, "get_page_ranges"))
+        self.assertTrue(hasattr(cefweaver.Display, "get_all_displays"))
+
+    def test_the_task_manager_is_public(self):
+        self.assertIn("TaskManager", cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.TaskManager, "get_task_ids_list"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1007,6 +1017,105 @@ class WithCef(unittest.TestCase):
             assert display.convert_point_from_pixels((40, 80)) == (20, 40)  # a plain tuple goes in
             bounds = display.get_bounds()
             assert isinstance(bounds, types.Rect) and bounds.width > 0, bounds
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_lists_of_structs_go_into_and_come_out_of_a_library_object(self):
+        result = run_cef("""
+            from cefweaver import types
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            settings = cefweaver.PrintSettings.create()
+            assert settings.get_page_ranges() == []
+            # Range objects and plain tuples both go in; Range objects come out.
+            settings.set_page_ranges([types.Range(1, 3), (5, 5), types.Range(9, 12)])
+            ranges = settings.get_page_ranges()
+            assert ranges == [(1, 3), (5, 5), (9, 12)], ranges
+            assert all(isinstance(r, types.Range) for r in ranges), ranges
+            assert settings.get_page_ranges_count() == 3
+            try:
+                settings.set_page_ranges([(1, 2, 3)])
+            except TypeError:
+                pass
+            else:
+                raise AssertionError("expected a TypeError for a range with three values")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_list_of_objects_comes_out_of_a_library_method(self):
+        result = run_cef("""
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            displays = cefweaver.Display.get_all_displays()
+            assert isinstance(displays, list) and displays, displays
+            assert all(isinstance(d, cefweaver.Display) for d in displays), displays
+            primary = cefweaver.Display.get_primary_display()
+            assert primary.get_id() in [d.get_id() for d in displays]
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_the_drag_handler_receives_the_draggable_regions_as_value_types(self):
+        result = run_cef("""
+            from cefweaver import types
+            regions = []
+            class Drag(cefweaver.DragHandler):
+                def on_draggable_regions_changed(self, browser, frame, regions_):
+                    regions.append(list(regions_))
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.drag = Drag()
+                def get_drag_handler(self):
+                    return self.drag
+            app.set_client(MyClient())
+            app.initialize(page("<div style='-webkit-app-region: drag; position: absolute; "
+                                "left: 10px; top: 20px; width: 300px; height: 40px'>title bar</div>"))
+            wait_until(app, lambda: any(r for r in regions), "the draggable regions")
+            region = next(r for r in regions if r)[0]
+            assert isinstance(region, types.DraggableRegion), region
+            assert isinstance(region.bounds, types.Rect), region
+            assert region.bounds == (10, 20, 300, 40), region
+            assert region.draggable, region
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_a_list_of_integers_comes_out_of_a_library_method(self):
+        result = run_cef("""
+            app.initialize(page("<title>tasks</title>x"))
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            manager = cefweaver.TaskManager.get_task_manager()
+            ok, ids = manager.get_task_ids_list()
+            assert ok is True, ok
+            assert isinstance(ids, list) and ids, ids
+            assert all(type(i) is int for i in ids), ids
+            assert len(ids) == manager.get_tasks_count(), (ids, manager.get_tasks_count())
+            app.shutdown()
+            print("OK")  # `manager` is still alive here, and is released after CEF has shut down
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_library_object_that_outlives_shutdown_does_not_crash_the_process(self):
+        # Releasing a CefTaskManager after CefShutdown() ended the process with SIGTRAP when
+        # the interpreter exited (every time, even if no method was called). Library objects
+        # that are freed after shutdown() are dropped without a Release().
+        result = run_cef("""
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            manager = cefweaver.TaskManager.get_task_manager()
             app.shutdown()
             print("OK")
         """)

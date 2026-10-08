@@ -36,7 +36,7 @@ class Load(cefweaver.LoadHandler):
 | --- | --- | --- | --- |
 | 열거형 | 100 (멤버 1,309개) | `enum.IntEnum` | `MouseButtonType`, `ErrorCode`, `TransitionType`, `ResourceType`, `RuntimeStyle` |
 | 비트 플래그 | 17 (위 100개에 포함) | `enum.IntFlag` | `EventFlags`, `DragOperationsMask`, `SchemeOptions`, `LogItems` |
-| 값 타입 구조체 | 6 | `typing.NamedTuple` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent` |
+| 값 타입 구조체 | 7 | `typing.NamedTuple` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`(필드 `bounds`가 `Rect`) |
 
 값 타입은 `cefweaver.Rect`와 같은 객체입니다(`cefweaver.Rect is cefweaver.types.Rect`). 열거형은 `cefweaver.types`에만 있습니다.
 
@@ -46,6 +46,8 @@ class Load(cefweaver.LoadHandler):
 - CEF에서 받을 때(핸들러의 인자, 라이브러리 메서드의 반환값)는 **멤버로 변환**합니다. 열거형의 멤버에 없는 값을 CEF가 주면 변환하지 못하고 **일반 `int`로 그대로** 전달합니다(예외를 내지 않음). `IntFlag`는 멤버의 조합이어도 변환됩니다.
 - 그래서 `error_code == -102`와 `error_code is types.ErrorCode.CONNECTION_REFUSED`가 모두 참입니다.
 - 타입 스텁: 받는 쪽은 `ErrorCode`, 라이브러리에 주는 쪽은 `MouseButtonType | int`입니다(`mypy`가 일반 정수도 받게 하려고).
+
+구조체의 필드가 다른 구조체일 수 있습니다(`DraggableRegion.bounds`). 이때 안쪽 구조체가 먼저 정의됩니다.
 
 ## 이름 규칙
 

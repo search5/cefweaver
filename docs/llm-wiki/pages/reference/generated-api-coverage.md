@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 17개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 294개 가운데 242개가 생성되고 52개가 제외되며, 함수 3개를 더해 245개입니다.
+범위(`scope.py`)는 클래스 20개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 325개 가운데 273개가 생성되고 52개가 제외되며, 함수 3개를 더해 276개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -27,36 +27,39 @@ updated: 2026-10-08
 | `CefResponse` | 라이브러리 | 16/18 | 헤더 맵(멀티맵) 2 |
 | `CefFrame` | 라이브러리 | 20/26 | `CefStringVisitor`, `CefV8Context`, `CefDOMVisitor`, `CefURLRequest`, `CefProcessMessage`가 범위 밖(6) |
 | `CefBrowser` | 라이브러리 | 21/21 | |
-| `CefDisplay` | 라이브러리 | 15/16 | 벡터 1(`get_all_displays`는 `Display` 객체의 목록) |
+| `CefDisplay` | 라이브러리 | 16/16 | |
+| `CefPrintSettings` | 라이브러리 | 23/23 | |
+| `CefTaskManager` | 라이브러리 | 5/6 | 구조체 `cef_task_info_t`(`get_task_info`) |
 | `CefMenuModel` | 라이브러리 | 57/57 | |
 | `CefMenuModelDelegate` | 핸들러 | 7/7 | |
+| `CefDragHandler` | 핸들러 | 1/2 | 범위 밖 클래스 `CefDragData`(`on_drag_enter`) |
 | `CefBrowserHost` | 라이브러리 | 53/72 | 범위 밖 클래스 7(`CefRequestContext`, `CefNavigationEntry` 등), 값 타입 4(`CefWindowHandle` 2, `CefKeyEvent`, `CefTouchEvent`), 구조체 4(`cef_window_info_t` 3, `cef_pdf_print_settings_t`), 벡터 2(`run_file_dialog`는 라이브러리 메서드에 주는 벡터, `ime_set_composition`은 요소가 문자열이 아님), 핸들러 객체 반환 1(`get_client`), 타입 없는 포인터 1 |
-| `CefClient` | 핸들러 | 3/19 | 다른 핸들러 15개가 범위 밖(`CefRequestHandler`, `CefContextMenuHandler` 등), `CefProcessMessage`가 범위 밖(1) |
+| `CefClient` | 핸들러 | 4/19 | 다른 핸들러 14개가 범위 밖(`CefRequestHandler`, `CefContextMenuHandler` 등), `CefProcessMessage`가 범위 밖(1) |
 | `CefLoadHandler` | 핸들러 | 4/4 | |
 | `CefLifeSpanHandler` | 핸들러 | 4/6 | 값 타입 `CefPopupFeatures`(`on_before_popup`), 구조체 `cef_window_info_t`(`on_before_dev_tools_popup`) |
 | `CefDisplayHandler` | 핸들러 | 12/13 | 값 타입 `CefCursorHandle`(`on_cursor_change`) |
 
-제외된 52개의 사유는 범위 밖 클래스 32, 값 타입 6과 구조체 5, 멀티맵 4, 벡터 3, 핸들러 객체 반환 1, 타입 없는 포인터 1입니다. 범위 밖 클래스 가운데 16개는 `CefClient`가 돌려줄 다른 핸들러와 `CefProcessMessage`입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
+제외된 52개의 사유는 범위 밖 클래스 33, 값 타입 6과 구조체 6, 멀티맵 4, 벡터 1(`ime_set_composition`의 `CefCompositionUnderline`), 핸들러 객체 반환 1, 타입 없는 포인터 1입니다. 범위 밖 클래스 가운데 15개는 `CefClient`가 돌려줄 다른 핸들러와 `CefProcessMessage`입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
 
 ## 모든 클래스를 범위에 넣는다면
 
-보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,398개(87%)입니다. 값 타입 구조체를 지원하기 전에는 1,287개(81%), 문자열 벡터를 지원하기 전에는 1,354개(85%), 라이브러리 출력 인자를 지원하기 전에는 1,373개(86%)였습니다. 남은 장애물은 다음과 같습니다.
+보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,422개(89%)입니다. 지원을 넓힌 순서대로 81%(1,287), 85%(1,354, 값 타입 구조체와 문자열 벡터), 86%(1,373), 87%(1,398, 라이브러리 출력 인자), 89%(1,422, 벡터의 요소 종류 확대)였습니다. 남은 장애물은 다음과 같습니다.
 
 | 개수 | 사유 | 대응 |
 | --- | --- | --- |
-| 36 | 벡터(요소가 문자열이 아닌 것: `CefRect`, `CefV8Value`, `CefRefPtr<...>` 등) | 요소 종류 추가 |
-| 3 | 라이브러리 메서드에 주는 벡터 | 입력 방향 추가 |
-| 33 | 값 타입(`CefKeyEvent`, `CefBaseTime`, `CefWindowHandle`, `CefTouchEvent` 등 평범한 데이터가 아닌 것) | 구조체 종류의 확장 |
+| 34 | 값 타입(`CefKeyEvent`, `CefBaseTime`, `CefWindowHandle`, `CefTouchEvent` 등 평범한 데이터가 아닌 것) | 구조체 종류의 확장 |
 | 32 | 소유 포인터(`CefOwnPtr`) | 소유권 이전 규칙 |
 | 24 | 타입 없는 포인터(`void*` 단독 등) | |
 | 18 | C 구조체(`cef_*_t`: 설정, 쿠키, `cef_window_info_t` 등) | 구조체 종류의 확장 |
 | 11 | 라이브러리 메서드가 핸들러 객체를 반환 | |
 | 11 | 원시 포인터(`CefRawPtr`) | |
+| 9 | 벡터(요소가 `CefCompositionUnderline`처럼 평범하지 않은 구조체이거나 `CefRawPtr`) | 요소 종류 추가 |
 | 8 | 포인터 | |
 | 8 | 멀티맵 | |
+| 5 | `CefRefPtr` 참조(객체 참조 출력 인자) | 방향 규칙 |
+| 4 | 라이브러리 메서드에 주는 객체 목록(`CefV8Value` 목록 등) | 입력 방향 추가 |
 | 4 | 맵 | |
 | 5 | 핸들러 메서드가 구조체를 값으로 반환(`CefSize` 4, `CefRect` 1) | 반환 규칙 |
-| 4 | `CefRefPtr` 참조 | |
 | 2 | 클래스 | |
 | 1 | 핸들러 메서드가 라이브러리 객체를 반환 | |
 
@@ -77,11 +80,11 @@ updated: 2026-10-08
 
 ### 다음 단계
 
-`CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`), `CefBrowserHost`, 문자열 벡터(`browser.get_frame_names()`, `on_favicon_url_change`), 라이브러리 메서드의 출력 인자(`MenuModel`, `Display`)를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
+`CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`), `CefBrowserHost`, 문자열 벡터, 라이브러리 메서드의 출력 인자(`MenuModel`, `Display`), 벡터의 요소 종류 확대(구조체 목록, 객체 목록, 정수 목록, 중첩 구조체)와 `DragHandler`를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-1. 벡터의 요소 종류를 넓힙니다(36건과 라이브러리 메서드에 주는 벡터 3건): 구조체 목록(`dirty_rects`), 객체 목록(`get_all_displays`) 등. 오프스크린 렌더링의 `on_paint`가 이 위에 있습니다.
-2. 나머지 핸들러를 `CefClient`에 추가합니다. `MenuModel`을 열었으므로 컨텍스트 메뉴 핸들러의 `on_before_context_menu(browser, frame, params, model)`에 필요한 `MenuModel`은 준비되었습니다. 컨텍스트 메뉴와 프로세스 메시지는 위의 "합치는 방법" 결정이 먼저입니다.
-3. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures` 등).
+1. 나머지 핸들러를 `CefClient`에 추가합니다. 컨텍스트 메뉴와 프로세스 메시지는 "합치는 방법" 결정이 먼저입니다. `MenuModel`을 열었으므로 컨텍스트 메뉴 핸들러의 `on_before_context_menu(browser, frame, params, model)`에 필요한 `MenuModel`은 준비되었습니다. 오프스크린 렌더링의 `CefRenderHandler.on_paint`는 구조체 목록(`dirty_rects`)은 준비되었고 `const void*` 버퍼(읽기 전용 메모리 뷰)가 남았습니다.
+2. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures`, `CefCompositionUnderline` 등). 벡터의 마지막 장애물(9건)도 대부분 여기에 있습니다.
+3. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).
 
 확인하지 못한 항목 전체는 [알려진 제약과 미검증 항목](known-constraints.md)에 있습니다.
 

@@ -50,6 +50,16 @@ cdef inline list _g_str_list(const vector[CefString]* values):
     return result
 
 
+# Set by CefApp.shutdown(). Releasing a CEF object after CefShutdown() can end the process
+# (CefTaskManager does, when the interpreter frees it on exit), so a library object that is
+# freed afterwards is dropped without a Release(): nothing can use it any more.
+cdef bint _cef_was_shut_down = False
+
+
+cdef inline void _g_forget(void* ref) noexcept:
+    (<void**>ref)[0] = NULL  # a CefRefPtr holds exactly one pointer
+
+
 cdef void _g_report() noexcept:
     """Report the exception being handled (inside a callback called by CEF)."""
     try:
@@ -63,7 +73,7 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 # Value type structs: the named tuples are defined in cefweaver/types.py
-from cefweaver.types import Insets, MouseEvent, Point, Range, Rect, Size
+from cefweaver.types import Insets, MouseEvent, Point, Range, Rect, Size, DraggableRegion
 
 cdef inline object _g_from_Insets(const CefInsets* value):
     return Insets(value.top, value.left, value.bottom, value.right)
@@ -154,6 +164,85 @@ cdef inline int _g_to_Size(object obj, CefSize* out) except -1:
     return 0
 
 
+cdef inline object _g_from_DraggableRegion(const CefDraggableRegion* value):
+    return DraggableRegion(_g_from_Rect(<const CefRect*>&value.bounds), value.draggable)
+
+
+cdef inline int _g_to_DraggableRegion(object obj, CefDraggableRegion* out) except -1:
+    try:
+        _f0, _f1 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a DraggableRegion (or a sequence of 2 values), not %r" % (obj,)) from None
+    _g_to_Rect(_f0, <CefRect*>&out.bounds)
+    out.draggable = _f1
+    return 0
+
+
+# Lists
+cdef inline list _g_list_Display(const vector[CefRefPtr[CefDisplay]]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_wrap_Display(values[0][i]))
+    return result
+
+
+cdef inline list _g_list_DraggableRegion(const vector[CefDraggableRegion]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_g_from_DraggableRegion(&values[0][i]))
+    return result
+
+
+cdef inline int _g_vector_DraggableRegion(object seq, vector[CefDraggableRegion]& out) except -1:
+    cdef CefDraggableRegion item
+    out.clear()
+    for obj in seq:
+        _g_to_DraggableRegion(obj, &item)
+        out.push_back(item)
+    return 0
+
+
+cdef inline list _g_list_Range(const vector[CefRange]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_g_from_Range(&values[0][i]))
+    return result
+
+
+cdef inline int _g_vector_Range(object seq, vector[CefRange]& out) except -1:
+    cdef CefRange item
+    out.clear()
+    for obj in seq:
+        _g_to_Range(obj, &item)
+        out.push_back(item)
+    return 0
+
+
+cdef inline list _g_list_int64_t(const vector[int64_t]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(values[0][i])
+    return result
+
+
+cdef inline int _g_vector_int64_t(object seq, vector[int64_t]& out) except -1:
+    out.clear()
+    for item in seq:
+        out.push_back(item)
+    return 0
+
+
+cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:
+    out.clear()
+    for item in seq:
+        out.push_back(_g_cef(item))
+    return 0
+
+
 # Forward declarations (the classes refer to each other)
 cdef class Browser
 cdef class BrowserHost
@@ -161,10 +250,12 @@ cdef class Callback
 cdef class Display
 cdef class Frame
 cdef class MenuModel
+cdef class PrintSettings
 cdef class Request
 cdef class ResourceReadCallback
 cdef class ResourceSkipCallback
 cdef class Response
+cdef class TaskManager
 
 cdef class Browser:
     """Class used to represent a browser. When used in the browser process the
@@ -173,6 +264,10 @@ cdef class Browser:
     may only be called on the main thread.
     """
     cdef CefRefPtr[CefBrowser] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("Browser objects are created by CEF or by a create() function")
@@ -385,6 +480,10 @@ cdef class BrowserHost:
     comments.
     """
     cdef CefRefPtr[CefBrowserHost] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("BrowserHost objects are created by CEF or by a create() function")
@@ -1057,6 +1156,10 @@ cdef class Callback:
     """Generic callback interface used for asynchronous continuation."""
     cdef CefRefPtr[CefCallback] _ref
 
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
     def __init__(self):
         raise TypeError("Callback objects are created by CEF or by a create() function")
 
@@ -1102,6 +1205,10 @@ cdef class Display:
     https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
     """
     cdef CefRefPtr[CefDisplay] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("Display objects are created by CEF or by a create() function")
@@ -1228,6 +1335,16 @@ cdef class Display:
         return _r
 
     @staticmethod
+    def get_all_displays():
+        """Returns all Displays. Mirrored displays are excluded; this method is
+        intended to return distinct, usable displays.
+        """
+        cdef vector[CefRefPtr[CefDisplay]] _a0
+        with nogil:
+            CefDisplay.GetAllDisplays(_a0)
+        return _g_list_Display(&_a0)
+
+    @staticmethod
     def convert_screen_point_to_pixels(point):
         """Convert |point| from DIP screen coordinates to pixel screen coordinates.
         This method is only used on Windows.
@@ -1292,6 +1409,10 @@ cdef class Frame:
     methods of this class may only be called on the main thread.
     """
     cdef CefRefPtr[CefFrame] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("Frame objects are created by CEF or by a create() function")
@@ -1498,6 +1619,10 @@ cdef class MenuModel:
     this class can only be accessed on the browser process the UI thread.
     """
     cdef CefRefPtr[CefMenuModel] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("MenuModel objects are created by CEF or by a create() function")
@@ -2110,11 +2235,232 @@ cdef object _wrap_MenuModel(CefRefPtr[CefMenuModel] ref):
     return obj
 
 
+cdef class PrintSettings:
+    """Class representing print settings."""
+    cdef CefRefPtr[CefPrintSettings] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("PrintSettings objects are created by CEF or by a create() function")
+
+    cdef CefPrintSettings* _ptr(self) except NULL:
+        cdef CefPrintSettings* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("PrintSettings has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def set_orientation(self, bint landscape):
+        """Set the page orientation."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetOrientation(landscape)
+        return None
+
+    def is_landscape(self):
+        """Returns true if the orientation is landscape."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsLandscape()
+        return _r
+
+    def set_printer_printable_area(self, physical_size_device_units, printable_area_device_units, bint landscape_needs_flip):
+        """Set the printer printable area in device units.
+        Some platforms already provide flipped area. Set |landscape_needs_flip|
+        to false on those platforms to avoid double flipping.
+        """
+        cdef CefSize _a0
+        cdef CefRect _a1
+        cdef CefPrintSettings* _p = self._ptr()
+        _g_to_Size(physical_size_device_units, &_a0)
+        _g_to_Rect(printable_area_device_units, &_a1)
+        with nogil:
+            _p.SetPrinterPrintableArea(_a0, _a1, landscape_needs_flip)
+        return None
+
+    def set_device_name(self, name):
+        """Set the device name."""
+        cdef CefString _a0
+        cdef CefPrintSettings* _p = self._ptr()
+        if name is not None:
+            _a0 = _g_cef(name)
+        with nogil:
+            _p.SetDeviceName(_a0)
+        return None
+
+    def get_device_name(self):
+        """Get the device name."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetDeviceName()
+        return _g_str(_r)
+
+    def set_dpi(self, int dpi):
+        """Set the DPI (dots per inch)."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetDPI(dpi)
+        return None
+
+    def get_dpi(self):
+        """Get the DPI (dots per inch)."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetDPI()
+        return _r
+
+    def set_page_ranges(self, ranges):
+        """Set the page ranges."""
+        cdef vector[CefRange] _a0
+        cdef CefPrintSettings* _p = self._ptr()
+        _g_vector_Range(ranges, _a0)
+        with nogil:
+            _p.SetPageRanges(_a0)
+        return None
+
+    def get_page_ranges_count(self):
+        """Returns the number of page ranges that currently exist."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetPageRangesCount()
+        return _r
+
+    def get_page_ranges(self):
+        """Retrieve the page ranges."""
+        cdef vector[CefRange] _a0
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.GetPageRanges(_a0)
+        return _g_list_Range(&_a0)
+
+    def set_selection_only(self, bint selection_only):
+        """Set whether only the selection will be printed."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetSelectionOnly(selection_only)
+        return None
+
+    def is_selection_only(self):
+        """Returns true if only the selection will be printed."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsSelectionOnly()
+        return _r
+
+    def set_collate(self, bint collate):
+        """Set whether pages will be collated."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetCollate(collate)
+        return None
+
+    def will_collate(self):
+        """Returns true if pages will be collated."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.WillCollate()
+        return _r
+
+    def set_color_model(self, int model):
+        """Set the color model."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetColorModel(<cef_color_model_t>model)
+        return None
+
+    def get_color_model(self):
+        """Get the color model."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cef_color_model_t _r
+        with nogil:
+            _r = _p.GetColorModel()
+        return _g_enum(_types.ColorModel, <int>_r)
+
+    def set_copies(self, int copies):
+        """Set the number of copies."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetCopies(copies)
+        return None
+
+    def get_copies(self):
+        """Get the number of copies."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetCopies()
+        return _r
+
+    def set_duplex_mode(self, int mode):
+        """Set the duplex mode."""
+        cdef CefPrintSettings* _p = self._ptr()
+        with nogil:
+            _p.SetDuplexMode(<cef_duplex_mode_t>mode)
+        return None
+
+    def get_duplex_mode(self):
+        """Get the duplex mode."""
+        cdef CefPrintSettings* _p = self._ptr()
+        cdef cef_duplex_mode_t _r
+        with nogil:
+            _r = _p.GetDuplexMode()
+        return _g_enum(_types.DuplexMode, <int>_r)
+
+    @staticmethod
+    def create():
+        """Create a new CefPrintSettings object."""
+        cdef CefRefPtr[CefPrintSettings] _r
+        with nogil:
+            _r = CefPrintSettings.Create()
+        return _wrap_PrintSettings(_r)
+
+
+cdef object _wrap_PrintSettings(CefRefPtr[CefPrintSettings] ref):
+    cdef PrintSettings obj
+    if ref.get() == NULL:
+        return None
+    obj = PrintSettings.__new__(PrintSettings)
+    obj._ref = ref
+    return obj
+
+
 cdef class Request:
     """Class used to represent a web request. The methods of this class may be
     called on any thread.
     """
     cdef CefRefPtr[CefRequest] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("Request objects are created by CEF or by a create() function")
@@ -2322,6 +2668,10 @@ cdef class ResourceReadCallback:
     """Callback for asynchronous continuation of CefResourceHandler::Read()."""
     cdef CefRefPtr[CefResourceReadCallback] _ref
 
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
     def __init__(self):
         raise TypeError("ResourceReadCallback objects are created by CEF or by a create() function")
 
@@ -2358,6 +2708,10 @@ cdef class ResourceSkipCallback:
     """Callback for asynchronous continuation of CefResourceHandler::Skip()."""
     cdef CefRefPtr[CefResourceSkipCallback] _ref
 
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
     def __init__(self):
         raise TypeError("ResourceSkipCallback objects are created by CEF or by a create() function")
 
@@ -2393,6 +2747,10 @@ cdef class Response:
     called on any thread.
     """
     cdef CefRefPtr[CefResponse] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
 
     def __init__(self):
         raise TypeError("Response objects are created by CEF or by a create() function")
@@ -2558,11 +2916,104 @@ cdef object _wrap_Response(CefRefPtr[CefResponse] ref):
     return obj
 
 
+cdef class TaskManager:
+    """Class that facilitates managing the browser-related tasks.
+    The methods of this class may only be called on the UI thread.
+    """
+    cdef CefRefPtr[CefTaskManager] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("TaskManager objects are created by CEF or by a create() function")
+
+    cdef CefTaskManager* _ptr(self) except NULL:
+        cdef CefTaskManager* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("TaskManager has no CEF object")
+        return p
+
+    def get_tasks_count(self):
+        """Returns the number of tasks currently tracked by the task manager.
+        Returns 0 if the method was called from the incorrect thread.
+        """
+        cdef CefTaskManager* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetTasksCount()
+        return _r
+
+    def get_task_ids_list(self):
+        """Gets the list of task IDs currently tracked by the task manager. Tasks
+        that share the same process id will always be consecutive. The list will
+        be sorted in a way that reflects the process tree: the browser process
+        will be first, followed by the gpu process if it exists. Related processes
+        (e.g., a subframe process and its parent) will be kept together if
+        possible. Callers can expect this ordering to be stable when a process is
+        added or removed. The task IDs are unique within the application lifespan.
+        Returns false if the method was called from the incorrect thread.
+        """
+        cdef vector[int64_t] _a0
+        cdef CefTaskManager* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetTaskIdsList(_a0)
+        return (_r, _g_list_int64_t(&_a0))
+
+    def kill_task(self, int64_t task_id):
+        """Attempts to terminate a task with |task_id|.
+        Returns false if the |task_id| is invalid, the call is made from an
+        incorrect thread, or if the task cannot be terminated.
+        """
+        cdef CefTaskManager* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.KillTask(task_id)
+        return _r
+
+    def get_task_id_for_browser_id(self, int browser_id):
+        """Returns the task ID associated with the main task for |browser_id|
+        (value from CefBrowser::GetIdentifier). Returns -1 if |browser_id| is
+        invalid, does not currently have an associated task, or the method was
+        called from the incorrect thread.
+        """
+        cdef CefTaskManager* _p = self._ptr()
+        cdef int64_t _r
+        with nogil:
+            _r = _p.GetTaskIdForBrowserId(browser_id)
+        return _r
+
+    @staticmethod
+    def get_task_manager():
+        """Returns the global task manager object.
+        Returns nullptr if the method was called from the incorrect thread.
+        """
+        cdef CefRefPtr[CefTaskManager] _r
+        with nogil:
+            _r = CefTaskManager.GetTaskManager()
+        return _wrap_TaskManager(_r)
+
+
+cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
+    cdef TaskManager obj
+    if ref.get() == NULL:
+        return None
+    obj = TaskManager.__new__(TaskManager)
+    obj._ref = ref
+    return obj
+
+
 class Client:
     """Implement this interface to provide handler implementations."""
 
     def get_display_handler(self):
         """Return the handler for browser display state events."""
+        return None
+
+    def get_drag_handler(self):
+        """Return the handler for drag events."""
         return None
 
     def get_life_span_handler(self):
@@ -2579,6 +3030,15 @@ cdef CefDisplayHandler* _Client_get_display_handler(void* py) noexcept with gil:
         _r = (<object>py).get_display_handler()
         _r0 = _r
         return _g_export_DisplayHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefDragHandler* _Client_get_drag_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_drag_handler()
+        _r0 = _r
+        return _g_export_DragHandler(_r0)
     except BaseException:
         _g_report()
         return NULL
@@ -2616,6 +3076,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     cb.release = _g_release
     if getattr(cls, "get_display_handler", None) is not Client.get_display_handler:
         cb.fn_get_display_handler = _Client_get_display_handler
+    if getattr(cls, "get_drag_handler", None) is not Client.get_drag_handler:
+        cb.fn_get_drag_handler = _Client_get_drag_handler
     if getattr(cls, "get_life_span_handler", None) is not Client.get_life_span_handler:
         cb.fn_get_life_span_handler = _Client_get_life_span_handler
     if getattr(cls, "get_load_handler", None) is not Client.get_load_handler:
@@ -2870,6 +3332,55 @@ cdef inline CefDisplayHandler* _g_export_DisplayHandler(object obj) except? NULL
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefDisplayHandler] ref = _g_make_DisplayHandler(obj)
     cdef CefDisplayHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class DragHandler:
+    """Implement this interface to handle events related to dragging. The methods
+    of this class will be called on the UI thread.
+    """
+
+    def on_draggable_regions_changed(self, browser, frame, regions):
+        """Called whenever draggable regions for the browser window change. These can
+        be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+        draggable regions are never defined in a document this method will also
+        never be called. If the last draggable region is removed from a document
+        this method will be called with an empty vector.
+        """
+        return None
+
+
+cdef void _DragHandler_on_draggable_regions_changed(void* py, CefBrowser* browser, CefFrame* frame, const vector[CefDraggableRegion]* regions) noexcept with gil:
+    try:
+        _r = (<object>py).on_draggable_regions_changed(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_list_DraggableRegion(regions))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDragHandler] _g_make_DragHandler(object obj) except *:
+    cdef CefRefPtr[CefDragHandler] ref
+    cdef CwDragHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DragHandler):
+        raise TypeError("expected a DragHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_draggable_regions_changed", None) is not DragHandler.on_draggable_regions_changed:
+        cb.fn_on_draggable_regions_changed = _DragHandler_on_draggable_regions_changed
+    ref = CefRefPtr[CefDragHandler](<CefDragHandler*>new CwDragHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefDragHandler* _g_export_DragHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDragHandler] ref = _g_make_DragHandler(obj)
+    cdef CefDragHandler* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -3638,4 +4149,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "Browser", "BrowserHost", "Callback", "Display", "Frame", "MenuModel", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "Client", "DisplayHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "Browser", "BrowserHost", "Callback", "Display", "Frame", "MenuModel", "PrintSettings", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "TaskManager", "Client", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

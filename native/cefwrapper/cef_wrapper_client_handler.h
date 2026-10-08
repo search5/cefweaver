@@ -21,6 +21,7 @@
 // from the user's client every time CEF asks for the handler.
 class CefWrapperClientHandler : public CefClient,
                       public CwDisplayHandlerForward,
+                      public CwDragHandlerForward,
                       public CwLifeSpanHandlerForward,
                       public CwLoadHandlerForward,
                       public CefContextMenuHandler {
@@ -58,6 +59,12 @@ public:
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
     forward_display_handler_ = user_client_ ? user_client_->GetDisplayHandler() : nullptr;
     return this;
+  }
+
+  // Nothing in the wrapper needs the drag events: they only go to the user's handler.
+  CefRefPtr<CefDragHandler> GetDragHandler() override {
+    forward_drag_handler_ = user_client_ ? user_client_->GetDragHandler() : nullptr;
+    return forward_drag_handler_ ? this : nullptr;
   }
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {

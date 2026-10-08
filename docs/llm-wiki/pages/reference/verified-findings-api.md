@@ -128,6 +128,16 @@ updated: 2026-10-08
   - `MenuModel.create_menu_model(delegate)`에는 `MenuModelDelegate`(핸들러 7개 메서드)가 필요하고, 창이나 브라우저 없이 `initialize()` 뒤에 만들 수 있었습니다.
 - **영향**: 라이브러리 출력 인자(기본형, 문자열, 열거형, 구조체)를 지원합니다. 모든 클래스를 넣었을 때의 지원이 87%가 되었고 "출력 인자" 장애물이 사라졌습니다.
 
+## F30. 벡터의 요소 종류와 종료 뒤에 해제되는 객체
+
+- **방법**: `PrintSettings`, `Display`, `TaskManager`, `DragHandler`를 범위에 넣고 요소가 구조체, 객체, 정수인 벡터를 실행했습니다.
+- **결과**:
+  - 구조체 목록: `set_page_ranges([Range(1, 3), (5, 5), Range(9, 12)])` 뒤 `get_page_ranges()`가 `Range` 세 개를 돌려주고(`get_page_ranges_count() == 3`), 값이 세 개가 아닌 튜플은 `TypeError`입니다.
+  - 객체 목록: `Display.get_all_displays()`가 `Display` 객체의 목록이고 주 디스플레이의 ID를 포함합니다.
+  - 정수 목록: `TaskManager.get_task_manager().get_task_ids_list()`가 `(True, [0, 1, 2, 3, 4, 5])`이고 길이가 `get_tasks_count()`와 같습니다.
+  - 핸들러 입력, 중첩 구조체: CSS `-webkit-app-region: drag` 요소가 있는 페이지에서 `on_draggable_regions_changed`가 `[DraggableRegion(bounds=Rect(10, 20, 300, 40), draggable=1)]`로 불립니다(`bounds`가 `Rect`).
+- **크래시와 수정**: `TaskManager` 객체가 프로세스 종료까지 살아 있으면 인터프리터가 정리하면서 종료된 CEF에 `Release()`를 불러 **SIGTRAP**(종료 코드 133)이 납니다. 메서드를 부르지 않아도 매번 그랬고(4가지 변형 모두), `shutdown()` 앞에 `del`하면 정상입니다. `Browser`, `Display` 등은 괜찮았습니다. 수정: `shutdown()` 뒤에 해제되는 라이브러리 객체는 `Release()`를 부르지 않고 버립니다(`__dealloc__`). 시험(`test_a_library_object_that_outlives_shutdown_does_not_crash_the_process`)을 먼저 쓰고 크래시를 확인한 뒤 고쳤습니다. 여러 객체를 한꺼번에 쥔 첫 시험은 해제 순서가 달라서 크래시하지 않아 시험으로 쓸모가 없었습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

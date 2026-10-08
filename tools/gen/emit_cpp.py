@@ -25,6 +25,19 @@ def field_name(plan):
     return "fn_" + snake_case(plan.cef_name)
 
 
+def element_cpp(kind):
+    """The C++ type of the elements of a vector."""
+    if isinstance(kind, Str):
+        return "CefString"
+    if isinstance(kind, Prim):
+        return kind.cpp
+    if isinstance(kind, Struct):
+        return kind.cls
+    if isinstance(kind, LibRef):
+        return "CefRefPtr<%s>" % kind.cls
+    raise AssertionError(kind)
+
+
 def table_in_types(param):
     """C types of an input parameter in the function pointer table."""
     kind = param.kind
@@ -37,7 +50,7 @@ def table_in_types(param):
     if isinstance(kind, Struct):
         return ["const %s*" % kind.cls]
     if isinstance(kind, Vector):
-        return ["const std::vector<CefString>*"]
+        return ["const std::vector<%s>*" % element_cpp(kind.element)]
     if isinstance(kind, LibRef):
         return [kind.cls + "*"]
     if isinstance(kind, Buffer):

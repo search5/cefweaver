@@ -8,15 +8,18 @@
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
 #include "include/cef_display_handler.h"
+#include "include/cef_drag_handler.h"
 #include "include/cef_frame.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_load_handler.h"
 #include "include/cef_menu_model.h"
 #include "include/cef_menu_model_delegate.h"
+#include "include/cef_print_settings.h"
 #include "include/cef_request.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
+#include "include/cef_task_manager.h"
 #include "include/views/cef_display.h"
 #include <vector>
 
@@ -32,6 +35,13 @@ class CwClientForward : public CefClient {
       return CefClient::GetDisplayHandler();
     }
     return forward_client_->GetDisplayHandler();
+  }
+
+  CefRefPtr<CefDragHandler> GetDragHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetDragHandler();
+    }
+    return forward_client_->GetDragHandler();
   }
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
@@ -53,6 +63,7 @@ struct CwClientCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
   CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
+  CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
   CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
 };
@@ -72,6 +83,19 @@ class CwClientProxy : public CefClient {
     }
     CefDisplayHandler* raw = cb_.fn_get_display_handler(cb_.py);
     CefRefPtr<CefDisplayHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefDragHandler> GetDragHandler() override {
+    if (!cb_.fn_get_drag_handler) {
+      return CefClient::GetDragHandler();
+    }
+    CefDragHandler* raw = cb_.fn_get_drag_handler(cb_.py);
+    CefRefPtr<CefDragHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -342,6 +366,52 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
 
   IMPLEMENT_REFCOUNTING(CwDisplayHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDisplayHandlerProxy);
+};
+
+// ---- CefDragHandler ----
+
+class CwDragHandlerForward : public CefDragHandler {
+ protected:
+  CefRefPtr<CefDragHandler> forward_drag_handler_;
+
+ public:
+  void OnDraggableRegionsChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const std::vector<CefDraggableRegion>& regions) override {
+    if (!forward_drag_handler_) {
+      CefDragHandler::OnDraggableRegionsChanged(browser, frame, regions);
+      return;
+    }
+    forward_drag_handler_->OnDraggableRegionsChanged(browser, frame, regions);
+  }
+};
+
+struct CwDragHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, const std::vector<CefDraggableRegion>*) = nullptr;
+};
+
+class CwDragHandlerProxy : public CefDragHandler {
+ public:
+  explicit CwDragHandlerProxy(const CwDragHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDragHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnDraggableRegionsChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const std::vector<CefDraggableRegion>& regions) override {
+    if (!cb_.fn_on_draggable_regions_changed) {
+      CefDragHandler::OnDraggableRegionsChanged(browser, frame, regions);
+      return;
+    }
+    cb_.fn_on_draggable_regions_changed(cb_.py, browser.get(), frame.get(), &regions);
+  }
+
+ private:
+  CwDragHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDragHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDragHandlerProxy);
 };
 
 // ---- CefLifeSpanHandler ----

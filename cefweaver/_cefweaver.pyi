@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 
 class CefApp:
@@ -44,7 +44,9 @@ class CefApp:
 
 
 from .types import (
+    ColorModel,
     DragOperationsMask,
+    DuplexMode,
     ErrorCode,
     EventFlags,
     LogSeverity,
@@ -67,6 +69,7 @@ from .types import (
     Range as Range,
     Rect as Rect,
     Size as Size,
+    DraggableRegion as DraggableRegion,
 )
 
 
@@ -637,6 +640,12 @@ class Display:
         """
         ...
     @staticmethod
+    def get_all_displays() -> list[Display]:
+        """Returns all Displays. Mirrored displays are excluded; this method is
+        intended to return distinct, usable displays.
+        """
+        ...
+    @staticmethod
     def convert_screen_point_to_pixels(point: Point | tuple[int, int]) -> Point:
         """Convert |point| from DIP screen coordinates to pixel screen coordinates.
         This method is only used on Windows.
@@ -1018,6 +1027,87 @@ class MenuModel:
         ...
 
 
+class PrintSettings:
+    """Class representing print settings."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        ...
+    def set_orientation(self, landscape: bool) -> None:
+        """Set the page orientation."""
+        ...
+    def is_landscape(self) -> bool:
+        """Returns true if the orientation is landscape."""
+        ...
+    def set_printer_printable_area(self, physical_size_device_units: Size | tuple[int, int], printable_area_device_units: Rect | tuple[int, int, int, int], landscape_needs_flip: bool) -> None:
+        """Set the printer printable area in device units.
+        Some platforms already provide flipped area. Set |landscape_needs_flip|
+        to false on those platforms to avoid double flipping.
+        """
+        ...
+    def set_device_name(self, name: str | None) -> None:
+        """Set the device name."""
+        ...
+    def get_device_name(self) -> str:
+        """Get the device name."""
+        ...
+    def set_dpi(self, dpi: int) -> None:
+        """Set the DPI (dots per inch)."""
+        ...
+    def get_dpi(self) -> int:
+        """Get the DPI (dots per inch)."""
+        ...
+    def set_page_ranges(self, ranges: Sequence[Range | tuple[int, int]]) -> None:
+        """Set the page ranges."""
+        ...
+    def get_page_ranges_count(self) -> int:
+        """Returns the number of page ranges that currently exist."""
+        ...
+    def get_page_ranges(self) -> list[Range]:
+        """Retrieve the page ranges."""
+        ...
+    def set_selection_only(self, selection_only: bool) -> None:
+        """Set whether only the selection will be printed."""
+        ...
+    def is_selection_only(self) -> bool:
+        """Returns true if only the selection will be printed."""
+        ...
+    def set_collate(self, collate: bool) -> None:
+        """Set whether pages will be collated."""
+        ...
+    def will_collate(self) -> bool:
+        """Returns true if pages will be collated."""
+        ...
+    def set_color_model(self, model: ColorModel | int) -> None:
+        """Set the color model."""
+        ...
+    def get_color_model(self) -> ColorModel:
+        """Get the color model."""
+        ...
+    def set_copies(self, copies: int) -> None:
+        """Set the number of copies."""
+        ...
+    def get_copies(self) -> int:
+        """Get the number of copies."""
+        ...
+    def set_duplex_mode(self, mode: DuplexMode | int) -> None:
+        """Set the duplex mode."""
+        ...
+    def get_duplex_mode(self) -> DuplexMode:
+        """Get the duplex mode."""
+        ...
+    @staticmethod
+    def create() -> PrintSettings:
+        """Create a new CefPrintSettings object."""
+        ...
+
+
 class Request:
     """Class used to represent a web request. The methods of this class may be
     called on any thread.
@@ -1191,10 +1281,54 @@ class Response:
         ...
 
 
+class TaskManager:
+    """Class that facilitates managing the browser-related tasks.
+    The methods of this class may only be called on the UI thread.
+    """
+    def get_tasks_count(self) -> int:
+        """Returns the number of tasks currently tracked by the task manager.
+        Returns 0 if the method was called from the incorrect thread.
+        """
+        ...
+    def get_task_ids_list(self) -> tuple[bool, list[int]]:
+        """Gets the list of task IDs currently tracked by the task manager. Tasks
+        that share the same process id will always be consecutive. The list will
+        be sorted in a way that reflects the process tree: the browser process
+        will be first, followed by the gpu process if it exists. Related processes
+        (e.g., a subframe process and its parent) will be kept together if
+        possible. Callers can expect this ordering to be stable when a process is
+        added or removed. The task IDs are unique within the application lifespan.
+        Returns false if the method was called from the incorrect thread.
+        """
+        ...
+    def kill_task(self, task_id: int) -> bool:
+        """Attempts to terminate a task with |task_id|.
+        Returns false if the |task_id| is invalid, the call is made from an
+        incorrect thread, or if the task cannot be terminated.
+        """
+        ...
+    def get_task_id_for_browser_id(self, browser_id: int) -> int:
+        """Returns the task ID associated with the main task for |browser_id|
+        (value from CefBrowser::GetIdentifier). Returns -1 if |browser_id| is
+        invalid, does not currently have an associated task, or the method was
+        called from the incorrect thread.
+        """
+        ...
+    @staticmethod
+    def get_task_manager() -> TaskManager | None:
+        """Returns the global task manager object.
+        Returns nullptr if the method was called from the incorrect thread.
+        """
+        ...
+
+
 class Client:
     """Implement this interface to provide handler implementations."""
     def get_display_handler(self) -> DisplayHandler | None:
         """Return the handler for browser display state events."""
+        ...
+    def get_drag_handler(self) -> DragHandler | None:
+        """Return the handler for drag events."""
         ...
     def get_life_span_handler(self) -> LifeSpanHandler | None:
         """Return the handler for browser life span events."""
@@ -1291,6 +1425,20 @@ class DisplayHandler:
         Linux. Return true if the rectangle was provided. Return false to use the
         root window bounds on Windows or the browser content bounds on Linux. For
         additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
+        """
+        ...
+
+
+class DragHandler:
+    """Implement this interface to handle events related to dragging. The methods
+    of this class will be called on the UI thread.
+    """
+    def on_draggable_regions_changed(self, browser: Browser, frame: Frame, regions: list[DraggableRegion]) -> None:
+        """Called whenever draggable regions for the browser window change. These can
+        be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+        draggable regions are never defined in a document this method will also
+        never be called. If the last draggable region is removed from a document
+        this method will be called with an empty vector.
         """
         ...
 

@@ -1763,6 +1763,12 @@ class Size(NamedTuple):
     height: int
 
 
+class DraggableRegion(NamedTuple):
+    """The CEF value type CefDraggableRegion. Anywhere one is expected, a tuple with the same fields works too."""
+    bounds: Rect
+    draggable: int
+
+
 __all__ = [
     "AlphaType",
     "AxisAlignment",
@@ -1797,6 +1803,7 @@ __all__ = [
     "DomNodeType",
     "DownloadInterruptReason",
     "DragOperationsMask",
+    "DraggableRegion",
     "DuplexMode",
     "ErrorCode",
     "EventFlags",

@@ -63,7 +63,8 @@ class StructField:
     cname: str  # the member of the C struct (may be a Python keyword)
     name: str  # PEP 8 name in Python
     cpp: str  # the C type
-    py: str  # annotation in Python: int, bool or float
+    py: str  # annotation in Python: int, bool or float, or the class of a nested struct
+    struct: str = ""  # the C++ class of a nested struct (CefRect in CefDraggableRegion), else ""
 
 
 @dataclass(frozen=True)
@@ -78,22 +79,30 @@ def _strip_comments(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
-def parse_struct_fields(body):
+def parse_struct_fields(body, nested=None):
     """Fields of a C struct body, or None if any member is not plain data.
 
-    Plain data means a primitive type per member: no pointers, arrays, enumerations,
-    nested structs or `size` headers (CefKeyEvent and the like are not handled yet).
+    Plain data means a primitive type per member, or another plain struct (`nested` maps the
+    C name `cef_rect_t` to its C++ class `CefRect`): no pointers, arrays, enumerations or
+    `size` headers (CefKeyEvent and the like are not handled yet).
     """
+    nested = nested or {}
     fields = []
     for statement in _strip_comments(body).split(";"):
         statement = " ".join(statement.split())
         if not statement:
             continue
         found = re.match(r"^([A-Za-z_][\w ]*?) (\w+)$", statement)
-        if not found or found.group(1) not in _FIELD_TYPES or found.group(2) == "size":
+        if not found or found.group(2) == "size":
             return None
         ctype, cname = found.groups()
-        fields.append(StructField(cname, py_param_name(cname), ctype, _FIELD_TYPES[ctype]))
+        if ctype in _FIELD_TYPES:
+            fields.append(StructField(cname, py_param_name(cname), ctype, _FIELD_TYPES[ctype]))
+        elif ctype in nested:
+            fields.append(StructField(cname, py_param_name(cname), ctype,
+                                      py_class_name(nested[ctype]), nested[ctype]))
+        else:
+            return None
     return tuple(fields) or None
 
 
@@ -346,14 +355,24 @@ class Model:
                 text = self._read(os.path.join(internal, filename))
                 for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
                     bodies[match.group(2)] = match.group(1)
+        classes = dict((c, cn) for c, cn in re.findall(
+            r"\bclass\s+(Cef\w+)\s*:\s*public\s+(cef_\w+_t)\s*\{", self._read(wrappers)))
+        by_cname = {cn: c for c, cn in classes.items()}
         structs = {}
-        for match in re.finditer(r"\bclass\s+(Cef\w+)\s*:\s*public\s+(cef_\w+_t)\s*\{",
-                                 self._read(wrappers)):
-            cls, cname = match.groups()
-            fields = parse_struct_fields(bodies[cname]) if cname in bodies else None
-            if fields:
-                structs[cls] = StructInfo(cls, cname, fields)
-        return structs
+        # A struct may contain another one (CefDraggableRegion has a CefRect), which has to be
+        # read first: repeat until nothing more is added.
+        progress = True
+        while progress:
+            progress = False
+            for cls, cname in classes.items():
+                if cls in structs or cname not in bodies:
+                    continue
+                known = {cn: c for cn, c in by_cname.items() if c in structs}
+                fields = parse_struct_fields(bodies[cname], known)
+                if fields:
+                    structs[cls] = StructInfo(cls, cname, fields)
+                    progress = True
+        return dict(sorted(structs.items()))
 
     def header_path(self, cls):
         """`include/cef_x.h` as it is written in an #include line."""

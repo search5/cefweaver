@@ -17,6 +17,8 @@ LIBRARY_CLASSES = [
     "CefFrame",
     "CefDisplay",
     "CefMenuModel",
+    "CefPrintSettings",
+    "CefTaskManager",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -28,6 +30,7 @@ CLIENT_CLASSES = [
     "CefLifeSpanHandler",
     "CefDisplayHandler",
     "CefMenuModelDelegate",
+    "CefDragHandler",
 ]
 
 # Global functions.

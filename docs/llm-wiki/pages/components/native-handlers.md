@@ -41,9 +41,9 @@ updated: 2026-10-08
 
 ## CefWrapperClientHandler
 
-`CefClient`, `CefContextMenuHandler`와, 표시, 수명 주기, 로드 핸들러의 **생성된 전달 클래스**(`CwDisplayHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`)를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
+`CefClient`, `CefContextMenuHandler`와, 표시, 드래그, 수명 주기, 로드 핸들러의 **생성된 전달 클래스**(`CwDisplayHandlerForward`, `CwDragHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`)를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
 
-생성자는 사용자의 클라이언트(`user_client`, 생성된 `CwClientProxy`)를 선택 인자로 받습니다. `GetDisplayHandler()`, `GetLifeSpanHandler()`, `GetLoadHandler()`는 CEF가 물을 때마다 `user_client->GetXxxHandler()`를 불러 그 결과를 전달 대상(`forward_..._handler_`)에 넣고 자기 자신을 돌려줍니다. 사용자의 클라이언트가 없으면 전달 대상이 비어 있어서 전달 클래스가 CEF 기반 클래스의 동작을 합니다. 컨텍스트 메뉴 핸들러와 `OnProcessMessageReceived`는 생성 범위 밖이라 위임하지 않습니다.
+생성자는 사용자의 클라이언트(`user_client`, 생성된 `CwClientProxy`)를 선택 인자로 받습니다. `GetDisplayHandler()`, `GetLifeSpanHandler()`, `GetLoadHandler()`는 CEF가 물을 때마다 `user_client->GetXxxHandler()`를 불러 그 결과를 전달 대상(`forward_..._handler_`)에 넣고 자기 자신을 돌려줍니다. 사용자의 클라이언트가 없으면 전달 대상이 비어 있어서 전달 클래스가 CEF 기반 클래스의 동작을 합니다. `GetDragHandler()`는 사용자의 핸들러가 있을 때만 자신을 돌려주고 없으면 `nullptr`(CEF의 기본 동작)입니다. 래퍼가 드래그 이벤트로 할 일이 없기 때문입니다. 컨텍스트 메뉴 핸들러와 `OnProcessMessageReceived`는 생성 범위 밖이라 위임하지 않습니다.
 
 래퍼의 일과 사용자 핸들러의 호출 순서는 다음과 같습니다.
 

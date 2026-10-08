@@ -121,8 +121,8 @@ class _StaticResourceFactory(SchemeHandlerFactory):
 
 
 # CEF can be initialized once per process: a second CefInitialize() after CefShutdown()
-# crashes the process (segmentation fault), so it is refused here.
-cdef bint _cef_was_shut_down = False
+# crashes the process (segmentation fault), so it is refused here. (`_cef_was_shut_down`
+# is declared in cef_api.pxi, where the library objects use it as well.)
 
 
 cdef class CefApp:

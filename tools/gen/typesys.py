@@ -78,7 +78,8 @@ class Struct(Kind):
 
 @dataclass(frozen=True)
 class Vector(Kind):
-    """`std::vector<T>` (a list in Python). Only vectors of strings so far."""
+    """`std::vector<T>` (a list in Python). The element is a string, a number (not bool), a
+    value type struct or, from a library method, an object implemented by CEF."""
 
     element: Kind
 
@@ -107,6 +108,28 @@ _PRIMITIVES = {
     "double": "float",
     "float": "float",
 }
+
+
+def _vector_element(model, scope, analysis):
+    """The kind of the elements of a `std::vector<T>`; the parser reports T."""
+    element = analysis.result_value[0] if analysis.result_value else {}
+    spelled = element.get("vector_type", "")
+    kind = element.get("result_type")
+    if kind == "string":
+        return Str()
+    if kind == "simple":
+        if spelled in _PRIMITIVES and spelled != "bool":  # std::vector<bool> is not a container
+            return Prim(spelled, _PRIMITIVES[spelled])
+        if spelled in model.structs:
+            return Struct(spelled, model.structs[spelled].fields)
+        raise Unsupported("vector of values")
+    if kind == "refptr":
+        inner = re.match(r"^CefRefPtr<\s*(\w+)\s*>$", spelled)
+        if inner and scope.is_library(inner.group(1)):
+            return LibRef(inner.group(1))
+        if inner and not scope.is_client(inner.group(1)):
+            raise Unsupported("class %s is not generated yet" % inner.group(1))
+    raise Unsupported("vector of values")
 
 
 def classify(model, scope, analysis):
@@ -149,11 +172,7 @@ def classify(model, scope, analysis):
         raise Unsupported("class %s is not generated yet" % inner)
 
     if result == "vector":
-        # Only `std::vector<CefString>`; the parser reports the element type of the vector.
-        element = analysis.result_value[0] if analysis.result_value else {}
-        if element.get("result_type") == "string":
-            return Vector(Str())
-        raise Unsupported("vector of values")
+        return Vector(_vector_element(model, scope, analysis))
     if result in ("map", "multimap"):
         raise Unsupported(result + " of values")
     if result in ("ownptr", "rawptr"):
@@ -257,8 +276,8 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                     raise Unsupported("output vector %s of a handler method" % name)
                 if isinstance(kind, (LibRef, ClientRef)):
                     raise Unsupported("output parameter %s of object type" % name)
-            elif isinstance(kind, Vector) and not client_side:
-                raise Unsupported("vector of values passed to a library method")
+            elif isinstance(kind, Vector) and not client_side and isinstance(kind.element, LibRef):
+                raise Unsupported("vector of objects passed to a library method")
             if isinstance(kind, Void):
                 raise Unsupported("void parameter")
             if isinstance(kind, ClientRef) and client_side:

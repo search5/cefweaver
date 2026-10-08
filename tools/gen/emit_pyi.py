@@ -3,7 +3,7 @@
 from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
                          struct_tuple_annotation)
 from model import py_class_name
-from typesys import Buffer, ClientRef, Enum, LibRef, Struct, Void
+from typesys import Buffer, ClientRef, Enum, LibRef, Struct, Vector, Void
 
 
 def _value_annotation(kind):
@@ -17,6 +17,11 @@ def _value_annotation(kind):
 def _param_annotation(param, client_side):
     if isinstance(param.kind, Buffer):
         return "memoryview"
+    if isinstance(param.kind, Vector) and not client_side:
+        # Any sequence is accepted; a struct in it may be a plain tuple.
+        element = param.kind.element
+        return "Sequence[%s]" % (_value_annotation(element) if isinstance(element, Struct)
+                                 else _annotation(element))
     if isinstance(param.kind, (Struct, Enum)) and not client_side:
         return _value_annotation(param.kind)
     text = _annotation(param.kind)
