@@ -3243,10 +3243,11 @@ class WithCef(unittest.TestCase):
             frames = {browser.get_frame_by_identifier(i).get_url(): i for i in browser.get_frame_identifiers()}
             assert child_url in frames, frames
             browser.get_frame_by_identifier(frames[child_url]).execute_java_script("ask('from child')", "", 0)
-            # (the first query of the main frame is sometimes lost while the child frame attaches:
-            # known-constraints.md, so it is sent again until it is answered)
-            send_until(app, lambda: app.execute_javascript("ask('from main')"),
-                       lambda: "from main" in answers(), "the answer for the main frame")
+            # execute_javascript() runs nothing while the page is loading (the child frame is
+            # part of the load) and says so by returning False
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the end of the loading")
+            assert app.execute_javascript("ask('from main')") is True
+            wait_until(app, lambda: "from main" in answers(), "the answer for the main frame")
             wait_until(app, lambda: "from child" in answers(), "the answer for the child frame")
             found = answers()
             assert found["from child"] == ("ok", "pong:from child:False"), found
