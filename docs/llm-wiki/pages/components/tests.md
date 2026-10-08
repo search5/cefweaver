@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 212개(통합 105, 생성기 106, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 220개(통합 108, 생성기 111, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -45,6 +45,8 @@ updated: 2026-10-08
 | `ApiWithoutCef` | `test_a_request_carries_post_data_made_of_bytes` | `PostDataElement.set_to_bytes`/`get_bytes`(크기가 앞인 규약, 부분, 남은 것보다 큰 요청, 잘못된 인자), `PostData`와 `Request.set_post_data`로 왕복 |
 | `ApiWithoutCef` | `test_header_maps_are_dicts` | `Request`/`Response`의 `get_header_map`/`set_header_map`/`Request.set`이 `dict`로 왕복함(대소문자 구분 없는 조회, 빈 맵, 잘못된 인자) |
 | `ApiWithoutCef` | `test_structs_with_strings_and_times_have_defaults` | 문자열과 시간이 든 구조체(`PdfPrintSettings`, `Cookie`)와 모든 구조체의 기본값 |
+| `WithCef` | `test_a_request_context_has_preferences_and_can_be_created` | 전역 `RequestContext`(`is_global`, `is_same`), 환경설정(`has_preference`, `get_preference`, `set_preference`가 `(성공, 오류)`, `get_all_preferences`), 새 컨텍스트(`create_context(RequestContextSettings, RequestContextHandler)`) |
+| `WithCef` | `test_a_url_request_downloads_with_progress_and_credentials`, `test_a_browser_asks_for_credentials_and_reports_redirects_and_responses` | 로컬 HTTP 서버로: `URLRequest`의 다운로드 데이터와 진행률과 상태, 취소, 인증(`get_auth_credentials`), 브라우저의 `RequestHandler.get_auth_credentials`, `on_resource_redirect`(입출력 `new_url`), `on_resource_response` |
 | `WithCef` | `test_the_cookie_manager_sets_visits_and_deletes_cookies`, `test_the_cookie_access_filter_sees_the_cookies_of_a_resource` | `CookieManager`의 `set_cookie`, `visit_all_cookies`, `visit_url_cookies`, `delete_cookies`, `flush_store`와 완료 콜백들(쿠키가 구조체의 문자열과 시간이 CEF에 닿음), `get_cookie_access_filter`의 `can_save_cookie`(`Set-Cookie` 응답)와 `can_send_cookie`(다음 요청) |
 | `WithCef` | `test_print_to_pdf_writes_a_pdf_and_tells_the_callback` | `print_to_pdf(path, PdfPrintSettings, callback)`이 `%PDF`로 시작하는 파일을 쓰고 `on_pdf_print_finished(path, True)` |
 | `WithCef` | `test_a_string_visitor_gets_the_source_and_the_text_of_a_frame`, `test_run_file_dialog_reports_the_files_the_dialog_handler_chose`, `test_a_devtools_message_observer_gets_the_result_of_a_method` | `Frame.get_source`/`get_text`의 `StringVisitor`, `run_file_dialog`가 `DialogHandler`의 선택을 `on_file_dialog_dismissed`로 알림, `add_dev_tools_message_observer`와 `execute_dev_tools_method(Runtime.evaluate)`의 결과 JSON(`"value":3`) |

@@ -1933,9 +1933,41 @@ class WithCef(unittest.TestCase):
         RED = "<style>html, body { margin: 0; background: rgb(255, 0, 0); }</style>"
     """
 
-    def run_osr_script(self, body):
+    LOCAL_SERVER = """
+        import base64, http.server, threading
+        class LocalHandler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+            def do_GET(self):
+                if self.path == "/hello":
+                    self.reply(200, b"hello world")
+                elif self.path == "/auth":
+                    expected = "Basic " + base64.b64encode(b"user:pass").decode()
+                    if self.headers.get("Authorization") == expected:
+                        self.reply(200, b"welcome user")
+                    else:
+                        self.reply(401, b"denied", {"WWW-Authenticate": 'Basic realm="test"'})
+                elif self.path == "/redirect":
+                    self.reply(302, b"", {"Location": "/hello"})
+                else:
+                    self.reply(404, b"not found")
+            def reply(self, status, body, headers=None):
+                self.send_response(status)
+                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Length", str(len(body)))
+                for name, value in (headers or {}).items():
+                    self.send_header(name, value)
+                self.end_headers()
+                self.wfile.write(body)
+        local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), LocalHandler)
+        threading.Thread(target=local_server.serve_forever, daemon=True).start()
+        BASE = "http://127.0.0.1:%d" % local_server.server_address[1]
+    """
+
+    def run_osr_script(self, body, prelude=""):
         import textwrap
-        result = run_cef(textwrap.dedent(self.OSR_SCRIPT) + textwrap.dedent(body))
+        result = run_cef(textwrap.dedent(self.OSR_SCRIPT) + textwrap.dedent(prelude)
+                         + textwrap.dedent(body))
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
@@ -2596,6 +2628,132 @@ class WithCef(unittest.TestCase):
             app.load_url("http://cookie.test/next")
             wait_until(app, lambda: sent, "the cookie to be sent")
             assert ("http://cookie.test/next", "token") in sent, sent
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_a_request_context_has_preferences_and_can_be_created(self):
+        self.run_osr_script("""
+            start(RED)
+            context = cefweaver.RequestContext.get_global_context()
+            assert context is not None and context.is_global() is True
+            assert context.is_same(cefweaver.RequestContext.get_global_context()) is True
+            # preferences (the methods of CefPreferenceManager, which the context inherits)
+            assert context.has_preference("intl.accept_languages") is True
+            value = context.get_preference("intl.accept_languages")
+            assert value.get_type() == types.ValueType.STRING, value.get_type()
+            assert context.can_set_preference("intl.accept_languages") is True
+            new = cefweaver.Value.create()
+            new.set_string("ko,en")
+            ok, error = context.set_preference("intl.accept_languages", new)
+            assert ok is True and error == "", (ok, error)
+            assert context.get_preference("intl.accept_languages").get_string() == "ko,en"
+            everything = context.get_all_preferences(False)         # a dictionary of the set ones
+            assert everything.get_size() > 0 and everything.has_key("intl"), everything.get_size()
+            ok, error = context.set_preference("no.such.preference", new)
+            assert ok is False and error, (ok, error)
+            # a new context of its own, with a handler
+            class Handler(cefweaver.RequestContextHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                is_download, request_initiator):
+                    return None, False
+            own = cefweaver.RequestContext.create_context(
+                types.RequestContextSettings(persist_session_cookies=1), Handler())
+            assert own is not None and own.is_global() is False
+            assert own.is_same(context) is False
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_a_url_request_downloads_with_progress_and_credentials(self):
+        self.run_osr_script(prelude=self.LOCAL_SERVER, body="""
+            start(RED)
+            def fetch(path, client):
+                request = cefweaver.Request.create()
+                request.set_url(BASE + path)
+                request.set_method("GET")
+                # without this flag a 401 is passed on as it is and the client is not asked
+                request.set_flags(types.UrlrequestFlags.ALLOW_STORED_CREDENTIALS)
+                return cefweaver.URLRequest.create(request, client, None)
+            class Plain(cefweaver.URLRequestClient):
+                def __init__(self):
+                    self.data, self.done, self.progress = b"", [], []
+                def on_request_complete(self, request):
+                    self.done.append((request.get_request_status(), request.get_response().get_status()))
+                def on_download_progress(self, request, current, total):
+                    self.progress.append((current, total))
+                def on_upload_progress(self, request, current, total):
+                    pass
+                def on_download_data(self, request, data):
+                    self.data += bytes(data)
+                def get_auth_credentials(self, is_proxy, host, port, realm, scheme, callback):
+                    return False
+            plain = Plain()
+            handle = fetch("/hello", plain)
+            assert handle is not None
+            wait_until(app, lambda: plain.done, "the request")
+            assert plain.data == b"hello world", plain.data
+            assert plain.done == [(types.URLRequestStatus.SUCCESS, 200)], plain.done
+            assert plain.progress and plain.progress[-1][0] == 11, plain.progress
+            assert handle.get_request_status() == types.URLRequestStatus.SUCCESS
+            assert handle.get_request_error() == types.ErrorCode.NONE
+            # credentials: the client is asked and answers
+            asked = []
+            class Auth(Plain):
+                def get_auth_credentials(self, is_proxy, host, port, realm, scheme, callback):
+                    asked.append((is_proxy, host, realm, scheme))
+                    callback.continue_("user", "pass")
+                    return True
+            auth = Auth()
+            fetch("/auth", auth)
+            wait_until(app, lambda: auth.done, "the request with credentials")
+            assert auth.data == b"welcome user" and auth.done[0][1] == 200, (auth.data, auth.done)
+            assert asked and asked[0][0] is False and asked[0][2] == "test", asked
+            # a request can be canceled
+            late = Plain()
+            fetch("/hello", late).cancel()
+            wait_until(app, lambda: late.done, "the canceled request")
+            assert late.done[0][0] in (types.URLRequestStatus.CANCELED, types.URLRequestStatus.SUCCESS)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_browser_asks_for_credentials_and_reports_redirects_and_responses(self):
+        self.run_osr_script(prelude=self.LOCAL_SERVER, body="""
+            texts, redirects, responses, asked = [], [], [], []
+            class Text(cefweaver.StringVisitor):
+                def visit(self, string):
+                    texts.append(string)
+            class Resources(cefweaver.ResourceRequestHandler):
+                def on_resource_redirect(self, browser, frame, request, response, new_url):
+                    redirects.append((response.get_status(), new_url))
+                    return new_url                                # unchanged
+                def on_resource_response(self, browser, frame, request, response):
+                    responses.append((request.get_url().rsplit("/", 1)[1], response.get_status()))
+                    return False
+            class Requests(cefweaver.RequestHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                 is_download, request_initiator):
+                    return Resources(), False
+                def get_auth_credentials(self, browser, origin_url, is_proxy, host, port, realm,
+                                         scheme, callback):
+                    asked.append((origin_url, is_proxy, realm, scheme))
+                    callback.continue_("user", "pass")
+                    return True
+            handlers["request"] = Requests()
+            start(RED)
+            app.load_url(BASE + "/auth")
+            wait_until(app, lambda: ("auth", 200) in responses, "the authenticated page")
+            # the main frame can be a new object after a navigation: ask for it each time
+            send_until(app, lambda: boxes[0].get_main_frame().get_text(Text()),
+                       lambda: any(t.strip() == "welcome user" for t in texts), "the text")
+            assert asked and asked[0][2] == "test" and asked[0][1] is False, asked
+            assert ("auth", 401) in responses, responses
+            app.load_url(BASE + "/redirect")
+            wait_until(app, lambda: ("hello", 200) in responses, "the redirected page")
+            assert redirects and redirects[0][0] == 302 and redirects[0][1].endswith("/hello"), redirects
             app.shutdown()
             print("OK")
         """)

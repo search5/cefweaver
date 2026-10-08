@@ -266,6 +266,7 @@ cdef class CefApp:
     cdef set _resource_hosts
     cdef set _switch_names  # the names given to add_command_line_switch()
     cdef dict _query_bridges  # QueryHandler -> _QueryBridge
+    cdef object _client  # the client of set_client()
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -276,6 +277,7 @@ cdef class CefApp:
         self._resource_hosts = set()
         self._switch_names = set()
         self._query_bridges = {}
+        self._client = None
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -332,6 +334,7 @@ cdef class CefApp:
         error page, the JavaScript bindings) keeps working. ``None`` removes the client.
         """
         self._require_not_initialized()
+        self._client = client
         self._wrapper.SetClient(_g_make_Client(client))
 
     @property
@@ -446,6 +449,14 @@ cdef class CefApp:
         cdef bint ok
         if self._initialized:
             raise RuntimeError("initialize() was already called")
+        if self._client is not None and "disable-chrome-login-prompt" not in self._switch_names:
+            # Without this switch CEF shows Chrome's own login window and never asks the
+            # client's request handler for credentials; the handler gets them only if it
+            # answers (it overrides get_auth_credentials).
+            handler = self._client.get_request_handler()
+            if (handler is not None
+                    and type(handler).get_auth_credentials is not RequestHandler.get_auth_credentials):
+                self._wrapper.AddCommandLineSwitch(b"disable-chrome-login-prompt", b"")
         if (sys.platform.startswith("linux") and os.environ.get("DISPLAY")
                 and "ozone-platform" not in self._switch_names
                 and "ozone-platform-hint" not in self._switch_names):

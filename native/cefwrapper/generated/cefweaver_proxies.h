@@ -30,6 +30,8 @@
 #include "include/cef_registration.h"
 #include "include/cef_render_handler.h"
 #include "include/cef_request.h"
+#include "include/cef_request_context.h"
+#include "include/cef_request_context_handler.h"
 #include "include/cef_request_handler.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_resource_request_handler.h"
@@ -40,6 +42,7 @@
 #include "include/cef_string_visitor.h"
 #include "include/cef_task_manager.h"
 #include "include/cef_unresponsive_process_callback.h"
+#include "include/cef_urlrequest.h"
 #include "include/cef_values.h"
 #include "include/cef_zip_reader.h"
 #include "include/views/cef_display.h"
@@ -2377,6 +2380,75 @@ class CwRenderHandlerProxy : public CefRenderHandler {
   DISALLOW_COPY_AND_ASSIGN(CwRenderHandlerProxy);
 };
 
+// ---- CefRequestContextHandler ----
+
+class CwRequestContextHandlerForward : public CefRequestContextHandler {
+ protected:
+  CefRefPtr<CefRequestContextHandler> forward_request_context_handler_;
+
+ public:
+  void OnRequestContextInitialized(CefRefPtr<CefRequestContext> request_context) override {
+    if (!forward_request_context_handler_) {
+      CefRequestContextHandler::OnRequestContextInitialized(request_context);
+      return;
+    }
+    forward_request_context_handler_->OnRequestContextInitialized(request_context);
+  }
+
+  CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override {
+    if (!forward_request_context_handler_) {
+      return CefRequestContextHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
+    }
+    return forward_request_context_handler_->GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
+  }
+};
+
+struct CwRequestContextHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_request_context_initialized)(void*, CefRequestContext*) = nullptr;
+  CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, bool, bool, const CefString*, bool*) = nullptr;
+};
+
+class CwRequestContextHandlerProxy : public CefRequestContextHandler {
+ public:
+  explicit CwRequestContextHandlerProxy(const CwRequestContextHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwRequestContextHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnRequestContextInitialized(CefRefPtr<CefRequestContext> request_context) override {
+    if (!cb_.fn_on_request_context_initialized) {
+      CefRequestContextHandler::OnRequestContextInitialized(request_context);
+      return;
+    }
+    cb_.fn_on_request_context_initialized(cb_.py, request_context.get());
+  }
+
+  CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool is_navigation, bool is_download, const CefString& request_initiator, bool& disable_default_handling) override {
+    if (!cb_.fn_get_resource_request_handler) {
+      return CefRequestContextHandler::GetResourceRequestHandler(browser, frame, request, is_navigation, is_download, request_initiator, disable_default_handling);
+    }
+    bool out_disable_default_handling = bool();
+    CefResourceRequestHandler* raw = cb_.fn_get_resource_request_handler(cb_.py, browser.get(), frame.get(), request.get(), is_navigation, is_download, &request_initiator, &out_disable_default_handling);
+    CefRefPtr<CefResourceRequestHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    disable_default_handling = out_disable_default_handling;
+    return result;
+  }
+
+ private:
+  CwRequestContextHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwRequestContextHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwRequestContextHandlerProxy);
+};
+
 // ---- CefRequestHandler ----
 
 class CwRequestHandlerForward : public CefRequestHandler {
@@ -2848,7 +2920,7 @@ class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
       CefResourceRequestHandler::OnResourceRedirect(browser, frame, request, response, new_url);
       return;
     }
-    CefString out_new_url;
+    CefString out_new_url = new_url;
     cb_.fn_on_resource_redirect(cb_.py, browser.get(), frame.get(), request.get(), response.get(), &out_new_url);
     new_url = out_new_url;
   }
@@ -3066,6 +3138,111 @@ class CwStringVisitorProxy : public CefStringVisitor {
 
   IMPLEMENT_REFCOUNTING(CwStringVisitorProxy);
   DISALLOW_COPY_AND_ASSIGN(CwStringVisitorProxy);
+};
+
+// ---- CefURLRequestClient ----
+
+class CwURLRequestClientForward : public CefURLRequestClient {
+ protected:
+  CefRefPtr<CefURLRequestClient> forward_url_request_client_;
+
+ public:
+  void OnRequestComplete(CefRefPtr<CefURLRequest> request) override {
+    if (!forward_url_request_client_) {
+      return;
+    }
+    forward_url_request_client_->OnRequestComplete(request);
+  }
+
+  void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {
+    if (!forward_url_request_client_) {
+      return;
+    }
+    forward_url_request_client_->OnUploadProgress(request, current, total);
+  }
+
+  void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {
+    if (!forward_url_request_client_) {
+      return;
+    }
+    forward_url_request_client_->OnDownloadProgress(request, current, total);
+  }
+
+  void OnDownloadData(CefRefPtr<CefURLRequest> request, const void* data, size_t data_length) override {
+    if (!forward_url_request_client_) {
+      return;
+    }
+    forward_url_request_client_->OnDownloadData(request, data, data_length);
+  }
+
+  bool GetAuthCredentials(bool isProxy, const CefString& host, int port, const CefString& realm, const CefString& scheme, CefRefPtr<CefAuthCallback> callback) override {
+    if (!forward_url_request_client_) {
+      return bool();
+    }
+    return forward_url_request_client_->GetAuthCredentials(isProxy, host, port, realm, scheme, callback);
+  }
+};
+
+struct CwURLRequestClientCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_request_complete)(void*, CefURLRequest*) = nullptr;
+  void (*fn_on_upload_progress)(void*, CefURLRequest*, int64_t, int64_t) = nullptr;
+  void (*fn_on_download_progress)(void*, CefURLRequest*, int64_t, int64_t) = nullptr;
+  void (*fn_on_download_data)(void*, CefURLRequest*, void*, size_t) = nullptr;
+  bool (*fn_get_auth_credentials)(void*, bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) = nullptr;
+};
+
+class CwURLRequestClientProxy : public CefURLRequestClient {
+ public:
+  explicit CwURLRequestClientProxy(const CwURLRequestClientCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwURLRequestClientProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnRequestComplete(CefRefPtr<CefURLRequest> request) override {
+    if (!cb_.fn_on_request_complete) {
+      return;
+    }
+    cb_.fn_on_request_complete(cb_.py, request.get());
+  }
+
+  void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {
+    if (!cb_.fn_on_upload_progress) {
+      return;
+    }
+    cb_.fn_on_upload_progress(cb_.py, request.get(), current, total);
+  }
+
+  void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {
+    if (!cb_.fn_on_download_progress) {
+      return;
+    }
+    cb_.fn_on_download_progress(cb_.py, request.get(), current, total);
+  }
+
+  void OnDownloadData(CefRefPtr<CefURLRequest> request, const void* data, size_t data_length) override {
+    if (!cb_.fn_on_download_data) {
+      return;
+    }
+    cb_.fn_on_download_data(cb_.py, request.get(), const_cast<void*>(data), data_length);
+  }
+
+  bool GetAuthCredentials(bool isProxy, const CefString& host, int port, const CefString& realm, const CefString& scheme, CefRefPtr<CefAuthCallback> callback) override {
+    if (!cb_.fn_get_auth_credentials) {
+      return bool();
+    }
+    bool result = cb_.fn_get_auth_credentials(cb_.py, isProxy, &host, port, &realm, &scheme, callback.get());
+    return result;
+  }
+
+ private:
+  CwURLRequestClientCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwURLRequestClientProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwURLRequestClientProxy);
 };
 
 // ---- CefWriteHandler ----

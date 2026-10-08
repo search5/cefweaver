@@ -52,7 +52,13 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_color_model_t:
         pass
+    ctypedef enum cef_color_variant_t:
+        pass
     ctypedef enum cef_composition_underline_style_t:
+        pass
+    ctypedef enum cef_content_setting_types_t:
+        pass
+    ctypedef enum cef_content_setting_values_t:
         pass
     ctypedef enum cef_context_menu_edit_state_flags_t:
         pass
@@ -385,6 +391,8 @@ cdef extern from "include/cef_registration.h":
     cdef cppclass CefRegistration(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted)
+cdef extern from "include/cef_request_context.h":
+    cdef cppclass CefRequestContext(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceReadCallback(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -403,6 +411,8 @@ cdef extern from "include/cef_stream.h":
     cdef cppclass CefStreamWriter(CefBaseRefCounted)
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted)
+cdef extern from "include/cef_urlrequest.h":
+    cdef cppclass CefURLRequest(CefBaseRefCounted)
 cdef extern from "include/cef_unresponsive_process_callback.h":
     cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
@@ -451,6 +461,8 @@ cdef extern from "include/cef_stream.h":
     cdef cppclass CefReadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted)
+cdef extern from "include/cef_request_context_handler.h":
+    cdef cppclass CefRequestContextHandler(CefBaseRefCounted)
 cdef extern from "include/cef_request_handler.h":
     cdef cppclass CefRequestHandler(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -465,6 +477,8 @@ cdef extern from "include/cef_cookie.h":
     cdef cppclass CefSetCookieCallback(CefBaseRefCounted)
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted)
+cdef extern from "include/cef_urlrequest.h":
+    cdef cppclass CefURLRequestClient(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
     cdef cppclass CefWriteHandler(CefBaseRefCounted)
 
@@ -525,6 +539,7 @@ cdef extern from "include/cef_browser.h":
         cef_window_handle_t GetOpenerWindowHandle() nogil
         int GetOpenerIdentifier() nogil
         cpp_bool HasView() nogil
+        CefRefPtr[CefRequestContext] GetRequestContext() nogil
         cpp_bool CanZoom(cef_zoom_command_t) nogil
         void Zoom(cef_zoom_command_t) nogil
         double GetDefaultZoomLevel() nogil
@@ -739,6 +754,7 @@ cdef extern from "include/cef_frame.h":
         CefRefPtr[CefFrame] GetParent() nogil
         CefString GetURL() nogil
         CefRefPtr[CefBrowser] GetBrowser() nogil
+        CefRefPtr[CefURLRequest] CreateURLRequest(CefRefPtr[CefRequest], CefRefPtr[CefURLRequestClient]) nogil
         void SendProcessMessage(cef_process_id_t, CefRefPtr[CefProcessMessage]) nogil
 
 cdef extern from "include/cef_jsdialog_handler.h":
@@ -941,6 +957,37 @@ cdef extern from "include/cef_request.h":
         @staticmethod
         CefRefPtr[CefRequest] Create() nogil
 
+cdef extern from "include/cef_request_context.h":
+    cdef cppclass CefRequestContext(CefBaseRefCounted):
+        cpp_bool HasPreference(const CefString&) nogil
+        CefRefPtr[CefValue] GetPreference(const CefString&) nogil
+        CefRefPtr[CefDictionaryValue] GetAllPreferences(cpp_bool) nogil
+        cpp_bool CanSetPreference(const CefString&) nogil
+        cpp_bool SetPreference(const CefString&, CefRefPtr[CefValue], CefString&) nogil
+        cpp_bool IsSame(CefRefPtr[CefRequestContext]) nogil
+        cpp_bool IsSharingWith(CefRefPtr[CefRequestContext]) nogil
+        cpp_bool IsGlobal() nogil
+        CefString GetCachePath() nogil
+        CefRefPtr[CefCookieManager] GetCookieManager(CefRefPtr[CefCompletionCallback]) nogil
+        cpp_bool RegisterSchemeHandlerFactory(const CefString&, const CefString&, CefRefPtr[CefSchemeHandlerFactory]) nogil
+        cpp_bool ClearSchemeHandlerFactories() nogil
+        void ClearCertificateExceptions(CefRefPtr[CefCompletionCallback]) nogil
+        void ClearHttpCache(CefRefPtr[CefCompletionCallback]) nogil
+        void ClearHttpAuthCredentials(CefRefPtr[CefCompletionCallback]) nogil
+        void CloseAllConnections(CefRefPtr[CefCompletionCallback]) nogil
+        CefRefPtr[CefValue] GetWebsiteSetting(const CefString&, const CefString&, cef_content_setting_types_t) nogil
+        void SetWebsiteSetting(const CefString&, const CefString&, cef_content_setting_types_t, CefRefPtr[CefValue]) nogil
+        cef_content_setting_values_t GetContentSetting(const CefString&, const CefString&, cef_content_setting_types_t) nogil
+        void SetContentSetting(const CefString&, const CefString&, cef_content_setting_types_t, cef_content_setting_values_t) nogil
+        void SetChromeColorScheme(cef_color_variant_t, cef_color_t) nogil
+        cef_color_variant_t GetChromeColorSchemeMode() nogil
+        cef_color_t GetChromeColorSchemeColor() nogil
+        cef_color_variant_t GetChromeColorSchemeVariant() nogil
+        @staticmethod
+        CefRefPtr[CefRequestContext] GetGlobalContext() nogil
+        @staticmethod
+        CefRefPtr[CefRequestContext] CreateContext(const CefRequestContextSettings&, CefRefPtr[CefRequestContextHandler]) nogil
+
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceReadCallback(CefBaseRefCounted):
         void Continue(int) nogil
@@ -1020,6 +1067,17 @@ cdef extern from "include/cef_task_manager.h":
         int64_t GetTaskIdForBrowserId(int) nogil
         @staticmethod
         CefRefPtr[CefTaskManager] GetTaskManager() nogil
+
+cdef extern from "include/cef_urlrequest.h":
+    cdef cppclass CefURLRequest(CefBaseRefCounted):
+        CefRefPtr[CefRequest] GetRequest() nogil
+        cef_urlrequest_status_t GetRequestStatus() nogil
+        cef_errorcode_t GetRequestError() nogil
+        CefRefPtr[CefResponse] GetResponse() nogil
+        cpp_bool ResponseWasCached() nogil
+        void Cancel() nogil
+        @staticmethod
+        CefRefPtr[CefURLRequest] Create(CefRefPtr[CefRequest], CefRefPtr[CefURLRequestClient], CefRefPtr[CefRequestContext]) nogil
 
 cdef extern from "include/cef_unresponsive_process_callback.h":
     cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted):
@@ -1134,6 +1192,9 @@ cdef extern from "include/cef_stream.h":
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_request_context_handler.h":
+    cdef cppclass CefRequestContextHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_request_handler.h":
     cdef cppclass CefRequestHandler(CefBaseRefCounted):
         pass
@@ -1154,6 +1215,9 @@ cdef extern from "include/cef_cookie.h":
         pass
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_urlrequest.h":
+    cdef cppclass CefURLRequestClient(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_stream.h":
     cdef cppclass CefWriteHandler(CefBaseRefCounted):
@@ -1374,6 +1438,13 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_virtual_keyboard_requested)(void*, CefBrowser*, int) noexcept
     cdef cppclass CwRenderHandlerProxy(CefRenderHandler):
         CwRenderHandlerProxy(const CwRenderHandlerCallbacks&)
+    cdef cppclass CwRequestContextHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_request_context_initialized)(void*, CefRequestContext*) noexcept
+        CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, cpp_bool, cpp_bool, const CefString*, cpp_bool*) noexcept
+    cdef cppclass CwRequestContextHandlerProxy(CefRequestContextHandler):
+        CwRequestContextHandlerProxy(const CwRequestContextHandlerCallbacks&)
     cdef cppclass CwRequestHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1437,6 +1508,16 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_visit)(void*, const CefString*) noexcept
     cdef cppclass CwStringVisitorProxy(CefStringVisitor):
         CwStringVisitorProxy(const CwStringVisitorCallbacks&)
+    cdef cppclass CwURLRequestClientCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_request_complete)(void*, CefURLRequest*) noexcept
+        void (*fn_on_upload_progress)(void*, CefURLRequest*, int64_t, int64_t) noexcept
+        void (*fn_on_download_progress)(void*, CefURLRequest*, int64_t, int64_t) noexcept
+        void (*fn_on_download_data)(void*, CefURLRequest*, void*, size_t) noexcept
+        cpp_bool (*fn_get_auth_credentials)(void*, cpp_bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) noexcept
+    cdef cppclass CwURLRequestClientProxy(CefURLRequestClient):
+        CwURLRequestClientProxy(const CwURLRequestClientCallbacks&)
     cdef cppclass CwWriteHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

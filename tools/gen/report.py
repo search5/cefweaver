@@ -2,18 +2,14 @@
 
 import collections
 
-from typesys import plan_method
+from typesys import plan_class, plan_method
 
 
 def all_plans(model, scope):
     """Plans for every method of every class and every function in `scope`'s universe."""
     plans = []
     for name, cls in sorted(model.classes.items()):
-        client = cls.is_client_side()
-        for method in cls.get_virtual_funcs():
-            plans.append(plan_method(model, scope, name, method, client_side=client))
-        for method in cls.get_static_funcs():
-            plans.append(plan_method(model, scope, name, method, client_side=client, static=True))
+        plans += plan_class(model, scope, cls)
     for name, function in sorted(model.functions.items()):
         plans.append(plan_method(model, scope, "", function, client_side=False, static=True))
     return plans
@@ -95,7 +91,7 @@ def java_cef_gaps(model, current):
         if name not in model.classes:
             continue  # java-cef's own class (the message router), not a CEF one
         cls = model.classes[name]
-        wanted = {m.get_name() for m in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs())}
+        wanted = {m.get_name() for m in list(model.virtual_funcs(cls)) + list(cls.get_static_funcs())}
         wanted &= SURFACE[name]
         missing = sorted(m for m in wanted if (name, m) not in done)
         if missing:

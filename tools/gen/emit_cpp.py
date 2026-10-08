@@ -155,7 +155,7 @@ def _method(model, cls, plan):
             continue
         if param.out:
             if isinstance(kind, Str):
-                out.append("    CefString out_%s;" % name)
+                out.append("    CefString out_%s%s;" % (name, " = " + name if param.inout else ""))
             elif isinstance(kind, Enum):
                 out.append("    int out_%s = 0;" % name)
             elif isinstance(kind, Struct):

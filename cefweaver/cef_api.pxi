@@ -678,6 +678,7 @@ cdef class PrintSettings
 cdef class ProcessMessage
 cdef class Registration
 cdef class Request
+cdef class RequestContext
 cdef class ResourceReadCallback
 cdef class ResourceSkipCallback
 cdef class Response
@@ -687,6 +688,7 @@ cdef class SSLInfo
 cdef class StreamReader
 cdef class StreamWriter
 cdef class TaskManager
+cdef class URLRequest
 cdef class UnresponsiveProcessCallback
 cdef class Value
 cdef class ZipReader
@@ -1262,6 +1264,14 @@ cdef class BrowserHost:
         with nogil:
             _r = _p.HasView()
         return _r
+
+    def get_request_context(self):
+        """Returns the request context for this browser."""
+        cdef CefBrowserHost* _p = self._ptr()
+        cdef CefRefPtr[CefRequestContext] _r
+        with nogil:
+            _r = _p.GetRequestContext()
+        return _wrap_RequestContext(_r)
 
     def can_zoom(self, int command):
         """Returns true if this browser can execute the specified zoom command. This
@@ -3523,6 +3533,33 @@ cdef class Frame:
             _r = _p.GetBrowser()
         return _wrap_Browser(_r)
 
+    def create_url_request(self, Request request not None, client):
+        """Create a new URL request that will be treated as originating from this
+        frame and the associated browser. Use CefURLRequest::Create instead if you
+        do not want the request to have this association, in which case it may be
+        handled differently (see documentation on that method). A request created
+        with this method may only originate from the browser process, and will
+        behave as follows:
+          - It may be intercepted by the client via CefResourceRequestHandler or
+            CefSchemeHandlerFactory.
+          - POST data may only contain a single element of type PDE_TYPE_FILE or
+            PDE_TYPE_BYTES.
+
+        The |request| object will be marked as read-only after calling this
+        method.
+        """
+        cdef CefRefPtr[CefRequest] _a0
+        cdef CefRefPtr[CefURLRequestClient] _a1
+        cdef CefFrame* _p = self._ptr()
+        cdef CefRefPtr[CefURLRequest] _r
+        _a0 = request._ref
+        if client is None:
+            raise TypeError("client must not be None")
+        _a1 = _g_make_URLRequestClient(client)
+        with nogil:
+            _r = _p.CreateURLRequest(_a0, _a1)
+        return _wrap_URLRequest(_r)
+
     def send_process_message(self, int target_process, ProcessMessage message not None):
         """Send a message to the specified |target_process|. Ownership of the message
         contents will be transferred and the |message| reference will be
@@ -5432,6 +5469,418 @@ cdef object _wrap_Request(CefRefPtr[CefRequest] ref):
     return obj
 
 
+cdef class RequestContext:
+    """A request context provides request handling for a set of related browser
+    or URL request objects. A request context can be specified when creating a
+    new browser via the CefBrowserHost static factory methods or when creating a
+    new URL request via the CefURLRequest static factory methods. Browser
+    objects with different request contexts will never be hosted in the same
+    render process. Browser objects with the same request context may or may not
+    be hosted in the same render process depending on the process model. Browser
+    objects created indirectly via the JavaScript window.open function or
+    targeted links will share the same render process and the same request
+    context as the source browser. When running in single-process mode there is
+    only a single render process (the main process) and so all browsers created
+    in single-process mode will share the same request context. This will be the
+    first request context passed into a CefBrowserHost static factory method and
+    all other request context objects will be ignored.
+    """
+    cdef CefRefPtr[CefRequestContext] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("RequestContext objects are created by CEF or by a create() function")
+
+    cdef CefRequestContext* _ptr(self) except NULL:
+        cdef CefRequestContext* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("RequestContext has no CEF object")
+        return p
+
+    def has_preference(self, name):
+        """Returns true if a preference with the specified |name| exists. This method
+        must be called on the browser process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = _p.HasPreference(_a0)
+        return _r
+
+    def get_preference(self, name):
+        """Returns the value for the preference with the specified |name|. Returns
+        NULL if the preference does not exist. The returned object contains a copy
+        of the underlying preference value and modifications to the returned
+        object will not modify the underlying preference value. This method must
+        be called on the browser process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefValue] _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = _p.GetPreference(_a0)
+        return _wrap_Value(_r)
+
+    def get_all_preferences(self, bint include_defaults):
+        """Returns all preferences as a dictionary. If |include_defaults| is true
+        then preferences currently at their default value will be included. The
+        returned object contains a copy of the underlying preference values and
+        modifications to the returned object will not modify the underlying
+        preference values. This method must be called on the browser process UI
+        thread.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefDictionaryValue] _r
+        with nogil:
+            _r = _p.GetAllPreferences(include_defaults)
+        return _wrap_DictionaryValue(_r)
+
+    def can_set_preference(self, name):
+        """Returns true if the preference with the specified |name| can be modified
+        using SetPreference. As one example preferences set via the command-line
+        usually cannot be modified. This method must be called on the browser
+        process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = _p.CanSetPreference(_a0)
+        return _r
+
+    def set_preference(self, name, Value value):
+        """Set the |value| associated with preference |name|. Returns true if the
+        value is set successfully and false otherwise. If |value| is NULL the
+        preference will be restored to its default value. If setting the
+        preference fails then |error| will be populated with a detailed
+        description of the problem. This method must be called on the browser
+        process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefValue] _a1
+        cdef CefString _a2
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(name)
+        if value is not None:
+            _a1 = value._ref
+        with nogil:
+            _r = _p.SetPreference(_a0, _a1, _a2)
+        return (_r, _g_str(_a2))
+
+    def is_same(self, RequestContext other not None):
+        """Returns true if this object is pointing to the same context as |that|
+        object.
+        """
+        cdef CefRefPtr[CefRequestContext] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = other._ref
+        with nogil:
+            _r = _p.IsSame(_a0)
+        return _r
+
+    def is_sharing_with(self, RequestContext other not None):
+        """Returns true if this object is sharing the same storage as |that| object."""
+        cdef CefRefPtr[CefRequestContext] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = other._ref
+        with nogil:
+            _r = _p.IsSharingWith(_a0)
+        return _r
+
+    def is_global(self):
+        """Returns true if this object is the global context. The global context is
+        used by default when creating a browser or URL request with a NULL context
+        argument.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsGlobal()
+        return _r
+
+    def get_cache_path(self):
+        """Returns the cache path for this object. If empty an \"incognito mode\"
+        in-memory cache is being used.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetCachePath()
+        return _g_str(_r)
+
+    def get_cookie_manager(self, callback):
+        """Returns the cookie manager for this object. If |callback| is non-NULL it
+        will be executed asnychronously on the UI thread after the manager's
+        storage has been initialized.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefCookieManager] _r
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _r = _p.GetCookieManager(_a0)
+        return _wrap_CookieManager(_r)
+
+    def register_scheme_handler_factory(self, scheme_name, domain_name, factory):
+        """Register a scheme handler factory for the specified |scheme_name| and
+        optional |domain_name|. An empty |domain_name| value for a standard scheme
+        will cause the factory to match all domain names. The |domain_name| value
+        will be ignored for non-standard schemes. If |scheme_name| is a built-in
+        scheme and no handler is returned by |factory| then the built-in scheme
+        handler factory will be called. If |scheme_name| is a custom scheme then
+        you must also implement the CefApp::OnRegisterCustomSchemes() method in
+        all processes. This function may be called multiple times to change or
+        remove the factory that matches the specified |scheme_name| and optional
+        |domain_name|. Returns false if an error occurs. This function may be
+        called on any thread in the browser process.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRefPtr[CefSchemeHandlerFactory] _a2
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(scheme_name)
+        if domain_name is not None:
+            _a1 = _g_cef(domain_name)
+        _a2 = _g_make_SchemeHandlerFactory(factory)
+        with nogil:
+            _r = _p.RegisterSchemeHandlerFactory(_a0, _a1, _a2)
+        return _r
+
+    def clear_scheme_handler_factories(self):
+        """Clear all registered scheme handler factories. Returns false on error.
+        This function may be called on any thread in the browser process.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.ClearSchemeHandlerFactories()
+        return _r
+
+    def clear_certificate_exceptions(self, callback):
+        """Clears all certificate exceptions that were added as part of handling
+        CefRequestHandler::OnCertificateError(). If you call this it is
+        recommended that you also call CloseAllConnections() or you risk not
+        being prompted again for server certificates if you reconnect quickly.
+        If |callback| is non-NULL it will be executed on the UI thread after
+        completion.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _p.ClearCertificateExceptions(_a0)
+        return None
+
+    def clear_http_cache(self, callback):
+        """Clears the HTTP cache. If |callback| is non-NULL it will be executed on
+        the UI thread after completion.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _p.ClearHttpCache(_a0)
+        return None
+
+    def clear_http_auth_credentials(self, callback):
+        """Clears all HTTP authentication credentials that were added as part of
+        handling GetAuthCredentials. If |callback| is non-NULL it will be executed
+        on the UI thread after completion.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _p.ClearHttpAuthCredentials(_a0)
+        return None
+
+    def close_all_connections(self, callback):
+        """Clears all active and idle connections that Chromium currently has.
+        This is only recommended if you have released all other CEF objects but
+        don't yet want to call CefShutdown(). If |callback| is non-NULL it will be
+        executed on the UI thread after completion.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _p.CloseAllConnections(_a0)
+        return None
+
+    def get_website_setting(self, requesting_url, top_level_url, int content_type):
+        """Returns the current value for |content_type| that applies for the
+        specified URLs. If both URLs are empty the default value will be returned.
+        Returns nullptr if no value is configured. Must be called on the browser
+        process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefValue] _r
+        if requesting_url is not None:
+            _a0 = _g_cef(requesting_url)
+        if top_level_url is not None:
+            _a1 = _g_cef(top_level_url)
+        with nogil:
+            _r = _p.GetWebsiteSetting(_a0, _a1, <cef_content_setting_types_t>content_type)
+        return _wrap_Value(_r)
+
+    def set_website_setting(self, requesting_url, top_level_url, int content_type, Value value):
+        """Sets the current value for |content_type| for the specified URLs in the
+        default scope. If both URLs are empty, and the context is not incognito,
+        the default value will be set. Pass nullptr for |value| to remove the
+        default value for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security
+        issues in Chromium. Make sure that you first understand the potential
+        impact of any changes to |content_type| by reviewing the related source
+        code in Chromium. For example, if you plan to modify
+        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
+        ContentSettingsType::POPUPS in Chromium:
+        https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRefPtr[CefValue] _a3
+        cdef CefRequestContext* _p = self._ptr()
+        if requesting_url is not None:
+            _a0 = _g_cef(requesting_url)
+        if top_level_url is not None:
+            _a1 = _g_cef(top_level_url)
+        if value is not None:
+            _a3 = value._ref
+        with nogil:
+            _p.SetWebsiteSetting(_a0, _a1, <cef_content_setting_types_t>content_type, _a3)
+        return None
+
+    def get_content_setting(self, requesting_url, top_level_url, int content_type):
+        """Returns the current value for |content_type| that applies for the
+        specified URLs. If both URLs are empty the default value will be returned.
+        Returns CEF_CONTENT_SETTING_VALUE_DEFAULT if no value is configured. Must
+        be called on the browser process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cef_content_setting_values_t _r
+        if requesting_url is not None:
+            _a0 = _g_cef(requesting_url)
+        if top_level_url is not None:
+            _a1 = _g_cef(top_level_url)
+        with nogil:
+            _r = _p.GetContentSetting(_a0, _a1, <cef_content_setting_types_t>content_type)
+        return _g_enum(_types.ContentSettingValues, <int>_r)
+
+    def set_content_setting(self, requesting_url, top_level_url, int content_type, int value):
+        """Sets the current value for |content_type| for the specified URLs in the
+        default scope. If both URLs are empty, and the context is not incognito,
+        the default value will be set. Pass CEF_CONTENT_SETTING_VALUE_DEFAULT for
+        |value| to use the default value for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security
+        issues in Chromium. Make sure that you first understand the potential
+        impact of any changes to |content_type| by reviewing the related source
+        code in Chromium. For example, if you plan to modify
+        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
+        ContentSettingsType::POPUPS in Chromium:
+        https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRequestContext* _p = self._ptr()
+        if requesting_url is not None:
+            _a0 = _g_cef(requesting_url)
+        if top_level_url is not None:
+            _a1 = _g_cef(top_level_url)
+        with nogil:
+            _p.SetContentSetting(_a0, _a1, <cef_content_setting_types_t>content_type, <cef_content_setting_values_t>value)
+        return None
+
+    def set_chrome_color_scheme(self, int variant, cef_color_t user_color):
+        """Sets the Chrome color scheme for all browsers that share this request
+        context. |variant| values of SYSTEM, LIGHT and DARK change the underlying
+        color mode (e.g. light vs dark). Other |variant| values determine how
+        |user_color| will be applied in the current color mode. If |user_color| is
+        transparent (0) the default color will be used.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        with nogil:
+            _p.SetChromeColorScheme(<cef_color_variant_t>variant, user_color)
+        return None
+
+    def get_chrome_color_scheme_mode(self):
+        """Returns the current Chrome color scheme mode (SYSTEM, LIGHT or DARK). Must
+        be called on the browser process UI thread.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cef_color_variant_t _r
+        with nogil:
+            _r = _p.GetChromeColorSchemeMode()
+        return _g_enum(_types.ColorVariant, <int>_r)
+
+    def get_chrome_color_scheme_color(self):
+        """Returns the current Chrome color scheme color, or transparent (0) for the
+        default color. Must be called on the browser process UI thread.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cef_color_t _r
+        with nogil:
+            _r = _p.GetChromeColorSchemeColor()
+        return _r
+
+    def get_chrome_color_scheme_variant(self):
+        """Returns the current Chrome color scheme variant. Must be called on the
+        browser process UI thread.
+        """
+        cdef CefRequestContext* _p = self._ptr()
+        cdef cef_color_variant_t _r
+        with nogil:
+            _r = _p.GetChromeColorSchemeVariant()
+        return _g_enum(_types.ColorVariant, <int>_r)
+
+    @staticmethod
+    def get_global_context():
+        """Returns the global context object."""
+        cdef CefRefPtr[CefRequestContext] _r
+        with nogil:
+            _r = CefRequestContext.GetGlobalContext()
+        return _wrap_RequestContext(_r)
+
+    @staticmethod
+    def create_context(settings, handler):
+        """Creates a new context object with the specified |settings| and optional
+        |handler|.
+        """
+        cdef CefRequestContextSettings _a0
+        cdef CefRefPtr[CefRequestContextHandler] _a1
+        cdef CefRefPtr[CefRequestContext] _r
+        _g_to_RequestContextSettings(settings, &_a0)
+        _a1 = _g_make_RequestContextHandler(handler)
+        with nogil:
+            _r = CefRequestContext.CreateContext(_a0, _a1)
+        return _wrap_RequestContext(_r)
+
+
+cdef object _wrap_RequestContext(CefRefPtr[CefRequestContext] ref):
+    cdef RequestContext obj
+    if ref.get() == NULL:
+        return None
+    obj = RequestContext.__new__(RequestContext)
+    obj._ref = ref
+    return obj
+
+
 cdef class ResourceReadCallback:
     """Callback for asynchronous continuation of CefResourceHandler::Read()."""
     cdef CefRefPtr[CefResourceReadCallback] _ref
@@ -6155,6 +6604,124 @@ cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
     if ref.get() == NULL:
         return None
     obj = TaskManager.__new__(TaskManager)
+    obj._ref = ref
+    return obj
+
+
+cdef class URLRequest:
+    """Class used to make a URL request. URL requests are not associated with a
+    browser instance so no CefClient callbacks will be executed. URL requests
+    can be created on any valid CEF thread in either the browser or render
+    process. Once created the methods of the URL request object must be accessed
+    on the same thread that created it.
+    """
+    cdef CefRefPtr[CefURLRequest] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("URLRequest objects are created by CEF or by a create() function")
+
+    cdef CefURLRequest* _ptr(self) except NULL:
+        cdef CefURLRequest* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("URLRequest has no CEF object")
+        return p
+
+    def get_request(self):
+        """Returns the request object used to create this URL request. The returned
+        object is read-only and should not be modified.
+        """
+        cdef CefURLRequest* _p = self._ptr()
+        cdef CefRefPtr[CefRequest] _r
+        with nogil:
+            _r = _p.GetRequest()
+        return _wrap_Request(_r)
+
+    def get_request_status(self):
+        """Returns the request status."""
+        cdef CefURLRequest* _p = self._ptr()
+        cdef cef_urlrequest_status_t _r
+        with nogil:
+            _r = _p.GetRequestStatus()
+        return _g_enum(_types.URLRequestStatus, <int>_r)
+
+    def get_request_error(self):
+        """Returns the request error if status is UR_CANCELED or UR_FAILED, or 0
+        otherwise.
+        """
+        cdef CefURLRequest* _p = self._ptr()
+        cdef cef_errorcode_t _r
+        with nogil:
+            _r = _p.GetRequestError()
+        return _g_enum(_types.ErrorCode, <int>_r)
+
+    def get_response(self):
+        """Returns the response, or NULL if no response information is available.
+        Response information will only be available after the upload has
+        completed. The returned object is read-only and should not be modified.
+        """
+        cdef CefURLRequest* _p = self._ptr()
+        cdef CefRefPtr[CefResponse] _r
+        with nogil:
+            _r = _p.GetResponse()
+        return _wrap_Response(_r)
+
+    def response_was_cached(self):
+        """Returns true if the response body was served from the cache. This includes
+        responses for which revalidation was required.
+        """
+        cdef CefURLRequest* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.ResponseWasCached()
+        return _r
+
+    def cancel(self):
+        """Cancel the request."""
+        cdef CefURLRequest* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+    @staticmethod
+    def create(Request request not None, client, RequestContext request_context):
+        """Create a new URL request that is not associated with a specific browser or
+        frame. Use CefFrame::CreateURLRequest instead if you want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only
+        originate from the browser process, and will behave as follows:
+          - It may be intercepted by the client via CefResourceRequestHandler or
+            CefSchemeHandlerFactory.
+          - POST data may only contain only a single element of type PDE_TYPE_FILE
+            or PDE_TYPE_BYTES.
+          - If |request_context| is empty the global request context will be used.
+
+        The |request| object will be marked as read-only after calling this
+        method.
+        """
+        cdef CefRefPtr[CefRequest] _a0
+        cdef CefRefPtr[CefURLRequestClient] _a1
+        cdef CefRefPtr[CefRequestContext] _a2
+        cdef CefRefPtr[CefURLRequest] _r
+        _a0 = request._ref
+        if client is None:
+            raise TypeError("client must not be None")
+        _a1 = _g_make_URLRequestClient(client)
+        if request_context is not None:
+            _a2 = request_context._ref
+        with nogil:
+            _r = CefURLRequest.Create(_a0, _a1, _a2)
+        return _wrap_URLRequest(_r)
+
+
+cdef object _wrap_URLRequest(CefRefPtr[CefURLRequest] ref):
+    cdef URLRequest obj
+    if ref.get() == NULL:
+        return None
+    obj = URLRequest.__new__(URLRequest)
     obj._ref = ref
     return obj
 
@@ -9231,6 +9798,87 @@ cdef inline CefRenderHandler* _g_export_RenderHandler(object obj) except? NULL:
     return raw
 
 
+class RequestContextHandler:
+    """Implement this interface to provide handler implementations. The handler
+    instance will not be released until all objects related to the context have
+    been destroyed.
+    """
+
+    def on_request_context_initialized(self, request_context):
+        """Called on the browser process UI thread immediately after the request
+        context has been initialized.
+        """
+        return None
+
+    def get_resource_request_handler(self, browser, frame, request, is_navigation, is_download, request_initiator):
+        """Called on the browser process IO thread before a resource request is
+        initiated. The |browser| and |frame| values represent the source of the
+        request, and may be NULL for requests originating from service workers or
+        CefURLRequest. |request| represents the request contents and cannot be
+        modified in this callback. |is_navigation| will be true if the resource
+        request is a navigation. |is_download| will be true if the resource
+        request is a download. |request_initiator| is the origin (scheme + domain)
+        of the page that initiated the request. Set |disable_default_handling| to
+        true to disable default handling of the request, in which case it will
+        need to be handled via CefResourceRequestHandler::GetResourceHandler or it
+        will be canceled. To allow the resource load to proceed with default
+        handling return NULL. To specify a handler for the resource return a
+        CefResourceRequestHandler object. This method will not be called if the
+        client associated with |browser| returns a non-NULL value from
+        CefRequestHandler::GetResourceRequestHandler for the same request
+        (identified by CefRequest::GetIdentifier). For worker requests without an
+        associated frame or process handler, an arbitrary non-NULL handler from
+        the contexts sharing the same storage will be used.
+        """
+        return None, False
+
+
+cdef void _RequestContextHandler_on_request_context_initialized(void* py, CefRequestContext* request_context) noexcept with gil:
+    try:
+        _r = (<object>py).on_request_context_initialized(_wrap_RequestContext(CefRefPtr[CefRequestContext](request_context)))
+    except BaseException:
+        _g_report()
+
+cdef CefResourceRequestHandler* _RequestContextHandler_get_resource_request_handler(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, cpp_bool is_navigation, cpp_bool is_download, const CefString* request_initiator, cpp_bool* disable_default_handling) noexcept with gil:
+    try:
+        _r = (<object>py).get_resource_request_handler(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), is_navigation, is_download, _g_str(request_initiator[0]))
+        _r0, _r1 = _r
+        disable_default_handling[0] = _r1
+        return _g_export_ResourceRequestHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+
+cdef CefRefPtr[CefRequestContextHandler] _g_make_RequestContextHandler(object obj) except *:
+    cdef CefRefPtr[CefRequestContextHandler] ref
+    cdef CwRequestContextHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, RequestContextHandler):
+        raise TypeError("expected a RequestContextHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_request_context_initialized", None) is not RequestContextHandler.on_request_context_initialized:
+        cb.fn_on_request_context_initialized = _RequestContextHandler_on_request_context_initialized
+    if getattr(cls, "get_resource_request_handler", None) is not RequestContextHandler.get_resource_request_handler:
+        cb.fn_get_resource_request_handler = _RequestContextHandler_get_resource_request_handler
+    ref = CefRefPtr[CefRequestContextHandler](<CefRequestContextHandler*>new CwRequestContextHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefRequestContextHandler* _g_export_RequestContextHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefRequestContextHandler] ref = _g_make_RequestContextHandler(obj)
+    cdef CefRequestContextHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class RequestHandler:
     """Implement this interface to handle events related to browser requests. The
     methods of this class will be called on the thread indicated.
@@ -9728,7 +10376,7 @@ class ResourceRequestHandler:
         """
         return None
 
-    def on_resource_redirect(self, browser, frame, request, response):
+    def on_resource_redirect(self, browser, frame, request, response, new_url):
         """Called on the IO thread when a resource load is redirected. The |browser|
         and |frame| values represent the source of the request, and may be NULL
         for requests originating from service workers or CefURLRequest. The
@@ -9815,7 +10463,7 @@ cdef CefResourceHandler* _ResourceRequestHandler_get_resource_handler(void* py, 
 
 cdef void _ResourceRequestHandler_on_resource_redirect(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response, CefString* new_url) noexcept with gil:
     try:
-        _r = (<object>py).on_resource_redirect(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)))
+        _r = (<object>py).on_resource_redirect(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)), _g_str(new_url[0]))
         _r0 = _r
         new_url[0] = _g_cef(_r0)
     except BaseException:
@@ -10072,6 +10720,131 @@ cdef inline CefStringVisitor* _g_export_StringVisitor(object obj) except? NULL:
     return raw
 
 
+class URLRequestClient:
+    """Interface that should be implemented by the CefURLRequest client. The
+    methods of this class will be called on the same thread that created the
+    request unless otherwise documented.
+    """
+
+    def on_request_complete(self, request):
+        """Notifies the client that the request has completed. Use the
+        CefURLRequest::GetRequestStatus method to determine if the request was
+        successful or not.
+        """
+        return None
+
+    def on_upload_progress(self, request, current, total):
+        """Notifies the client of upload progress. |current| denotes the number of
+        bytes sent so far and |total| is the total size of uploading data (or -1
+        if chunked upload is enabled). This method will only be called if the
+        UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
+        """
+        return None
+
+    def on_download_progress(self, request, current, total):
+        """Notifies the client of download progress. |current| denotes the number of
+        bytes received up to the call and |total| is the expected total size of
+        the response (or -1 if not determined).
+        """
+        return None
+
+    def on_download_data(self, request, data):
+        """Called when some part of the response is read. |data| contains the current
+        bytes received since the last call. This method will not be called if the
+        UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
+        """
+        return None
+
+    def get_auth_credentials(self, is_proxy, host, port, realm, scheme, callback):
+        """Called on the IO thread when the browser needs credentials from the user.
+        |isProxy| indicates whether the host is a proxy server. |host| contains
+        the hostname and |port| contains the port number. Return true to continue
+        the request and call CefAuthCallback::Continue() when the authentication
+        information is available. If the request has an associated browser/frame
+        then returning false will result in a call to GetAuthCredentials on the
+        CefRequestHandler associated with that browser, if any. Otherwise,
+        returning false will cancel the request immediately. This method will only
+        be called for requests initiated from the browser process.
+        """
+        return False
+
+
+cdef void _URLRequestClient_on_request_complete(void* py, CefURLRequest* request) noexcept with gil:
+    try:
+        _r = (<object>py).on_request_complete(_wrap_URLRequest(CefRefPtr[CefURLRequest](request)))
+    except BaseException:
+        _g_report()
+
+cdef void _URLRequestClient_on_upload_progress(void* py, CefURLRequest* request, int64_t current, int64_t total) noexcept with gil:
+    try:
+        _r = (<object>py).on_upload_progress(_wrap_URLRequest(CefRefPtr[CefURLRequest](request)), current, total)
+    except BaseException:
+        _g_report()
+
+cdef void _URLRequestClient_on_download_progress(void* py, CefURLRequest* request, int64_t current, int64_t total) noexcept with gil:
+    try:
+        _r = (<object>py).on_download_progress(_wrap_URLRequest(CefRefPtr[CefURLRequest](request)), current, total)
+    except BaseException:
+        _g_report()
+
+cdef void _URLRequestClient_on_download_data(void* py, CefURLRequest* request, void* data, size_t data_size) noexcept with gil:
+    try:
+        _view_data = PyMemoryView_FromMemory(<char*>data, data_size, PyBUF_READ)
+        try:
+            _r = (<object>py).on_download_data(_wrap_URLRequest(CefRefPtr[CefURLRequest](request)), _view_data)
+        finally:
+            try:
+                _view_data.release()
+            except BaseException:
+                pass
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _URLRequestClient_get_auth_credentials(void* py, cpp_bool is_proxy, const CefString* host, int port, const CefString* realm, const CefString* scheme, CefAuthCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).get_auth_credentials(is_proxy, _g_str(host[0]), port, _g_str(realm[0]), _g_str(scheme[0]), _wrap_AuthCallback(CefRefPtr[CefAuthCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefURLRequestClient] _g_make_URLRequestClient(object obj) except *:
+    cdef CefRefPtr[CefURLRequestClient] ref
+    cdef CwURLRequestClientCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, URLRequestClient):
+        raise TypeError("expected a URLRequestClient or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_request_complete", None) is not URLRequestClient.on_request_complete:
+        cb.fn_on_request_complete = _URLRequestClient_on_request_complete
+    if getattr(cls, "on_upload_progress", None) is not URLRequestClient.on_upload_progress:
+        cb.fn_on_upload_progress = _URLRequestClient_on_upload_progress
+    if getattr(cls, "on_download_progress", None) is not URLRequestClient.on_download_progress:
+        cb.fn_on_download_progress = _URLRequestClient_on_download_progress
+    if getattr(cls, "on_download_data", None) is not URLRequestClient.on_download_data:
+        cb.fn_on_download_data = _URLRequestClient_on_download_data
+    if getattr(cls, "get_auth_credentials", None) is not URLRequestClient.get_auth_credentials:
+        cb.fn_get_auth_credentials = _URLRequestClient_get_auth_credentials
+    ref = CefRefPtr[CefURLRequestClient](<CefURLRequestClient*>new CwURLRequestClientProxy(cb))
+    return ref
+
+
+cdef inline CefURLRequestClient* _g_export_URLRequestClient(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefURLRequestClient] ref = _g_make_URLRequestClient(obj)
+    cdef CefURLRequestClient* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class WriteHandler:
     """Interface the client can implement to provide a custom stream writer. The
     methods of this class may be called on any thread.
@@ -10243,4 +11016,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

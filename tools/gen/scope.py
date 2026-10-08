@@ -44,6 +44,8 @@ LIBRARY_CLASSES = [
     "CefZipReader",
     "CefRegistration",
     "CefCookieManager",
+    "CefRequestContext",
+    "CefURLRequest",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -77,6 +79,8 @@ CLIENT_CLASSES = [
     "CefStringVisitor",
     "CefRunFileDialogCallback",
     "CefDevToolsMessageObserver",
+    "CefRequestContextHandler",
+    "CefURLRequestClient",
 ]
 
 # Global functions.

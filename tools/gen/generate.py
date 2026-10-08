@@ -25,7 +25,7 @@ import emit_types  # noqa: E402
 from model import Model, py_class_name  # noqa: E402
 from report import build_report  # noqa: E402
 from scope import Scope  # noqa: E402
-from typesys import plan_method  # noqa: E402
+from typesys import plan_class, plan_method  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUTPUTS = {
@@ -89,12 +89,7 @@ def build_all(cef_root):
     scope = Scope.current(model)
     plans_by_class = {}
     for cls in scope.library_classes + scope.client_classes:
-        client = cls.is_client_side()
-        plans = [plan_method(model, scope, cls.get_name(), m, client_side=client)
-                 for m in cls.get_virtual_funcs()]
-        plans += [plan_method(model, scope, cls.get_name(), m, client_side=client, static=True)
-                  for m in cls.get_static_funcs()]
-        plans_by_class[cls.get_name()] = plans
+        plans_by_class[cls.get_name()] = plan_class(model, scope, cls)
     function_plans = [plan_method(model, scope, "", model.functions[n], client_side=False,
                                   static=True) for n in scope.functions]
 

@@ -62,7 +62,7 @@ class WithHeaders(unittest.TestCase):
 
     def plan(self, cls_name, method_name):
         cls = self.model.classes[cls_name]
-        for method in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs()):
+        for method in list(self.model.virtual_funcs(cls)) + list(cls.get_static_funcs()):
             if method.get_name() == method_name:
                 return self.plan_method(self.model, self.scope, cls_name, method,
                                         client_side=cls.is_client_side())
@@ -299,7 +299,7 @@ class WithHeaders(unittest.TestCase):
         }
         out = {}
         for name, cls in sorted(self.model.classes.items()):
-            for method in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs()):
+            for method in list(self.model.virtual_funcs(cls)) + list(cls.get_static_funcs()):
                 plan = self.plan_method(self.model, self.everything, name, method,
                                         client_side=cls.is_client_side())
                 types = [method.get_retval().get_type()] + [x.get_type() for x in method.get_arguments()]
@@ -329,7 +329,7 @@ class WithHeaders(unittest.TestCase):
             side = cls.is_client_side()
             plans[cls.get_name()] = (
                 [self.plan_method(self.model, wide, cls.get_name(), m, client_side=side)
-                 for m in cls.get_virtual_funcs()])
+                 for m in self.model.virtual_funcs(cls)])
         text = emit_cpp.emit(self.model, wide, plans, "test")
         self.assertIn("const void* message", text)  # OnDevToolsMessage keeps its const
         with tempfile.TemporaryDirectory() as tmp:
@@ -350,9 +350,7 @@ class WithHeaders(unittest.TestCase):
     EXPECTED_GAPS = {
         "CefBrowserHost": ["DragTargetDragEnter"],
         "CefCommandLine": None,
-        "CefDragData": None, "CefRequestContext": None,
-        "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
-        "CefURLRequestClient": None,
+        "CefDragData": None, "CefSchemeRegistrar": None,
         "CefDragHandler": ["OnDragEnter"],
         "CefRenderHandler": ["StartDragging"],
     }
@@ -373,7 +371,7 @@ class WithHeaders(unittest.TestCase):
             if name in own:
                 continue
             self.assertIn(name, self.model.classes, name)
-            header = {m.get_name() for m in list(self.model.classes[name].get_virtual_funcs())
+            header = {m.get_name() for m in list(self.model.virtual_funcs(self.model.classes[name]))
                       + list(self.model.classes[name].get_static_funcs())}
             if name not in ("CefBrowser", "CefBrowserHost", "CefFrame", "CefClient"):
                 self.assertTrue(methods & header, name)  # it opens something that exists
@@ -492,6 +490,65 @@ class WithHeaders(unittest.TestCase):
                      "request: Request) -> CookieAccessFilter | None:"):
             self.assertIn(text, stub)
 
+    def test_a_class_has_the_methods_of_its_parent(self):
+        # CefRequestContext inherits the preferences from CefPreferenceManager (CEF 154): the
+        # Python class has them as its own.
+        names = {m.get_name() for m in self.model.virtual_funcs(self.model.classes["CefRequestContext"])}
+        for name in ("GetPreference", "SetPreference", "HasPreference", "GetAllPreferences",
+                     "CanSetPreference", "IsGlobal"):
+            self.assertIn(name, names)
+        self.assertTrue(self.scope.is_library("CefRequestContext"))
+        for name in ("GetPreference", "SetPreference", "CanSetPreference", "GetAllPreferences",
+                     "HasPreference"):
+            plan = self.plan("CefRequestContext", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        plan = self.plan("CefRequestContext", "SetPreference")
+        self.assertEqual([n for n, _ in plan.results], ["return", "error"])
+        stub = self.generated("pyi")
+        self.assertIn("class RequestContext:", stub)
+        self.assertIn("def get_preference(self, name: str) -> Value | None:", stub)
+        self.assertIn("def set_preference(self, name: str, value: Value | None) -> tuple[bool, str]:", stub)
+        self.assertIn("def create_context(settings: RequestContextSettings", stub)
+
+    def test_overloads_with_one_python_name_generate_only_the_first(self):
+        import typesys
+        plans = typesys.plan_class(self.model, self.scope, self.model.classes["CefRequestContext"])
+        made = [p for p in plans if p.cef_name == "CreateContext"]
+        self.assertEqual([p.supported for p in made], [True, False])
+        self.assertIn("another overload", made[1].reason)
+        self.assertEqual(len({p.name for p in plans if p.supported}),
+                         len([p for p in plans if p.supported]))   # no name twice
+
+    def test_url_requests_and_their_client_are_generated(self):
+        self.assertTrue(self.scope.is_library("CefURLRequest"))
+        self.assertTrue(self.scope.is_client("CefURLRequestClient"))
+        for name in ("Create", "Cancel", "GetRequestStatus", "GetRequestError", "GetResponse"):
+            plan = self.plan("CefURLRequest", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        for name in ("OnRequestComplete", "OnUploadProgress", "OnDownloadProgress", "OnDownloadData",
+                     "GetAuthCredentials"):
+            plan = self.plan("CefURLRequestClient", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        stub = self.generated("pyi")
+        for text in ("class URLRequest:", "class URLRequestClient:",
+                     "def on_download_data(self, request: URLRequest, data: memoryview) -> None:",
+                     "def create(request: Request, client: URLRequestClient, "
+                     "request_context: RequestContext | None) -> URLRequest:"):
+            self.assertIn(text, stub)
+
+    def test_the_new_url_of_a_redirect_goes_in_and_out(self):
+        plan = self.plan("CefResourceRequestHandler", "OnResourceRedirect")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins][-1], "new_url")    # the current value comes in
+        self.assertEqual([n for n, _ in plan.results], ["new_url"])    # the new one is returned
+        self.assertIn("response: Response, new_url: str) -> str:", self.generated("pyi"))
+
+    def test_the_request_context_handler_is_generated(self):
+        self.assertTrue(self.scope.is_client("CefRequestContextHandler"))
+        plan = self.plan("CefRequestContextHandler", "GetResourceRequestHandler")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIn("class RequestContextHandler:", self.generated("pyi"))
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
@@ -593,7 +650,7 @@ class WithHeaders(unittest.TestCase):
 
     def plan_in(self, scope, cls_name, method_name):
         cls = self.model.classes[cls_name]
-        for method in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs()):
+        for method in list(self.model.virtual_funcs(cls)) + list(cls.get_static_funcs()):
             if method.get_name() == method_name:
                 return self.plan_method(self.model, scope, cls_name, method,
                                         client_side=cls.is_client_side())

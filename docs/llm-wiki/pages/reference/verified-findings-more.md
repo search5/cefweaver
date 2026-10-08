@@ -153,6 +153,18 @@ updated: 2026-10-08
 - **발견(결함, 수정)**: 구조체의 문자열 필드를 쓰는 코드가 값을 구조체에 쓰지 못했습니다. Cython의 `cdef CefString text = CefString(target)`은 참조가 아니라 **복사**를 만들어 쿠키 설정이 모두 `False`였습니다(이름, 값이 빈 채로 CEF에 감). 앞의 `PdfPrintSettings.page_ranges` 등도 조용히 무시되고 있었습니다. `cef_string_from_utf8`로 구조체에 직접 쓰도록 고쳤습니다.
 - **영향**: 바닥의 격차 9개가 메워졌습니다(`CookieManager` 6, `CookieAccessFilter` 2, `GetCookieAccessFilter` 1).
 
+## F52. 요청 컨텍스트, URL 요청, 인증, 리다이렉트 (로컬 HTTP 서버)
+
+- **방법**: 시험 스크립트 안에서 `http.server`를 띄우고(`/hello`, `/auth`(기본 인증), `/redirect`) CEF가 그 서버에 요청하게 했습니다. 이전에 "서버가 필요해 확인하지 못함"으로 남겨 둔 항목을 포함합니다.
+- **결과**:
+  - `URLRequest.create(request, client, None)`: `on_download_data`로 `hello world`, `on_download_progress`의 (현재, 전체), `on_request_complete`에서 `get_request_status()`는 `SUCCESS`, `get_response().get_status()`는 200, `cancel()`도 동작합니다. `get_auth_credentials(is_proxy, host, port, realm, scheme, callback)`에서 `callback.continue_("user", "pass")`로 `/auth`가 `welcome user`가 됩니다. 요청의 플래그에 `UrlrequestFlags.ALLOW_STORED_CREDENTIALS`가 없으면 401이 그대로 오고 클라이언트는 묻지 않습니다.
+  - 브라우저: `RequestHandler.get_auth_credentials(browser, origin_url, is_proxy, host, port, realm, scheme, callback)`가 오고 인증된 페이지가 뜹니다. `ResourceRequestHandler.on_resource_redirect(..., new_url)`이 302와 새 URL을 받고, `on_resource_response`가 `("auth", 401)`, `("auth", 200)`, `("hello", 200)`을 받습니다.
+  - `RequestContext`: 전역 컨텍스트, 환경설정(`intl.accept_languages`를 `ko,en`으로 바꾸고 읽음, 없는 이름은 `(False, 오류)`), 새 컨텍스트가 동작합니다. 환경설정 메서드는 부모 클래스 `CefPreferenceManager`에 있어서 부모의 가상 메서드를 합치도록 했고, 같은 이름의 오버로드(`CreateContext` 둘)는 첫 번째만 만듭니다.
+- **발견**:
+  - **`disable-chrome-login-prompt`**: 이 스위치가 없으면 CEF 154는 Chrome의 로그인 창을 쓰고 클라이언트의 `GetAuthCredentials`를 부르지 않습니다(`chrome_content_browser_client_cef.cc`). 그래서 사용자의 요청 핸들러가 `get_auth_credentials`를 재정의했을 때만 `initialize()`가 이 스위치를 켭니다.
+  - **입출력 인자**: `OnResourceRedirect`의 `new_url`은 CEF가 현재 값을 주고 핸들러가 바꾸는 값이라(java-cef의 `StringRef`) 출력으로만 다루면 빈 값으로 덮어써 리다이렉트가 깨집니다. Python 메서드가 `new_url`을 받고 새 값을 돌려줍니다.
+- **영향**: 바닥의 격차 중 `RequestContext`(환경설정 포함), `RequestContextHandler`, `URLRequest`, `URLRequestClient`가 메워졌습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

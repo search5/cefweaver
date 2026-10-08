@@ -401,6 +401,15 @@ class Model:
                     progress = True
         return dict(sorted(structs.items()))
 
+    def virtual_funcs(self, cls):
+        """The virtual methods of a class, with those of its CEF parents first: CefRequestContext
+        inherits its preferences from CefPreferenceManager and is used as one class."""
+        parent = cls.get_parent_name() if hasattr(cls, "get_parent_name") else None
+        inherited = []
+        if parent in self.classes:
+            inherited = list(self.virtual_funcs(self.classes[parent]))
+        return inherited + list(cls.get_virtual_funcs())
+
     def header_path(self, cls):
         """`include/cef_x.h` as it is written in an #include line."""
         return "include/" + cls.get_file_name().replace("\\", "/").split("include/")[-1]

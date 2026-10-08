@@ -188,3 +188,7 @@
 ## [2026-10-08] ingest | 격차 메우기 6: 쿠키
 
 - `CefCookieManager`, `CefCookieVisitor`, `CefSetCookieCallback`, `CefDeleteCookiesCallback`, `CefCompletionCallback`, `CefCookieAccessFilter`를 열었습니다. 구조체의 문자열 필드가 CEF에 닿지 않던 결함(복사본에 쓰고 있었음)을 찾아 고쳤습니다. F51. 격차 63개에서 54개.
+
+## [2026-10-08] ingest | 격차 메우기 7: 요청 컨텍스트와 URL 요청, 인증과 리다이렉트 확인
+
+- `CefRequestContext`(부모의 환경설정 메서드를 합침), `CefRequestContextHandler`, `CefURLRequest`, `CefURLRequestClient`를 열고, 같은 이름의 오버로드는 첫 번째만 만들도록 했습니다. 로컬 HTTP 서버로 인증, 리다이렉트, 응답 알림을 확인했습니다. `disable-chrome-login-prompt`와 입출력 인자(`new_url`)를 찾았습니다. F52. 격차 54개에서 44개.

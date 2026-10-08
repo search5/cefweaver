@@ -337,6 +337,10 @@ BYTES_IN_COPY = {("CefStreamReader", "CreateForData", "data"),
 # (CefStreamReader::Read: ptr, size, n) have a different meaning for each size.
 BYTES_OUT = {("CefBinaryValue", "GetData"): "buffer", ("CefZipReader", "ReadFile"): "buffer"}
 
+# A handler parameter that CEF fills with the current value and the handler may change (java-cef
+# gives Java a StringRef holding it): the Python method gets the value and returns the new one.
+INOUT_PARAMS = {("CefResourceRequestHandler", "OnResourceRedirect", "new_url")}
+
 # Library methods in which the size comes before the pointer: (class, method) -> "in" or "out".
 BYTES_SIZE_FIRST = {("CefPostDataElement", "SetToBytes"): "in",
                     ("CefPostDataElement", "GetBytes"): "out"}
@@ -496,7 +500,8 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                                          out=out, const=analysis.is_const(),
                                          byref=analysis.is_byref(),
                                          optional=name in optional_names,
-                                         inout=out and not client_side and isinstance(kind, Struct)))
+                                         inout=out and ((not client_side and isinstance(kind, Struct))
+                                                        or (owner, method.get_name(), name) in INOUT_PARAMS)))
             i += 1
         plan.clamp_return = CLAMPED_RETURNS.get((owner, method.get_name()), "")
         if client_side and isinstance(plan.ret, Struct):
@@ -508,6 +513,24 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
     except Unsupported as reason:
         plan.reason = str(reason)
     return plan
+
+
+def plan_class(model, scope, cls):
+    """The plans of all methods of a class (its parents' included). Python has one attribute
+    per name, so of overloads (CefRequestContext::CreateContext has two) the first is
+    generated and the others say so."""
+    client = cls.is_client_side()
+    plans = [plan_method(model, scope, cls.get_name(), m, client_side=client)
+             for m in model.virtual_funcs(cls)]
+    plans += [plan_method(model, scope, cls.get_name(), m, client_side=client, static=True)
+              for m in cls.get_static_funcs()]
+    seen = set()
+    for plan in plans:
+        if plan.name in seen and plan.supported:
+            plan.reason = "another overload of %s is generated (Python has one name)" % plan.cef_name
+        elif plan.supported:
+            seen.add(plan.name)
+    return plans
 
 
 def _is_size_t(model, scope, argument):

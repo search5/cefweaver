@@ -92,6 +92,9 @@ class CefApp:
 from .types import (
     CertStatus,
     ColorModel,
+    ColorVariant,
+    ContentSettingTypes,
+    ContentSettingValues,
     ContextMenuEditStateFlags,
     ContextMenuMediaStateFlags,
     ContextMenuMediaType,
@@ -390,6 +393,9 @@ class BrowserHost:
         ...
     def has_view(self) -> bool:
         """Returns true if this browser is wrapped in a CefBrowserView."""
+        ...
+    def get_request_context(self) -> RequestContext | None:
+        """Returns the request context for this browser."""
         ...
     def can_zoom(self, command: ZoomCommand | int) -> bool:
         """Returns true if this browser can execute the specified zoom command. This
@@ -1447,6 +1453,22 @@ class Frame:
     def get_browser(self) -> Browser | None:
         """Returns the browser that this frame belongs to."""
         ...
+    def create_url_request(self, request: Request, client: URLRequestClient) -> URLRequest | None:
+        """Create a new URL request that will be treated as originating from this
+        frame and the associated browser. Use CefURLRequest::Create instead if you
+        do not want the request to have this association, in which case it may be
+        handled differently (see documentation on that method). A request created
+        with this method may only originate from the browser process, and will
+        behave as follows:
+          - It may be intercepted by the client via CefResourceRequestHandler or
+            CefSchemeHandlerFactory.
+          - POST data may only contain a single element of type PDE_TYPE_FILE or
+            PDE_TYPE_BYTES.
+
+        The |request| object will be marked as read-only after calling this
+        method.
+        """
+        ...
     def send_process_message(self, target_process: ProcessId | int, message: ProcessMessage) -> None:
         """Send a message to the specified |target_process|. Ownership of the message
         contents will be transferred and the |message| reference will be
@@ -2198,6 +2220,210 @@ class Request:
         ...
 
 
+class RequestContext:
+    """A request context provides request handling for a set of related browser
+    or URL request objects. A request context can be specified when creating a
+    new browser via the CefBrowserHost static factory methods or when creating a
+    new URL request via the CefURLRequest static factory methods. Browser
+    objects with different request contexts will never be hosted in the same
+    render process. Browser objects with the same request context may or may not
+    be hosted in the same render process depending on the process model. Browser
+    objects created indirectly via the JavaScript window.open function or
+    targeted links will share the same render process and the same request
+    context as the source browser. When running in single-process mode there is
+    only a single render process (the main process) and so all browsers created
+    in single-process mode will share the same request context. This will be the
+    first request context passed into a CefBrowserHost static factory method and
+    all other request context objects will be ignored.
+    """
+    def has_preference(self, name: str) -> bool:
+        """Returns true if a preference with the specified |name| exists. This method
+        must be called on the browser process UI thread.
+        """
+        ...
+    def get_preference(self, name: str) -> Value | None:
+        """Returns the value for the preference with the specified |name|. Returns
+        NULL if the preference does not exist. The returned object contains a copy
+        of the underlying preference value and modifications to the returned
+        object will not modify the underlying preference value. This method must
+        be called on the browser process UI thread.
+        """
+        ...
+    def get_all_preferences(self, include_defaults: bool) -> DictionaryValue | None:
+        """Returns all preferences as a dictionary. If |include_defaults| is true
+        then preferences currently at their default value will be included. The
+        returned object contains a copy of the underlying preference values and
+        modifications to the returned object will not modify the underlying
+        preference values. This method must be called on the browser process UI
+        thread.
+        """
+        ...
+    def can_set_preference(self, name: str) -> bool:
+        """Returns true if the preference with the specified |name| can be modified
+        using SetPreference. As one example preferences set via the command-line
+        usually cannot be modified. This method must be called on the browser
+        process UI thread.
+        """
+        ...
+    def set_preference(self, name: str, value: Value | None) -> tuple[bool, str]:
+        """Set the |value| associated with preference |name|. Returns true if the
+        value is set successfully and false otherwise. If |value| is NULL the
+        preference will be restored to its default value. If setting the
+        preference fails then |error| will be populated with a detailed
+        description of the problem. This method must be called on the browser
+        process UI thread.
+        """
+        ...
+    def is_same(self, other: RequestContext) -> bool:
+        """Returns true if this object is pointing to the same context as |that|
+        object.
+        """
+        ...
+    def is_sharing_with(self, other: RequestContext) -> bool:
+        """Returns true if this object is sharing the same storage as |that| object."""
+        ...
+    def is_global(self) -> bool:
+        """Returns true if this object is the global context. The global context is
+        used by default when creating a browser or URL request with a NULL context
+        argument.
+        """
+        ...
+    def get_cache_path(self) -> str:
+        """Returns the cache path for this object. If empty an \"incognito mode\"
+        in-memory cache is being used.
+        """
+        ...
+    def get_cookie_manager(self, callback: CompletionCallback | None) -> CookieManager | None:
+        """Returns the cookie manager for this object. If |callback| is non-NULL it
+        will be executed asnychronously on the UI thread after the manager's
+        storage has been initialized.
+        """
+        ...
+    def register_scheme_handler_factory(self, scheme_name: str, domain_name: str | None, factory: SchemeHandlerFactory | None) -> bool:
+        """Register a scheme handler factory for the specified |scheme_name| and
+        optional |domain_name|. An empty |domain_name| value for a standard scheme
+        will cause the factory to match all domain names. The |domain_name| value
+        will be ignored for non-standard schemes. If |scheme_name| is a built-in
+        scheme and no handler is returned by |factory| then the built-in scheme
+        handler factory will be called. If |scheme_name| is a custom scheme then
+        you must also implement the CefApp::OnRegisterCustomSchemes() method in
+        all processes. This function may be called multiple times to change or
+        remove the factory that matches the specified |scheme_name| and optional
+        |domain_name|. Returns false if an error occurs. This function may be
+        called on any thread in the browser process.
+        """
+        ...
+    def clear_scheme_handler_factories(self) -> bool:
+        """Clear all registered scheme handler factories. Returns false on error.
+        This function may be called on any thread in the browser process.
+        """
+        ...
+    def clear_certificate_exceptions(self, callback: CompletionCallback | None) -> None:
+        """Clears all certificate exceptions that were added as part of handling
+        CefRequestHandler::OnCertificateError(). If you call this it is
+        recommended that you also call CloseAllConnections() or you risk not
+        being prompted again for server certificates if you reconnect quickly.
+        If |callback| is non-NULL it will be executed on the UI thread after
+        completion.
+        """
+        ...
+    def clear_http_cache(self, callback: CompletionCallback | None) -> None:
+        """Clears the HTTP cache. If |callback| is non-NULL it will be executed on
+        the UI thread after completion.
+        """
+        ...
+    def clear_http_auth_credentials(self, callback: CompletionCallback | None) -> None:
+        """Clears all HTTP authentication credentials that were added as part of
+        handling GetAuthCredentials. If |callback| is non-NULL it will be executed
+        on the UI thread after completion.
+        """
+        ...
+    def close_all_connections(self, callback: CompletionCallback | None) -> None:
+        """Clears all active and idle connections that Chromium currently has.
+        This is only recommended if you have released all other CEF objects but
+        don't yet want to call CefShutdown(). If |callback| is non-NULL it will be
+        executed on the UI thread after completion.
+        """
+        ...
+    def get_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> Value | None:
+        """Returns the current value for |content_type| that applies for the
+        specified URLs. If both URLs are empty the default value will be returned.
+        Returns nullptr if no value is configured. Must be called on the browser
+        process UI thread.
+        """
+        ...
+    def set_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: Value | None) -> None:
+        """Sets the current value for |content_type| for the specified URLs in the
+        default scope. If both URLs are empty, and the context is not incognito,
+        the default value will be set. Pass nullptr for |value| to remove the
+        default value for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security
+        issues in Chromium. Make sure that you first understand the potential
+        impact of any changes to |content_type| by reviewing the related source
+        code in Chromium. For example, if you plan to modify
+        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
+        ContentSettingsType::POPUPS in Chromium:
+        https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+        """
+        ...
+    def get_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> ContentSettingValues:
+        """Returns the current value for |content_type| that applies for the
+        specified URLs. If both URLs are empty the default value will be returned.
+        Returns CEF_CONTENT_SETTING_VALUE_DEFAULT if no value is configured. Must
+        be called on the browser process UI thread.
+        """
+        ...
+    def set_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: ContentSettingValues | int) -> None:
+        """Sets the current value for |content_type| for the specified URLs in the
+        default scope. If both URLs are empty, and the context is not incognito,
+        the default value will be set. Pass CEF_CONTENT_SETTING_VALUE_DEFAULT for
+        |value| to use the default value for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security
+        issues in Chromium. Make sure that you first understand the potential
+        impact of any changes to |content_type| by reviewing the related source
+        code in Chromium. For example, if you plan to modify
+        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
+        ContentSettingsType::POPUPS in Chromium:
+        https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+        """
+        ...
+    def set_chrome_color_scheme(self, variant: ColorVariant | int, user_color: int) -> None:
+        """Sets the Chrome color scheme for all browsers that share this request
+        context. |variant| values of SYSTEM, LIGHT and DARK change the underlying
+        color mode (e.g. light vs dark). Other |variant| values determine how
+        |user_color| will be applied in the current color mode. If |user_color| is
+        transparent (0) the default color will be used.
+        """
+        ...
+    def get_chrome_color_scheme_mode(self) -> ColorVariant:
+        """Returns the current Chrome color scheme mode (SYSTEM, LIGHT or DARK). Must
+        be called on the browser process UI thread.
+        """
+        ...
+    def get_chrome_color_scheme_color(self) -> int:
+        """Returns the current Chrome color scheme color, or transparent (0) for the
+        default color. Must be called on the browser process UI thread.
+        """
+        ...
+    def get_chrome_color_scheme_variant(self) -> ColorVariant:
+        """Returns the current Chrome color scheme variant. Must be called on the
+        browser process UI thread.
+        """
+        ...
+    @staticmethod
+    def get_global_context() -> RequestContext | None:
+        """Returns the global context object."""
+        ...
+    @staticmethod
+    def create_context(settings: RequestContextSettings | tuple[str, int, str, str, int], handler: RequestContextHandler | None) -> RequestContext | None:
+        """Creates a new context object with the specified |settings| and optional
+        |handler|.
+        """
+        ...
+
+
 class ResourceReadCallback:
     """Callback for asynchronous continuation of CefResourceHandler::Read()."""
     def continue_(self, bytes_read: int) -> None:
@@ -2439,6 +2665,59 @@ class TaskManager:
     def get_task_manager() -> TaskManager | None:
         """Returns the global task manager object.
         Returns nullptr if the method was called from the incorrect thread.
+        """
+        ...
+
+
+class URLRequest:
+    """Class used to make a URL request. URL requests are not associated with a
+    browser instance so no CefClient callbacks will be executed. URL requests
+    can be created on any valid CEF thread in either the browser or render
+    process. Once created the methods of the URL request object must be accessed
+    on the same thread that created it.
+    """
+    def get_request(self) -> Request | None:
+        """Returns the request object used to create this URL request. The returned
+        object is read-only and should not be modified.
+        """
+        ...
+    def get_request_status(self) -> URLRequestStatus:
+        """Returns the request status."""
+        ...
+    def get_request_error(self) -> ErrorCode:
+        """Returns the request error if status is UR_CANCELED or UR_FAILED, or 0
+        otherwise.
+        """
+        ...
+    def get_response(self) -> Response | None:
+        """Returns the response, or NULL if no response information is available.
+        Response information will only be available after the upload has
+        completed. The returned object is read-only and should not be modified.
+        """
+        ...
+    def response_was_cached(self) -> bool:
+        """Returns true if the response body was served from the cache. This includes
+        responses for which revalidation was required.
+        """
+        ...
+    def cancel(self) -> None:
+        """Cancel the request."""
+        ...
+    @staticmethod
+    def create(request: Request, client: URLRequestClient, request_context: RequestContext | None) -> URLRequest:
+        """Create a new URL request that is not associated with a specific browser or
+        frame. Use CefFrame::CreateURLRequest instead if you want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only
+        originate from the browser process, and will behave as follows:
+          - It may be intercepted by the client via CefResourceRequestHandler or
+            CefSchemeHandlerFactory.
+          - POST data may only contain only a single element of type PDE_TYPE_FILE
+            or PDE_TYPE_BYTES.
+          - If |request_context| is empty the global request context will be used.
+
+        The |request| object will be marked as read-only after calling this
+        method.
         """
         ...
 
@@ -3590,6 +3869,39 @@ class RenderHandler:
         ...
 
 
+class RequestContextHandler:
+    """Implement this interface to provide handler implementations. The handler
+    instance will not be released until all objects related to the context have
+    been destroyed.
+    """
+    def on_request_context_initialized(self, request_context: RequestContext) -> None:
+        """Called on the browser process UI thread immediately after the request
+        context has been initialized.
+        """
+        ...
+    def get_resource_request_handler(self, browser: Browser | None, frame: Frame | None, request: Request, is_navigation: bool, is_download: bool, request_initiator: str) -> tuple[ResourceRequestHandler | None, bool]:
+        """Called on the browser process IO thread before a resource request is
+        initiated. The |browser| and |frame| values represent the source of the
+        request, and may be NULL for requests originating from service workers or
+        CefURLRequest. |request| represents the request contents and cannot be
+        modified in this callback. |is_navigation| will be true if the resource
+        request is a navigation. |is_download| will be true if the resource
+        request is a download. |request_initiator| is the origin (scheme + domain)
+        of the page that initiated the request. Set |disable_default_handling| to
+        true to disable default handling of the request, in which case it will
+        need to be handled via CefResourceRequestHandler::GetResourceHandler or it
+        will be canceled. To allow the resource load to proceed with default
+        handling return NULL. To specify a handler for the resource return a
+        CefResourceRequestHandler object. This method will not be called if the
+        client associated with |browser| returns a non-NULL value from
+        CefRequestHandler::GetResourceRequestHandler for the same request
+        (identified by CefRequest::GetIdentifier). For worker requests without an
+        associated frame or process handler, an arbitrary non-NULL handler from
+        the contexts sharing the same storage will be used.
+        """
+        ...
+
+
 class RequestHandler:
     """Implement this interface to handle events related to browser requests. The
     methods of this class will be called on the thread indicated.
@@ -3823,7 +4135,7 @@ class ResourceRequestHandler:
         |request| object cannot not be modified in this callback.
         """
         ...
-    def on_resource_redirect(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> str:
+    def on_resource_redirect(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, new_url: str) -> str:
         """Called on the IO thread when a resource load is redirected. The |browser|
         and |frame| values represent the source of the request, and may be NULL
         for requests originating from service workers or CefURLRequest. The
@@ -3920,6 +4232,50 @@ class StringVisitor:
     """Implement this interface to receive string values asynchronously."""
     def visit(self, string: str) -> None:
         """Method that will be executed."""
+        ...
+
+
+class URLRequestClient:
+    """Interface that should be implemented by the CefURLRequest client. The
+    methods of this class will be called on the same thread that created the
+    request unless otherwise documented.
+    """
+    def on_request_complete(self, request: URLRequest) -> None:
+        """Notifies the client that the request has completed. Use the
+        CefURLRequest::GetRequestStatus method to determine if the request was
+        successful or not.
+        """
+        ...
+    def on_upload_progress(self, request: URLRequest, current: int, total: int) -> None:
+        """Notifies the client of upload progress. |current| denotes the number of
+        bytes sent so far and |total| is the total size of uploading data (or -1
+        if chunked upload is enabled). This method will only be called if the
+        UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
+        """
+        ...
+    def on_download_progress(self, request: URLRequest, current: int, total: int) -> None:
+        """Notifies the client of download progress. |current| denotes the number of
+        bytes received up to the call and |total| is the expected total size of
+        the response (or -1 if not determined).
+        """
+        ...
+    def on_download_data(self, request: URLRequest, data: memoryview) -> None:
+        """Called when some part of the response is read. |data| contains the current
+        bytes received since the last call. This method will not be called if the
+        UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
+        """
+        ...
+    def get_auth_credentials(self, is_proxy: bool, host: str, port: int, realm: str, scheme: str, callback: AuthCallback) -> bool:
+        """Called on the IO thread when the browser needs credentials from the user.
+        |isProxy| indicates whether the host is a proxy server. |host| contains
+        the hostname and |port| contains the port number. Return true to continue
+        the request and call CefAuthCallback::Continue() when the authentication
+        information is available. If the request has an associated browser/frame
+        then returning false will result in a call to GetAuthCredentials on the
+        CefRequestHandler associated with that browser, if any. Otherwise,
+        returning false will cancel the request immediately. This method will only
+        be called for requests initiated from the browser process.
+        """
         ...
 
 
