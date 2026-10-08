@@ -143,6 +143,10 @@ updated: 2026-10-08
 
 실제 GTK 3 창에서 돌린 결과는 [GTK 3 예제](gtk3-example.md)에 있습니다. 요약: 27개 점검(복사와 붙여넣기, 드래그 앤 드롭 포함)이 1배와 2배(HiDPI)에서 모두 통과했고, `on_after_created`에서 `CefApp`을 쓸 수 없던 결함을 고쳤으며, 뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않는 현상(원인 미확인, `notify_screen_info_changed()`로 우회)을 찾았습니다.
 
+## F68. 열거형 인자의 폭
+
+생성된 메서드의 열거형 인자가 부호 있는 `int`여서 `DragOperationsMask.EVERY`(0xFFFFFFFF)를 넘기면 `OverflowError`가 났습니다. 페이지가 드래그를 시작하면 `start_dragging`의 `allowed_ops`가 바로 `EVERY`이고 이를 `drag_target_drag_over`에 되돌려 주는 것이 자연스러운 사용입니다(Tk 예제에서 발견). 열거형 인자를 `long long`으로 받도록 생성기를 고쳤습니다(시험 `test_a_flags_enum_with_the_highest_bit_can_be_given_to_cef`).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

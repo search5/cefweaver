@@ -1325,7 +1325,7 @@ cdef class BrowserHost:
             _r = _p.GetRequestContext()
         return _wrap_RequestContext(_r)
 
-    def can_zoom(self, int command):
+    def can_zoom(self, long long command):
         """Returns true if this browser can execute the specified zoom command. This
         method can only be called on the UI thread.
         """
@@ -1335,7 +1335,7 @@ cdef class BrowserHost:
             _r = _p.CanZoom(<cef_zoom_command_t>command)
         return _r
 
-    def zoom(self, int command):
+    def zoom(self, long long command):
         """Execute a zoom command in this browser. If called on the UI thread the
         change will be applied immediately. Otherwise, the change will be applied
         asynchronously on the UI thread.
@@ -1376,7 +1376,7 @@ cdef class BrowserHost:
             _p.SetZoomLevel(zoom_level)
         return None
 
-    def run_file_dialog(self, int mode, title, default_file_path, accept_filters, callback):
+    def run_file_dialog(self, long long mode, title, default_file_path, accept_filters, callback):
         """Call to run a file chooser dialog. Only a single file chooser dialog may
         be pending at any given time. |mode| represents the type of dialog to
         display. |title| to the title to be used for the dialog and may be empty
@@ -1642,7 +1642,7 @@ cdef class BrowserHost:
             _p.NotifyScreenInfoChanged()
         return None
 
-    def invalidate(self, int type):
+    def invalidate(self, long long type):
         """Invalidate the view. The browser will call CefRenderHandler::OnPaint
         asynchronously. This method is only used when window rendering is
         disabled.
@@ -1670,7 +1670,7 @@ cdef class BrowserHost:
             _p.SendKeyEvent(_a0)
         return None
 
-    def send_mouse_click_event(self, event, int type, bint mouse_up, int click_count):
+    def send_mouse_click_event(self, event, long long type, bint mouse_up, int click_count):
         """Send a mouse click event to the browser. The |x| and |y| coordinates are
         relative to the upper-left corner of the view.
         """
@@ -1837,7 +1837,7 @@ cdef class BrowserHost:
             _p.ImeCancelComposition()
         return None
 
-    def drag_target_drag_enter(self, DragData drag_data not None, event, int allowed_ops):
+    def drag_target_drag_enter(self, DragData drag_data not None, event, long long allowed_ops):
         """Call this method when the user drags the mouse into the web view (before
         calling DragTargetDragOver/DragTargetLeave/DragTargetDrop).
         |drag_data| should not contain file contents as this type of data is not
@@ -1855,7 +1855,7 @@ cdef class BrowserHost:
             _p.DragTargetDragEnter(_a0, _a1, <cef_drag_operations_mask_t>allowed_ops)
         return None
 
-    def drag_target_drag_over(self, event, int allowed_ops):
+    def drag_target_drag_over(self, event, long long allowed_ops):
         """Call this method each time the mouse is moved across the web view during
         a drag operation (after calling DragTargetDragEnter and before calling
         DragTargetDragLeave/DragTargetDrop).
@@ -1892,7 +1892,7 @@ cdef class BrowserHost:
             _p.DragTargetDrop(_a0)
         return None
 
-    def drag_source_ended_at(self, int x, int y, int op):
+    def drag_source_ended_at(self, int x, int y, long long op):
         """Call this method when the drag operation started by a
         CefRenderHandler::StartDragging call has ended either in a drop or
         by being cancelled. |x| and |y| are mouse coordinates relative to the
@@ -1920,7 +1920,7 @@ cdef class BrowserHost:
             _p.DragSourceSystemDragEnded()
         return None
 
-    def set_accessibility_state(self, int accessibility_state):
+    def set_accessibility_state(self, long long accessibility_state):
         """Set accessibility state for all frames. |accessibility_state| may be
         default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
         then accessibility will be disabled by default and the state may be
@@ -2024,7 +2024,7 @@ cdef class BrowserHost:
             _r = _p.CanExecuteChromeCommand(command_id)
         return _r
 
-    def execute_chrome_command(self, int command_id, int disposition):
+    def execute_chrome_command(self, int command_id, long long disposition):
         """Execute a Chrome command. Use the cef_id_for_command_id_name()
         function for version-safe mapping of command IDC names from
         cef_command_ids.h to version-specific numerical |command_id| values.
@@ -4156,7 +4156,7 @@ cdef class Frame:
             _r = _p.CreateURLRequest(_a0, _a1)
         return _wrap_URLRequest(_r)
 
-    def send_process_message(self, int target_process, ProcessMessage message not None):
+    def send_process_message(self, long long target_process, ProcessMessage message not None):
         """Send a message to the specified |target_process|. Ownership of the message
         contents will be transferred and the |message| reference will be
         invalidated. Message delivery is not guaranteed in all cases (for example,
@@ -5057,7 +5057,7 @@ cdef class MenuModel:
             _r = _p.GetAcceleratorAt(index, _a1, _a2, _a3, _a4)
         return (_r, _a1, _a2, _a3, _a4)
 
-    def set_color(self, int command_id, int color_type, cef_color_t color):
+    def set_color(self, int command_id, long long color_type, cef_color_t color):
         """Set the explicit color for |command_id| and |color_type| to |color|.
         Specify a |color| value of 0 to remove the explicit color. If no explicit
         color or default color is set for |color_type| then the system color will
@@ -5069,7 +5069,7 @@ cdef class MenuModel:
             _r = _p.SetColor(command_id, <cef_menu_color_type_t>color_type, color)
         return _r
 
-    def set_color_at(self, int index, int color_type, cef_color_t color):
+    def set_color_at(self, int index, long long color_type, cef_color_t color):
         """Set the explicit color for |command_id| and |index| to |color|. Specify a
         |color| value of 0 to remove the explicit color. Specify an |index| value
         of -1 to set the default color for items that do not have an explicit
@@ -5082,7 +5082,7 @@ cdef class MenuModel:
             _r = _p.SetColorAt(index, <cef_menu_color_type_t>color_type, color)
         return _r
 
-    def get_color(self, int command_id, int color_type):
+    def get_color(self, int command_id, long long color_type):
         """Returns in |color| the color that was explicitly set for |command_id| and
         |color_type|. If a color was not set then 0 will be returned in |color|.
         Returns true on success.
@@ -5095,7 +5095,7 @@ cdef class MenuModel:
             _r = _p.GetColor(command_id, <cef_menu_color_type_t>color_type, _a2)
         return (_r, _a2)
 
-    def get_color_at(self, int index, int color_type):
+    def get_color_at(self, int index, long long color_type):
         """Returns in |color| the color that was explicitly set for |command_id| and
         |color_type|. Specify an |index| value of -1 to return the default color
         in |color|. If a color was not set then 0 will be returned in |color|.
@@ -5626,7 +5626,7 @@ cdef class PrintSettings:
             _r = _p.WillCollate()
         return _r
 
-    def set_color_model(self, int model):
+    def set_color_model(self, long long model):
         """Set the color model."""
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
@@ -5656,7 +5656,7 @@ cdef class PrintSettings:
             _r = _p.GetCopies()
         return _r
 
-    def set_duplex_mode(self, int mode):
+    def set_duplex_mode(self, long long mode):
         """Set the duplex mode."""
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
@@ -5864,7 +5864,7 @@ cdef class Request:
             _p.SetMethod(_a0)
         return None
 
-    def set_referrer(self, referrer_url, int policy):
+    def set_referrer(self, referrer_url, long long policy):
         """Set the referrer URL and policy. If non-empty the referrer URL must be
         fully qualified with an HTTP or HTTPS scheme component. Any username,
         password or ref component will be removed.
@@ -6314,7 +6314,7 @@ cdef class RequestContext:
             _p.CloseAllConnections(_a0)
         return None
 
-    def get_website_setting(self, requesting_url, top_level_url, int content_type):
+    def get_website_setting(self, requesting_url, top_level_url, long long content_type):
         """Returns the current value for |content_type| that applies for the
         specified URLs. If both URLs are empty the default value will be returned.
         Returns nullptr if no value is configured. Must be called on the browser
@@ -6332,7 +6332,7 @@ cdef class RequestContext:
             _r = _p.GetWebsiteSetting(_a0, _a1, <cef_content_setting_types_t>content_type)
         return _wrap_Value(_r)
 
-    def set_website_setting(self, requesting_url, top_level_url, int content_type, Value value):
+    def set_website_setting(self, requesting_url, top_level_url, long long content_type, Value value):
         """Sets the current value for |content_type| for the specified URLs in the
         default scope. If both URLs are empty, and the context is not incognito,
         the default value will be set. Pass nullptr for |value| to remove the
@@ -6360,7 +6360,7 @@ cdef class RequestContext:
             _p.SetWebsiteSetting(_a0, _a1, <cef_content_setting_types_t>content_type, _a3)
         return None
 
-    def get_content_setting(self, requesting_url, top_level_url, int content_type):
+    def get_content_setting(self, requesting_url, top_level_url, long long content_type):
         """Returns the current value for |content_type| that applies for the
         specified URLs. If both URLs are empty the default value will be returned.
         Returns CEF_CONTENT_SETTING_VALUE_DEFAULT if no value is configured. Must
@@ -6378,7 +6378,7 @@ cdef class RequestContext:
             _r = _p.GetContentSetting(_a0, _a1, <cef_content_setting_types_t>content_type)
         return _g_enum(_types.ContentSettingValues, <int>_r)
 
-    def set_content_setting(self, requesting_url, top_level_url, int content_type, int value):
+    def set_content_setting(self, requesting_url, top_level_url, long long content_type, long long value):
         """Sets the current value for |content_type| for the specified URLs in the
         default scope. If both URLs are empty, and the context is not incognito,
         the default value will be set. Pass CEF_CONTENT_SETTING_VALUE_DEFAULT for
@@ -6403,7 +6403,7 @@ cdef class RequestContext:
             _p.SetContentSetting(_a0, _a1, <cef_content_setting_types_t>content_type, <cef_content_setting_values_t>value)
         return None
 
-    def set_chrome_color_scheme(self, int variant, cef_color_t user_color):
+    def set_chrome_color_scheme(self, long long variant, cef_color_t user_color):
         """Sets the Chrome color scheme for all browsers that share this request
         context. |variant| values of SYSTEM, LIGHT and DARK change the underlying
         color mode (e.g. light vs dark). Other |variant| values determine how
@@ -6590,7 +6590,7 @@ cdef class Response:
             _r = _p.GetError()
         return _g_enum(_types.ErrorCode, <int>_r)
 
-    def set_error(self, int error):
+    def set_error(self, long long error):
         """Set the response error code. This can be used by custom scheme handlers
         to return errors during initial request processing.
         """
@@ -6763,7 +6763,7 @@ cdef class RunContextMenuCallback:
             raise RuntimeError("RunContextMenuCallback has no CEF object")
         return p
 
-    def continue_(self, int command_id, int event_flags):
+    def continue_(self, int command_id, long long event_flags):
         """Complete context menu display by selecting the specified |command_id| and
         |event_flags|.
         """
@@ -6806,7 +6806,7 @@ cdef class RunQuickMenuCallback:
             raise RuntimeError("RunQuickMenuCallback has no CEF object")
         return p
 
-    def continue_(self, int command_id, int event_flags):
+    def continue_(self, int command_id, long long event_flags):
         """Complete quick menu display by selecting the specified |command_id| and
         |event_flags|.
         """
@@ -11735,7 +11735,7 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-def post_task(int thread_id, task):
+def post_task(long long thread_id, task):
     """Post a task for execution on the specified thread. Equivalent to
     using CefTaskRunner::GetForThread(threadId)->PostTask(task).
     """
@@ -11749,7 +11749,7 @@ def post_task(int thread_id, task):
     return _r
 
 
-def post_delayed_task(int thread_id, task, int64_t delay_ms):
+def post_delayed_task(long long thread_id, task, int64_t delay_ms):
     """Post a task for delayed execution on the specified thread. Equivalent to
     using CefTaskRunner::GetForThread(threadId)->PostDelayedTask(task,
     delay_ms).
@@ -11764,7 +11764,7 @@ def post_delayed_task(int thread_id, task, int64_t delay_ms):
     return _r
 
 
-def currently_on(int thread_id):
+def currently_on(long long thread_id):
     """Returns true if called on the specified thread. Equivalent to using
     CefTaskRunner::GetForThread(threadId)->BelongsToCurrentThread().
     """

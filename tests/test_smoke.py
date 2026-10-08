@@ -3493,6 +3493,23 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    def test_a_flags_enum_with_the_highest_bit_can_be_given_to_cef(self):
+        # DragOperationsMask.EVERY is 0xFFFFFFFF; a page that starts a drag allows exactly that, and an
+        # application hands it back to drag_target_drag_over(): it must not overflow a signed int
+        self.run_osr_script("""
+            start(RED)
+            host = boxes[0].get_host()
+            data = cefweaver.DragData.create()
+            data.set_fragment_text("x")
+            mouse = types.MouseEvent(10, 10, 0)
+            for ops in (types.DragOperationsMask.EVERY, 0xFFFFFFFF, types.DragOperationsMask.COPY, 0):
+                host.drag_target_drag_enter(data, mouse, ops)
+                host.drag_target_drag_over(mouse, ops)
+                host.drag_target_drag_leave()
+            app.shutdown()
+            print("OK")
+        """)
+
     # -- JSON calls between JavaScript and Python (cefpython's JavascriptBindings) --------------
 
     BRIDGE_PAGE = """

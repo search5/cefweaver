@@ -693,7 +693,9 @@ def _library_method(plan, owner_py):
             pre.append("_a%d.val = _g_to_basetime(%s)" % (i, n))
             call_args.append("_a%d" % i)
         elif isinstance(kind, Enum):
-            sig.append("int %s" % n)
+            # long long: an enumeration of flags can hold 0xFFFFFFFF (DragOperationsMask.EVERY), which a
+            # signed int overflows
+            sig.append("long long %s" % n)
             call_args.append("<%s>%s" % (kind.cname, n))
         elif isinstance(kind, Str):
             sig.append(n)
