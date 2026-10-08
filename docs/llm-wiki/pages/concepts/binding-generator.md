@@ -49,14 +49,18 @@ report.py       커버리지 보고서
 | `Void` | `void` 반환 | `None` |
 | `Prim` | `bool`, 정수형(`int`, `int64_t`, `size_t` 등), `double`, `float`, `cef_color_t` | `bool`, `int`, `float` |
 | `Str` | `CefString` | `str` |
-| `Enum` | `typedef enum { } cef_x_t;`로 선언된 열거형 | `int` |
+| `Enum` | `typedef enum { } cef_x_t;`로 선언된 열거형 | `types`의 `IntEnum`/`IntFlag` 멤버(CEF에 줄 때는 `int`도 됨) |
 | `LibRef` | 생성 범위 안의 CEF 구현 클래스의 `CefRefPtr<T>` | 래퍼 객체(널이면 `None`) |
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
-| `Struct` | 필드가 모두 기본형인 값 타입(`CefRect`, `CefPoint`, `CefSize`, `CefInsets`, `CefRange`, `CefMouseEvent`) | 이름 있는 튜플(`Rect(x, y, width, height)`). 받는 쪽에는 같은 필드의 튜플도 됩니다. |
+| `Struct` | 필드가 모두 기본형인 값 타입(`CefRect`, `CefPoint`, `CefSize`, `CefInsets`, `CefRange`, `CefMouseEvent`) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Vector` | `std::vector<CefString>`(요소가 문자열인 벡터만) | `list[str]` |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍 | `memoryview` |
 
 파서의 `result_type`을 기준으로 삼되 두 가지는 따로 처리합니다. 첫째, 파서의 `is_result_struct_enum()`은 "참조나 포인터가 아니다"라는 어림짐작일 뿐이라서 쓰지 않고, 열거형은 헤더에서 `typedef enum`을 직접 찾아 구분합니다. 둘째, 파서의 `get_result_ptr_type_root()`는 C++ 클래스명이 아니라 C API 이름(`cef_request_t`)을 돌려주므로 선언된 타입 문자열(`CefRefPtr<CefRequest>`)에서 이름을 뽑습니다(이 오류로 초기 보고서의 수치가 틀렸다가 고쳤습니다).
+
+## 열거형
+
+열거형은 헤더에서 읽어 `cefweaver.types`의 `IntEnum`/`IntFlag`로 만듭니다. CEF에 넘길 때는 정수 그대로 되고, 핸들러의 인자와 라이브러리의 반환은 멤버로 변환합니다([types 모듈](../reference/types-module.md)).
 
 ## 값 타입 구조체
 

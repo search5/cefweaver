@@ -50,7 +50,7 @@ updated: 2026-10-08
 | 이벤트 | 순서 |
 | --- | --- |
 | `OnAfterCreated` | 래퍼(브라우저 목록에 추가), 그다음 사용자 |
-| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false`. Alloy 스타일 브라우저에서만 호출되며 닫기를 막는 것을 시험으로 확인했습니다([실험으로 확인한 사실](../reference/verified-findings.md) F18). |
+| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false`. Alloy 스타일 브라우저에서만 호출되며 닫기를 막는 것을 시험으로 확인했습니다([실험으로 확인한 사실](../reference/verified-findings-api.md) F18). |
 | `OnBeforeClose` | 사용자 먼저(브라우저가 아직 목록에 있음), 그다음 래퍼(목록에서 제거) |
 | `OnLoadStart`, `OnLoadingStateChange`, `OnLoadEnd`, `OnTitleChange` | 래퍼, 그다음 사용자 |
 | `OnLoadError` | 사용자 먼저, 그다음 래퍼(오류 페이지로 교체) |

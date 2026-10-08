@@ -48,6 +48,19 @@ def wait_until(app, condition, what, timeout=30):
         app.do_message_loop_work()
         time.sleep(0.005)
 
+def send_until(app, send, delivered, what, timeout=30):
+    # Input that reaches the browser before it takes input is dropped, not queued (and there
+    # is no signal for "ready", not even the first frame), so send it again until it arrives.
+    end = time.time() + timeout
+    while not delivered():
+        if time.time() > end:
+            raise TimeoutError("timed out waiting for " + what)
+        send()
+        until = time.time() + 0.1
+        while time.time() < until and not delivered():
+            app.do_message_loop_work()
+            time.sleep(0.005)
+
 def page(body):
     html = '<html><head><meta charset="utf-8"></head><body>' + body + '</body></html>'
     return "data:text/html;base64," + base64.b64encode(html.encode()).decode()
@@ -132,6 +145,27 @@ class ApiWithoutCef(unittest.TestCase):
     def test_browser_lists_its_frames_as_lists_of_strings(self):
         self.assertTrue(hasattr(cefweaver.Browser, "get_frame_names"))
         self.assertTrue(hasattr(cefweaver.Browser, "get_frame_identifiers"))
+
+    def test_the_types_module_has_the_enumerations_and_value_types(self):
+        import enum
+        from cefweaver import types
+        self.assertIs(cefweaver.types, types)
+        self.assertTrue(issubclass(types.MouseButtonType, enum.IntEnum))
+        self.assertEqual(types.MouseButtonType.LEFT, 0)
+        self.assertEqual(types.ErrorCode.CONNECTION_REFUSED, -102)
+        self.assertTrue(issubclass(types.EventFlags, enum.IntFlag))
+        self.assertIs(types.Rect, cefweaver.Rect)  # the same value types as in cefweaver
+        self.assertEqual(types.Rect(1, 2, 3, 4), (1, 2, 3, 4))
+
+    def test_library_methods_return_enumeration_members(self):
+        from cefweaver import types
+        request = cefweaver.Request.create()
+        resource_type = request.get_resource_type()
+        self.assertIsInstance(resource_type, types.ResourceType)
+        self.assertEqual(resource_type, types.ResourceType.SUB_RESOURCE)  # the default
+        self.assertEqual(resource_type, int(resource_type))  # and still an int
+        request.set_url("http://example.test/")
+        self.assertIsInstance(request.get_transition_type(), types.TransitionType)
 
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
@@ -495,16 +529,20 @@ class WithCef(unittest.TestCase):
                                 "e => report(e.clientX, e.clientY, e.button));</script>"))
             wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
             host = boxes[0].get_host()
-            MOUSE_LEFT = 0
+            from cefweaver import types
             # Input sent before the first frame is rendered is dropped, not queued.
             wait_until(app, lambda: ("frame",) in got, "the first frame")
             got.clear()
             # A MouseEvent and a plain tuple of the same fields are both accepted.
-            host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), MOUSE_LEFT, False, 1)
-            wait_until(app, lambda: len(got) == 1, "the first mouse down")
-            host.send_mouse_click_event((150, 100, 0), MOUSE_LEFT, False, 1)
-            wait_until(app, lambda: len(got) == 2, "the second mouse down")
-            assert got == [(50, 60, 0), (150, 100, 0)], got  # no offset, and x and y are not swapped
+            send_until(app, lambda: host.send_mouse_click_event(
+                types.MouseEvent(50, 60, 0), types.MouseButtonType.LEFT, False, 1),
+                lambda: got, "the first mouse down")
+            send_until(app, lambda: host.send_mouse_click_event(
+                (150, 100, 0), types.MouseButtonType.LEFT, False, 1),
+                lambda: (150, 100, 0) in got, "the second mouse down")
+            # No offset, and x and y are not swapped (a repeated send may add a duplicate).
+            assert set(got) == {(50, 60, 0), (150, 100, 0)}, got
+            assert got[0] == (50, 60, 0), got
             for bad in ((1, 2), "xyz", None):
                 try:
                     host.send_mouse_move_event(bad, False)
@@ -870,6 +908,55 @@ class WithCef(unittest.TestCase):
             app.load_url("http://srcdoc.test/")
             wait_until(app, lambda: app.is_ready_to_execute_javascript and
                        "inner" in boxes[0].get_frame_names(), "the page with its srcdoc frame")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_handlers_receive_enumeration_members_and_modifiers_are_flags(self):
+        result = run_cef("""
+            import socket
+            from cefweaver import types
+            errors, got, boxes = [], [], []
+            sock = socket.socket()
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+            sock.close()
+            class Load(cefweaver.LoadHandler):
+                def on_load_error(self, browser, frame, error_code, error_text, failed_url):
+                    errors.append(error_code)
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.load, self.life = Load(), Life()
+                def get_load_handler(self):
+                    return self.load
+                def get_life_span_handler(self):
+                    return self.life
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            app.set_client(MyClient())
+            app.initialize(page("<script>requestAnimationFrame(() => report('frame'));"
+                                "document.addEventListener('mousedown',"
+                                "e => report(e.shiftKey, e.ctrlKey, e.altKey));</script>"))
+            wait_until(app, lambda: ("frame",) in got, "the first frame")
+            got.clear()
+            # Modifiers are bit flags: they combine with | and reach the page.
+            modifiers = types.EventFlags.SHIFT_DOWN | types.EventFlags.CONTROL_DOWN
+            host = boxes[0].get_host()
+            send_until(app, lambda: host.send_mouse_click_event(
+                types.MouseEvent(5, 5, modifiers), types.MouseButtonType.LEFT, False, 1),
+                lambda: got, "the mouse down")
+            assert set(got) == {(True, True, False)}, got  # shift and control, not alt
+
+            app.load_url("http://127.0.0.1:%d/" % port)
+            wait_until(app, lambda: errors, "the load error", timeout=30)
+            error = errors[0]
+            assert isinstance(error, types.ErrorCode), type(error)
+            assert error is types.ErrorCode.CONNECTION_REFUSED, error
             app.shutdown()
             print("OK")
         """)

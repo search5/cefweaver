@@ -242,14 +242,16 @@ class WithHeaders(unittest.TestCase):
                       header)
         self.assertIn("bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*)", header)
 
-    def test_the_stub_declares_named_tuples(self):
+    def test_the_stub_reexports_the_value_types_of_the_types_module(self):
         stub = self.generated("pyi")
-        self.assertIn("class Rect(NamedTuple):", stub)
-        self.assertIn("    width: int", stub)
-        self.assertIn("class Range(NamedTuple):", stub)
-        self.assertIn("    from_: int\n    to: int\n", stub)
+        self.assertIn("    Rect as Rect,", stub)
+        self.assertIn("    Range as Range,", stub)
+        self.assertNotIn("class Rect", stub)  # defined once, in types.py
         self.assertIn("def on_contents_bounds_change(self, browser: Browser, new_bounds: Rect) -> bool:",
                       stub)
+        types_source = self.generated("types")
+        self.assertIn("class Rect(NamedTuple):", types_source)
+        self.assertIn("    from_: int\n    to: int", types_source)
 
     @unittest.skipUnless(shutil.which("c++") and os.path.isfile(
         os.path.join(CEF_ROOT, "Release", "libcef.so")), "needs a C++ compiler and libcef.so")
@@ -369,6 +371,93 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("def get_frame_names(self) -> list[str]:", stub)
         self.assertIn("def on_favicon_url_change(self, browser: Browser, icon_urls: list[str]) -> None:",
                       stub)
+
+
+    # -- the types module: enumerations and value types ---------------------------------
+
+    def test_enumerations_are_read_from_the_c_headers(self):
+        info = self.model.enum_defs["cef_mouse_button_type_t"]
+        self.assertEqual(info.py_name, "MouseButtonType")  # the C++ alias, not a guess
+        self.assertEqual(info.members, (("LEFT", 0), ("MIDDLE", 1), ("RIGHT", 2)))
+        self.assertFalse(info.flag)
+
+    def test_enumerator_values_are_evaluated(self):
+        flags = dict(self.model.enum_defs["cef_event_flags_t"].members)
+        self.assertEqual(flags["SHIFT_DOWN"], 2)  # 1 << 1
+        self.assertEqual(flags["NONE"], 0)
+        transition = dict(self.model.enum_defs["cef_transition_type_t"].members)
+        self.assertEqual(transition["LINK"], 0)
+        self.assertEqual(transition["SOURCE_MASK"], 0xFF)
+        self.assertEqual(transition["BLOCKED_FLAG"], 0x00800000)
+
+    def test_bit_flags_become_flag_enumerations(self):
+        self.assertTrue(self.model.enum_defs["cef_event_flags_t"].flag)
+        self.assertFalse(self.model.enum_defs["cef_transition_type_t"].flag)  # mixes both
+
+    def test_the_net_error_list_gives_the_error_codes(self):
+        errors = dict(self.model.enum_defs["cef_errorcode_t"].members)
+        self.assertEqual(self.model.enum_defs["cef_errorcode_t"].py_name, "ErrorCode")
+        self.assertEqual(errors["ABORTED"], -3)
+        self.assertEqual(errors["CONNECTION_REFUSED"], -102)
+        self.assertEqual(errors["NAME_NOT_RESOLVED"], -105)
+
+    def test_conditions_on_the_api_version_select_the_latest_api(self):
+        # Members added by CEF_API_ADDED(...) are there, the ones of the #else branches are not.
+        self.assertGreater(len(self.model.enum_defs["cef_resultcode_t"].members), 20)
+
+    def test_only_the_selected_branch_of_a_condition_is_read(self):
+        body = '''
+            A = 0,
+        #if CEF_API_ADDED(100)
+          #if CEF_API_ADDED(200)
+            B = 2,
+          #else
+            B = 1,
+          #endif
+        #else  // !CEF_API_ADDED(100)
+            C = 5,
+        #endif
+            D,
+        '''
+        self.assertEqual(model.parse_enum(body, CEF_ROOT), [("A", 0), ("B", 2), ("D", 3)])
+
+    def test_every_enumerator_is_defined_once(self):
+        for cname, info in self.model.enum_defs.items():
+            names = [name for name, _ in info.members]
+            self.assertEqual(len(names), len(set(names)), cname)
+
+    def test_enumerations_that_cannot_be_read_say_why(self):
+        for cname, reason in self.model.enum_skipped.items():
+            self.assertTrue(reason, cname)
+
+    def generated_types(self):
+        namespace = {}
+        exec(compile(self.generated("types"), "types.py", "exec"), namespace)
+        return namespace
+
+    def test_the_types_module_defines_enumerations_and_value_types(self):
+        import enum
+        types = self.generated_types()
+        self.assertTrue(issubclass(types["MouseButtonType"], enum.IntEnum))
+        self.assertEqual(types["MouseButtonType"].RIGHT, 2)
+        self.assertTrue(issubclass(types["EventFlags"], enum.IntFlag))
+        both = types["EventFlags"].SHIFT_DOWN | types["EventFlags"].CONTROL_DOWN
+        self.assertEqual(int(both), 2 | 4)
+        self.assertEqual(types["ErrorCode"](-102).name, "CONNECTION_REFUSED")
+        rect = types["Rect"](1, 2, 3, 4)
+        self.assertEqual((rect.x, rect.width), (1, 3))
+        self.assertEqual(types["Range"]._fields, ("from_", "to"))
+
+    def test_the_types_module_lists_what_it_exports(self):
+        types = self.generated_types()
+        for name in ("MouseButtonType", "EventFlags", "ErrorCode", "Rect", "Point", "MouseEvent"):
+            self.assertIn(name, types["__all__"])
+
+    def test_the_stub_uses_the_enumerations_and_imports_the_types(self):
+        stub = self.generated("pyi")
+        self.assertIn("from .types import", stub)
+        self.assertIn("error_code: ErrorCode", stub)
+        self.assertIn("MouseButtonType | int", stub)  # a library method also takes a plain int
 
 
     def test_generated_files_are_up_to_date(self):

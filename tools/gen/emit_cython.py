@@ -252,7 +252,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
-from collections import namedtuple as _namedtuple
+from cefweaver import types as _types
 from libc.string cimport strcmp as _strcmp
 
 
@@ -280,6 +280,14 @@ cdef object _g_str(const CefString& value):
     return value.ToString().decode("utf-8", "replace")
 
 
+cdef inline object _g_enum(object cls, long long value):
+    """The member of the enumeration, or the plain int when CEF reports a value without one."""
+    try:
+        return cls(value)
+    except ValueError:
+        return value
+
+
 cdef inline list _g_str_list(const vector[CefString]* values):
     cdef list result = []
     cdef size_t i
@@ -302,16 +310,11 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 def _struct_pxi(struct):
-    """The named tuple of a value type struct and its conversions."""
+    """The conversions of a value type struct; the named tuple itself is in cefweaver.types."""
     py = py_class_name(struct.cls)
     names = [f.name for f in struct.fields]
     temps = ["_f%d" % i for i in range(len(names))]
-    out = ['%s = _namedtuple("%s", [%s])' % (py, py, ", ".join('"%s"' % n for n in names)),
-           '%s.__doc__ = "The CEF value type %s (%s). Anywhere one is expected, a tuple with the '
-           'same fields works too."' % (py, struct.cls, ", ".join(names)),
-           "",
-           "",
-           "cdef inline object _g_from_%s(const %s* value):" % (py, struct.cls),
+    out = ["cdef inline object _g_from_%s(const %s* value):" % (py, struct.cls),
            "    return %s(%s)" % (py, ", ".join("value.%s" % n for n in names)),
            "",
            "",
@@ -344,7 +347,7 @@ def _annotation(kind):
     if isinstance(kind, Prim):
         return kind.py
     if isinstance(kind, Enum):
-        return "int"
+        return kind.py or "int"
     if isinstance(kind, Str):
         return "str"
     if isinstance(kind, (LibRef, ClientRef, Struct)):
@@ -445,7 +448,7 @@ def _library_method(plan, owner_py):
     if isinstance(ret, Prim):
         values.append("_r")
     elif isinstance(ret, Enum):
-        values.append("<int>_r")
+        values.append("_g_enum(_types.%s, <int>_r)" % ret.py if ret.py else "<int>_r")
     elif isinstance(ret, Str):
         values.append("_g_str(_r)")
     elif isinstance(ret, LibRef):
@@ -496,7 +499,7 @@ def _trampoline(plan, cls_py):
         if isinstance(kind, Prim):
             py_args.append(n)
         elif isinstance(kind, Enum):
-            py_args.append(n)
+            py_args.append("_g_enum(_types.%s, %s)" % (kind.py, n) if kind.py else n)
         elif isinstance(kind, Str):
             py_args.append("_g_str(%s[0])" % n)
         elif isinstance(kind, Struct):
@@ -569,7 +572,9 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
     structs = all_structs(model)
     if structs:
         out.append("")
-        out.append("# Value type structs")
+        out.append("# Value type structs: the named tuples are defined in cefweaver/types.py")
+        out.append("from cefweaver.types import %s" % ", ".join(py_class_name(c) for c in structs))
+        out.append("")
         for struct in structs.values():
             out += _struct_pxi(struct)
             out.append("")

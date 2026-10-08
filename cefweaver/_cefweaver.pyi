@@ -43,45 +43,28 @@ class CefApp:
     def is_ready_to_execute_javascript(self) -> bool: ...
 
 
-class Insets(NamedTuple):
-    """The CEF value type CefInsets. Anywhere one is expected, a tuple with the same fields works too."""
-    top: int
-    left: int
-    bottom: int
-    right: int
-
-
-class MouseEvent(NamedTuple):
-    """The CEF value type CefMouseEvent. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
-    modifiers: int
-
-
-class Point(NamedTuple):
-    """The CEF value type CefPoint. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
-
-
-class Range(NamedTuple):
-    """The CEF value type CefRange. Anywhere one is expected, a tuple with the same fields works too."""
-    from_: int
-    to: int
-
-
-class Rect(NamedTuple):
-    """The CEF value type CefRect. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
-    width: int
-    height: int
-
-
-class Size(NamedTuple):
-    """The CEF value type CefSize. Anywhere one is expected, a tuple with the same fields works too."""
-    width: int
-    height: int
+from .types import (
+    DragOperationsMask,
+    ErrorCode,
+    LogSeverity,
+    MouseButtonType,
+    PaintElementType,
+    ReferrerPolicy,
+    ResourceType,
+    RuntimeStyle,
+    State,
+    TransitionType,
+    WindowOpenDisposition,
+    ZoomCommand,
+)
+from .types import (
+    Insets as Insets,
+    MouseEvent as MouseEvent,
+    Point as Point,
+    Range as Range,
+    Rect as Rect,
+    Size as Size,
+)
 
 
 class Browser:
@@ -242,12 +225,12 @@ class BrowserHost:
     def has_view(self) -> bool:
         """Returns true if this browser is wrapped in a CefBrowserView."""
         ...
-    def can_zoom(self, command: int) -> bool:
+    def can_zoom(self, command: ZoomCommand | int) -> bool:
         """Returns true if this browser can execute the specified zoom command. This
         method can only be called on the UI thread.
         """
         ...
-    def zoom(self, command: int) -> None:
+    def zoom(self, command: ZoomCommand | int) -> None:
         """Execute a zoom command in this browser. If called on the UI thread the
         change will be applied immediately. Otherwise, the change will be applied
         asynchronously on the UI thread.
@@ -342,7 +325,7 @@ class BrowserHost:
         display properties.
         """
         ...
-    def invalidate(self, type: int) -> None:
+    def invalidate(self, type: PaintElementType | int) -> None:
         """Invalidate the view. The browser will call CefRenderHandler::OnPaint
         asynchronously. This method is only used when window rendering is
         disabled.
@@ -353,7 +336,7 @@ class BrowserHost:
         CefWindowInfo::external_begin_frame_enabled is set to true.
         """
         ...
-    def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: int, mouse_up: bool, click_count: int) -> None:
+    def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: MouseButtonType | int, mouse_up: bool, click_count: int) -> None:
         """Send a mouse click event to the browser. The |x| and |y| coordinates are
         relative to the upper-left corner of the view.
         """
@@ -420,7 +403,7 @@ class BrowserHost:
         This method is only used when window rendering is disabled.
         """
         ...
-    def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: int) -> None:
+    def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
         """Call this method each time the mouse is moved across the web view during
         a drag operation (after calling DragTargetDragEnter and before calling
         DragTargetDragLeave/DragTargetDrop).
@@ -441,7 +424,7 @@ class BrowserHost:
         This method is only used when window rendering is disabled.
         """
         ...
-    def drag_source_ended_at(self, x: int, y: int, op: int) -> None:
+    def drag_source_ended_at(self, x: int, y: int, op: DragOperationsMask | int) -> None:
         """Call this method when the drag operation started by a
         CefRenderHandler::StartDragging call has ended either in a drop or
         by being cancelled. |x| and |y| are mouse coordinates relative to the
@@ -461,7 +444,7 @@ class BrowserHost:
         This method is only used when window rendering is disabled.
         """
         ...
-    def set_accessibility_state(self, accessibility_state: int) -> None:
+    def set_accessibility_state(self, accessibility_state: State | int) -> None:
         """Set accessibility state for all frames. |accessibility_state| may be
         default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
         then accessibility will be disabled by default and the state may be
@@ -530,7 +513,7 @@ class BrowserHost:
         used with Chrome style.
         """
         ...
-    def execute_chrome_command(self, command_id: int, disposition: int) -> None:
+    def execute_chrome_command(self, command_id: int, disposition: WindowOpenDisposition | int) -> None:
         """Execute a Chrome command. Use the cef_id_for_command_id_name()
         function for version-safe mapping of command IDC names from
         cef_command_ids.h to version-specific numerical |command_id| values.
@@ -547,7 +530,7 @@ class BrowserHost:
         called on the UI thread.
         """
         ...
-    def get_runtime_style(self) -> int:
+    def get_runtime_style(self) -> RuntimeStyle:
         """Returns the runtime style for this browser (ALLOY or CHROME). See
         cef_runtime_style_t documentation for details.
         """
@@ -692,7 +675,7 @@ class Request:
     def set_method(self, method: str) -> None:
         """Set the request method type."""
         ...
-    def set_referrer(self, referrer_url: str | None, policy: int) -> None:
+    def set_referrer(self, referrer_url: str | None, policy: ReferrerPolicy | int) -> None:
         """Set the referrer URL and policy. If non-empty the referrer URL must be
         fully qualified with an HTTP or HTTPS scheme component. Any username,
         password or ref component will be removed.
@@ -701,7 +684,7 @@ class Request:
     def get_referrer_url(self) -> str:
         """Get the referrer URL."""
         ...
-    def get_referrer_policy(self) -> int:
+    def get_referrer_policy(self) -> ReferrerPolicy:
         """Get the referrer policy."""
         ...
     def get_header_by_name(self, name: str) -> str:
@@ -737,12 +720,12 @@ class Request:
         CefURLRequest.
         """
         ...
-    def get_resource_type(self) -> int:
+    def get_resource_type(self) -> ResourceType:
         """Get the resource type for this request. Only available in the browser
         process.
         """
         ...
-    def get_transition_type(self) -> int:
+    def get_transition_type(self) -> TransitionType:
         """Get the transition type for this request. Only available in the browser
         process and only applies to requests that represent a main frame or
         sub-frame navigation.
@@ -791,10 +774,10 @@ class Response:
     def is_read_only(self) -> bool:
         """Returns true if this object is read-only."""
         ...
-    def get_error(self) -> int:
+    def get_error(self) -> ErrorCode:
         """Get the response error code. Returns ERR_NONE if there was no error."""
         ...
-    def set_error(self, error: int) -> None:
+    def set_error(self, error: ErrorCode | int) -> None:
         """Set the response error code. This can be used by custom scheme handlers
         to return errors during initial request processing.
         """
@@ -896,7 +879,7 @@ class DisplayHandler:
         text that will be displayed in the status message.
         """
         ...
-    def on_console_message(self, browser: Browser, level: int, message: str, source: str, line: int) -> bool:
+    def on_console_message(self, browser: Browser, level: LogSeverity, message: str, source: str, line: int) -> bool:
         """Called to display a console message. Return true to stop the message from
         being output to the console.
         """
@@ -1111,7 +1094,7 @@ class LoadHandler:
         and after all calls to OnLoadError and/or OnLoadEnd.
         """
         ...
-    def on_load_start(self, browser: Browser, frame: Frame, transition_type: int) -> None:
+    def on_load_start(self, browser: Browser, frame: Frame, transition_type: TransitionType) -> None:
         """Called after a navigation has been committed and before the browser begins
         loading contents in the frame. The |frame| value will never be empty --
         call the IsMain() method to check if this frame is the main frame.
@@ -1135,7 +1118,7 @@ class LoadHandler:
         instead.
         """
         ...
-    def on_load_error(self, browser: Browser, frame: Frame, error_code: int, error_text: str, failed_url: str) -> None:
+    def on_load_error(self, browser: Browser, frame: Frame, error_code: ErrorCode, error_text: str, failed_url: str) -> None:
         """Called when a navigation fails or is canceled. This method may be called
         by itself if before commit or in combination with OnLoadStart/OnLoadEnd if
         after commit. |errorCode| is the error code number, |errorText| is the

@@ -85,6 +85,11 @@ The CEF classes are available as generated, PEP 8 style wrappers
 API covered so far is listed in the generated wiki page
 ``docs/llm-wiki/pages/reference/coverage-report.md``.
 
+The CEF enumerations and value types are in ``cefweaver.types``: ``IntEnum``/``IntFlag``
+classes (``types.MouseButtonType.LEFT``, ``types.EventFlags.SHIFT_DOWN | types.EventFlags.CONTROL_DOWN``)
+and named tuples (``types.Rect(0, 0, 640, 480)``). Plain integers and tuples are accepted
+wherever they are expected.
+
 Browsers use the Alloy runtime style (as java-cef does). CEF can be initialized
 only once per process, also after ``shutdown()``.
 

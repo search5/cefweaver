@@ -21,6 +21,7 @@ sys.path.insert(0, HERE)
 import emit_cpp  # noqa: E402
 import emit_cython  # noqa: E402
 import emit_pyi  # noqa: E402
+import emit_types  # noqa: E402
 from model import Model, py_class_name  # noqa: E402
 from report import build_report  # noqa: E402
 from scope import Scope  # noqa: E402
@@ -32,6 +33,7 @@ OUTPUTS = {
     "pxd": os.path.join(ROOT, "cefweaver", "cef_api.pxd"),
     "pxi": os.path.join(ROOT, "cefweaver", "cef_api.pxi"),
     "pyi": os.path.join(ROOT, "cefweaver", "_cefweaver.pyi"),
+    "types": os.path.join(ROOT, "cefweaver", "types.py"),
     # A page of the wiki (docs/llm-wiki); the front matter field `generated: true` exempts it
     # from the page length check of the wiki lint.
     "coverage": os.path.join(ROOT, "docs", "llm-wiki", "pages", "reference", "coverage-report.md"),
@@ -109,6 +111,7 @@ def build_all(cef_root):
         "pxd": emit_cython.emit_pxd(model, scope, plans_by_class, function_plans, banner),
         "pxi": emit_cython.emit_pxi(model, scope, plans_by_class, function_plans, banner),
         "pyi": emit_pyi.emit(model, scope, plans_by_class, function_plans, handwritten, banner),
+        "types": emit_types.emit(model, banner),
         "coverage": coverage_page(build_report(model, scope, Scope.everything(model)),
                                   cef_version(cef_root)),
     }

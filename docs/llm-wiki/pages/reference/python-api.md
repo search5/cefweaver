@@ -37,6 +37,10 @@ updated: 2026-10-08
 
 동작은 [수명 주기와 메시지 루프](../concepts/lifecycle-and-message-loop.md), [JavaScript 바인딩](../concepts/javascript-bindings.md), [리소스 제공](../concepts/resource-serving.md)에 있습니다. 인자로 받는 경로는 `str`, `bytes`, `os.PathLike`입니다.
 
+## 열거형과 값 타입
+
+열거형(`MouseButtonType`, `ErrorCode`, `EventFlags` 등 100개)과 값 타입은 `cefweaver.types`에 있습니다([types 모듈](types-module.md)). CEF가 주는 열거형 값은 멤버로 오고(`error_code is types.ErrorCode.ABORTED`), 일반 정수도 그대로 넘길 수 있습니다.
+
 ## 생성된 이름
 
 | 종류 | 이름 |
@@ -94,9 +98,9 @@ app.set_client(MyClient())
 app.initialize("https://example.com")
 ```
 
-`do_close`는 닫기를 시작할 때 호출되고(`host.close_browser(False)` 등), `True`를 돌려주면 닫기가 취소됩니다. 다시 `close_browser`를 부르면(이번에 `False`를 돌려주면) `on_before_close`로 이어집니다. 래퍼의 브라우저는 Alloy 스타일이라서 가능한 동작입니다([실험으로 확인한 사실](verified-findings.md) F18).
+`do_close`는 닫기를 시작할 때 호출되고(`host.close_browser(False)` 등), `True`를 돌려주면 닫기가 취소됩니다. 다시 `close_browser`를 부르면(이번에 `False`를 돌려주면) `on_before_close`로 이어집니다. 래퍼의 브라우저는 Alloy 스타일이라서 가능한 동작입니다([실험으로 확인한 사실](verified-findings-api.md) F18).
 
-`send_mouse_*` 같은 입력은 **첫 프레임이 렌더링되기 전에 보내면 버려집니다**(페이지에서 `requestAnimationFrame` 콜백이 불리는 것으로 알 수 있습니다).
+`send_mouse_*` 같은 입력은 **브라우저가 입력을 받을 준비가 되기 전에 보내면 버려지고**, 준비를 알리는 신호는 없습니다. 첫 프레임이 지난 뒤에도 가끔(측정에서 10번 중 1번) 첫 입력이 버려졌으므로, 확실히 전해야 하면 도착할 때까지 다시 보내야 합니다([실험으로 확인한 사실](verified-findings-api.md) F18).
 
 ## 브라우저 호스트
 

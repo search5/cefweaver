@@ -6,7 +6,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
-from collections import namedtuple as _namedtuple
+from cefweaver import types as _types
 from libc.string cimport strcmp as _strcmp
 
 
@@ -34,6 +34,14 @@ cdef object _g_str(const CefString& value):
     return value.ToString().decode("utf-8", "replace")
 
 
+cdef inline object _g_enum(object cls, long long value):
+    """The member of the enumeration, or the plain int when CEF reports a value without one."""
+    try:
+        return cls(value)
+    except ValueError:
+        return value
+
+
 cdef inline list _g_str_list(const vector[CefString]* values):
     cdef list result = []
     cdef size_t i
@@ -54,10 +62,8 @@ cdef void _g_release(void* py) noexcept with gil:
     Py_DECREF(<object>py)
 
 
-# Value type structs
-Insets = _namedtuple("Insets", ["top", "left", "bottom", "right"])
-Insets.__doc__ = "The CEF value type CefInsets (top, left, bottom, right). Anywhere one is expected, a tuple with the same fields works too."
-
+# Value type structs: the named tuples are defined in cefweaver/types.py
+from cefweaver.types import Insets, MouseEvent, Point, Range, Rect, Size
 
 cdef inline object _g_from_Insets(const CefInsets* value):
     return Insets(value.top, value.left, value.bottom, value.right)
@@ -75,10 +81,6 @@ cdef inline int _g_to_Insets(object obj, CefInsets* out) except -1:
     return 0
 
 
-MouseEvent = _namedtuple("MouseEvent", ["x", "y", "modifiers"])
-MouseEvent.__doc__ = "The CEF value type CefMouseEvent (x, y, modifiers). Anywhere one is expected, a tuple with the same fields works too."
-
-
 cdef inline object _g_from_MouseEvent(const CefMouseEvent* value):
     return MouseEvent(value.x, value.y, value.modifiers)
 
@@ -92,10 +94,6 @@ cdef inline int _g_to_MouseEvent(object obj, CefMouseEvent* out) except -1:
     out.y = _f1
     out.modifiers = _f2
     return 0
-
-
-Point = _namedtuple("Point", ["x", "y"])
-Point.__doc__ = "The CEF value type CefPoint (x, y). Anywhere one is expected, a tuple with the same fields works too."
 
 
 cdef inline object _g_from_Point(const CefPoint* value):
@@ -112,10 +110,6 @@ cdef inline int _g_to_Point(object obj, CefPoint* out) except -1:
     return 0
 
 
-Range = _namedtuple("Range", ["from_", "to"])
-Range.__doc__ = "The CEF value type CefRange (from_, to). Anywhere one is expected, a tuple with the same fields works too."
-
-
 cdef inline object _g_from_Range(const CefRange* value):
     return Range(value.from_, value.to)
 
@@ -128,10 +122,6 @@ cdef inline int _g_to_Range(object obj, CefRange* out) except -1:
     out.from_ = _f0
     out.to = _f1
     return 0
-
-
-Rect = _namedtuple("Rect", ["x", "y", "width", "height"])
-Rect.__doc__ = "The CEF value type CefRect (x, y, width, height). Anywhere one is expected, a tuple with the same fields works too."
 
 
 cdef inline object _g_from_Rect(const CefRect* value):
@@ -148,10 +138,6 @@ cdef inline int _g_to_Rect(object obj, CefRect* out) except -1:
     out.width = _f2
     out.height = _f3
     return 0
-
-
-Size = _namedtuple("Size", ["width", "height"])
-Size.__doc__ = "The CEF value type CefSize (width, height). Anywhere one is expected, a tuple with the same fields works too."
 
 
 cdef inline object _g_from_Size(const CefSize* value):
@@ -1028,7 +1014,7 @@ cdef class BrowserHost:
         cdef cef_runtime_style_t _r
         with nogil:
             _r = _p.GetRuntimeStyle()
-        return <int>_r
+        return _g_enum(_types.RuntimeStyle, <int>_r)
 
     def set_ax_viewport_collapse(self, bint enabled):
         """Enable or disable CDP accessibility tree viewport collapse for this
@@ -1394,7 +1380,7 @@ cdef class Request:
         cdef cef_referrer_policy_t _r
         with nogil:
             _r = _p.GetReferrerPolicy()
-        return <int>_r
+        return _g_enum(_types.ReferrerPolicy, <int>_r)
 
     def get_header_by_name(self, name):
         """Returns the first header value for |name| or an empty string if not found.
@@ -1474,7 +1460,7 @@ cdef class Request:
         cdef cef_resource_type_t _r
         with nogil:
             _r = _p.GetResourceType()
-        return <int>_r
+        return _g_enum(_types.ResourceType, <int>_r)
 
     def get_transition_type(self):
         """Get the transition type for this request. Only available in the browser
@@ -1485,7 +1471,7 @@ cdef class Request:
         cdef cef_transition_type_t _r
         with nogil:
             _r = _p.GetTransitionType()
-        return <int>_r
+        return _g_enum(_types.TransitionType, <int>_r)
 
     def get_identifier(self):
         """Returns the globally unique identifier for this request or 0 if not
@@ -1615,7 +1601,7 @@ cdef class Response:
         cdef cef_errorcode_t _r
         with nogil:
             _r = _p.GetError()
-        return <int>_r
+        return _g_enum(_types.ErrorCode, <int>_r)
 
     def set_error(self, int error):
         """Set the response error code. This can be used by custom scheme handlers
@@ -1976,7 +1962,7 @@ cdef void _DisplayHandler_on_status_message(void* py, CefBrowser* browser, const
 
 cdef cpp_bool _DisplayHandler_on_console_message(void* py, CefBrowser* browser, int level, const CefString* message, const CefString* source, int line) noexcept with gil:
     try:
-        _r = (<object>py).on_console_message(_wrap_Browser(CefRefPtr[CefBrowser](browser)), level, _g_str(message[0]), _g_str(source[0]), line)
+        _r = (<object>py).on_console_message(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.LogSeverity, level), _g_str(message[0]), _g_str(source[0]), line)
         _r0 = _r
         return _r0
     except BaseException:
@@ -2348,7 +2334,7 @@ cdef void _LoadHandler_on_loading_state_change(void* py, CefBrowser* browser, cp
 
 cdef void _LoadHandler_on_load_start(void* py, CefBrowser* browser, CefFrame* frame, int transition_type) noexcept with gil:
     try:
-        _r = (<object>py).on_load_start(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), transition_type)
+        _r = (<object>py).on_load_start(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_enum(_types.TransitionType, transition_type))
     except BaseException:
         _g_report()
 
@@ -2360,7 +2346,7 @@ cdef void _LoadHandler_on_load_end(void* py, CefBrowser* browser, CefFrame* fram
 
 cdef void _LoadHandler_on_load_error(void* py, CefBrowser* browser, CefFrame* frame, int error_code, const CefString* error_text, const CefString* failed_url) noexcept with gil:
     try:
-        _r = (<object>py).on_load_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), error_code, _g_str(error_text[0]), _g_str(failed_url[0]))
+        _r = (<object>py).on_load_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_enum(_types.ErrorCode, error_code), _g_str(error_text[0]), _g_str(failed_url[0]))
     except BaseException:
         _g_report()
 

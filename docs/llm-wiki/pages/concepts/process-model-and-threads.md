@@ -33,7 +33,7 @@ Chromium은 여러 프로세스로 동작하며, cefweaver에서는 다음과 �
 
 ## 다른 스레드의 콜백
 
-CEF에는 UI 스레드 말고도 IO 스레드 등이 있습니다. 예를 들어 CEF 헤더(`cef_scheme.h`)는 `CefSchemeHandlerFactory`의 메서드가 항상 IO 스레드에서 호출된다고 적고, `CefResourceHandler`도 따로 명시하지 않으면 IO 스레드라고 적습니다. 따라서 생성된 핸들러 콜백은 UI 스레드가 아닌 스레드에서 Python을 실행할 수 있습니다. 시험으로 확인한 것은 리소스 핸들러의 `create`, `open`, `get_response_headers`, `read`가 모두 UI 스레드가 아닌 스레드에서 실행된다는 것입니다(스레드 이름은 `Dummy-1`~`5`로 서로 달랐고, Python이 만들지 않은 스레드입니다). 그 스레드가 IO 스레드인지는 이름으로 구별하지 못했습니다([실험으로 확인한 사실](../reference/verified-findings.md) F19).
+CEF에는 UI 스레드 말고도 IO 스레드 등이 있습니다. 예를 들어 CEF 헤더(`cef_scheme.h`)는 `CefSchemeHandlerFactory`의 메서드가 항상 IO 스레드에서 호출된다고 적고, `CefResourceHandler`도 따로 명시하지 않으면 IO 스레드라고 적습니다. 따라서 생성된 핸들러 콜백은 UI 스레드가 아닌 스레드에서 Python을 실행할 수 있습니다. 시험으로 확인한 것은 리소스 핸들러의 `create`, `open`, `get_response_headers`, `read`가 모두 UI 스레드가 아닌 스레드에서 실행된다는 것입니다(스레드 이름은 `Dummy-1`~`5`로 서로 달랐고, Python이 만들지 않은 스레드입니다). 그 스레드가 IO 스레드인지는 이름으로 구별하지 못했습니다([실험으로 확인한 사실](../reference/verified-findings-api.md) F19).
 
 ## GIL 규칙
 
@@ -42,7 +42,7 @@ CEF에는 UI 스레드 말고도 IO 스레드 등이 있습니다. 예를 들어
 | Python에서 CEF를 호출 | GIL을 놓고 호출합니다. | 손으로 쓴 `initialize`, `do_message_loop_work`, `shutdown`, `load_url`, `execute_javascript`와 모든 생성 래퍼 메서드가 `with nogil:`을 씁니다. |
 | CEF가 Python을 호출 | 콜백은 GIL을 다시 얻습니다. | 콜백 함수는 `noexcept with gil`로 선언되고 예외를 `sys.excepthook`으로 보고하며 C++로 전파하지 않습니다. |
 
-GIL을 쥔 채 CEF 안에서 기다리면 다른 CEF 스레드가 콜백을 위해 GIL을 기다리다 교착할 수 있기 때문에 앞의 규칙이 필요합니다. 규칙이 코드에 적용되어 있는지는 확인했습니다. Cython이 만든 C++ 코드에서 `PyEval_SaveThread`가 호출 위치마다 있고, 콜백에는 `PyGILState_Ensure`가 있습니다. 반대로 `shutdown()`에서 GIL을 놓지 않은 변형 빌드는 **교착을 재현했습니다**. 끝나지 않는 응답을 IO 쪽 스레드가 계속 읽는 상태에서 `shutdown()`이 25초 감시 타이머가 끝날 때까지 반환하지 않았고(3번 모두), 정상 빌드는 0.03초에 끝났습니다([실험으로 확인한 사실](../reference/verified-findings.md) F25).
+GIL을 쥔 채 CEF 안에서 기다리면 다른 CEF 스레드가 콜백을 위해 GIL을 기다리다 교착할 수 있기 때문에 앞의 규칙이 필요합니다. 규칙이 코드에 적용되어 있는지는 확인했습니다. Cython이 만든 C++ 코드에서 `PyEval_SaveThread`가 호출 위치마다 있고, 콜백에는 `PyGILState_Ensure`가 있습니다. 반대로 `shutdown()`에서 GIL을 놓지 않은 변형 빌드는 **교착을 재현했습니다**. 끝나지 않는 응답을 IO 쪽 스레드가 계속 읽는 상태에서 `shutdown()`이 25초 감시 타이머가 끝날 때까지 반환하지 않았고(3번 모두), 정상 빌드는 0.03초에 끝났습니다([실험으로 확인한 사실](../reference/verified-findings-api.md) F25).
 
 `CefFrame`의 메서드는 브라우저 프로세스에서 어느 스레드에서든 호출할 수 있다고 CEF 헤더(`cef_frame.h`)가 밝히므로, 다른 Python 스레드에서 `load_url`을 불러도 UI 스레드 규칙을 어기지 않습니다. 다만 래퍼가 내부에서 쓰는 `Browser` 전역 참조 자체는 동기화되어 있지 않습니다.
 

@@ -50,6 +50,8 @@ class Str(Kind):
 class Enum(Kind):
     spelled: str  # as written where it is used, e.g. TransitionType
     cname: str  # the C enumeration, e.g. cef_transition_type_t
+    # The class in cefweaver.types ("" if the enumeration could not be read: then an int).
+    py: str = field(default="", compare=False)
 
 
 @dataclass(frozen=True)
@@ -131,7 +133,8 @@ def classify(model, scope, analysis):
     if result == "structure":
         cname = analysis.result_value
         if cname in model.enums and not analysis.is_byaddr():
-            return Enum(spelled, cname)
+            info = model.enum_defs.get(cname)
+            return Enum(spelled, cname, info.py_name if info else "")
         raise Unsupported("struct %s" % cname)
 
     if result == "refptr":

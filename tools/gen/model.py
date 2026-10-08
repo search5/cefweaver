@@ -6,6 +6,7 @@ generators need on top of it: Python names (PEP 8), enumeration detection and
 pure virtual detection.
 """
 
+import ast
 import keyword
 import os
 import re
@@ -96,6 +97,165 @@ def parse_struct_fields(body):
     return tuple(fields) or None
 
 
+# -- enumerations ---------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class EnumInfo:
+    cname: str  # the C enumeration, e.g. cef_mouse_button_type_t
+    py_name: str  # the Python class, e.g. MouseButtonType
+    members: tuple  # of (Python name, value)
+    flag: bool  # bit flags (an IntFlag in Python)
+    doc: str = ""
+
+
+class EnumUnsupported(Exception):
+    """An enumeration the generator cannot read; the message says why."""
+
+
+_C_CONSTANTS = {"UINT_MAX": 0xFFFFFFFF, "INT_MAX": 0x7FFFFFFF}
+
+
+def _strip_c_comments(text):
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def _condition(expression):
+    """Whether an `#if` holds when the latest API is selected."""
+    expression = expression.strip()
+    if re.fullmatch(r"CEF_API_ADDED\([^)]*\)", expression):
+        return True
+    if expression == "!defined(GENERATING_CEF_API_HASH)":
+        return True
+    raise EnumUnsupported("preprocessor condition %s" % expression)
+
+
+def _active_lines(body, cef_root):
+    """The lines of an enum body that are in effect: `#if` branches selected, the net error
+    list (`#define NET_ERROR(label, value) ERR_##label = value,` + `#include`) expanded."""
+    out, stack, macro = [], [], None
+    for raw in _strip_c_comments(body).splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if not line.startswith("#"):
+            if all(active for active, _ in stack):
+                out.append(line)
+            continue
+        directive, _, rest = line[1:].strip().partition(" ")
+        if directive == "if":
+            parent = all(active for active, _ in stack)
+            value = parent and _condition(rest)
+            stack.append((value, value))
+        elif directive == "elif":
+            was_taken = stack[-1][1]
+            parent = all(active for active, _ in stack[:-1])
+            value = (not was_taken) and parent and _condition(rest)
+            stack[-1] = (value, was_taken or value)
+        elif directive == "else":
+            was_taken = stack[-1][1]
+            parent = all(active for active, _ in stack[:-1])
+            stack[-1] = ((not was_taken) and parent, True)
+        elif directive == "endif":
+            stack.pop()
+        elif directive == "define":
+            found = re.match(r"(\w+)\(label, value\)\s+(\w+)##label\s*=\s*value,", rest)
+            if found:
+                macro = (found.group(1), found.group(2))
+        elif directive == "include" and macro and all(active for active, _ in stack):
+            path = os.path.join(cef_root, re.search(r'"([^"]+)"', rest).group(1))
+            with open(path, encoding="utf-8") as f:
+                for entry in re.finditer(r"^%s\((\w+),\s*(-?\w+)\)" % macro[0], f.read(), re.M):
+                    out.append("%s%s = %s," % (macro[1], entry.group(1), entry.group(2)))
+        elif directive in ("undef",):
+            macro = None
+        else:
+            raise EnumUnsupported("preprocessor directive #%s" % directive)
+    return out
+
+
+def _evaluate(expression, known):
+    """The value of an enumerator expression: integers, names of earlier enumerators and
+    the operators C programs use for flags."""
+    expression = re.sub(r"\b(0[xX][0-9a-fA-F]+|\d+)[uUlL]+\b", r"\1", expression)
+
+    def walk(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, int):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id in known:
+                return known[node.id]
+            if node.id in _C_CONSTANTS:
+                return _C_CONSTANTS[node.id]
+            raise EnumUnsupported("unknown name %s" % node.id)
+        if isinstance(node, ast.UnaryOp):
+            value = walk(node.operand)
+            if isinstance(node.op, ast.USub):
+                return -value
+            if isinstance(node.op, ast.Invert):
+                return ~value
+            if isinstance(node.op, ast.UAdd):
+                return value
+        if isinstance(node, ast.BinOp):
+            left, right = walk(node.left), walk(node.right)
+            operations = {ast.LShift: lambda a, b: a << b, ast.RShift: lambda a, b: a >> b,
+                          ast.BitOr: lambda a, b: a | b, ast.BitAnd: lambda a, b: a & b,
+                          ast.Add: lambda a, b: a + b, ast.Sub: lambda a, b: a - b}
+            if type(node.op) in operations:
+                return operations[type(node.op)](left, right)
+        raise EnumUnsupported("expression %s" % expression)
+
+    try:
+        return walk(ast.parse(expression, mode="eval").body)
+    except SyntaxError:
+        raise EnumUnsupported("expression %s" % expression) from None
+
+
+def parse_enum(body, cef_root):
+    """[(C name, value)] of an enum body."""
+    members, known, value = [], {}, -1
+    text = " ".join(_active_lines(body, cef_root))
+    for item in (i.strip() for i in text.split(",")):
+        if not item:
+            continue
+        name, equals, expression = (p.strip() for p in item.partition("="))
+        if not re.fullmatch(r"[A-Za-z_]\w*", name):
+            raise EnumUnsupported("enumerator %r" % item)
+        value = _evaluate(expression, known) if equals else value + 1
+        known[name] = value
+        members.append((name, value))
+    if not members:
+        raise EnumUnsupported("no enumerators")
+    return members
+
+
+def _python_member_names(cnames):
+    """Strip the prefix all the enumerators share (`MBT_LEFT` -> `LEFT`)."""
+    tokens = [name.split("_") for name in cnames]
+    shared = 0
+    while all(len(t) > shared + 1 and t[shared] == tokens[0][shared] for t in tokens):
+        shared += 1
+    names = ["_".join(t[shared:]) for t in tokens]
+    names = [n if not n[0].isdigit() else "_" + n for n in names]
+    if len(set(names)) != len(names):
+        return list(cnames)  # stripping would merge two enumerators
+    return names
+
+
+def _camel_case(cname):
+    core = re.sub(r"^cef_|_t$", "", cname)
+    return "".join(part.capitalize() for part in core.split("_"))
+
+
+def _is_flag(cname, values):
+    single = [v for v in values if v > 0 and v & (v - 1) == 0]
+    if cname.endswith(("_flags_t", "_mask_t")):
+        return len(single) >= 2
+    nonzero = [v for v in values if v != 0]
+    return len(single) >= 3 and len(single) == len(nonzero)
+
+
 # -- the model -----------------------------------------------------------------------
 
 
@@ -116,6 +276,7 @@ class Model:
         self.functions = {f.get_name(): f for f in header.get_funcs()}
         self.enums = self._find_enums()
         self.structs = self._find_structs()
+        self.enum_defs, self.enum_skipped = self._read_enums()
 
     def _read(self, path):
         if path not in self._sources:
@@ -135,6 +296,43 @@ class Model:
                 for match in re.finditer(r"typedef\s+enum\s*\w*\s*\{.*?\}\s*(\w+)\s*;", text, re.S):
                     names.add(match.group(1))
         return names
+
+    def _read_enums(self):
+        """EnumInfo of every enumeration that can be read, and why the others cannot."""
+        include = os.path.join(self.cef_root, "include")
+        aliases = {}  # C name -> the name the C++ headers give it (`ErrorCode`)
+        found = {}
+        for dirpath, _, files in sorted(os.walk(include)):
+            for filename in sorted(files):
+                if not filename.endswith(".h"):
+                    continue
+                text = self._read(os.path.join(dirpath, filename))
+                for match in re.finditer(r"^\s*typedef\s+(cef_\w+_t)\s+(\w+)\s*;", text, re.M):
+                    aliases.setdefault(match.group(1), match.group(2))
+                for match in re.finditer(r"((?:^[ \t]*///[^\n]*\n)*)[ \t]*typedef\s+enum\s*\w*\s*\{(.*?)\}\s*(\w+)\s*;",
+                                         text, re.S | re.M):
+                    found[match.group(3)] = (match.group(2), match.group(1))
+        defs, skipped, used_names = {}, {}, set()
+        for cname, (body, comment) in sorted(found.items()):
+            try:
+                members = parse_enum(body, self.cef_root)
+            except EnumUnsupported as reason:
+                skipped[cname] = str(reason)
+                continue
+            # The C++ spelling (`ErrorCode`) is used where it only differs from the one made of
+            # the C name (`Errorcode`) in capitals. An alias that is declared inside a class
+            # (`TypeFlags` of CefContextMenuParams) means little without the class.
+            py_name = _camel_case(cname)
+            alias = py_class_name(aliases.get(cname, ""))
+            if alias and alias.lower() == py_name.lower() and alias not in used_names:
+                py_name = alias
+            used_names.add(py_name)
+            names = _python_member_names([n for n, _ in members])
+            values = [v for _, v in members]
+            doc = " ".join(l.strip().lstrip("/").strip() for l in comment.splitlines()).strip()
+            defs[cname] = EnumInfo(cname, py_name, tuple(zip(names, values)),
+                                   _is_flag(cname, values), doc)
+        return defs, skipped
 
     def _find_structs(self):
         """The plain data structs CEF passes by value: `class CefRect : public cef_rect_t`."""
