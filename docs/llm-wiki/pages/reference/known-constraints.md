@@ -40,6 +40,7 @@ updated: 2026-10-08
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
 - **Python에 열린 핸들러는 일부**입니다. 표시, 수명 주기, 로드 핸들러는 `set_client()`로 받을 수 있지만, 컨텍스트 메뉴 핸들러와 JavaScript 바인딩 메시지(`OnProcessMessageReceived`)는 `CefWrapperClientHandler`가 고정해서 처리하고 위임하지 않습니다. 나머지 핸들러 15개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
+- `uv build --wheel`이 `_g_export_Client`, `_g_export_SchemeHandlerFactory`에 대해 `defined but not used` 경고를 냅니다. 생성기가 다른 메서드가 반환하지 않는 핸들러에도 `_g_export_*`를 만들기 때문이며 동작에는 영향이 없습니다. 반환하는 메서드가 있을 때만 만들도록 고칠 수 있습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.
 - **리눅스에서 창 제목을 설정하지 않습니다**(`PlatformTitleChange`가 비어 있음).
 - **JS 값은 네 종류만**(정수, 불리언, 실수, 문자열) 전달되고 반환값은 없습니다. 인자 없는 C++ 바인딩 경로는 Python에 노출하지 않았습니다.
