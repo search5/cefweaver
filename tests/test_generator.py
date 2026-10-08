@@ -688,6 +688,28 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([(f.cname, f.cpp) for f in mouse.fields],
                          [("x", "int"), ("y", "int"), ("modifiers", "uint32_t")])
 
+    def test_conditional_members_of_a_struct_are_left_out_and_the_rest_is_read(self):
+        # cef_browser_settings_t has members under `#if CEF_API_ADDED(...)`: they depend on the
+        # API version the code is compiled for, so they are not fields; the others are.
+        text = ("size_t size;\nint windowless_frame_rate;\n"
+                "#if CEF_API_ADDED(13800)\ncef_state_t databases_deprecated;\n#else\n"
+                "cef_state_t databases;\n#endif\ncef_state_t webgl;\n"
+                "#if CEF_API_ADDED(CEF_EXPERIMENTAL)\ncef_state_t ax_viewport_collapse;\n#endif\n")
+        fields = model.parse_struct_fields(text, {}, {"cef_state_t": "State"})
+        self.assertEqual([f.cname for f in fields], ["windowless_frame_rate", "webgl"])
+
+    def test_the_browser_settings_are_a_struct_with_strings_states_and_a_colour(self):
+        settings = self.model.structs["CefBrowserSettings"]
+        names = [f.name for f in settings.fields]
+        for expected in ("windowless_frame_rate", "standard_font_family", "default_font_size",
+                         "default_encoding", "javascript", "image_loading", "local_storage",
+                         "webgl", "background_color"):
+            self.assertIn(expected, names)
+        self.assertNotIn("databases", names)
+        by_name = {f.name: f for f in settings.fields}
+        self.assertEqual(by_name["javascript"].py, "State")
+        self.assertEqual(by_name["default_encoding"].py, "str")
+
     def test_structs_with_a_size_header_and_enumeration_members_are_read(self):
         # `size` is the C API's version header (the C++ class sets it); an enumeration
         # member is a Python enumeration.

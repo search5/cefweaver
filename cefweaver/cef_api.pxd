@@ -163,6 +163,34 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         cef_channel_layout_t channel_layout
         int sample_rate
         int frames_per_buffer
+    cdef cppclass CefBrowserSettings:
+        CefBrowserSettings()
+        int windowless_frame_rate
+        cef_string_t standard_font_family
+        cef_string_t fixed_font_family
+        cef_string_t serif_font_family
+        cef_string_t sans_serif_font_family
+        cef_string_t cursive_font_family
+        cef_string_t fantasy_font_family
+        int default_font_size
+        int default_fixed_font_size
+        int minimum_font_size
+        int minimum_logical_font_size
+        cef_string_t default_encoding
+        cef_state_t remote_fonts
+        cef_state_t javascript
+        cef_state_t javascript_close_windows
+        cef_state_t javascript_access_clipboard
+        cef_state_t javascript_dom_paste
+        cef_state_t image_loading
+        cef_state_t image_shrink_standalone_to_fit
+        cef_state_t text_area_resize
+        cef_state_t tab_to_links
+        cef_state_t local_storage
+        cef_state_t webgl
+        cef_color_t background_color
+        cef_state_t chrome_status_bubble
+        cef_state_t chrome_zoom_bubble
     cdef cppclass CefCookie:
         CefCookie()
         cef_string_t name

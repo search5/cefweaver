@@ -1730,6 +1730,36 @@ class AudioParameters(NamedTuple):
     frames_per_buffer: int = 0
 
 
+class BrowserSettings(NamedTuple):
+    """The CEF value type CefBrowserSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    windowless_frame_rate: int = 0
+    standard_font_family: str = ""
+    fixed_font_family: str = ""
+    serif_font_family: str = ""
+    sans_serif_font_family: str = ""
+    cursive_font_family: str = ""
+    fantasy_font_family: str = ""
+    default_font_size: int = 0
+    default_fixed_font_size: int = 0
+    minimum_font_size: int = 0
+    minimum_logical_font_size: int = 0
+    default_encoding: str = ""
+    remote_fonts: State = 0
+    javascript: State = 0
+    javascript_close_windows: State = 0
+    javascript_access_clipboard: State = 0
+    javascript_dom_paste: State = 0
+    image_loading: State = 0
+    image_shrink_standalone_to_fit: State = 0
+    text_area_resize: State = 0
+    tab_to_links: State = 0
+    local_storage: State = 0
+    webgl: State = 0
+    background_color: int = 0
+    chrome_status_bubble: State = 0
+    chrome_zoom_bubble: State = 0
+
+
 class Cookie(NamedTuple):
     """The CEF value type CefCookie. Anywhere one is expected, a tuple with the same fields works too."""
     name: str = ""
@@ -1953,6 +1983,7 @@ __all__ = [
     "AudioParameters",
     "AxisAlignment",
     "BoxLayoutSettings",
+    "BrowserSettings",
     "ButtonState",
     "CertStatus",
     "ChannelLayout",

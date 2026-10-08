@@ -26,14 +26,14 @@ Skipped inside the generated classes (type not supported yet):
      1  another overload of CreateContext is generated (Python has one name)
   ----  31 skipped
 
-If every class were generated, the type support alone would cover 2131 of 2255 methods/functions (95%).
+If every class were generated, the type support alone would cover 2132 of 2255 methods/functions (95%).
 What blocks the rest, by type:
     32  ownptr pointer
     19  a library method returning a client object
     11  rawptr pointer
      8  vector of values
      8  struct-like value type
-     7  struct
+     5  struct
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      4  another overload of Create is generated (Python has one name)
@@ -46,6 +46,7 @@ What blocks the rest, by type:
      2  another overload of MoveToAttribute is generated (Python has one name)
      1  another overload of SetChildRefPtrClient is generated (Python has one name)
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
+     1  client object parameter client passed to the application
      1  another overload of CreateContext is generated (Python has one name)
      1  a pointer into memory that CEF's shared memory region owns and can free while Python still holds it
      1  a pointer into memory that CEF's shared memory builder owns and can free while Python still holds it
@@ -85,7 +86,7 @@ Per class (supported/total methods, when every class is generated):
   * CefBrowser                             library  21/21 
   * CefBrowserHost                         library  68/72 
     CefBrowserProcessHandler               client    6/7  
-    CefBrowserView                         library  56/58 
+    CefBrowserView                         library  57/58 
     CefBrowserViewDelegate                 client   20/21 
     CefButton                              library  57/58 
     CefButtonDelegate                      client   13/13 

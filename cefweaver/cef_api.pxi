@@ -142,7 +142,7 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 # Value type structs: the named tuples are defined in cefweaver/types.py
-from cefweaver.types import AudioParameters, Cookie, Insets, KeyEvent, LinuxWindowProperties, MediaSinkDeviceInfo, MouseEvent, PdfPrintSettings, Point, PopupFeatures, Range, Rect, RequestContextSettings, ScreenInfo, Size, TaskInfo, TouchEvent, TouchHandleState, URLParts, BoxLayoutSettings, CompositionUnderline, DraggableRegion
+from cefweaver.types import AudioParameters, BrowserSettings, Cookie, Insets, KeyEvent, LinuxWindowProperties, MediaSinkDeviceInfo, MouseEvent, PdfPrintSettings, Point, PopupFeatures, Range, Rect, RequestContextSettings, ScreenInfo, Size, TaskInfo, TouchEvent, TouchHandleState, URLParts, BoxLayoutSettings, CompositionUnderline, DraggableRegion
 
 cdef inline object _g_from_AudioParameters(const CefAudioParameters* value):
     return AudioParameters(_g_enum(_types.ChannelLayout, value.channel_layout), value.sample_rate, value.frames_per_buffer)
@@ -156,6 +156,44 @@ cdef inline int _g_to_AudioParameters(object obj, CefAudioParameters* out) excep
     out.channel_layout = <cef_channel_layout_t><int>_f0
     out.sample_rate = _f1
     out.frames_per_buffer = _f2
+    return 0
+
+
+cdef inline object _g_from_BrowserSettings(const CefBrowserSettings* value):
+    return BrowserSettings(value.windowless_frame_rate, _g_string_field(&value.standard_font_family), _g_string_field(&value.fixed_font_family), _g_string_field(&value.serif_font_family), _g_string_field(&value.sans_serif_font_family), _g_string_field(&value.cursive_font_family), _g_string_field(&value.fantasy_font_family), value.default_font_size, value.default_fixed_font_size, value.minimum_font_size, value.minimum_logical_font_size, _g_string_field(&value.default_encoding), _g_enum(_types.State, value.remote_fonts), _g_enum(_types.State, value.javascript), _g_enum(_types.State, value.javascript_close_windows), _g_enum(_types.State, value.javascript_access_clipboard), _g_enum(_types.State, value.javascript_dom_paste), _g_enum(_types.State, value.image_loading), _g_enum(_types.State, value.image_shrink_standalone_to_fit), _g_enum(_types.State, value.text_area_resize), _g_enum(_types.State, value.tab_to_links), _g_enum(_types.State, value.local_storage), _g_enum(_types.State, value.webgl), value.background_color, _g_enum(_types.State, value.chrome_status_bubble), _g_enum(_types.State, value.chrome_zoom_bubble))
+
+
+cdef inline int _g_to_BrowserSettings(object obj, CefBrowserSettings* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8, _f9, _f10, _f11, _f12, _f13, _f14, _f15, _f16, _f17, _f18, _f19, _f20, _f21, _f22, _f23, _f24, _f25 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a BrowserSettings (or a sequence of 26 values), not %r" % (obj,)) from None
+    out.windowless_frame_rate = _f0
+    _g_set_string_field(&out.standard_font_family, _f1)
+    _g_set_string_field(&out.fixed_font_family, _f2)
+    _g_set_string_field(&out.serif_font_family, _f3)
+    _g_set_string_field(&out.sans_serif_font_family, _f4)
+    _g_set_string_field(&out.cursive_font_family, _f5)
+    _g_set_string_field(&out.fantasy_font_family, _f6)
+    out.default_font_size = _f7
+    out.default_fixed_font_size = _f8
+    out.minimum_font_size = _f9
+    out.minimum_logical_font_size = _f10
+    _g_set_string_field(&out.default_encoding, _f11)
+    out.remote_fonts = <cef_state_t><int>_f12
+    out.javascript = <cef_state_t><int>_f13
+    out.javascript_close_windows = <cef_state_t><int>_f14
+    out.javascript_access_clipboard = <cef_state_t><int>_f15
+    out.javascript_dom_paste = <cef_state_t><int>_f16
+    out.image_loading = <cef_state_t><int>_f17
+    out.image_shrink_standalone_to_fit = <cef_state_t><int>_f18
+    out.text_area_resize = <cef_state_t><int>_f19
+    out.tab_to_links = <cef_state_t><int>_f20
+    out.local_storage = <cef_state_t><int>_f21
+    out.webgl = <cef_state_t><int>_f22
+    out.background_color = _f23
+    out.chrome_status_bubble = <cef_state_t><int>_f24
+    out.chrome_zoom_bubble = <cef_state_t><int>_f25
     return 0
 
 
@@ -11609,4 +11647,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "BrowserSettings", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

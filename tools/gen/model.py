@@ -82,6 +82,26 @@ def _strip_comments(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
+# Structs that are not value types of the API.
+INIT_ONLY_STRUCTS = ("CefSettings",)
+
+
+def _drop_conditionals(body):
+    """The body without the `#if ... #else ... #endif` blocks (and their directives). Such members
+    depend on the API version the code is compiled for, so they are not fields."""
+    kept = []
+    depth = 0
+    for line in body.split("\n"):
+        stripped = line.strip()
+        if stripped.startswith("#if"):
+            depth += 1
+        elif stripped.startswith("#endif"):
+            depth -= 1
+        elif depth == 0 and not stripped.startswith("#"):
+            kept.append(line)
+    return "\n".join(kept)
+
+
 def parse_struct_fields(body, nested=None, enums=None):
     """Fields of a C struct body, or None if any member is not plain data.
 
@@ -93,7 +113,8 @@ def parse_struct_fields(body, nested=None, enums=None):
     nested = nested or {}
     enums = enums or {}
     fields = []
-    for index, statement in enumerate(s for s in _strip_comments(body).split(";") if s.strip()):
+    for index, statement in enumerate(s for s in _drop_conditionals(_strip_comments(body)).split(";")
+                                      if s.strip()):
         statement = " ".join(statement.split())
         found = re.match(r"^([A-Za-z_][\w ]*?) (\w+)$", statement)
         if not found:
@@ -383,6 +404,9 @@ class Model:
         for c, tr in re.findall(r"\busing\s+(Cef\w+)\s*=\s*CefStructBase<\s*(Cef\w+Traits)\s*>\s*;", text):
             if tr in traits:
                 classes[c] = traits[tr]
+        # CefSettings only starts CEF (cefweaver.Settings is its Python form); no method takes it.
+        for name in INIT_ONLY_STRUCTS:
+            classes.pop(name, None)
         enum_names = {cname: info.py_name for cname, info in self.enum_defs.items()}
         by_cname = {cn: c for c, cn in classes.items()}
         structs = {}

@@ -171,6 +171,7 @@ from .types import (
 )
 from .types import (
     AudioParameters as AudioParameters,
+    BrowserSettings as BrowserSettings,
     Cookie as Cookie,
     Insets as Insets,
     KeyEvent as KeyEvent,
