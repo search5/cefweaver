@@ -64,6 +64,21 @@ updated: 2026-10-08
 - **래퍼 고유**: `devtools_menu`, `add_javascript_binding`, `add_resource`는 java-cef에 없는 기능입니다(래퍼에서 온 것).
 - **PostData의 추가, 요청 컨텍스트의 `create_context` 중복 오버로드**(첫 번째만).
 
+## JNI 목록 밖의 격차 (2026-10-08 점검)
+
+도출 도구(`derive_surface.py`)는 java-cef의 네이티브 함수를 세므로 CEF 클래스의 메서드만 봅니다. Java 쪽 공개 API를 따로 대조해서 찾은, 아직 없는 것입니다(java-cef의 `CefApp`, `CefClient`, `CefSettings`, `CefBrowserSettings`).
+
+| 항목 | java-cef | cefweaver |
+| --- | --- | --- |
+| `CefSettings`의 필드 20개 | 모두 | 6개만(`browser_subprocess_path`, `windowless_rendering_enabled`, `cache_path`와 `root_cache_path`, `resources_dir_path`와 `locales_dir_path`). 없는 것 14개: `command_line_args_disabled`, `persist_session_cookies`, `user_agent`, `user_agent_product`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`, `chrome_policy_id`, `uncaught_exception_stack_size`, `background_color`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults` |
+| 버전 조회 | `CefApp.getVersion()`: JCEF, CEF, Chrome 버전 | 없음(`cef_version_info`가 생성 범위 밖) |
+| 브라우저 여러 개 | `CefClient.createBrowser(url, osr, transparent, requestContext)`를 몇 번이든 | 첫 브라우저 하나(`set_request_context`로 컨텍스트만 지정) |
+| 투명한 오프스크린 | `createBrowser`의 `isTransparent` | 없음 |
+
+설정 가운데 일부(`user_agent`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`)는 같은 뜻의 명령줄 스위치를 `add_command_line_switch`로 줄 수 있을 가능성이 있으나, 설정 필드와 같은지는 확인하지 않았습니다. 나머지 필드는 스위치가 없어 설정 구조체로만 줄 수 있습니다.
+
+java-cef의 Java 보조 클래스(`BoolRef`, `IntRef`, `StringRef`, 어댑터 클래스, AWT 창과 드롭 대상, `CefRenderer`)는 파이썬에서 필요가 없어 대응하지 않습니다.
+
 ## 열지 않고 정리만 하는 것 (java-cef 수준을 넘음)
 
 - **응답 필터**(`CefResponseFilter`, `ResourceRequestHandler.get_resource_response_filter`): java-cef는 구현하지 않습니다.

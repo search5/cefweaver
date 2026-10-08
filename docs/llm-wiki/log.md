@@ -218,3 +218,7 @@
 ## [2026-10-08] query | 메인 프레임의 첫 질의 유실은 유실이 아니었다
 
 - 원인을 파니 라우터가 아니라 `app.execute_javascript`가 로딩 중에 `False`를 돌려준 것이었습니다(문서화된 동작). 시험을 `is_ready_to_execute_javascript`를 기다리도록 고쳤고(10번 연속 통과), F57과 알려진 제약의 유실 서술을 정정했습니다.
+
+## [2026-10-08] lint | java-cef 격차 점검
+
+- JNI 수준의 격차는 0입니다(java-cef 소스에서 목록을 다시 뽑아 같았음). 이 도구가 보지 못하는 Java 쪽 공개 API를 대조해 설정 필드 14개, 버전 조회, 브라우저 여러 개, 투명한 오프스크린이 없음을 [java-cef 동등성](pages/reference/java-cef-parity.md)에 기록했습니다.
