@@ -3649,6 +3649,23 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    def test_a_bridge_that_exposes_nothing_still_evaluates_and_calls_the_page(self):
+        # nothing is exposed to the page, but the page is evaluated and called (it was not: the page had
+        # no window.__cefweaverBridge, found when a program only wanted to read the state of a video)
+        self.run_osr_script(body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            start('<script>window.api = {hello: function (name) { report("hello", name); }};</script>')
+            frame = boxes[0].get_main_frame()
+            answers = []
+            bridge.evaluate(frame, "1 + 1", lambda value, error: answers.append((value, error)))
+            wait_until(app, lambda: answers, "the answer of evaluate")
+            assert answers == [(2, None)], answers
+            bridge.execute_function(frame, "api.hello", "world")
+            wait_until(app, lambda: ("hello", "world") in js, "the call of the page")
+            app.shutdown()
+            print("OK")
+        """)
+
     def test_the_bridge_works_in_an_iframe_and_in_every_browser(self):
         self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
             bridge = cefweaver.JavascriptBridge(app)

@@ -347,3 +347,7 @@
 ## [2026-10-08] ingest | 오디오 핸들러를 연다 (F72)
 
 - `AudioHandler`를 범위에 넣고 생성기에 새 종류 `Planes`(`const float**`: 채널마다 읽기 전용 `float32` `memoryview`의 `list`, 채널 수는 `OnAudioStreamStarted`에서 프록시가 기억)를 더했습니다. 래퍼에 `GetAudioHandler()`를 더하지 않은 첫 시도에서 시험 페이지의 440Hz 음이 실제 스피커로 나온 사고가 있었고(선생님이 알려 주심), 이후 소리를 내는 시험은 `disable-audio-output`과 함께 돌립니다. `mute-audio`는 스트림 자체를 막아 핸들러가 불리지 않습니다. `get_audio_parameters`가 기본값을 Python에 주지 않는 한계는 알려진 제약에 적었습니다.
+
+## [2026-10-08] query | 유튜브 영상 재생 확인 (F73)
+
+- 기본 CEF 앱과 오프스크린 여섯 툴킷(일곱 환경)에서 지정된 유튜브 영상이 재생되는 것을 확인했습니다(소리는 가짜 출력). 수동 점검 도구 `tests/playback_check.py`와 절차 페이지를 더했습니다. 찾아서 고친 결함: 노출한 함수가 없는 `JavascriptBridge`에는 shim이 설치되지 않음. 고치지 않은 한계: `evaluate`가 엄격한 CSP/Trusted Types 페이지(유튜브, GitHub)에서 `EvalError`.

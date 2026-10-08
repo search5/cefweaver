@@ -27,7 +27,7 @@
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
 - [루트 CMake와 CEF 다운로드](pages/components/root-cmake.md): 루트 CMakeLists.txt, DownloadCEF.cmake, 네이티브 타깃의 CMake
-- [시험 (tests/)](pages/components/tests.md): tests/의 시험 407개(통합, 생성기, UI, 위키 점검)와 설계 원칙
+- [시험 (tests/)](pages/components/tests.md): tests/의 시험 408개(통합, 생성기, UI, 위키 점검)와 설계 원칙
 - [tools/build_cef.py](pages/components/tool-build-cef.md): tools/build_cef.py의 소스 빌드 흐름, 명령, GN_DEFINES, 한계
 - [tools/prepare.py](pages/components/tool-prepare.md): tools/prepare.py의 흐름, 옵션, 버전 조회, 스테이징
 
@@ -39,6 +39,7 @@
 - [CEF의 한계를 CEF 예제로 검증하기](pages/procedures/verify-cef-limits.md): "CEF의 한계"라고 적기 전에 `cefsimple`과 CEF 소스로 가르는 방법과 지금까지의 검증 결과
 - [충돌 조사 방법](pages/procedures/debug-crashes.md): 서브프로세스 충돌을 조사할 때 효과가 있었던 방법과 쓸 수 없었던 방법
 - [CEF 확보하기](pages/procedures/obtain-cef.md): 버전 조회, prebuilt, 기존 배포본, 소스 빌드 명령
+- [실제 영상이 재생되는지 확인하기](pages/procedures/check-playback.md): 유튜브를 기본 앱과 여섯 툴킷에서 재생해 보는 수동 점검(`tests/playback_check.py`)과 합격 기준
 - [시험 실행하기](pages/procedures/run-tests.md): -P가 필수인 시험 실행 명령, 일부 실행, 여러 Python 버전
 - [CEF 버전 올리기](pages/procedures/update-cef-version.md): 기본 버전 변경, 재생성, 시험, 120에서 154로 올릴 때의 관찰
 
@@ -56,6 +57,7 @@
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 - [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57), 툴킷 예제(F69)
+- [실행해서 확인한 미디어 (F71부터)](pages/reference/verified-findings-media.md): 마이크와 카메라의 권한 핸들러, 오디오 핸들러(`Planes`), 소리를 내지 않는 시험 스위치, 유튜브 영상의 재생과 코덱
 - [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [GTK 3 예제 (오프스크린 위젯)](pages/reference/gtk3-example.md): `examples/gtk3/`의 위젯과 uv 환경, 실제로 돌려 확인한 것(27개 점검: 입력, 한글, 복사와 붙여넣기, 드래그 앤 드롭, HiDPI), 발견한 결함과 우회
 - [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)](pages/reference/toolkit-examples.md): `examples/`의 다섯 예제(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것

@@ -73,6 +73,9 @@ class JavascriptBridge:
         self._pending = {}
         self._next = 1
         app.add_query_handler(_BridgeHandler(self), first=True)
+        # The pages get window.__cefweaverBridge when this is set, even if nothing is exposed: evaluate()
+        # and execute_function() need it, and a program may only want to read the state of a page.
+        app._set_bridge_names("[]")
 
     def expose(self, name, function, with_frame=False):
         """Make ``window.<name>`` call ``function`` (before ``initialize()``). With ``with_frame``
