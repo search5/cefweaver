@@ -105,6 +105,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **결과**: 입력 구조체는 표에 `const CefRect*`로 전달되었고(`5,6,7,8`), 표가 채운 출력 구조체는 CEF 메서드의 참조 인자에 복사되었습니다(`10,20,30,40`). wheel은 C 컴파일러 경고 없이 빌드되었습니다(내보내기와 변환 함수를 `inline`으로 선언해 미사용 함수 경고를 없앴습니다). 전체 시험 48개가 통과했습니다.
 - **영향**: 구조체 입력과 출력의 C++ 쪽은 확인했습니다. Python 핸들러까지의 경로는 [알려진 제약과 미검증 항목](known-constraints.md)에 적었습니다.
 
+## F17. 브라우저 호스트와 Chrome 스타일 브라우저의 닫기
+
+- **방법**: `browser.get_host()`로 얻은 `BrowserHost`로 줌, 마우스, 자동 크기 조정, 닫기를 실행했습니다(`tests/test_smoke.py`의 시험 4개, 가상 X 서버).
+- **결과**:
+  - 줌: `set_zoom_level(1.0)` 뒤 `get_zoom_level()`이 `1.0`을 돌려줍니다(초기값 `0.0`).
+  - 마우스: `send_mouse_click_event`로 보낸 클릭이 페이지의 `mousedown`으로 도착합니다. 좌표는 오프셋이 있어서 (50, 60)이 (41, 50)으로 왔고, 두 클릭 사이의 거리(100, 40)는 그대로였습니다. `MouseEvent`와 일반 튜플 모두 받고, 길이가 다르거나 튜플이 아니면 `TypeError`입니다.
+  - 자동 크기 조정: `set_auto_resize_enabled(True, Size(100, 100), (900, 700))` 뒤 `on_auto_resize`가 `Size`(예: 360 x 240)와 함께 호출됩니다. 핸들러의 구조체 입력이 Python까지 오는 것을 이것으로 확인했습니다.
+  - 닫기: `close_browser(False)`와 `try_close_browser()`는 `on_before_close`를 부르고 `is_running`을 거짓으로 만듭니다. 그런데 **`do_close`는 호출되지 않습니다.** `get_runtime_style()`이 `1`(Chrome 스타일)이고, 헤더(`cef_life_span_handler.h`)가 `DoClose`를 "Alloy 스타일 브라우저가 닫힐 준비가 되었을 때" 부른다고 밝힙니다.
+- **영향**: 앞서 "구현했으나 시험하지 못함"으로 적었던 `do_close` 거부 동작은 이 래퍼에서 도달할 수 없는 경로입니다. 시험은 이 사실을 특성 시험으로 남겼습니다(`runtime style == 1`, `do_close` 미호출). Alloy 스타일로 바꾸면 이 시험이 실패해서 문서를 고치게 합니다.
+
 ## 관련 페이지
 
 - [알려진 제약과 미검증 항목](known-constraints.md)

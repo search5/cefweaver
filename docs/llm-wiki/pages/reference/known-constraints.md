@@ -31,14 +31,15 @@ updated: 2026-10-08
 | **manylinux** wheel | wheel 태그가 `linux_x86_64`입니다. PyPI 배포에는 `auditwheel`이 필요합니다. | `auditwheel show`/`repair` |
 | macOS | 지원하지 않기로 했고 구성 단계에서 중단합니다. 필요한 작업은 [플랫폼 지원 현황](../concepts/platform-support.md)에 있습니다. | |
 | 서브프로세스 종료 오류의 **원인 메커니즘** | `main`에 `no_stack_protector`를 붙이면 사라지고 순정 `main`에는 검사 자체가 없다는 것만 확인했습니다. "zygote 자식이 스택 보호값이 다른 채 이 프레임으로 돌아온다"는 코드 주석의 설명은 추정입니다. | Chromium의 `ForkWithFlags`/zygote 코드와 TLS의 스택 보호값 처리를 확인 |
-| 클라이언트 핸들러의 **`do_close`가 `True`를 돌려줄 때** 닫기를 막는지 | 구현은 했으나(래퍼는 사용자의 결과가 `True`이면 아무것도 하지 않고 `true`를 돌려줌) 시험에서 창 닫기를 일으키지 않았습니다. | `browser`의 호스트에서 닫기를 요청하는 생성 범위(`CefBrowserHost`)를 연 뒤 시험 |
-| 핸들러의 **구조체 입력과 출력** (`on_contents_bounds_change`, `get_root_window_screen_rect`)이 Python에서 | C++ 프록시는 실제로 실행해 확인했고(생성기 시험) Cython은 컴파일되지만, 이 두 이벤트는 헤더가 밝힌 조건(창 영역이 바뀔 때, 오프스크린 렌더링)을 만들지 못해서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링 또는 자동 크기 조정으로 이벤트를 일으켜 확인 |
+| 핸들러의 **구조체 출력**(`get_root_window_screen_rect`)이 Python에서 | 구조체 입력은 `on_auto_resize`로 Python까지 확인했습니다. 출력은 C++ 프록시를 실행해 확인했고 Cython은 컴파일되지만, CEF가 이 메서드를 오프스크린 렌더링에서만 불러서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링(`CefWindowInfo`의 windowless 설정)으로 브라우저를 만들어 확인 |
+| `BrowserHost`의 마우스 좌표가 보낸 값과 **같지 않은 이유** | `send_mouse_click_event`로 (50, 60)을 보내면 페이지에는 (41, 50)으로 도착했습니다(오프셋 -9, -10). 두 클릭 사이의 거리는 정확히 보존되어 시험은 그것만 확인합니다. 오프셋의 원인(창 장식, 뷰의 위치 등)은 조사하지 않았습니다. | 창 정보를 바꿔 가며 오프셋 비교 |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
 | 헤더 주석의 한국어 번역 | `cef_origin` 위키에는 1,348개 메서드의 한국어 설명이 있으나 생성 스텁에는 헤더의 영어 주석을 그대로 씁니다. | 생성기가 위키의 `db/ko/*.json`을 읽도록 확장 |
 
 ## 2. 알려진 한계
 
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
+- **`do_close`는 호출되지 않습니다.** 래퍼의 브라우저는 Chrome 스타일이라 CEF가 `DoClose`를 부르지 않습니다(F17). 닫기를 막는 용도로 쓸 수 없고, 래퍼의 `DoClose` 코드(`is_closing_`)도 실행되지 않습니다. Alloy 스타일로 바꾸면 달라집니다.
 - **Python에 열린 핸들러는 일부**입니다. 표시, 수명 주기, 로드 핸들러는 `set_client()`로 받을 수 있지만, 컨텍스트 메뉴 핸들러와 JavaScript 바인딩 메시지(`OnProcessMessageReceived`)는 `CefWrapperClientHandler`가 고정해서 처리하고 위임하지 않습니다. 나머지 핸들러 15개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.

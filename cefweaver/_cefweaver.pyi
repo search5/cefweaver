@@ -95,6 +95,11 @@ class Browser:
         CefLifeSpanHandler::OnBeforeClose is called.
         """
         ...
+    def get_host(self) -> BrowserHost | None:
+        """Returns the browser host object. This method can only be called in the
+        browser process.
+        """
+        ...
     def can_go_back(self) -> bool:
         """Returns true if the browser can navigate backwards."""
         ...
@@ -156,6 +161,407 @@ class Browser:
         ...
     def get_frame_count(self) -> int:
         """Returns the number of frames that currently exist."""
+        ...
+
+
+class BrowserHost:
+    """Class used to represent the browser process aspects of a browser. The
+    methods of this class can only be called in the browser process. They may be
+    called on any thread in that process unless otherwise indicated in the
+    comments.
+    """
+    def get_browser(self) -> Browser | None:
+        """Returns the hosted browser object."""
+        ...
+    def close_browser(self, force_close: bool) -> None:
+        """Request that the browser close. Closing a browser is a multi-stage process
+        that may complete either synchronously or asynchronously, and involves
+        callbacks such as CefLifeSpanHandler::DoClose (Alloy style only),
+        CefLifeSpanHandler::OnBeforeClose, and a top-level window close handler
+        such as CefWindowDelegate::CanClose (or platform-specific equivalent). In
+        some cases a close request may be delayed or canceled by the user. Using
+        TryCloseBrowser() instead of CloseBrowser() is recommended for most use
+        cases. See CefLifeSpanHandler::DoClose() documentation for detailed usage
+        and examples.
+
+        If |force_close| is false then JavaScript unload handlers, if any, may be
+        fired and the close may be delayed or canceled by the user. If
+        |force_close| is true then the user will not be prompted and the close
+        will proceed immediately (possibly asynchronously). If browser close is
+        delayed and not canceled the default behavior is to call the top-level
+        window close handler once the browser is ready to be closed. This default
+        behavior can be changed for Alloy style browsers by implementing
+        CefLifeSpanHandler::DoClose(). IsReadyToBeClosed() can be used to detect
+        mandatory browser close events when customizing close behavior on the
+        browser process UI thread.
+        """
+        ...
+    def try_close_browser(self) -> bool:
+        """Helper for closing a browser. This is similar in behavior to
+        CLoseBrowser(false) but returns a boolean to reflect the immediate close
+        status. Call this method from a top-level window close handler such as
+        CefWindowDelegate::CanClose (or platform-specific equivalent) to request
+        that the browser close, and return the result to indicate if the window
+        close should proceed. Returns false if the close will be delayed
+        (JavaScript unload handlers triggered but still pending) or true if the
+        close will proceed immediately (possibly asynchronously). See
+        CloseBrowser() documentation for additional usage information. This method
+        must be called on the browser process UI thread.
+        """
+        ...
+    def is_ready_to_be_closed(self) -> bool:
+        """Returns true if the browser is ready to be closed, meaning that the close
+        has already been initiated and that JavaScript unload handlers have
+        already executed or should be ignored. This can be used from a top-level
+        window close handler such as CefWindowDelegate::CanClose (or
+        platform-specific equivalent) to distringuish between potentially
+        cancelable browser close events (like the user clicking the top-level
+        window close button before browser close has started) and mandatory
+        browser close events (like JavaScript `window.close()` or after browser
+        close has started in response to [Try]CloseBrowser()). Not completing the
+        browser close for mandatory close events (when this method returns true)
+        will leave the browser in a partially closed state that interferes with
+        proper functioning. See CloseBrowser() documentation for additional usage
+        information. This method must be called on the browser process UI thread.
+        """
+        ...
+    def set_focus(self, focus: bool) -> None:
+        """Set whether the browser is focused."""
+        ...
+    def get_opener_identifier(self) -> int:
+        """Retrieve the unique identifier of the browser that opened this browser.
+        Will return 0 for non-popup browsers.
+        """
+        ...
+    def has_view(self) -> bool:
+        """Returns true if this browser is wrapped in a CefBrowserView."""
+        ...
+    def can_zoom(self, command: int) -> bool:
+        """Returns true if this browser can execute the specified zoom command. This
+        method can only be called on the UI thread.
+        """
+        ...
+    def zoom(self, command: int) -> None:
+        """Execute a zoom command in this browser. If called on the UI thread the
+        change will be applied immediately. Otherwise, the change will be applied
+        asynchronously on the UI thread.
+        """
+        ...
+    def get_default_zoom_level(self) -> float:
+        """Get the default zoom level. This value will be 0.0 by default but can be
+        configured. This method can only be called on the UI thread.
+        """
+        ...
+    def get_zoom_level(self) -> float:
+        """Get the current zoom level. This method can only be called on the UI
+        thread.
+        """
+        ...
+    def set_zoom_level(self, zoom_level: float) -> None:
+        """Change the zoom level to the specified value. Specify 0.0 to reset the
+        zoom level to the default. If called on the UI thread the change will be
+        applied immediately. Otherwise, the change will be applied asynchronously
+        on the UI thread.
+        """
+        ...
+    def start_download(self, url: str) -> None:
+        """Download the file at |url| using CefDownloadHandler."""
+        ...
+    def print(self) -> None:
+        """Print the current browser contents."""
+        ...
+    def find(self, search_text: str, forward: bool, match_case: bool, find_next: bool) -> None:
+        """Search for |searchText|. |forward| indicates whether to search forward or
+        backward within the page. |matchCase| indicates whether the search should
+        be case-sensitive. |findNext| indicates whether this is the first request
+        or a follow-up. The search will be restarted if |searchText| or
+        |matchCase| change. The search will be stopped if |searchText| is empty.
+        The CefFindHandler instance, if any, returned via
+        CefClient::GetFindHandler will be called to report find results.
+        """
+        ...
+    def stop_finding(self, clear_selection: bool) -> None:
+        """Cancel all searches that are currently going on."""
+        ...
+    def close_dev_tools(self) -> None:
+        """Explicitly close the associated DevTools browser, if any."""
+        ...
+    def has_dev_tools(self) -> bool:
+        """Returns true if this browser currently has an associated DevTools browser.
+        Must be called on the browser process UI thread.
+        """
+        ...
+    def replace_misspelling(self, word: str) -> None:
+        """If a misspelled word is currently selected in an editable node calling
+        this method will replace it with the specified |word|.
+        """
+        ...
+    def add_word_to_dictionary(self, word: str) -> None:
+        """Add the specified |word| to the spelling dictionary."""
+        ...
+    def is_window_rendering_disabled(self) -> bool:
+        """Returns true if window rendering is disabled."""
+        ...
+    def was_resized(self) -> None:
+        """Notify the browser that the widget has been resized. The browser will
+        first call CefRenderHandler::GetViewRect to get the new size and then call
+        CefRenderHandler::OnPaint asynchronously with the updated regions. This
+        method is only used when window rendering is disabled.
+        """
+        ...
+    def was_hidden(self, hidden: bool) -> None:
+        """Notify the browser that it has been hidden or shown. Layouting and
+        CefRenderHandler::OnPaint notification will stop when the browser is
+        hidden. This method is only used when window rendering is disabled.
+        """
+        ...
+    def notify_screen_info_changed(self) -> None:
+        """Notify the browser that screen information has changed. Updated
+        information will be sent to the renderer process to configure screen size
+        and position values used by CSS and JavaScript (window.deviceScaleFactor,
+        window.screenX/Y, window.outerWidth/Height, etc.). For background see
+        https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
+
+        This method is used with (a) windowless rendering and (b) windowed
+        rendering with external (client-provided) root window.
+
+        With windowless rendering the browser will call
+        CefRenderHandler::GetScreenInfo, CefRenderHandler::GetRootScreenRect and
+        CefRenderHandler::GetViewRect. This simulates moving or resizing the root
+        window in the current display, moving the root window from one display to
+        another, or changing the properties of the current display.
+
+        With windowed rendering the browser will call
+        CefDisplayHandler::GetRootWindowScreenRect and use the associated
+        display properties.
+        """
+        ...
+    def invalidate(self, type: int) -> None:
+        """Invalidate the view. The browser will call CefRenderHandler::OnPaint
+        asynchronously. This method is only used when window rendering is
+        disabled.
+        """
+        ...
+    def send_external_begin_frame(self) -> None:
+        """Issue a BeginFrame request to Chromium.  Only valid when
+        CefWindowInfo::external_begin_frame_enabled is set to true.
+        """
+        ...
+    def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: int, mouse_up: bool, click_count: int) -> None:
+        """Send a mouse click event to the browser. The |x| and |y| coordinates are
+        relative to the upper-left corner of the view.
+        """
+        ...
+    def send_mouse_move_event(self, event: MouseEvent | tuple[int, int, int], mouse_leave: bool) -> None:
+        """Send a mouse move event to the browser. The |x| and |y| coordinates are
+        relative to the upper-left corner of the view.
+        """
+        ...
+    def send_mouse_wheel_event(self, event: MouseEvent | tuple[int, int, int], delta_x: int, delta_y: int) -> None:
+        """Send a mouse wheel event to the browser. The |x| and |y| coordinates are
+        relative to the upper-left corner of the view. The |deltaX| and |deltaY|
+        values represent the movement delta in the X and Y directions
+        respectively. In order to scroll inside select popups with window
+        rendering disabled CefRenderHandler::GetScreenPoint should be implemented
+        properly.
+        """
+        ...
+    def send_capture_lost_event(self) -> None:
+        """Send a capture lost event to the browser."""
+        ...
+    def notify_move_or_resize_started(self) -> None:
+        """Notify the browser that the window hosting it is about to be moved or
+        resized. This method is only used on Windows and Linux.
+        """
+        ...
+    def get_windowless_frame_rate(self) -> int:
+        """Returns the maximum rate in frames per second (fps) that
+        CefRenderHandler::OnPaint will be called for a windowless browser. The
+        actual fps may be lower if the browser cannot generate frames at the
+        requested rate. The minimum value is 1 and the default value is 30. This
+        method can only be called on the UI thread.
+        """
+        ...
+    def set_windowless_frame_rate(self, frame_rate: int) -> None:
+        """Set the maximum rate in frames per second (fps) that CefRenderHandler::
+        OnPaint will be called for a windowless browser. The actual fps may be
+        lower if the browser cannot generate frames at the requested rate. The
+        minimum value is 1 and the default value is 30. Can also be set at browser
+        creation via CefBrowserSettings.windowless_frame_rate.
+        """
+        ...
+    def ime_commit_text(self, text: str | None, replacement_range: Range | tuple[int, int], relative_cursor_pos: int) -> None:
+        """Completes the existing composition by optionally inserting the specified
+        |text| into the composition node. |replacement_range| is an optional range
+        of the existing text that will be replaced. |relative_cursor_pos| is where
+        the cursor will be positioned relative to the current cursor position. See
+        comments on ImeSetComposition for usage. The |replacement_range| and
+        |relative_cursor_pos| values are only used on OS X.
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def ime_finish_composing_text(self, keep_selection: bool) -> None:
+        """Completes the existing composition by applying the current composition
+        node contents. If |keep_selection| is false the current selection, if any,
+        will be discarded. See comments on ImeSetComposition for usage. This
+        method is only used when window rendering is disabled.
+        """
+        ...
+    def ime_cancel_composition(self) -> None:
+        """Cancels the existing composition and discards the composition node
+        contents without applying them. See comments on ImeSetComposition for
+        usage.
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: int) -> None:
+        """Call this method each time the mouse is moved across the web view during
+        a drag operation (after calling DragTargetDragEnter and before calling
+        DragTargetDragLeave/DragTargetDrop).
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_target_drag_leave(self) -> None:
+        """Call this method when the user drags the mouse out of the web view (after
+        calling DragTargetDragEnter).
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_target_drop(self, event: MouseEvent | tuple[int, int, int]) -> None:
+        """Call this method when the user completes the drag operation by dropping
+        the object onto the web view (after calling DragTargetDragEnter).
+        The object being dropped is |drag_data|, given as an argument to
+        the previous DragTargetDragEnter call.
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_source_ended_at(self, x: int, y: int, op: int) -> None:
+        """Call this method when the drag operation started by a
+        CefRenderHandler::StartDragging call has ended either in a drop or
+        by being cancelled. |x| and |y| are mouse coordinates relative to the
+        upper-left corner of the view. If the web view is both the drag source
+        and the drag target then all DragTarget* methods should be called before
+        DragSource* mthods.
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_source_system_drag_ended(self) -> None:
+        """Call this method when the drag operation started by a
+        CefRenderHandler::StartDragging call has completed. This method may be
+        called immediately without first calling DragSourceEndedAt to cancel a
+        drag operation. If the web view is both the drag source and the drag
+        target then all DragTarget* methods should be called before DragSource*
+        mthods.
+        This method is only used when window rendering is disabled.
+        """
+        ...
+    def set_accessibility_state(self, accessibility_state: int) -> None:
+        """Set accessibility state for all frames. |accessibility_state| may be
+        default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
+        then accessibility will be disabled by default and the state may be
+        further controlled with the \"force-renderer-accessibility\" and
+        \"disable-renderer-accessibility\" command-line switches. If
+        |accessibility_state| is STATE_ENABLED then accessibility will be enabled.
+        If |accessibility_state| is STATE_DISABLED then accessibility will be
+        completely disabled.
+
+        For windowed browsers accessibility will be enabled in Complete mode
+        (which corresponds to kAccessibilityModeComplete in Chromium). In this
+        mode all platform accessibility objects will be created and managed by
+        Chromium's internal implementation. The client needs only to detect the
+        screen reader and call this method appropriately. For example, on macOS
+        the client can handle the @\"AXEnhancedUserInterface\" accessibility
+        attribute to detect VoiceOver state changes and on Windows the client can
+        handle WM_GETOBJECT with OBJID_CLIENT to detect accessibility readers.
+
+        For windowless browsers accessibility will be enabled in TreeOnly mode
+        (which corresponds to kAccessibilityModeWebContentsOnly in Chromium). In
+        this mode renderer accessibility is enabled, the full tree is computed,
+        and events are passed to CefAccessibiltyHandler, but platform
+        accessibility objects are not created. The client may implement platform
+        accessibility objects using CefAccessibiltyHandler callbacks if desired.
+        """
+        ...
+    def set_auto_resize_enabled(self, enabled: bool, min_size: Size | tuple[int, int], max_size: Size | tuple[int, int]) -> None:
+        """Enable notifications of auto resize via CefDisplayHandler::OnAutoResize.
+        Notifications are disabled by default. |min_size| and |max_size| define
+        the range of allowed sizes.
+        """
+        ...
+    def set_audio_muted(self, mute: bool) -> None:
+        """Set whether the browser's audio is muted."""
+        ...
+    def is_audio_muted(self) -> bool:
+        """Returns true if the browser's audio is muted.  This method can only be
+        called on the UI thread.
+        """
+        ...
+    def is_fullscreen(self) -> bool:
+        """Returns true if the renderer is currently in browser fullscreen. This
+        differs from window fullscreen in that browser fullscreen is entered using
+        the JavaScript Fullscreen API and modifies CSS attributes such as the
+        ::backdrop pseudo-element and :fullscreen pseudo-class. This method can
+        only be called on the UI thread.
+        """
+        ...
+    def exit_fullscreen(self, will_cause_resize: bool) -> None:
+        """Requests the renderer to exit browser fullscreen. In most cases exiting
+        window fullscreen should also exit browser fullscreen. With Alloy
+        style this method should be called in response to a user action such as
+        clicking the green traffic light button on MacOS
+        (CefWindowDelegate::OnWindowFullscreenTransition callback) or pressing the
+        \"ESC\" key (CefKeyboardHandler::OnPreKeyEvent callback). With Chrome
+        style these standard exit actions are handled internally but
+        new/additional user actions can use this method. Set |will_cause_resize|
+        to true if exiting browser fullscreen will cause a view resize.
+        """
+        ...
+    def can_execute_chrome_command(self, command_id: int) -> bool:
+        """Returns true if a Chrome command is supported and enabled. Use the
+        cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical
+        |command_id| values. This method can only be called on the UI thread. Only
+        used with Chrome style.
+        """
+        ...
+    def execute_chrome_command(self, command_id: int, disposition: int) -> None:
+        """Execute a Chrome command. Use the cef_id_for_command_id_name()
+        function for version-safe mapping of command IDC names from
+        cef_command_ids.h to version-specific numerical |command_id| values.
+        |disposition| provides information about the intended command target. Only
+        used with Chrome style.
+        """
+        ...
+    def is_render_process_unresponsive(self) -> bool:
+        """Returns true if the render process associated with this browser is
+        currently unresponsive as indicated by a lack of input event processing
+        for at least 15 seconds. To receive associated state change notifications
+        and optionally handle an unresponsive render process implement
+        CefRequestHandler::OnRenderProcessUnresponsive. This method can only be
+        called on the UI thread.
+        """
+        ...
+    def get_runtime_style(self) -> int:
+        """Returns the runtime style for this browser (ALLOY or CHROME). See
+        cef_runtime_style_t documentation for details.
+        """
+        ...
+    def set_ax_viewport_collapse(self, enabled: bool) -> None:
+        """Enable or disable CDP accessibility tree viewport collapse for this
+        browser. When enabled, off-screen landmarks and headings are serialized
+        as summaries and other off-screen nodes are pruned. Overrides the
+        CefBrowserSettings.ax_viewport_collapse value. If called on the UI thread
+        the change will be applied immediately. Otherwise, the change will be
+        applied asynchronously on the UI thread.
+        WARNING: This collapses the CDP accessibility tree and disables CDP
+        dynamic tree updates (nodesUpdated events). The DevTools Accessibility
+        panel will show an incomplete tree. Platform screen readers (NVDA, JAWS,
+        VoiceOver) are unaffected - they use a separate code path.
+        """
+        ...
+    @staticmethod
+    def get_browser_by_identifier(browser_id: int) -> Browser | None:
+        """Returns the browser (if any) with the specified identifier."""
         ...
 
 

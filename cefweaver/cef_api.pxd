@@ -28,15 +28,29 @@ cdef extern from "include/internal/cef_string.h":
         string ToString() nogil
 
 cdef extern from "include/internal/cef_types.h":
+    ctypedef enum cef_drag_operations_mask_t:
+        pass
     ctypedef enum cef_errorcode_t:
         pass
     ctypedef enum cef_log_severity_t:
+        pass
+    ctypedef enum cef_mouse_button_type_t:
+        pass
+    ctypedef enum cef_paint_element_type_t:
         pass
     ctypedef enum cef_referrer_policy_t:
         pass
     ctypedef enum cef_resource_type_t:
         pass
+    ctypedef enum cef_runtime_style_t:
+        pass
+    ctypedef enum cef_state_t:
+        pass
     ctypedef enum cef_transition_type_t:
+        pass
+    ctypedef enum cef_window_open_disposition_t:
+        pass
+    ctypedef enum cef_zoom_command_t:
         pass
 
 # Value type structs (plain data, copied to and from Python named tuples)
@@ -74,6 +88,8 @@ cdef extern from "include/internal/cef_types_wrappers.h":
 # Forward declarations
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted)
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefBrowserHost(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
@@ -103,6 +119,7 @@ cdef extern from "include/cef_scheme.h":
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted):
         cpp_bool IsValid() nogil
+        CefRefPtr[CefBrowserHost] GetHost() nogil
         cpp_bool CanGoBack() nogil
         void GoBack() nogil
         cpp_bool CanGoForward() nogil
@@ -120,6 +137,63 @@ cdef extern from "include/cef_browser.h":
         CefRefPtr[CefFrame] GetFrameByIdentifier(const CefString&) nogil
         CefRefPtr[CefFrame] GetFrameByName(const CefString&) nogil
         size_t GetFrameCount() nogil
+
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefBrowserHost(CefBaseRefCounted):
+        CefRefPtr[CefBrowser] GetBrowser() nogil
+        void CloseBrowser(cpp_bool) nogil
+        cpp_bool TryCloseBrowser() nogil
+        cpp_bool IsReadyToBeClosed() nogil
+        void SetFocus(cpp_bool) nogil
+        int GetOpenerIdentifier() nogil
+        cpp_bool HasView() nogil
+        cpp_bool CanZoom(cef_zoom_command_t) nogil
+        void Zoom(cef_zoom_command_t) nogil
+        double GetDefaultZoomLevel() nogil
+        double GetZoomLevel() nogil
+        void SetZoomLevel(double) nogil
+        void StartDownload(const CefString&) nogil
+        void Print() nogil
+        void Find(const CefString&, cpp_bool, cpp_bool, cpp_bool) nogil
+        void StopFinding(cpp_bool) nogil
+        void CloseDevTools() nogil
+        cpp_bool HasDevTools() nogil
+        void ReplaceMisspelling(const CefString&) nogil
+        void AddWordToDictionary(const CefString&) nogil
+        cpp_bool IsWindowRenderingDisabled() nogil
+        void WasResized() nogil
+        void WasHidden(cpp_bool) nogil
+        void NotifyScreenInfoChanged() nogil
+        void Invalidate(cef_paint_element_type_t) nogil
+        void SendExternalBeginFrame() nogil
+        void SendMouseClickEvent(const CefMouseEvent&, cef_mouse_button_type_t, cpp_bool, int) nogil
+        void SendMouseMoveEvent(const CefMouseEvent&, cpp_bool) nogil
+        void SendMouseWheelEvent(const CefMouseEvent&, int, int) nogil
+        void SendCaptureLostEvent() nogil
+        void NotifyMoveOrResizeStarted() nogil
+        int GetWindowlessFrameRate() nogil
+        void SetWindowlessFrameRate(int) nogil
+        void ImeCommitText(const CefString&, const CefRange&, int) nogil
+        void ImeFinishComposingText(cpp_bool) nogil
+        void ImeCancelComposition() nogil
+        void DragTargetDragOver(const CefMouseEvent&, cef_drag_operations_mask_t) nogil
+        void DragTargetDragLeave() nogil
+        void DragTargetDrop(const CefMouseEvent&) nogil
+        void DragSourceEndedAt(int, int, cef_drag_operations_mask_t) nogil
+        void DragSourceSystemDragEnded() nogil
+        void SetAccessibilityState(cef_state_t) nogil
+        void SetAutoResizeEnabled(cpp_bool, const CefSize&, const CefSize&) nogil
+        void SetAudioMuted(cpp_bool) nogil
+        cpp_bool IsAudioMuted() nogil
+        cpp_bool IsFullscreen() nogil
+        void ExitFullscreen(cpp_bool) nogil
+        cpp_bool CanExecuteChromeCommand(int) nogil
+        void ExecuteChromeCommand(int, cef_window_open_disposition_t) nogil
+        cpp_bool IsRenderProcessUnresponsive() nogil
+        cef_runtime_style_t GetRuntimeStyle() nogil
+        void SetAxViewportCollapse(cpp_bool) nogil
+        @staticmethod
+        CefRefPtr[CefBrowser] GetBrowserByIdentifier(int) nogil
 
 cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted):

@@ -300,6 +300,34 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40", ran.stderr)
 
 
+    # -- CefBrowserHost -----------------------------------------------------------------
+
+    def test_the_browser_host_is_generated_and_reachable_from_the_browser(self):
+        self.assertTrue(self.scope.is_library("CefBrowserHost"))
+        plan = self.plan("CefBrowser", "GetHost")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.ret, LibRef("CefBrowserHost"))
+
+    def test_browser_host_methods_take_structs_and_enumerations(self):
+        plan = self.plan("CefBrowserHost", "SendMouseClickEvent")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([type(p.kind).__name__ for p in plan.params],
+                         ["Struct", "Enum", "Prim", "Prim"])
+        self.assertEqual(plan.params[0].kind.cls, "CefMouseEvent")
+
+    def test_browser_host_methods_that_cannot_be_generated_say_why(self):
+        reasons = {
+            "ShowDevTools": "cef_window_info_t",
+            "SendKeyEvent": "CefKeyEvent",
+            "GetWindowHandle": "CefWindowHandle",
+            "PrintToPDF": "cef_pdf_print_settings_t",
+        }
+        for name, expected in reasons.items():
+            plan = self.plan("CefBrowserHost", name)
+            self.assertFalse(plan.supported, name)
+            self.assertIn(expected, plan.reason, name)
+
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

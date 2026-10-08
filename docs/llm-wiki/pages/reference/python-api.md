@@ -41,7 +41,7 @@ updated: 2026-10-08
 
 | 종류 | 이름 |
 | --- | --- |
-| CEF가 구현하는 클래스(래퍼) | `Request`, `Response`, `Callback`, `ResourceReadCallback`, `ResourceSkipCallback`, `Browser`, `Frame` |
+| CEF가 구현하는 클래스(래퍼) | `Request`, `Response`, `Callback`, `ResourceReadCallback`, `ResourceSkipCallback`, `Browser`, `BrowserHost`, `Frame` |
 | 애플리케이션이 구현하는 클래스(상속해서 씀) | `ResourceHandler`, `SchemeHandlerFactory`, `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler` |
 | 값 타입(이름 있는 튜플) | `Point(x, y)`, `Rect(x, y, width, height)`, `Size(width, height)`, `Insets(top, left, bottom, right)`, `Range(from_, to)`, `MouseEvent(x, y, modifiers)` |
 | 전역 함수 | `register_scheme_handler_factory(scheme_name, domain_name, factory) -> bool`, `clear_scheme_handler_factories() -> bool`, `get_mime_type(extension) -> str` |
@@ -94,7 +94,18 @@ app.set_client(MyClient())
 app.initialize("https://example.com")
 ```
 
-`DoClose`에서 `True`를 돌려주면 닫기를 막는 동작은 구현했으나 시험하지 않았습니다([알려진 제약과 미검증 항목](known-constraints.md)).
+`do_close`는 이 래퍼에서 호출되지 않습니다. 헤더가 `DoClose`를 Alloy 스타일 브라우저에만 부른다고 밝히고, 래퍼의 브라우저는 Chrome 스타일이기 때문입니다([실험으로 확인한 사실](verified-findings.md) F17). 닫기를 막거나 닫기 전에 일을 하려면 `on_before_close`를 쓰고, 닫는 쪽은 `browser.get_host().close_browser(False)`입니다.
+
+## 브라우저 호스트
+
+`browser.get_host()`(콜백이 받은 `Browser`에서 얻음)가 `BrowserHost`를 돌려줍니다. 줌(`set_zoom_level`, `get_zoom_level`), 마우스 입력(`send_mouse_click_event`, `send_mouse_move_event`, `send_mouse_wheel_event`), 자동 크기 조정(`set_auto_resize_enabled`), 닫기(`close_browser`, `try_close_browser`), 찾기, 인쇄, 오디오 음소거 등 53개 메서드가 열려 있고, 열리지 않은 19개와 이유는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다. 구조체 인자는 이름 있는 튜플 또는 같은 필드의 일반 튜플입니다.
+
+```python
+host = browser.get_host()
+host.set_zoom_level(1.0)
+host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), 0, False, 1)  # 0: 왼쪽 버튼
+host.close_browser(False)
+```
 
 ## 관련 페이지
 

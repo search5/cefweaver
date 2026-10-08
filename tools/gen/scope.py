@@ -13,6 +13,7 @@ LIBRARY_CLASSES = [
     "CefResourceReadCallback",
     "CefResourceSkipCallback",
     "CefBrowser",
+    "CefBrowserHost",
     "CefFrame",
 ]
 

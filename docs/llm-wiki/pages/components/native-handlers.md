@@ -49,7 +49,7 @@ updated: 2026-10-08
 | 이벤트 | 순서 |
 | --- | --- |
 | `OnAfterCreated` | 래퍼(브라우저 목록에 추가), 그다음 사용자 |
-| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false` |
+| `DoClose` | 사용자 먼저. `true`를 돌려주면 닫기를 막고 래퍼는 아무것도 하지 않습니다. 아니면 래퍼가 처리하고 `false`. **이 래퍼의 브라우저(Chrome 스타일)에서는 `DoClose`가 호출되지 않습니다**([실험으로 확인한 사실](../reference/verified-findings.md) F17). |
 | `OnBeforeClose` | 사용자 먼저(브라우저가 아직 목록에 있음), 그다음 래퍼(목록에서 제거) |
 | `OnLoadStart`, `OnLoadingStateChange`, `OnLoadEnd`, `OnTitleChange` | 래퍼, 그다음 사용자 |
 | `OnLoadError` | 사용자 먼저, 그다음 래퍼(오류 페이지로 교체) |
@@ -58,7 +58,7 @@ updated: 2026-10-08
 | 콜백 | 동작 |
 | --- | --- |
 | `OnAfterCreated` / `OnBeforeClose` | 브라우저 목록(`browser_list_`)을 관리합니다. `OnBeforeClose`는 `g_IsRunning`을 끄고 목록이 비면 `CefQuitMessageLoop()`을 부릅니다(외부 펌프에서는 효과가 없습니다). |
-| `DoClose` | 마지막 브라우저이면 `is_closing_`을 켜고 닫기를 허용합니다. |
+| `DoClose` | 마지막 브라우저이면 `is_closing_`을 켜고 닫기를 허용합니다. 호출되지 않으므로 `is_closing_`은 켜지지 않습니다. |
 | `OnLoadStart` / `OnLoadingStateChange` | 준비 플래그 `m_IsReadyToExecuteJs`를 로딩 중에는 끄고 끝나면 켭니다(초기값은 `false`). |
 | `OnLoadEnd` | 페이지에서 `window.dispatchEvent(new Event('cefready'))`를 실행합니다. 페이지가 `addEventListener('cefready', ...)`로 로드 완료를 알 수 있습니다. |
 | `OnLoadError` | 오류가 `ERR_ABORTED`가 아니면 오류 내용을 담은 `data:` URI 페이지를 보여 줍니다(Chrome 런타임이 아닐 때). |

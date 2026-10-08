@@ -14,15 +14,17 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 109 methods/functions in 13 classes, 3 global functions
+Generated now: 163 methods/functions in 14 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    26  class
+    32  class
+     6  struct-like value type
+     5  vector of values
+     5  struct
      4  multimap of values
-     3  vector of values
-     2  struct-like value type
-     1  struct
-  ----  36 skipped
+     1  a library method returning a client object
+     1  untyped pointer
+  ----  54 skipped
 
 If every class were generated, the type support alone would cover 1354 of 1598 methods/functions (85%).
 What blocks the rest, by type:
@@ -69,7 +71,7 @@ Per class (supported/total methods, when every class is generated):
     CefBinaryValue                         library   6/9  
     CefBoxLayout                           library   2/2  
   * CefBrowser                             library  19/21 
-    CefBrowserHost                         library  60/72 
+  * CefBrowserHost                         library  60/72 
     CefBrowserProcessHandler               client    6/7  
     CefBrowserView                         library   5/6  
     CefBrowserViewDelegate                 client    9/10 

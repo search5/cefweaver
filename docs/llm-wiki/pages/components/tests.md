@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 48개(통합 18, 생성기 29, 위키 점검 1) 있습니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 56개(통합 23, 생성기 32, 위키 점검 1) 있습니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -25,6 +25,7 @@ updated: 2026-10-08
 | | `test_add_resource_needs_a_running_cef` | 초기화 전 `add_resource`는 `RuntimeError` |
 | | `test_the_client_and_its_handlers_are_public` | `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`의 공개 여부 |
 | | `test_value_types_are_named_tuples` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`의 공개 여부, 튜플 동작, 필드 이름(`from_`) |
+| | `test_the_browser_host_is_public` | `BrowserHost`와 주요 메서드, `Browser.get_host`의 공개 여부 |
 | | `test_set_client_checks_its_argument` | `Client`가 아닌 객체와 핸들러는 `TypeError`, `None`은 허용 |
 | `WithCef` (실제 CEF) | `test_javascript_to_python_binding_and_shutdown` | 네 가지 값 형식(한글 포함)의 전달, 종료 후 `is_running`이 거짓 |
 | | `test_zero_argument_call_and_exceptions_do_not_crash` | 인자 없는 호출, 콜백 예외가 CEF를 죽이지 않음 |
@@ -36,6 +37,10 @@ updated: 2026-10-08
 | | `test_on_load_error_reports_the_failure_and_the_wrapper_still_shows_its_page` | 닫힌 로컬 포트의 오류 코드(-102)와 URL, 래퍼의 `data:` 오류 페이지 |
 | | `test_a_client_without_handlers_and_broken_handlers_do_not_disturb_the_wrapper` | 클라이언트와 핸들러의 예외가 보고되고 래퍼는 정상 |
 | | `test_set_client_must_come_before_initialize` | 초기화 뒤의 `set_client`는 `RuntimeError` |
+| | `test_browser_host_gives_back_its_browser_and_sets_the_zoom` | `get_host`와 `get_browser`의 일치, `get_browser_by_identifier`, 줌 설정 |
+| | `test_mouse_events_carry_their_coordinates_to_the_page` | 두 클릭 사이의 거리와 버튼, `MouseEvent`와 일반 튜플, 잘못된 인자의 `TypeError` |
+| | `test_auto_resize_reports_the_content_size_to_the_display_handler` | `on_auto_resize`가 `Size`를 받음(구조체 입력의 Python 경로) |
+| | `test_close_browser_ends_the_browser_and_do_close_is_not_called_for_chrome_style` | 닫기가 `on_before_close`와 종료로 이어짐, `do_close`는 호출되지 않음(특성 시험) |
 
 ## tests/test_generator.py: 생성기 시험
 
@@ -47,6 +52,7 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 - 모든 핸들러에 전달 클래스가 생성되는지, 그리고 **실제 C++ 컴파일러**로 클라이언트와 세 핸들러의 전달 클래스를 한 참조 계수 클래스에 합칠 수 있는지(`c++ -fsyntax-only`, 컴파일러가 없으면 건너뜀)
 - 값 타입 구조체: 필드를 C 헤더에서 읽는지, 예약어 필드 이름, 평범한 데이터가 아닌 구조체의 제외, 핸들러의 구조체 입력과 출력, 라이브러리 메서드의 구조체 입력과 반환, 핸들러의 구조체 반환이 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `NamedTuple`
 - **생성된 C++ 프록시를 컴파일해서 실행**: 입력 구조체가 포인터로 전달되고 출력 구조체가 참조 인자에 복사되는지(`libcef.so`가 없으면 건너뜀)
+- `CefBrowserHost`가 범위에 있고 `Browser.get_host`로 닿는지, 구조체와 열거형 인자의 분류, 열리지 않는 메서드의 이유
 - 생성 파일이 최신인지, 두 번 생성한 결과가 같은지
 
 ## tests/test_wiki.py: 위키 점검

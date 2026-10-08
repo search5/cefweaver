@@ -120,6 +120,14 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual(cefweaver.Range._fields, ("from_", "to"))  # `from` is a keyword
         self.assertEqual(cefweaver.MouseEvent._fields, ("x", "y", "modifiers"))
 
+    def test_the_browser_host_is_public(self):
+        self.assertIn("BrowserHost", cefweaver.__all__)
+        for name in ("close_browser", "try_close_browser", "send_mouse_click_event",
+                     "send_mouse_move_event", "set_zoom_level", "get_zoom_level",
+                     "set_auto_resize_enabled", "get_browser"):
+            self.assertTrue(hasattr(cefweaver.BrowserHost, name), name)
+        self.assertTrue(hasattr(cefweaver.Browser, "get_host"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -431,6 +439,141 @@ class WithCef(unittest.TestCase):
             except RuntimeError:
                 print("OK")
             app.shutdown()
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_browser_host_gives_back_its_browser_and_sets_the_zoom(self):
+        result = run_cef("""
+            boxes = []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.set_client(MyClient())
+            app.initialize(page("zoom"))
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the browser")
+            browser = boxes[0]
+            host = browser.get_host()
+            assert isinstance(host, cefweaver.BrowserHost), host
+            assert host.get_browser().get_identifier() == browser.get_identifier()
+            assert cefweaver.BrowserHost.get_browser_by_identifier(
+                browser.get_identifier()).get_identifier() == browser.get_identifier()
+            host.set_zoom_level(1.0)
+            wait_until(app, lambda: host.get_zoom_level() == 1.0, "the zoom level")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_mouse_events_carry_their_coordinates_to_the_page(self):
+        result = run_cef("""
+            got, boxes = [], []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            app.set_client(MyClient())
+            app.initialize(page("<script>document.addEventListener('mousedown',"
+                                "e => report(e.clientX, e.clientY, e.button));</script>"))
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
+            host = boxes[0].get_host()
+            MOUSE_LEFT = 0
+            # A MouseEvent and a plain tuple of the same fields are both accepted.
+            host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), MOUSE_LEFT, False, 1)
+            wait_until(app, lambda: len(got) == 1, "the first mouse down")
+            host.send_mouse_click_event((150, 100, 0), MOUSE_LEFT, False, 1)
+            wait_until(app, lambda: len(got) == 2, "the second mouse down")
+            (x1, y1, b1), (x2, y2, b2) = got
+            # The window may offset the view, so compare the distance between the clicks.
+            assert (x2 - x1, y2 - y1) == (100, 40), got
+            assert b1 == b2 == 0, got
+            for bad in ((1, 2), "xyz", None):
+                try:
+                    host.send_mouse_move_event(bad, False)
+                except TypeError:
+                    continue
+                raise AssertionError("expected a TypeError for %r" % (bad,))
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_auto_resize_reports_the_content_size_to_the_display_handler(self):
+        result = run_cef("""
+            sizes, boxes = [], []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class Display(cefweaver.DisplayHandler):
+                def on_auto_resize(self, browser, new_size):
+                    sizes.append(new_size)
+                    return True
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life, self.display = Life(), Display()
+                def get_life_span_handler(self):
+                    return self.life
+                def get_display_handler(self):
+                    return self.display
+            app.set_client(MyClient())
+            app.initialize(page("<div style='width:300px;height:200px'>content</div>"))
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
+            boxes[0].get_host().set_auto_resize_enabled(
+                True, cefweaver.Size(100, 100), (900, 700))  # a Size and a plain tuple
+            wait_until(app, lambda: sizes, "the auto resize notification")
+            size = sizes[-1]
+            assert isinstance(size, cefweaver.Size), size
+            assert 100 <= size.width <= 900 and 100 <= size.height <= 700, size
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_close_browser_ends_the_browser_and_do_close_is_not_called_for_chrome_style(self):
+        # The header says DoClose() is called for Alloy style browsers only. The wrapper
+        # creates Chrome style ones (runtime style 1), so do_close can neither be called nor
+        # veto a close. This test records that; if it fails, the wrapper changed its style and
+        # the documentation of do_close and of this limitation has to change.
+        result = run_cef("""
+            events, boxes = [], []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+                def do_close(self, browser):
+                    events.append("do_close")
+                    return True
+                def on_before_close(self, browser):
+                    events.append("before_close")
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.set_client(MyClient())
+            app.initialize(page("closing"))
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
+            host = boxes[0].get_host()
+            assert host.get_runtime_style() == 1  # CEF_RUNTIME_STYLE_CHROME
+            host.close_browser(False)
+            wait_until(app, lambda: "before_close" in events, "the browser to close")
+            wait_until(app, lambda: not app.is_running, "the application to stop")
+            assert events == ["before_close"], events
+            app.shutdown()
+            print("OK")
         """)
         self.assertClean(result)
         self.assertIn("OK", result.stdout)

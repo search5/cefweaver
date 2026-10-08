@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 13개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 142개 가운데 106개가 생성되고 36개가 제외되며, 함수 3개를 더해 109개입니다.
+범위(`scope.py`)는 클래스 14개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 214개 가운데 160개가 생성되고 54개가 제외되며, 함수 3개를 더해 163개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -26,13 +26,14 @@ updated: 2026-10-08
 | `CefRequest` | 라이브러리 | 18/23 | `CefPostData`가 범위 밖(3), 헤더 맵(멀티맵) 2 |
 | `CefResponse` | 라이브러리 | 16/18 | 헤더 맵(멀티맵) 2 |
 | `CefFrame` | 라이브러리 | 20/26 | `CefStringVisitor`, `CefV8Context`, `CefDOMVisitor`, `CefURLRequest`, `CefProcessMessage`가 범위 밖(6) |
-| `CefBrowser` | 라이브러리 | 18/21 | `CefBrowserHost`가 범위 밖(1), 벡터 2 |
+| `CefBrowser` | 라이브러리 | 19/21 | 벡터 2(`get_frame_identifiers`, `get_frame_names`) |
+| `CefBrowserHost` | 라이브러리 | 53/72 | 범위 밖 클래스 7(`CefRequestContext`, `CefNavigationEntry` 등), 값 타입 4(`CefWindowHandle` 2, `CefKeyEvent`, `CefTouchEvent`), 구조체 4(`cef_window_info_t` 3, `cef_pdf_print_settings_t`), 벡터 2, 핸들러 객체 반환 1(`get_client`), 타입 없는 포인터 1 |
 | `CefClient` | 핸들러 | 3/19 | 다른 핸들러 15개가 범위 밖(`CefRequestHandler`, `CefContextMenuHandler` 등), `CefProcessMessage`가 범위 밖(1) |
 | `CefLoadHandler` | 핸들러 | 4/4 | |
 | `CefLifeSpanHandler` | 핸들러 | 4/6 | 값 타입 `CefPopupFeatures`(`on_before_popup`), 구조체 `cef_window_info_t`(`on_before_dev_tools_popup`) |
 | `CefDisplayHandler` | 핸들러 | 11/13 | 값 타입 `CefCursorHandle`(`on_cursor_change`), 벡터 1(`on_favicon_url_change`) |
 
-제외된 36개의 사유는 범위 밖 클래스 26, 값 타입 2와 구조체 1, 멀티맵 4, 벡터 3입니다. 범위 밖 클래스 가운데 16개는 `CefClient`가 돌려줄 다른 핸들러와 `CefProcessMessage`입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
+제외된 54개의 사유는 범위 밖 클래스 32, 값 타입 6과 구조체 5, 벡터 5, 멀티맵 4, 핸들러 객체 반환 1, 타입 없는 포인터 1입니다. 범위 밖 클래스 가운데 16개는 `CefClient`가 돌려줄 다른 핸들러와 `CefProcessMessage`입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
 
 ## 모든 클래스를 범위에 넣는다면
 
@@ -73,9 +74,9 @@ updated: 2026-10-08
 
 ### 다음 단계
 
-`CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`)를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
+`CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`)를 지원하고, `CefBrowserHost`를 범위에 넣었습니다(`browser.get_host()`). 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-1. 벡터를 지원합니다(58건). 구조체 다음으로 큰 장애물입니다.
+1. 벡터를 지원합니다(58건, 범위 안의 5건). 구조체 다음으로 큰 장애물입니다.
 2. 나머지 핸들러를 `CefClient`에 추가합니다. 컨텍스트 메뉴와 프로세스 메시지는 위의 "합치는 방법" 결정이 먼저입니다.
 3. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures` 등).
 
