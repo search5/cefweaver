@@ -72,6 +72,7 @@ updated: 2026-10-08
 | 사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 **만들지 않음** | java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 래퍼 내부의 메시지 라우터 설정만 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |
 | 오프스크린 브라우저에서는 **팝업을 막음**(래퍼의 `OnBeforePopup`) | java-cef도 `IsWindowRenderingDisabled()`면 막습니다. 팝업을 그릴 창과 렌더 핸들러 처리가 아직 없기 때문입니다. | 사용자(java-cef 수준) |
 | 래퍼는 포커스, JS 대화상자, 파일 대화상자, 다운로드 이벤트를 사용자의 핸들러로만 전달하고 스스로는 쓰지 않음(핸들러가 없으면 `nullptr`) | 핸들러가 있어야 CEF의 기본 동작(대화상자, 다운로드 저장 위치 묻기)이 바뀌므로 사용자가 만든 것만 CEF에 알립니다. | 구현 중 판단 |
+| 키보드 핸들러의 `os_event`(플랫폼 이벤트)는 Python에 넘기지 않음 | java-cef도 Java로 전달하지 않습니다(`keyboard_handler.cpp`). Linux에서는 `XEvent*`라 Python 객체로 안전하게 줄 방법이 없습니다. | 사용자(java-cef 수준) |
 | 오프스크린은 `offscreen`과 `windowless_frame_rate` 속성으로 켬(`BrowserSettings`는 열지 않음) | 필요한 설정만 열어 둡니다. 배경색 등은 필요해질 때 엽니다. | 구현 중 판단 |
 
 ## 서브프로세스와 런타임

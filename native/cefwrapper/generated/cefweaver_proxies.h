@@ -16,10 +16,12 @@
 #include "include/cef_focus_handler.h"
 #include "include/cef_frame.h"
 #include "include/cef_jsdialog_handler.h"
+#include "include/cef_keyboard_handler.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_load_handler.h"
 #include "include/cef_menu_model.h"
 #include "include/cef_menu_model_delegate.h"
+#include "include/cef_print_handler.h"
 #include "include/cef_print_settings.h"
 #include "include/cef_process_message.h"
 #include "include/cef_render_handler.h"
@@ -88,6 +90,13 @@ class CwClientForward : public CefClient {
     return forward_client_->GetJSDialogHandler();
   }
 
+  CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetKeyboardHandler();
+    }
+    return forward_client_->GetKeyboardHandler();
+  }
+
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
     if (!forward_client_) {
       return CefClient::GetLifeSpanHandler();
@@ -100,6 +109,13 @@ class CwClientForward : public CefClient {
       return CefClient::GetLoadHandler();
     }
     return forward_client_->GetLoadHandler();
+  }
+
+  CefRefPtr<CefPrintHandler> GetPrintHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetPrintHandler();
+    }
+    return forward_client_->GetPrintHandler();
   }
 
   CefRefPtr<CefRenderHandler> GetRenderHandler() override {
@@ -127,8 +143,10 @@ struct CwClientCallbacks {
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefFocusHandler* (*fn_get_focus_handler)(void*) = nullptr;
   CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) = nullptr;
+  CefKeyboardHandler* (*fn_get_keyboard_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
   CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
+  CefPrintHandler* (*fn_get_print_handler)(void*) = nullptr;
   CefRenderHandler* (*fn_get_render_handler)(void*) = nullptr;
   bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) = nullptr;
 };
@@ -233,6 +251,19 @@ class CwClientProxy : public CefClient {
     return result;
   }
 
+  CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override {
+    if (!cb_.fn_get_keyboard_handler) {
+      return CefClient::GetKeyboardHandler();
+    }
+    CefKeyboardHandler* raw = cb_.fn_get_keyboard_handler(cb_.py);
+    CefRefPtr<CefKeyboardHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
     if (!cb_.fn_get_life_span_handler) {
       return CefClient::GetLifeSpanHandler();
@@ -252,6 +283,19 @@ class CwClientProxy : public CefClient {
     }
     CefLoadHandler* raw = cb_.fn_get_load_handler(cb_.py);
     CefRefPtr<CefLoadHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefPrintHandler> GetPrintHandler() override {
+    if (!cb_.fn_get_print_handler) {
+      return CefClient::GetPrintHandler();
+    }
+    CefPrintHandler* raw = cb_.fn_get_print_handler(cb_.py);
+    CefRefPtr<CefPrintHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -1008,6 +1052,69 @@ class CwJSDialogHandlerProxy : public CefJSDialogHandler {
   DISALLOW_COPY_AND_ASSIGN(CwJSDialogHandlerProxy);
 };
 
+// ---- CefKeyboardHandler ----
+
+class CwKeyboardHandlerForward : public CefKeyboardHandler {
+ protected:
+  CefRefPtr<CefKeyboardHandler> forward_keyboard_handler_;
+
+ public:
+  bool OnPreKeyEvent(CefRefPtr<CefBrowser> browser, const CefKeyEvent& event, CefEventHandle os_event, bool* is_keyboard_shortcut) override {
+    if (!forward_keyboard_handler_) {
+      return CefKeyboardHandler::OnPreKeyEvent(browser, event, os_event, is_keyboard_shortcut);
+    }
+    return forward_keyboard_handler_->OnPreKeyEvent(browser, event, os_event, is_keyboard_shortcut);
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefBrowser> browser, const CefKeyEvent& event, CefEventHandle os_event) override {
+    if (!forward_keyboard_handler_) {
+      return CefKeyboardHandler::OnKeyEvent(browser, event, os_event);
+    }
+    return forward_keyboard_handler_->OnKeyEvent(browser, event, os_event);
+  }
+};
+
+struct CwKeyboardHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_pre_key_event)(void*, CefBrowser*, const CefKeyEvent*, bool*) = nullptr;
+  bool (*fn_on_key_event)(void*, CefBrowser*, const CefKeyEvent*) = nullptr;
+};
+
+class CwKeyboardHandlerProxy : public CefKeyboardHandler {
+ public:
+  explicit CwKeyboardHandlerProxy(const CwKeyboardHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwKeyboardHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnPreKeyEvent(CefRefPtr<CefBrowser> browser, const CefKeyEvent& event, CefEventHandle os_event, bool* is_keyboard_shortcut) override {
+    if (!cb_.fn_on_pre_key_event) {
+      return CefKeyboardHandler::OnPreKeyEvent(browser, event, os_event, is_keyboard_shortcut);
+    }
+    bool out_is_keyboard_shortcut = bool();
+    bool result = cb_.fn_on_pre_key_event(cb_.py, browser.get(), &event, &out_is_keyboard_shortcut);
+    if (is_keyboard_shortcut) *is_keyboard_shortcut = out_is_keyboard_shortcut;
+    return result;
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefBrowser> browser, const CefKeyEvent& event, CefEventHandle os_event) override {
+    if (!cb_.fn_on_key_event) {
+      return CefKeyboardHandler::OnKeyEvent(browser, event, os_event);
+    }
+    bool result = cb_.fn_on_key_event(cb_.py, browser.get(), &event);
+    return result;
+  }
+
+ private:
+  CwKeyboardHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwKeyboardHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwKeyboardHandlerProxy);
+};
+
 // ---- CefLifeSpanHandler ----
 
 class CwLifeSpanHandlerForward : public CefLifeSpanHandler {
@@ -1346,6 +1453,129 @@ class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
 
   IMPLEMENT_REFCOUNTING(CwMenuModelDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
+};
+
+// ---- CefPrintHandler ----
+
+class CwPrintHandlerForward : public CefPrintHandler {
+ protected:
+  CefRefPtr<CefPrintHandler> forward_print_handler_;
+
+ public:
+  void OnPrintStart(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_print_handler_) {
+      return;
+    }
+    forward_print_handler_->OnPrintStart(browser);
+  }
+
+  void OnPrintSettings(CefRefPtr<CefBrowser> browser, CefRefPtr<CefPrintSettings> settings, bool get_defaults) override {
+    if (!forward_print_handler_) {
+      return;
+    }
+    forward_print_handler_->OnPrintSettings(browser, settings, get_defaults);
+  }
+
+  bool OnPrintDialog(CefRefPtr<CefBrowser> browser, bool has_selection, CefRefPtr<CefPrintDialogCallback> callback) override {
+    if (!forward_print_handler_) {
+      return bool();
+    }
+    return forward_print_handler_->OnPrintDialog(browser, has_selection, callback);
+  }
+
+  bool OnPrintJob(CefRefPtr<CefBrowser> browser, const CefString& document_name, const CefString& pdf_file_path, CefRefPtr<CefPrintJobCallback> callback) override {
+    if (!forward_print_handler_) {
+      return bool();
+    }
+    return forward_print_handler_->OnPrintJob(browser, document_name, pdf_file_path, callback);
+  }
+
+  void OnPrintReset(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_print_handler_) {
+      return;
+    }
+    forward_print_handler_->OnPrintReset(browser);
+  }
+
+  CefSize GetPdfPaperSize(CefRefPtr<CefBrowser> browser, int device_units_per_inch) override {
+    if (!forward_print_handler_) {
+      return CefPrintHandler::GetPdfPaperSize(browser, device_units_per_inch);
+    }
+    return forward_print_handler_->GetPdfPaperSize(browser, device_units_per_inch);
+  }
+};
+
+struct CwPrintHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_print_start)(void*, CefBrowser*) = nullptr;
+  void (*fn_on_print_settings)(void*, CefBrowser*, CefPrintSettings*, bool) = nullptr;
+  bool (*fn_on_print_dialog)(void*, CefBrowser*, bool, CefPrintDialogCallback*) = nullptr;
+  bool (*fn_on_print_job)(void*, CefBrowser*, const CefString*, const CefString*, CefPrintJobCallback*) = nullptr;
+  void (*fn_on_print_reset)(void*, CefBrowser*) = nullptr;
+  void (*fn_get_pdf_paper_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
+};
+
+class CwPrintHandlerProxy : public CefPrintHandler {
+ public:
+  explicit CwPrintHandlerProxy(const CwPrintHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwPrintHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnPrintStart(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_print_start) {
+      return;
+    }
+    cb_.fn_on_print_start(cb_.py, browser.get());
+  }
+
+  void OnPrintSettings(CefRefPtr<CefBrowser> browser, CefRefPtr<CefPrintSettings> settings, bool get_defaults) override {
+    if (!cb_.fn_on_print_settings) {
+      return;
+    }
+    cb_.fn_on_print_settings(cb_.py, browser.get(), settings.get(), get_defaults);
+  }
+
+  bool OnPrintDialog(CefRefPtr<CefBrowser> browser, bool has_selection, CefRefPtr<CefPrintDialogCallback> callback) override {
+    if (!cb_.fn_on_print_dialog) {
+      return bool();
+    }
+    bool result = cb_.fn_on_print_dialog(cb_.py, browser.get(), has_selection, callback.get());
+    return result;
+  }
+
+  bool OnPrintJob(CefRefPtr<CefBrowser> browser, const CefString& document_name, const CefString& pdf_file_path, CefRefPtr<CefPrintJobCallback> callback) override {
+    if (!cb_.fn_on_print_job) {
+      return bool();
+    }
+    bool result = cb_.fn_on_print_job(cb_.py, browser.get(), &document_name, &pdf_file_path, callback.get());
+    return result;
+  }
+
+  void OnPrintReset(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_print_reset) {
+      return;
+    }
+    cb_.fn_on_print_reset(cb_.py, browser.get());
+  }
+
+  CefSize GetPdfPaperSize(CefRefPtr<CefBrowser> browser, int device_units_per_inch) override {
+    if (!cb_.fn_get_pdf_paper_size) {
+      return CefPrintHandler::GetPdfPaperSize(browser, device_units_per_inch);
+    }
+    CefSize out_result;
+    cb_.fn_get_pdf_paper_size(cb_.py, browser.get(), device_units_per_inch, &out_result);
+    return out_result;
+  }
+
+ private:
+  CwPrintHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwPrintHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwPrintHandlerProxy);
 };
 
 // ---- CefRenderHandler ----

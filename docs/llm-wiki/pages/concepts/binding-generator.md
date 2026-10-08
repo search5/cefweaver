@@ -54,6 +54,7 @@ report.py       커버리지 보고서
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
 | `Struct` | 필드가 기본형, 열거형, 다른 구조체인 값 타입(`CefRect`, `CefPoint`, `CefMouseEvent`, `CefKeyEvent`, `CefScreenInfo` 등 15개) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Vector` | `std::vector<T>`. 요소는 문자열, 숫자(`bool` 제외), 값 타입 구조체, 라이브러리 객체(`CefRefPtr<T>`, 출력과 핸들러 입력만) | `list[str]`, `list[int]`, `list[Rect]`, `list[Display]` (라이브러리에 주는 쪽은 아무 시퀀스) |
+| `Ignored` | 핸들러의 `CefEventHandle os_event`(Linux에서 `XEvent*`)처럼 Python에 넘기지 않는 인자(java-cef도 넘기지 않음) | 서명에서 빠짐 |
 | `Bytes` | 라이브러리 메서드의 `const void*`와 `size_t` 쌍(뒤에 크기가 또 있으면 제외), 또는 `BYTES_OUT` 표의 `void*`와 `size_t`(`BinaryValue.GetData`) | `bytes` 같은 바이트열 입력, 출력은 `get_data(size, offset) -> bytes` |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍, 또는 크기 인자가 없는 `const void*`(`SIZED_BUFFERS` 표의 크기 식) | 쓰기 가능한 `memoryview`, 후자는 읽기 전용 |
 
@@ -88,6 +89,7 @@ report.py       커버리지 보고서
 - 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 인자는 **출력 인자**로 보고 Python 반환값으로 돌려줍니다(반환값이 있으면 그것이 먼저이고, 값이 하나면 그대로, 둘 이상이면 튜플). 기본형, 문자열, 열거형, 문자열 벡터는 출력 전용이라 인자에서 빠지고(`ok, key_code, shift, ctrl, alt = menu.get_accelerator(command_id)`), **구조체 참조는 입출력**이라 인자로 받아 바뀐 값을 돌려줍니다(`display.convert_point_to_pixels(point)`). 객체 참조(`CefRefPtr&`)는 아직 미지원입니다. 클라이언트 객체를 반환하는 메서드도 미지원입니다. 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
 - 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형, 구조체)는 Python 메서드의 반환값이 됩니다. 문자열 벡터는 입력(`const std::vector<CefString>&`)으로만 받고 `list[str]`로 전달됩니다. 구조체를 값으로 **반환**하는 핸들러 메서드는 아직 미지원입니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
 - `void*`와 크기는 `Buffer` 하나로 합쳐집니다(핸들러 쪽만).
+- 핸들러의 `T* flag`(비 const 포인터, 기본형)는 `T&`처럼 출력 인자이고 프록시가 `if (flag) *flag = ...`로 씁니다(`OnPreKeyEvent`의 `is_keyboard_shortcut`). 구조체를 값으로 반환하는 핸들러 메서드(`GetPdfPaperSize`)는 숨은 마지막 출력 인자로 받아 프록시가 반환합니다.
 - 헤더가 `optional_param`으로 표시한 인자만 `None`을 허용합니다. 라이브러리 메서드에 허용되지 않은 곳에 `None`을 넘기면 C++가 죽는 대신 `TypeError`입니다.
 - 이름: `Cef` 접두사를 떼고 클래스는 그대로, 메서드와 인자는 snake_case, 예약어는 밑줄을 붙입니다(`Continue` → `continue_`).
 

@@ -255,6 +255,10 @@ cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintDialogCallback(CefBaseRefCounted)
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintJobCallback(CefBaseRefCounted)
 cdef extern from "include/cef_print_settings.h":
     cdef cppclass CefPrintSettings(CefBaseRefCounted)
 cdef extern from "include/cef_process_message.h":
@@ -291,12 +295,16 @@ cdef extern from "include/cef_focus_handler.h":
     cdef cppclass CefFocusHandler(CefBaseRefCounted)
 cdef extern from "include/cef_jsdialog_handler.h":
     cdef cppclass CefJSDialogHandler(CefBaseRefCounted)
+cdef extern from "include/cef_keyboard_handler.h":
+    cdef cppclass CefKeyboardHandler(CefBaseRefCounted)
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
 cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintHandler(CefBaseRefCounted)
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -651,6 +659,15 @@ cdef extern from "include/cef_menu_model.h":
         @staticmethod
         CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
 
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintDialogCallback(CefBaseRefCounted):
+        void Continue(CefRefPtr[CefPrintSettings]) nogil
+        void Cancel() nogil
+
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintJobCallback(CefBaseRefCounted):
+        void Continue() nogil
+
 cdef extern from "include/cef_print_settings.h":
     cdef cppclass CefPrintSettings(CefBaseRefCounted):
         cpp_bool IsValid() nogil
@@ -809,6 +826,9 @@ cdef extern from "include/cef_focus_handler.h":
 cdef extern from "include/cef_jsdialog_handler.h":
     cdef cppclass CefJSDialogHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_keyboard_handler.h":
+    cdef cppclass CefKeyboardHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted):
         pass
@@ -817,6 +837,9 @@ cdef extern from "include/cef_load_handler.h":
         pass
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_print_handler.h":
+    cdef cppclass CefPrintHandler(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted):
@@ -848,8 +871,10 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefFocusHandler* (*fn_get_focus_handler)(void*) noexcept
         CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) noexcept
+        CefKeyboardHandler* (*fn_get_keyboard_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
+        CefPrintHandler* (*fn_get_print_handler)(void*) noexcept
         CefRenderHandler* (*fn_get_render_handler)(void*) noexcept
         cpp_bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) noexcept
     cdef cppclass CwClientProxy(CefClient):
@@ -920,6 +945,13 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_dialog_closed)(void*, CefBrowser*) noexcept
     cdef cppclass CwJSDialogHandlerProxy(CefJSDialogHandler):
         CwJSDialogHandlerProxy(const CwJSDialogHandlerCallbacks&)
+    cdef cppclass CwKeyboardHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_on_pre_key_event)(void*, CefBrowser*, const CefKeyEvent*, cpp_bool*) noexcept
+        cpp_bool (*fn_on_key_event)(void*, CefBrowser*, const CefKeyEvent*) noexcept
+    cdef cppclass CwKeyboardHandlerProxy(CefKeyboardHandler):
+        CwKeyboardHandlerProxy(const CwKeyboardHandlerCallbacks&)
     cdef cppclass CwLifeSpanHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -950,6 +982,17 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_format_label)(void*, CefMenuModel*, CefString*) noexcept
     cdef cppclass CwMenuModelDelegateProxy(CefMenuModelDelegate):
         CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks&)
+    cdef cppclass CwPrintHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_print_start)(void*, CefBrowser*) noexcept
+        void (*fn_on_print_settings)(void*, CefBrowser*, CefPrintSettings*, cpp_bool) noexcept
+        cpp_bool (*fn_on_print_dialog)(void*, CefBrowser*, cpp_bool, CefPrintDialogCallback*) noexcept
+        cpp_bool (*fn_on_print_job)(void*, CefBrowser*, const CefString*, const CefString*, CefPrintJobCallback*) noexcept
+        void (*fn_on_print_reset)(void*, CefBrowser*) noexcept
+        void (*fn_get_pdf_paper_size)(void*, CefBrowser*, int, CefSize*) noexcept
+    cdef cppclass CwPrintHandlerProxy(CefPrintHandler):
+        CwPrintHandlerProxy(const CwPrintHandlerCallbacks&)
     cdef cppclass CwRenderHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

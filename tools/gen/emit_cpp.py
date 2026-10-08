@@ -18,7 +18,8 @@ virtual methods).
 """
 
 from model import py_class_name, snake_case
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import (Buffer, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Vector,
+                     Void)
 
 
 def field_name(plan):
@@ -87,6 +88,8 @@ def table_ret_type(plan):
 def table_param_types(plan):
     types = ["void*"]
     for param in plan.params:
+        if isinstance(param.kind, Ignored):
+            continue
         types += [table_out_type(param)] if param.out else table_in_types(param)
     return types
 
@@ -97,7 +100,8 @@ def declaration(param):
         if param.kind.size_expr:
             return "const void* %s" % param.cef_name
         return "void* %s, %s %s" % (param.cef_name, param.kind.size_cpp, param.size_name)
-    text = ("const " if param.const else "") + param.spelled + ("&" if param.byref else "")
+    text = ("const " if param.const else "") + param.spelled + (
+        "&" if param.byref else "*" if param.byaddr else "")
     return "%s %s" % (text, param.cef_name)
 
 
@@ -105,6 +109,8 @@ def call_arguments(plan):
     """Names of the arguments in the order of the CEF declaration."""
     names = []
     for param in plan.params:
+        if param.is_return:
+            continue
         names.append(param.cef_name)
         if isinstance(param.kind, Buffer) and not param.kind.size_expr:
             names.append(param.size_name)
@@ -113,6 +119,8 @@ def call_arguments(plan):
 
 def _default_return(plan):
     kind = plan.ret
+    if isinstance(kind, Void) and not plan.void_return:
+        return "return %s();" % plan.ret_spelled
     if isinstance(kind, Void):
         return "return;"
     if isinstance(kind, ClientRef):
@@ -122,7 +130,7 @@ def _default_return(plan):
 
 def _method(model, cls, plan):
     field = field_name(plan)
-    params = ", ".join(declaration(p) for p in plan.params)
+    params = ", ".join(declaration(p) for p in plan.params if not p.is_return)
     const = " const" if plan.const_method else ""
     out = []
     out.append("  %s %s(%s)%s override {" % (plan.ret_spelled, plan.cef_name, params, const))
@@ -131,8 +139,8 @@ def _method(model, cls, plan):
         out.append("      %s" % _default_return(plan))
     else:
         call = "%s::%s(%s)" % (cls.get_name(), plan.cef_name, ", ".join(call_arguments(plan)))
-        out.append("      %s%s;" % ("" if isinstance(plan.ret, Void) else "return ", call))
-        if isinstance(plan.ret, Void):
+        out.append("      %s%s;" % ("" if plan.void_return else "return ", call))
+        if plan.void_return:
             out.append("      return;")
     out.append("    }")
 
@@ -140,6 +148,8 @@ def _method(model, cls, plan):
     for param in plan.params:
         name = param.cef_name
         kind = param.kind
+        if isinstance(kind, Ignored):
+            continue
         if param.out:
             if isinstance(kind, Str):
                 out.append("    CefString out_%s;" % name)
@@ -180,7 +190,11 @@ def _method(model, cls, plan):
         out.append("    %s result = %s;" % (plan.ret_spelled, call))
 
     for param in plan.outs:
-        if isinstance(param.kind, Enum):
+        if param.is_return:
+            out.append("    return out_%s;" % param.cef_name)
+        elif param.byaddr:
+            out.append("    if (%s) *%s = out_%s;" % (param.cef_name, param.cef_name, param.cef_name))
+        elif isinstance(param.kind, Enum):
             out.append("    %s = static_cast<%s>(out_%s);" % (param.cef_name, param.spelled, param.cef_name))
         else:
             out.append("    %s = out_%s;" % (param.cef_name, param.cef_name))
@@ -191,7 +205,7 @@ def _method(model, cls, plan):
 
 
 def _forward_method(model, cls, plan, member):
-    params = ", ".join(declaration(p) for p in plan.params)
+    params = ", ".join(declaration(p) for p in plan.params if not p.is_return)
     const = " const" if plan.const_method else ""
     args = ", ".join(call_arguments(plan))
     out = []
@@ -201,14 +215,14 @@ def _forward_method(model, cls, plan, member):
         out.append("      %s" % _default_return(plan))
     else:
         call = "%s::%s(%s)" % (cls.get_name(), plan.cef_name, args)
-        if isinstance(plan.ret, Void):
+        if plan.void_return:
             out.append("      %s;" % call)
             out.append("      return;")
         else:
             out.append("      return %s;" % call)
     out.append("    }")
     call = "%s->%s(%s)" % (member, plan.cef_name, args)
-    out.append("    %s%s;" % ("" if isinstance(plan.ret, Void) else "return ", call))
+    out.append("    %s%s;" % ("" if plan.void_return else "return ", call))
     out.append("  }")
     return out
 

@@ -38,6 +38,8 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
+- **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
+
 - **오프스크린 렌더링에는 `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다.** 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).

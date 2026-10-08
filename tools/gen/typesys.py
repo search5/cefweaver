@@ -97,6 +97,12 @@ class Buffer(Kind):
 
 
 @dataclass(frozen=True)
+class Ignored(Kind):
+    """A parameter of a handler method that is not given to Python: the platform's native
+    event (`CefEventHandle`, an XEvent* on Linux). java-cef does not pass it either."""
+
+
+@dataclass(frozen=True)
 class Bytes(Kind):
     """`const void* data, size_t size` of a library method: any bytes-like object in Python.
     With `out` on its ParamPlan it is `void* buffer, size_t buffer_size` that CEF fills: the
@@ -210,6 +216,8 @@ class ParamPlan:
     inout: bool = False
     const: bool = False
     byref: bool = False
+    byaddr: bool = False  # `bool* flag`: an output the handler sets through a pointer
+    is_return: bool = False  # the hidden output that carries a struct a handler method returns
     optional: bool = False  # the header marks it optional_param: None is allowed
     size_name: str = ""  # Buffer only: the C++ name of the size parameter
 
@@ -237,8 +245,14 @@ class MethodPlan:
         return [p for p in self.params if p.out]
 
     @property
+    def void_return(self):
+        """True if the C++ method returns nothing (a returned struct travels as an output)."""
+        return isinstance(self.ret, Void) and not any(p.is_return for p in self.params)
+
+    @property
     def ins(self):
-        return [p for p in self.params if not p.out or p.inout]
+        return [p for p in self.params
+                if (not p.out or p.inout) and not isinstance(p.kind, Ignored)]
 
     @property
     def results(self):
@@ -323,6 +337,18 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                 plan.params[-1].size_name = arguments[i + 1].get_name()
                 i += 2
                 continue
+            if client_side and analysis.get_type() == "CefEventHandle":
+                plan.params.append(ParamPlan(name, py_param_name(name), "CefEventHandle", Ignored()))
+                i += 1
+                continue
+            if (client_side and analysis.result_type == "simple" and analysis.is_byaddr()
+                    and not analysis.is_const() and analysis.get_type() in _PRIMITIVES):
+                # `bool* is_keyboard_shortcut`: set by the handler, returned by the Python method
+                kind = Prim(analysis.get_type(), _PRIMITIVES[analysis.get_type()])
+                plan.params.append(ParamPlan(name, py_param_name(name), analysis.get_type(), kind,
+                                             out=True, byaddr=True))
+                i += 1
+                continue
             kind = classify(model, scope, analysis)
             out = analysis.is_byref() and not analysis.is_const() and not isinstance(kind, LibRef)
             if out:
@@ -344,6 +370,12 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                                          optional=name in optional_names,
                                          inout=out and not client_side and isinstance(kind, Struct)))
             i += 1
+        if client_side and isinstance(plan.ret, Struct):
+            # A handler returns a struct by value: the table function fills one through a
+            # hidden last output parameter, and the proxy returns it.
+            plan.params.append(ParamPlan("result", "result", plan.ret_spelled, plan.ret,
+                                         out=True, is_return=True))
+            plan.ret = Void()
     except Unsupported as reason:
         plan.reason = str(reason)
     return plan
@@ -361,8 +393,6 @@ def _check_return(kind, client_side):
     if client_side:
         if isinstance(kind, LibRef):
             raise Unsupported("a client method returning a library object")
-        if isinstance(kind, Struct):
-            raise Unsupported("a client method returning the value type %s" % kind.cls)
     else:
         if isinstance(kind, ClientRef):
             raise Unsupported("a library method returning a client object")

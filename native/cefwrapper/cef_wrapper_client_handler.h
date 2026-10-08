@@ -33,6 +33,8 @@ class CefWrapperClientHandler : public CefClient,
                       public CwJSDialogHandlerForward,
                       public CwDialogHandlerForward,
                       public CwDownloadHandlerForward,
+                      public CwKeyboardHandlerForward,
+                      public CwPrintHandlerForward,
                       public CwContextMenuHandlerForward {
 public:
 
@@ -122,6 +124,16 @@ public:
   CefRefPtr<CefDownloadHandler> GetDownloadHandler() override {
     forward_download_handler_ = user_client_ ? user_client_->GetDownloadHandler() : nullptr;
     return forward_download_handler_ ? this : nullptr;
+  }
+
+  CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override {
+    forward_keyboard_handler_ = user_client_ ? user_client_->GetKeyboardHandler() : nullptr;
+    return forward_keyboard_handler_ ? this : nullptr;
+  }
+
+  CefRefPtr<CefPrintHandler> GetPrintHandler() override {
+    forward_print_handler_ = user_client_ ? user_client_->GetPrintHandler() : nullptr;
+    return forward_print_handler_ ? this : nullptr;
   }
 
   CefRefPtr<CefLoadHandler> GetLoadHandler() override {

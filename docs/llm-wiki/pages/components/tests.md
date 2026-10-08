@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 172개(통합 84, 생성기 87, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 176개(통합 86, 생성기 89, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -41,6 +41,7 @@ updated: 2026-10-08
 | `ApiWithoutCef` | `test_the_offscreen_api_is_public_and_checks_its_arguments` | `RenderHandler`의 공개 여부, `offscreen`과 `windowless_frame_rate`의 기본값과 범위 검사 |
 | `ApiWithoutCef` | `test_the_structs_with_a_size_header_are_public_values` | `KeyEvent`, `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline`의 공개 여부와 필드 이름 |
 | `ApiWithoutCef` | `test_binary_values_take_and_give_bytes` | `BinaryValue.create`와 `get_data`: 바이트열 종류, 오프셋, 남은 것보다 큰 요청, 빈 데이터는 `None`, 잘못된 인자(`TypeError`, 음수는 `OverflowError`), 리스트에 넣은 뒤 소유권 |
+| `WithCef` | `test_the_keyboard_handler_sees_key_events_before_the_page`, `test_the_print_handler_sees_the_start_the_settings_and_the_reset` | 오프스크린에서 보낸 키 이벤트가 `on_pre_key_event`로 먼저 옴(`KeyEvent`), `host.print()`의 `on_print_start`, `on_print_settings`(`PrintSettings`), `on_print_reset` |
 | `WithCef` | `test_the_focus_handler_sees_the_focus_of_the_browser`, `test_javascript_dialogs_are_answered_by_the_handler`, `test_the_file_dialog_gets_the_files_from_the_handler`, `test_a_download_is_saved_where_the_handler_says` | `set_focus`가 `on_set_focus`(`FocusSource`)와 `on_got_focus`로 감, `alert`/`confirm`/`prompt`에 핸들러가 답함, 파일 입력을 눌러 핸들러가 고른 파일이 페이지에 들어감, 첨부 파일이 핸들러가 정한 경로에 저장됨 |
 | `WithCef` | `test_binary_values_travel_in_process_messages` | 256가지 바이트가 렌더러를 왕복 |
 | `WithCef` | `test_keyboard_events_type_into_an_offscreen_page`, `test_the_handler_gives_the_screen_info_and_the_page_sees_the_scale`, `test_touch_events_and_ime_compositions_are_accepted` | 키 입력이 입력란에 들어감, 화면 정보의 배율이 페이지와 프레임 크기에 반영됨, 터치와 IME 인자가 변환됨 |

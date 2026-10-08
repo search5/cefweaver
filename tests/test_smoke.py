@@ -1773,6 +1773,10 @@ class WithCef(unittest.TestCase):
                 return handlers.get("dialog")
             def get_download_handler(self):
                 return handlers.get("download")
+            def get_keyboard_handler(self):
+                return handlers.get("keyboard")
+            def get_print_handler(self):
+                return handlers.get("print")
         def start(body):
             app.offscreen = True
             app.set_client(MyClient())
@@ -2036,6 +2040,68 @@ class WithCef(unittest.TestCase):
             assert began == [("named.txt", "http://files.test/a.bin")], began
             assert updates[-1] == (True, 10), updates
             assert open(target, "rb").read() == b"0123456789"
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_the_keyboard_handler_sees_key_events_before_the_page(self):
+        self.run_osr_script("""
+            seen, pre = [], []
+            class Keys(cefweaver.KeyboardHandler):
+                def on_pre_key_event(self, browser, event):
+                    pre.append(event)
+                    return False, False            # not handled, not a keyboard shortcut
+                def on_key_event(self, browser, event):
+                    seen.append(event)
+                    return False
+            handlers["keyboard"] = Keys()
+            start('<input id="i" autofocus>')
+            host = boxes[0].get_host()
+            host.set_focus(True)
+            KT = types.KeyEventType
+            def key(kind):
+                return cefweaver.KeyEvent(kind, 0, 65, 0, 0, 97, 97, 0)
+            def type_a():
+                host.send_key_event(key(KT.RAWKEYDOWN))
+                host.send_key_event(key(KT.CHAR))
+                host.send_key_event(key(KT.KEYUP))
+            send_until(app, type_a, lambda: pre, "the key event")
+            assert all(isinstance(e, cefweaver.KeyEvent) for e in pre), pre
+            assert pre[0].type == KT.RAWKEYDOWN and pre[0].windows_key_code == 65, pre[0]
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_the_print_handler_sees_the_start_the_settings_and_the_reset(self):
+        self.run_osr_script("""
+            order = []
+            class Printing(cefweaver.PrintHandler):
+                def on_print_start(self, browser):
+                    order.append("start")
+                def on_print_settings(self, browser, settings, get_defaults):
+                    order.append(("settings", isinstance(settings, cefweaver.PrintSettings)))
+                def on_print_dialog(self, browser, has_selection, callback):
+                    order.append("dialog")
+                    callback.continue_(cefweaver.PrintSettings.create())  # the user presses "Print"
+                    return True
+                def on_print_job(self, browser, document_name, pdf_job_name, callback):
+                    order.append("job")
+                    callback.continue_()
+                    return True
+                def on_print_reset(self, browser):
+                    order.append("reset")
+                def get_pdf_paper_size(self, browser, device_units_per_inch):
+                    return cefweaver.Size(595, 842)
+            handlers["print"] = Printing()
+            start('<p>print me</p>')
+            boxes[0].get_host().print()
+            wait_until(app, lambda: "reset" in order, "the end of the print")
+            assert cefweaver.PrintHandler.get_pdf_paper_size is not None
+            # With no printer (this environment) CEF reports an error instead of asking for
+            # the dialog and the job: only the start, the settings and the reset arrive.
+            assert order == ["start", ("settings", True), "reset"], order
             app.shutdown()
             print("OK")
         """)

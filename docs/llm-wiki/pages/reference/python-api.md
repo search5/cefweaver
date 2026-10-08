@@ -81,7 +81,7 @@ class Late(cefweaver.ResourceHandler):
 
 ## 브라우저 이벤트 받기
 
-`Client`의 `get_load_handler()`, `get_life_span_handler()`, `get_display_handler()` 등(그 밖에 `get_context_menu_handler`, `get_drag_handler`, `get_render_handler`, `get_focus_handler`, `get_js_dialog_handler`, `get_dialog_handler`, `get_download_handler`)이 핸들러를 돌려주면 `set_client()`로 넘긴 뒤 이벤트가 그 핸들러의 메서드로 옵니다. 콜백은 `initialize()`를 부른 스레드에서 `do_message_loop_work()` 안에 실행됩니다(시험에서 확인). 래퍼가 스스로 하는 일(`is_ready_to_execute_javascript`, 오류 페이지, JS 바인딩)은 그대로 동작합니다.
+`Client`의 `get_load_handler()`, `get_life_span_handler()`, `get_display_handler()` 등(그 밖에 `get_context_menu_handler`, `get_drag_handler`, `get_render_handler`, `get_focus_handler`, `get_js_dialog_handler`, `get_dialog_handler`, `get_download_handler`, `get_keyboard_handler`, `get_print_handler`)이 핸들러를 돌려주면 `set_client()`로 넘긴 뒤 이벤트가 그 핸들러의 메서드로 옵니다. 콜백은 `initialize()`를 부른 스레드에서 `do_message_loop_work()` 안에 실행됩니다(시험에서 확인). 래퍼가 스스로 하는 일(`is_ready_to_execute_javascript`, 오류 페이지, JS 바인딩)은 그대로 동작합니다.
 
 ```python
 class Load(cefweaver.LoadHandler):

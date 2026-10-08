@@ -43,7 +43,7 @@ updated: 2026-10-08
 
 ## CefWrapperClientHandler
 
-`CefClient`와, 표시, 컨텍스트 메뉴, 드래그, 수명 주기, 로드 핸들러의 **생성된 전달 클래스**(`CwDisplayHandlerForward`, `CwContextMenuHandlerForward`, `CwDragHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`, `CwRenderHandlerForward`, `CwFocusHandlerForward`, `CwJSDialogHandlerForward`, `CwDialogHandlerForward`, `CwDownloadHandlerForward`)를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
+`CefClient`와, 표시, 컨텍스트 메뉴, 드래그, 수명 주기, 로드 핸들러의 **생성된 전달 클래스**(`CwDisplayHandlerForward`, `CwContextMenuHandlerForward`, `CwDragHandlerForward`, `CwLifeSpanHandlerForward`, `CwLoadHandlerForward`, `CwRenderHandlerForward`, `CwFocusHandlerForward`, `CwJSDialogHandlerForward`, `CwDialogHandlerForward`, `CwDownloadHandlerForward`, `CwKeyboardHandlerForward`, `CwPrintHandlerForward`)를 한 클래스에서 구현합니다. 인스턴스는 전역 `g_instance`로 접근합니다(`GetInstance()`).
 
 생성자는 사용자의 클라이언트(`user_client`, 생성된 `CwClientProxy`)를 선택 인자로 받습니다. `GetDisplayHandler()`, `GetLifeSpanHandler()`, `GetLoadHandler()`는 CEF가 물을 때마다 `user_client->GetXxxHandler()`를 불러 그 결과를 전달 대상(`forward_..._handler_`)에 넣고 자기 자신을 돌려줍니다. 사용자의 클라이언트가 없으면 전달 대상이 비어 있어서 전달 클래스가 CEF 기반 클래스의 동작을 합니다. `GetDragHandler()`는 사용자의 핸들러가 있을 때만 자신을 돌려주고 없으면 `nullptr`(CEF의 기본 동작)입니다. 래퍼가 드래그 이벤트로 할 일이 없기 때문입니다. `GetContextMenuHandler()`는 사용자의 핸들러가 있거나 DevTools 항목이 켜져 있을 때만 자신을 돌려줍니다(아니면 `nullptr`). `OnProcessMessageReceived`는 래퍼의 두 메시지 이름만 가져가고 나머지는 사용자에게 넘깁니다.
 
@@ -69,7 +69,7 @@ updated: 2026-10-08
 | `OnProcessMessageReceived` | **메시지 라우터가 먼저**(라우터의 메시지이면 `true`, [메시지 라우터](../reference/message-router.md)). 이름이 `javascript-python-binding`, `javascript-binding`인 메시지는 풀어서 등록된 핸들러를 부르고 `true`(사용자에게 가지 않음). **그 밖의 이름은 사용자의 클라이언트에 넘기고** 사용자가 없으면 `false`([JavaScript 바인딩](../concepts/javascript-bindings.md)). |
 | 컨텍스트 메뉴 | `OnBeforeContextMenu`: 사용자 먼저, 그 뒤에 래퍼가 DevTools 항목을 더함(켜져 있을 때만, ID는 28498~28500). `OnContextMenuCommand`: 래퍼의 ID는 래퍼가, 그 밖은 사용자에게 넘기고 사용자가 없으면 `false`. 나머지 메서드(`RunContextMenu`, 빠른 메뉴)는 전달 클래스가 사용자에게 곧바로 넘깁니다. |
 
-`GetRenderHandler()`, `GetFocusHandler()`, `GetJSDialogHandler()`, `GetDialogHandler()`, `GetDownloadHandler()`는 사용자의 핸들러를 전달하고(없으면 `nullptr`이라 CEF가 기본 동작을 함), `OnBeforePopup`은 오프스크린 브라우저의 팝업을 막습니다. `CloseAllBrowsers`는 목록의 복사본을 순회합니다([오프스크린 렌더링](../reference/offscreen-rendering.md)).
+`GetRenderHandler()`, `GetFocusHandler()`, `GetJSDialogHandler()`, `GetDialogHandler()`, `GetDownloadHandler()`, `GetKeyboardHandler()`, `GetPrintHandler()`는 사용자의 핸들러를 전달하고(없으면 `nullptr`이라 CEF가 기본 동작을 함), `OnBeforePopup`은 오프스크린 브라우저의 팝업을 막습니다. `CloseAllBrowsers`는 목록의 복사본을 순회합니다([오프스크린 렌더링](../reference/offscreen-rendering.md)).
 
 `GetRequestHandler()`는 메시지 라우터가 있을 때만 래퍼 자신을 돌려줍니다. `OnBeforeBrowse`(허용하고 라우터에 알림)와 `OnRenderProcessTerminated`는 라우터만을 위한 것이고, `OnBeforeClose`도 라우터에 알립니다. 브라우저 프로세스 핸들러의 `OnBeforeChildProcessLaunch`는 라우터의 JavaScript 함수 이름을 렌더러의 명령줄에 붙입니다.
 

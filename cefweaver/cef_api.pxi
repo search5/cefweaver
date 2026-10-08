@@ -448,6 +448,8 @@ cdef class Frame
 cdef class JSDialogCallback
 cdef class ListValue
 cdef class MenuModel
+cdef class PrintDialogCallback
+cdef class PrintJobCallback
 cdef class PrintSettings
 cdef class ProcessMessage
 cdef class Request
@@ -3992,6 +3994,83 @@ cdef object _wrap_MenuModel(CefRefPtr[CefMenuModel] ref):
     return obj
 
 
+cdef class PrintDialogCallback:
+    """Callback interface for asynchronous continuation of print dialog requests."""
+    cdef CefRefPtr[CefPrintDialogCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("PrintDialogCallback objects are created by CEF or by a create() function")
+
+    cdef CefPrintDialogCallback* _ptr(self) except NULL:
+        cdef CefPrintDialogCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("PrintDialogCallback has no CEF object")
+        return p
+
+    def continue_(self, PrintSettings settings not None):
+        """Continue printing with the specified |settings|."""
+        cdef CefRefPtr[CefPrintSettings] _a0
+        cdef CefPrintDialogCallback* _p = self._ptr()
+        _a0 = settings._ref
+        with nogil:
+            _p.Continue(_a0)
+        return None
+
+    def cancel(self):
+        """Cancel the printing."""
+        cdef CefPrintDialogCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+
+cdef object _wrap_PrintDialogCallback(CefRefPtr[CefPrintDialogCallback] ref):
+    cdef PrintDialogCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = PrintDialogCallback.__new__(PrintDialogCallback)
+    obj._ref = ref
+    return obj
+
+
+cdef class PrintJobCallback:
+    """Callback interface for asynchronous continuation of print job requests."""
+    cdef CefRefPtr[CefPrintJobCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("PrintJobCallback objects are created by CEF or by a create() function")
+
+    cdef CefPrintJobCallback* _ptr(self) except NULL:
+        cdef CefPrintJobCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("PrintJobCallback has no CEF object")
+        return p
+
+    def continue_(self):
+        """Indicate completion of the print job."""
+        cdef CefPrintJobCallback* _p = self._ptr()
+        with nogil:
+            _p.Continue()
+        return None
+
+
+cdef object _wrap_PrintJobCallback(CefRefPtr[CefPrintJobCallback] ref):
+    cdef PrintJobCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = PrintJobCallback.__new__(PrintJobCallback)
+    obj._ref = ref
+    return obj
+
+
 cdef class PrintSettings:
     """Class representing print settings."""
     cdef CefRefPtr[CefPrintSettings] _ref
@@ -5250,12 +5329,22 @@ class Client:
         """
         return None
 
+    def get_keyboard_handler(self):
+        """Return the handler for keyboard events."""
+        return None
+
     def get_life_span_handler(self):
         """Return the handler for browser life span events."""
         return None
 
     def get_load_handler(self):
         """Return the handler for browser load status events."""
+        return None
+
+    def get_print_handler(self):
+        """Return the handler for printing on Linux. If a print handler is not
+        provided then printing will not be supported on the Linux platform.
+        """
         return None
 
     def get_render_handler(self):
@@ -5333,6 +5422,15 @@ cdef CefJSDialogHandler* _Client_get_js_dialog_handler(void* py) noexcept with g
         _g_report()
         return NULL
 
+cdef CefKeyboardHandler* _Client_get_keyboard_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_keyboard_handler()
+        _r0 = _r
+        return _g_export_KeyboardHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef CefLifeSpanHandler* _Client_get_life_span_handler(void* py) noexcept with gil:
     try:
         _r = (<object>py).get_life_span_handler()
@@ -5347,6 +5445,15 @@ cdef CefLoadHandler* _Client_get_load_handler(void* py) noexcept with gil:
         _r = (<object>py).get_load_handler()
         _r0 = _r
         return _g_export_LoadHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefPrintHandler* _Client_get_print_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_print_handler()
+        _r0 = _r
+        return _g_export_PrintHandler(_r0)
     except BaseException:
         _g_report()
         return NULL
@@ -5396,10 +5503,14 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
         cb.fn_get_focus_handler = _Client_get_focus_handler
     if getattr(cls, "get_js_dialog_handler", None) is not Client.get_js_dialog_handler:
         cb.fn_get_js_dialog_handler = _Client_get_js_dialog_handler
+    if getattr(cls, "get_keyboard_handler", None) is not Client.get_keyboard_handler:
+        cb.fn_get_keyboard_handler = _Client_get_keyboard_handler
     if getattr(cls, "get_life_span_handler", None) is not Client.get_life_span_handler:
         cb.fn_get_life_span_handler = _Client_get_life_span_handler
     if getattr(cls, "get_load_handler", None) is not Client.get_load_handler:
         cb.fn_get_load_handler = _Client_get_load_handler
+    if getattr(cls, "get_print_handler", None) is not Client.get_print_handler:
+        cb.fn_get_print_handler = _Client_get_print_handler
     if getattr(cls, "get_render_handler", None) is not Client.get_render_handler:
         cb.fn_get_render_handler = _Client_get_render_handler
     if getattr(cls, "on_process_message_received", None) is not Client.on_process_message_received:
@@ -6215,6 +6326,78 @@ cdef inline CefJSDialogHandler* _g_export_JSDialogHandler(object obj) except? NU
     return raw
 
 
+class KeyboardHandler:
+    """Implement this interface to handle events related to keyboard input. The
+    methods of this class will be called on the UI thread.
+    """
+
+    def on_pre_key_event(self, browser, event):
+        """Called before a keyboard event is sent to the renderer. |event| contains
+        information about the keyboard event. |os_event| is the operating system
+        event message, if any. Return true if the event was handled or false
+        otherwise. If the event will be handled in OnKeyEvent() as a keyboard
+        shortcut set |is_keyboard_shortcut| to true and return false.
+        """
+        return False, False
+
+    def on_key_event(self, browser, event):
+        """Called after the renderer and JavaScript in the page has had a chance to
+        handle the event. |event| contains information about the keyboard event.
+        |os_event| is the operating system event message, if any. Return true if
+        the keyboard event was handled or false otherwise.
+        """
+        return False
+
+
+cdef cpp_bool _KeyboardHandler_on_pre_key_event(void* py, CefBrowser* browser, const CefKeyEvent* event, cpp_bool* is_keyboard_shortcut) noexcept with gil:
+    try:
+        _r = (<object>py).on_pre_key_event(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_from_KeyEvent(event))
+        _r0, _r1 = _r
+        is_keyboard_shortcut[0] = _r1
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _KeyboardHandler_on_key_event(void* py, CefBrowser* browser, const CefKeyEvent* event) noexcept with gil:
+    try:
+        _r = (<object>py).on_key_event(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_from_KeyEvent(event))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefKeyboardHandler] _g_make_KeyboardHandler(object obj) except *:
+    cdef CefRefPtr[CefKeyboardHandler] ref
+    cdef CwKeyboardHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, KeyboardHandler):
+        raise TypeError("expected a KeyboardHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_pre_key_event", None) is not KeyboardHandler.on_pre_key_event:
+        cb.fn_on_pre_key_event = _KeyboardHandler_on_pre_key_event
+    if getattr(cls, "on_key_event", None) is not KeyboardHandler.on_key_event:
+        cb.fn_on_key_event = _KeyboardHandler_on_key_event
+    ref = CefRefPtr[CefKeyboardHandler](<CefKeyboardHandler*>new CwKeyboardHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefKeyboardHandler* _g_export_KeyboardHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefKeyboardHandler] ref = _g_make_KeyboardHandler(obj)
+    cdef CefKeyboardHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class LifeSpanHandler:
     """Implement this interface to handle events related to browser life span. The
     methods of this class will be called on the UI thread unless otherwise
@@ -6664,6 +6847,134 @@ cdef inline CefMenuModelDelegate* _g_export_MenuModelDelegate(object obj) except
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefMenuModelDelegate] ref = _g_make_MenuModelDelegate(obj)
     cdef CefMenuModelDelegate* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class PrintHandler:
+    """Implement this interface to handle printing on Linux. Each browser will have
+    only one print job in progress at a time. The methods of this class will be
+    called on the browser process UI thread.
+    """
+
+    def on_print_start(self, browser):
+        """Called when printing has started for the specified |browser|. This method
+        will be called before the other OnPrint*() methods and irrespective of how
+        printing was initiated (e.g. CefBrowserHost::Print(), JavaScript
+        window.print() or PDF extension print button).
+        """
+        return None
+
+    def on_print_settings(self, browser, settings, get_defaults):
+        """Synchronize |settings| with client state. If |get_defaults| is true then
+        populate |settings| with the default print settings. Do not keep a
+        reference to |settings| outside of this callback.
+        """
+        return None
+
+    def on_print_dialog(self, browser, has_selection, callback):
+        """Show the print dialog. Execute |callback| once the dialog is dismissed.
+        Return true if the dialog will be displayed or false to cancel the
+        printing immediately.
+        """
+        return False
+
+    def on_print_job(self, browser, document_name, pdf_file_path, callback):
+        """Send the print job to the printer. Execute |callback| once the job is
+        completed. Return true if the job will proceed or false to cancel the job
+        immediately.
+        """
+        return False
+
+    def on_print_reset(self, browser):
+        """Reset client state related to printing."""
+        return None
+
+    def get_pdf_paper_size(self, browser, device_units_per_inch):
+        """Return the PDF paper size in device units. Used in combination with
+        CefBrowserHost::PrintToPDF().
+        """
+        return Size(0, 0)
+
+
+cdef void _PrintHandler_on_print_start(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_print_start(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef void _PrintHandler_on_print_settings(void* py, CefBrowser* browser, CefPrintSettings* settings, cpp_bool get_defaults) noexcept with gil:
+    try:
+        _r = (<object>py).on_print_settings(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_PrintSettings(CefRefPtr[CefPrintSettings](settings)), get_defaults)
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _PrintHandler_on_print_dialog(void* py, CefBrowser* browser, cpp_bool has_selection, CefPrintDialogCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_print_dialog(_wrap_Browser(CefRefPtr[CefBrowser](browser)), has_selection, _wrap_PrintDialogCallback(CefRefPtr[CefPrintDialogCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _PrintHandler_on_print_job(void* py, CefBrowser* browser, const CefString* document_name, const CefString* pdf_file_path, CefPrintJobCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_print_job(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(document_name[0]), _g_str(pdf_file_path[0]), _wrap_PrintJobCallback(CefRefPtr[CefPrintJobCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _PrintHandler_on_print_reset(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_print_reset(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef void _PrintHandler_get_pdf_paper_size(void* py, CefBrowser* browser, int device_units_per_inch, CefSize* result) noexcept with gil:
+    try:
+        _r = (<object>py).get_pdf_paper_size(_wrap_Browser(CefRefPtr[CefBrowser](browser)), device_units_per_inch)
+        _r0 = _r
+        _g_to_Size(_r0, result)
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefPrintHandler] _g_make_PrintHandler(object obj) except *:
+    cdef CefRefPtr[CefPrintHandler] ref
+    cdef CwPrintHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, PrintHandler):
+        raise TypeError("expected a PrintHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_print_start", None) is not PrintHandler.on_print_start:
+        cb.fn_on_print_start = _PrintHandler_on_print_start
+    if getattr(cls, "on_print_settings", None) is not PrintHandler.on_print_settings:
+        cb.fn_on_print_settings = _PrintHandler_on_print_settings
+    if getattr(cls, "on_print_dialog", None) is not PrintHandler.on_print_dialog:
+        cb.fn_on_print_dialog = _PrintHandler_on_print_dialog
+    if getattr(cls, "on_print_job", None) is not PrintHandler.on_print_job:
+        cb.fn_on_print_job = _PrintHandler_on_print_job
+    if getattr(cls, "on_print_reset", None) is not PrintHandler.on_print_reset:
+        cb.fn_on_print_reset = _PrintHandler_on_print_reset
+    if getattr(cls, "get_pdf_paper_size", None) is not PrintHandler.get_pdf_paper_size:
+        cb.fn_get_pdf_paper_size = _PrintHandler_get_pdf_paper_size
+    ref = CefRefPtr[CefPrintHandler](<CefPrintHandler*>new CwPrintHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefPrintHandler* _g_export_PrintHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefPrintHandler] ref = _g_make_PrintHandler(obj)
+    cdef CefPrintHandler* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -7248,4 +7559,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

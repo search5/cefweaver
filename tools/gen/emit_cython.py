@@ -17,7 +17,7 @@ from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, Ignored, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -644,6 +644,8 @@ def _trampoline(plan, cls_py):
     """The function CEF calls (through the proxy) for one client method."""
     args = ["void* py"]
     for param in plan.params:
+        if isinstance(param.kind, Ignored):
+            continue
         if param.out:
             args.append("%s %s" % (cy_c(table_out_type(param)), param.name))
         else:

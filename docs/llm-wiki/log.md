@@ -144,3 +144,7 @@
 ## [2026-10-08] ingest | 포커스, JS 대화상자, 파일 대화상자, 다운로드 핸들러
 
 - `CefFocusHandler`, `CefJSDialogHandler`, `CefDialogHandler`, `CefDownloadHandler`와 콜백 5개(`CefDownloadItem` 포함)를 범위에 넣고 래퍼가 사용자의 핸들러로 전달합니다. 시험 5개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 172개가 통과합니다. F41. 생성 범위 페이지의 표에서 낡은 행(`CefBrowserHost` 53/72, `CefClient` 6/19)을 현재 값으로 고쳤습니다.
+
+## [2026-10-08] ingest | 키보드와 인쇄 핸들러 (무시하는 인자, T* 출력, 구조체 반환)
+
+- 생성기에 `Ignored`(키보드의 `CefEventHandle os_event`), 핸들러의 `T*` 출력 인자(`bool* is_keyboard_shortcut`), 구조체를 값으로 반환하는 핸들러 메서드(`GetPdfPaperSize`, 숨은 출력 인자)를 더했습니다. `CefKeyboardHandler`, `CefPrintHandler`와 인쇄 콜백 둘을 범위에 넣었습니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 176개가 통과합니다. F42. 프린터가 없어 인쇄 대화상자와 작업은 확인하지 못했습니다.

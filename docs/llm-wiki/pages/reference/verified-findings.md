@@ -148,6 +148,15 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
   - `Content-Disposition: attachment`인 응답이 `on_before_download(browser, download_item, suggested_name, callback)`(`suggested_name == "named.txt"`)으로 오고, `callback.continue_(path, False)`의 경로에 10바이트가 저장되며 `on_download_updated`가 `is_complete()`와 `get_received_bytes()`를 알립니다.
 - **영향**: java-cef의 13개 핸들러 가운데 4개를 더해 10개가 되었습니다(키보드, 인쇄, 요청이 남음, [생성 범위와 커버리지](generated-api-coverage.md)).
 
+## F42. 키보드와 인쇄 핸들러
+
+- **방법**: 오프스크린 브라우저에서 키 이벤트를 보내고 `host.print()`를 불렀습니다.
+- **결과**:
+  - `send_key_event`로 보낸 `RAWKEYDOWN`이 `on_pre_key_event(browser, event)`로 페이지보다 먼저 오고(`KeyEvent`, `type == RAWKEYDOWN`, `windows_key_code == 65`) `(handled, is_keyboard_shortcut)`를 돌려줍니다. 오프스크린에서도 호출됩니다.
+  - `host.print()`는 `on_print_start`, `on_print_settings(browser, settings, get_defaults)`(`settings`는 `PrintSettings`), `on_print_reset` 순서로 옵니다.
+- **확인하지 못함**: 프린터가 없는 환경이라 Chromium이 오류를 내고(`print_error_dialog`) `on_print_dialog`, `on_print_job`은 오지 않았습니다. `get_pdf_paper_size`(구조체 반환)는 컴파일과 생성만 확인했고 CEF가 부르는 경우를 만들지 못했습니다. `on_key_event`(페이지가 처리하지 않은 키)도 단정하지 않았습니다.
+- **영향**: java-cef의 13개 핸들러 가운데 12개가 되었습니다(요청이 남음).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

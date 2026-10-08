@@ -1739,6 +1739,23 @@ class MenuModel:
         ...
 
 
+class PrintDialogCallback:
+    """Callback interface for asynchronous continuation of print dialog requests."""
+    def continue_(self, settings: PrintSettings) -> None:
+        """Continue printing with the specified |settings|."""
+        ...
+    def cancel(self) -> None:
+        """Cancel the printing."""
+        ...
+
+
+class PrintJobCallback:
+    """Callback interface for asynchronous continuation of print job requests."""
+    def continue_(self) -> None:
+        """Indicate completion of the print job."""
+        ...
+
+
 class PrintSettings:
     """Class representing print settings."""
     def is_valid(self) -> bool:
@@ -2248,11 +2265,19 @@ class Client:
         default implementation will be used.
         """
         ...
+    def get_keyboard_handler(self) -> KeyboardHandler | None:
+        """Return the handler for keyboard events."""
+        ...
     def get_life_span_handler(self) -> LifeSpanHandler | None:
         """Return the handler for browser life span events."""
         ...
     def get_load_handler(self) -> LoadHandler | None:
         """Return the handler for browser load status events."""
+        ...
+    def get_print_handler(self) -> PrintHandler | None:
+        """Return the handler for printing on Linux. If a print handler is not
+        provided then printing will not be supported on the Linux platform.
+        """
         ...
     def get_render_handler(self) -> RenderHandler | None:
         """Return the handler for off-screen rendering events."""
@@ -2554,6 +2579,27 @@ class JSDialogHandler:
         ...
 
 
+class KeyboardHandler:
+    """Implement this interface to handle events related to keyboard input. The
+    methods of this class will be called on the UI thread.
+    """
+    def on_pre_key_event(self, browser: Browser, event: KeyEvent) -> tuple[bool, bool]:
+        """Called before a keyboard event is sent to the renderer. |event| contains
+        information about the keyboard event. |os_event| is the operating system
+        event message, if any. Return true if the event was handled or false
+        otherwise. If the event will be handled in OnKeyEvent() as a keyboard
+        shortcut set |is_keyboard_shortcut| to true and return false.
+        """
+        ...
+    def on_key_event(self, browser: Browser, event: KeyEvent) -> bool:
+        """Called after the renderer and JavaScript in the page has had a chance to
+        handle the event. |event| contains information about the keyboard event.
+        |os_event| is the operating system event message, if any. Return true if
+        the keyboard event was handled or false otherwise.
+        """
+        ...
+
+
 class LifeSpanHandler:
     """Implement this interface to handle events related to browser life span. The
     methods of this class will be called on the UI thread unless otherwise
@@ -2785,6 +2831,46 @@ class MenuModelDelegate:
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
         """Optionally modify a menu item label. Return true if |label| was modified."""
+        ...
+
+
+class PrintHandler:
+    """Implement this interface to handle printing on Linux. Each browser will have
+    only one print job in progress at a time. The methods of this class will be
+    called on the browser process UI thread.
+    """
+    def on_print_start(self, browser: Browser) -> None:
+        """Called when printing has started for the specified |browser|. This method
+        will be called before the other OnPrint*() methods and irrespective of how
+        printing was initiated (e.g. CefBrowserHost::Print(), JavaScript
+        window.print() or PDF extension print button).
+        """
+        ...
+    def on_print_settings(self, browser: Browser, settings: PrintSettings, get_defaults: bool) -> None:
+        """Synchronize |settings| with client state. If |get_defaults| is true then
+        populate |settings| with the default print settings. Do not keep a
+        reference to |settings| outside of this callback.
+        """
+        ...
+    def on_print_dialog(self, browser: Browser, has_selection: bool, callback: PrintDialogCallback) -> bool:
+        """Show the print dialog. Execute |callback| once the dialog is dismissed.
+        Return true if the dialog will be displayed or false to cancel the
+        printing immediately.
+        """
+        ...
+    def on_print_job(self, browser: Browser, document_name: str, pdf_file_path: str, callback: PrintJobCallback) -> bool:
+        """Send the print job to the printer. Execute |callback| once the job is
+        completed. Return true if the job will proceed or false to cancel the job
+        immediately.
+        """
+        ...
+    def on_print_reset(self, browser: Browser) -> None:
+        """Reset client state related to printing."""
+        ...
+    def get_pdf_paper_size(self, browser: Browser, device_units_per_inch: int) -> Size | tuple[int, int]:
+        """Return the PDF paper size in device units. Used in combination with
+        CefBrowserHost::PrintToPDF().
+        """
         ...
 
 

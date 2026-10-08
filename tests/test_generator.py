@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, Bytes, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, ClientRef, Ignored, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -158,6 +158,42 @@ class WithHeaders(unittest.TestCase):
                      "def get_focus_handler(self)", "def get_js_dialog_handler(self)",
                      "def get_dialog_handler(self)", "def get_download_handler(self)"):
             self.assertIn(text, stub)
+
+    def test_the_keyboard_handler_hides_the_platform_event_and_returns_the_out_pointer(self):
+        # `CefEventHandle os_event` (XEvent* on Linux) is not given to Python, as in java-cef;
+        # `bool* is_keyboard_shortcut` is an output like a reference.
+        self.assertTrue(self.scope.is_client("CefKeyboardHandler"))
+        plan = self.plan("CefKeyboardHandler", "OnPreKeyEvent")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "event"])
+        self.assertEqual([name for name, _ in plan.results], ["return", "is_keyboard_shortcut"])
+        self.assertIsInstance(plan.params[2].kind, Ignored)
+        plan = self.plan("CefKeyboardHandler", "OnKeyEvent")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "event"])
+        stub = self.generated("pyi")
+        self.assertIn("def on_pre_key_event(self, browser: Browser, event: KeyEvent) -> tuple[bool, bool]:",
+                      stub)
+        self.assertIn("def on_key_event(self, browser: Browser, event: KeyEvent) -> bool:", stub)
+        self.assertIn("def get_keyboard_handler(self) -> KeyboardHandler | None:", stub)
+
+    def test_a_handler_method_may_return_a_struct(self):
+        # GetPdfPaperSize() returns a CefSize: the Python method returns a Size.
+        self.assertTrue(self.scope.is_client("CefPrintHandler"))
+        plan = self.plan("CefPrintHandler", "GetPdfPaperSize")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([name for name, _ in plan.results], ["result"])
+        self.assertIsInstance(plan.results[0][1], Struct)
+        for name in ("OnPrintStart", "OnPrintSettings", "OnPrintDialog", "OnPrintJob",
+                     "OnPrintReset"):
+            plan = self.plan("CefPrintHandler", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        stub = self.generated("pyi")
+        self.assertIn("def get_pdf_paper_size(self, browser: Browser, device_units_per_inch: int)"
+                      " -> Size | tuple[int, int]:", stub)
+        with open(generate_outputs()["proxies"], encoding="utf-8") as f:
+            header = f.read()
+        self.assertIn("CefSize GetPdfPaperSize(", header)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
@@ -362,10 +398,12 @@ class WithHeaders(unittest.TestCase):
         self.assertTrue(plan.supported, plan.reason)
         self.assertEqual([type(p.kind).__name__ for p in plan.params], ["Prim", "Struct", "Struct"])
 
-    def test_a_handler_returning_a_struct_is_reported(self):
+    def test_a_handler_returning_a_struct_is_supported_through_a_hidden_output(self):
         plan = self.plan_in(self.everything, "CefViewDelegate", "GetPreferredSize")
-        self.assertFalse(plan.supported)
-        self.assertIn("returning the value type CefSize", plan.reason)
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.ret, Void)
+        self.assertTrue(plan.params[-1].is_return)
+        self.assertFalse(plan.void_return)
 
     def test_struct_tables_use_pointers(self):
         header = self.generated("proxies")
