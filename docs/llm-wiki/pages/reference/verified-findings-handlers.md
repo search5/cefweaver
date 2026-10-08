@@ -147,6 +147,19 @@ updated: 2026-10-08
 
 생성된 메서드의 열거형 인자가 부호 있는 `int`여서 `DragOperationsMask.EVERY`(0xFFFFFFFF)를 넘기면 `OverflowError`가 났습니다. 페이지가 드래그를 시작하면 `start_dragging`의 `allowed_ops`가 바로 `EVERY`이고 이를 `drag_target_drag_over`에 되돌려 주는 것이 자연스러운 사용입니다(Tk 예제에서 발견). 열거형 인자를 `long long`으로 받도록 생성기를 고쳤습니다(시험 `test_a_flags_enum_with_the_highest_bit_can_be_given_to_cef`).
 
+## F69. 툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)
+
+방법: 각 예제를 uv 환경에 설치해 가상 X 서버에서 X11을 강제하고 실제 X 이벤트(xdotool)로 구동했습니다(`examples/*/smoke.py`). 결과와 근거는 [툴킷 예제](toolkit-examples.md)에 있고, 여기에는 확인한 사실과 확인하지 못한 것만 적습니다.
+
+- **확인함**: 다섯 예제의 점검이 모두 통과합니다(24~27개). Qt는 PyQt6와 PySide6 모두 통과했습니다.
+- **확인함(wx)**: `wx.DropSource.DoDragDrop()`은 마우스 이벤트 핸들러 밖에서(`wx.CallAfter`) 부르면 0.2 ms 만에 `DragNone`으로 돌아옵니다. 임시 데이터 객체를 넘기면(`SetData`가 소유하지 않음) `DoDragDrop` 안에서 SIGSEGV가 납니다(gdb로 확인).
+- **확인함(wx)**: 한꺼번에 보낸 `drag_target_drag_enter`, `drag_target_drag_over`, `drag_target_drop`에서 첫 드롭이 페이지에 `dragenter`, `dragover`, `dragleave`로만 닿았고 `drop`이 오지 않았습니다. `update_drag_cursor`(`dragover`에 대한 답)가 온 뒤 `drop`을 보내면 닿았습니다. **렌더러가 답하기 전에 놓기가 처리되는 경합으로 추정하지만 CEF 소스에서 확인하지 않았습니다.** SDL2 예제는 한꺼번에 보내는 방식으로 통과했습니다(같은 경합이 있을 수 있음).
+- **확인함(Kivy)**: 기본 설정에서 Esc를 누르면 앱이 끝납니다(`exit_on_escape`). Kivy가 보고하는 휠 방향 `scrollup`은 X의 버튼 5(페이지가 아래로)입니다.
+- **확인함(Qt, Tk)**: CEF에 맡긴 복사와 붙여넣기는 멈추거나 값이 비었고, 위젯이 직접 처리하니 통과했습니다. SDL2, wx, Kivy는 처음부터 위젯이 처리해서 CEF에 맡겼을 때의 동작은 확인하지 않았습니다.
+- **확인함**: SDL2에서 `on_after_created`의 `set_focus(True)`만으로는 한글 조합과 `<select>` 팝업이 동작하지 않았고 클릭에서 다시 주면 동작했습니다. 원인 미조사.
+- **확인함**: `tkinterdnd2`의 루트(`TkinterDnD.Tk()`)는 CEF 시작 시 `Unknown sequence number`로 프로세스를 중단시킵니다. `XInitThreads` 호출과 정적 X11 링크 가설은 아니었습니다. **원인 미확인.**
+- **확인함(uv)**: wxPython은 PyPI에 Linux wheel이 없어 `find-links`로는 uv가 PyPI의 소스 배포본을 골라 오래 빌드합니다. wxPython 사이트의 wheel 주소를 `tool.uv.sources`에 직접 적어야 설치됩니다(해석에 2분, 이 사이트는 요청 하나에 20초 이상).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

@@ -39,6 +39,8 @@ updated: 2026-10-08
 ## 2. 알려진 한계
 
 - **뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않을 수 있습니다.** GTK 예제에서 링크 클릭 → 뒤로 가기 뒤에 창 크기를 바꿔도 `innerWidth`가 이전 값에 머물렀습니다(그림은 새 크기). `notify_screen_info_changed()` 또는 `was_hidden` 토글이 깨우고 `disable-features=BackForwardCache`로 피합니다. 순수 오프스크린 스크립트에서는 재현되지 않아 **원인이 CEF인지 위젯인지는 확인하지 못했습니다**([F67](verified-findings-handlers.md), [GTK 3 예제](gtk3-example.md)).
+- **Tk에서 `tkinterdnd2`(tkdnd 확장)로 만든 루트와 CEF를 함께 쓰면 프로세스가 중단됩니다.** `TkinterDnD.Tk()`를 쓰면 CEF를 시작할 때 `xcb_io.c: Unknown sequence number`로 끝납니다(일반 `tkinter.Tk()`는 괜찮음). `XInitThreads` 호출이나 정적 X11 링크 가설은 아니었고 **원인은 확인하지 못했습니다.** 그래서 Tk 예제에는 다른 프로그램과의 드래그 앤 드롭이 없습니다([툴킷 예제](toolkit-examples.md), [F69](verified-findings-handlers.md)).
+- **`drag_target_drag_over`의 답(`update_drag_cursor`)이 오기 전에 `drag_target_drop`을 보내면 첫 드롭이 `drop` 대신 `dragleave`로 닿았습니다**(wx 예제에서 관찰). 렌더러가 답하기 전에 놓기가 처리되는 경합으로 추정하지만 **CEF 소스에서 확인하지 못했습니다.** 위젯은 답을 기다린 뒤 놓습니다([F69](verified-findings-handlers.md)).
 - **`BrowserSettings`의 글꼴 크기 4개는 유지되지 않고 `default_encoding`은 반영되지 않습니다**(CEF 154, **CEF의 한계로 검증함**). 래퍼 없이 `cefsimple`에 같은 설정을 넣어도 Chrome 스타일과 Alloy 스타일 모두에서 같습니다([검증 방법](../procedures/verify-cef-limits.md), F64). `data:` 이미지는 `image_loading`을 꺼도 로드됩니다(Blink). 글꼴 이름, JavaScript, `http:` 이미지, 로컬 저장소, 배경색은 유지됩니다.
 - **`DragData.get_file_name()`은 파일 내용이 있는 드래그에서만 부릅니다.** 없을 때 부르면 프로세스가 죽습니다. CEF가 확인 없이 Chromium의 함수를 부르고 그 안의 `CHECK`가 실패합니다(F54, 소스로 호출 경로를 확인함).
 
@@ -74,7 +76,7 @@ updated: 2026-10-08
 
 | 위치 | 불일치 | 상태 |
 | --- | --- | --- |
-| `README.rst` 소개 문단 | 여러 GUI 툴킷(wxPython, PyQt, PySide, Kivy 등)의 예제가 있다고 쓰지만 저장소에 예제가 없습니다. cefpython의 README 문장을 바탕으로 한 것으로 보입니다. | 그대로 둠. 사람의 결정이 필요합니다. |
+| `README.rst` 소개 문단 | wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL, PyWin32의 예제가 있다고 씁니다. `examples/`에는 이제 wxPython, PyQt, PySide, Kivy, PyGObject(GTK 3)와 Tkinter, SDL2가 있고([툴킷 예제](toolkit-examples.md)), PyGame/PyOpenGL, PyWin32의 예제는 없습니다. cefpython의 README 문장을 바탕으로 한 것으로 보입니다. | 그대로 둠. 문장을 맞출지는 사람의 결정이 필요합니다. |
 | `pyproject.toml` | `numpy>=1.26.2`가 의존성에 있으나 코드에서 쓰지 않습니다. classifier에 macOS와 Windows가 있으나 지원하지 않거나 검증하지 못했습니다. classifier는 Python 3.11과 3.12만 적고 시험은 3.11~3.14에서 했습니다. | 그대로 둠 |
 | `docs/` | Sphinx 골격만 있고 본문이 없습니다. `CHANGELOG.rst`는 비어 있습니다. | 그대로 둠 |
 | `README.rst`의 `cefsubprocess/` 디렉터리 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 옮긴 뒤에도 "디렉터리"라고 적혀 있었습니다. | 2026-10-08에 고침 |

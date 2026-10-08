@@ -283,3 +283,7 @@
 ## [2026-10-08] ingest | 열거형 인자의 폭 (F68)
 
 - Tk 예제가 드러냈습니다: 열거형 인자가 `int`여서 `DragOperationsMask.EVERY`가 넘쳤습니다. 생성기가 `long long`으로 받도록 고쳤습니다.
+
+## [2026-10-08] ingest | 툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)
+
+- `examples/`에 다섯 툴킷의 오프스크린 위젯 예제를 더했습니다. 공통 데모 페이지와 점검(`common/demo.py`, `common/checks.py`)을 쓰고, 모두 실제 X 이벤트로 구동해 통과했습니다. 새 페이지 `toolkit-examples.md`, F69, 알려진 제약 두 항목(tkdnd 중단, 드롭 경합), `README.rst` 불일치 행을 고쳤습니다.

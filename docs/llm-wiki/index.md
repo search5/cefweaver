@@ -55,9 +55,10 @@
 - [소스 트리 지도](pages/reference/source-tree-map.md): 저장소 트리와 파일 종류별 편집 방법
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
-- [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57)
+- [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57), 툴킷 예제(F69)
 - [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [GTK 3 예제 (오프스크린 위젯)](pages/reference/gtk3-example.md): `examples/gtk3/`의 위젯과 uv 환경, 실제로 돌려 확인한 것(27개 점검: 입력, 한글, 복사와 붙여넣기, 드래그 앤 드롭, HiDPI), 발견한 결함과 우회
+- [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)](pages/reference/toolkit-examples.md): `examples/`의 다섯 예제(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것
 - [공유 텍스처 (GPU 가속 페인트)](pages/reference/shared-textures.md): `shared_texture`, `on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`, 규칙과 GPU 환경, 픽셀 내용을 확인하지 못한 것
 - [JavascriptBridge](pages/reference/javascript-bridge.md): JSON으로 Python 함수를 페이지에 노출(`Promise`, 콜백, `execute_function`, `evaluate`, `origins`), 렌더러에 Python 없이 메시지 라우터 위에서 동작
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약
