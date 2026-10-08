@@ -115,3 +115,7 @@
 
 - `QueryHandler`, `QueryCallback`, `CefApp.add_query_handler`, `remove_query_handler`, `set_query_functions`를 더했습니다(손으로 쓴 `query_router.*`와 래퍼, 렌더러, 브라우저 프로세스 핸들러의 연결). 시험 10개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인한 뒤 구현해, 전체 144개가 통과합니다.
 - 새 페이지 [메시지 라우터](pages/reference/message-router.md), 확인한 사실 F34(자식 프로세스에는 임의의 명령줄 스위치가 전달되지 않아 `OnBeforeChildProcessLaunch`로 붙임), 설계 결정, 시험 목록, 알려진 제약을 고쳤습니다.
+
+## [2026-10-08] ingest | 메시지 라우터를 여러 프레임과 팝업에서 확인
+
+- iframe과 `window.open` 팝업 시험 2개를 더했습니다(F35). 팝업을 닫으면 `g_IsRunning`이 꺼져 첫 브라우저의 `execute_javascript`가 멈추는 결함을 찾아 고쳤습니다. 팝업에서 바인딩이 안 될 것이라는 추측은 틀렸고 시험이 팝업 차단에 막혔던 것입니다. java-cef도 렌더러 라우터를 `extra_info`로 만든다는 점을 소스로 확인했습니다.

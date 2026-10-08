@@ -1344,7 +1344,7 @@ class WithCef(unittest.TestCase):
         requestAnimationFrame(() => report('frame'));
     </script>"""
 
-    def run_query_script(self, body, query_function_names=None):
+    def run_query_script(self, body, prelude=""):
         """Runs `body` in a CEF process whose page has ask(request, persistent)."""
         import textwrap
         script = ("QUERY_PAGE = %r\n" % self.QUERY_PAGE) + textwrap.dedent("""
@@ -1366,7 +1366,7 @@ class WithCef(unittest.TestCase):
                 wait_until(app, lambda: ("frame",) in js, "the first frame")
             def answers():
                 return {r[1]: (r[0],) + r[2:] for r in js if r[0] in ("ok", "fail")}
-        """) + textwrap.dedent(body)
+        """) + textwrap.dedent(prelude) + textwrap.dedent(body)
         result = run_cef(script)
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
@@ -1576,6 +1576,100 @@ class WithCef(unittest.TestCase):
             wait_until(app, lambda: "cefweaver-pong" in received, "the user's message")
             # The router's own messages and the wrapper's never reach the user.
             assert received == ["cefweaver-pong"], received
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    # -- the message router with several frames and several browsers ----------------------
+
+    SITE_SCRIPT = """
+        SITE = "http://router.test"
+        CHILD = ('<script>function ask(r, p) { window.cefQuery({request: r, persistent: !!p,'
+                 'onSuccess: function (x) { report("ok", r, x); },'
+                 'onFailure: function (c, m) { report("fail", r, c); }}); }'
+                 'requestAnimationFrame(() => report("child-frame"));</script>')
+        MAIN = ('<script>function ask(r, p) { window.cefQuery({request: r, persistent: !!p,'
+                'onSuccess: function (x) { report("ok", r, x); },'
+                'onFailure: function (c, m) { report("fail", r, c); }}); }'
+                'requestAnimationFrame(() => report("main-frame"));</script>'
+                '<iframe id="f" src="%s/child.html"></iframe>' % SITE)
+        def start_site():
+            app.add_command_line_switch("disable-popup-blocking")  # window.open without a click
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            app.add_resource(SITE + "/main.html", MAIN)
+            app.add_resource(SITE + "/child.html", CHILD)
+            app.add_resource(SITE + "/other.html", CHILD.replace("child-frame", "other-frame"))
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "about:blank")
+            app.load_url(SITE + "/main.html")
+            wait_until(app, lambda: ("main-frame",) in js and ("child-frame",) in js, "both frames")
+    """
+
+    def test_queries_from_a_frame_know_their_frame_and_only_that_frame_is_canceled(self):
+        self.run_query_script(prelude=self.SITE_SCRIPT, body="""
+            seen, canceled, pending = [], [], {}
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append((request, frame.is_main(), frame.get_url()))
+                    pending[request] = (query_id, callback)
+                    if not persistent:
+                        callback.success("to " + request)
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            app.add_query_handler(Handler())
+            start_site()
+            # Both frames ask (the iframe's own window is reached through the frame element).
+            app.execute_javascript("ask('from-main'); ask('keep', true)")
+            app.execute_javascript("var w = document.getElementById('f').contentWindow;"
+                                   "w.ask('from-child'); w.ask('leave', true)")
+            wait_until(app, lambda: len(pending) == 4, "four queries")
+            found = {r: (m, u) for r, m, u in seen}
+            assert found["from-main"] == (True, SITE + "/main.html"), found
+            assert found["from-child"] == (False, SITE + "/child.html"), found
+            wait_until(app, lambda: ("ok", "from-child", "to from-child") in js
+                       and ("ok", "from-main", "to from-main") in js, "the two answers")
+            # The iframe goes to another page: only its query is canceled.
+            app.execute_javascript("document.getElementById('f').src = '%s/other.html'" % SITE)
+            wait_until(app, lambda: canceled, "the cancellation")
+            assert canceled == [pending["leave"][0]], (canceled, pending)
+            assert pending["keep"][1].success("still open") is True
+            wait_until(app, lambda: ("ok", "keep", "still open") in js, "the open query")
+            assert pending["leave"][1].success("late") is False
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_queries_from_a_popup_browser_and_its_close(self):
+        self.run_query_script(prelude=self.SITE_SCRIPT, body="""
+            seen, canceled, pending = [], [], {}
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append((request, browser.get_identifier()))
+                    pending[request] = (query_id, callback)
+                    if not persistent:
+                        callback.success("to " + request)
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append((query_id, browser.get_identifier()))
+            app.add_query_handler(Handler())
+            start_site()
+            app.execute_javascript("ask('first')")
+            wait_until(app, lambda: ("ok", "first", "to first") in js, "the first browser")
+            app.execute_javascript("window.popup = window.open('%s/other.html')" % SITE)
+            wait_until(app, lambda: ("other-frame",) in js, "the popup page")
+            app.execute_javascript("popup.ask('second'); popup.ask('open', true)")
+            wait_until(app, lambda: ("ok", "second", "to second") in js and "open" in pending,
+                       "the popup's queries")
+            ids = dict(seen)
+            assert ids["first"] != ids["second"], ids       # two browsers
+            assert ids["open"] == ids["second"], ids
+            app.execute_javascript("popup.close()")        # closing it cancels its open query
+            wait_until(app, lambda: canceled, "the cancellation by the close")
+            assert canceled == [(pending["open"][0], ids["open"])], canceled
+            app.execute_javascript("ask('after')")          # the first browser still works
+            wait_until(app, lambda: ("ok", "after", "to after") in js, "the first browser again")
             app.shutdown()
             print("OK")
         """)

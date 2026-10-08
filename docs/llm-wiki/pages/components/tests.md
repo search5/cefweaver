@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 144개(통합 67, 생성기 76, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 146개(통합 69, 생성기 76, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -37,6 +37,7 @@ updated: 2026-10-08
 | `ApiWithoutCef` | `test_the_process_message_and_the_value_containers_are_public`, `test_values_can_be_built_and_read_without_cef` | 클래스의 공개 여부, CEF 없이 값 컨테이너의 왕복(한글, 중첩, `ValueType` 멤버, `get_keys`) |
 | `ApiWithoutCef` | `test_the_message_router_api_is_public_and_checks_its_arguments` | `QueryHandler`, `QueryCallback`의 공개 여부, 인자 검사, 없는 핸들러 빼기 |
 | `WithCef` | `test_a_page_asks_and_the_handler_answers_with_success_or_failure`, `test_a_persistent_query_can_answer_many_times_and_the_page_can_cancel_it`, `test_leaving_the_page_cancels_its_pending_queries`, `test_binary_requests_and_responses`, `test_handlers_are_asked_in_order_and_can_be_removed`, `test_the_names_of_the_query_functions_can_be_changed`, `test_without_a_query_handler_the_page_has_no_query_function`, `test_a_callback_that_is_dropped_without_an_answer_fails_the_query`, `test_the_router_works_with_bindings_and_the_users_process_messages` | 성공, 실패, 나중에 다른 스레드에서 답함, 처리 안 됨(-1), 지속 질의와 취소, 이동으로 취소, `ArrayBuffer` 왕복, 핸들러 순서와 빼기, 함수 이름 바꾸기, 핸들러가 없으면 `cefQuery`가 없음, 버려진 콜백이 질의를 실패시킴, 바인딩 및 사용자 메시지와 공존 |
+| `WithCef` | `test_queries_from_a_frame_know_their_frame_and_only_that_frame_is_canceled`, `test_queries_from_a_popup_browser_and_its_close` | iframe의 질의가 자기 프레임으로 가고 이동하면 그 프레임만 취소됨, 팝업 브라우저의 질의와 닫을 때의 취소, 팝업을 닫은 뒤에도 첫 브라우저가 동작함 |
 | `WithCef` | `test_a_process_message_makes_a_round_trip_through_the_renderer` | `cefweaver-ping`이 같은 인자로 `cefweaver-pong`이 되어 돌아옴(`ProcessId.RENDERER`), 보낸 메시지가 무효가 됨, 래퍼의 바인딩이 계속 동작하고 래퍼의 메시지가 사용자에게 가지 않음 |
 | | `test_a_program_can_open_the_context_menu_and_pick_an_item` | 오른쪽 클릭 주입, 메뉴의 좌표, 사용자 항목의 ID(`USER_FIRST`), 고른 명령이 사용자 핸들러로 옴, 기본은 DevTools 항목 없음 |
 | | `test_the_devtools_items_come_after_the_users_and_change_nothing_else` | 켠 메뉴 = 끈 메뉴 + DevTools 항목, 사용자가 본 항목 수와 받은 명령이 같음, ID 28498~28500 |

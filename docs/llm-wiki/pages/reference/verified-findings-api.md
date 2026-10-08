@@ -179,6 +179,16 @@ updated: 2026-10-08
 - **발견**: 브라우저 프로세스의 명령줄에 `AppendSwitchWithValue`로 덧붙인 임의의 스위치는 **렌더러에 전달되지 않았습니다**(렌더러 명령줄에서 확인). 처음 구현에서 `window.cefQuery`가 `undefined`였던 원인입니다. `OnBeforeChildProcessLaunch`에서 자식 프로세스의 명령줄에 붙이니 렌더러가 라우터를 만들었습니다. `add_command_line_switch`로 준 다른 스위치가 렌더러에 가는지는 `ozone-platform`만 렌더러 명령줄에서 확인했고(`--ozone-platform=x11`), 나머지는 확인하지 않았습니다. `cef_wrapper_app.cc`의 주석 "child processes inherit the browser process switches"는 이 발견과 맞지 않는 부분이 있습니다.
 - **영향**: 구조화된 양방향 통신이 열렸습니다([메시지 라우터](message-router.md)).
 
+## F35. 여러 프레임, 여러 브라우저
+
+- **방법**: http 리소스 세 개(`add_resource`)로 iframe이 있는 페이지와 `window.open` 팝업을 만들어 질의를 보냈습니다(팝업 차단은 `disable-popup-blocking`으로 끔).
+- **결과**:
+  - 질의의 `frame`은 보낸 프레임입니다(메인은 `is_main()`이 참, iframe은 URL이 자식 페이지). 한 iframe이 다른 페이지로 이동하면 **그 프레임의 질의만** 취소되고 메인 프레임의 지속 질의는 열려 있습니다.
+  - 팝업은 별도 브라우저(`get_identifier()`가 다름)로 질의를 보내고, 팝업에서도 `window.cefQuery`와 `add_javascript_binding`의 함수가 모두 있습니다. 팝업을 닫으면 그 브라우저의 열린 질의가 취소됩니다.
+- **발견(결함, 수정)**: 팝업을 닫으면 `OnBeforeClose`가 `g_IsRunning`을 꺼서 첫 브라우저에서 `execute_javascript`가 `False`가 되었습니다. 브라우저 목록이 빌 때만 끄도록 고쳤습니다.
+- **정정**: 팝업에서 바인딩이 동작하지 않을 것이라는 처음 추측은 틀렸습니다. 시험이 막힌 원인은 사용자 동작 없는 `window.open`을 Chromium이 막은 것이었습니다.
+- **영향**: 라우터가 여러 프레임과 팝업에서 동작합니다. 사이트 격리로 프로세스가 갈리는 경우는 확인하지 못했습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

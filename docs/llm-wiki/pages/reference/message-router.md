@@ -54,14 +54,15 @@ window.cefQuery({request: "ping", persistent: false,
 - `query_router.*`: `PythonQueryHandler`(CEF의 `Handler`를 구현해 Python으로 부름), `QueryCallbackHolder`(응답을 한 번만 보내고 소멸 때 실패시킴, 전역 재귀 뮤텍스로 다른 스레드의 응답과 취소를 직렬화), `QueryRouter`(프로세스 전역의 핸들러 목록과 브라우저 쪽 라우터). Python은 뮤텍스를 잡은 채로 부르지 않습니다.
 - 브라우저 쪽: `CefWrapperClientHandler`가 `OnProcessMessageReceived`(라우터가 먼저), `OnBeforeClose`, `OnBeforeBrowse`, `OnRenderProcessTerminated`에서 라우터를 부릅니다. 뒤의 둘은 `CefRequestHandler` 구현이고, 라우터가 있을 때만 `GetRequestHandler()`가 이것을 돌려줍니다.
 - 렌더러 쪽: `SimpleRenderProcessHandler`가 `OnContextCreated`, `OnContextReleased`, `OnProcessMessageReceived`에서 `CefMessageRouterRendererSide`를 부릅니다. 라우터는 명령줄 스위치 `cefweaver-query-function`, `cefweaver-cancel-function`이 있을 때 만듭니다.
-- 스위치는 `CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch`가 자식 프로세스의 명령줄에 붙입니다([실험으로 확인한 사실](verified-findings-api.md) F34).
+- 스위치는 `CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch`가 자식 프로세스의 명령줄에 붙입니다([실험으로 확인한 사실](verified-findings-api.md) F34). java-cef는 같은 설정을 브라우저를 만들 때 `extra_info`로 렌더러에 주고 `OnBrowserCreated`에서 라우터를 만드는데(`jcef_helper.cpp`), `extra_info`가 없는 브라우저(팝업 등)는 건너뜁니다. 명령줄 방식은 브라우저와 상관없이 모든 렌더러에 적용됩니다.
 
 ## 제약
 
 - 요청과 응답은 문자열 또는 바이트입니다. 객체는 JSON으로 주고받습니다(변환은 호출하는 쪽).
 - 핸들러 목록은 프로세스 전역입니다(CEF가 프로세스당 한 번만 시작되기 때문).
 - 래퍼의 `CefRequestHandler`는 라우터만을 위한 것입니다. 사용자의 요청 핸들러는 아직 열리지 않았습니다.
-- 여러 프레임이나 여러 브라우저에서 보낸 질의는 확인하지 않았습니다. 시험은 브라우저 하나의 메인 프레임뿐입니다.
+- 여러 프레임과 `window.open`의 팝업 브라우저는 시험으로 확인했습니다([실험으로 확인한 사실](verified-findings-api.md) F35). 서로 다른 렌더러 프로세스에 있는 프레임(사이트 격리)은 확인하지 않았습니다.
+- `execute_javascript`, `load_url`, `is_ready_to_execute_javascript`는 처음 만든 브라우저에만 적용됩니다(팝업에는 쓸 수 없습니다).
 
 ## 관련 페이지
 

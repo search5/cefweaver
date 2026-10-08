@@ -209,9 +209,9 @@ void CefWrapperClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
       break;
     }
   }
-  g_IsRunning = false;
   if (browser_list_.empty()) {
-    // All browser windows have closed. Quit the application message loop.
+    // All browser windows have closed (a popup closing alone leaves the app running).
+    g_IsRunning = false;
     CefQuitMessageLoop();
   }
 }
