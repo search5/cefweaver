@@ -27,7 +27,7 @@ updated: 2026-10-08
 | `void AddJavascriptPythonBinding(name, handler, owner)` | Python 호출 바인딩. 초기화 전에만 의미가 있습니다(초기화 때 `CefWrapperApp`으로 복사됩니다). |
 | `void AddJavascriptBinding(name, fn)` | 인자 없는 C++ 바인딩. Python에는 노출하지 않았습니다. |
 | `SetCustomCefSubprocessPath`, `SetCustomCefCachePath`, `SetCustomCefResourcesPath` | 경로 설정. 초기화 전에만 의미가 있습니다. |
-| `AddCommandLineSwitch(name, value)` | Chromium 명령줄 스위치. 값이 비어 있으면 값 없는 스위치. 브라우저 프로세스의 `OnBeforeCommandLineProcessing`에서 적용됩니다. 자식 프로세스(렌더러, GPU 등)에는 전달되지 않습니다([실험으로 확인한 사실](../reference/verified-findings.md) F36). |
+| `AddCommandLineSwitch(name, value)` | Chromium 명령줄 스위치. 값이 비어 있으면 값 없는 스위치. 브라우저 프로세스의 `OnBeforeCommandLineProcessing`에서 적용됩니다. 자식 프로세스(렌더러, GPU 등)에는 전달되지 않습니다([실험으로 확인한 사실](../reference/verified-findings-more.md) F36). |
 
 `CefWrapper`의 `CefRefPtr<CefWrapperApp> m_App`이 앱 객체를 쥐고 있고, `CefApp`(Python)이 `shutdown()` 전에 `CefWrapper`를 삭제하지 않는 이유는 [수명 주기와 메시지 루프](../concepts/lifecycle-and-message-loop.md)에 있습니다.
 

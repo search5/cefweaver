@@ -54,6 +54,7 @@
 - [소스 트리 지도](pages/reference/source-tree-map.md): 저장소 트리와 파일 종류별 편집 방법
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
+- [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약
 - [오프스크린 렌더링](pages/reference/offscreen-rendering.md): `offscreen`, `RenderHandler.on_paint`의 읽기 전용 버퍼, 제약
 - [스트림과 ZIP 읽기](pages/reference/streams.md): `fread`/`fwrite` 규약(`ptr, size, n`)을 `read(n, size=1)`, `write(data, size=1)`로 연 규칙과 핸들러

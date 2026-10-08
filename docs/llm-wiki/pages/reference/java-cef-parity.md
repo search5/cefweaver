@@ -36,7 +36,7 @@ updated: 2026-10-08
 
 ### 메운 격차
 
-- 팝업(`OnBeforePopup`), 커서 변경(`OnCursorChange`), 인증서 오류의 `ssl_info`: java-cef가 넘기지 않는 인자를 무시하는 규칙으로([검증](verified-findings.md) F46).
+- 팝업(`OnBeforePopup`), 커서 변경(`OnCursorChange`), 인증서 오류의 `ssl_info`: java-cef가 넘기지 않는 인자를 무시하는 규칙으로([검증](verified-findings-more.md) F46).
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
