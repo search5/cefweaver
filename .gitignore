@@ -145,3 +145,6 @@ cefweaver/*.bin
 cefweaver/vk_swiftshader_icd.json
 cefweaver/locales/
 cefweaver/cefsubprocess
+
+# Serena (MCP tool) project data
+.serena/
