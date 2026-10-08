@@ -78,7 +78,7 @@ updated: 2026-10-08
 | `CefBaseTime`은 시간대가 있는 `datetime`(UTC)으로, 0은 `None` | java-cef는 `java.util.Date`(밀리초)입니다. Python의 `datetime`은 마이크로초를 담고 변환이 산술이라 정밀도를 잃지 않습니다. | 사용자(처리하자는 제안) |
 | 표에 없는 `void*`는 표에 올리거나 이유를 적어 제외하고 "untyped pointer"로 남기지 않음 | CEF나 V8이 소유하는 메모리를 가리키는 포인터는 Python 객체가 더 오래 살 수 있어 열지 않고, 복사하는 대체 메서드를 안내합니다([바이트열과 시간](bytes-and-times.md)). | 사용자(처리하자는 제안) |
 | **java-cef가 여는 것은 바닥**: 목록(`tools/gen/surface.py`)에 있는 것은 java-cef의 동작에 맞춰 모두 구현하고, 그보다 더 연 것은 닫지 않고 위키에 정리함 | java-cef의 제약은 대개 JNI 비용 때문이라 우리가 따라 닫을 이유가 없습니다. 처음에 천장으로 읽어 범위를 줄이려다 중단하고 되돌렸습니다([java-cef 동등성](java-cef-parity.md)). | 사용자 |
-| 오프스크린은 `offscreen`과 `windowless_frame_rate` 속성으로 켬(`BrowserSettings`는 열지 않음) | 필요한 설정만 열어 둡니다. 배경색 등은 필요해질 때 엽니다. | 구현 중 판단 |
+| 오프스크린은 `offscreen`, `windowless_frame_rate`, `transparent` 속성으로 켬. 브라우저 설정은 `types.BrowserSettings`로 `browser_settings`와 `create_browser(settings=)`에서 정함 | 처음에는 설정을 열지 않았으나 GUI 툴킷에 넣으려면 위젯마다 정해야 해서 열었습니다(F64). | 2026-10-08 |
 
 ## 서브프로세스와 런타임
 

@@ -22,7 +22,7 @@ updated: 2026-10-08
 - **렌더러 종료**: 렌더러 프로세스에 `SIGKILL`을 보내면 `RequestHandler.on_render_process_terminated(browser, status, error_code, error_string)`이 `TerminationStatus`와 함께 오고, 메시지 라우터가 열려 있던 질의를 취소합니다(`on_query_canceled`). 렌더러 프로세스는 `/proc/<pid>/cmdline`에서 `--type=renderer`로 찾았고, Chromium이 자식 프로세스의 제목을 한 문자열로 다시 쓰므로 `\0`으로 나누지 않고 부분 문자열로 찾아야 합니다.
 - **새 탭 요청**: 링크를 Ctrl을 누른 채 클릭하면 `RequestHandler.on_open_url_from_tab(browser, frame, target_url, target_disposition, user_gesture)`가 불립니다. `True`를 돌려주면 브라우저가 늘지 않습니다.
 - **외부 프로토콜**: `mailto:` 링크를 클릭하면 `RequestHandler.get_resource_request_handler`가 준 `ResourceRequestHandler.on_protocol_execution(browser, frame, request)`가 요청 URL과 함께 불립니다. `False`를 돌려주면 운영체제가 프로그램을 실행하지 않습니다.
-- **인증서 오류**: 자체 서명 인증서의 로컬 TLS 서버(시험이 `openssl`로 만듦)에서 `RequestHandler.on_certificate_error(browser, cert_error, request_url, callback)`이 `ErrorCode.CERT_AUTHORITY_INVALID`와 URL로 불립니다. `False`를 돌려주면 페이지가 로드되지 않고, `callback.continue_()`와 `True`를 돌려주면 로드됩니다. Chromium은 허용한 인증서를 호스트별로 기억하므로 거부를 먼저 시험해야 합니다.
+- **인증서 오류**: 자체 서명 인증서의 로컬 TLS 서버(시험이 `openssl`로 만듦)에서 `RequestHandler.on_certificate_error(browser, cert_error, request_url, callback)`이 `ErrorCode.CERT_AUTHORITY_INVALID`와 URL로 불립니다. `False`를 돌려주면 페이지가 로드되지 않고, `callback.continue_()`와 `True`를 돌려주면 로드됩니다. 한 번 허용하면 같은 호스트의 다음 요청에서는 핸들러가 다시 불리지 않고(거부하도록 바꿔도 `/second`, `/third`가 로드됨) 페이지가 로드됩니다. 이 예외 기억은 Chromium의 것이고 CEF는 `Continue()`를 넘기기만 합니다(`libcef/browser/certificate_query.cc`). 그래서 거부 시험을 먼저 해야 합니다.
 - **요청 컨텍스트 핸들러**: `AppHandler.on_context_initialized()`에서 `RequestContext.create_context(settings, handler)`로 만든 컨텍스트를 `set_request_context()`로 첫 브라우저에 주면, 그 브라우저의 요청마다 `RequestContextHandler.get_resource_request_handler`가 브라우저와 프레임과 함께 불리고 돌려준 `ResourceRequestHandler`가 쓰입니다. 핸들러 없는 컨텍스트에서는 이 경로가 없습니다(java-cef도 브라우저를 만들 때 컨텍스트를 줍니다).
 - **오프스크린 키 입력**: 영문 한 글자 밖의 `Backspace`, `Delete`, 화살표, `Shift`+문자, `CHAR`만으로 보낸 한글, `Enter`가 입력란의 값과 캐럿, 페이지의 `keydown`에 반영됩니다.
 - **터치**: `touch-events` 스위치를 켜고 `send_touch_event`로 누름과 뗌을 보내면 페이지에 `touchstart`와 `touchend`가 옵니다.
@@ -36,7 +36,7 @@ updated: 2026-10-08
   - 글자마다 `compositionupdate`가 오고, 조합이 끝난 뒤 `ime_commit_text`로 확정하면 입력란의 값이 바뀝니다.
   - `on_ime_composition_range_changed(browser, selected_range, character_bounds)`의 `character_bounds`는 조합 중인 글자 수만큼의 `Rect`이고, 입력란 안에 있으며, 둘째 글자의 `x`가 첫째 글자보다 큽니다. 후보 창을 놓을 위치로 쓸 수 있습니다.
   - 밑줄은 `CompositionUnderline`의 두께와 모양이 화면에 반영됩니다. 밑줄 목록이 비었을 때, 얇은 실선, 굵은 실선, 점선의 흰색이 아닌 픽셀 수가 각각 다르고, 굵은 쪽이 더 많습니다.
-- **발견(색은 반영되지 않음)**: 밑줄 색을 빨강, 파랑, 초록으로 바꿔 보내도 화면의 색 있는 픽셀은 거의 없었고(0~1개), 밑줄은 글자색(검정)으로 그려졌습니다. Chromium이 색을 쓰지 않는지 CEF가 전달하지 않는지는 조사하지 않았습니다. 그래서 `CompositionUnderline.color`는 기대하지 않는 편이 안전합니다.
+- **발견(색은 반영되지 않음)**: 밑줄 색을 빨강, 파랑, 초록으로 바꿔 보내도 화면의 색 있는 픽셀은 거의 없었고(0~1개), 밑줄은 글자색(검정)으로 그려졌습니다. CEF는 색을 `ImeTextSpan`의 `underline_color`로 그대로 전달합니다(`libcef/browser/osr/render_widget_host_view_osr.cc` 853~860줄에서 확인). 그리지 않는 쪽은 Chromium의 렌더러이고, 그 소스가 이 환경에 없어 원인은 확인하지 못했습니다. 그래서 `CompositionUnderline.color`는 기대하지 않는 편이 안전합니다.
 
 ## F57. 교차 사이트 iframe의 렌더러 종료와 해결
 
@@ -102,6 +102,19 @@ updated: 2026-10-08
   - `post_delayed_task(ThreadId.UI, task, 300)`은 300ms 전에 돌지 않습니다(250ms 이상).
   - 다른 스레드에서 UI 작업을 보내면 CEF가 메시지 펌프 예약을 요청하므로, `MessagePump`의 기한만으로 돌리는 응용에서도 그 작업이 실행됩니다(F62).
 - **생성기의 수정**: `CefThreadId`는 `typedef cef_thread_id_t CefThreadId;`라는 C++ 별칭이어서 구조체로 오인되어 함수가 만들어지지 않았습니다. 생성기가 `typedef cef_..._t Cef...;` 별칭을 열거형으로 읽도록 고쳤습니다(`CefProcessId`, `CefValueType`도 같은 별칭).
+
+## F64. 브라우저 설정(`BrowserSettings`)
+
+- **방법**: `CefApp.browser_settings`(첫 브라우저와 설정 없이 만드는 브라우저) 또는 `create_browser(settings=...)`에 `types.BrowserSettings`를 주고 페이지에서 관찰했습니다.
+- **생성기의 수정**: `cef_browser_settings_t`에는 `#if CEF_API_ADDED(...)` 아래의 멤버가 있어 구조체로 읽히지 않았습니다. 조건부 블록은 컴파일하는 API 버전에 따라 달라지므로 필드에서 뺍니다(`databases`, `ax_viewport_collapse`). 초기화 전용인 `CefSettings`는 값 타입에서 제외합니다.
+- **효과가 유지되는 것**: `javascript`(꺼진 브라우저가 `<noscript>` 내용을 보임, `meta refresh`로 이동한 두 번째 문서도), `image_loading`(`http:`의 이미지가 그려지지 않음), `local_storage`(`localStorage`가 막힘), 글꼴 이름(`standard_font_family`), `background_color`(불투명 오프스크린에서 `BrowserSettings`의 색이 앱의 색보다 우선). 브라우저마다 따로 정할 수 있고 다른 브라우저는 영향이 없습니다.
+- **CEF의 한계로 확인한 것**([검증 방법](../procedures/verify-cef-limits.md): 래퍼 없이 `cefsimple`에 같은 설정을 넣고 Chrome 스타일과 Alloy 스타일 모두에서 DevTools 프로토콜로 읽음):
+  - 글꼴 크기 4개(`default_font_size`, `default_fixed_font_size`, `minimum_font_size`, `minimum_logical_font_size`)는 유지되지 않습니다. `cefsimple`의 Chrome 스타일에서 처음 값(30px, 50px)이 나온 뒤 16px로 되돌아가고, Alloy 스타일에서는 처음부터 16px입니다. 래퍼가 만든 현상이 아닙니다.
+  - `default_encoding`은 두 스타일 모두 반영되지 않습니다(`document.characterSet`이 `windows-1252`).
+  - `image_loading`을 꺼도 `data:` URL의 이미지는 로드됩니다(`http:` 이미지만 막힘, `naturalWidth` 0). Blink의 동작입니다.
+  - 앞의 둘은 `expectedFailure` 시험이 CEF의 수정을 알려 줍니다.
+- **기본값 규칙**: 필드의 기본값은 CEF가 정합니다(0, 빈 문자열, `State.DEFAULT`). 앱은 `windowless_frame_rate`가 0이면 `CefApp.windowless_frame_rate`를, 불투명 오프스크린에서 `background_color`의 알파가 0xFF가 아니면 설정의 색(없으면 흰색)을 넣습니다.
+- **창 정보 구조체(`CefWindowInfo`)는 여전히 열지 않았습니다.**
 
 ## 관련 페이지
 

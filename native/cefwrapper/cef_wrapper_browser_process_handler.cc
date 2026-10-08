@@ -62,10 +62,10 @@ bool CefWrapperBrowserProcessHandler::OnAlreadyRunningAppRelaunch(
 
 CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
     const std::string& url, bool offscreen, bool transparent,
-    CefRefPtr<CefRequestContext> request_context) {
+    CefRefPtr<CefRequestContext> request_context, const CefBrowserSettings* settings) {
   CEF_REQUIRE_UI_THREAD();
   CefRefPtr<CefWrapperBrowserProcessHandler> self = GetInstance();
-  CefBrowserSettings browser_settings;
+  CefBrowserSettings browser_settings = settings ? *settings : self->m_BrowserSettings;
 
   CefWindowInfo window_info;
   // Alloy style only, as in java-cef: it adds the client callbacks (DoClose, ...) and
@@ -74,8 +74,11 @@ CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
   if (offscreen) {
     // No window: CEF draws into the buffer of the user's render handler.
     window_info.SetAsWindowless(kNullWindowHandle);
-    browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
-    if (!transparent) {
+    if (browser_settings.windowless_frame_rate == 0) {
+      browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
+    }
+    // A colour the browser settings give (opaque) wins over the app's.
+    if (!transparent && (browser_settings.background_color >> 24) != 0xFF) {
       // CEF takes a clear browser colour as "paint transparent" (and then ignores the colour
       // of CefSettings), so an opaque browser gets its colour here, white by default as in
       // java-cef.
@@ -142,6 +145,9 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext);
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
+}
+void CefWrapperBrowserProcessHandler::SetBrowserSettings(const CefBrowserSettings& settings) {
+  CefWrapperBrowserProcessHandler::GetInstance()->m_BrowserSettings = settings;
 }
 void CefWrapperBrowserProcessHandler::SetRequestContext(CefRefPtr<CefRequestContext> context) {
   CefWrapperBrowserProcessHandler::GetInstance()->m_RequestContext = context;

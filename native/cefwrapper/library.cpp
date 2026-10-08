@@ -273,14 +273,18 @@ void CefWrapper::SetStringSetting(std::string name, std::string value) {
   m_StringSettings[name] = value;
 }
 void CefWrapper::SetIntSetting(std::string name, long long value) { m_IntSettings[name] = value; }
+void CefWrapper::SetBrowserSettings(const CefBrowserSettings& settings) {
+  CefWrapperBrowserProcessHandler::SetBrowserSettings(settings);
+}
 CefRefPtr<CefBrowser> CefWrapper::CreateBrowser(std::string url, int offscreen, int transparent,
-                                                CefRefPtr<CefRequestContext> request_context) {
+                                                CefRefPtr<CefRequestContext> request_context,
+                                                const CefBrowserSettings* settings) {
   if (!m_App || !g_IsRunning || !m_App->GetBrowser() || !CefCurrentlyOn(TID_UI)) {
     return nullptr;
   }
   return CefWrapperBrowserProcessHandler::CreateBrowser(
       url, offscreen < 0 ? g_Offscreen.load() : offscreen != 0,
-      transparent < 0 ? g_Transparent.load() : transparent != 0, request_context);
+      transparent < 0 ? g_Transparent.load() : transparent != 0, request_context, settings);
 }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }

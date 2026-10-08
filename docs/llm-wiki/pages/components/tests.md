@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 278개(통합 160, 생성기 117, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 287개(통합 169, 생성기 117, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -67,6 +67,9 @@ updated: 2026-10-08
 | `WithCef` | `test_cef_asks_for_message_loop_work_from_any_thread_when_the_application_asks_for_it`, `test_cef_does_not_schedule_work_unless_the_application_asks_for_it`, `test_a_message_pump_runs_cef_by_the_deadlines_cef_gives_and_never_waits_long` | 설정을 켰을 때만 훅이 여러 스레드에서 불림, `MessagePump`의 기한만으로 페이지 로드(F62) |
 | `ApiWithoutCef` | `test_a_browser_cannot_be_created_before_cef_runs` | CEF가 돌기 전의 `create_browser`는 `RuntimeError` |
 | `WithCef` | `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`, `test_each_browser_has_its_own_transparency`, `test_the_bindings_and_the_router_work_in_every_browser`, `test_closing_one_browser_leaves_the_others_and_the_app_running`, `test_a_browser_can_have_a_request_context_of_its_own`, `test_a_windowed_app_can_create_windowed_and_offscreen_browsers`, `test_create_browser_checks_its_arguments` | 둘째 브라우저의 그림과 투명도, 바인딩과 라우터, 하나를 닫아도 계속 도는 앱과 첫 브라우저의 준비 표시, 브라우저별 요청 컨텍스트, 창과 오프스크린의 혼합, 인자 검사(F60) |
+| `ApiWithoutCef` | `test_browser_settings_default_to_cefs_choices_and_cannot_change_after_initialize` | `BrowserSettings`의 기본값, `app.browser_settings`의 교체와 형식 검사 |
+| `WithCef` | `test_a_browser_with_javascript_disabled_shows_its_noscript_content`, `test_each_browser_can_have_settings_of_its_own`, `test_images_and_local_storage_can_be_turned_off`, `test_the_font_family_of_the_browser_settings_stays`, `test_the_background_color_of_the_browser_settings_wins_for_an_opaque_browser`, `test_create_browser_checks_the_settings` | JavaScript, 이미지, 로컬 저장소, 글꼴 이름, 배경색의 효과, 브라우저마다의 설정, 인자 검사(F64) |
+| | `test_known_cef_issue_the_integer_font_sizes_of_the_browser_settings_do_not_last`, `test_known_cef_issue_the_default_encoding_of_the_browser_settings_is_not_used` | `expectedFailure`. 글꼴 크기가 100ms 뒤 되돌아감, `default_encoding`이 쓰이지 않음. CEF가 고치면 알려 줍니다(F64) |
 | `ApiWithoutCef` | `test_the_version_is_known_before_cef_starts_and_matches_the_cef_headers` | `get_version()`이 헤더의 CEF와 Chromium 버전과 같고 `initialize()` 전에도 됨(F59) |
 | `ApiWithoutCef` | `test_settings_hold_the_fields_of_the_java_cef_settings_and_check_them`, `test_settings_are_given_to_the_app_and_cannot_change_after_initialize`, `test_transparent_is_a_flag_for_the_offscreen_browser` | `Settings`의 필드 14개, 형식과 범위 검사, 오타 거부, `app.settings` 교체, `transparent` 기본값 |
 | `WithCef` | `test_the_user_agent_and_its_product_are_set`, `test_the_locale_and_the_javascript_flags_are_set`, `test_the_log_file_and_severity_are_set`, `test_the_remote_debugging_port_is_open`, `test_session_cookies_survive_a_restart_only_when_asked_to`, `test_the_settings_without_a_visible_effect_are_accepted_by_cef`, `test_the_root_cache_path_holds_the_profile_data_and_the_cache_path_lies_within`, `test_the_background_color_fills_the_window_where_a_page_draws_none` | 설정의 효과를 페이지, 파일, 포트, 두 프로세스의 쿠키로 확인(F58). 효과가 안 보이는 필드는 시작만 확인 |

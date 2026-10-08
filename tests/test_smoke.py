@@ -91,6 +91,23 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_browser_settings_default_to_cefs_choices_and_cannot_change_after_initialize(self):
+        types = cefweaver.types
+        defaults = types.BrowserSettings()
+        self.assertEqual(defaults.javascript, types.State.DEFAULT)
+        self.assertEqual(defaults.default_encoding, "")
+        self.assertEqual((defaults.default_font_size, defaults.windowless_frame_rate), (0, 0))
+        app = cefweaver.CefApp()
+        self.assertEqual(app.browser_settings, defaults)
+        mine = defaults._replace(javascript=types.State.DISABLED, default_font_size=30)
+        app.browser_settings = mine
+        self.assertEqual(app.browser_settings, mine)
+        with self.assertRaises(TypeError):
+            app.browser_settings = {"javascript": 2}
+        with self.assertRaises(TypeError):
+            app.browser_settings = None
+        app.shutdown()
+
     def test_tasks_and_threads_are_in_the_module(self):
         task = cefweaver.Task()
         self.assertTrue(callable(cefweaver.post_task))
@@ -3249,6 +3266,159 @@ class WithCef(unittest.TestCase):
             for _ in range(100):
                 app.do_message_loop_work(); time.sleep(0.005)
             assert calls == [], calls
+            app.shutdown()
+            print("OK")
+        """)
+
+    # -- the settings of a browser (CefBrowserSettings) ------------------------------------
+
+    NOSCRIPT_PAGE = """
+        NOSCRIPT = ('<style>html, body { margin: 0; background: rgb(255, 0, 0); }</style>'
+                    '<noscript><style>body { background: rgb(0, 255, 0) !important; }</style></noscript>')
+    """
+
+    def test_a_browser_with_javascript_disabled_shows_its_noscript_content(self):
+        self.run_osr_script(prelude=self.NOSCRIPT_PAGE, body="""
+            State = types.State
+            app.browser_settings = types.BrowserSettings(javascript=State.DISABLED)
+            start(NOSCRIPT)
+            wait_until(app, lambda: paints and paints[-1]["first"] == bytes([0, 255, 0, 255]), "green: no script")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_each_browser_can_have_settings_of_its_own(self):
+        self.run_osr_script(prelude=self.NOSCRIPT_PAGE, body="""
+            State = types.State
+            start(NOSCRIPT)                                   # JavaScript on: red
+            wait_until(app, lambda: paints[-1]["first"] == bytes([0, 0, 255, 255]), "red")
+            quiet = app.create_browser(page(NOSCRIPT), settings=types.BrowserSettings(javascript=State.DISABLED))
+            loud = app.create_browser(page(NOSCRIPT))         # the settings of the app: JavaScript on
+            def first(browser):
+                return {p["first"] for p in paints if p["browser"] == browser.get_identifier()}
+            wait_until(app, lambda: bytes([0, 255, 0, 255]) in first(quiet) and bytes([0, 0, 255, 255]) in first(loud),
+                       "green for the quiet one and red for the loud one")
+            assert bytes([0, 0, 255, 255]) not in first(quiet), first(quiet)
+            assert bytes([0, 255, 0, 255]) not in first(loud), first(loud)
+            app.shutdown()
+            print("OK")
+        """)
+
+    IMAGE_PAGE = """
+        SVG = ("<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100'>"
+               "<rect width='200' height='100' fill='red'/></svg>")
+        IMG = ('<style>html, body { margin: 0; background: white; }</style>'
+               '<img style="position: fixed; left: 0; top: 0; width: 200px; height: 100px"'
+               ' src="http://img.test/red.svg">'
+               '<script>try { localStorage.setItem("a", "1"); report("storage", "works"); }'
+               'catch (e) { report("storage", "blocked"); }</script>')
+        def show(settings):
+            if settings is not None:
+                app.browser_settings = settings
+            probe[0] = lambda b, g, r: r > 200 and g < 60 and b < 60
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the browser")
+            app.add_resource("http://img.test/red.svg", SVG, mime_type="image/svg+xml")
+            app.add_resource("http://img.test/", "<html><body>" + IMG + "</body></html>")
+            app.load_url("http://img.test/")
+            wait_until(app, lambda: any(r[0] == "storage" for r in js), "the script")
+            for _ in range(80):
+                app.do_message_loop_work(); time.sleep(0.01)
+            return max(p["found"] for p in paints)
+    """
+
+    def test_images_and_local_storage_can_be_turned_off(self):
+        self.run_osr_script(prelude=self.IMAGE_PAGE, body="""
+            State = types.State
+            drawn = show(types.BrowserSettings(image_loading=State.DISABLED, local_storage=State.DISABLED))
+            assert ("storage", "blocked") in js, js
+            assert drawn == 0, "the image was drawn"
+            app.shutdown()
+            print("OK")
+        """)
+        # the control: the defaults draw the image
+        self.run_osr_script(prelude=self.IMAGE_PAGE, body="""
+            drawn = show(None)
+            assert ("storage", "works") in js, js
+            assert drawn > 1000, drawn
+            app.shutdown()
+            print("OK")
+        """)
+
+    FONT_PAGE = """
+        def later(settings, script):
+            # the value of `script` in a page made with `settings`, read 700 ms after the page began
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the browser")
+            app.add_resource("http://fonts.test/", '<p id="p" style="font-size: medium">text</p>'
+                             '<script>setTimeout(function () { var c = getComputedStyle(document.getElementById("p")); '
+                             'report("page", %s); }, 700)</script>' % script)
+            app.create_browser("http://fonts.test/", settings=settings)
+            wait_until(app, lambda: any(r[0] == "page" for r in js), "the page")
+            return [r for r in js if r[0] == "page"][0][1]
+    """
+
+    def test_the_font_family_of_the_browser_settings_stays(self):
+        self.run_osr_script(prelude=self.FONT_PAGE, body="""
+            found = later(types.BrowserSettings(standard_font_family="Courier New"), "c.fontFamily")
+            assert "Courier New" in found, found
+            app.shutdown()
+            print("OK")
+        """)
+
+    @unittest.expectedFailure
+    def test_known_cef_issue_the_integer_font_sizes_of_the_browser_settings_do_not_last(self):
+        # They show in the first layout and are the profile's again within 100 ms (F64). When CEF
+        # keeps them this test starts to succeed: then the note in known-constraints.md goes.
+        self.run_osr_script(prelude=self.FONT_PAGE, body="""
+            found = later(types.BrowserSettings(default_font_size=30), "c.fontSize")
+            assert found == "30px", found
+            app.shutdown()
+            print("OK")
+        """)
+
+    @unittest.expectedFailure
+    def test_known_cef_issue_the_default_encoding_of_the_browser_settings_is_not_used(self):
+        self.run_osr_script("""
+            app.offscreen = True
+            app.browser_settings = types.BrowserSettings(default_encoding="euc-kr")
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the browser")
+            app.add_resource("http://encoding.test/", '<script>report("page", document.characterSet)</script>')
+            app.load_url("http://encoding.test/")                       # no charset is given
+            wait_until(app, lambda: any(r[0] == "page" for r in js), "the page")
+            found = [r for r in js if r[0] == "page"][0][1]
+            assert found.lower() == "euc-kr", found
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_background_color_of_the_browser_settings_wins_for_an_opaque_browser(self):
+        self.run_osr_script("""
+            app.transparent = False
+            app.settings.background_color = 0xFF00FF00         # the app says green
+            app.browser_settings = types.BrowserSettings(background_color=0xFF0000FF)   # this one blue
+            start("")
+            wait_until(app, lambda: paints and paints[-1]["first"] == bytes([255, 0, 0, 255]), "blue (BGRA)")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_create_browser_checks_the_settings(self):
+        self.run_osr_script("""
+            start(RED)
+            for bad in (3, {"javascript": 2}, (1, 2)):
+                try:
+                    app.create_browser("about:blank", settings=bad)
+                except TypeError:
+                    continue
+                raise AssertionError("accepted %r" % (bad,))
+            assert len(boxes) == 1
             app.shutdown()
             print("OK")
         """)

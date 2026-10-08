@@ -49,7 +49,10 @@ public:
   // setting. Empty when CEF does not run, the first browser does not exist yet, or the thread
   // is not the UI thread.
   CefRefPtr<CefBrowser> CreateBrowser(std::string url, int offscreen, int transparent,
-                                      CefRefPtr<CefRequestContext> request_context);
+                                      CefRefPtr<CefRequestContext> request_context,
+                                      const CefBrowserSettings* settings);
+  // The settings of the first browser and of the ones made without settings.
+  void SetBrowserSettings(const CefBrowserSettings& settings);
   void SetTransparent(bool transparent);
   bool Transparent();
   void SetRequestContext(CefRefPtr<CefRequestContext> context);

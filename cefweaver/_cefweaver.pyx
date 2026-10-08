@@ -367,6 +367,7 @@ cdef class CefApp:
     cdef object _client  # the client of set_client()
     cdef object _app_handler  # the AppHandler of set_app_handler()
     cdef object _settings  # the Settings (see settings.py)
+    cdef object _browser_settings  # the BrowserSettings of the browsers (types.py)
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -380,6 +381,7 @@ cdef class CefApp:
         self._client = None
         self._app_handler = None
         self._settings = _Settings()
+        self._browser_settings = _types.BrowserSettings()
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -400,13 +402,14 @@ cdef class CefApp:
     # -- configuration (before initialize) ------------------------------------
 
     def create_browser(self, url="about:blank", offscreen=None, transparent=None,
-                       request_context=None):
+                       request_context=None, settings=None):
         """Create a further browser (java-cef's ``CefClient.createBrowser()``) and return it as a
         ``Browser``. It uses the app's client, JavaScript bindings and message router.
 
         ``offscreen`` and ``transparent`` (``True`` or ``False``) decide for this browser; ``None``
         takes ``CefApp.offscreen`` and ``CefApp.transparent``. ``request_context`` is a
-        ``RequestContext`` for it (``None``: the global one). Call it on the thread that called
+        ``RequestContext`` for it (``None``: the global one). ``settings`` (a ``types.BrowserSettings``)
+        are the ones of this browser (``None``: ``CefApp.browser_settings``). Call it on the thread that called
         ``initialize()``, after the first browser exists. A windowed browser gets a window of its
         own. ``load_url()`` and ``execute_javascript()`` address the first browser only; use the
         returned ``Browser``'s frames for the others. Closing the browsers ends ``is_running``."""
@@ -415,6 +418,8 @@ cdef class CefApp:
         cdef int clear = -1
         cdef CefRefPtr[CefRequestContext] context
         cdef CefRefPtr[CefBrowser] ref
+        cdef CefBrowserSettings cpp_settings
+        cdef const CefBrowserSettings* settings_ptr = NULL
         if not isinstance(url, str):
             raise TypeError("url must be a str")
         if offscreen is not None:
@@ -429,9 +434,14 @@ cdef class CefApp:
             if not isinstance(request_context, RequestContext):
                 raise TypeError("request_context must be a RequestContext or None")
             context = (<RequestContext>request_context)._ref
+        if settings is not None:
+            if not isinstance(settings, _types.BrowserSettings):
+                raise TypeError("settings must be a types.BrowserSettings or None")
+            _g_to_BrowserSettings(settings, &cpp_settings)
+            settings_ptr = &cpp_settings
         self._require_running()
         value = _utf8(url)
-        ref = self._wrapper.CreateBrowser(value, osr, clear, context)
+        ref = self._wrapper.CreateBrowser(value, osr, clear, context, settings_ptr)
         if not ref.get():
             raise RuntimeError("a browser can be created on the thread of initialize() once the "
                                "first browser exists")
@@ -442,6 +452,21 @@ cdef class CefApp:
         """The ``Version`` of cefweaver, CEF and Chromium; the same as ``cefweaver.get_version()``."""
         import cefweaver
         return cefweaver.get_version()
+
+    @property
+    def browser_settings(self):
+        """The ``types.BrowserSettings`` (CEF's ``CefBrowserSettings``: fonts, encoding, JavaScript,
+        images, local storage, ...) of the first browser and of the ones ``create_browser()`` makes
+        without settings of their own. A field left at its default is CEF's choice. Before
+        ``initialize()`` only."""
+        return self._browser_settings
+
+    @browser_settings.setter
+    def browser_settings(self, value):
+        self._require_not_initialized()
+        if not isinstance(value, _types.BrowserSettings):
+            raise TypeError("browser_settings must be a types.BrowserSettings")
+        self._browser_settings = value
 
     @property
     def settings(self):
@@ -676,6 +701,9 @@ cdef class CefApp:
             else:
                 self._wrapper.SetIntSetting(_utf8(name), int(value))
         self._settings._freeze()
+        cdef CefBrowserSettings browser_settings
+        _g_to_BrowserSettings(self._browser_settings, &browser_settings)
+        self._wrapper.SetBrowserSettings(browser_settings)
         if _cef_was_shut_down:
             raise RuntimeError("CEF can be initialized only once per process, "
                                "and it was shut down already")

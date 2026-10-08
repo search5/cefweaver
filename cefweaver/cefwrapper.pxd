@@ -9,7 +9,7 @@ from libcpp.string cimport string
 
 from libc.stdint cimport int64_t
 
-from cefweaver.cef_api cimport CefBrowser, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr
+from cefweaver.cef_api cimport CefBrowser, CefBrowserSettings, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr
 
 
 cdef extern from "javascript_binding.h":
@@ -86,7 +86,9 @@ cdef extern from "library.h":
         void SetStringSetting(string name, string value)
         void SetIntSetting(string name, long long value)
         CefRefPtr[CefBrowser] CreateBrowser(string url, int offscreen, int transparent,
-                                            CefRefPtr[CefRequestContext] request_context)
+                                            CefRefPtr[CefRequestContext] request_context,
+                                            const CefBrowserSettings* settings)
+        void SetBrowserSettings(const CefBrowserSettings& settings)
         void SetTransparent(cpp_bool transparent)
         cpp_bool Transparent()
         void SetOffscreen(cpp_bool enabled)

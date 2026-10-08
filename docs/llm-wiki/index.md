@@ -27,7 +27,7 @@
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
 - [루트 CMake와 CEF 다운로드](pages/components/root-cmake.md): 루트 CMakeLists.txt, DownloadCEF.cmake, 네이티브 타깃의 CMake
-- [시험 (tests/)](pages/components/tests.md): tests/의 시험 278개(통합, 생성기, 위키 점검)와 설계 원칙
+- [시험 (tests/)](pages/components/tests.md): tests/의 시험 287개(통합, 생성기, 위키 점검)와 설계 원칙
 - [tools/build_cef.py](pages/components/tool-build-cef.md): tools/build_cef.py의 소스 빌드 흐름, 명령, GN_DEFINES, 한계
 - [tools/prepare.py](pages/components/tool-prepare.md): tools/prepare.py의 흐름, 옵션, 버전 조회, 스테이징
 
@@ -36,6 +36,7 @@
 - [새 클래스를 생성 범위에 추가하기](pages/procedures/add-class-to-generator.md): scope.py에 클래스를 추가하고 확인하는 절차와 한계
 - [새 타입 지원 추가하기](pages/procedures/add-type-to-generator.md): 새 타입 종류를 지원하려고 고칠 곳과 설계 질문
 - [빌드와 설치](pages/procedures/build-and-install.md): prepare.py, uv build --wheel, 설치와 자주 만난 문제
+- [CEF의 한계를 CEF 예제로 검증하기](pages/procedures/verify-cef-limits.md): "CEF의 한계"라고 적기 전에 `cefsimple`과 CEF 소스로 가르는 방법과 지금까지의 검증 결과
 - [충돌 조사 방법](pages/procedures/debug-crashes.md): 서브프로세스 충돌을 조사할 때 효과가 있었던 방법과 쓸 수 없었던 방법
 - [CEF 확보하기](pages/procedures/obtain-cef.md): 버전 조회, prebuilt, 기존 배포본, 소스 빌드 명령
 - [시험 실행하기](pages/procedures/run-tests.md): -P가 필수인 시험 실행 명령, 일부 실행, 여러 Python 버전

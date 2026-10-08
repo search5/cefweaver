@@ -25,9 +25,13 @@ public:
   static void LoadUrl(std::string url);
   // A browser as java-cef's CefClient.createBrowser(): on the UI thread, once CEF runs. The
   // first browser is made by OnContextInitialized() the same way.
+  // `settings` (null: the app's, see SetBrowserSettings()) fills CefBrowserSettings; what the
+  // app decides on top of it is the frame rate and, for an opaque offscreen browser, the colour.
   static CefRefPtr<CefBrowser> CreateBrowser(const std::string& url, bool offscreen,
                                              bool transparent,
-                                             CefRefPtr<CefRequestContext> request_context);
+                                             CefRefPtr<CefRequestContext> request_context,
+                                             const CefBrowserSettings* settings = nullptr);
+  static void SetBrowserSettings(const CefBrowserSettings& settings);
   CefRefPtr<CefBrowser>Browser;
   CefRefPtr<CefClient> m_UserClient;
   std::vector<JavascriptBinding> m_JavascriptBindings;
@@ -46,6 +50,7 @@ public:
 
   std::string StartUrl;
   CefRefPtr<CefRequestContext> m_RequestContext;
+  CefBrowserSettings m_BrowserSettings;
 
   IMPLEMENT_REFCOUNTING(CefWrapperBrowserProcessHandler);
 

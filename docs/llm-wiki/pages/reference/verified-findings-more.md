@@ -183,7 +183,7 @@ updated: 2026-10-08
   - `host.drag_target_drag_enter(data, 위치, COPY)`, `drag_target_drag_over`, `drag_target_drop`으로 페이지의 `ondrop`에 `payload`가 닿고 `DragHandler.on_drag_enter(browser, drag_data, mask)`가 같은 `DragData`로 옵니다.
   - `draggable="true"` 요소를 마우스로 끌면 `RenderHandler.start_dragging(browser, drag_data, allowed_ops, x, y)`가 페이지가 `dataTransfer.setData`로 넣은 `carried`와 함께 오고, `True`를 돌려준 뒤 `drag_source_ended_at`과 `drag_source_system_drag_ended`로 끝낼 수 있습니다.
   - `cancel_pending_queries(browser, handler)`는 해당 질의를 취소하고(`on_query_canceled`) 페이지의 `onFailure`가 -1을 받습니다. 다른 핸들러의 질의는 건드리지 않습니다.
-- **발견(CEF의 한계)**: 파일 내용이 없는 `DragData`에서 `get_file_name()`을 부르면 CEF 안의 `CHECK`가 실패해 프로세스가 죽습니다(`GetSafeFilenameForImageFileContents`). 이미지 파일 내용이 있는 드래그용 메서드입니다.
+- **발견(CEF 호출 경로의 한계, 소스로 확인)**: 파일 내용이 없는 `DragData`에서 `get_file_name()`을 부르면 프로세스가 죽습니다. CEF의 `CefDragDataImpl::GetFileName()`(`libcef/common/drag_data_impl.cc` 113~117줄)이 아무 확인 없이 Chromium의 `DropData::GetSafeFilenameForImageFileContents()`를 부르고, 그 안의 `CHECK`가 실패한 것입니다(Chromium 쪽 소스는 이 환경에 없음). 이미지 파일 내용이 있는 드래그용 메서드입니다.
 - **영향**: 바닥의 격차 27개가 모두 메워졌습니다([java-cef 동등성](java-cef-parity.md)).
 
 ## 관련 페이지
