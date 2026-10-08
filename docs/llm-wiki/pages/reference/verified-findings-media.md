@@ -10,6 +10,7 @@ sources:
   - cefweaver/ui/audio.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/qt.py
+  - tests/test_ui.py
 updated: 2026-10-09
 ---
 
@@ -62,7 +63,16 @@ updated: 2026-10-09
 - **끊김 방지**: 기록 간격의 흔들림이 들리지 않도록 처음과 비었다가 다시 찰 때 약 0.1초(pygame은 0.04초)를 모은 뒤 재생합니다. 40 ms로는 SDL 싱크가 smoke에서 10번 끊겼고 100 ms에서 0이었습니다.
 - **지연 상한**: 응용이 따라가지 못하면 0.5초를 넘는 오래된 소리를 버립니다(`dropped`).
 - **PySide6**: `QAudioSink.stateChanged`에 슬롯을 연결하면 `QAudio::State` 변환 오류가 납니다. 신호 대신 `state()`를 주기적으로 읽습니다.
-- **확인하지 못한 것**: 실제 스피커로 들리는 소리(허락 없이 소리를 내지 않았습니다), 소리와 화면의 어긋남 정도.
+- **스피커로 들은 것 (2026-10-09, 선생님이 확인)**: 440 Hz 시험음은 `PygameSink`와 `SdlSink` 모두 들렸고, 실제 YouTube 소리는 sdl2, qt(PyQt6, PySide6), gtk3, wx, kivy, tk 일곱 환경 모두 들렸습니다(`--loud --no-gpu`, 시스템 출력 음량 34%). 수치도 맞았습니다: 싱크에 들어간 샘플의 peak 약 0.5, 시스템 출력 monitor(`parec`)의 peak 16716/32768.
+- **확인하지 못한 것**: 소리와 화면의 어긋남 정도.
+
+## F75: 실제 화면에서의 GPU 오류와 점검 도구의 함정 (2026-10-09)
+
+- **실제 화면(XWayland)에서만** GPU 프로세스가 `gbm_bo_import ... nullptr`, `CreateSharedImage: could not create backing`으로 반복해서 죽고 영상 디코드가 실패합니다(`<video>.error.code` 3). xvfb에서는 나지 않습니다.
+- **래퍼와 무관함 (검증)**: 기본 CEF 앱(창 모드)과 래퍼 없는 `cefsimple`(Chrome 스타일과 `--use-alloy-style` 모두, `--no-sandbox --ozone-platform=x11`)에서도 같은 오류가 3번씩 나옵니다.
+- **우회 시험** (YouTube, 실제 화면, 3번씩): 창 모드에서 `disable-accelerated-video-decode`는 3/3 통과, 스위치 없음 0/3, `disable-gpu-memory-buffer-video-frames` 0/3. 오프스크린(gtk3, sdl2)에서는 `disable-accelerated-video-decode`가 0/3, `disable-gpu-compositing`, `use-gl=angle`+`use-angle=swiftshader`, `disable-gpu-memory-buffer-compositor-resources`+`disable-gpu-memory-buffer-video-frames`도 0/3(gtk3)입니다. **통과한 것은 `disable-gpu`뿐**입니다. 원인(드라이버, 포맷 수정자 등)은 조사하지 않았습니다.
+- **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
+- **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.
 
 ## 관련 페이지
 

@@ -355,3 +355,7 @@
 ## [2026-10-09] ingest | 페이지 소리 재생 싱크 (F74)
 
 - `cefweaver.ui.audio`(`interleave`, `apply_volume`, `PygameSink`)와 `BrowserView(audio=)`, 툴킷 싱크(`SdlSink`, `QtSink`)를 더했습니다. 나머지 툴킷은 pygame을 씁니다(예제 의존성과 `pygame` extra). pygame `AudioDevice.close()`의 GIL 교착을 확인하고 피했습니다. `tests/playback_check.py --audio`로 일곱 환경에서 YouTube 소리가 싱크에 도달하는 것을 확인했습니다(음량 0).
+
+## [2026-10-09] query | 소리 청취 확인과 실제 화면의 GPU 오류 (F75)
+
+- 일곱 환경의 소리를 선생님이 스피커로 확인했습니다(F74 보강). 실제 화면에서만 나는 GPU 프로세스 오류(`gbm_bo_import`)가 `cefsimple`에서도 재현됨을 확인하고, 우회 스위치를 시험했습니다(오프스크린에서는 `disable-gpu`뿐). Tk가 닫히지 않던 것은 점검 도구가 엉뚱한 창에 신호를 보낸 탓이었고(`--class Tk`로 고침), Tk 예제의 창 크기를 다른 예제와 같은 900x640으로 맞췄습니다. `tests/playback_check.py`에 `--loud`, `--no-gpu`, `--switch`, peak 측정과 임시 폴더 정리를 더했습니다.

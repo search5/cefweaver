@@ -14,9 +14,11 @@ It passes if the time of the video goes on about as fast as the clock, the video
 """
 
 import argparse
+import atexit
 import json
 import os
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -35,7 +37,7 @@ SWITCHES = [("disable-audio-output", ""), ("autoplay-policy", "no-user-gesture-r
 
 # -- inside: the program that plays ------------------------------------------------------------------------
 
-def inside_toolkit(quickstart, url, seconds, audio):
+def inside_toolkit(quickstart, url, seconds, audio, loud=False, no_gpu=False, switches=()):
     """Run the quickstart of an example with the probe; print the states and PROBE DONE. With ``audio`` the view
     plays the sound through a sink (``audio="auto"``: the sink of the toolkit, else pygame) at volume 0."""
     from cefweaver import ui
@@ -47,13 +49,24 @@ def inside_toolkit(quickstart, url, seconds, audio):
         def browser_view_init(self, adapter, *args, **options):
             options["audio"] = "auto"
             view_init(self, adapter, *args, **options)
-            if self.audio_sink is not None:
+            if self.audio_sink is not None and not loud:
                 self.audio_sink.volume = 0.0                    # the whole path runs, nobody hears it
             views.append(self)
+            sink = self.audio_sink
+            if sink is not None:
+                peak, write = [0.0], sink.write
+
+                def measured_write(samples, frames):
+                    import array
+                    data = array.array("f", samples)
+                    peak[0] = max(peak[0], max(map(abs, data[::7])) if len(data) else 0.0)
+                    write(samples, frames)
+                sink.write, sink.peak = measured_write, peak
         ui.BrowserView.__init__ = browser_view_init
 
     def session_init(self, adapter, switches=(), cache_path=None):
-        init(self, adapter, list(switches) + SWITCHES, cache_path)
+        extra = ([("disable-gpu", "")] if no_gpu else []) + list(switches)
+        init(self, adapter, list(switches) + SWITCHES + extra, cache_path)
         self.bridge.expose("__probe", probes.append)
 
     def session_start(self, target, url_="about:blank"):
@@ -72,7 +85,8 @@ def inside_toolkit(quickstart, url, seconds, audio):
                                               ensure_ascii=False), flush=True)
             sink = view.audio_sink
             if audio and sink is not None and hasattr(sink, "stats"):
-                print("AUDIO %s" % json.dumps(dict(sink.stats(), sink=type(sink).__name__, clock=round(elapsed, 2))), flush=True)
+                print("AUDIO %s" % json.dumps(dict(sink.stats(), sink=type(sink).__name__, clock=round(elapsed, 2),
+                                                   peak=round(getattr(sink, "peak", [0])[0], 4))), flush=True)
             if view.browser is not None:
                 view.browser.get_main_frame().execute_java_script("if (window.__probe) window.__probe(%s);" % STATE, "", 0)
             if elapsed >= seconds:
@@ -86,12 +100,12 @@ def inside_toolkit(quickstart, url, seconds, audio):
     runpy.run_path(quickstart, run_name="__main__")
 
 
-def inside_windowed(url, seconds):
+def inside_windowed(url, seconds, switches=()):
     """The default CEF app (windowed): the same states, read through the legacy binding."""
     import cefweaver
     app = cefweaver.CefApp()
     app.set_cache_path(tempfile.mkdtemp(prefix="cefweaver-playback-"))
-    for name, value in SWITCHES:
+    for name, value in SWITCHES + list(switches):
         app.add_command_line_switch(name, value)
     states = []
     app.add_javascript_binding("report", lambda *a: states.append(a[0]))
@@ -164,13 +178,17 @@ def main():
     parser.add_argument("--url", default=URL)
     parser.add_argument("--audio", action="store_true",
                         help="play the sound through the sink of the toolkit (else pygame) at volume 0 and check it")
+    parser.add_argument("--loud", action="store_true", help="with --audio: leave the volume as it is, so that it is heard")
+    parser.add_argument("--no-gpu", action="store_true", help="add disable-gpu (a real screen: see the notes on the GPU process)")
+    parser.add_argument("--switch", action="append", default=[], metavar="NAME[=VALUE]", help="a Chromium switch (repeatable)")
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.inside:
         if args.target == "windowed":
-            inside_windowed(args.url, args.seconds)
+            inside_windowed(args.url, args.seconds, [tuple(w.split('=', 1)) if '=' in w else (w, '') for w in args.switch])
         else:
-            inside_toolkit(os.path.join(ROOT, "examples", args.target, "quickstart.py"), args.url, args.seconds, args.audio)
+            inside_toolkit(os.path.join(ROOT, "examples", args.target, "quickstart.py"), args.url, args.seconds, args.audio, args.loud, args.no_gpu,
+                           [tuple(w.split('=', 1)) if '=' in w else (w, '') for w in args.switch])
         return 0
 
     windowed = args.target == "windowed"
@@ -178,8 +196,9 @@ def main():
     env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XDG_SESSION_TYPE")}
     env.update(pin.split("=", 1) for pin in args.pins)
     scratch = tempfile.mkdtemp(prefix="cefweaver-playback-")        # CEF makes its cache in the working directory
+    atexit.register(shutil.rmtree, scratch, True)                    # the cache of a run is big (tens of MB)
     process = subprocess.Popen([python, os.path.abspath(__file__), args.target, "--inside", "--seconds", str(args.seconds),
-                                "--url", args.url] + (["--audio"] if args.audio else []), cwd=scratch, env=env,
+                                "--url", args.url] + (["--audio"] if args.audio else []) + (["--loud"] if args.loud else []) + (["--no-gpu"] if args.no_gpu else []) + [a for w in args.switch for a in ("--switch", w)], cwd=scratch, env=env,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     lines, errors = [], []
     threading.Thread(target=lambda: [lines.append(l) for l in iter(process.stdout.readline, "")], daemon=True).start()

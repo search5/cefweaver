@@ -8,7 +8,7 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/build_cef.py
   - CLAUDE.md
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # 알려진 제약과 미검증 항목
@@ -19,6 +19,8 @@ updated: 2026-10-08
 
 | 항목 | 이유 | 확인 방법 |
 | --- | --- | --- |
+| 실제 화면(XWayland)에서 GPU 프로세스가 죽는 **원인** (`gbm_bo_import`) | `cefsimple`에서도 재현되어 래퍼 문제는 아닙니다([F75](verified-findings-media.md)). 시험한 스위치 중 오프스크린에서 통하는 것은 `disable-gpu`뿐이었습니다. | 드라이버와 포맷 수정자 조사, 나머지 스위치 후보(`in-process-gpu` 등) 시험 |
+| Kivy 예제가 `--no-gpu`에서 한 번 실패한 이유 | 같은 조건 12번에서 다시 나지 않았습니다(영상 요소가 없었음). | 실패하면 그때 로그를 받습니다 |
 | **Windows**에서의 빌드와 동작 | 개발 환경이 Linux입니다. `OS_WIN` 분기, `cef_wrapper_client_handler_win.cc`, Windows용 CMake, `os.add_dll_directory`, `custom_protocol_scheme_handler.cc`의 수정이 양쪽에 영향을 줍니다. `pyproject.toml`의 `ext-modules`는 Linux 전용입니다. | Windows에서 `python tools/prepare.py`와 `uv build --wheel` 후 시험 실행. 설정 방식(정적 `ext-modules`로 충분한지)도 그때 정합니다. |
 | `--build-cef`의 **실제 소스 빌드** | 이 환경의 디스크 여유가 약 69GB이고 요구량은 약 120GB입니다. `--dry-run`, 옵션 존재, 브랜치와 커밋 검증, 안전장치, 기존 배포본 재사용(가짜 디렉터리)까지만 확인했습니다. | 디스크 150GB 이상의 환경에서 `python tools/prepare.py --build-cef`. 결과 경로 탐색(`find_distribution`)과 `GN_DEFINES`를 그때 보정합니다. |
 | 다른 CEF 버전의 **실행** | 생성기와 컴파일은 147, 152, 154 헤더에서 확인했습니다(F23). 147과 152의 `libcef`로 실제 실행해 시험을 돌리지는 않았습니다. | 해당 버전의 배포본으로 `prepare.py`, `uv build --wheel`, 시험 |

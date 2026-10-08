@@ -1335,8 +1335,8 @@ class Quickstarts(unittest.TestCase):
         end = time.time() + 15
         while time.time() < end:
             found = subprocess.run(["xdotool", "search", "--onlyvisible", "--pid", str(pid)], capture_output=True, text=True).stdout.split()
-            if not found:                  # Tk does not tell the process: the only window of the display is it
-                found = subprocess.run(["xdotool", "search", "--onlyvisible", "--maxdepth", "1", "--name", "."],
+            if not found:                  # Tk does not tell the process: the window of class Tk (on a real screen there are other windows)
+                found = subprocess.run(["xdotool", "search", "--onlyvisible", "--class", "Tk"],
                                        capture_output=True, text=True).stdout.split()
             if found:
                 return int(found[0])
