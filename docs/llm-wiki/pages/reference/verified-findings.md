@@ -94,6 +94,18 @@ F15 이후(클라이언트 핸들러, 브라우저 호스트, Chrome과 Alloy �
 
 Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 시험 24개를 모두 통과했습니다(생성된 Cython 코드 포함). 3.15는 시험하지 않았습니다.
 
+## F36. 명령줄 스위치는 자식 프로세스에 전달되지 않는다
+
+- **방법**: `add_command_line_switch`로 `cefweaver-custom-switch=abc`, `disable-gpu`, `site-per-process`를 주고 실행 중인 프로세스들의 명령줄(`ps -eww`)을 비교했습니다.
+- **결과**: 세 스위치 모두 `--type=renderer`, `gpu-process`, `utility`, `zygote` 프로세스의 명령줄에 **없었습니다.** 반면 `--ozone-platform=x11`은 자식에게 있었는데, Chromium이 스스로 전달하는 스위치이기 때문으로 보입니다(이유는 확인하지 않음). 그래서 `add_command_line_switch`의 스위치는 브라우저 프로세스에서만 읽힌다고 봐야 합니다. 자식 프로세스에 필요한 스위치는 `OnBeforeChildProcessLaunch`로 붙여야 합니다(메시지 라우터가 이렇게 합니다, F34).
+- **영향**: 이전의 "자식 프로세스가 물려받습니다"라는 서술(`native-library-api.md`, `native-handlers.md`, `cef_wrapper_app.cc`의 주석)이 틀려서 고쳤습니다. 스위치를 자식에게도 보내는 옵션은 아직 없습니다([알려진 제약과 미검증 항목](known-constraints.md)).
+
+## F37. 교차 사이트 iframe이 로드되지 않는다
+
+- **방법**: `add_resource`로 `http://a.test/main.html`(iframe 포함)과 자식 페이지를 두 호스트에 제공하고 `LoadHandler`로 관찰했습니다.
+- **결과**: 같은 사이트(`a.test`)의 iframe은 로드되고(`load-end` 200, `iframe-onload`), 다른 사이트(`b.test`)의 iframe은 오류도 로드 완료도 없이 멈춥니다. `site-per-process` 유무와 질의 핸들러 유무와 관계없이 같았고, `b.test`를 메인 프레임으로 여는 것은 정상이었습니다.
+- **미확인**: 원인(두 번째 호스트의 스킴 핸들러, 프로세스 전환, CEF 문제 등)과 cefsimple에서도 같은지는 조사하지 않았습니다. 그래서 사이트 격리로 프로세스가 갈리는 프레임에서 메시지 라우터가 동작하는지는 **확인하지 못했습니다.**
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

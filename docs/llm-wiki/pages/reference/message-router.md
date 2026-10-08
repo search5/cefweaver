@@ -61,7 +61,7 @@ window.cefQuery({request: "ping", persistent: false,
 - 요청과 응답은 문자열 또는 바이트입니다. 객체는 JSON으로 주고받습니다(변환은 호출하는 쪽).
 - 핸들러 목록은 프로세스 전역입니다(CEF가 프로세스당 한 번만 시작되기 때문).
 - 래퍼의 `CefRequestHandler`는 라우터만을 위한 것입니다. 사용자의 요청 핸들러는 아직 열리지 않았습니다.
-- 여러 프레임과 `window.open`의 팝업 브라우저는 시험으로 확인했습니다([실험으로 확인한 사실](verified-findings-api.md) F35). 서로 다른 렌더러 프로세스에 있는 프레임(사이트 격리)은 확인하지 않았습니다.
+- 여러 프레임과 `window.open`의 팝업 브라우저는 시험으로 확인했습니다([실험으로 확인한 사실](verified-findings-api.md) F35). 서로 다른 렌더러 프로세스에 있는 프레임(사이트 격리)은 확인하지 못했습니다. 교차 사이트 iframe이 로드되지 않았기 때문입니다(F37).
 - `execute_javascript`, `load_url`, `is_ready_to_execute_javascript`는 처음 만든 브라우저에만 적용됩니다(팝업에는 쓸 수 없습니다).
 
 ## 관련 페이지

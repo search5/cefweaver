@@ -20,7 +20,7 @@ void CefWrapperApp::OnBeforeCommandLineProcessing(
     const CefString &process_type, CefRefPtr<CefCommandLine> command_line) {
   //command_line->AppendSwitch("allow-file-access-from-files");
   if (!process_type.empty()) {
-    return;  // child processes inherit the browser process switches
+    return;  // the switches below are for the browser process only; children get what OnBeforeChildProcessLaunch adds
   }
   for (const auto &entry : m_CommandLineSwitches) {
     if (entry.second.empty()) {

@@ -38,6 +38,9 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
+- **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 아직 없습니다.
+- **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.
+
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
 - **Python은 브라우저 프로세스에만 있어서 렌더러 쪽 동작을 정할 수 없습니다.** 프로세스 메시지로 받을 수 있는 것은 렌더러의 C++ 코드가 보내는 메시지뿐이고, 지금은 진단용 `cefweaver-pong`(`cefweaver-ping`에 대한 답)이 전부입니다. JavaScript와의 통신은 `add_javascript_binding`(기본형 인자, 반환값 없음)과 java-cef와 같은 메시지 라우터(`window.cefQuery`, 문자열 또는 바이트 요청과 비동기 응답)입니다([메시지 라우터](message-router.md)). 페이지에 `cefQuery`가 생기려면 첫 질의 핸들러를 `initialize()` 전에 더해야 합니다. cefpython처럼 JavaScript 콜백과 Python 콜백을 인자로 주고받는 일은 하지 않습니다([분석](../analyses/js-python-messaging.md)).
 - `BinaryValue`의 `create`, `get_data`, `get_raw_data`와 `ProcessMessage.get_shared_memory_region`은 타입 없는 포인터와 범위 밖 클래스 때문에 열리지 않았습니다. 값 컨테이너는 CEF의 메서드를 그대로 중계하며 파이썬 객체(`dict`, `list`)와의 변환 함수는 없습니다. 열지 못한 항목의 사정과 방법은 [분석](../analyses/js-python-messaging.md)에 있습니다.

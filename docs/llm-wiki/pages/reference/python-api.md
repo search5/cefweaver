@@ -23,7 +23,7 @@ updated: 2026-10-08
 | `set_subprocess_path(path)` | `cefsubprocess` 실행 파일 경로. 기본: 모듈 디렉터리의 `cefsubprocess` |
 | `set_cache_path(path)` | 캐시와 프로필 디렉터리. 기본: 현재 디렉터리의 `cache/` |
 | `set_resources_path(path)` | `CefSettings.resources_dir_path`로 전달. Linux에서는 `icudtl.dat` 위치에 영향이 없습니다. |
-| `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
+| `add_command_line_switch(name, value="")` | Chromium 스위치(브라우저 프로세스에만 적용되고 렌더러 등 자식 프로세스에는 전달되지 않음, F36). 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `devtools_menu` (속성, 읽고 쓰기) | 컨텍스트 메뉴의 "Show DevTools", "Close DevTools", "Inspect Element" 항목. 기본 `False`. 언제든 바꿀 수 있고 이후에 만들어지는 메뉴에 적용됩니다. 켜고 꺼도 사용자 핸들러가 받는 이벤트와 메뉴는 같고 항목만 뒤에 붙습니다 |
 | `add_query_handler(handler, first=False)`, `remove_query_handler(handler) -> bool`, `set_query_functions(query, cancel)` | 페이지의 `window.cefQuery`로 오는 질의를 `QueryHandler`가 받습니다. 자세한 것은 [메시지 라우터](message-router.md) |

@@ -30,7 +30,7 @@ updated: 2026-10-08
 
 - `GetBrowserProcessHandler()`는 `CefWrapperBrowserProcessHandler`의 싱글턴, `GetRenderProcessHandler()`는 `SimpleRenderProcessHandler`의 싱글턴을 돌려줍니다.
 - 생성자가 바인딩 목록을 두 핸들러의 정적 설정 함수로 넘기고 시작 URL을 기록합니다.
-- `OnBeforeCommandLineProcessing()`은 프로세스 종류가 비어 있을 때(브라우저 프로세스)만 `AddCommandLineSwitch()`로 모은 스위치를 적용합니다. 자식 프로세스는 브라우저 프로세스의 명령줄을 물려받습니다.
+- `OnBeforeCommandLineProcessing()`은 프로세스 종류가 비어 있을 때(브라우저 프로세스)만 `AddCommandLineSwitch()`로 모은 스위치를 적용합니다. 그 스위치는 자식 프로세스에 전달되지 않습니다([실험으로 확인한 사실](../reference/verified-findings.md) F36). 자식에게 필요한 값은 `OnBeforeChildProcessLaunch`로 붙입니다.
 - `OnRegisterCustomSchemes()`의 사용자 지정 스킴 등록 줄은 주석 처리되어 있습니다.
 - `LoadUrl()`은 호출하는 곳이 없습니다([사용하지 않는 코드와 유산](legacy-code.md)).
 
