@@ -25,7 +25,7 @@ updated: 2026-10-08
 | `set_resources_path(path)` | `CefSettings.resources_dir_path`로 전달. Linux에서는 `icudtl.dat` 위치에 영향이 없습니다. |
 | `offscreen` (속성), `windowless_frame_rate` (속성) | 창 없이 그리는 오프스크린 렌더링(`initialize()` 전에만). [오프스크린 렌더링](offscreen-rendering.md) |
 | `add_command_line_switch(name, value="")` | Chromium 스위치(브라우저 프로세스에만 적용되고 렌더러 등 자식 프로세스에는 전달되지 않음, F36). 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
-| `set_app_handler(handler)` | 명령줄, 사용자 스킴 등록, 컨텍스트 초기화, 두 번째 시작에 대한 훅(`AppHandler`). `initialize()` 전에만. [앱 핸들러](app-handler.md) |
+| `set_app_handler(handler)` | 명령줄, 사용자 스킴 등록, 컨텍스트 초기화, 두 번째 시작에 대한 훅(`AppHandler`). `initialize()` 전에만. [앱 핸들러](app-handler.md). 같은 훅(`on_context_initialized`)에서 `set_request_context(context)`로 첫 브라우저의 `RequestContext`를 정합니다([F55](verified-findings-handlers.md)) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `devtools_menu` (속성, 읽고 쓰기) | 컨텍스트 메뉴의 "Show DevTools", "Close DevTools", "Inspect Element" 항목. 기본 `False`. 언제든 바꿀 수 있고 이후에 만들어지는 메뉴에 적용됩니다. 켜고 꺼도 사용자 핸들러가 받는 이벤트와 메뉴는 같고 항목만 뒤에 붙습니다 |
 | `add_query_handler(handler, first=False)`, `remove_query_handler(handler) -> bool`, `set_query_functions(query, cancel)` | 페이지의 `window.cefQuery`로 오는 질의를 `QueryHandler`가 받습니다. 자세한 것은 [메시지 라우터](message-router.md) |
@@ -186,7 +186,7 @@ class Drag(cefweaver.DragHandler):
         ...
 ```
 
-`Client.get_drag_handler()`가 `DragHandler`를 돌려주면 드래그 영역 변화를 받습니다(`on_drag_enter`는 `DragData`가 아직 없어서 열리지 않았습니다). 프레임 식별자는 `"5-725574D5..."` 같은 문자열이고, 이름 목록의 순서는 호출마다 같다는 보장이 없습니다(`['inner', '']`와 `['', 'inner']`가 모두 나왔습니다). 시험에서 `srcdoc` iframe을 쓸 때는 `data:` 페이지가 아니라 `add_resource` 페이지에 넣어야 합니다(F27).
+`Client.get_drag_handler()`가 `DragHandler`를 돌려주면 드래그 영역 변화를 받습니다(`on_drag_enter`는 `DragData`와 함께 옵니다, F54). 프레임 식별자는 `"5-725574D5..."` 같은 문자열이고, 이름 목록의 순서는 호출마다 같다는 보장이 없습니다(`['inner', '']`와 `['', 'inner']`가 모두 나왔습니다). 시험에서 `srcdoc` iframe을 쓸 때는 `data:` 페이지가 아니라 `add_resource` 페이지에 넣어야 합니다(F27).
 
 ## 종료 뒤의 객체
 

@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 229개(통합 115, 생성기 113, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 239개(통합 124, 생성기 114, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -60,6 +60,8 @@ updated: 2026-10-08
 | `WithCef` | `test_the_keyboard_handler_sees_key_events_before_the_page`, `test_the_print_handler_sees_the_start_the_settings_and_the_reset` | 오프스크린에서 보낸 키 이벤트가 `on_pre_key_event`로 먼저 옴(`KeyEvent`), `host.print()`의 `on_print_start`, `on_print_settings`(`PrintSettings`), `on_print_reset` |
 | `WithCef` | `test_the_focus_handler_sees_the_focus_of_the_browser`, `test_javascript_dialogs_are_answered_by_the_handler`, `test_the_file_dialog_gets_the_files_from_the_handler`, `test_a_download_is_saved_where_the_handler_says` | `set_focus`가 `on_set_focus`(`FocusSource`)와 `on_got_focus`로 감, `alert`/`confirm`/`prompt`에 핸들러가 답함, 파일 입력을 눌러 핸들러가 고른 파일이 페이지에 들어감, 첨부 파일이 핸들러가 정한 경로에 저장됨 |
 | `WithCef` | `test_binary_values_travel_in_process_messages` | 256가지 바이트가 렌더러를 왕복 |
+| `WithCef` | `test_a_killed_renderer_reaches_the_request_handler_and_cancels_the_queries`, `test_a_ctrl_click_on_a_link_asks_the_handler_before_a_new_tab`, `test_an_external_protocol_reaches_the_resource_request_handler`, `test_a_certificate_error_is_decided_by_the_handler`, `test_the_request_context_handler_is_asked_about_the_requests_of_its_browser` | 렌더러 종료와 질의 취소, Ctrl 클릭의 새 탭 요청, `mailto:`의 프로토콜 실행, 자체 서명 인증서(`openssl`로 만든 로컬 TLS 서버)의 거부와 허용, `set_request_context`로 준 컨텍스트의 핸들러(F55) |
+| `WithCef` | `test_keys_beyond_a_letter_edit_and_move_in_an_offscreen_input`, `test_a_touch_reaches_the_page_as_a_touch_event`, `test_an_ime_composition_becomes_text_in_an_offscreen_input`, `test_the_popup_of_a_select_is_drawn_as_a_second_element` | 편집 키와 수정자와 한글, 터치 이벤트, IME 조합과 확정, `<select>` 팝업의 표시와 크기와 그리기(F55) |
 | `WithCef` | `test_keyboard_events_type_into_an_offscreen_page`, `test_the_handler_gives_the_screen_info_and_the_page_sees_the_scale`, `test_touch_events_and_ime_compositions_are_accepted` | 키 입력이 입력란에 들어감, 화면 정보의 배율이 페이지와 프레임 크기에 반영됨, 터치와 IME 인자가 변환됨 |
 | `WithCef` | `test_on_paint_gives_a_read_only_view_of_the_pixels`, `test_the_view_size_follows_get_view_rect_after_was_resized`, `test_mouse_events_reach_an_offscreen_page`, `test_an_offscreen_browser_blocks_popups_as_java_cef_does` | 오프스크린: 읽기 전용 BGRA 버퍼와 무효화, 크기 변경, 마우스 입력, 팝업 차단, 정상 종료 |
 | `WithCef` | `test_a_process_message_makes_a_round_trip_through_the_renderer` | `cefweaver-ping`이 같은 인자로 `cefweaver-pong`이 되어 돌아옴(`ProcessId.RENDERER`), 보낸 메시지가 무효가 됨, 래퍼의 바인딩이 계속 동작하고 래퍼의 메시지가 사용자에게 가지 않음 |

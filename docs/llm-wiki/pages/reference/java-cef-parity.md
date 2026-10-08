@@ -64,6 +64,12 @@ updated: 2026-10-08
 - **래퍼 고유**: `devtools_menu`, `add_javascript_binding`, `add_resource`는 java-cef에 없는 기능입니다(래퍼에서 온 것).
 - **PostData의 추가, 요청 컨텍스트의 `create_context` 중복 오버로드**(첫 번째만).
 
+## 열지 않고 정리만 하는 것 (java-cef 수준을 넘음)
+
+- **응답 필터**(`CefResponseFilter`, `ResourceRequestHandler.get_resource_response_filter`): java-cef는 구현하지 않습니다.
+- **창 정보로 팝업을 꾸미는 일**(`CefWindowInfo`, `CefBrowserSettings`가 든 `on_before_popup`, `on_before_dev_tools_popup`, `BrowserHost.show_dev_tools`): java-cef도 URL과 프레임 이름만 넘깁니다. 열려면 포인터가 든 구조체 종류가 필요합니다.
+- **브라우저를 여럿 만들기와 브라우저별 요청 컨텍스트**: java-cef는 `createBrowser`에 컨텍스트를 주지만 래퍼는 브라우저를 하나만 만듭니다. 첫 브라우저에 주는 `set_request_context`만 있습니다.
+
 ## 아직 열지 않은 것 (java-cef도 열지 않았거나 해당 없음)
 
 - `CommandLine.init_from_argv`(`char* const*`), `AudioHandler.on_audio_stream_packet`(`float**`): java-cef도 열지 않은 포인터 배열이라 같은 수준(안 엶)에 둡니다.

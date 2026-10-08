@@ -40,11 +40,11 @@ updated: 2026-10-08
 
 - **`DragData.get_file_name()`은 파일 내용이 있는 드래그에서만 부릅니다.** 없을 때 부르면 CEF 안의 `CHECK`가 실패해 프로세스가 죽습니다(F54, CEF의 계약).
 
-- **요청 핸들러의 `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`와 리소스 요청 핸들러의 `on_protocol_execution`은 실행해 보지 못했습니다**(TLS 서버, 렌더러 종료 등이 필요). `get_auth_credentials`, `on_resource_redirect`, `on_resource_response`는 로컬 HTTP 서버로 확인했습니다(F52). 쿠키 접근 필터(`CefCookieAccessFilter`)와 응답 필터는 생성되지 않습니다. `CefRequestContextHandler`는 `CefRequestContext`가 범위 밖이라 없습니다.
+- **요청 핸들러의 `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`와 리소스 요청 핸들러의 `on_protocol_execution`은 실행해서 확인했습니다**([F55](verified-findings-handlers.md)). 응답 필터(`CefResponseFilter`)는 생성하지 않았습니다(java-cef도 구현하지 않음, 열면 java-cef 수준을 넘음).
 
 - **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
 
-- **오프스크린 렌더링에는 GPU 가속 페인트와 팝업 영역 그리기가 없습니다**(`PaintElementType.POPUP`, `on_popup_show`, `on_popup_size`는 생성되어 있지만 시험하지 않았습니다). 시험하지 않은 것: 렌더 핸들러가 없을 때, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과(호출이 받아들여지는지만 확인). `start_dragging`은 열려 있고 시험했습니다(F54). 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
+- **오프스크린 렌더링에는 GPU 가속 페인트가 없습니다.** 팝업 영역 그리기, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과는 확인했습니다([F55](verified-findings-handlers.md)). 시험하지 않은 것: 렌더 핸들러가 없을 때, 한글 조합 중의 밑줄이나 후보 창 위치. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).
 - **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.

@@ -41,6 +41,7 @@ public:
   bool DevToolsMenuEnabled();
   // Offscreen rendering and its frame rate; read when the browser is created.
   void SetOffscreen(bool enabled);
+  void SetRequestContext(CefRefPtr<CefRequestContext> context);
   bool Offscreen();
   void SetWindowlessFrameRate(int frames_per_second);
   int WindowlessFrameRate();

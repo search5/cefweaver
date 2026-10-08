@@ -125,9 +125,12 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   }
 
   Browser = CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,
-                                                extra, nullptr);
+                                                extra, m_RequestContext);
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
+}
+void CefWrapperBrowserProcessHandler::SetRequestContext(CefRefPtr<CefRequestContext> context) {
+  CefWrapperBrowserProcessHandler::GetInstance()->m_RequestContext = context;
 }
 void CefWrapperBrowserProcessHandler::SetStartUrl(std::string url) {
   CefWrapperBrowserProcessHandler::GetInstance()->StartUrl = url;

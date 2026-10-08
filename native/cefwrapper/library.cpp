@@ -211,6 +211,9 @@ void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_sc
   hooks.context = context;
   hooks.relaunch = relaunch;
 }
+void CefWrapper::SetRequestContext(CefRefPtr<CefRequestContext> context) {
+  CefWrapperBrowserProcessHandler::SetRequestContext(context);
+}
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
 bool CefWrapper::Offscreen() { return g_Offscreen.load(); }
 void CefWrapper::SetWindowlessFrameRate(int frames_per_second) {

@@ -513,6 +513,14 @@ cdef class CefApp:
             raise ValueError("the frame rate must be from 1 to 60, not %d" % value)
         self._wrapper.SetWindowlessFrameRate(value)
 
+    def set_request_context(self, RequestContext context):
+        """Use ``context`` (see ``RequestContext.create_context()``) for the first browser, so its
+        ``RequestContextHandler`` is asked about the requests of that browser. Call it from
+        ``AppHandler.on_context_initialized()``, before the browser exists. Returns None."""
+        if self._shut_down:
+            raise RuntimeError("CEF has been shut down")
+        self._wrapper.SetRequestContext(context._ref if context is not None else CefRefPtr[CefRequestContext]())
+
     def cancel_pending_queries(self, Browser browser=None, handler=None):
         """Cancel the pending queries of ``browser`` and/or of ``handler`` (both ``None``: all of
         them). ``QueryHandler.on_query_canceled()`` is called and the page's ``onFailure`` gets

@@ -1957,10 +1957,15 @@ class WithCef(unittest.TestCase):
         size = [200, 100]
         screen = [None]  # a ScreenInfo to give, or None to leave the screen to CEF
         dragged, drag_return = [], [False]  # what start_dragging() got, and what it answers
+        popups = []  # on_popup_show() and on_popup_size() calls
         app.add_javascript_binding("report", lambda *a: js.append(a))
         class Render(cefweaver.RenderHandler):
             def get_view_rect(self, browser):
                 return cefweaver.Rect(0, 0, size[0], size[1])
+            def on_popup_show(self, browser, show):
+                popups.append(("show", show))
+            def on_popup_size(self, browser, rect):
+                popups.append(("size", tuple(rect)))
             def start_dragging(self, browser, drag_data, allowed_ops, x, y):
                 dragged.append((drag_data.get_fragment_text(), drag_data.is_fragment(),
                                 allowed_ops, x, y))
@@ -2043,6 +2048,31 @@ class WithCef(unittest.TestCase):
         local_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), LocalHandler)
         threading.Thread(target=local_server.serve_forever, daemon=True).start()
         BASE = "http://127.0.0.1:%d" % local_server.server_address[1]
+    """
+
+    LOCAL_TLS_SERVER = """
+        import http.server, os, ssl, subprocess, tempfile, threading
+        _folder = tempfile.mkdtemp()
+        _key, _crt = os.path.join(_folder, "key.pem"), os.path.join(_folder, "crt.pem")
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", _key,
+                        "-out", _crt, "-days", "1", "-subj", "/CN=127.0.0.1",
+                        "-addext", "subjectAltName=IP:127.0.0.1"], check=True, capture_output=True)
+        class SecureHandler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+            def do_GET(self):
+                body = b"secure hello"
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+        _context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        _context.load_cert_chain(_crt, _key)
+        secure_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), SecureHandler)
+        secure_server.socket = _context.wrap_socket(secure_server.socket, server_side=True)
+        threading.Thread(target=secure_server.serve_forever, daemon=True).start()
+        SECURE = "https://127.0.0.1:%d" % secure_server.server_address[1]
     """
 
     def run_osr_script(self, body, prelude=""):
@@ -2991,6 +3021,283 @@ class WithCef(unittest.TestCase):
             wait_until(app, lambda: {r[1] for r in js if r[0] == "fail" and r[2] == -1} == {"one", "two"},
                        "the failures of the page")             # onFailure(-1, message)
             assert pending["one"][1].success("late") is False
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    # -- the handlers that were generated and not yet run -----------------------------------
+
+    def test_a_killed_renderer_reaches_the_request_handler_and_cancels_the_queries(self):
+        self.run_query_script("""
+            import os, signal
+            terminated, canceled, pending = [], [], {}
+            class Requests(cefweaver.RequestHandler):
+                def on_render_process_terminated(self, browser, status, error_code, error_string):
+                    terminated.append((status, error_code))
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    pending[query_id] = callback
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            class Client2(MyClient):
+                def get_request_handler(self):
+                    return Requests()
+            MyClient = Client2
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("ask('stay', true)")
+            wait_until(app, lambda: pending, "the query")
+            program = os.path.join(os.path.dirname(cefweaver.__file__), "cefsubprocess")
+            def renderers():
+                found = []
+                for name in os.listdir("/proc"):
+                    if name.isdigit():
+                        try:
+                            command = open("/proc/%s/cmdline" % name, "rb").read()
+                        except OSError:
+                            continue
+                        # (Chromium rewrites the title of its child processes: one string)
+                        if program.encode() in command and b"--type=renderer" in command:
+                            found.append(int(name))
+                return found
+            assert renderers(), "no renderer process"
+            for pid in renderers():
+                os.kill(pid, signal.SIGKILL)
+            wait_until(app, lambda: terminated and canceled, "the end of the renderer")
+            assert terminated[0][0] in (types.TerminationStatus.PROCESS_WAS_KILLED,
+                                        types.TerminationStatus.ABNORMAL_TERMINATION,
+                                        types.TerminationStatus.PROCESS_CRASHED), terminated
+            assert canceled == list(pending), (canceled, pending)    # the router cancelled its query
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_ctrl_click_on_a_link_asks_the_handler_before_a_new_tab(self):
+        self.run_osr_script("""
+            asked = []
+            class Requests(cefweaver.RequestHandler):
+                def on_open_url_from_tab(self, browser, frame, target_url, target_disposition, user_gesture):
+                    asked.append((target_url, target_disposition, user_gesture))
+                    return True                            # the host opens it (or not)
+            handlers["request"] = Requests()
+            start('<a href="http://tab.test/next" style="position:fixed;left:0;top:0;width:200px;'
+                  'height:100px;display:block">go</a>')
+            host = boxes[0].get_host()
+            CTRL = 4                                       # EVENTFLAG_CONTROL_DOWN
+            def click():
+                host.send_mouse_click_event((50, 50, CTRL), types.MouseButtonType.LEFT, False, 1)
+                host.send_mouse_click_event((50, 50, CTRL), types.MouseButtonType.LEFT, True, 1)
+            send_until(app, click, lambda: asked, "the new tab request")
+            url, disposition, gesture = asked[0]
+            assert url == "http://tab.test/next" and gesture is True, asked
+            assert disposition in (types.WindowOpenDisposition.NEW_BACKGROUND_TAB,
+                                   types.WindowOpenDisposition.NEW_FOREGROUND_TAB), disposition
+            assert len(boxes) == 1, boxes                  # nothing opened
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_external_protocol_reaches_the_resource_request_handler(self):
+        self.run_osr_script("""
+            asked = []
+            class Resources(cefweaver.ResourceRequestHandler):
+                def on_protocol_execution(self, browser, frame, request):
+                    asked.append(request.get_url())
+                    return False                           # do not let the OS run a program
+            class Requests(cefweaver.RequestHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                 is_download, request_initiator):
+                    return Resources(), False
+            handlers["request"] = Requests()
+            start('<a href="mailto:someone@example.test" style="position:fixed;left:0;top:0;'
+                  'width:200px;height:100px;display:block">mail</a>')
+            host = boxes[0].get_host()
+            def click():
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, False, 1)
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, True, 1)
+            send_until(app, click, lambda: asked, "the protocol execution")
+            assert asked[0] == "mailto:someone@example.test", asked
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_certificate_error_is_decided_by_the_handler(self):
+        self.run_osr_script(prelude=self.LOCAL_TLS_SERVER, body="""
+            errors, texts, load_errors = [], [], []
+            allow = [False]                                # refuse first: an allowed one is remembered
+            class Requests(cefweaver.RequestHandler):
+                def on_certificate_error(self, browser, cert_error, request_url, callback):
+                    errors.append((cert_error, request_url))
+                    if allow[0]:
+                        callback.continue_()
+                        return True
+                    return False                           # CEF refuses the page
+            class Text(cefweaver.StringVisitor):
+                def visit(self, string):
+                    texts.append(string)
+            handlers["request"] = Requests()
+            start(RED)
+            app.load_url(SECURE + "/refused")
+            wait_until(app, lambda: errors, "the certificate error")
+            error, url = errors[0]
+            assert isinstance(error, types.ErrorCode) and error == types.ErrorCode.CERT_AUTHORITY_INVALID, errors
+            assert url == SECURE + "/refused", url
+            for _ in range(100):
+                app.do_message_loop_work(); time.sleep(0.005)
+            boxes[0].get_main_frame().get_text(Text())
+            wait_until(app, lambda: texts, "the text of the page")
+            assert "secure hello" not in texts[-1], texts             # the page did not load
+            # allowed: the page loads
+            allow[0] = True
+            app.load_url(SECURE + "/allowed")
+            send_until(app, lambda: boxes[0].get_main_frame().get_text(Text()),
+                       lambda: any(t.strip() == "secure hello" for t in texts), "the secure page")
+            assert errors[-1][1] == SECURE + "/allowed", errors
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_request_context_handler_is_asked_about_the_requests_of_its_browser(self):
+        self.run_osr_script(prelude=self.LOCAL_SERVER, body="""
+            asked, loaded = [], []
+            class Resources(cefweaver.ResourceRequestHandler):
+                def on_before_resource_load(self, browser, frame, request, callback):
+                    loaded.append(request.get_url())
+                    return types.ReturnValue.CONTINUE
+            class Contexts(cefweaver.RequestContextHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                is_download, request_initiator):
+                    asked.append((browser is not None, frame is not None, request.get_url(), is_navigation))
+                    return Resources(), False
+            made = []
+            class Hooks(cefweaver.AppHandler):
+                def on_context_initialized(self):
+                    # CEF runs: make a context of its own for the first browser
+                    context = cefweaver.RequestContext.create_context(
+                        types.RequestContextSettings(), Contexts())
+                    app.set_request_context(context)
+                    made.append(context)
+            app.set_app_handler(Hooks())
+            start(RED)
+            assert made and made[0].is_global() is False
+            app.load_url(BASE + "/hello")
+            wait_until(app, lambda: any(a[2] == BASE + "/hello" for a in asked), "the request")
+            entry = [a for a in asked if a[2] == BASE + "/hello"][0]
+            assert entry[:2] == (True, True) and entry[3] is True, asked    # a browser, a frame, a navigation
+            assert BASE + "/hello" in loaded, loaded       # the handler the context gave was used
+            assert boxes[0].get_host().get_request_context().is_same(made[0]) is True
+            app.shutdown()
+            print("OK")
+        """)
+
+    # -- offscreen input beyond one letter, touch, IME, and the popup of a <select> ------------
+
+    def test_keys_beyond_a_letter_edit_and_move_in_an_offscreen_input(self):
+        self.run_osr_script("""
+            KT = types.KeyEventType
+            start('<input id="i" autofocus style="width:150px">'
+                  '<script>var i = document.getElementById("i");'
+                  'i.addEventListener("keydown", e => report("keydown", e.key));'
+                  'i.addEventListener("keyup", e => report("keyup", e.key));</script>')
+            host = boxes[0].get_host()
+            host.set_focus(True)
+            def key(kind, code, char=0, modifiers=0):
+                host.send_key_event(cefweaver.KeyEvent(kind, modifiers, code, 0, 0, char, char, 0))
+            def press(code, char=0, modifiers=0):
+                key(KT.RAWKEYDOWN, code, char, modifiers)
+                if char:
+                    key(KT.CHAR, code, char, modifiers)
+                key(KT.KEYUP, code, char, modifiers)
+            send_until(app, lambda: press(88, 120), lambda: ("keydown", "x") in js, "the focus")  # 'x'
+            def value(expected=None):
+                # the (text, caret) of the input; with `expected`, waits until it is that
+                end = time.time() + 20
+                while True:
+                    del js[:]
+                    app.execute_javascript("report('value', i.value, i.selectionStart)")
+                    wait_until(app, lambda: js, "the value")
+                    if expected is None or js[-1][1:] == expected or time.time() > end:
+                        return js[-1][1:]
+            app.execute_javascript("i.value = ''")
+            for code, char in ((65, 97), (66, 98), (67, 99)):      # a b c
+                press(code, char)
+            assert value(("abc", 3)) == ("abc", 3), value()
+            press(8)                                               # Backspace
+            assert value(("ab", 2)) == ("ab", 2), value()
+            press(37)                                              # ArrowLeft
+            assert value(("ab", 1)) == ("ab", 1), value()
+            press(46)                                              # Delete (after the caret)
+            assert value(("a", 1)) == ("a", 1), value()
+            press(65, 65, 2)                                       # Shift+a: an upper case A
+            assert value(("aA", 2)) == ("aA", 2), value()
+            press(0, 0xac00)                                       # a Korean letter by CHAR only
+            assert value(("aA\uac00", 3)) == ("aA\uac00", 3), value()
+            del js[:]
+            press(13)                                              # Enter reaches the page
+            wait_until(app, lambda: ("keydown", "Enter") in js, "the Enter key")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_touch_reaches_the_page_as_a_touch_event(self):
+        self.run_osr_script("""
+            app.add_command_line_switch("touch-events", "enabled")
+            start('<div style="position:fixed;left:0;top:0;width:200px;height:100px"></div>'
+                  '<script>document.addEventListener("touchstart", e => report("touchstart", e.touches.length));'
+                  'document.addEventListener("touchend", e => report("touchend"));</script>')
+            host = boxes[0].get_host()
+            def touch():
+                point = cefweaver.TouchEvent(1, 50.0, 50.0, 5.0, 5.0, 0.0, 1.0,
+                                             types.TouchEventType.PRESSED, 0, types.PointerType.TOUCH)
+                host.send_touch_event(point)
+                host.send_touch_event(point._replace(type=types.TouchEventType.RELEASED))
+            send_until(app, touch, lambda: ("touchstart", 1) in js, "the touch")
+            wait_until(app, lambda: ("touchend",) in js, "the end of the touch")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_ime_composition_becomes_text_in_an_offscreen_input(self):
+        self.run_osr_script("""
+            start('<input id="i" autofocus style="width:150px">'
+                  '<script>var i = document.getElementById("i");'
+                  '["compositionstart", "compositionupdate", "compositionend"].forEach(n =>'
+                  'i.addEventListener(n, e => report(n, e.data)));</script>')
+            host = boxes[0].get_host()
+            host.set_focus(True)
+            underline = cefweaver.CompositionUnderline(cefweaver.Range(0, 1), 0xFF000000, 0, 0,
+                                                       types.CompositionUnderlineStyle.SOLID)
+            none = cefweaver.Range(0xFFFFFFFF, 0xFFFFFFFF)
+            send_until(app, lambda: host.ime_set_composition("\\uac00", [underline], none, cefweaver.Range(1, 1)),
+                       lambda: ("compositionupdate", "\\uac00") in js, "the composition")
+            host.ime_commit_text("\\uac00\\ub098", none, 0)       # the text replaces the composition
+            wait_until(app, lambda: any(r[0] == "compositionend" for r in js), "the end of the composition")
+            del js[:]
+            app.execute_javascript("report('value', i.value)")
+            wait_until(app, lambda: js, "the value")
+            assert js[-1] == ("value", "\\uac00\\ub098"), js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_popup_of_a_select_is_drawn_as_a_second_element(self):
+        self.run_osr_script("""
+            start('<select id="s" style="position:fixed;left:10px;top:10px;width:120px;height:30px">'
+                  '<option>one</option><option>two</option><option>three</option></select>')
+            host = boxes[0].get_host()
+            def click():
+                host.send_mouse_click_event((40, 25, 0), types.MouseButtonType.LEFT, False, 1)
+                host.send_mouse_click_event((40, 25, 0), types.MouseButtonType.LEFT, True, 1)
+            send_until(app, click, lambda: ("show", True) in popups, "the popup")
+            sizes = [p[1] for p in popups if p[0] == "size"]
+            assert sizes and sizes[-1][2] > 0 and sizes[-1][3] > 0, popups        # a Rect
+            wait_until(app, lambda: any(p["type"] == types.PaintElementType.POPUP for p in paints),
+                       "the paint of the popup")
+            frame = [p for p in paints if p["type"] == types.PaintElementType.POPUP][-1]
+            assert frame["nbytes"] == frame["width"] * frame["height"] * 4, frame
+            assert (frame["width"], frame["height"]) == (sizes[-1][2], sizes[-1][3]), (frame, sizes)
             app.shutdown()
             print("OK")
         """)

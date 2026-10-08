@@ -83,7 +83,7 @@ updated: 2026-10-08
   - `on_before_browse(browser, frame, request, user_gesture, is_redirect)`가 `True`를 돌려주면 그 페이지는 로드되지 않습니다(시작 페이지의 `data:` URL 탐색도 이 핸들러로 옵니다).
   - `get_resource_request_handler(...)`가 `(ResourceRequestHandler, disable_default_handling)`을 돌려주면 그 핸들러의 `on_before_resource_load`가 `ReturnValue.CANCEL`로 하위 리소스(이미지)를 취소하고 페이지의 `onerror`가 불립니다. `on_resource_load_complete`가 `URLRequestStatus.SUCCESS`와 수신 바이트 수를 줍니다.
   - 라우터와 사용자의 요청 핸들러가 함께 있을 때, 사용자가 탐색을 취소(`True`)하면 열린 질의가 취소되지 않고 허용된 탐색에서만 취소됩니다.
-- **확인하지 못함**: `get_auth_credentials`(`AuthCallback`)와 `on_certificate_error`는 서버가 필요해 실행하지 않았습니다. `on_render_process_terminated`, `on_open_url_from_tab`, `on_resource_redirect`, `on_resource_response`, `on_protocol_execution`도 실행하지 않았습니다. `get_cookie_access_filter`는 쿠키 구조체 때문에 생성되지 않습니다.
+- **이후 확인**: `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`, `on_protocol_execution`은 [F55](verified-findings-handlers.md)에서 실행했습니다. 인증과 리다이렉트는 F52입니다. 쿠키 접근 필터는 이후에 생성되었습니다(F51).
 - **영향**: java-cef의 핸들러 13개를 모두 갖추었습니다.
 
 ## F44. 스트림과 ZIP 읽기
@@ -111,7 +111,7 @@ updated: 2026-10-08
 - **결과**:
   - `on_before_popup(browser, frame, target_url, target_frame_name)`가 `True`를 돌려주면 팝업이 취소되고 `window.open`이 `null`이며, `False`면 팝업이 열립니다. 오프스크린 브라우저는 사용자 핸들러를 부르지 않고 막습니다(java-cef와 같음).
   - `on_cursor_change(browser, type)`이 `CursorType` 멤버로 옵니다(`cursor:pointer` 위에서 `HAND`).
-  - `on_certificate_error(browser, cert_error, request_url, callback)`는 `ssl_info` 없이 생성됩니다(실행은 TLS 서버가 필요해 확인하지 않음).
+  - `on_certificate_error(browser, cert_error, request_url, callback)`는 `ssl_info` 없이 생성됩니다(실행은 F55).
 - **발견**: 무시하는 인자도 C++ 쪽에서는 헤더와 똑같이 선언해야 해서(`CefWindowInfo&`, `bool*`, `const CefCursorInfo&`) `Ignored`가 참조, 포인터, const를 보존합니다.
 - **영향**: 바닥의 격차 3개가 메워졌습니다([java-cef 동등성](java-cef-parity.md)).
 
@@ -193,3 +193,4 @@ updated: 2026-10-08
 - [API 계층의 확인](verified-findings-api.md)
 - [알려진 제약과 미검증 항목](known-constraints.md)
 - [java-cef 동등성](java-cef-parity.md)
+- [실행해서 확인한 핸들러 (F55)](verified-findings-handlers.md)

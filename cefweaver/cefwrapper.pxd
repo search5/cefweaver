@@ -9,7 +9,7 @@ from libcpp.string cimport string
 
 from libc.stdint cimport int64_t
 
-from cefweaver.cef_api cimport CefBrowser, CefClient, CefCommandLine, CefFrame, CefRefPtr
+from cefweaver.cef_api cimport CefBrowser, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr
 
 
 cdef extern from "javascript_binding.h":
@@ -79,6 +79,7 @@ cdef extern from "library.h":
         void SetDevToolsMenuEnabled(cpp_bool enabled)
         cpp_bool DevToolsMenuEnabled()
         void SetOffscreen(cpp_bool enabled)
+        void SetRequestContext(CefRefPtr[CefRequestContext] context)
         cpp_bool Offscreen()
         void SetWindowlessFrameRate(int frames_per_second)
         int WindowlessFrameRate()

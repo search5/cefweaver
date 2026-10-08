@@ -20,6 +20,8 @@ public:
   // The client whose handlers get the browser events (empty for none). Set before CEF starts.
   static void SetUserClient(CefRefPtr<CefClient> client);
   static void SetStartUrl(std::string url);
+  // The request context of the first browser (none: the global one). Set before it is created.
+  static void SetRequestContext(CefRefPtr<CefRequestContext> context);
   static void LoadUrl(std::string url);
   CefRefPtr<CefBrowser>Browser;
   CefRefPtr<CefClient> m_UserClient;
@@ -35,6 +37,7 @@ public:
   void OnBeforeChildProcessLaunch(CefRefPtr<CefCommandLine> command_line) override;
 
   std::string StartUrl;
+  CefRefPtr<CefRequestContext> m_RequestContext;
 
   IMPLEMENT_REFCOUNTING(CefWrapperBrowserProcessHandler);
 
