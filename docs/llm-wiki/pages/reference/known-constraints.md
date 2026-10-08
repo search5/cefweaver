@@ -28,6 +28,8 @@ updated: 2026-10-08
 | 서브프로세스 종료 오류의 **원인 메커니즘** | `main`에 `no_stack_protector`를 붙이면 사라지고 순정 `main`에는 검사 자체가 없다는 것만 확인했습니다. "zygote 자식이 스택 보호값이 다른 채 이 프레임으로 돌아온다"는 코드 주석의 설명은 추정입니다. | Chromium의 `ForkWithFlags`/zygote 코드와 TLS의 스택 보호값 처리를 확인 |
 | 핸들러의 **구조체 출력**(`get_root_window_screen_rect`)이 Python에서 | 구조체 입력은 `on_auto_resize`로 Python까지 확인했습니다. 출력은 C++ 프록시를 실행해 확인했고 Cython은 컴파일되지만, CEF가 이 메서드를 오프스크린 렌더링에서만 불러서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링(`CefWindowInfo`의 windowless 설정)으로 브라우저를 만들어 확인 |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
+| Alloy 스타일에서 **네이티브 Wayland** | 시험은 X11(`ozone-platform=x11`)로만 실행했고, Wayland 조사([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md))는 Chrome 스타일 기준입니다. 실제 화면에 창을 여는 일이라 사용자의 허락 없이 실행하지 않았습니다. | Wayland 세션에서 `ozone-platform` 없이 실행해 창이 뜨는지 확인 |
+| **Chrome 스타일 선택 옵션**을 열 때의 위험(옵션은 아직 없고 Alloy만 지원) | (1) 래퍼의 컨텍스트 메뉴 항목("Show DevTools" 등)이 Chrome 스타일에서 동작하는지 시험한 적이 없고, Python에서 메뉴를 열고 항목을 고르는 수단도 없습니다. (2) Chrome 스타일과 외부 메시지 펌프와 부모 창 지정의 조합은 다룬 적이 없습니다. (3) Chrome 스타일은 오프스크린 렌더링을 지원하지 않아서, 오프스크린 옵션을 열 때 조합을 막는 검사가 필요합니다. 수정 범위는 작습니다: 옵션 전달 약 20줄, 스타일 분기 2곳(창 제목과 로드 오류 페이지를 지금은 쓰이지 않는 명령줄 스위치 `enable-chrome-runtime`으로 판단하므로 `GetRuntimeStyle()`로 바꿔야 함), 시험 몇 개. | 선택 옵션을 열 때 두 스타일에서 확인 |
 | 헤더 주석의 한국어 번역 | `cef_origin` 위키에는 1,348개 메서드의 한국어 설명이 있으나 생성 스텁에는 헤더의 영어 주석을 그대로 씁니다. | 생성기가 위키의 `db/ko/*.json`을 읽도록 확장 |
 
 ## 2. 알려진 한계
