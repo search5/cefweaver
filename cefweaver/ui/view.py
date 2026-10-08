@@ -172,6 +172,12 @@ class BrowserView:
             base = self._last_key or dict(modifiers=0, windows_key_code=keys.vk_for_char(text), native_key_code=0)
             self._char(ord(text), base)
         else:
+            self.commit_text(text)
+
+    def commit_text(self, text):
+        """Text an input method committed, always as such (``text()`` makes a key of a single ASCII letter).
+        For a toolkit whose input method also handles the plain keys, like GTK."""
+        if text:
             self.host(lambda h: h.ime_commit_text(text, cefweaver.Range(*_NOTHING), 0))
 
     def preedit(self, text, cursor):
@@ -224,6 +230,7 @@ class BrowserView:
         ``drag_drop`` follow). Without data it is the drag of the page itself, over its own view."""
         data = self._outgoing if self._outgoing is not None else self._drag_data(text, html, url, files)
         self._leaving = False
+        self.drag_operation = types.DragOperationsMask.COPY          # until CEF answers the dragover
         mouse = types.MouseEvent(x, y, 0)
         self.host(lambda h: h.drag_target_drag_enter(data, mouse, operations))
 
@@ -266,8 +273,8 @@ class BrowserView:
 
     # -- drag and drop: out of the view ----------------------------------------------------------------
 
-    def begin_drag(self, data, allowed):
-        """CEF's ``start_dragging``: True if a drag is going on."""
+    def begin_drag(self, data, allowed, x=0, y=0):
+        """CEF's ``start_dragging``: True if a drag is going on. ``x``, ``y``: where the page started it."""
         if "drag_out" not in self.capabilities:
             self._emulated, self._emulated_ops = data, allowed
             x, y = self._position
@@ -276,7 +283,7 @@ class BrowserView:
             return True
         ok, paths = data.get_file_paths() if data.is_file() else (False, [])
         payload = DragPayload(text=data.get_fragment_text(), html=data.get_fragment_html(),
-                              url=data.get_link_url(), files=list(paths) if ok else [], raw=data)
+                              url=data.get_link_url(), files=list(paths) if ok else [], x=x, y=y, raw=data)
         if not (payload.text or payload.html or payload.url or payload.files):
             return False
         self._outgoing = data
@@ -372,7 +379,7 @@ class _Render(cefweaver.RenderHandler):
             self.v.adapter.set_ime_rect(last.x, last.y, last.width, last.height)
 
     def start_dragging(self, browser, drag_data, allowed_ops, x, y):
-        return self.v.begin_drag(drag_data, allowed_ops)
+        return self.v.begin_drag(drag_data, allowed_ops, x, y)
 
     def update_drag_cursor(self, browser, operation):
         self.v.drag_operation = operation

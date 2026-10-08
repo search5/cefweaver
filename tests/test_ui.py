@@ -212,6 +212,11 @@ class Keyboard(unittest.TestCase):
         self.assertEqual([c[0] for c in named(calls, "ime_commit_text")], ["한", "ab"])
         self.assertEqual(named(calls, "ime_commit_text")[0][1], cefweaver.Range(0xFFFFFFFF, 0xFFFFFFFF))
 
+    def test_text_of_an_input_method_is_committed_even_when_it_is_one_ascii_letter(self):
+        view, _, calls = make_view()
+        view.commit_text("a")
+        self.assertEqual([c[0] for c in calls], ["ime_commit_text"])
+
     def test_a_preedit_is_a_composition_and_an_empty_one_cancels_it(self):
         view, _, calls = make_view()
         view.preedit("하", 1)
@@ -413,6 +418,7 @@ class DragOut(unittest.TestCase):
         self.assertTrue(view.client.get_render_handler().start_dragging(None, data, copy, 3, 4))
         payload, allowed = started[0]
         self.assertEqual((payload.text, payload.url, payload.files, allowed), ("t", "http://x/", ["/tmp/a.txt"], copy))
+        self.assertEqual((payload.x, payload.y), (3, 4))                         # where the page started the drag
         self.assertEqual(named(calls, "drag_target_drag_enter"), [])            # the toolkit's drag, not ours
         view.drag_out_finished(7, 8, types.DragOperationsMask.COPY)
         self.assertEqual(named(calls, "drag_source_ended_at"), [(7, 8, types.DragOperationsMask.COPY)])
@@ -488,6 +494,12 @@ class DragIn(unittest.TestCase):
         now[0] = 10.0
         adapter.run_later()
         self.assertEqual(len(named(calls, "drag_target_drop")), 1)
+
+    def test_a_new_drag_starts_with_the_copy_operation(self):
+        view, _, _ = make_view()
+        view.drag_operation = types.DragOperationsMask.MOVE         # what the last drag ended with
+        view.drag_enter(0, 0, self.ops, text="t")
+        self.assertEqual(view.drag_operation, types.DragOperationsMask.COPY)
 
     def test_the_operation_cef_answers_is_visible_to_the_adapter(self):
         view, adapter, _ = make_view()

@@ -34,6 +34,8 @@ class DragPayload:
     html: str = ""
     url: str = ""
     files: list = field(default_factory=list)
+    x: int = 0                  # where in the view the page started the drag
+    y: int = 0
     raw: object = None          # the cefweaver.DragData
 
 
@@ -43,6 +45,9 @@ class ToolkitAdapter(Protocol):
 
     Everything else is optional; an adapter that has the method (and, for the ones that change how the view
     behaves, names the capability in ``capabilities``) gets the feature:
+
+    ``ui.Session`` needs of the toolkit only ``post`` and ``call_later``, so a loop object with these two can
+    start CEF before any widget (and its adapter) exists.
 
     ``set_cursor(cursor_type)``      show the cursor CEF wants (a ``types.CursorType``)
     ``clipboard_get()``, ``clipboard_set(text)``   the toolkit's text clipboard; ``Ctrl+C``, ``Ctrl+X`` and
