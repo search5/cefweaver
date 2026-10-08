@@ -116,6 +116,18 @@ updated: 2026-10-08
 - **기본값 규칙**: 필드의 기본값은 CEF가 정합니다(0, 빈 문자열, `State.DEFAULT`). 앱은 `windowless_frame_rate`가 0이면 `CefApp.windowless_frame_rate`를, 불투명 오프스크린에서 `background_color`의 알파가 0xFF가 아니면 설정의 색(없으면 흰색)을 넣습니다.
 - **창 정보 구조체(`CefWindowInfo`)는 여전히 열지 않았습니다.**
 
+## F65. JavascriptBridge
+
+- **방법**: `JavascriptBridge`로 함수를 노출하고 페이지의 `Promise`, 콜백, `evaluate`를 `report` 바인딩으로 관찰했습니다. 사용법과 동작은 [JavascriptBridge](javascript-bridge.md)에 있습니다.
+- **결과**:
+  - 인자와 반환값에 `None`, 불리언, 정수, 실수(`0.1 + 0.2`가 `0.30000000000000004`), 문자열, 중첩한 목록과 사전이 오갑니다. `Promise.all`도 됩니다. 파이썬 예외는 `ZeroDivisionError: ...`로, JSON이 되지 않는 반환값은 `TypeError: ...`로 `Promise`를 거부합니다.
+  - 페이지의 함수를 인자로 주면 `JsCallback`이 되어 Python이 호출 안에서도, 그 뒤 언제든 부를 수 있습니다. `release()` 뒤에는 페이지에서 불리지 않습니다.
+  - `execute_function`과 `evaluate`는 중첩한 경로(`api.greet`)와 `Promise`를 지원합니다. 문법 오류는 `SyntaxError: Unexpected end of input`으로 돌아옵니다.
+  - `origins`에 없는 URL의 프레임은 `origin not allowed`로 거부되고, 응용 자신의 `cefQuery`는 영향받지 않습니다.
+  - iframe, 둘째 브라우저, **다른 사이트의 프레임(다른 렌더러 프로세스)**에서도 동작합니다. 그 프레임의 `JsCallback.call`이 해당 렌더러로 들어갑니다.
+- **발견(시험으로 고친 것)**: `evaluate`의 오류 문자열에 오류 이름이 없어 `Unexpected end of input`만 왔습니다. 이름을 붙여 `SyntaxError: ...`가 되게 고쳤습니다.
+- **안전**: `origins`를 정하지 않으면 모든 프레임이 노출한 함수를 부를 수 있습니다. 바깥 페이지가 올라올 수 있는 응용은 `origins`를 정해야 합니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

@@ -91,6 +91,22 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_a_javascript_bridge_checks_what_it_exposes(self):
+        app = cefweaver.CefApp()
+        bridge = cefweaver.JavascriptBridge(app)
+        bridge.expose("add", lambda a, b: a + b)
+        with self.assertRaises(TypeError):
+            bridge.expose("x", 3)                                  # not callable
+        for bad in ("bad name", "1x", "", "a.b", "class"):
+            with self.assertRaises(ValueError, msg=bad):
+                bridge.expose(bad, print)
+        with self.assertRaises(ValueError):
+            bridge.expose("add", print)                            # twice
+        with self.assertRaises(TypeError):
+            cefweaver.JavascriptBridge(cefweaver.CefApp(), origins="http://a.test/")   # a list
+        self.assertTrue(callable(cefweaver.JsCallback.call) and callable(cefweaver.JsCallback.release))
+        app.shutdown()
+
     def test_browser_settings_default_to_cefs_choices_and_cannot_change_after_initialize(self):
         types = cefweaver.types
         defaults = types.BrowserSettings()
@@ -3419,6 +3435,202 @@ class WithCef(unittest.TestCase):
                     continue
                 raise AssertionError("accepted %r" % (bad,))
             assert len(boxes) == 1
+            app.shutdown()
+            print("OK")
+        """)
+
+    # -- JSON calls between JavaScript and Python (cefpython's JavascriptBindings) --------------
+
+    BRIDGE_PAGE = """
+        def page_with(script):
+            return ('<script>function show(name) { return function (v) { report(name, JSON.stringify(v)); }; }'
+                    'function fail(name) { return function (e) { report(name, "error: " + e.message); }; }'
+                    + script + '</script>')
+    """
+
+    def test_python_functions_are_called_from_a_page_with_json_values_and_return_promises(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            seen = []
+            bridge.expose("add", lambda a, b: a + b)
+            bridge.expose("describe", lambda value: seen.append(value) or {"got": value, "kinds": [None, True, 1.5, "s"]})
+            bridge.expose("nothing", lambda: None)
+            bridge.expose("boom", lambda: 1 / 0)
+            bridge.expose("opaque", lambda: object())
+            bridge.expose("loud", lambda text: text.upper())
+            start(page_with('''
+                add(1, 2).then(show("add"));
+                describe({a: [1, {b: null}], c: "x", d: true}).then(show("describe"));
+                nothing().then(show("nothing"));
+                boom().catch(fail("boom"));
+                opaque().catch(fail("opaque"));
+                loud("hi").then(show("loud"));
+                add(0.1, 0.2).then(show("float"));
+                add("a", "b").then(show("strings"));
+                Promise.all([add(1, 1), add(2, 2)]).then(show("all"));
+            '''))
+            def got(name):
+                return [r[1] for r in js if r[0] == name]
+            wait_until(app, lambda: all(got(n) for n in ("add", "describe", "nothing", "boom", "opaque",
+                                                         "loud", "float", "strings", "all")), "every answer")
+            assert got("add") == ["3"], js
+            assert got("describe") == ['{"got":{"a":[1,{"b":null}],"c":"x","d":true},"kinds":[null,true,1.5,"s"]}'], got("describe")
+            assert seen == [{"a": [1, {"b": None}], "c": "x", "d": True}], seen
+            assert got("nothing") == ["null"], got("nothing")
+            assert got("boom")[0].startswith("error: ") and "ZeroDivisionError" in got("boom")[0], got("boom")
+            assert got("opaque")[0].startswith("error: ") and "TypeError" in got("opaque")[0], got("opaque")
+            assert got("loud") == ['"HI"'], got("loud")
+            assert got("float") == ["0.30000000000000004"] and got("strings") == ['"ab"'], (got("float"), got("strings"))
+            assert got("all") == ["[2,4]"], got("all")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_function_of_the_page_given_to_python_can_be_called_back(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            held = []
+            def subscribe(callback, label):
+                assert isinstance(callback, cefweaver.JsCallback)
+                held.append(callback)
+                callback.call("first", {"n": 1})              # from inside the call: the page gets it too
+                return "subscribed " + label
+            bridge.expose("subscribe", subscribe)
+            start(page_with('''
+                subscribe(function (a, b) { report("callback", JSON.stringify([a, b])); }, "x").then(show("answer"));
+            '''))
+            wait_until(app, lambda: held and any(r[0] == "answer" for r in js), "the subscription")
+            wait_until(app, lambda: ("callback", '["first",{"n":1}]') in js, "the first call back")
+            held[0].call("later", [1, 2])                     # any time after, with several kinds of value
+            wait_until(app, lambda: ("callback", '["later",[1,2]]') in js, "the later call back")
+            held[0].release()                                 # the page forgets the function
+            del js[:]
+            held[0].call("after the release")
+            for _ in range(50):
+                app.do_message_loop_work(); time.sleep(0.01)
+            assert not any(r[0] == "callback" for r in js), js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_python_calls_a_function_of_the_page_and_evaluates_expressions(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            bridge.expose("ready", lambda: True)
+            start(page_with('''
+                window.double = function (x) { report("double called", JSON.stringify(x)); return x * 2; };
+                window.api = {greet: function (name, extra) { report("greet", name + JSON.stringify(extra)); }};
+                window.later = function () { return new Promise(function (r) { setTimeout(function () { r({done: [1, 2]}); }, 100); }); };
+                ready();
+            '''))
+            wait_until(app, lambda: boxes, "the browser")
+            frame = boxes[0].get_main_frame()
+            bridge.execute_function(frame, "api.greet", "Ada", {"k": [1, None]})   # no answer wanted
+            wait_until(app, lambda: ("greet", 'Ada{"k":[1,null]}') in js, "greet")
+            results = []
+            bridge.evaluate(frame, "double(21)", lambda value, error: results.append(("double", value, error)))
+            bridge.evaluate(frame, "later()", lambda value, error: results.append(("later", value, error)))
+            bridge.evaluate(frame, "1 +", lambda value, error: results.append(("syntax", value, error)))
+            bridge.evaluate(frame, "undefined", lambda value, error: results.append(("undefined", value, error)))
+            bridge.evaluate(frame, "({a: [1, 2], b: 'x'})", lambda value, error: results.append(("object", value, error)))
+            wait_until(app, lambda: len(results) == 5, "five results")
+            by_name = {r[0]: r for r in results}
+            assert by_name["double"] == ("double", 42, None), by_name
+            assert by_name["later"] == ("later", {"done": [1, 2]}, None), by_name       # a promise is awaited
+            assert by_name["syntax"][1] is None and "SyntaxError" in by_name["syntax"][2], by_name
+            assert by_name["undefined"] == ("undefined", None, None), by_name
+            assert by_name["object"] == ("object", {"a": [1, 2], "b": "x"}, None), by_name
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_bridge_answers_only_the_origins_it_was_given_and_leaves_other_queries_alone(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app, origins=["http://allowed.test/"])
+            frames = []
+            bridge.expose("whoami", lambda frame, tag: frames.append((frame.is_main(), frame.get_url(), tag)) or "ok",
+                          with_frame=True)
+            plain = []
+            class Mine(cefweaver.QueryHandler):                 # the application's own queries still work
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    plain.append(request)
+                    callback.success("mine:" + request)
+                    return True
+            app.add_query_handler(Mine())
+            start("")
+            PAGE = page_with('''
+                whoami("a").then(show("whoami"), fail("whoami"));
+                window.cefQuery({request: "plain", onSuccess: show("plain"), onFailure: fail("plain")});
+            ''')
+            app.add_resource("http://allowed.test/", PAGE)
+            app.add_resource("http://denied.test/", PAGE)
+            app.load_url("http://allowed.test/")
+            wait_until(app, lambda: any(r[0] == "whoami" for r in js) and any(r[0] == "plain" for r in js), "allowed")
+            assert ("whoami", '"ok"') in js and ("plain", '"mine:plain"') in js, js
+            assert frames == [(True, "http://allowed.test/", "a")], frames
+            del js[:]
+            app.load_url("http://denied.test/")
+            wait_until(app, lambda: any(r[0] == "whoami" for r in js) and any(r[0] == "plain" for r in js), "denied")
+            denied = [r[1] for r in js if r[0] == "whoami"][0]
+            assert denied.startswith("error: ") and "origin" in denied, denied
+            assert ("plain", '"mine:plain"') in js and len(frames) == 1, (js, frames)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_bridge_works_in_an_iframe_and_in_every_browser(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            who = []
+            bridge.expose("who", lambda frame, label: who.append((label, frame.is_main())) or label, with_frame=True)
+            start("")
+            CHILD = page_with('who("child").then(show("child"))')
+            MAIN = page_with('who("main").then(show("main"))') + '<iframe src="http://one.test/child"></iframe>'
+            app.add_resource("http://one.test/", MAIN)
+            app.add_resource("http://one.test/child", CHILD)
+            app.load_url("http://one.test/")
+            wait_until(app, lambda: ("main", '"main"') in js and ("child", '"child"') in js, "main and iframe")
+            assert ("main", True) in who and ("child", False) in who, who
+            second = app.create_browser(page(page_with('who("second").then(show("second"))')))
+            wait_until(app, lambda: ("second", '"second"') in js, "the second browser")
+            assert ("second", True) in who, who
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_bridge_works_in_a_frame_of_another_site_with_a_renderer_of_its_own(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE + """
+        import http.server, threading
+        def serve(pages):
+            class PageHandler(http.server.BaseHTTPRequestHandler):
+                def log_message(self, *args):
+                    pass
+                def do_GET(self):
+                    body = pages.get(self.path, "").encode()
+                    self.send_response(200 if self.path in pages else 404)
+                    self.send_header("Content-Type", "text/html")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+            server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), PageHandler)
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            return server.server_address[1]
+        """, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            who = []
+            bridge.expose("who", lambda frame, label: who.append((label, frame.is_main(), frame.get_url())) or label,
+                          with_frame=True)
+            callbacks = []
+            bridge.expose("hand", lambda callback: callbacks.append(callback) or True)
+            child_port = serve({"/child": page_with('who("child").then(show("child")); hand(function (v) { report("called", v); });')})
+            child_url = "http://localhost:%d/child" % child_port          # another site than 127.0.0.1
+            main_port = serve({"/main": page_with('who("main").then(show("main"))') + '<iframe src="%s"></iframe>' % child_url})
+            start("")
+            app.load_url("http://127.0.0.1:%d/main" % main_port)
+            wait_until(app, lambda: ("main", '"main"') in js and ("child", '"child"') in js and callbacks, "both frames")
+            assert ("child", False, child_url) in who, who
+            callbacks[0].call("from python")                           # into the frame of the other renderer
+            wait_until(app, lambda: ("called", "from python") in js, "the callback of the other frame")
             app.shutdown()
             print("OK")
         """)

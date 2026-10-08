@@ -97,6 +97,7 @@ cdef extern from "library.h":
         void SetWindowlessFrameRate(int frames_per_second)
         int WindowlessFrameRate()
         void SetQueryFunctions(string query, string cancel)
+        void SetBridgeNames(string json)
         cpp_bool AddQueryHandler(PythonQueryHandler* handler, cpp_bool first)
         cpp_bool RemoveQueryHandler(PythonQueryHandler* handler)
         cpp_bool QueryRouterExists()

@@ -79,6 +79,7 @@ depends = [
     "native/cefwrapper/library.h",
     "native/cefwrapper/javascript_binding.h",
     "native/cefwrapper/query_router.h",
+    "native/cefwrapper/bridge.h",
     "native/cefwrapper/app_hooks.h",
     "build/native/native/cefwrapper/libcefwrapper.a",
     "build/native/libcef_dll_wrapper/libcef_dll_wrapper.a",

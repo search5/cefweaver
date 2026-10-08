@@ -60,6 +60,10 @@ C++에는 함수 포인터 `void()`를 받는 `AddJavascriptBinding`과 메시�
 
 렌더러 쪽 핸들러(`javascript_bindings_handler.h`, `javascript_python_binding_handler.h`)는 호출을 **호출한 프레임**에서 브라우저 프로세스로 보냅니다(`CefV8Context::GetCurrentContext()->GetFrame()`). 교차 사이트 iframe은 다른 렌더러 프로세스에 있고, 그 프로세스에서는 메인 프레임이 원격 프레임이라 `browser->GetMainFrame()`이 널이므로 메인 프레임으로 보내면 렌더러가 죽습니다(F57, [검증](../reference/verified-findings-handlers.md)). 컨텍스트에서 프레임을 얻지 못할 때만 메인 프레임으로 되돌아갑니다.
 
+## 더 풍부한 통신
+
+목록, 사전, `None`, 반환값(`Promise`), 페이지 함수의 콜백이 필요하면 [JavascriptBridge](../reference/javascript-bridge.md)를 씁니다. 렌더러에 Python을 두지 않고 메시지 라우터 위의 JSON으로 합니다.
+
 ## 관련 페이지
 
 - [프로세스 모델과 스레드](process-model-and-threads.md)

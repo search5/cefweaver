@@ -63,6 +63,8 @@ public:
   // InitCefSimple(); a handler can be added before it (and, once CEF runs, at any time) only
   // if it was added before, because the renderer learns about the router at startup.
   void SetQueryFunctions(std::string query, std::string cancel);
+  // The names JavascriptBridge exposes, as a JSON array (before InitCefSimple()).
+  void SetBridgeNames(std::string json);
   bool AddQueryHandler(PythonQueryHandler* handler, bool first);
   bool RemoveQueryHandler(PythonQueryHandler* handler);
   bool QueryRouterExists();

@@ -63,6 +63,7 @@ updated: 2026-10-08
 - **시간, 헤더 맵**: `datetime`(마이크로초)과 `dict`(java-cef는 `Date` 밀리초, `Map`).
 - **래퍼 고유**: `devtools_menu`, `add_javascript_binding`, `add_resource`는 java-cef에 없는 기능입니다(래퍼에서 온 것).
 - **PostData의 추가, 요청 컨텍스트의 `create_context` 중복 오버로드**(첫 번째만).
+- **`JavascriptBridge`**(JSON으로 함수를 노출하고 `Promise`와 콜백, `evaluate`): cefpython의 `JavascriptBindings`에 해당하며 java-cef에는 없습니다([JavascriptBridge](javascript-bridge.md)).
 - **메시지 펌프 예약과 스레드 작업**(`on_schedule_message_pump_work`, `MessagePump`, `Task`와 `post_task` 등 함수 3개): cefpython에는 있고 java-cef에는 없습니다. GUI 툴킷에 넣기 위해 열었습니다([F62](verified-findings-handlers.md), F63).
 
 ## JNI 목록 밖의 격차 (2026-10-08 점검)

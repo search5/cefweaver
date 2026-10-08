@@ -560,6 +560,11 @@ cdef class CefApp:
         self._require_not_initialized()
         self._wrapper.SetQueryFunctions(_utf8(query), _utf8(cancel))
 
+    def _set_bridge_names(self, names):
+        """The names ``JavascriptBridge`` exposes, a JSON array (``cefweaver/bridge.py``)."""
+        self._require_not_initialized()
+        self._wrapper.SetBridgeNames(_utf8(names))
+
     def add_query_handler(self, handler, first=False):
         """Let a ``QueryHandler`` answer the queries of pages (``window.cefQuery``).
 

@@ -263,3 +263,7 @@
 
 - 사용자의 요청으로 "CEF의 한계"로 보이는 항목을 래퍼 없이 `cefsimple`(두 스타일)과 CEF 소스로 검증하고 [방법과 결과](pages/procedures/verify-cef-limits.md)를 적었습니다. 글꼴 크기의 되돌림, `default_encoding` 미반영은 CEF의 한계로 확인했고, `data:` 이미지는 Blink의 동작, 밑줄 색은 CEF가 전달하나 그리지 않는 쪽은 미확인, 인증서 허용 기억은 Chromium의 동작으로 정정했습니다.
 - 같은 점검에서 `DragData.get_file_name()`의 서술을 "CEF 안의 CHECK"에서 "CEF가 확인 없이 Chromium의 함수를 부름"으로 고쳤습니다(소스 확인). `srcdoc` iframe(F27)은 `cefsimple`로, `icudtl.dat` 위치는 시험으로 이미 검증되어 있었습니다.
+
+## [2026-10-08] ingest | JavascriptBridge (F65)
+
+- `cefweaver.JavascriptBridge`, `JsCallback`을 더했습니다. 렌더러에 Python을 두지 않고 렌더러의 C++가 고정된 JS 조각만 실행해 `window.<이름>`을 정의하고, 호출은 메시지 라우터의 JSON 질의로 갑니다. 4번(cefpython의 풍부한 JS 통신)이 끝났습니다.

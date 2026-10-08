@@ -8,6 +8,7 @@
 #include "global_vars.h"
 #include "query_router.h"
 #include "app_hooks.h"
+#include "bridge.h"
 
 CefWrapperBrowserProcessHandler::CefWrapperBrowserProcessHandler() = default;
 
@@ -16,6 +17,9 @@ void CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch(
   const std::string schemes = CustomSchemesSwitchValue();
   if (!schemes.empty()) {
     command_line->AppendSwitchWithValue(kCustomSchemesSwitch, schemes);
+  }
+  if (!BridgeNames().empty()) {
+    command_line->AppendSwitchWithValue(kBridgeSwitch, BridgeNames());
   }
   if (QueryRouter::HasHandlers()) {
     command_line->AppendSwitchWithValue(kQueryFunctionSwitch, QueryRouter::QueryFunction());

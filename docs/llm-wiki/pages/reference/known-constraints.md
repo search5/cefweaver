@@ -58,7 +58,7 @@ updated: 2026-10-08
 - **Python에 열린 핸들러**는 java-cef가 구현하는 13개(컨텍스트 메뉴, 대화상자, 표시, 다운로드, 드래그, 포커스, JS 대화상자, 키보드, 수명 주기, 로드, 인쇄, 렌더, 요청)와 리소스 요청 핸들러, 쿠키 접근 필터, 요청 컨텍스트 핸들러입니다. 오디오, 명령, 찾기, 프레임, 권한 핸들러는 java-cef도 구현하지 않아 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.
-- **JS 값은 네 종류만**(정수, 불리언, 실수, 문자열) 전달되고 반환값은 없습니다. 인자 없는 C++ 바인딩 경로는 Python에 노출하지 않았습니다.
+- **`add_javascript_binding`의 JS 값은 네 종류만**(정수, 불리언, 실수, 문자열) 전달되고 반환값은 없습니다. 목록, 사전, 반환값, 콜백은 [JavascriptBridge](javascript-bridge.md)가 합니다. 인자 없는 C++ 바인딩 경로는 Python에 노출하지 않았습니다.
 - `Browser` 전역 참조(`CefWrapperBrowserProcessHandler::Browser`)와 `g_IsRunning`은 동기화되어 있지 않습니다. 다른 Python 스레드에서 `load_url`/`execute_javascript`를 부를 수는 있지만(CEF 쪽 `CefFrame`은 어느 스레드든 가능) 이 전역을 보호하지는 않습니다.
 - `CefWrapper::IsReadyToExecuteJavascript()`는 `CefWrapperClientHandler::GetInstance()`의 널을 확인하지 않습니다. Python 래퍼가 상태로 먼저 거릅니다.
 - `resources_dir_path` 설정은 Linux에서 `icudtl.dat` 위치에 영향이 없습니다. 런타임 파일은 `libcef.so`와 같은 디렉터리여야 합니다([런타임 파일 배치](../concepts/runtime-layout.md)).

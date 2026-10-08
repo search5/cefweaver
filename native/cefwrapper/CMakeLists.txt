@@ -25,6 +25,7 @@ set(CEFSIMPLE_SRCS
         app_hooks.h
         query_router.cc
         query_router.h
+        bridge.h
         custom_protocol_scheme_handler.h
         custom_protocol_scheme_handler.cc
         file_util.h)

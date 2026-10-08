@@ -7,6 +7,7 @@
 #include "javascript_python_binding_handler.h"
 #include "include/cef_command_line.h"
 #include "query_router.h"
+#include "bridge.h"
 
 CefRefPtr<CefMessageRouterRendererSide> SimpleRenderProcessHandler::GetQueryRouter() {
   if (!m_QueryRouterChecked) {
@@ -113,6 +114,20 @@ void SimpleRenderProcessHandler::OnContextCreated(
 
     if (CefRefPtr<CefMessageRouterRendererSide> router = GetQueryRouter()) {
         router->OnContextCreated(browser, frame, context);
+    }
+
+    // The functions Python exposes (cefweaver.JavascriptBridge): after the router, whose
+    // query function they use.
+    CefRefPtr<CefCommandLine> line = CefCommandLine::GetGlobalCommandLine();
+    if (line && line->HasSwitch(kBridgeSwitch) && line->HasSwitch(kQueryFunctionSwitch)) {
+        // The names are identifiers checked in Python and the query function is quoted as
+        // JSON, so neither can end the expression.
+        std::string code = std::string("(") + kBridgeShim + ")(" +
+                           line->GetSwitchValue(kBridgeSwitch).ToString() + ",\"" +
+                           line->GetSwitchValue(kQueryFunctionSwitch).ToString() + "\");";
+        CefRefPtr<CefV8Value> result;
+        CefRefPtr<CefV8Exception> exception;
+        context->Eval(code, "cefweaver-bridge", 0, result, exception);
     }
 
     if (!m_Javascript_Bindings.empty())

@@ -1,6 +1,7 @@
 #include "library.h"
 
 #include "global_vars.h"
+#include "bridge.h"
 #include "javascript_binding.h"
 #include <filesystem>
 #include <chrono>
@@ -288,6 +289,7 @@ CefRefPtr<CefBrowser> CefWrapper::CreateBrowser(std::string url, int offscreen, 
 }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }
+void CefWrapper::SetBridgeNames(std::string json) { BridgeNames() = json; }
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
 bool CefWrapper::Offscreen() { return g_Offscreen.load(); }
 void CefWrapper::SetWindowlessFrameRate(int frames_per_second) {
