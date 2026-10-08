@@ -113,6 +113,13 @@ CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
                                            url, browser_settings, extra, request_context);
 }
 
+void CefWrapperBrowserProcessHandler::OnScheduleMessagePumpWork(int64_t delay_ms) {
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.schedule) {
+    hooks.schedule(hooks.py, delay_ms);
+  }
+}
+
 void CefWrapperBrowserProcessHandler::OnContextInitialized()
 {
   CEF_REQUIRE_UI_THREAD();

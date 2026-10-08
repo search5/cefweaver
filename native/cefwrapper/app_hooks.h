@@ -27,6 +27,7 @@ class SchemeRegistrarProxy {
 typedef void (*app_command_line_ptr)(void* py, CefRefPtr<CefCommandLine> command_line);
 typedef void (*app_schemes_ptr)(void* py, SchemeRegistrarProxy* registrar);
 typedef void (*app_context_ptr)(void* py);
+typedef void (*app_schedule_ptr)(void* py, long long delay_ms);
 typedef bool (*app_relaunch_ptr)(void* py, CefRefPtr<CefCommandLine> command_line,
                                  const std::string& current_directory);
 
@@ -36,6 +37,7 @@ struct AppHooks {
   app_schemes_ptr schemes = nullptr;
   app_context_ptr context = nullptr;
   app_relaunch_ptr relaunch = nullptr;
+  app_schedule_ptr schedule = nullptr;  // any thread of the browser process
 };
 
 AppHooks& GetAppHooks();

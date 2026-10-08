@@ -259,6 +259,13 @@ class AppHandler:
     def on_context_initialized(self):
         """CEF is ready for browsers (the first browser is created right after this)."""
 
+    def on_schedule_message_pump_work(self, delay_ms):
+        """CEF wants ``do_message_loop_work()`` to run in ``delay_ms`` milliseconds (0: now); with
+        ``CefApp.settings.external_message_pump = True``. Unlike the other methods this one is
+        called on **any thread** of CEF, so it must only note the request and wake the event loop
+        of the application, which then calls ``do_message_loop_work()`` on the thread that called
+        ``initialize()``. Without the setting CEF does not ask and the application polls."""
+
     def on_already_running_app_relaunch(self, command_line, current_directory):
         """A second start of the application with the same user data (the same ``cache_path``)
         reached this one; ``command_line`` is the second one's. Return True if it was handled
@@ -302,6 +309,13 @@ cdef void _app_on_schemes(void* handler, SchemeRegistrarProxy* proxy) noexcept w
 cdef void _app_on_context(void* handler) noexcept with gil:
     try:
         (<object>handler).on_context_initialized()
+    except BaseException:
+        _g_report()
+
+
+cdef void _app_on_schedule(void* handler, long long delay_ms) noexcept with gil:
+    try:
+        (<object>handler).on_schedule_message_pump_work(int(delay_ms))
     except BaseException:
         _g_report()
 
@@ -491,10 +505,10 @@ cdef class CefApp:
             raise TypeError("handler must be an AppHandler, not %s" % type(handler).__name__)
         self._app_handler = handler
         if handler is None:
-            self._wrapper.SetAppHooks(NULL, NULL, NULL, NULL, NULL)
+            self._wrapper.SetAppHooks(NULL, NULL, NULL, NULL, NULL, NULL)
         else:
             self._wrapper.SetAppHooks(<void*>handler, _app_on_command_line, _app_on_schemes,
-                                      _app_on_context, _app_on_relaunch)
+                                      _app_on_context, _app_on_relaunch, _app_on_schedule)
 
     @property
     def devtools_menu(self):

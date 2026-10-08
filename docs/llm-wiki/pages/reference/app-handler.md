@@ -34,14 +34,15 @@ app.set_app_handler(Hooks())                                    # initialize() �
 | `on_before_command_line_processing(process_type, command_line)` | 브라우저 프로세스에서만 불립니다(`process_type`은 `""`, java-cef와 같음). `add_command_line_switch`의 스위치보다 먼저 불려서 거기서 바꾼 것 위에 래퍼의 스위치가 붙습니다. `command_line`은 `CommandLine` 객체입니다. |
 | `on_register_custom_schemes(registrar)` | `SchemeRegistrar.add_custom_scheme(name, options)`는 이 호출 안에서만 유효합니다(그 뒤에는 `RuntimeError`). 등록한 스킴은 기억해 두었다가 자식 프로세스(렌더러)의 명령줄에 `cefweaver-custom-schemes=이름:옵션;...`으로 붙이고(`OnBeforeChildProcessLaunch`), 렌더러의 `OnRegisterCustomSchemes`가 그것으로 같은 스킴을 등록합니다. java-cef는 임시 파일로 같은 일을 합니다. |
 | `on_context_initialized()` | 첫 브라우저를 만들기 직전에 불립니다. |
+| `on_schedule_message_pump_work(delay_ms)` | `settings.external_message_pump = True`일 때 CEF가 `do_message_loop_work()`를 부를 때를 알립니다. **CEF의 어느 스레드에서나** 불리므로 요청을 적어 두고 이벤트 루프를 깨우기만 해야 합니다. 규약(요청이 이전 요청을 대체함, 최대 1/30초의 대비 타이머)은 `cefweaver.MessagePump`가 지킵니다([F62](verified-findings-handlers.md)). |
 | `on_already_running_app_relaunch(command_line, current_directory)` | 같은 사용자 데이터(`cache_path`)로 두 번째 프로세스를 시작하면 첫 프로세스에 두 번째의 명령줄이 옵니다. `True`면 처리한 것입니다. |
 
 `CommandLine`(생성된 클래스)의 메서드는 `append_switch`, `append_switch_with_value`, `append_argument`, `get_switches`(`dict`), `get_arguments`, `get_program`/`set_program`, `has_switch`, `get_switch_value`, `has_switches`, `has_arguments`, `reset`입니다. `get_global_command_line()`으로 이 프로세스의 명령줄을 읽을 수 있습니다.
 
 ## java-cef와 다른 점, 하지 않은 것
 
-- java-cef의 `onScheduleMessagePumpWork`(외부 메시지 펌프), `onBeforeTerminate`, `stateHasChanged`는 없습니다. 우리는 호출하는 쪽이 `do_message_loop_work()`를 부르는 구조이고(CEF의 `external_message_pump`를 켜지 않음) 종료 상태는 `shutdown()`이 다룹니다.
-- 모든 훅은 `initialize()`를 부른 스레드에서 불립니다.
+- java-cef의 `onBeforeTerminate`, `stateHasChanged`는 없습니다(Java 쪽 사정). `onScheduleMessagePumpWork`는 java-cef에는 없고 cefpython에는 있어서 열었습니다(아래).
+- `on_schedule_message_pump_work`를 뺀 모든 훅은 `initialize()`를 부른 스레드에서 불립니다.
 
 ## 제약
 

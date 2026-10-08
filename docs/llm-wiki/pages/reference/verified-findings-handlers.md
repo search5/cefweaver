@@ -84,6 +84,15 @@ updated: 2026-10-08
 - **방법**: `DISPLAY`, `WAYLAND_DISPLAY`, `XDG_SESSION_TYPE`을 지우고 `ozone-platform=headless`로 오프스크린 브라우저를 띄웠습니다.
 - **결과**: X 서버도 Wayland도 없이 그림(`on_paint`), 스크립트 실행, 정상 종료가 모두 동작했습니다. 오프스크린의 픽셀은 창 시스템이 아니라 CEF가 만들어 주므로 창 임베딩(`SetAsChild`)이 필요 없고, Wayland에서 Alloy 창이 죽는 문제(F31)를 피합니다. 네이티브 Wayland(`ozone-platform=wayland`)에서의 오프스크린은 확인하지 않았습니다.
 
+## F62. 메시지 펌프 예약
+
+- **방법**: `settings.external_message_pump = True`와 `AppHandler.on_schedule_message_pump_work`로 CEF의 요청을 받고, 폴링 없이 요청의 기한에만 `do_message_loop_work()`를 불러 페이지를 로드했습니다.
+- **결과**:
+  - 훅은 CEF의 여러 스레드에서 불리고(주 스레드가 아닌 스레드 포함) 지연은 `int`입니다. 설정을 켜지 않으면 불리지 않습니다.
+  - 요청 하나로는 부족했습니다. 처음에 한 번 요청한 뒤 CEF가 더 요청하지 않아 페이지가 로드되지 않았습니다. CEF의 규약은 (1) 새 요청이 이전 요청을 대체하고 (2) 모든 종류의 일이 알려지지는 않으므로 어느 경우에도 1/30초(cefclient의 `kMaxTimerDelay`)보다 오래 기다리지 않는 것입니다.
+  - 이 규약을 `cefweaver.MessagePump`(순수 Python)에 담았습니다. `timeout()`은 다음 실행까지의 초(최대 1/30), `run()`은 기한이 되었으면 `do_message_loop_work()`를 부르고 `True`를 돌려줍니다(재진입 방지, 실행 중에 CEF가 요청하면 그 요청을 잃지 않음). `wake(delay)`는 CEF가 요청할 때마다 어느 스레드에서나 불려 잠든 이벤트 루프를 깨웁니다. 폴링 없이 기한만으로 페이지가 로드되는 것을 5번 확인했습니다.
+- **제약**: `on_schedule_message_pump_work`는 다른 훅과 달리 `initialize()`를 부른 스레드에서 불리지 않으므로 그 안에서 CEF나 툴킷의 객체를 만지면 안 됩니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

@@ -145,6 +145,8 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
     const long long value = entry.second;
     if (name == "log_severity") {
       settings.log_severity = static_cast<cef_log_severity_t>(value);
+    } else if (name == "external_message_pump") {
+      settings.external_message_pump = value != 0;
     } else if (name == "remote_debugging_port") {
       settings.remote_debugging_port = static_cast<int>(value);
     } else if (name == "persist_session_cookies") {
@@ -254,13 +256,15 @@ void CefWrapper::CancelPendingQueries(CefRefPtr<CefBrowser> browser, PythonQuery
   QueryRouter::CancelPending(browser, handler);
 }
 void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
-                             app_context_ptr context, app_relaunch_ptr relaunch) {
+                             app_context_ptr context, app_relaunch_ptr relaunch,
+                             app_schedule_ptr schedule) {
   AppHooks& hooks = GetAppHooks();
   hooks.py = py;
   hooks.command_line = command_line;
   hooks.schemes = schemes;
   hooks.context = context;
   hooks.relaunch = relaunch;
+  hooks.schedule = schedule;
 }
 void CefWrapper::SetRequestContext(CefRefPtr<CefRequestContext> context) {
   CefWrapperBrowserProcessHandler::SetRequestContext(context);

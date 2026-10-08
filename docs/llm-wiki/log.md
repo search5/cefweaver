@@ -246,3 +246,7 @@
 ## [2026-10-08] query | 채워야 할 격차 판단과 헤드리스 오프스크린 (F61)
 
 - 오프스크린이 X 서버와 Wayland 없이 동작함을 확인해 시험으로 고정했습니다(F61). cefpython과의 격차 가운데 채울 것의 순서(메시지 펌프 예약, 스레드 보내기, 브라우저 설정, JS 통신, 가속 페인트)를 [cefpython 비교](pages/analyses/cefpython-comparison.md)에 적었습니다.
+
+## [2026-10-08] ingest | 메시지 펌프 예약 (F62)
+
+- `AppHandler.on_schedule_message_pump_work`, `Settings.external_message_pump`, `cefweaver.MessagePump`를 더했습니다(cefpython에는 있고 java-cef에는 없음). CEF의 규약(대체하는 요청, 1/30초 대비 타이머)을 시험으로 확인하고 `MessagePump`에 담았습니다. 생성기는 `#if CEF_API_ADDED` 멤버를 건너뛰어 `BrowserSettings`를 값 타입으로 만들었습니다.

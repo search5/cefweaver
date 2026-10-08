@@ -48,6 +48,7 @@ class AppHandler:
         """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
     def on_context_initialized(self) -> None:
         """CEF is ready for browsers."""
+    def on_schedule_message_pump_work(self, delay_ms: int) -> None: ...
     def on_already_running_app_relaunch(self, command_line: CommandLine, current_directory: str) -> bool:
         """A second start of the application with the same user data reached this one."""
 

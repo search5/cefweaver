@@ -25,7 +25,7 @@ updated: 2026-10-08
 
 해당이 없어 열지 않은 것:
 
-- `onScheduleMessagePumpWork`, `onBeforeTerminate`, `stateHasChanged`(앱 핸들러): 우리는 호출하는 쪽이 `do_message_loop_work()`를 부르는 구조입니다([앱 핸들러](app-handler.md)).
+- `onBeforeTerminate`, `stateHasChanged`(앱 핸들러): Java 쪽 사정입니다. `onScheduleMessagePumpWork`는 java-cef가 쓰지 않지만 GUI 툴킷에 넣을 때 필요해 열었습니다([앱 핸들러](app-handler.md), [F62](verified-findings-handlers.md)).
 - Java 객체의 관리(`Dispose`)와 AWT 창(`SetParent`, `SetWindowVisibility`, `UpdateUI`, `WindowHandler`, `CreateBrowser`, `CreateDevTools`).
 - java-cef의 `CefMessageRouter`/`CefQueryCallback`에 해당하는 것은 `add_query_handler`, `remove_query_handler`, `cancel_pending_queries`, `QueryCallback`입니다.
 

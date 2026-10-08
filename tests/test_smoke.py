@@ -91,6 +91,69 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_a_message_pump_keeps_the_latest_request_and_a_fall_back_timer(self):
+        import threading
+
+        class Settings:
+            external_message_pump = False
+
+        class FakeApp:
+            def __init__(self):
+                self.settings = Settings()
+                self.handler = None
+                self.pumped = 0
+                self.during = None
+
+            def set_app_handler(self, handler):
+                self.handler = handler
+
+            def do_message_loop_work(self):
+                self.pumped += 1
+                if self.during is not None:
+                    self.handler.on_schedule_message_pump_work(self.during)   # CEF asks while it works
+
+        app = FakeApp()
+        woken = []
+        pump = cefweaver.MessagePump(app, wake=woken.append)
+        self.assertIsInstance(pump, cefweaver.AppHandler)
+        self.assertIs(app.handler, pump)
+        self.assertTrue(app.settings.external_message_pump)        # the setting CEF needs
+        self.assertEqual(pump.timeout(), 0.0)                      # the first pump is due at once
+        self.assertTrue(pump.run())
+        self.assertEqual(app.pumped, 1)
+        self.assertTrue(0 < pump.timeout() <= 1 / 30)              # then the fall-back timer
+        self.assertFalse(pump.run())                               # not due: nothing runs
+        self.assertEqual(app.pumped, 1)
+        pump.on_schedule_message_pump_work(5000)                   # a far request: still within 1/30 s
+        self.assertTrue(pump.timeout() <= 1 / 30)
+        self.assertTrue(woken[-1] <= 1 / 30)
+        pump.on_schedule_message_pump_work(0)                      # a later request replaces it
+        self.assertEqual(pump.timeout(), 0.0)
+        thread = threading.Thread(target=pump.on_schedule_message_pump_work, args=(-3,))
+        thread.start()
+        thread.join()                                              # any thread, a negative delay is now
+        self.assertEqual(pump.timeout(), 0.0)
+        app.during = 0                                             # CEF asks for more work while it runs
+        self.assertTrue(pump.run())
+        self.assertEqual(pump.timeout(), 0.0)                      # and that request is not lost
+        app.during = None
+        self.assertTrue(pump.run())
+        self.assertFalse(pump.run())
+
+    def test_a_message_pump_needs_an_app_that_is_not_started_yet(self):
+        app = cefweaver.CefApp()
+        app.shutdown()
+        pump = cefweaver.MessagePump(app)
+        self.assertTrue(app.settings.external_message_pump)
+        started = cefweaver.CefApp()
+        started.settings._freeze()
+        with self.assertRaises(RuntimeError):
+            cefweaver.MessagePump(started)
+
+    def test_the_app_handler_has_the_message_pump_hook_and_does_nothing_by_default(self):
+        handler = cefweaver.AppHandler()
+        self.assertIsNone(handler.on_schedule_message_pump_work(10))
+
     def test_a_browser_cannot_be_created_before_cef_runs(self):
         app = cefweaver.CefApp()
         with self.assertRaises(RuntimeError):
@@ -123,7 +186,7 @@ class ApiWithoutCef(unittest.TestCase):
         app = cefweaver.CefApp()
         settings = app.settings
         self.assertIsInstance(settings, cefweaver.Settings)
-        names = ("root_cache_path", "user_agent", "user_agent_product", "locale", "log_file", "log_severity",
+        names = ("root_cache_path", "external_message_pump", "user_agent", "user_agent_product", "locale", "log_file", "log_severity",
                  "javascript_flags", "remote_debugging_port", "persist_session_cookies",
                  "command_line_args_disabled", "chrome_policy_id", "uncaught_exception_stack_size",
                  "background_color", "cookieable_schemes_list", "cookieable_schemes_exclude_defaults")
@@ -131,6 +194,7 @@ class ApiWithoutCef(unittest.TestCase):
             self.assertIsNone(getattr(settings, name), name)       # unset: CEF decides
         settings.user_agent = "Agent/1"
         settings.root_cache_path = "/tmp/root"
+        settings.external_message_pump = True
         settings.log_severity = cefweaver.types.LogSeverity.WARNING
         settings.remote_debugging_port = 9222
         settings.persist_session_cookies = True
@@ -3121,6 +3185,66 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+
+    # -- the message pump of an application with an event loop of its own -------------------
+
+    def test_cef_asks_for_message_loop_work_from_any_thread_when_the_application_asks_for_it(self):
+        self.run_osr_script("""
+            import threading
+            main_thread = threading.get_ident()
+            calls = []
+            class Hooks(cefweaver.AppHandler):
+                def on_schedule_message_pump_work(self, delay_ms):      # from any thread of CEF
+                    assert type(delay_ms) is int
+                    calls.append((delay_ms, threading.get_ident()))
+            app.set_app_handler(Hooks())
+            app.settings.external_message_pump = True
+            start(RED)                                       # polling, as before
+            wait_until(app, lambda: len(calls) > 5 and any(t != main_thread for _, t in calls),
+                       "work scheduled from another thread")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_message_pump_runs_cef_by_the_deadlines_cef_gives_and_never_waits_long(self):
+        self.run_osr_script("""
+            import threading
+            woken = threading.Event()
+            pump = cefweaver.MessagePump(app, wake=lambda delay: woken.set())
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize(page(RED + '<script>report("loaded", 1)</script>'))
+            runs, longest = 0, 0.0
+            end = time.time() + 30
+            while ("loaded", 1) not in js:                   # no polling: the deadlines only
+                assert time.time() < end, "the page never loaded"
+                wait = pump.timeout()
+                longest = max(longest, wait)
+                if wait > 0:
+                    woken.wait(wait)                         # a toolkit would sleep in its event loop
+                    woken.clear()
+                if pump.run():
+                    runs += 1
+            assert runs > 0
+            assert longest <= 1 / 30 + 0.005, longest        # the fall-back timer of cefclient: 30 fps
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_cef_does_not_schedule_work_unless_the_application_asks_for_it(self):
+        self.run_osr_script("""
+            calls = []
+            class Hooks(cefweaver.AppHandler):
+                def on_schedule_message_pump_work(self, delay_ms):
+                    calls.append(delay_ms)
+            app.set_app_handler(Hooks())
+            start(RED)                                       # polling, as before
+            for _ in range(100):
+                app.do_message_loop_work(); time.sleep(0.005)
+            assert calls == [], calls
+            app.shutdown()
+            print("OK")
+        """)
 
     # -- the handlers that were generated and not yet run -----------------------------------
 

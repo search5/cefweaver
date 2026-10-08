@@ -11,6 +11,7 @@ from . import types
 
 # name -> (kind, description); the kinds are "str", "bool", "int", "port", "color" and "severity"
 _FIELDS = {
+    "external_message_pump": ("bool", "The application runs the message loop (``do_message_loop_work()``) when ``AppHandler.on_schedule_message_pump_work()`` says so, instead of polling."),
     "root_cache_path": ("str", "The directory of the profile data shared by the caches below it (CEF's ``root_cache_path``). ``set_cache_path()`` must name a directory within it; without that the cache is the root itself."),
     "user_agent": ("str", "The user agent string; it replaces the default one."),
     "user_agent_product": ("str", "The product token of the default user agent, e.g. ``Product/1.2``."),

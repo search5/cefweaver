@@ -34,6 +34,9 @@ public:
   std::vector<JavascriptPythonBinding> m_JavascriptPythonBindings;
   CefRefPtr<CefClient> GetDefaultClient()  override;
   void OnContextInitialized() override;
+  // CEF wants the message loop to run in delay_ms (with the setting external_message_pump);
+  // it may be called on any thread.
+  void OnScheduleMessagePumpWork(int64_t delay_ms) override;
   // A second start of the application (with the same user data) reaches the first one here.
   bool OnAlreadyRunningAppRelaunch(CefRefPtr<CefCommandLine> command_line,
                                    const CefString& current_directory) override;

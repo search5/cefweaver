@@ -53,6 +53,7 @@ cdef extern from "app_hooks.h":
     ctypedef void (*app_command_line_ptr)(void* py, CefRefPtr[CefCommandLine] command_line) noexcept
     ctypedef void (*app_schemes_ptr)(void* py, SchemeRegistrarProxy* registrar) noexcept
     ctypedef void (*app_context_ptr)(void* py) noexcept
+    ctypedef void (*app_schedule_ptr)(void* py, long long delay_ms) noexcept
     ctypedef cpp_bool (*app_relaunch_ptr)(void* py, CefRefPtr[CefCommandLine] command_line,
                                           const string& current_directory) noexcept
 
@@ -99,4 +100,5 @@ cdef extern from "library.h":
         cpp_bool QueryRouterExists()
         void CancelPendingQueries(CefRefPtr[CefBrowser] browser, PythonQueryHandler* handler)
         void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
-                         app_context_ptr context, app_relaunch_ptr relaunch)
+                         app_context_ptr context, app_relaunch_ptr relaunch,
+                         app_schedule_ptr schedule)

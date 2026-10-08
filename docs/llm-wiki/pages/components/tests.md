@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 262개(통합 147, 생성기 114, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 273개(통합 156, 생성기 116, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -61,6 +61,8 @@ updated: 2026-10-08
 | `WithCef` | `test_the_focus_handler_sees_the_focus_of_the_browser`, `test_javascript_dialogs_are_answered_by_the_handler`, `test_the_file_dialog_gets_the_files_from_the_handler`, `test_a_download_is_saved_where_the_handler_says` | `set_focus`가 `on_set_focus`(`FocusSource`)와 `on_got_focus`로 감, `alert`/`confirm`/`prompt`에 핸들러가 답함, 파일 입력을 눌러 핸들러가 고른 파일이 페이지에 들어감, 첨부 파일이 핸들러가 정한 경로에 저장됨 |
 | `WithCef` | `test_binary_values_travel_in_process_messages` | 256가지 바이트가 렌더러를 왕복 |
 | `WithCef` | `test_a_killed_renderer_reaches_the_request_handler_and_cancels_the_queries`, `test_a_ctrl_click_on_a_link_asks_the_handler_before_a_new_tab`, `test_an_external_protocol_reaches_the_resource_request_handler`, `test_a_certificate_error_is_decided_by_the_handler`, `test_the_request_context_handler_is_asked_about_the_requests_of_its_browser` | 렌더러 종료와 질의 취소, Ctrl 클릭의 새 탭 요청, `mailto:`의 프로토콜 실행, 자체 서명 인증서(`openssl`로 만든 로컬 TLS 서버)의 거부와 허용, `set_request_context`로 준 컨텍스트의 핸들러(F55) |
+| `ApiWithoutCef` | `test_the_app_handler_has_the_message_pump_hook_and_does_nothing_by_default`, `test_a_message_pump_keeps_the_latest_request_and_a_fall_back_timer`, `test_a_message_pump_needs_an_app_that_is_not_started_yet` | 훅의 기본 동작, `MessagePump`의 규약(최신 요청이 대체, 대비 타이머, 다른 스레드, 실행 중의 요청 보존, 시작한 앱 거부) |
+| `WithCef` | `test_cef_asks_for_message_loop_work_from_any_thread_when_the_application_asks_for_it`, `test_cef_does_not_schedule_work_unless_the_application_asks_for_it`, `test_a_message_pump_runs_cef_by_the_deadlines_cef_gives_and_never_waits_long` | 설정을 켰을 때만 훅이 여러 스레드에서 불림, `MessagePump`의 기한만으로 페이지 로드(F62) |
 | `ApiWithoutCef` | `test_a_browser_cannot_be_created_before_cef_runs` | CEF가 돌기 전의 `create_browser`는 `RuntimeError` |
 | `WithCef` | `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`, `test_each_browser_has_its_own_transparency`, `test_the_bindings_and_the_router_work_in_every_browser`, `test_closing_one_browser_leaves_the_others_and_the_app_running`, `test_a_browser_can_have_a_request_context_of_its_own`, `test_a_windowed_app_can_create_windowed_and_offscreen_browsers`, `test_create_browser_checks_its_arguments` | 둘째 브라우저의 그림과 투명도, 바인딩과 라우터, 하나를 닫아도 계속 도는 앱과 첫 브라우저의 준비 표시, 브라우저별 요청 컨텍스트, 창과 오프스크린의 혼합, 인자 검사(F60) |
 | `ApiWithoutCef` | `test_the_version_is_known_before_cef_starts_and_matches_the_cef_headers` | `get_version()`이 헤더의 CEF와 Chromium 버전과 같고 `initialize()` 전에도 됨(F59) |
