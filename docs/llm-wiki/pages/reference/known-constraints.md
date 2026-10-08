@@ -42,6 +42,7 @@ updated: 2026-10-08
 - **네이티브 Wayland에서 Alloy 스타일 브라우저가 죽습니다**(`ozone-platform=wayland`, 크래시 지점은 `libcef` 안, F31). 그래서 `DISPLAY`가 있으면 `x11`(XWayland)이 기본입니다. `DISPLAY`가 없는 순수 Wayland 세션은 해결책이 없고(Chromium이 Wayland를 고르면 죽음), `cefsimple`의 Alloy 스타일은 같은 `libcef`에서 살아 있어서 래퍼 쪽 원인일 수 있으나 찾지 못했습니다. GUI 툴킷에 끼워 넣는 일(`parent_window`)은 X11 핸들이라 Wayland에서 어차피 어렵습니다.
 - **CEF 154.0.34의 문제: `data:`나 `about:blank` 페이지의 `<iframe srcdoc>`가 로드를 끝내지 못합니다**(F27). cefweaver의 문제가 아니며(`cefsimple`도 같음) 고칠 수 없습니다. `add_resource`로 페이지를 제공하거나 `src` iframe을 쓰는 우회가 있고, `expectedFailure` 시험이 CEF의 수정을 알려 줍니다.
 - **준비되기 전의 입력은 버려집니다**(`send_mouse_*`, F18). 대기열에 쌓이지 않고 준비를 알리는 신호도 없습니다(첫 프레임 뒤에도 10번 중 1번은 버려졌음). 호출하는 쪽이 도착할 때까지 다시 보내야 합니다.
+- **래퍼의 `OnContextMenuCommand`는 모르는 명령에 `true`를 돌려줍니다**(주석은 "기본 처리를 허용"). CEF의 표준 명령(복사 등)이 실행되지 않을 가능성이 있으나 코드를 읽고 판단한 것이고 실행으로 확인하지 못했습니다([분석](../analyses/sharing-handlers-with-the-wrapper.md)).
 - **Python에 열린 핸들러는 일부**입니다. 표시, 수명 주기, 로드 핸들러는 `set_client()`로 받을 수 있지만, 컨텍스트 메뉴 핸들러와 JavaScript 바인딩 메시지(`OnProcessMessageReceived`)는 `CefWrapperClientHandler`가 고정해서 처리하고 위임하지 않습니다. 나머지 핸들러 15개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.

@@ -82,9 +82,10 @@ updated: 2026-10-08
 
 `CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`), `CefBrowserHost`, 문자열 벡터, 라이브러리 메서드의 출력 인자(`MenuModel`, `Display`), 벡터의 요소 종류 확대(구조체 목록, 객체 목록, 정수 목록, 중첩 구조체)와 `DragHandler`를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-1. 나머지 핸들러를 `CefClient`에 추가합니다. 컨텍스트 메뉴와 프로세스 메시지는 "합치는 방법" 결정이 먼저입니다. `MenuModel`을 열었으므로 컨텍스트 메뉴 핸들러의 `on_before_context_menu(browser, frame, params, model)`에 필요한 `MenuModel`은 준비되었습니다. 오프스크린 렌더링의 `CefRenderHandler.on_paint`는 구조체 목록(`dirty_rects`)은 준비되었고 `const void*` 버퍼(읽기 전용 메모리 뷰)가 남았습니다.
+1. 나머지 핸들러를 `CefClient`에 추가합니다. 프로세스 메시지는 이름으로 나누면 되고, 컨텍스트 메뉴는 항목을 더하는 순서와 ID 충돌의 결정이 필요합니다([래퍼와 사용자가 핸들러를 나눠 쓰는 방법](../analyses/sharing-handlers-with-the-wrapper.md)). `MenuModel`을 열었으므로 컨텍스트 메뉴 핸들러의 `on_before_context_menu(browser, frame, params, model)`에 필요한 `MenuModel`은 준비되었습니다. 오프스크린 렌더링의 `CefRenderHandler.on_paint`는 구조체 목록(`dirty_rects`)은 준비되었고 `const void*` 버퍼(읽기 전용 메모리 뷰)가 남았습니다.
 2. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures`, `CefCompositionUnderline` 등). 벡터의 마지막 장애물(9건)도 대부분 여기에 있습니다.
 3. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).
+4. 네이티브 Wayland에서 Alloy 스타일이 죽는 원인 조사(나중에 하기로 함). 지금은 `DISPLAY`가 있으면 X11을 기본으로 써서 피했을 뿐입니다. 순수 Wayland 세션(`DISPLAY` 없음)과 GUI 툴킷 임베딩에 필요합니다. 첫 실험은 래퍼를 `cefsimple`처럼 `CefRunMessageLoop`으로 돌려 비교하는 것입니다([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)).
 
 확인하지 못한 항목 전체는 [알려진 제약과 미검증 항목](known-constraints.md)에 있습니다.
 
