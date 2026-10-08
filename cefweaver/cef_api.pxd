@@ -29,8 +29,17 @@ cdef extern from "include/internal/cef_string.h":
         string ToString() nogil
 
 ctypedef uint32_t cef_color_t
+cdef extern from *:
+    ctypedef unsigned short char16_t
+
 cdef extern from "include/internal/cef_types.h":
+    ctypedef enum cef_axis_alignment_t:
+        pass
+    ctypedef enum cef_channel_layout_t:
+        pass
     ctypedef enum cef_color_model_t:
+        pass
+    ctypedef enum cef_composition_underline_style_t:
         pass
     ctypedef enum cef_context_menu_edit_state_flags_t:
         pass
@@ -50,6 +59,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_horizontal_alignment_t:
         pass
+    ctypedef enum cef_key_event_type_t:
+        pass
     ctypedef enum cef_log_severity_t:
         pass
     ctypedef enum cef_menu_color_type_t:
@@ -59,6 +70,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_mouse_button_type_t:
         pass
     ctypedef enum cef_paint_element_type_t:
+        pass
+    ctypedef enum cef_pointer_type_t:
         pass
     ctypedef enum cef_process_id_t:
         pass
@@ -74,6 +87,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_text_input_mode_t:
         pass
+    ctypedef enum cef_touch_event_type_t:
+        pass
     ctypedef enum cef_transition_type_t:
         pass
     ctypedef enum cef_value_type_t:
@@ -85,14 +100,35 @@ cdef extern from "include/internal/cef_types.h":
 
 # Value type structs (plain data, copied to and from Python named tuples)
 cdef extern from "include/internal/cef_types_wrappers.h":
+    ctypedef struct cef_insets_t:  # a field that is another struct
+        pass
+    ctypedef struct cef_point_t:  # a field that is another struct
+        pass
+    ctypedef struct cef_range_t:  # a field that is another struct
+        pass
     ctypedef struct cef_rect_t:  # a field that is another struct
         pass
+    cdef cppclass CefAudioParameters:
+        CefAudioParameters()
+        cef_channel_layout_t channel_layout
+        int sample_rate
+        int frames_per_buffer
     cdef cppclass CefInsets:
         CefInsets()
         int top
         int left
         int bottom
         int right
+    cdef cppclass CefKeyEvent:
+        CefKeyEvent()
+        cef_key_event_type_t type
+        uint32_t modifiers
+        int windows_key_code
+        int native_key_code
+        int is_system_key
+        char16_t character
+        char16_t unmodified_character
+        int focus_on_editable_field
     cdef cppclass CefMouseEvent:
         CefMouseEvent()
         int x
@@ -102,6 +138,17 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         CefPoint()
         int x
         int y
+    cdef cppclass CefPopupFeatures:
+        CefPopupFeatures()
+        int x
+        int x_set "xSet"
+        int y
+        int y_set "ySet"
+        int width
+        int width_set "widthSet"
+        int height
+        int height_set "heightSet"
+        int is_popup "isPopup"
     cdef cppclass CefRange:
         CefRange()
         uint32_t from_ "from"
@@ -112,10 +159,58 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int y
         int width
         int height
+    cdef cppclass CefScreenInfo:
+        CefScreenInfo()
+        float device_scale_factor
+        int depth
+        int depth_per_component
+        int is_monochrome
+        cef_rect_t rect
+        cef_rect_t available_rect
     cdef cppclass CefSize:
         CefSize()
         int width
         int height
+    cdef cppclass CefTouchEvent:
+        CefTouchEvent()
+        int id
+        float x
+        float y
+        float radius_x
+        float radius_y
+        float rotation_angle
+        float pressure
+        cef_touch_event_type_t type
+        uint32_t modifiers
+        cef_pointer_type_t pointer_type
+    cdef cppclass CefTouchHandleState:
+        CefTouchHandleState()
+        int touch_handle_id
+        uint32_t flags
+        int enabled
+        cef_horizontal_alignment_t orientation
+        int mirror_vertical
+        int mirror_horizontal
+        cef_point_t origin
+        float alpha
+    cdef cppclass CefBoxLayoutSettings:
+        CefBoxLayoutSettings()
+        int horizontal
+        int inside_border_horizontal_spacing
+        int inside_border_vertical_spacing
+        cef_insets_t inside_border_insets
+        int between_child_spacing
+        cef_axis_alignment_t main_axis_alignment
+        cef_axis_alignment_t cross_axis_alignment
+        int minimum_cross_axis_size
+        int default_flex
+    cdef cppclass CefCompositionUnderline:
+        CefCompositionUnderline()
+        cef_range_t range
+        cef_color_t color
+        cef_color_t background_color
+        int thick
+        cef_composition_underline_style_t style
     cdef cppclass CefDraggableRegion:
         CefDraggableRegion()
         cef_rect_t bounds
@@ -246,13 +341,16 @@ cdef extern from "include/cef_browser.h":
         void NotifyScreenInfoChanged() nogil
         void Invalidate(cef_paint_element_type_t) nogil
         void SendExternalBeginFrame() nogil
+        void SendKeyEvent(const CefKeyEvent&) nogil
         void SendMouseClickEvent(const CefMouseEvent&, cef_mouse_button_type_t, cpp_bool, int) nogil
         void SendMouseMoveEvent(const CefMouseEvent&, cpp_bool) nogil
         void SendMouseWheelEvent(const CefMouseEvent&, int, int) nogil
+        void SendTouchEvent(const CefTouchEvent&) nogil
         void SendCaptureLostEvent() nogil
         void NotifyMoveOrResizeStarted() nogil
         int GetWindowlessFrameRate() nogil
         void SetWindowlessFrameRate(int) nogil
+        void ImeSetComposition(const CefString&, const vector[CefCompositionUnderline]&, const CefRange&, const CefRange&) nogil
         void ImeCommitText(const CefString&, const CefRange&, int) nogil
         void ImeFinishComposingText(cpp_bool) nogil
         void ImeCancelComposition() nogil
@@ -741,10 +839,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_get_root_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
         void (*fn_get_view_rect)(void*, CefBrowser*, CefRect*) noexcept
         cpp_bool (*fn_get_screen_point)(void*, CefBrowser*, int, int, int*, int*) noexcept
+        cpp_bool (*fn_get_screen_info)(void*, CefBrowser*, CefScreenInfo*) noexcept
         void (*fn_on_popup_show)(void*, CefBrowser*, cpp_bool) noexcept
         void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) noexcept
         void (*fn_on_paint)(void*, CefBrowser*, int, const vector[CefRect]*, void*, size_t, int, int) noexcept
         void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) noexcept
+        void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) noexcept
         void (*fn_update_drag_cursor)(void*, CefBrowser*, int) noexcept
         void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) noexcept
         void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const vector[CefRect]*) noexcept

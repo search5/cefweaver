@@ -259,6 +259,19 @@ class ApiWithoutCef(unittest.TestCase):
             with self.assertRaises(ValueError):
                 app.windowless_frame_rate = bad
 
+    def test_the_structs_with_a_size_header_are_public_values(self):
+        for name in ("KeyEvent", "ScreenInfo", "PopupFeatures", "TouchEvent", "TouchHandleState",
+                     "CompositionUnderline"):
+            self.assertIn(name, cefweaver.__all__)
+            self.assertTrue(issubclass(getattr(cefweaver, name), tuple), name)
+        event = cefweaver.KeyEvent(cefweaver.types.KeyEventType.CHAR, 0, 97, 0, 0, 97, 97, 0)
+        self.assertEqual(event.type, cefweaver.types.KeyEventType.CHAR)
+        self.assertEqual(event._fields, (
+            "type", "modifiers", "windows_key_code", "native_key_code", "is_system_key",
+            "character", "unmodified_character", "focus_on_editable_field"))
+        self.assertEqual(cefweaver.PopupFeatures._fields[:4], ("x", "x_set", "y", "y_set"))
+        self.assertEqual(cefweaver.ScreenInfo._fields[-2:], ("rect", "available_rect"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1695,10 +1708,16 @@ class WithCef(unittest.TestCase):
         from cefweaver import types
         paints, boxes, js = [], [], []
         size = [200, 100]
+        screen = [None]  # a ScreenInfo to give, or None to leave the screen to CEF
         app.add_javascript_binding("report", lambda *a: js.append(a))
         class Render(cefweaver.RenderHandler):
             def get_view_rect(self, browser):
                 return cefweaver.Rect(0, 0, size[0], size[1])
+            def get_screen_info(self, browser):
+                if screen[0] is None:
+                    return False, cefweaver.ScreenInfo(1.0, 24, 8, 0, cefweaver.Rect(0, 0, 0, 0),
+                                                       cefweaver.Rect(0, 0, 0, 0))
+                return True, screen[0]
             def on_paint(self, browser, type, dirty_rects, buffer, width, height):
                 try:
                     buffer[0] = 1
@@ -1792,6 +1811,72 @@ class WithCef(unittest.TestCase):
             wait_until(app, lambda: any(r[0] == "popup" for r in js), "the answer")
             assert ("popup", True) in js, js
             assert len(boxes) == 1, boxes
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_keyboard_events_type_into_an_offscreen_page(self):
+        self.run_osr_script("""
+            start('<input id="i" autofocus style="width:150px">'
+                  '<script>document.getElementById("i").addEventListener("keydown",'
+                  'e => report("keydown", e.key));</script>')
+            host = boxes[0].get_host()
+            host.set_focus(True)
+            KT = types.KeyEventType
+            def key(kind, code):
+                return cefweaver.KeyEvent(kind, 0, 65, 0, 0, code, code, 0)
+            def type_a():
+                host.send_key_event(key(KT.RAWKEYDOWN, 97))
+                host.send_key_event(key(KT.CHAR, 97))
+                host.send_key_event(key(KT.KEYUP, 97))
+            send_until(app, type_a, lambda: ("keydown", "a") in js, "the key")
+            app.execute_javascript("report('value', document.getElementById('i').value)")
+            wait_until(app, lambda: any(r[0] == "value" for r in js), "the value")
+            value = [r[1] for r in js if r[0] == "value"][0]
+            assert value and set(value) == {"a"}, value      # one or more 'a' (the keys are resent)
+            try:
+                host.send_key_event("a")
+                raise AssertionError("accepted")
+            except TypeError:
+                pass
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_handler_gives_the_screen_info_and_the_page_sees_the_scale(self):
+        self.run_osr_script("""
+            screen[0] = cefweaver.ScreenInfo(2.0, 24, 8, 0, cefweaver.Rect(0, 0, 200, 100),
+                                             cefweaver.Rect(0, 0, 200, 100))
+            start(RED)
+            app.execute_javascript("report('dpr', window.devicePixelRatio)")
+            wait_until(app, lambda: any(r[0] == "dpr" for r in js), "the scale")
+            assert ("dpr", 2) in js or ("dpr", 2.0) in js, js
+            wait_until(app, lambda: any(p["width"] == 400 for p in paints), "a scaled frame")
+            frame = [p for p in paints if p["width"] == 400][-1]
+            assert (frame["height"], frame["nbytes"]) == (200, 400 * 200 * 4), frame
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_touch_events_and_ime_compositions_are_accepted(self):
+        self.run_osr_script("""
+            start(RED)
+            host = boxes[0].get_host()
+            touch = cefweaver.TouchEvent(1, 10.0, 10.0, 1.0, 1.0, 0.0, 1.0,
+                                         types.TouchEventType.PRESSED, 0, types.PointerType.TOUCH)
+            host.send_touch_event(touch)
+            host.send_touch_event(touch._replace(type=types.TouchEventType.RELEASED))
+            underline = cefweaver.CompositionUnderline(cefweaver.Range(0, 1), 0xFF000000, 0, 0,
+                                                       types.CompositionUnderlineStyle.SOLID)
+            host.ime_set_composition("\\uac00", [underline], cefweaver.Range(0xFFFFFFFF, 0xFFFFFFFF),
+                                     cefweaver.Range(1, 1))
+            host.ime_cancel_composition()
+            try:
+                host.send_touch_event(5)
+                raise AssertionError("accepted")
+            except TypeError:
+                pass
             app.shutdown()
             print("OK")
         """)

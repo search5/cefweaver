@@ -118,6 +118,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **발견(결함, 수정)**: `shutdown()`이 `SIGSEGV`로 죽었습니다. 창이 없는 브라우저는 `CloseBrowser(true)` 안에서 `OnBeforeClose`가 바로 실행되어 `browser_list_`에서 항목이 지워지는데, `CloseAllBrowsers`가 같은 목록을 순회하고 있어 반복자가 무효가 되었습니다. 복사본을 순회하도록 고쳤습니다(창 있는 브라우저는 닫기가 비동기라 드러나지 않았음).
 - **영향**: 오프스크린 렌더링이 열렸습니다([오프스크린 렌더링](offscreen-rendering.md)).
 
+## F39. 구조체 종류의 확대 (키보드, 화면 정보)
+
+- **방법**: `size` 머리와 열거형, `char16_t` 필드가 있는 구조체를 열고 오프스크린 브라우저로 시험했습니다.
+- **결과**:
+  - `KeyEvent`(`RAWKEYDOWN`, `CHAR`, `KEYUP`)를 `send_key_event`로 보내자 입력란에 `a`가 들어가고 페이지의 `keydown`이 `key == "a"`를 받았습니다. 잘못된 인자(`"a"`)는 `TypeError`입니다.
+  - `get_screen_info`가 `(True, ScreenInfo(2.0, ...))`를 돌려주면 페이지의 `window.devicePixelRatio`가 2가 되고 `on_paint`의 크기가 400x200, 길이 `400*200*4`입니다(핸들러의 구조체 출력, 중첩 구조체 `rect`).
+  - `send_touch_event`(구조체에 열거형 둘)와 `ime_set_composition`(`CompositionUnderline`의 벡터, 중첩 `Range`, 열거형 `style`)은 호출이 받아들여지고 정상 종료합니다. 결과는 시험하지 않았습니다.
+- **발견**: `char16_t`는 Cython이 알지 못하는 타입이라 `cdef extern from *: ctypedef unsigned short char16_t`로 알려 주었습니다.
+- **영향**: 구조체 15개가 공개되고 보고서의 타입 지원이 89%에서 90%로 늘었습니다([오프스크린 렌더링](offscreen-rendering.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

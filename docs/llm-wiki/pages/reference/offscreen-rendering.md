@@ -41,7 +41,9 @@ app.set_client(MyClient())
 | `CefApp.windowless_frame_rate` | 1~60(범위 밖은 `ValueError`), 기본 30. `on_paint()` 호출의 초당 상한입니다. |
 | `on_paint(browser, type, dirty_rects, buffer, width, height)` | `type`은 `PaintElementType.VIEW`(본 화면) 또는 `POPUP`, `dirty_rects`는 `Rect`의 목록, `buffer`는 BGRA 32비트 픽셀의 **읽기 전용** `memoryview`(길이 `width * height * 4`)입니다. 호출이 끝나면 뷰가 무효가 되어 `len()` 등이 `ValueError`입니다. |
 | `get_view_rect(browser)` | `Rect`를 돌려줍니다. 크기를 바꾸고 `browser.get_host().was_resized()`를 부르면 새 크기로 다시 그립니다. |
-| 입력 | `BrowserHost.send_mouse_click_event`, `send_mouse_move_event`, `send_mouse_wheel_event`가 동작합니다. |
+| 마우스, 키보드 입력 | `send_mouse_click_event`, `send_mouse_move_event`, `send_mouse_wheel_event`, `send_key_event`(`KeyEvent`: `RAWKEYDOWN`, `CHAR`, `KEYUP`을 차례로 보냄)가 동작합니다. 포커스는 `set_focus(True)`. |
+| `get_screen_info(browser)` | `(True, ScreenInfo)`를 돌려주면 CEF가 `device_scale_factor` 등을 씁니다. 배율 2.0이면 페이지의 `devicePixelRatio`가 2이고 프레임이 `2배` 크기(400x200)로 옵니다. `False`면 CEF의 기본(1.0). |
+| 터치, IME | `send_touch_event(TouchEvent)`, `ime_set_composition(text, [CompositionUnderline], replacement_range, selection_range)`, `ime_cancel_composition()`은 인자가 변환되어 호출됩니다(동작의 결과는 시험하지 않음). |
 
 ## 구현
 
@@ -52,10 +54,10 @@ app.set_client(MyClient())
 
 ## 제약
 
-- **키보드 입력은 아직 없습니다**: `send_key_event`가 쓰는 `CefKeyEvent`는 `size` 머리가 있는 구조체라 생성기가 아직 지원하지 않습니다(알려진 제약).
-- **`get_screen_info`(`CefScreenInfo`), `start_dragging`(`CefDragData`), `on_accelerated_paint`, `on_touch_handle_state_changed`, `get_accessibility_handler`는 생성되지 않습니다**(보고서에 이유가 있음). 화면 정보가 없으면 배율은 CEF의 기본(1.0)입니다. java-cef는 `GetScreenInfo`와 `StartDragging`까지 구현합니다.
+- **`start_dragging`(`CefDragData`), `on_accelerated_paint`(포인터가 있는 구조체), `get_accessibility_handler`는 생성되지 않습니다**(보고서에 이유가 있음). java-cef는 `StartDragging`까지 구현합니다.
 - 렌더 핸들러가 없는 오프스크린 브라우저는 시험하지 않았습니다(`get_view_rect`가 없으면 빈 크기).
 - 팝업(`PaintElementType.POPUP`)의 `on_paint`와 `on_popup_show`, `on_popup_size`는 시험하지 않았습니다(`<select>`의 드롭다운 등).
+- 키보드는 영문 한 글자 입력만 시험했습니다(다른 키, 수정자, 한글 IME의 결과는 시험하지 않음). 터치와 IME는 호출이 받아들여지는지만 확인했습니다.
 - GPU 가속 페인트(`on_accelerated_paint`)는 쓰지 않습니다. CPU 버퍼만 받습니다.
 
 ## 관련 페이지

@@ -38,7 +38,7 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
-- **오프스크린 렌더링에는 키보드 입력이 없고**(`CefKeyEvent` 미지원), `get_screen_info`, `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다. 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
+- **오프스크린 렌더링에는 `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다.** 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).
 - **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.

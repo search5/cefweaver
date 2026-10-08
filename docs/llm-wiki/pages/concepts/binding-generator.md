@@ -52,7 +52,7 @@ report.py       커버리지 보고서
 | `Enum` | `typedef enum { } cef_x_t;`로 선언된 열거형 | `types`의 `IntEnum`/`IntFlag` 멤버(CEF에 줄 때는 `int`도 됨) |
 | `LibRef` | 생성 범위 안의 CEF 구현 클래스의 `CefRefPtr<T>` | 래퍼 객체(널이면 `None`) |
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
-| `Struct` | 필드가 모두 기본형인 값 타입(`CefRect`, `CefPoint`, `CefSize`, `CefInsets`, `CefRange`, `CefMouseEvent`) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
+| `Struct` | 필드가 기본형, 열거형, 다른 구조체인 값 타입(`CefRect`, `CefPoint`, `CefMouseEvent`, `CefKeyEvent`, `CefScreenInfo` 등 15개) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Vector` | `std::vector<T>`. 요소는 문자열, 숫자(`bool` 제외), 값 타입 구조체, 라이브러리 객체(`CefRefPtr<T>`, 출력과 핸들러 입력만) | `list[str]`, `list[int]`, `list[Rect]`, `list[Display]` (라이브러리에 주는 쪽은 아무 시퀀스) |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍, 또는 크기 인자가 없는 `const void*`(`SIZED_BUFFERS` 표의 크기 식) | 쓰기 가능한 `memoryview`, 후자는 읽기 전용 |
 
@@ -75,7 +75,7 @@ report.py       커버리지 보고서
 
 ## 값 타입 구조체
 
-`CefRect`처럼 CEF가 값으로 주고받는 데이터는 헤더에서 읽어 만듭니다. 다른 구조체를 필드로 가진 구조체(`CefDraggableRegion`의 `bounds`는 `CefRect`)도 읽습니다(의존하는 것이 먼저 정의됨). `include/internal/cef_types_wrappers.h`의 `class CefX : public cef_x_t`로 C++ 클래스를 찾고, `cef_x_t`의 선언에서 필드를 읽습니다(`tools/gen/model.py`의 `Model.structs`). 모든 필드가 기본형(`int`, `uint32_t`, `float` 등)일 때만 받아들이고, 포인터, 배열, 열거형, 문자형, 다른 구조체, `size` 머리가 하나라도 있으면 지원하지 않습니다.
+`CefRect`처럼 CEF가 값으로 주고받는 데이터는 헤더에서 읽어 만듭니다. 다른 구조체를 필드로 가진 구조체(`CefDraggableRegion`의 `bounds`는 `CefRect`)도 읽습니다(의존하는 것이 먼저 정의됨). `include/internal/cef_types_wrappers.h`에서 `class CefX : public cef_x_t`, `class CefX : public CefStructBaseSimple<cef_x_t>`, `using CefX = CefStructBaseSimple<cef_x_t>`로 C++ 클래스를 찾고, `cef_x_t`의 선언에서 필드를 읽습니다(`tools/gen/model.py`의 `Model.structs`). 필드는 기본형(`int`, `uint32_t`, `float`, `char16_t` 등), 열거형(Python 열거형이 되고 값은 `int`로 넣을 수 있음), 다른 구조체일 수 있습니다. 맨 앞의 `size_t size`는 C API의 버전 머리라서 필드로 두지 않습니다(C++ 클래스가 채움). 포인터, 배열, 문자열이 하나라도 있으면 지원하지 않습니다(`CefCursorInfo`, `CefCookie` 등).
 
 - Python에서는 `collections.namedtuple`입니다(`Rect(x, y, width, height)`). 예약어인 필드는 밑줄을 붙입니다(`Range.from_`).
 - 입력(`const CefRect&`)은 `Rect` 또는 필드 수가 같은 시퀀스를 받고 아니면 `TypeError`입니다. 핸들러가 받을 때는 `Rect`로, 출력 인자는 핸들러가 `Rect` 또는 튜플로 돌려줍니다.
@@ -96,7 +96,7 @@ report.py       커버리지 보고서
 
 ## 아직 없는 것
 
-- 요소가 평범하지 않은 구조체(`size` 머리)이거나 `CefRawPtr`인 벡터, 라이브러리 메서드에 주는 객체 목록, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(`size` 머리, 열거형 필드가 있는 `CefKeyEvent`, `CefPopupFeatures` 등)
+- `CefRawPtr`인 벡터, 라이브러리 메서드에 주는 객체 목록, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(포인터, 배열, 문자열이 있는 `CefCursorInfo`, `CefAcceleratedPaintInfo`, `CefCookie` 등)
 - 상속 관계가 있는 라이브러리 클래스(부모 클래스가 `CefBaseRefCounted`가 아닌 경우)
 - 라이브러리 메서드의 객체 참조 출력 인자(`CefRefPtr<T>&`), 핸들러 메서드의 구조체 반환과 벡터 출력
 - 헤더 주석의 한국어 번역(`cef_origin` 위키의 설명)을 스텁에 쓰는 일

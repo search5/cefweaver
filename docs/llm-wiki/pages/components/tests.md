@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 153개(통합 74, 생성기 78, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 161개(통합 78, 생성기 82, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -39,6 +39,8 @@ updated: 2026-10-08
 | `WithCef` | `test_a_page_asks_and_the_handler_answers_with_success_or_failure`, `test_a_persistent_query_can_answer_many_times_and_the_page_can_cancel_it`, `test_leaving_the_page_cancels_its_pending_queries`, `test_binary_requests_and_responses`, `test_handlers_are_asked_in_order_and_can_be_removed`, `test_the_names_of_the_query_functions_can_be_changed`, `test_without_a_query_handler_the_page_has_no_query_function`, `test_a_callback_that_is_dropped_without_an_answer_fails_the_query`, `test_the_router_works_with_bindings_and_the_users_process_messages` | 성공, 실패, 나중에 다른 스레드에서 답함, 처리 안 됨(-1), 지속 질의와 취소, 이동으로 취소, `ArrayBuffer` 왕복, 핸들러 순서와 빼기, 함수 이름 바꾸기, 핸들러가 없으면 `cefQuery`가 없음, 버려진 콜백이 질의를 실패시킴, 바인딩 및 사용자 메시지와 공존 |
 | `WithCef` | `test_queries_from_a_frame_know_their_frame_and_only_that_frame_is_canceled`, `test_queries_from_a_popup_browser_and_its_close` | iframe의 질의가 자기 프레임으로 가고 이동하면 그 프레임만 취소됨, 팝업 브라우저의 질의와 닫을 때의 취소, 팝업을 닫은 뒤에도 첫 브라우저가 동작함 |
 | `ApiWithoutCef` | `test_the_offscreen_api_is_public_and_checks_its_arguments` | `RenderHandler`의 공개 여부, `offscreen`과 `windowless_frame_rate`의 기본값과 범위 검사 |
+| `ApiWithoutCef` | `test_the_structs_with_a_size_header_are_public_values` | `KeyEvent`, `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline`의 공개 여부와 필드 이름 |
+| `WithCef` | `test_keyboard_events_type_into_an_offscreen_page`, `test_the_handler_gives_the_screen_info_and_the_page_sees_the_scale`, `test_touch_events_and_ime_compositions_are_accepted` | 키 입력이 입력란에 들어감, 화면 정보의 배율이 페이지와 프레임 크기에 반영됨, 터치와 IME 인자가 변환됨 |
 | `WithCef` | `test_on_paint_gives_a_read_only_view_of_the_pixels`, `test_the_view_size_follows_get_view_rect_after_was_resized`, `test_mouse_events_reach_an_offscreen_page`, `test_an_offscreen_browser_blocks_popups_as_java_cef_does` | 오프스크린: 읽기 전용 BGRA 버퍼와 무효화, 크기 변경, 마우스 입력, 팝업 차단, 정상 종료 |
 | `WithCef` | `test_a_process_message_makes_a_round_trip_through_the_renderer` | `cefweaver-ping`이 같은 인자로 `cefweaver-pong`이 되어 돌아옴(`ProcessId.RENDERER`), 보낸 메시지가 무효가 됨, 래퍼의 바인딩이 계속 동작하고 래퍼의 메시지가 사용자에게 가지 않음 |
 | | `test_a_program_can_open_the_context_menu_and_pick_an_item` | 오른쪽 클릭 주입, 메뉴의 좌표, 사용자 항목의 ID(`USER_FIRST`), 고른 명령이 사용자 핸들러로 옴, 기본은 DevTools 항목 없음 |

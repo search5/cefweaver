@@ -200,13 +200,17 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
     ]
     for name in _used_typedefs(all_plans):
         out.append("ctypedef uint32_t %s" % name)
-    enums = _used_enums(all_plans)
+    if any(f.cpp == "char16_t" for st in all_structs(model).values() for f in st.fields):
+        # C++ has char16_t built in; Cython only needs to know it is an integer.
+        out += ['cdef extern from *:', '    ctypedef unsigned short char16_t', '']
+    structs = all_structs(model)
+    enums = sorted(set(_used_enums(all_plans))
+                   | {f.cpp for s in structs.values() for f in s.fields if f.enum})
     if enums:
         out.append('cdef extern from "include/internal/cef_types.h":')
         out += ["    ctypedef enum %s:" % e + "\n        pass" for e in enums]
         out.append("")
 
-    structs = all_structs(model)
     if structs:
         out.append("# Value type structs (plain data, copied to and from Python named tuples)")
         out.append('cdef extern from "include/internal/cef_types_wrappers.h":')
@@ -364,6 +368,8 @@ def _struct_pxi(struct):
     def from_c(f):
         if f.struct:  # a nested struct: the C struct and its C++ class have the same layout
             return "_g_from_%s(<const %s*>&value.%s)" % (py_class_name(f.struct), f.struct, f.name)
+        if f.enum:
+            return "_g_enum(_types.%s, value.%s)" % (f.py, f.name)
         return "value.%s" % f.name
 
     out = ["cdef inline object _g_from_%s(const %s* value):" % (py, struct.cls),
@@ -379,6 +385,8 @@ def _struct_pxi(struct):
     for f, t in zip(struct.fields, temps):
         if f.struct:
             out.append("    _g_to_%s(%s, <%s*>&out.%s)" % (py_class_name(f.struct), t, f.struct, f.name))
+        elif f.enum:
+            out.append("    out.%s = <%s><int>%s" % (f.name, f.cpp, t))
         else:
             out.append("    out.%s = %s" % (f.name, t))
     out.append("    return 0")

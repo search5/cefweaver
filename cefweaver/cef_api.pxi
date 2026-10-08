@@ -73,7 +73,22 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 # Value type structs: the named tuples are defined in cefweaver/types.py
-from cefweaver.types import Insets, MouseEvent, Point, Range, Rect, Size, DraggableRegion
+from cefweaver.types import AudioParameters, Insets, KeyEvent, MouseEvent, Point, PopupFeatures, Range, Rect, ScreenInfo, Size, TouchEvent, TouchHandleState, BoxLayoutSettings, CompositionUnderline, DraggableRegion
+
+cdef inline object _g_from_AudioParameters(const CefAudioParameters* value):
+    return AudioParameters(_g_enum(_types.ChannelLayout, value.channel_layout), value.sample_rate, value.frames_per_buffer)
+
+
+cdef inline int _g_to_AudioParameters(object obj, CefAudioParameters* out) except -1:
+    try:
+        _f0, _f1, _f2 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a AudioParameters (or a sequence of 3 values), not %r" % (obj,)) from None
+    out.channel_layout = <cef_channel_layout_t><int>_f0
+    out.sample_rate = _f1
+    out.frames_per_buffer = _f2
+    return 0
+
 
 cdef inline object _g_from_Insets(const CefInsets* value):
     return Insets(value.top, value.left, value.bottom, value.right)
@@ -88,6 +103,26 @@ cdef inline int _g_to_Insets(object obj, CefInsets* out) except -1:
     out.left = _f1
     out.bottom = _f2
     out.right = _f3
+    return 0
+
+
+cdef inline object _g_from_KeyEvent(const CefKeyEvent* value):
+    return KeyEvent(_g_enum(_types.KeyEventType, value.type), value.modifiers, value.windows_key_code, value.native_key_code, value.is_system_key, value.character, value.unmodified_character, value.focus_on_editable_field)
+
+
+cdef inline int _g_to_KeyEvent(object obj, CefKeyEvent* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a KeyEvent (or a sequence of 8 values), not %r" % (obj,)) from None
+    out.type = <cef_key_event_type_t><int>_f0
+    out.modifiers = _f1
+    out.windows_key_code = _f2
+    out.native_key_code = _f3
+    out.is_system_key = _f4
+    out.character = _f5
+    out.unmodified_character = _f6
+    out.focus_on_editable_field = _f7
     return 0
 
 
@@ -117,6 +152,27 @@ cdef inline int _g_to_Point(object obj, CefPoint* out) except -1:
         raise TypeError("expected a Point (or a sequence of 2 values), not %r" % (obj,)) from None
     out.x = _f0
     out.y = _f1
+    return 0
+
+
+cdef inline object _g_from_PopupFeatures(const CefPopupFeatures* value):
+    return PopupFeatures(value.x, value.x_set, value.y, value.y_set, value.width, value.width_set, value.height, value.height_set, value.is_popup)
+
+
+cdef inline int _g_to_PopupFeatures(object obj, CefPopupFeatures* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a PopupFeatures (or a sequence of 9 values), not %r" % (obj,)) from None
+    out.x = _f0
+    out.x_set = _f1
+    out.y = _f2
+    out.y_set = _f3
+    out.width = _f4
+    out.width_set = _f5
+    out.height = _f6
+    out.height_set = _f7
+    out.is_popup = _f8
     return 0
 
 
@@ -150,6 +206,24 @@ cdef inline int _g_to_Rect(object obj, CefRect* out) except -1:
     return 0
 
 
+cdef inline object _g_from_ScreenInfo(const CefScreenInfo* value):
+    return ScreenInfo(value.device_scale_factor, value.depth, value.depth_per_component, value.is_monochrome, _g_from_Rect(<const CefRect*>&value.rect), _g_from_Rect(<const CefRect*>&value.available_rect))
+
+
+cdef inline int _g_to_ScreenInfo(object obj, CefScreenInfo* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a ScreenInfo (or a sequence of 6 values), not %r" % (obj,)) from None
+    out.device_scale_factor = _f0
+    out.depth = _f1
+    out.depth_per_component = _f2
+    out.is_monochrome = _f3
+    _g_to_Rect(_f4, <CefRect*>&out.rect)
+    _g_to_Rect(_f5, <CefRect*>&out.available_rect)
+    return 0
+
+
 cdef inline object _g_from_Size(const CefSize* value):
     return Size(value.width, value.height)
 
@@ -161,6 +235,86 @@ cdef inline int _g_to_Size(object obj, CefSize* out) except -1:
         raise TypeError("expected a Size (or a sequence of 2 values), not %r" % (obj,)) from None
     out.width = _f0
     out.height = _f1
+    return 0
+
+
+cdef inline object _g_from_TouchEvent(const CefTouchEvent* value):
+    return TouchEvent(value.id, value.x, value.y, value.radius_x, value.radius_y, value.rotation_angle, value.pressure, _g_enum(_types.TouchEventType, value.type), value.modifiers, _g_enum(_types.PointerType, value.pointer_type))
+
+
+cdef inline int _g_to_TouchEvent(object obj, CefTouchEvent* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8, _f9 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a TouchEvent (or a sequence of 10 values), not %r" % (obj,)) from None
+    out.id = _f0
+    out.x = _f1
+    out.y = _f2
+    out.radius_x = _f3
+    out.radius_y = _f4
+    out.rotation_angle = _f5
+    out.pressure = _f6
+    out.type = <cef_touch_event_type_t><int>_f7
+    out.modifiers = _f8
+    out.pointer_type = <cef_pointer_type_t><int>_f9
+    return 0
+
+
+cdef inline object _g_from_TouchHandleState(const CefTouchHandleState* value):
+    return TouchHandleState(value.touch_handle_id, value.flags, value.enabled, _g_enum(_types.HorizontalAlignment, value.orientation), value.mirror_vertical, value.mirror_horizontal, _g_from_Point(<const CefPoint*>&value.origin), value.alpha)
+
+
+cdef inline int _g_to_TouchHandleState(object obj, CefTouchHandleState* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a TouchHandleState (or a sequence of 8 values), not %r" % (obj,)) from None
+    out.touch_handle_id = _f0
+    out.flags = _f1
+    out.enabled = _f2
+    out.orientation = <cef_horizontal_alignment_t><int>_f3
+    out.mirror_vertical = _f4
+    out.mirror_horizontal = _f5
+    _g_to_Point(_f6, <CefPoint*>&out.origin)
+    out.alpha = _f7
+    return 0
+
+
+cdef inline object _g_from_BoxLayoutSettings(const CefBoxLayoutSettings* value):
+    return BoxLayoutSettings(value.horizontal, value.inside_border_horizontal_spacing, value.inside_border_vertical_spacing, _g_from_Insets(<const CefInsets*>&value.inside_border_insets), value.between_child_spacing, _g_enum(_types.AxisAlignment, value.main_axis_alignment), _g_enum(_types.AxisAlignment, value.cross_axis_alignment), value.minimum_cross_axis_size, value.default_flex)
+
+
+cdef inline int _g_to_BoxLayoutSettings(object obj, CefBoxLayoutSettings* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a BoxLayoutSettings (or a sequence of 9 values), not %r" % (obj,)) from None
+    out.horizontal = _f0
+    out.inside_border_horizontal_spacing = _f1
+    out.inside_border_vertical_spacing = _f2
+    _g_to_Insets(_f3, <CefInsets*>&out.inside_border_insets)
+    out.between_child_spacing = _f4
+    out.main_axis_alignment = <cef_axis_alignment_t><int>_f5
+    out.cross_axis_alignment = <cef_axis_alignment_t><int>_f6
+    out.minimum_cross_axis_size = _f7
+    out.default_flex = _f8
+    return 0
+
+
+cdef inline object _g_from_CompositionUnderline(const CefCompositionUnderline* value):
+    return CompositionUnderline(_g_from_Range(<const CefRange*>&value.range), value.color, value.background_color, value.thick, _g_enum(_types.CompositionUnderlineStyle, value.style))
+
+
+cdef inline int _g_to_CompositionUnderline(object obj, CefCompositionUnderline* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a CompositionUnderline (or a sequence of 5 values), not %r" % (obj,)) from None
+    _g_to_Range(_f0, <CefRange*>&out.range)
+    out.color = _f1
+    out.background_color = _f2
+    out.thick = _f3
+    out.style = <cef_composition_underline_style_t><int>_f4
     return 0
 
 
@@ -179,6 +333,23 @@ cdef inline int _g_to_DraggableRegion(object obj, CefDraggableRegion* out) excep
 
 
 # Lists
+cdef inline list _g_list_CompositionUnderline(const vector[CefCompositionUnderline]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_g_from_CompositionUnderline(&values[0][i]))
+    return result
+
+
+cdef inline int _g_vector_CompositionUnderline(object seq, vector[CefCompositionUnderline]& out) except -1:
+    cdef CefCompositionUnderline item
+    out.clear()
+    for obj in seq:
+        _g_to_CompositionUnderline(obj, &item)
+        out.push_back(item)
+    return 0
+
+
 cdef inline list _g_list_Display(const vector[CefRefPtr[CefDisplay]]* values):
     cdef list result = []
     cdef size_t i
@@ -930,6 +1101,15 @@ cdef class BrowserHost:
             _p.SendExternalBeginFrame()
         return None
 
+    def send_key_event(self, event):
+        """Send a key event to the browser."""
+        cdef CefKeyEvent _a0
+        cdef CefBrowserHost* _p = self._ptr()
+        _g_to_KeyEvent(event, &_a0)
+        with nogil:
+            _p.SendKeyEvent(_a0)
+        return None
+
     def send_mouse_click_event(self, event, int type, bint mouse_up, int click_count):
         """Send a mouse click event to the browser. The |x| and |y| coordinates are
         relative to the upper-left corner of the view.
@@ -965,6 +1145,15 @@ cdef class BrowserHost:
         _g_to_MouseEvent(event, &_a0)
         with nogil:
             _p.SendMouseWheelEvent(_a0, delta_x, delta_y)
+        return None
+
+    def send_touch_event(self, event):
+        """Send a touch event to the browser for a windowless browser."""
+        cdef CefTouchEvent _a0
+        cdef CefBrowserHost* _p = self._ptr()
+        _g_to_TouchEvent(event, &_a0)
+        with nogil:
+            _p.SendTouchEvent(_a0)
         return None
 
     def send_capture_lost_event(self):
@@ -1006,6 +1195,45 @@ cdef class BrowserHost:
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
             _p.SetWindowlessFrameRate(frame_rate)
+        return None
+
+    def ime_set_composition(self, text, underlines, replacement_range, selection_range):
+        """Begins a new composition or updates the existing composition. Blink has a
+        special node (a composition node) that allows the input method to change
+        text without affecting other DOM nodes. |text| is the optional text that
+        will be inserted into the composition node. |underlines| is an optional
+        set of ranges that will be underlined in the resulting text.
+        |replacement_range| is an optional range of the existing text that will be
+        replaced. |selection_range| is an optional range of the resulting text
+        that will be selected after insertion or replacement. The
+        |replacement_range| value is only used on OS X.
+
+        This method may be called multiple times as the composition changes. When
+        the client is done making changes the composition should either be
+        canceled or completed. To cancel the composition call
+        ImeCancelComposition. To complete the composition call either
+        ImeCommitText or ImeFinishComposingText. Completion is usually signaled
+        when:
+
+        1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
+           flag (on Windows), or;
+        2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
+        3. insertText of NSTextInput is called (on Mac).
+
+        This method is only used when window rendering is disabled.
+        """
+        cdef CefString _a0
+        cdef vector[CefCompositionUnderline] _a1
+        cdef CefRange _a2
+        cdef CefRange _a3
+        cdef CefBrowserHost* _p = self._ptr()
+        if text is not None:
+            _a0 = _g_cef(text)
+        _g_vector_CompositionUnderline(underlines, _a1)
+        _g_to_Range(replacement_range, &_a2)
+        _g_to_Range(selection_range, &_a3)
+        with nogil:
+            _p.ImeSetComposition(_a0, _a1, _a2, _a3)
         return None
 
     def ime_commit_text(self, text, replacement_range, int relative_cursor_pos):
@@ -5616,6 +5844,17 @@ class RenderHandler:
         """
         return False, 0, 0
 
+    def get_screen_info(self, browser):
+        """Called to allow the client to fill in the CefScreenInfo object with
+        appropriate values. Return true if the |screen_info| structure has been
+        modified.
+
+        If the screen info rectangle is left empty the rectangle from GetViewRect
+        will be used. If the rectangle is still empty or invalid popups may not be
+        drawn correctly.
+        """
+        return False, ScreenInfo(0.0, 0, 0, 0, 0, 0)
+
     def on_popup_show(self, browser, show):
         """Called when the browser wants to show or hide the popup widget. The popup
         should be shown if |show| is true and hidden if |show| is false.
@@ -5646,6 +5885,12 @@ class RenderHandler:
         |orientation|.
         """
         return Size(0, 0)
+
+    def on_touch_handle_state_changed(self, browser, state):
+        """Called when touch handle state is updated. The client is responsible for
+        rendering the touch handles.
+        """
+        return None
 
     def update_drag_cursor(self, browser, operation):
         """Called when the web view wants to update the mouse cursor during a
@@ -5710,6 +5955,16 @@ cdef cpp_bool _RenderHandler_get_screen_point(void* py, CefBrowser* browser, int
         _g_report()
         return 0
 
+cdef cpp_bool _RenderHandler_get_screen_info(void* py, CefBrowser* browser, CefScreenInfo* screen_info) noexcept with gil:
+    try:
+        _r = (<object>py).get_screen_info(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+        _r0, _r1 = _r
+        _g_to_ScreenInfo(_r1, screen_info)
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 cdef void _RenderHandler_on_popup_show(void* py, CefBrowser* browser, cpp_bool show) noexcept with gil:
     try:
         _r = (<object>py).on_popup_show(_wrap_Browser(CefRefPtr[CefBrowser](browser)), show)
@@ -5740,6 +5995,12 @@ cdef void _RenderHandler_get_touch_handle_size(void* py, CefBrowser* browser, in
         _r = (<object>py).get_touch_handle_size(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.HorizontalAlignment, orientation))
         _r0 = _r
         _g_to_Size(_r0, size)
+    except BaseException:
+        _g_report()
+
+cdef void _RenderHandler_on_touch_handle_state_changed(void* py, CefBrowser* browser, const CefTouchHandleState* state) noexcept with gil:
+    try:
+        _r = (<object>py).on_touch_handle_state_changed(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_from_TouchHandleState(state))
     except BaseException:
         _g_report()
 
@@ -5792,6 +6053,8 @@ cdef CefRefPtr[CefRenderHandler] _g_make_RenderHandler(object obj) except *:
         cb.fn_get_view_rect = _RenderHandler_get_view_rect
     if getattr(cls, "get_screen_point", None) is not RenderHandler.get_screen_point:
         cb.fn_get_screen_point = _RenderHandler_get_screen_point
+    if getattr(cls, "get_screen_info", None) is not RenderHandler.get_screen_info:
+        cb.fn_get_screen_info = _RenderHandler_get_screen_info
     if getattr(cls, "on_popup_show", None) is not RenderHandler.on_popup_show:
         cb.fn_on_popup_show = _RenderHandler_on_popup_show
     if getattr(cls, "on_popup_size", None) is not RenderHandler.on_popup_size:
@@ -5800,6 +6063,8 @@ cdef CefRefPtr[CefRenderHandler] _g_make_RenderHandler(object obj) except *:
         cb.fn_on_paint = _RenderHandler_on_paint
     if getattr(cls, "get_touch_handle_size", None) is not RenderHandler.get_touch_handle_size:
         cb.fn_get_touch_handle_size = _RenderHandler_get_touch_handle_size
+    if getattr(cls, "on_touch_handle_state_changed", None) is not RenderHandler.on_touch_handle_state_changed:
+        cb.fn_on_touch_handle_state_changed = _RenderHandler_on_touch_handle_state_changed
     if getattr(cls, "update_drag_cursor", None) is not RenderHandler.update_drag_cursor:
         cb.fn_update_drag_cursor = _RenderHandler_update_drag_cursor
     if getattr(cls, "on_scroll_offset_changed", None) is not RenderHandler.on_scroll_offset_changed:
@@ -6132,4 +6397,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "Frame", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "Frame", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

@@ -132,3 +132,7 @@
 
 - 생성기에 읽기용 버퍼 종류(`SIZED_BUFFERS`, `OnPaint`의 `width * height * 4`)를 더하고 `CefRenderHandler`를 범위에 넣었습니다(14개 메서드). 래퍼는 `offscreen`, `windowless_frame_rate`, `GetRenderHandler` 전달, 오프스크린 팝업 차단을 더했습니다. 시험 7개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했고 전체 153개가 통과합니다.
 - 새 페이지 [오프스크린 렌더링](pages/reference/offscreen-rendering.md), 확인한 사실 F38(구조체 출력 경로 확인, `shutdown()`의 반복자 무효화 결함 수정). 설계 결정의 표에서 앞서 빈 줄로 떨어져 있던 행 셋을 표에 붙였습니다.
+
+## [2026-10-08] ingest | 구조체 종류의 확대 (size 머리, 열거형, char16_t)
+
+- 생성기가 `size_t size` 머리, 열거형 멤버, `char16_t`, `CefStructBaseSimple` 정의(`using`과 `class`)의 구조체를 읽습니다. `KeyEvent`, `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline` 등 8개가 공개되어 15개가 되었고, `send_key_event`, `send_touch_event`, `ime_set_composition`, `get_screen_info`가 열렸습니다. 시험 8개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 161개가 통과합니다. F39. 옛 시험 3개(한계를 단정하던 것)를 현재 사실에 맞게 고쳤습니다.

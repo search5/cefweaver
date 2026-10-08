@@ -1722,12 +1722,31 @@ class ZoomCommand(enum.IntEnum):
     IN = 2
 
 
+class AudioParameters(NamedTuple):
+    """The CEF value type CefAudioParameters. Anywhere one is expected, a tuple with the same fields works too."""
+    channel_layout: ChannelLayout
+    sample_rate: int
+    frames_per_buffer: int
+
+
 class Insets(NamedTuple):
     """The CEF value type CefInsets. Anywhere one is expected, a tuple with the same fields works too."""
     top: int
     left: int
     bottom: int
     right: int
+
+
+class KeyEvent(NamedTuple):
+    """The CEF value type CefKeyEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    type: KeyEventType
+    modifiers: int
+    windows_key_code: int
+    native_key_code: int
+    is_system_key: int
+    character: int
+    unmodified_character: int
+    focus_on_editable_field: int
 
 
 class MouseEvent(NamedTuple):
@@ -1741,6 +1760,19 @@ class Point(NamedTuple):
     """The CEF value type CefPoint. Anywhere one is expected, a tuple with the same fields works too."""
     x: int
     y: int
+
+
+class PopupFeatures(NamedTuple):
+    """The CEF value type CefPopupFeatures. Anywhere one is expected, a tuple with the same fields works too."""
+    x: int
+    x_set: int
+    y: int
+    y_set: int
+    width: int
+    width_set: int
+    height: int
+    height_set: int
+    is_popup: int
 
 
 class Range(NamedTuple):
@@ -1757,10 +1789,68 @@ class Rect(NamedTuple):
     height: int
 
 
+class ScreenInfo(NamedTuple):
+    """The CEF value type CefScreenInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    device_scale_factor: float
+    depth: int
+    depth_per_component: int
+    is_monochrome: int
+    rect: Rect
+    available_rect: Rect
+
+
 class Size(NamedTuple):
     """The CEF value type CefSize. Anywhere one is expected, a tuple with the same fields works too."""
     width: int
     height: int
+
+
+class TouchEvent(NamedTuple):
+    """The CEF value type CefTouchEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    id: int
+    x: float
+    y: float
+    radius_x: float
+    radius_y: float
+    rotation_angle: float
+    pressure: float
+    type: TouchEventType
+    modifiers: int
+    pointer_type: PointerType
+
+
+class TouchHandleState(NamedTuple):
+    """The CEF value type CefTouchHandleState. Anywhere one is expected, a tuple with the same fields works too."""
+    touch_handle_id: int
+    flags: int
+    enabled: int
+    orientation: HorizontalAlignment
+    mirror_vertical: int
+    mirror_horizontal: int
+    origin: Point
+    alpha: float
+
+
+class BoxLayoutSettings(NamedTuple):
+    """The CEF value type CefBoxLayoutSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    horizontal: int
+    inside_border_horizontal_spacing: int
+    inside_border_vertical_spacing: int
+    inside_border_insets: Insets
+    between_child_spacing: int
+    main_axis_alignment: AxisAlignment
+    cross_axis_alignment: AxisAlignment
+    minimum_cross_axis_size: int
+    default_flex: int
+
+
+class CompositionUnderline(NamedTuple):
+    """The CEF value type CefCompositionUnderline. Anywhere one is expected, a tuple with the same fields works too."""
+    range: Range
+    color: int
+    background_color: int
+    thick: int
+    style: CompositionUnderlineStyle
 
 
 class DraggableRegion(NamedTuple):
@@ -1771,7 +1861,9 @@ class DraggableRegion(NamedTuple):
 
 __all__ = [
     "AlphaType",
+    "AudioParameters",
     "AxisAlignment",
+    "BoxLayoutSettings",
     "ButtonState",
     "CertStatus",
     "ChannelLayout",
@@ -1785,6 +1877,7 @@ __all__ = [
     "ComponentState",
     "ComponentUpdateError",
     "ComponentUpdatePriority",
+    "CompositionUnderline",
     "CompositionUnderlineStyle",
     "ContentSettingTypes",
     "ContentSettingValues",
@@ -1815,6 +1908,7 @@ __all__ = [
     "JSDialogType",
     "JsonParserOptions",
     "JsonWriterOptions",
+    "KeyEvent",
     "KeyEventType",
     "LogItems",
     "LogSeverity",
@@ -1837,6 +1931,7 @@ __all__ = [
     "PermissionRequestTypes",
     "Point",
     "PointerType",
+    "PopupFeatures",
     "PostdataelementType",
     "PreferencesType",
     "ProcessId",
@@ -1851,6 +1946,7 @@ __all__ = [
     "RuntimeStyle",
     "ScaleFactor",
     "SchemeOptions",
+    "ScreenInfo",
     "ShowState",
     "Size",
     "SslContentStatus",
@@ -1865,7 +1961,9 @@ __all__ = [
     "TextStyle",
     "ThreadId",
     "ThreadPriority",
+    "TouchEvent",
     "TouchEventType",
+    "TouchHandleState",
     "TouchHandleStateFlags",
     "TransitionType",
     "URLRequestStatus",

@@ -223,14 +223,66 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([(f.cname, f.cpp) for f in mouse.fields],
                          [("x", "int"), ("y", "int"), ("modifiers", "uint32_t")])
 
+    def test_structs_with_a_size_header_and_enumeration_members_are_read(self):
+        # `size` is the C API's version header (the C++ class sets it); an enumeration
+        # member is a Python enumeration.
+        key = self.model.structs["CefKeyEvent"]
+        self.assertEqual([(f.name, f.py) for f in key.fields],
+                         [("type", "KeyEventType"), ("modifiers", "int"),
+                          ("windows_key_code", "int"), ("native_key_code", "int"),
+                          ("is_system_key", "int"), ("character", "int"),
+                          ("unmodified_character", "int"), ("focus_on_editable_field", "int")])
+        self.assertEqual(key.fields[0].cpp, "cef_key_event_type_t")
+        screen = self.model.structs["CefScreenInfo"]
+        self.assertEqual([(f.name, f.py) for f in screen.fields],
+                         [("device_scale_factor", "float"), ("depth", "int"),
+                          ("depth_per_component", "int"), ("is_monochrome", "int"),
+                          ("rect", "Rect"), ("available_rect", "Rect")])
+        popup = self.model.structs["CefPopupFeatures"]
+        self.assertEqual([f.cname for f in popup.fields][:3], ["x", "xSet", "y"])
+        self.assertEqual([f.name for f in popup.fields][:3], ["x", "x_set", "y"])
+        for name in ("CefTouchEvent", "CefTouchHandleState", "CefCompositionUnderline"):
+            self.assertIn(name, self.model.structs)
+        # What has pointers or strings stays out.
+        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefCookie"):
+            self.assertNotIn(name, self.model.structs)
+
+    def test_methods_that_take_the_new_structs_are_generated(self):
+        for cls, method in (("CefBrowserHost", "SendKeyEvent"),
+                            ("CefBrowserHost", "SendTouchEvent"),
+                            ("CefRenderHandler", "GetScreenInfo"),
+                            ("CefRenderHandler", "OnTouchHandleStateChanged")):
+            plan = self.plan(cls, method)
+            self.assertTrue(plan.supported, "%s::%s: %s" % (cls, method, plan.reason))
+        plan = self.plan("CefRenderHandler", "GetScreenInfo")
+        self.assertEqual([name for name, _ in plan.results], ["return", "screen_info"])
+
+    def test_a_vector_of_structs_with_a_size_header_goes_to_a_library_method(self):
+        plan = self.plan("CefBrowserHost", "ImeSetComposition")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[1].kind, Vector)
+        self.assertEqual(plan.params[1].kind.element.cls, "CefCompositionUnderline")
+
+    def test_the_new_structs_are_in_the_types_module_and_the_stub(self):
+        files = generate_outputs()
+        with open(files["types"], encoding="utf-8") as f:
+            types_text = f.read()
+        self.assertIn("class KeyEvent(NamedTuple):", types_text)
+        self.assertIn("    type: KeyEventType\n", types_text)
+        self.assertIn("    x_set: int\n", types_text)
+        with open(files["pyi"], encoding="utf-8") as f:
+            stub = f.read()
+        self.assertIn("def send_key_event(self, event: KeyEvent | tuple[", stub)
+        self.assertIn("def get_screen_info(self, browser: Browser) -> tuple[bool, ScreenInfo", stub)
+
     def test_field_names_avoid_python_keywords(self):
         range_ = self.model.structs["CefRange"]
         self.assertEqual([f.name for f in range_.fields], ["from_", "to"])
         self.assertEqual([f.cname for f in range_.fields], ["from", "to"])
 
     def test_structs_that_are_not_plain_data_stay_unsupported(self):
-        # A `size` header, enumeration or character fields: not handled yet.
-        for name in ("CefKeyEvent", "CefPopupFeatures", "CefTouchEvent"):
+        # Pointers, arrays, strings: not plain data.
+        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefCookie", "CefSettings"):
             self.assertNotIn(name, self.model.structs, name)
 
     def test_a_struct_input_of_a_handler(self):
@@ -369,7 +421,6 @@ class WithHeaders(unittest.TestCase):
     def test_browser_host_methods_that_cannot_be_generated_say_why(self):
         reasons = {
             "ShowDevTools": "cef_window_info_t",
-            "SendKeyEvent": "CefKeyEvent",
             "GetWindowHandle": "CefWindowHandle",
             "PrintToPDF": "cef_pdf_print_settings_t",
         }
@@ -396,8 +447,7 @@ class WithHeaders(unittest.TestCase):
 
     def test_other_vectors_say_what_is_missing(self):
         # Elements other than strings, and vectors given to a library method.
-        for cls, name in (("CefBrowserHost", "ImeSetComposition"),
-                          ("CefTranslatorTest", "SetRefPtrClientList")):
+        for cls, name in (("CefTranslatorTest", "SetRefPtrClientList"),):
             plan = self.plan_in(self.everything, cls, name)
             self.assertFalse(plan.supported, name)
             self.assertIn("vector", plan.reason, name)

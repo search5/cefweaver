@@ -54,7 +54,7 @@ def py_param_name(cef_name):
 _FIELD_TYPES = {
     "bool": "bool", "int": "int", "int16_t": "int", "uint16_t": "int", "int32_t": "int",
     "uint32_t": "int", "int64_t": "int", "uint64_t": "int", "float": "float", "double": "float",
-    "cef_color_t": "int",
+    "cef_color_t": "int", "char16_t": "int",
 }
 
 
@@ -65,6 +65,7 @@ class StructField:
     cpp: str  # the C type
     py: str  # annotation in Python: int, bool or float, or the class of a nested struct
     struct: str = ""  # the C++ class of a nested struct (CefRect in CefDraggableRegion), else ""
+    enum: bool = False  # `py` is the Python enumeration of the member (`cpp` is its C name)
 
 
 @dataclass(frozen=True)
@@ -79,24 +80,30 @@ def _strip_comments(text):
     return re.sub(r"//[^\n]*", "", text)
 
 
-def parse_struct_fields(body, nested=None):
+def parse_struct_fields(body, nested=None, enums=None):
     """Fields of a C struct body, or None if any member is not plain data.
 
-    Plain data means a primitive type per member, or another plain struct (`nested` maps the
-    C name `cef_rect_t` to its C++ class `CefRect`): no pointers, arrays, enumerations or
-    `size` headers (CefKeyEvent and the like are not handled yet).
+    Plain data means a primitive type per member, an enumeration (`enums` maps the C name to
+    the Python class), or another plain struct (`nested` maps the C name `cef_rect_t` to its
+    C++ class `CefRect`): no pointers or arrays. A leading `size_t size` is the version
+    header of the C API; the C++ class sets it, so it is not a field.
     """
     nested = nested or {}
+    enums = enums or {}
     fields = []
-    for statement in _strip_comments(body).split(";"):
+    for index, statement in enumerate(s for s in _strip_comments(body).split(";") if s.strip()):
         statement = " ".join(statement.split())
-        if not statement:
-            continue
         found = re.match(r"^([A-Za-z_][\w ]*?) (\w+)$", statement)
-        if not found or found.group(2) == "size":
+        if not found:
+            return None
+        if found.group(2) == "size":
+            if index == 0 and found.group(1) == "size_t":
+                continue
             return None
         ctype, cname = found.groups()
-        if ctype in _FIELD_TYPES:
+        if ctype in enums:
+            fields.append(StructField(cname, py_param_name(cname), ctype, enums[ctype], "", True))
+        elif ctype in _FIELD_TYPES:
             fields.append(StructField(cname, py_param_name(cname), ctype, _FIELD_TYPES[ctype]))
         elif ctype in nested:
             fields.append(StructField(cname, py_param_name(cname), ctype,
@@ -284,8 +291,8 @@ class Model:
         self.classes = {c.get_name(): c for c in header.get_classes()}
         self.functions = {f.get_name(): f for f in header.get_funcs()}
         self.enums = self._find_enums()
-        self.structs = self._find_structs()
         self.enum_defs, self.enum_skipped = self._read_enums()
+        self.structs = self._find_structs()
 
     def _read(self, path):
         if path not in self._sources:
@@ -355,8 +362,15 @@ class Model:
                 text = self._read(os.path.join(internal, filename))
                 for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
                     bodies[match.group(2)] = match.group(1)
+        # `class CefRect : public cef_rect_t {`, and the ones with a size header:
+        # `class CefScreenInfo : public CefStructBaseSimple<cef_screen_info_t> {` and
+        # `using CefKeyEvent = CefStructBaseSimple<cef_key_event_t>;`
+        text = self._read(wrappers)
         classes = dict((c, cn) for c, cn in re.findall(
-            r"\bclass\s+(Cef\w+)\s*:\s*public\s+(cef_\w+_t)\s*\{", self._read(wrappers)))
+            r"\bclass\s+(Cef\w+)\s*:\s*public\s+(?:CefStructBaseSimple<\s*)?(cef_\w+_t)\s*>?\s*\{", text))
+        classes.update((c, cn) for c, cn in re.findall(
+            r"\busing\s+(Cef\w+)\s*=\s*CefStructBaseSimple<\s*(cef_\w+_t)\s*>\s*;", text))
+        enum_names = {cname: info.py_name for cname, info in self.enum_defs.items()}
         by_cname = {cn: c for c, cn in classes.items()}
         structs = {}
         # A struct may contain another one (CefDraggableRegion has a CefRect), which has to be
@@ -368,7 +382,7 @@ class Model:
                 if cls in structs or cname not in bodies:
                     continue
                 known = {cn: c for cn, c in by_cname.items() if c in structs}
-                fields = parse_struct_fields(bodies[cname], known)
+                fields = parse_struct_fields(bodies[cname], known, enum_names)
                 if fields:
                     structs[cls] = StructInfo(cls, cname, fields)
                     progress = True

@@ -117,12 +117,20 @@ from .types import (
     ZoomCommand,
 )
 from .types import (
+    AudioParameters as AudioParameters,
     Insets as Insets,
+    KeyEvent as KeyEvent,
     MouseEvent as MouseEvent,
     Point as Point,
+    PopupFeatures as PopupFeatures,
     Range as Range,
     Rect as Rect,
+    ScreenInfo as ScreenInfo,
     Size as Size,
+    TouchEvent as TouchEvent,
+    TouchHandleState as TouchHandleState,
+    BoxLayoutSettings as BoxLayoutSettings,
+    CompositionUnderline as CompositionUnderline,
     DraggableRegion as DraggableRegion,
 )
 
@@ -441,6 +449,9 @@ class BrowserHost:
         CefWindowInfo::external_begin_frame_enabled is set to true.
         """
         ...
+    def send_key_event(self, event: KeyEvent | tuple[KeyEventType, int, int, int, int, int, int, int]) -> None:
+        """Send a key event to the browser."""
+        ...
     def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: MouseButtonType | int, mouse_up: bool, click_count: int) -> None:
         """Send a mouse click event to the browser. The |x| and |y| coordinates are
         relative to the upper-left corner of the view.
@@ -459,6 +470,9 @@ class BrowserHost:
         rendering disabled CefRenderHandler::GetScreenPoint should be implemented
         properly.
         """
+        ...
+    def send_touch_event(self, event: TouchEvent | tuple[int, float, float, float, float, float, float, TouchEventType, int, PointerType]) -> None:
+        """Send a touch event to the browser for a windowless browser."""
         ...
     def send_capture_lost_event(self) -> None:
         """Send a capture lost event to the browser."""
@@ -482,6 +496,32 @@ class BrowserHost:
         lower if the browser cannot generate frames at the requested rate. The
         minimum value is 1 and the default value is 30. Can also be set at browser
         creation via CefBrowserSettings.windowless_frame_rate.
+        """
+        ...
+    def ime_set_composition(self, text: str | None, underlines: Sequence[CompositionUnderline | tuple[Range, int, int, int, CompositionUnderlineStyle]], replacement_range: Range | tuple[int, int], selection_range: Range | tuple[int, int]) -> None:
+        """Begins a new composition or updates the existing composition. Blink has a
+        special node (a composition node) that allows the input method to change
+        text without affecting other DOM nodes. |text| is the optional text that
+        will be inserted into the composition node. |underlines| is an optional
+        set of ranges that will be underlined in the resulting text.
+        |replacement_range| is an optional range of the existing text that will be
+        replaced. |selection_range| is an optional range of the resulting text
+        that will be selected after insertion or replacement. The
+        |replacement_range| value is only used on OS X.
+
+        This method may be called multiple times as the composition changes. When
+        the client is done making changes the composition should either be
+        canceled or completed. To cancel the composition call
+        ImeCancelComposition. To complete the composition call either
+        ImeCommitText or ImeFinishComposingText. Completion is usually signaled
+        when:
+
+        1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
+           flag (on Windows), or;
+        2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
+        3. insertText of NSTextInput is called (on Mac).
+
+        This method is only used when window rendering is disabled.
         """
         ...
     def ime_commit_text(self, text: str | None, replacement_range: Range | tuple[int, int], relative_cursor_pos: int) -> None:
@@ -2468,6 +2508,16 @@ class RenderHandler:
         if the requested coordinates were provided.
         """
         ...
+    def get_screen_info(self, browser: Browser) -> tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]:
+        """Called to allow the client to fill in the CefScreenInfo object with
+        appropriate values. Return true if the |screen_info| structure has been
+        modified.
+
+        If the screen info rectangle is left empty the rectangle from GetViewRect
+        will be used. If the rectangle is still empty or invalid popups may not be
+        drawn correctly.
+        """
+        ...
     def on_popup_show(self, browser: Browser, show: bool) -> None:
         """Called when the browser wants to show or hide the popup widget. The popup
         should be shown if |show| is true and hidden if |show| is false.
@@ -2493,6 +2543,11 @@ class RenderHandler:
     def get_touch_handle_size(self, browser: Browser, orientation: HorizontalAlignment) -> Size | tuple[int, int]:
         """Called to retrieve the size of the touch handle for the specified
         |orientation|.
+        """
+        ...
+    def on_touch_handle_state_changed(self, browser: Browser, state: TouchHandleState) -> None:
+        """Called when touch handle state is updated. The client is responsible for
+        rendering the touch handles.
         """
         ...
     def update_drag_cursor(self, browser: Browser, operation: DragOperationsMask) -> None:

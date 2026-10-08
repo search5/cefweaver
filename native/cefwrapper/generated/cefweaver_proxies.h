@@ -988,6 +988,13 @@ class CwRenderHandlerForward : public CefRenderHandler {
     return forward_render_handler_->GetScreenPoint(browser, viewX, viewY, screenX, screenY);
   }
 
+  bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) override {
+    if (!forward_render_handler_) {
+      return CefRenderHandler::GetScreenInfo(browser, screen_info);
+    }
+    return forward_render_handler_->GetScreenInfo(browser, screen_info);
+  }
+
   void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) override {
     if (!forward_render_handler_) {
       CefRenderHandler::OnPopupShow(browser, show);
@@ -1017,6 +1024,14 @@ class CwRenderHandlerForward : public CefRenderHandler {
       return;
     }
     forward_render_handler_->GetTouchHandleSize(browser, orientation, size);
+  }
+
+  void OnTouchHandleStateChanged(CefRefPtr<CefBrowser> browser, const CefTouchHandleState& state) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnTouchHandleStateChanged(browser, state);
+      return;
+    }
+    forward_render_handler_->OnTouchHandleStateChanged(browser, state);
   }
 
   void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {
@@ -1066,10 +1081,12 @@ struct CwRenderHandlerCallbacks {
   bool (*fn_get_root_screen_rect)(void*, CefBrowser*, CefRect*) = nullptr;
   void (*fn_get_view_rect)(void*, CefBrowser*, CefRect*) = nullptr;
   bool (*fn_get_screen_point)(void*, CefBrowser*, int, int, int*, int*) = nullptr;
+  bool (*fn_get_screen_info)(void*, CefBrowser*, CefScreenInfo*) = nullptr;
   void (*fn_on_popup_show)(void*, CefBrowser*, bool) = nullptr;
   void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) = nullptr;
   void (*fn_on_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, void*, size_t, int, int) = nullptr;
   void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
+  void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) = nullptr;
   void (*fn_update_drag_cursor)(void*, CefBrowser*, int) = nullptr;
   void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) = nullptr;
   void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const std::vector<CefRect>*) = nullptr;
@@ -1117,6 +1134,16 @@ class CwRenderHandlerProxy : public CefRenderHandler {
     return result;
   }
 
+  bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) override {
+    if (!cb_.fn_get_screen_info) {
+      return CefRenderHandler::GetScreenInfo(browser, screen_info);
+    }
+    CefScreenInfo out_screen_info;
+    bool result = cb_.fn_get_screen_info(cb_.py, browser.get(), &out_screen_info);
+    screen_info = out_screen_info;
+    return result;
+  }
+
   void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) override {
     if (!cb_.fn_on_popup_show) {
       CefRenderHandler::OnPopupShow(browser, show);
@@ -1148,6 +1175,14 @@ class CwRenderHandlerProxy : public CefRenderHandler {
     CefSize out_size;
     cb_.fn_get_touch_handle_size(cb_.py, browser.get(), static_cast<int>(orientation), &out_size);
     size = out_size;
+  }
+
+  void OnTouchHandleStateChanged(CefRefPtr<CefBrowser> browser, const CefTouchHandleState& state) override {
+    if (!cb_.fn_on_touch_handle_state_changed) {
+      CefRenderHandler::OnTouchHandleStateChanged(browser, state);
+      return;
+    }
+    cb_.fn_on_touch_handle_state_changed(cb_.py, browser.get(), &state);
   }
 
   void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {
