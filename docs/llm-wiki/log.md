@@ -172,3 +172,7 @@
 ## [2026-10-08] ingest | 격차 메우기 2: 헤더 맵
 
 - 문자열 멀티맵과 맵(`HeaderMap`, `SwitchMap`)을 `dict[str, str]`로 여는 `StrMap` 종류를 더해 `Request`, `Response`의 헤더 맵 메서드 5개를 열었습니다(java-cef의 `Map`과 같음). F47. 격차 76개에서 71개.
+
+## [2026-10-08] ingest | 격차 메우기 3: 창 핸들
+
+- `CefWindowHandle`(Linux에서 `unsigned long`)을 정수로 열어 `BrowserHost.get_window_handle()`을 만들었습니다. F48. 격차 71개에서 70개.

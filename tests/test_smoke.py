@@ -2395,6 +2395,24 @@ class WithCef(unittest.TestCase):
         """)
 
 
+    def test_the_window_handle_is_the_native_window_of_a_windowed_browser(self):
+        self.run_query_script("""
+            start()
+            handle = boxes[0].get_host().get_window_handle()
+            assert isinstance(handle, int) and handle > 0, handle      # an X11 window
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_offscreen_browser_has_no_window_handle(self):
+        self.run_osr_script("""
+            start(RED)
+            assert boxes[0].get_host().get_window_handle() == 0
+            app.shutdown()
+            print("OK")
+        """)
+
+
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))
               and os.environ.get("CEFWEAVER_TEST_WAYLAND") == "1")
 

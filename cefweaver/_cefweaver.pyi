@@ -362,6 +362,20 @@ class BrowserHost:
     def set_focus(self, focus: bool) -> None:
         """Set whether the browser is focused."""
         ...
+    def get_window_handle(self) -> int:
+        """Retrieve the window handle (if any) for this browser. If this browser is
+        wrapped in a CefBrowserView this method should be called on the browser
+        process UI thread and it will return the handle for the top-level native
+        window.
+        """
+        ...
+    def get_opener_window_handle(self) -> int:
+        """Retrieve the window handle (if any) of the browser that opened this
+        browser. Will return NULL for non-popup browsers or if this browser is
+        wrapped in a CefBrowserView. This method can be used in combination with
+        custom handling of modal windows.
+        """
+        ...
     def get_opener_identifier(self) -> int:
         """Retrieve the unique identifier of the browser that opened this browser.
         Will return 0 for non-popup browsers.

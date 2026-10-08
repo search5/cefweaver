@@ -115,13 +115,17 @@ def all_structs(model):
     return ordered
 
 
+# C typedefs of CEF that Cython needs to know as integers: name -> the C type.
+_TYPEDEFS = {"cef_color_t": "uint32_t", "cef_window_handle_t": "unsigned long"}
+
+
 def _used_typedefs(plans):
     names = set()
     for plan in plans:
         kinds = [plan.ret] + [p.kind for p in plan.params]
         for kind in kinds:
-            if isinstance(kind, Prim) and kind.cpp == "cef_color_t":
-                names.add("cef_color_t")
+            if isinstance(kind, Prim) and kind.cpp in _TYPEDEFS:
+                names.add(kind.cpp)
             if isinstance(kind, Struct) and any(f.cpp == "cef_color_t" for f in kind.fields):
                 names.add("cef_color_t")
     return sorted(names)
@@ -217,7 +221,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         "",
     ]
     for name in _used_typedefs(all_plans):
-        out.append("ctypedef uint32_t %s" % name)
+        out.append("ctypedef %s %s" % (_TYPEDEFS[name], name))
     if any(f.cpp == "char16_t" for st in all_structs(model).values() for f in st.fields):
         # C++ has char16_t built in; Cython only needs to know it is an integer.
         out += ['cdef extern from *:', '    ctypedef unsigned short char16_t', '']

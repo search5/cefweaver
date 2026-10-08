@@ -348,8 +348,8 @@ class WithHeaders(unittest.TestCase):
     # (tools/gen/surface.py): this list only shrinks, and a method that is added or removed
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
-        "CefBrowserHost": ["AddDevToolsMessageObserver", "DragTargetDragEnter", "GetWindowHandle",
-                           "PrintToPDF", "RunFileDialog"],
+        "CefBrowserHost": ["AddDevToolsMessageObserver", "DragTargetDragEnter", "PrintToPDF",
+                           "RunFileDialog"],
         "CefCommandLine": None, "CefCookieAccessFilter": None, "CefCookieManager": None,
         "CefDevToolsMessageObserver": None, "CefDragData": None, "CefRequestContext": None,
         "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
@@ -420,6 +420,13 @@ class WithHeaders(unittest.TestCase):
                      "def set(self, url: str, method: str, post_data: PostData | None, "
                      "header_map: dict[str, str]) -> None:"):
             self.assertIn(text, stub)
+
+    def test_a_window_handle_is_an_integer(self):
+        plan = self.plan("CefBrowserHost", "GetWindowHandle")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.ret, Prim)
+        self.assertEqual(plan.ret.py, "int")
+        self.assertIn("def get_window_handle(self) -> int:", self.generated("pyi"))
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
@@ -737,7 +744,6 @@ class WithHeaders(unittest.TestCase):
     def test_browser_host_methods_that_cannot_be_generated_say_why(self):
         reasons = {
             "ShowDevTools": "cef_window_info_t",
-            "GetWindowHandle": "CefWindowHandle",
             "PrintToPDF": "cef_pdf_print_settings_t",
         }
         for name, expected in reasons.items():

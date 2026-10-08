@@ -21,11 +21,10 @@ updated: 2026-10-08
 
 ## 바닥의 격차 (java-cef는 열고 우리는 아직 안 연 것)
 
-시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 71개입니다.
+시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 70개입니다.
 
 | 묶음 | 항목 | 필요한 것 |
 | --- | --- | --- |
-| 창 핸들 | `BrowserHost.GetWindowHandle` | 플랫폼 핸들 ↔ 정수 |
 | 콜백과 방문자 | `Frame.GetSource`/`GetText`(문자열 방문자), `BrowserHost.RunFileDialog`, `PrintToPDF`(PDF 설정 구조체), `AddDevToolsMessageObserver`(+관찰자, `Registration`) | 클래스 추가, 문자열이 있는 구조체 |
 | 드래그 | `CefDragData`(24), `DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter` | `DragData`, 쓰기 핸들러 |
 | 쿠키 | `CefCookieManager`(6), `CefCookieAccessFilter`(2), `ResourceRequestHandler.GetCookieAccessFilter` | 쿠키 구조체, 방문자와 완료 콜백 |
@@ -35,12 +34,13 @@ updated: 2026-10-08
 
 ### 메운 격차
 
+- 창 핸들(`BrowserHost.GetWindowHandle`): Linux의 X11 창 번호를 정수로([검증](verified-findings-more.md) F48).
 - 헤더 맵(`Request.GetHeaderMap`/`SetHeaderMap`/`Set`, `Response.GetHeaderMap`/`SetHeaderMap`): 문자열 멀티맵 ↔ `dict`([검증](verified-findings-more.md) F47).
 - 팝업(`OnBeforePopup`), 커서 변경(`OnCursorChange`), 인증서 오류의 `ssl_info`: java-cef가 넘기지 않는 인자를 무시하는 규칙으로([검증](verified-findings-more.md) F46).
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다. 총 246개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
+닫지 않고 둡니다. 총 247개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
 
 - **값 컨테이너와 프로세스 메시지**: `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage`. (`RequestContext`의 설정은 `Value`가 필요해서 바닥이 이것을 쓰게 됩니다.)
 - **스트림**: `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler`, `WriteHandler`(java-cef는 드래그 파일 내용용 쓰기 핸들러만 안에서 씀).

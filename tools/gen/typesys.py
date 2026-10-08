@@ -194,6 +194,9 @@ def classify(model, scope, analysis):
             return Struct(spelled, model.structs[spelled].fields)
         if spelled == "CefBaseTime":
             return Time()
+        if spelled in ("CefWindowHandle", "cef_window_handle_t"):
+            # an X11 window on Linux (unsigned long); a plain integer in Python
+            return Prim("cef_window_handle_t", "int")
         raise Unsupported("struct-like value type %s" % spelled)
 
     if result == "string":

@@ -14,24 +14,24 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 567 methods/functions in 55 classes, 3 global functions
+Generated now: 569 methods/functions in 55 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
     25  class
      6  struct
-     3  struct-like value type
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  a library method returning a client object
-  ----  36 skipped
+     1  struct-like value type
+  ----  34 skipped
 
-If every class were generated, the type support alone would cover 1484 of 1598 methods/functions (93%).
+If every class were generated, the type support alone would cover 1487 of 1598 methods/functions (93%).
 What blocks the rest, by type:
     32  ownptr pointer
     18  struct
     11  a library method returning a client object
     11  rawptr pointer
-    11  struct-like value type
      8  vector of values
+     8  struct-like value type
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      2  pointer to
@@ -71,7 +71,7 @@ Per class (supported/total methods, when every class is generated):
   * CefBinaryValue                         library   8/9  
     CefBoxLayout                           library   2/2  
   * CefBrowser                             library  21/21 
-  * CefBrowserHost                         library  65/72 
+  * CefBrowserHost                         library  67/72 
     CefBrowserProcessHandler               client    6/7  
     CefBrowserView                         library   5/6  
     CefBrowserViewDelegate                 client    9/10 
@@ -220,7 +220,7 @@ Per class (supported/total methods, when every class is generated):
     CefView                                library  51/52 
     CefViewDelegate                        client   11/11 
     CefWaitableEvent                       library   6/6  
-    CefWindow                              library  42/43 
+    CefWindow                              library  43/43 
     CefWindowDelegate                      client   21/23 
   * CefWriteHandler                        client    5/5  
     CefX509CertPrincipal                   library   7/7  
@@ -230,7 +230,7 @@ Per class (supported/total methods, when every class is generated):
   (* = generated now)
 
 Opened by java-cef, not generated yet (the gaps):
-  CefBrowserHost                   5/30   type not supported yet
+  CefBrowserHost                   4/30   type not supported yet
   CefCommandLine                  12/12   class not generated yet
   CefCookieAccessFilter            2/2    class not generated yet
   CefCookieManager                 6/6    class not generated yet
@@ -245,12 +245,12 @@ Opened by java-cef, not generated yet (the gaps):
   CefSchemeRegistrar               1/1    class not generated yet
   CefURLRequest                    5/5    class not generated yet
   CefURLRequestClient              5/5    class not generated yet
-  ----  71 methods
+  ----  70 methods
 
 Generated, and not opened by java-cef (beyond the floor):
   CefBinaryValue                   8  the whole class
   CefBrowser                       2  2 methods
-  CefBrowserHost                  33  33 methods
+  CefBrowserHost                  34  34 methods
   CefClient                        1  1 methods
   CefContextMenuHandler            4  4 methods
   CefContextMenuParams             2  2 methods
@@ -280,7 +280,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  246 methods
+  ----  247 methods
 ```
 
 ## 관련 페이지

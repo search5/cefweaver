@@ -30,6 +30,7 @@ cdef extern from "include/internal/cef_string.h":
         string ToString() nogil
 
 ctypedef uint32_t cef_color_t
+ctypedef unsigned long cef_window_handle_t
 cdef extern from *:
     ctypedef unsigned short char16_t
 
@@ -407,6 +408,8 @@ cdef extern from "include/cef_browser.h":
         cpp_bool TryCloseBrowser() nogil
         cpp_bool IsReadyToBeClosed() nogil
         void SetFocus(cpp_bool) nogil
+        cef_window_handle_t GetWindowHandle() nogil
+        cef_window_handle_t GetOpenerWindowHandle() nogil
         int GetOpenerIdentifier() nogil
         cpp_bool HasView() nogil
         cpp_bool CanZoom(cef_zoom_command_t) nogil
