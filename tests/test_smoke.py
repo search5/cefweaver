@@ -229,6 +229,22 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertTrue(message.is_valid())
         self.assertEqual(message.get_argument_list().get_size(), 0)
 
+    def test_the_message_router_api_is_public_and_checks_its_arguments(self):
+        for name in ("QueryHandler", "QueryCallback"):
+            self.assertIn(name, cefweaver.__all__)
+        app = cefweaver.CefApp()
+        with self.assertRaises(TypeError):
+            app.add_query_handler(object())
+        with self.assertRaises(TypeError):
+            app.set_query_functions(1, "cancel")
+        with self.assertRaises(ValueError):
+            app.set_query_functions("", "cancel")
+        handler = cefweaver.QueryHandler()
+        app.add_query_handler(handler)
+        self.assertFalse(app.remove_query_handler(cefweaver.QueryHandler()))  # never added
+        self.assertTrue(app.remove_query_handler(handler))
+        self.assertFalse(app.remove_query_handler(handler))  # already removed
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1315,6 +1331,254 @@ class WithCef(unittest.TestCase):
         """)
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
+
+
+    # -- the message router: window.cefQuery(...) in a page reaches a QueryHandler ---------
+
+    QUERY_PAGE = """<script>
+        function ask(request, persistent) {
+          return window.cefQuery({request: request, persistent: !!persistent,
+                           onSuccess: function (r) { report('ok', String(request), r); },
+                           onFailure: function (c, m) { report('fail', String(request), c, m); }});
+        }
+        requestAnimationFrame(() => report('frame'));
+    </script>"""
+
+    def run_query_script(self, body, query_function_names=None):
+        """Runs `body` in a CEF process whose page has ask(request, persistent)."""
+        import textwrap
+        script = ("QUERY_PAGE = %r\n" % self.QUERY_PAGE) + textwrap.dedent("""
+            import threading
+            from cefweaver import types
+            js, boxes = [], []
+            app.add_javascript_binding("report", lambda *a: js.append(a))
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            def start(page_html=QUERY_PAGE):
+                app.set_client(MyClient())
+                app.initialize(page(page_html))
+                wait_until(app, lambda: ("frame",) in js, "the first frame")
+            def answers():
+                return {r[1]: (r[0],) + r[2:] for r in js if r[0] in ("ok", "fail")}
+        """) + textwrap.dedent(body)
+        result = run_cef(script)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_page_asks_and_the_handler_answers_with_success_or_failure(self):
+        self.run_query_script("""
+            seen, late = [], []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append((isinstance(browser, cefweaver.Browser), frame.is_main(),
+                                 type(query_id) is int, persistent))
+                    if request == "ok":
+                        assert callback.success("pong:" + request) is True
+                        assert callback.success("again") is False  # a query is answered once
+                        return True
+                    if request == "bad":
+                        callback.failure(7, "nope")
+                        return True
+                    if request == "late":  # answered later, from another thread
+                        threading.Timer(0.1, lambda: late.append(callback.success("later"))).start()
+                        return True
+                    return False  # not handled
+            app.add_query_handler(Handler())
+            start()
+            for request in ("ok", "bad", "late", "unknown"):
+                app.execute_javascript("ask(%r)" % request)
+            wait_until(app, lambda: len(answers()) == 4, "four answers")
+            found = answers()
+            assert found["ok"] == ("ok", "pong:ok"), found
+            assert found["bad"] == ("fail", 7, "nope"), found
+            assert found["late"] == ("ok", "later"), found
+            assert found["unknown"][:2] == ("fail", -1), found  # no handler took it
+            wait_until(app, lambda: late, "the late answer to be sent")
+            assert late == [True], late
+            assert len(seen) == 4 and all(s == (True, True, True, False) for s in seen), seen
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_persistent_query_can_answer_many_times_and_the_page_can_cancel_it(self):
+        self.run_query_script("""
+            pending, canceled = {}, []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    assert persistent is True
+                    pending[query_id] = callback
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("window.queryId = ask('subscribe', true)")
+            wait_until(app, lambda: pending, "the query")
+            (query_id, callback), = pending.items()
+            for n in range(3):
+                assert callback.success("event %d" % n) is True  # a persistent query stays open
+            wait_until(app, lambda: len([r for r in js if r[0] == "ok"]) == 3, "three answers")
+            assert [r[2] for r in js if r[0] == "ok"] == ["event 0", "event 1", "event 2"], js
+            app.execute_javascript("cefQueryCancel(window.queryId)")  # the page cancels it
+            wait_until(app, lambda: canceled, "the cancellation")
+            assert canceled == [query_id], canceled
+            assert callback.success("too late") is False  # nothing can be sent any more
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_leaving_the_page_cancels_its_pending_queries(self):
+        self.run_query_script("""
+            pending, canceled = {}, []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    pending[query_id] = callback
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("ask('stay', true)")
+            wait_until(app, lambda: pending, "the query")
+            (query_id, callback), = pending.items()
+            app.load_url(page("<p>another page</p>"))
+            wait_until(app, lambda: canceled, "the cancellation by the navigation")
+            assert canceled == [query_id], canceled
+            assert callback.failure(1, "late") is False
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_binary_requests_and_responses(self):
+        self.run_query_script("""
+            seen = []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append(request)
+                    callback.success(bytes(reversed(request)) if isinstance(request, bytes) else "text")
+                    return True
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript(
+                "window.cefQuery({request: new Uint8Array([1, 2, 3]).buffer, persistent: false,"
+                " onSuccess: function (r) { report('binary', r instanceof ArrayBuffer,"
+                " Array.from(new Uint8Array(r)).join(',')); },"
+                " onFailure: function (c, m) { report('binary', false, m); }})")
+            wait_until(app, lambda: any(r[0] == "binary" for r in js), "the binary answer")
+            assert seen == [b"\\x01\\x02\\x03"], seen
+            assert [r for r in js if r[0] == "binary"] == [("binary", True, "3,2,1")], js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_handlers_are_asked_in_order_and_can_be_removed(self):
+        self.run_query_script("""
+            order = []
+            def make(name, takes):
+                class Handler(cefweaver.QueryHandler):
+                    def on_query(self, browser, frame, query_id, request, persistent, callback):
+                        order.append(name)
+                        if request in takes:
+                            callback.success(name)
+                            return True
+                        return False
+                return Handler()
+            a, b, c = make("a", ["x"]), make("b", ["x", "y"]), make("c", ["x", "y", "z"])
+            app.add_query_handler(a)
+            app.add_query_handler(b)
+            app.add_query_handler(c, first=True)   # c is asked first
+            start()
+            for request in ("x", "y", "z"):
+                app.execute_javascript("ask(%r)" % request)
+            wait_until(app, lambda: len(answers()) == 3, "three answers")
+            assert {k: v[1] for k, v in answers().items()} == {"x": "c", "y": "c", "z": "c"}, answers()
+            assert app.remove_query_handler(c) is True       # now a, then b
+            del order[:]
+            js[:] = [r for r in js if r[0] == "frame"]
+            for request in ("x", "y"):
+                app.execute_javascript("ask(%r)" % request)
+            wait_until(app, lambda: len(answers()) == 2, "answers without c")
+            assert {k: v[1] for k, v in answers().items()} == {"x": "a", "y": "b"}, answers()
+            assert order[:1] == ["a"], order
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_names_of_the_query_functions_can_be_changed(self):
+        self.run_query_script("""
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    callback.success("named")
+                    return True
+            app.set_query_functions("myQuery", "myCancel")
+            app.add_query_handler(Handler())
+            start('<script>requestAnimationFrame(() => report("frame"));</script>')
+            app.execute_javascript(
+                "report('names', typeof window.myQuery, typeof window.myCancel, typeof window.cefQuery);"
+                "window.myQuery({request: 'r', onSuccess: function (r) { report('named', r); }})")
+            wait_until(app, lambda: any(r[0] == "named" for r in js), "the answer")
+            assert ("names", "function", "function", "undefined") in js, js
+            assert ("named", "named") in js, js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_without_a_query_handler_the_page_has_no_query_function(self):
+        self.run_query_script("""
+            start('<script>requestAnimationFrame(() => report("frame"));</script>')
+            app.execute_javascript("report('type', typeof window.cefQuery)")
+            wait_until(app, lambda: any(r[0] == "type" for r in js), "the report")
+            assert ("type", "undefined") in js, js
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_callback_that_is_dropped_without_an_answer_fails_the_query(self):
+        # It is an error for CEF to destroy a callback of an open query, so dropping it
+        # answers the page with a failure.
+        self.run_query_script("""
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    return True  # takes the query and forgets the callback
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("ask('forgotten')")
+            wait_until(app, lambda: "forgotten" in answers(), "the failure")
+            assert answers()["forgotten"][:2] == ("fail", -1), answers()
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_router_works_with_bindings_and_the_users_process_messages(self):
+        self.run_query_script("""
+            received = []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    callback.success("router")
+                    return True
+            class Client2(MyClient):
+                def on_process_message_received(self, browser, frame, source_process, message):
+                    received.append(message.get_name())
+                    return True
+            MyClient = Client2
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("ask('q'); report('binding', 1)")
+            wait_until(app, lambda: ("binding", 1) in js and "q" in answers(), "both answers")
+            message = cefweaver.ProcessMessage.create("cefweaver-ping")
+            boxes[0].get_main_frame().send_process_message(types.ProcessId.RENDERER, message)
+            wait_until(app, lambda: "cefweaver-pong" in received, "the user's message")
+            # The router's own messages and the wrapper's never reach the user.
+            assert received == ["cefweaver-pong"], received
+            app.shutdown()
+            print("OK")
+        """)
 
 
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))

@@ -13,6 +13,7 @@
 #include "include/wrapper/cef_helpers.h"
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
+#include "query_router.h"
 
 namespace {
 // The ids of the wrapper's own menu items are the last ones of the range CEF leaves to
@@ -43,6 +44,32 @@ CefWrapperClientHandler::CefWrapperClientHandler(
   
 }
 CefWrapperClientHandler::~CefWrapperClientHandler() { g_instance = nullptr; }
+
+CefRefPtr<CefRequestHandler> CefWrapperClientHandler::GetRequestHandler() {
+  return QueryRouter::Exists() ? this : nullptr;
+}
+
+bool CefWrapperClientHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
+                                             CefRefPtr<CefFrame> frame,
+                                             CefRefPtr<CefRequest> request, bool user_gesture,
+                                             bool is_redirect) {
+  CEF_REQUIRE_UI_THREAD();
+  // The navigation is allowed (false), so the queries of the page it leaves are canceled.
+  if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
+    router->OnBeforeBrowse(browser, frame);
+  }
+  return false;
+}
+
+void CefWrapperClientHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
+                                                        TerminationStatus status,
+                                                        int error_code,
+                                                        const CefString& error_string) {
+  CEF_REQUIRE_UI_THREAD();
+  if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
+    router->OnRenderProcessTerminated(browser);
+  }
+}
 
 
 CefWrapperClientHandler *CefWrapperClientHandler::GetInstance() { return g_instance; }
@@ -168,6 +195,10 @@ bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
 void CefWrapperClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
 
+  if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
+    router->OnBeforeClose(browser);
+  }
+
   CwLifeSpanHandlerForward::OnBeforeClose(browser);
 
   // Remove from the list of existing browsers.
@@ -254,6 +285,11 @@ void CefWrapperClientHandler::OnLoadStart(
 bool CefWrapperClientHandler::OnProcessMessageReceived(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
     CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
+  if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
+    if (router->OnProcessMessageReceived(browser, frame, source_process, message)) {
+      return true;
+    }
+  }
   const std::string& message_name = message->GetName();
   if (message_name == "javascript-binding")
   {

@@ -2,6 +2,8 @@
 #define CEF_WRAPPER_CLIENT_HANDLER_H_
 
 #include "include/cef_client.h"
+#include "include/cef_request_handler.h"
+#include "include/wrapper/cef_message_router.h"
 
 #include <list>
 
@@ -21,6 +23,7 @@
 // the handler in its forward_..._ member, which GetDisplayHandler() and the like fill
 // from the user's client every time CEF asks for the handler.
 class CefWrapperClientHandler : public CefClient,
+                      public CefRequestHandler,
                       public CwDisplayHandlerForward,
                       public CwDragHandlerForward,
                       public CwLifeSpanHandlerForward,
@@ -57,6 +60,15 @@ public:
         user_client_ ? user_client_->GetContextMenuHandler() : nullptr;
     return (forward_context_menu_handler_ || g_DevToolsMenuEnabled.load()) ? this : nullptr;
   }
+
+  // The request handler exists for the message router (navigations and the end of the
+  // renderer cancel the queries of a page); there is none without a query handler.
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override;
+  bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                      CefRefPtr<CefRequest> request, bool user_gesture,
+                      bool is_redirect) override;
+  void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status,
+                                 int error_code, const CefString& error_string) override;
 
   // Show a new DevTools popup window.
   void ShowDevTools(CefRefPtr<CefBrowser> browser,

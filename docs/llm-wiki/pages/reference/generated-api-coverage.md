@@ -92,7 +92,7 @@ updated: 2026-10-08
 
 1. 나머지 핸들러 13개를 `CefClient`에 추가합니다(요청, 키보드, 포커스, 다운로드 등). 오프스크린 렌더링의 `CefRenderHandler.on_paint`는 구조체 목록(`dirty_rects`)은 준비되었고 `const void*` 버퍼(읽기 전용 메모리 뷰)가 남았습니다.
 2. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures`, `CefCompositionUnderline` 등). 벡터의 마지막 장애물(9건)도 대부분 여기에 있습니다.
-3. 읽기용 버퍼 종류(`const void*`와 크기: `BinaryValue.create`, 오프스크린 `on_paint`의 `buffer`)와 JavaScript 통신(메시지 라우터 도입 여부, [분석](../analyses/js-python-messaging.md)).
+3. 읽기용 버퍼 종류(`const void*`와 크기: `BinaryValue.create`, 오프스크린 `on_paint`의 `buffer`). 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
 4. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).
 5. 네이티브 Wayland에서 Alloy 스타일이 죽는 원인 조사(나중에 하기로 함). 지금은 `DISPLAY`가 있으면 X11을 기본으로 써서 피했을 뿐입니다. 순수 Wayland 세션(`DISPLAY` 없음)과 GUI 툴킷 임베딩에 필요합니다. 첫 실험은 래퍼를 `cefsimple`처럼 `CefRunMessageLoop`으로 돌려 비교하는 것입니다([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)).
 

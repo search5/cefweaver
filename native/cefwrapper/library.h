@@ -6,6 +6,7 @@
 #include "cef_wrapper_client_handler.h"
 #include "include/cef_command_line.h"
 #include "javascript_binding.h"
+#include "query_router.h"
 
 class CefWrapper {
 public:
@@ -37,6 +38,13 @@ public:
   // at any time and applies to the menus built afterwards.
   void SetDevToolsMenuEnabled(bool enabled);
   bool DevToolsMenuEnabled();
+  // The message router (window.cefQuery): see query_router.h. The names must be set before
+  // InitCefSimple(); a handler can be added before it (and, once CEF runs, at any time) only
+  // if it was added before, because the renderer learns about the router at startup.
+  void SetQueryFunctions(std::string query, std::string cancel);
+  bool AddQueryHandler(PythonQueryHandler* handler, bool first);
+  bool RemoveQueryHandler(PythonQueryHandler* handler);
+  bool QueryRouterExists();
 
 private:
     CefRefPtr<CefWrapperApp> m_App;

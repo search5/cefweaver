@@ -69,6 +69,8 @@ updated: 2026-10-08
 | 렌더러에 **진단용 ping/pong**(`cefweaver-ping` → `cefweaver-pong`, 같은 인자) | Python은 렌더러에 없어서 사용자 정의 메시지의 보내는 쪽이 필요하고, 렌더러가 응답하는지 알아보는 데도 쓸 수 있습니다. 시험 전용 장치가 아니라 문서화된 동작입니다. | 구현 중 판단 |
 | `set_client()`는 `initialize()` 전에만 | 브라우저를 만들 때 클라이언트가 정해져야 합니다. 이후에는 `RuntimeError`. | 구현 중 판단 |
 
+| JavaScript 통신은 **CEF의 메시지 라우터**를 손으로 감싸서 엽니다(`QueryHandler`, `window.cefQuery`) | 비용 대비 효과가 가장 큽니다: 질의 번호, 취소, 구독, 정리를 CEF가 맡고 java-cef와 같은 모델입니다. cefpython식 값 변환 중계는 더 크고 콜백 수명이 어렵습니다([분석](../analyses/js-python-messaging.md)). `add_javascript_binding`은 가벼운 호출용으로 유지. | 사용자(선택) |
+
 ## 서브프로세스와 런타임
 
 | 결정 | 이유 |

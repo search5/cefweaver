@@ -5,8 +5,17 @@
 #include "cef_wrapper_render_process_handler.h"
 #include "custom_protocol_scheme_handler.h"
 #include "javascript_binding.h"
+#include "query_router.h"
 
 CefWrapperBrowserProcessHandler::CefWrapperBrowserProcessHandler() = default;
+
+void CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch(
+    CefRefPtr<CefCommandLine> command_line) {
+  if (QueryRouter::HasHandlers()) {
+    command_line->AppendSwitchWithValue(kQueryFunctionSwitch, QueryRouter::QueryFunction());
+    command_line->AppendSwitchWithValue(kCancelFunctionSwitch, QueryRouter::CancelFunction());
+  }
+}
 
 /* Null, because instance will be initialized on demand. */
 CefRefPtr<CefWrapperBrowserProcessHandler>

@@ -24,7 +24,8 @@ from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
 from cefweaver.cef_api cimport *
-from cefweaver.cefwrapper cimport CefValueWrapper, CefWrapper
+from cefweaver.cefwrapper cimport (CefValueWrapper, CefWrapper, PythonQueryHandler,
+                                   QueryCallbackHolder)
 
 
 cdef bytes _utf8(object value):
@@ -120,6 +121,123 @@ class _StaticResourceFactory(SchemeHandlerFactory):
         return _StaticResource(*resource) if resource is not None else None
 
 
+class QueryHandler:
+    """Answers the queries a page sends with ``window.cefQuery({request, persistent,
+    onSuccess, onFailure})`` (CEF's message router, as in java-cef).
+
+    Subclass it and add an instance with ``CefApp.add_query_handler()`` before
+    ``initialize()``. The names of the two JavaScript functions can be changed with
+    ``CefApp.set_query_functions()``. All methods run on the thread that called
+    ``initialize()``, inside ``do_message_loop_work()``; exceptions go to ``sys.excepthook``
+    and count as "not handled".
+    """
+
+    def on_query(self, browser, frame, query_id, request, persistent, callback):
+        """A page sent a query. ``request`` is a ``str``, or ``bytes`` if the page sent an
+        ``ArrayBuffer``. Return True to take the query and answer it with
+        ``callback.success()`` or ``callback.failure()``, now or later (from any thread);
+        return False to leave it to the next handler. If no handler takes it, the page's
+        ``onFailure`` gets the error code -1."""
+        return False
+
+    def on_query_canceled(self, browser, frame, query_id):
+        """The page canceled a query this handler took (``cefQueryCancel``), left the page,
+        or went away, or the handler was removed. ``callback`` answers nothing any more."""
+
+
+cdef class QueryCallback:
+    """The answer to one query, given to ``QueryHandler.on_query()``. It can be used from
+    any thread. A query is answered once (a persistent one many times, until it fails or
+    is canceled); the methods return whether the answer was sent. A callback that is
+    dropped without an answer fails the query (error code -1)."""
+
+    cdef CefRefPtr[QueryCallbackHolder] _holder
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._holder)
+
+    def __init__(self):
+        raise TypeError("QueryCallback objects are created by CEF")
+
+    def success(self, response):
+        """Answer the page's ``onSuccess`` with a ``str``, or with ``bytes`` (an
+        ``ArrayBuffer`` in the page)."""
+        cdef string text
+        cdef bytes data
+        cdef const char* raw
+        cdef size_t size
+        cdef bint done
+        if isinstance(response, str):
+            text = _utf8(response)
+            with nogil:
+                done = self._holder.get().Success(text)
+        elif isinstance(response, (bytes, bytearray, memoryview)):
+            data = bytes(response)
+            raw = data
+            size = len(data)
+            with nogil:
+                done = self._holder.get().SuccessData(<const void*>raw, size)
+        else:
+            raise TypeError("response must be str or bytes, not %s" % type(response).__name__)
+        return done
+
+    def failure(self, int error_code, message=""):
+        """Answer the page's ``onFailure`` with an error code and a message."""
+        cdef string text = _utf8(message)
+        cdef bint done
+        with nogil:
+            done = self._holder.get().Failure(error_code, text)
+        return done
+
+
+cdef cpp_bool _query_on_query(void* handler, CefRefPtr[CefBrowser] browser,
+                              CefRefPtr[CefFrame] frame, int64_t query_id, cpp_bool binary,
+                              const void* request, size_t size, cpp_bool persistent,
+                              QueryCallbackHolder* holder) noexcept with gil:
+    cdef QueryCallback callback
+    try:
+        if binary:
+            value = (<const char*>request)[:size] if size else b""
+        else:
+            value = (<const char*>request)[:size].decode("utf-8", "replace") if size else ""
+        callback = QueryCallback.__new__(QueryCallback)
+        callback._holder = CefRefPtr[QueryCallbackHolder](holder)
+        return bool((<object>handler).on_query(
+            _wrap_Browser(browser), _wrap_Frame(frame), query_id, value, bool(persistent),
+            callback))
+    except BaseException:
+        _g_report()
+        return False
+
+
+cdef void _query_on_canceled(void* handler, CefRefPtr[CefBrowser] browser,
+                             CefRefPtr[CefFrame] frame, int64_t query_id) noexcept with gil:
+    try:
+        (<object>handler).on_query_canceled(_wrap_Browser(browser), _wrap_Frame(frame),
+                                            query_id)
+    except BaseException:
+        _g_report()
+
+
+cdef class _QueryBridge:
+    """The C++ handler that calls one QueryHandler."""
+
+    cdef PythonQueryHandler* _ptr
+    cdef public bint registered
+
+    def __cinit__(self, handler):
+        self._ptr = new PythonQueryHandler(<void*>handler, _query_on_query, _query_on_canceled)
+        self.registered = False
+
+    def __dealloc__(self):
+        # The router must not keep a pointer to a deleted handler; after shutdown the
+        # handler is left alone, like the other objects that CEF may still know.
+        if self._ptr != NULL and not self.registered and not _cef_was_shut_down:
+            del self._ptr
+        self._ptr = NULL
+
+
 # CEF can be initialized once per process: a second CefInitialize() after CefShutdown()
 # crashes the process (segmentation fault), so it is refused here. (`_cef_was_shut_down`
 # is declared in cef_api.pxi, where the library objects use it as well.)
@@ -147,6 +265,7 @@ cdef class CefApp:
     cdef object _resources  # _StaticResourceFactory, created by add_resource()
     cdef set _resource_hosts
     cdef set _switch_names  # the names given to add_command_line_switch()
+    cdef dict _query_bridges  # QueryHandler -> _QueryBridge
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -156,6 +275,7 @@ cdef class CefApp:
         self._resources = None
         self._resource_hosts = set()
         self._switch_names = set()
+        self._query_bridges = {}
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -226,6 +346,50 @@ cdef class CefApp:
     @devtools_menu.setter
     def devtools_menu(self, value):
         self._wrapper.SetDevToolsMenuEnabled(bool(value))
+
+    def set_query_functions(self, query="cefQuery", cancel="cefQueryCancel"):
+        """The names of the JavaScript functions of the message router: ``window.<query>(...)``
+        sends a query and ``window.<cancel>(id)`` cancels it. They are ``cefQuery`` and
+        ``cefQueryCancel`` unless changed here, before ``initialize()``."""
+        for value in (query, cancel):
+            if not isinstance(value, str):
+                raise TypeError("the names must be str, not %s" % type(value).__name__)
+            if not value.isidentifier():
+                raise ValueError("%r is not a name for a JavaScript function" % (value,))
+        self._require_not_initialized()
+        self._wrapper.SetQueryFunctions(_utf8(query), _utf8(cancel))
+
+    def add_query_handler(self, handler, first=False):
+        """Let a ``QueryHandler`` answer the queries of pages (``window.cefQuery``).
+
+        The pages get ``window.cefQuery`` only if a handler was added before
+        ``initialize()``; after it, further handlers can be added. The handlers are asked
+        in the order they were added (``first=True`` puts this one in front) until one takes
+        the query."""
+        if not isinstance(handler, QueryHandler):
+            raise TypeError("handler must be a QueryHandler, not %s" % type(handler).__name__)
+        if handler in self._query_bridges:
+            raise ValueError("this handler was added already")
+        if self._initialized:
+            self._require_running()
+            if not self._wrapper.QueryRouterExists():
+                raise RuntimeError("the pages have no window.cefQuery: add the first query "
+                                   "handler before initialize()")
+        bridge = _QueryBridge(handler)
+        if not self._wrapper.AddQueryHandler((<_QueryBridge>bridge)._ptr, bool(first)):
+            raise ValueError("this handler was added already")
+        (<_QueryBridge>bridge).registered = True
+        self._query_bridges[handler] = bridge
+
+    def remove_query_handler(self, handler):
+        """Remove a handler. The queries it took are canceled (``on_query_canceled()`` is
+        called and the page's ``onFailure`` gets -1). Returns False if it was not added."""
+        bridge = self._query_bridges.pop(handler, None)
+        if bridge is None:
+            return False
+        done = self._wrapper.RemoveQueryHandler((<_QueryBridge>bridge)._ptr)
+        (<_QueryBridge>bridge).registered = False
+        return bool(done)
 
     def add_javascript_binding(self, name, callback):
         """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
@@ -339,4 +503,4 @@ cdef class CefApp:
                 and self._wrapper.IsReadyToExecuteJavascript())
 
 
-__all__ = ["CefApp"] + __generated_all__
+__all__ = ["CefApp", "QueryHandler", "QueryCallback"] + __generated_all__

@@ -13,6 +13,8 @@ sources:
   - native/cefwrapper/cef_wrapper_render_process_handler.h
   - native/cefwrapper/cef_wrapper_render_process_handler.cc
   - native/cefwrapper/javascript_binding.h
+  - native/cefwrapper/query_router.h
+  - native/cefwrapper/query_router.cc
   - native/cefwrapper/javascript_python_binding_handler.h
   - native/cefwrapper/javascript_bindings_handler.h
 updated: 2026-10-08
@@ -64,8 +66,10 @@ updated: 2026-10-08
 | `OnLoadEnd` | 페이지에서 `window.dispatchEvent(new Event('cefready'))`를 실행합니다. 페이지가 `addEventListener('cefready', ...)`로 로드 완료를 알 수 있습니다. |
 | `OnLoadError` | 오류가 `ERR_ABORTED`가 아니면 오류 내용을 담은 `data:` URI 페이지를 보여 줍니다(Chrome 런타임이 아닐 때). |
 | `OnTitleChange` | `PlatformTitleChange`를 부릅니다. Windows 구현(`cef_wrapper_client_handler_win.cc`)은 `SetWindowText`로 창 제목을 바꿉니다. **Linux 구현(`..._linux.cc`)은 X11로** `_NET_WM_NAME`과 `WM_NAME`을 최상위 창에 설정합니다(`cef_get_xdisplay()`, `GetWindowHandle()`에서 `XQueryTree`로 루트의 자식까지 올라감). Alloy 스타일 창은 제목이 없어서 필요하고, `libX11`을 링크합니다. |
-| `OnProcessMessageReceived` | 이름이 `javascript-python-binding`, `javascript-binding`인 메시지는 풀어서 등록된 핸들러를 부르고 `true`(사용자에게 가지 않음). **그 밖의 이름은 사용자의 클라이언트에 넘기고** 사용자가 없으면 `false`([JavaScript 바인딩](../concepts/javascript-bindings.md)). |
+| `OnProcessMessageReceived` | **메시지 라우터가 먼저**(라우터의 메시지이면 `true`, [메시지 라우터](../reference/message-router.md)). 이름이 `javascript-python-binding`, `javascript-binding`인 메시지는 풀어서 등록된 핸들러를 부르고 `true`(사용자에게 가지 않음). **그 밖의 이름은 사용자의 클라이언트에 넘기고** 사용자가 없으면 `false`([JavaScript 바인딩](../concepts/javascript-bindings.md)). |
 | 컨텍스트 메뉴 | `OnBeforeContextMenu`: 사용자 먼저, 그 뒤에 래퍼가 DevTools 항목을 더함(켜져 있을 때만, ID는 28498~28500). `OnContextMenuCommand`: 래퍼의 ID는 래퍼가, 그 밖은 사용자에게 넘기고 사용자가 없으면 `false`. 나머지 메서드(`RunContextMenu`, 빠른 메뉴)는 전달 클래스가 사용자에게 곧바로 넘깁니다. |
+
+`GetRequestHandler()`는 메시지 라우터가 있을 때만 래퍼 자신을 돌려줍니다. `OnBeforeBrowse`(허용하고 라우터에 알림)와 `OnRenderProcessTerminated`는 라우터만을 위한 것이고, `OnBeforeClose`도 라우터에 알립니다. 브라우저 프로세스 핸들러의 `OnBeforeChildProcessLaunch`는 라우터의 JavaScript 함수 이름을 렌더러의 명령줄에 붙입니다.
 
 `CloseAllBrowsers(bool force_close)`는 UI 스레드가 아니면 작업을 UI 스레드에 게시합니다. `IsChromeRuntimeEnabled()`는 명령줄 스위치 `enable-chrome-runtime`를 확인합니다. `HasOpenBrowsers()`는 종료 과정에서 브라우저가 다 닫혔는지 확인하는 용도로 추가했습니다.
 
@@ -75,6 +79,7 @@ updated: 2026-10-08
 
 - `OnBrowserCreated()`: `extra_info`가 널이 아니면 `JSCallbackNames`, `JSNativePythonApiNames` 목록에서 바인딩을 이름만으로 다시 만듭니다. 널이면 아무것도 하지 않습니다(이 wrapper가 만들지 않은 브라우저).
 - `OnProcessMessageReceived()`: `cefweaver-ping`을 받으면 같은 인자로 `cefweaver-pong`을 프레임을 통해 브라우저에 보냅니다(진단용, 사용자 정의 메시지를 시험하는 보내는 쪽).
+- `OnContextCreated()` / `OnContextReleased()`: 명령줄 스위치가 있으면 `CefMessageRouterRendererSide`를 부릅니다(`window.cefQuery`). `OnProcessMessageReceived()`도 라우터가 먼저 받습니다.
 - `OnContextCreated()`: V8 전역 객체에 바인딩 이름마다 함수를 만들고, 호출을 `JavascriptPythonBindingsHandler`(또는 인자 없는 `JavascriptBindingsHandler`)가 받습니다.
 
 ## 바인딩 자료형 (`javascript_binding.h`)

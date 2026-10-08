@@ -26,6 +26,7 @@ updated: 2026-10-08
 | `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `devtools_menu` (속성, 읽고 쓰기) | 컨텍스트 메뉴의 "Show DevTools", "Close DevTools", "Inspect Element" 항목. 기본 `False`. 언제든 바꿀 수 있고 이후에 만들어지는 메뉴에 적용됩니다. 켜고 꺼도 사용자 핸들러가 받는 이벤트와 메뉴는 같고 항목만 뒤에 붙습니다 |
+| `add_query_handler(handler, first=False)`, `remove_query_handler(handler) -> bool`, `set_query_functions(query, cancel)` | 페이지의 `window.cefQuery`로 오는 질의를 `QueryHandler`가 받습니다. 자세한 것은 [메시지 라우터](message-router.md) |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
 | `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |

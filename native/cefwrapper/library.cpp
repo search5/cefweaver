@@ -68,6 +68,7 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
   for (const auto &entry : m_CommandLineSwitches) {
     m_App->AddCommandLineSwitch(entry.first, entry.second);
   }
+  QueryRouter::Create();  // before the first browser; null without handlers
   CefExecuteProcess(main_args, m_App.get(), sandbox_info);
 
 #if defined(OS_WIN)
@@ -145,6 +146,7 @@ void CefWrapper::ShutdownCefSimple() {
   }
   CefWrapperBrowserProcessHandler::GetInstance()->Browser = nullptr;
   CefWrapperBrowserProcessHandler::SetUserClient(nullptr);  // releases the Python objects
+  QueryRouter::Reset();
   handler = nullptr;
   CefShutdown();
   m_App = nullptr;
@@ -187,6 +189,16 @@ void CefWrapper::SetCustomCefCachePath(std::string cef_cache_path) {
 }
 void CefWrapper::SetDevToolsMenuEnabled(bool enabled) { g_DevToolsMenuEnabled.store(enabled); }
 bool CefWrapper::DevToolsMenuEnabled() { return g_DevToolsMenuEnabled.load(); }
+void CefWrapper::SetQueryFunctions(std::string query, std::string cancel) {
+  QueryRouter::SetFunctions(query, cancel);
+}
+bool CefWrapper::AddQueryHandler(PythonQueryHandler* handler, bool first) {
+  return QueryRouter::AddHandler(handler, first);
+}
+bool CefWrapper::RemoveQueryHandler(PythonQueryHandler* handler) {
+  return QueryRouter::RemoveHandler(handler);
+}
+bool CefWrapper::QueryRouterExists() { return QueryRouter::Exists(); }
 void CefWrapper::SetClient(CefRefPtr<CefClient> client) {
   m_Client = client;
 }

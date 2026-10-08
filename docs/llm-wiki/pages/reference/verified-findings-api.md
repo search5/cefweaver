@@ -166,9 +166,23 @@ updated: 2026-10-08
   - 래퍼의 JavaScript 바인딩은 같은 실행에서 계속 동작하고, 래퍼의 메시지(`javascript-python-binding`)는 사용자의 핸들러에 오지 않습니다(사용자가 받은 이름은 `cefweaver-pong` 하나).
 - **영향**: 프로세스 메시지 수신을 이름으로 나누는 방식이 동작합니다. 렌더러가 C++라서 사용자 정의 메시지를 보내는 쪽은 진단용 ping/pong뿐입니다([알려진 제약과 미검증 항목](known-constraints.md)).
 
+## F34. 메시지 라우터 (window.cefQuery)
+
+- **방법**: `QueryHandler`를 더하고 페이지에서 `window.cefQuery`로 질의를 보내 응답을 확인했습니다.
+- **결과**:
+  - 성공, 실패(코드와 메시지), 다른 스레드에서 나중에 답하기, 아무도 받지 않은 질의(`onFailure`의 코드 -1)가 모두 페이지에 전달됩니다. 한 번 답한 질의에 또 답하면 `False`입니다.
+  - 지속 질의는 여러 번 답할 수 있고 `cefQueryCancel`로 취소하면 `on_query_canceled`가 불리며 그 뒤의 답은 `False`입니다. 페이지를 이동해도 취소됩니다.
+  - `ArrayBuffer` 요청은 `bytes`로, `bytes` 응답은 `ArrayBuffer`로 왕복합니다.
+  - 핸들러는 더한 순서(`first=True`는 맨 앞)로 물어보고, 뺀 뒤에는 건너뜁니다. 함수 이름을 바꾸면 기본 이름은 없어집니다.
+  - 핸들러를 더하지 않으면 페이지에 `window.cefQuery`가 없습니다. 답하지 않고 버린 콜백은 질의를 -1로 실패시킵니다.
+  - 라우터는 `add_javascript_binding`과 사용자의 `on_process_message_received`와 함께 동작하며, 라우터와 래퍼의 메시지는 사용자에게 가지 않습니다.
+- **발견**: 브라우저 프로세스의 명령줄에 `AppendSwitchWithValue`로 덧붙인 임의의 스위치는 **렌더러에 전달되지 않았습니다**(렌더러 명령줄에서 확인). 처음 구현에서 `window.cefQuery`가 `undefined`였던 원인입니다. `OnBeforeChildProcessLaunch`에서 자식 프로세스의 명령줄에 붙이니 렌더러가 라우터를 만들었습니다. `add_command_line_switch`로 준 다른 스위치가 렌더러에 가는지는 `ozone-platform`만 렌더러 명령줄에서 확인했고(`--ozone-platform=x11`), 나머지는 확인하지 않았습니다. `cef_wrapper_app.cc`의 주석 "child processes inherit the browser process switches"는 이 발견과 맞지 않는 부분이 있습니다.
+- **영향**: 구조화된 양방향 통신이 열렸습니다([메시지 라우터](message-router.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)
 - [알려진 제약과 미검증 항목](known-constraints.md)
 - [설계 결정 기록](design-decisions.md)
 - [types 모듈](types-module.md)
+- [메시지 라우터](message-router.md)

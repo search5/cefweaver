@@ -30,6 +30,7 @@ cefweaver/
       cef_wrapper_client_handler.* (+ _linux.cc, _win.cc)
       cef_wrapper_render_process_handler.*
       javascript_binding.h, javascript_python_binding_handler.h, javascript_bindings_handler.h
+      query_router.h, query_router.cc
       custom_protocol_scheme_handler.*, file_util.h  (사용하지 않음)   [legacy-code]
       global_vars.h
       generated/cefweaver_proxies.h   (생성)                           [generated-files]

@@ -5,6 +5,30 @@
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
 #include "javascript_python_binding_handler.h"
+#include "include/cef_command_line.h"
+#include "query_router.h"
+
+CefRefPtr<CefMessageRouterRendererSide> SimpleRenderProcessHandler::GetQueryRouter() {
+  if (!m_QueryRouterChecked) {
+    m_QueryRouterChecked = true;
+    CefRefPtr<CefCommandLine> line = CefCommandLine::GetGlobalCommandLine();
+    if (line && line->HasSwitch(kQueryFunctionSwitch)) {
+      CefMessageRouterConfig config;
+      config.js_query_function = line->GetSwitchValue(kQueryFunctionSwitch);
+      config.js_cancel_function = line->GetSwitchValue(kCancelFunctionSwitch);
+      m_QueryRouter = CefMessageRouterRendererSide::Create(config);
+    }
+  }
+  return m_QueryRouter;
+}
+
+void SimpleRenderProcessHandler::OnContextReleased(CefRefPtr<CefBrowser> browser,
+                                                   CefRefPtr<CefFrame> frame,
+                                                   CefRefPtr<CefV8Context> context) {
+  if (CefRefPtr<CefMessageRouterRendererSide> router = GetQueryRouter()) {
+    router->OnContextReleased(browser, frame, context);
+  }
+}
 
 void SimpleRenderProcessHandler::OnBrowserCreated(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefDictionaryValue> extra_info) {
@@ -41,6 +65,11 @@ void SimpleRenderProcessHandler::OnBrowserCreated(
 bool SimpleRenderProcessHandler::OnProcessMessageReceived(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
     CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
+  if (CefRefPtr<CefMessageRouterRendererSide> router = GetQueryRouter()) {
+    if (router->OnProcessMessageReceived(browser, frame, source_process, message)) {
+      return true;
+    }
+  }
   if (message->GetName() != "cefweaver-ping" || !frame) {
     return false;
   }
@@ -81,6 +110,10 @@ void SimpleRenderProcessHandler::OnContextCreated(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
     CefRefPtr<CefV8Context> context) {
     //CEF_REQUIRE_RENDERER_THREAD();
+
+    if (CefRefPtr<CefMessageRouterRendererSide> router = GetQueryRouter()) {
+        router->OnContextCreated(browser, frame, context);
+    }
 
     if (!m_Javascript_Bindings.empty())
     {

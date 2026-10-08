@@ -110,3 +110,8 @@
 ## [2026-10-08] ingest | JavaScript 통신의 비교 조사 (java-cef, cefpython)
 
 - 사용자의 질문(구조화된 양방향 통신을 java-cef 등은 어떻게 하는가, 열지 못한 부분)에 java-cef와 cefpython의 위키와 CEF 헤더로 답하고 [분석](pages/analyses/js-python-messaging.md)으로 저장했습니다. 구현은 하지 않았습니다. 정정: cefpython도 Python은 브라우저 프로세스에만 있고 렌더러는 C++입니다.
+
+## [2026-10-08] ingest | 메시지 라우터를 java-cef 방식으로 연다
+
+- `QueryHandler`, `QueryCallback`, `CefApp.add_query_handler`, `remove_query_handler`, `set_query_functions`를 더했습니다(손으로 쓴 `query_router.*`와 래퍼, 렌더러, 브라우저 프로세스 핸들러의 연결). 시험 10개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인한 뒤 구현해, 전체 144개가 통과합니다.
+- 새 페이지 [메시지 라우터](pages/reference/message-router.md), 확인한 사실 F34(자식 프로세스에는 임의의 명령줄 스위치가 전달되지 않아 `OnBeforeChildProcessLaunch`로 붙임), 설계 결정, 시험 목록, 알려진 제약을 고쳤습니다.

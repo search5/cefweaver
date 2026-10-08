@@ -47,7 +47,7 @@ JavaScript 값과 `CefListValue` 사이의 변환, JavaScript 콜백과 Python �
 
 기본형 인자에 JSON 문자열이나 배열을 더하고 콜백 하나를 허용하는 정도의 점진적 확장입니다. 작지만 지속 질의나 취소가 없어서 결국 A와 겹칩니다.
 
-**의견**: A가 비용 대비 효과가 가장 큽니다. 객체는 JSON 문자열로 보내면 되고, 반환값은 `success`/`failure`로 돌려받고, 구독(`persistent`)과 취소와 정리를 CEF가 맡습니다. 지금의 `add_javascript_binding`은 그대로 두어 가벼운 호출에 씁니다. 결정은 아직 나지 않았습니다.
+**의견과 결정**: A가 비용 대비 효과가 가장 큽니다. 객체는 JSON 문자열로 보내면 되고, 반환값은 `success`/`failure`로 돌려받고, 구독(`persistent`)과 취소와 정리를 CEF가 맡습니다. 지금의 `add_javascript_binding`은 그대로 두어 가벼운 호출에 씁니다. 사용자가 A(java-cef 방식)를 골라 구현했습니다: [메시지 라우터](../reference/message-router.md).
 
 ## 열지 못한 부분
 
@@ -64,6 +64,7 @@ JavaScript 값과 `CefListValue` 사이의 변환, JavaScript 콜백과 Python �
 
 ## 관련 페이지
 
+- [메시지 라우터 (구현)](../reference/message-router.md)
 - [래퍼와 사용자가 핸들러를 나눠 쓰는 방법](sharing-handlers-with-the-wrapper.md)
 - [알려진 제약과 미검증 항목](../reference/known-constraints.md)
 - [Python API 참조](../reference/python-api.md)

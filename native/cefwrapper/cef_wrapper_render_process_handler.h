@@ -1,6 +1,7 @@
 #ifndef CEF_WRAPPER_RENDER_PROCESS_HANDLER_H_
 #define CEF_WRAPPER_RENDER_PROCESS_HANDLER_H_
 #include "include/cef_render_process_handler.h"
+#include "include/wrapper/cef_message_router.h"
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
 
@@ -26,6 +27,10 @@ public:
                         CefRefPtr<CefV8Context> context) override ;
 
 
+  void OnContextReleased(CefRefPtr<CefBrowser> browser,
+                         CefRefPtr<CefFrame> frame,
+                         CefRefPtr<CefV8Context> context) override;
+
   void OnBrowserCreated(CefRefPtr<CefBrowser> browser,
                         CefRefPtr<CefDictionaryValue> extra_info) override;
 
@@ -36,8 +41,14 @@ public:
                                 CefProcessId source_process,
                                 CefRefPtr<CefProcessMessage> message) override;
 
+  // The router of window.cefQuery(...); null if the browser process has no query handler.
+  // It is made from the command line switches the browser process passes on.
+  CefRefPtr<CefMessageRouterRendererSide> GetQueryRouter();
+
   std::vector<JavascriptBinding> m_Javascript_Bindings;
   std::vector<JavascriptPythonBinding> m_Javascript_Python_Bindings;
+  bool m_QueryRouterChecked = false;
+  CefRefPtr<CefMessageRouterRendererSide> m_QueryRouter;
   IMPLEMENT_REFCOUNTING(SimpleRenderProcessHandler);
 };
 #endif //CEF_WRAPPER_RENDER_PROCESS_HANDLER_H_

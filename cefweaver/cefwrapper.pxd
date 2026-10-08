@@ -7,7 +7,9 @@
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
-from cefweaver.cef_api cimport CefClient, CefRefPtr
+from libc.stdint cimport int64_t
+
+from cefweaver.cef_api cimport CefBrowser, CefClient, CefFrame, CefRefPtr
 
 
 cdef extern from "javascript_binding.h":
@@ -21,6 +23,27 @@ cdef extern from "javascript_binding.h":
     # Called by CEF; the callee must not raise into C++.
     ctypedef void (*js_python_bindings_handler_function_ptr)(
         void* python_callback_object, int args_size, CefValueWrapper* args) noexcept
+
+
+cdef extern from "query_router.h":
+    # The answer to one query (a QueryCallback holds it); callable from any thread.
+    cdef cppclass QueryCallbackHolder:
+        cpp_bool Success(const string& response) nogil
+        cpp_bool SuccessData(const void* data, size_t size) nogil
+        cpp_bool Failure(int error_code, const string& message) nogil
+
+    # Called by CEF on the UI thread; the callee must not raise into C++.
+    ctypedef cpp_bool (*query_python_on_query_ptr)(
+        void* handler, CefRefPtr[CefBrowser] browser, CefRefPtr[CefFrame] frame,
+        int64_t query_id, cpp_bool binary, const void* request, size_t size,
+        cpp_bool persistent, QueryCallbackHolder* callback) noexcept
+    ctypedef void (*query_python_on_canceled_ptr)(
+        void* handler, CefRefPtr[CefBrowser] browser, CefRefPtr[CefFrame] frame,
+        int64_t query_id) noexcept
+
+    cdef cppclass PythonQueryHandler:
+        PythonQueryHandler(void* python_handler, query_python_on_query_ptr on_query,
+                           query_python_on_canceled_ptr on_canceled)
 
 
 cdef extern from "library.h":
@@ -44,3 +67,7 @@ cdef extern from "library.h":
         void SetClient(CefRefPtr[CefClient] client)
         void SetDevToolsMenuEnabled(cpp_bool enabled)
         cpp_bool DevToolsMenuEnabled()
+        void SetQueryFunctions(string query, string cancel)
+        cpp_bool AddQueryHandler(PythonQueryHandler* handler, cpp_bool first)
+        cpp_bool RemoveQueryHandler(PythonQueryHandler* handler)
+        cpp_bool QueryRouterExists()

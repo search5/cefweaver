@@ -78,6 +78,7 @@ depends = [
     "native/cefwrapper/generated/cefweaver_proxies.h",
     "native/cefwrapper/library.h",
     "native/cefwrapper/javascript_binding.h",
+    "native/cefwrapper/query_router.h",
     "build/native/native/cefwrapper/libcefwrapper.a",
     "build/native/libcef_dll_wrapper/libcef_dll_wrapper.a",
     "build/native/cef/Release/libcef.so",
