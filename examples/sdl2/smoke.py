@@ -116,7 +116,7 @@ class Adapter:
         x, y = core.rect_of("#zone")
         core.xdo("mousemove", *core.point(x, y))
         self.settle(0.2)
-        self.sdl._drop(text="from-another-program")
+        self.sdl.handle_drop(text="from-another-program")
         self.settle(0.6)
         drops = core.js("window.drops")
         core.check(drops == [{"text": "from-another-program", "files": []}], "a text drop (SDL_DROPTEXT) reaches the page", drops)

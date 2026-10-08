@@ -153,7 +153,7 @@ updated: 2026-10-08
 
 - **확인함**: 다섯 예제의 점검이 모두 통과합니다(24~27개). Qt는 PyQt6와 PySide6 모두 통과했습니다.
 - **확인함(wx)**: `wx.DropSource.DoDragDrop()`은 마우스 이벤트 핸들러 밖에서(`wx.CallAfter`) 부르면 0.2 ms 만에 `DragNone`으로 돌아옵니다. 임시 데이터 객체를 넘기면(`SetData`가 소유하지 않음) `DoDragDrop` 안에서 SIGSEGV가 납니다(gdb로 확인).
-- **확인함(wx)**: 한꺼번에 보낸 `drag_target_drag_enter`, `drag_target_drag_over`, `drag_target_drop`에서 첫 드롭이 페이지에 `dragenter`, `dragover`, `dragleave`로만 닿았고 `drop`이 오지 않았습니다. `update_drag_cursor`(`dragover`에 대한 답)가 온 뒤 `drop`을 보내면 닿았습니다. **렌더러가 답하기 전에 놓기가 처리되는 경합으로 추정하지만 CEF 소스에서 확인하지 않았습니다.** SDL2 예제는 한꺼번에 보내는 방식으로 통과했습니다(같은 경합이 있을 수 있음).
+- **확인함(wx)**: 한꺼번에 보낸 `drag_target_drag_enter`, `drag_target_drag_over`, `drag_target_drop`에서 첫 드롭이 페이지에 `dragenter`, `dragover`, `dragleave`로만 닿았고 `drop`이 오지 않았습니다. `update_drag_cursor`(`dragover`에 대한 답)가 온 뒤 `drop`을 보내면 닿았습니다. **렌더러가 답하기 전에 놓기가 처리되는 경합으로 추정하지만 CEF 소스에서 확인하지 않았습니다.** `cefweaver.ui`로 옮기기 전의 SDL2 예제는 한꺼번에 보내는 방식으로 통과했고(같은 경합이 있을 수 있었음), 지금은 `BrowserView.drop()`이 답을 기다립니다.
 - **확인함(Kivy)**: 기본 설정에서 Esc를 누르면 앱이 끝납니다(`exit_on_escape`). Kivy가 보고하는 휠 방향 `scrollup`은 X의 버튼 5(페이지가 아래로)입니다.
 - **확인함(Qt, Tk)**: CEF에 맡긴 복사와 붙여넣기는 멈추거나 값이 비었고, 위젯이 직접 처리하니 통과했습니다. SDL2, wx, Kivy는 처음부터 위젯이 처리해서 CEF에 맡겼을 때의 동작은 확인하지 않았습니다.
 - **확인함**: SDL2에서 `on_after_created`의 `set_focus(True)`만으로는 한글 조합과 `<select>` 팝업이 동작하지 않았고 클릭에서 다시 주면 동작했습니다. 원인 미조사.
