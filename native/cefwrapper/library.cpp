@@ -165,6 +165,9 @@ bool CefWrapper::ExecuteJavascript(std::string code) {
     return false;
   }
   CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+  if (!frame) {
+    return false;  // the first browser was closed
+  }
   frame->ExecuteJavaScript(code, frame->GetURL(), 0);
   return true;
 }
@@ -253,6 +256,15 @@ void CefWrapper::SetStringSetting(std::string name, std::string value) {
   m_StringSettings[name] = value;
 }
 void CefWrapper::SetIntSetting(std::string name, long long value) { m_IntSettings[name] = value; }
+CefRefPtr<CefBrowser> CefWrapper::CreateBrowser(std::string url, int offscreen, int transparent,
+                                                CefRefPtr<CefRequestContext> request_context) {
+  if (!m_App || !g_IsRunning || !m_App->GetBrowser() || !CefCurrentlyOn(TID_UI)) {
+    return nullptr;
+  }
+  return CefWrapperBrowserProcessHandler::CreateBrowser(
+      url, offscreen < 0 ? g_Offscreen.load() : offscreen != 0,
+      transparent < 0 ? g_Transparent.load() : transparent != 0, request_context);
+}
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }

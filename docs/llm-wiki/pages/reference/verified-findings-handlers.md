@@ -66,6 +66,19 @@ updated: 2026-10-08
 - **방법**: `cefweaver.get_version()`을 CEF를 시작하기 전에 불러, 설치된 CEF 헤더(`cef_version.h`)의 값과 비교했습니다.
 - **결과**: `Version(cefweaver, cef_major, cef_minor, cef_patch, cef_commit, chrome_major, chrome_minor, chrome_build, chrome_patch)`가 헤더의 `CEF_VERSION_*`, `CEF_COMMIT_NUMBER`, `CHROME_VERSION_*`와 같고, `version.cef`(`154.0.34`)와 `version.chrome`(`154.0.8037.98`)이 문자열을 줍니다. `CefApp.get_version()`은 같은 값을 돌려줍니다. 값은 libcef의 `cef_version_info()`에서 오므로 `initialize()` 전에도 부를 수 있습니다. `cefweaver` 항목은 설치된 패키지 메타데이터의 버전입니다(java-cef의 JCEF 버전에 해당).
 
+## F60. 브라우저 여러 개
+
+- **방법**: `CefApp.create_browser(url, offscreen=None, transparent=None, request_context=None)`로 첫 브라우저 뒤에 브라우저를 만들고, 그림, JS 바인딩, 라우터, 닫기, 요청 컨텍스트를 확인했습니다.
+- **결과**:
+  - 오프스크린 브라우저는 자기 `on_paint`를 받고(`browser`로 구분) 첫 브라우저의 그림은 그대로입니다. 투명 여부는 브라우저마다 정합니다(`transparent=False`가 흰색, 기본이 투명).
+  - 창이 있는 앱에서 창이 있는 브라우저와 오프스크린 브라우저(`offscreen=True`)를 섞을 수 있습니다(`is_window_rendering_disabled`로 확인).
+  - JS 바인딩(`report`)과 메시지 라우터가 모든 브라우저에서 동작하고, 핸들러는 질의한 `browser`를 받습니다.
+  - 한 브라우저를 닫아도 나머지와 앱은 계속 돕니다(`is_running`). 모든 브라우저가 닫히면 `is_running`이 거짓이 됩니다.
+  - `request_context`를 주면 그 브라우저의 요청이 그 컨텍스트의 핸들러를 거칩니다(`get_resource_request_handler`에 그 브라우저가 옴).
+  - 인자의 형식이 틀리면 `TypeError`, CEF가 돌지 않거나 첫 브라우저가 아직 없으면 `RuntimeError`입니다.
+- **발견(결함, 수정)**: `is_ready_to_execute_javascript`(`execute_javascript`가 실행되는 조건)가 어느 브라우저의 로딩에나 따라 바뀌었습니다. 로딩이 긴 브라우저를 만들면 첫 브라우저의 스크립트 실행이 막혔습니다(팝업도 같았음). 이제 첫 브라우저(`initialize()`가 만든 것)의 로딩만 따릅니다. 또 첫 브라우저가 닫힌 뒤 `execute_javascript`가 널 프레임을 참조할 수 있어 `False`를 돌려주도록 했습니다.
+- **제약**: `load_url()`과 `execute_javascript()`는 첫 브라우저만 다룹니다(다른 브라우저는 `Browser.get_main_frame()`으로). 같은 스레드(`initialize()`를 부른 스레드)에서만 만들 수 있습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

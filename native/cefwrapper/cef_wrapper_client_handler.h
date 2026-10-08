@@ -201,6 +201,8 @@ private:
   BrowserList browser_list_;
 
   bool m_IsReadyToExecuteJs = false;
+  // The browser that execute_javascript() and load_url() address: the first one made.
+  int primary_browser_id_ = 0;
   std::vector<JavascriptBinding> m_JavascriptBindings;
   std::vector<JavascriptPythonBinding> m_JavascriptPythonBindings;
   bool is_closing_;

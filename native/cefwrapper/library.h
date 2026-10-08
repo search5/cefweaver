@@ -45,6 +45,11 @@ public:
   void SetStringSetting(std::string name, std::string value);
   void SetIntSetting(std::string name, long long value);
   void SetOffscreen(bool enabled);
+  // A further browser (java-cef's createBrowser); offscreen and transparent: -1 is the app's
+  // setting. Empty when CEF does not run, the first browser does not exist yet, or the thread
+  // is not the UI thread.
+  CefRefPtr<CefBrowser> CreateBrowser(std::string url, int offscreen, int transparent,
+                                      CefRefPtr<CefRequestContext> request_context);
   void SetTransparent(bool transparent);
   bool Transparent();
   void SetRequestContext(CefRefPtr<CefRequestContext> context);

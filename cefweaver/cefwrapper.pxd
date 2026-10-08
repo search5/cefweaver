@@ -84,6 +84,8 @@ cdef extern from "library.h":
         cpp_bool DevToolsMenuEnabled()
         void SetStringSetting(string name, string value)
         void SetIntSetting(string name, long long value)
+        CefRefPtr[CefBrowser] CreateBrowser(string url, int offscreen, int transparent,
+                                            CefRefPtr[CefRequestContext] request_context)
         void SetTransparent(cpp_bool transparent)
         cpp_bool Transparent()
         void SetOffscreen(cpp_bool enabled)

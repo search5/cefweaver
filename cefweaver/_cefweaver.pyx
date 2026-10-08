@@ -385,6 +385,44 @@ cdef class CefApp:
 
     # -- configuration (before initialize) ------------------------------------
 
+    def create_browser(self, url="about:blank", offscreen=None, transparent=None,
+                       request_context=None):
+        """Create a further browser (java-cef's ``CefClient.createBrowser()``) and return it as a
+        ``Browser``. It uses the app's client, JavaScript bindings and message router.
+
+        ``offscreen`` and ``transparent`` (``True`` or ``False``) decide for this browser; ``None``
+        takes ``CefApp.offscreen`` and ``CefApp.transparent``. ``request_context`` is a
+        ``RequestContext`` for it (``None``: the global one). Call it on the thread that called
+        ``initialize()``, after the first browser exists. A windowed browser gets a window of its
+        own. ``load_url()`` and ``execute_javascript()`` address the first browser only; use the
+        returned ``Browser``'s frames for the others. Closing the browsers ends ``is_running``."""
+        cdef string value
+        cdef int osr = -1
+        cdef int clear = -1
+        cdef CefRefPtr[CefRequestContext] context
+        cdef CefRefPtr[CefBrowser] ref
+        if not isinstance(url, str):
+            raise TypeError("url must be a str")
+        if offscreen is not None:
+            if not isinstance(offscreen, bool):
+                raise TypeError("offscreen must be a bool or None")
+            osr = 1 if offscreen else 0
+        if transparent is not None:
+            if not isinstance(transparent, bool):
+                raise TypeError("transparent must be a bool or None")
+            clear = 1 if transparent else 0
+        if request_context is not None:
+            if not isinstance(request_context, RequestContext):
+                raise TypeError("request_context must be a RequestContext or None")
+            context = (<RequestContext>request_context)._ref
+        self._require_running()
+        value = _utf8(url)
+        ref = self._wrapper.CreateBrowser(value, osr, clear, context)
+        if not ref.get():
+            raise RuntimeError("a browser can be created on the thread of initialize() once the "
+                               "first browser exists")
+        return _wrap_Browser(ref)
+
     @staticmethod
     def get_version():
         """The ``Version`` of cefweaver, CEF and Chromium; the same as ``cefweaver.get_version()``."""

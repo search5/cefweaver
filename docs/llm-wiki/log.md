@@ -230,3 +230,7 @@
 ## [2026-10-08] ingest | 버전 조회 (F59)
 
 - `cefweaver.get_version()`과 `CefApp.get_version()`을 더했습니다(CEF, Chromium, cefweaver의 버전). 헤더의 값과 같음을 시험했습니다.
+
+## [2026-10-08] ingest | 브라우저 여러 개 (F60)
+
+- `CefApp.create_browser(url, offscreen, transparent, request_context)`를 더했습니다(java-cef의 `createBrowser`). 브라우저 생성을 `CefWrapperBrowserProcessHandler::CreateBrowser`로 빼서 첫 브라우저도 같은 경로로 만듭니다. `execute_javascript`의 준비 표시가 다른 브라우저의 로딩에 따라 바뀌던 결함을 고쳤습니다. 이로써 java-cef와의 격차 목록이 모두 닫혔습니다.

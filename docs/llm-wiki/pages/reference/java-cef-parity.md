@@ -72,7 +72,7 @@ updated: 2026-10-08
 | --- | --- | --- |
 | `CefSettings`의 필드 20개 (**해결**: [F58](verified-findings-handlers.md)) | 모두 | 이제 `CefApp.settings`로 14개를 더해 모두(`root_cache_path`는 `set_cache_path()`가 함께 정함). 이전에는 6개만(`browser_subprocess_path`, `windowless_rendering_enabled`, `cache_path`와 `root_cache_path`, `resources_dir_path`와 `locales_dir_path`). 없는 것 14개: `command_line_args_disabled`, `persist_session_cookies`, `user_agent`, `user_agent_product`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`, `chrome_policy_id`, `uncaught_exception_stack_size`, `background_color`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults` |
 | 버전 조회 (**해결**: [F59](verified-findings-handlers.md)) | `CefApp.getVersion()`: JCEF, CEF, Chrome 버전 | `cefweaver.get_version()`, `CefApp.get_version()` |
-| 브라우저 여러 개 | `CefClient.createBrowser(url, osr, transparent, requestContext)`를 몇 번이든 | 첫 브라우저 하나(`set_request_context`로 컨텍스트만 지정) |
+| 브라우저 여러 개 (**해결**: [F60](verified-findings-handlers.md)) | `CefClient.createBrowser(url, osr, transparent, requestContext)`를 몇 번이든 | `CefApp.create_browser(url, offscreen, transparent, request_context)` |
 | 투명한 오프스크린 (**해결**) | `createBrowser`의 `isTransparent` | `CefApp.transparent` |
 
 설정 가운데 일부(`user_agent`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`)는 같은 뜻의 명령줄 스위치를 `add_command_line_switch`로 줄 수 있을 가능성이 있으나, 설정 필드와 같은지는 확인하지 않았습니다. 나머지 필드는 스위치가 없어 설정 구조체로만 줄 수 있습니다.
@@ -83,7 +83,6 @@ java-cef의 Java 보조 클래스(`BoolRef`, `IntRef`, `StringRef`, 어댑터 �
 
 - **응답 필터**(`CefResponseFilter`, `ResourceRequestHandler.get_resource_response_filter`): java-cef는 구현하지 않습니다.
 - **창 정보로 팝업을 꾸미는 일**(`CefWindowInfo`, `CefBrowserSettings`가 든 `on_before_popup`, `on_before_dev_tools_popup`, `BrowserHost.show_dev_tools`): java-cef도 URL과 프레임 이름만 넘깁니다. 열려면 포인터가 든 구조체 종류가 필요합니다.
-- **브라우저를 여럿 만들기와 브라우저별 요청 컨텍스트**: java-cef는 `createBrowser`에 컨텍스트를 주지만 래퍼는 브라우저를 하나만 만듭니다. 첫 브라우저에 주는 `set_request_context`만 있습니다.
 
 ## 아직 열지 않은 것 (java-cef도 열지 않았거나 해당 없음)
 

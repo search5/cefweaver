@@ -175,6 +175,9 @@ void CefWrapperClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
 
   // Add to the list of existing browsers.
   browser_list_.push_back(browser);
+  if (primary_browser_id_ == 0 && !browser->IsPopup()) {
+    primary_browser_id_ = browser->GetIdentifier();
+  }
   CwLifeSpanHandlerForward::OnAfterCreated(browser);
 }
 
@@ -305,7 +308,9 @@ bool CefWrapperClientHandler::IsReadyToExecuteJs() { return m_IsReadyToExecuteJs
 void CefWrapperClientHandler::OnLoadStart(
     CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
     CefLoadHandler::TransitionType transition_type) {
-  m_IsReadyToExecuteJs = false;
+  if (browser->GetIdentifier() == primary_browser_id_) {
+    m_IsReadyToExecuteJs = false;
+  }
   CwLoadHandlerForward::OnLoadStart(browser, frame, transition_type);
 }
 bool CefWrapperClientHandler::OnProcessMessageReceived(
@@ -387,13 +392,8 @@ bool CefWrapperClientHandler::OnProcessMessageReceived(
 void CefWrapperClientHandler::OnLoadingStateChange(
     CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack,
     bool canGoForward) {
-  if(!isLoading)
-  {
-    m_IsReadyToExecuteJs = true;
-  }
-  else
-  {
-    m_IsReadyToExecuteJs = false;
+  if (browser->GetIdentifier() == primary_browser_id_) {
+    m_IsReadyToExecuteJs = !isLoading;
   }
   CwLoadHandlerForward::OnLoadingStateChange(browser, isLoading, canGoBack, canGoForward);
 }

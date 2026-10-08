@@ -34,7 +34,7 @@ updated: 2026-10-08
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
 | `shutdown()` | CEF 종료. 시작하지 않았거나 이미 종료했으면 아무것도 하지 않습니다. |
 | `load_url(url) -> bool` | 브라우저가 없으면 `False` |
-| `execute_javascript(code) -> bool` | 브라우저가 없거나 로딩 중이면 `False` |
+| `execute_javascript(code) -> bool` | 브라우저가 없거나 로딩 중이면 `False`. `create_browser(url, offscreen, transparent, request_context)`로 만든 브라우저는 다루지 않고(`Browser`의 프레임을 씀), 그 메서드는 첫 브라우저 뒤의 브라우저를 `Browser`로 돌려줍니다([F60](verified-findings-handlers.md)) |
 | `add_resource(url, content, mime_type="text/html", headers=None, status=200)` | 메모리의 내용을 http(s) URL로 제공. 비 http(s) URL은 `ValueError` |
 | `is_running` (속성) | 시작했고 종료 전이며 창이 닫히지 않았으면 `True` |
 | `is_ready_to_execute_javascript` (속성) | 페이지 로딩이 끝났으면 `True` |

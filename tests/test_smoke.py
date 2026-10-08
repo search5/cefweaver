@@ -90,6 +90,12 @@ def run_cef(script, timeout=90, ozone="x11"):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_a_browser_cannot_be_created_before_cef_runs(self):
+        app = cefweaver.CefApp()
+        with self.assertRaises(RuntimeError):
+            app.create_browser("about:blank")
+        app.shutdown()
+
     def test_the_version_is_known_before_cef_starts_and_matches_the_cef_headers(self):
         version = cefweaver.get_version()                          # java-cef: CefApp.getVersion()
         self.assertIsInstance(version, cefweaver.Version)
@@ -2033,6 +2039,7 @@ class WithCef(unittest.TestCase):
         screen = [None]  # a ScreenInfo to give, or None to leave the screen to CEF
         dragged, drag_return = [], [False]  # what start_dragging() got, and what it answers
         popups = []  # on_popup_show() and on_popup_size() calls
+        closed = []  # the identifiers of the browsers that were closed
         ranges = []  # on_ime_composition_range_changed(): (selected range, [bounds of the characters])
         probe = [None]  # a function (blue, green, red) -> bool: paints count the pixels it accepts
         app.add_javascript_binding("report", lambda *a: js.append(a))
@@ -2065,11 +2072,14 @@ class WithCef(unittest.TestCase):
                     pixels = bytes(buffer)
                     found = sum(1 for i in range(0, len(pixels), 4) if probe[0](*pixels[i:i + 3]))
                 paints.append(dict(type=type, rects=list(dirty_rects), writable=writable, found=found,
+                                   browser=browser.get_identifier(),
                                    nbytes=len(buffer), width=width, height=height,
                                    first=bytes(buffer[:4]), view=buffer))
         class Life(cefweaver.LifeSpanHandler):
             def on_after_created(self, browser):
                 boxes.append(browser)
+            def on_before_close(self, browser):
+                closed.append(browser.get_identifier())
         handlers = {}  # more handlers of the client: "focus", "js_dialog", "dialog", "download"
         class MyClient(cefweaver.Client):
             def __init__(self):
@@ -3502,6 +3512,157 @@ class WithCef(unittest.TestCase):
             self.assertIn("COOKIE session=1", run(True, False))   # the next process still has it
             run(False, True)
             self.assertNotIn("COOKIE session=1", run(False, False))
+
+    # -- more than one browser (java-cef: CefClient.createBrowser) ----------------------------
+
+    PAGE_WITH_QUERIES = """
+        PAGE = ('<script>function ask(r) { window.cefQuery({request: r,'
+                'onSuccess: function (x) { report("ok", r, x); },'
+                'onFailure: function (c, m) { report("fail", r, c); }}); }'
+                'report("page", "%s");</script>')
+    """
+
+    def test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected(self):
+        self.run_osr_script("""
+            start(RED)
+            first = boxes[0]
+            GREEN = "<style>html, body { margin: 0; background: rgb(0, 255, 0); }</style>"
+            second = app.create_browser(page(GREEN), transparent=False)
+            assert isinstance(second, cefweaver.Browser)
+            wait_until(app, lambda: any(p["browser"] == second.get_identifier()
+                                        and p["first"] == b"\\x00\\xff\\x00\\xff" for p in paints),
+                       "the green frame of the second browser")
+            wait_until(app, lambda: len(boxes) == 2, "the second browser")
+            assert second.get_identifier() != first.get_identifier() and second.is_same(boxes[1])
+            assert second.is_popup() is False
+            reds = [p for p in paints if p["browser"] == first.get_identifier()]
+            assert all(p["first"] == b"\\x00\\x00\\xff\\xff" for p in reds), reds   # still red
+            app.shutdown()                                           # both are closed
+            print("OK")
+        """)
+
+    def test_each_browser_has_its_own_transparency(self):
+        self.run_osr_script("""
+            start("")                                        # the first one: transparent
+            clear = boxes[0]
+            white = app.create_browser(page(""), transparent=False)
+            also_clear = app.create_browser(page(""))        # as the app says
+            def first_pixels(browser):
+                return {p["first"] for p in paints if p["browser"] == browser.get_identifier()}
+            wait_until(app, lambda: first_pixels(white) and first_pixels(also_clear), "the frames")
+            assert first_pixels(white) == {bytes([255, 255, 255, 255])}, first_pixels(white)
+            assert first_pixels(also_clear) == {bytes([0, 0, 0, 0])}, first_pixels(also_clear)
+            assert first_pixels(clear) == {bytes([0, 0, 0, 0])}, first_pixels(clear)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_bindings_and_the_router_work_in_every_browser(self):
+        self.run_osr_script(prelude=self.PAGE_WITH_QUERIES, body="""
+            seen = []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    seen.append((browser.get_identifier(), frame.is_main(), request))
+                    callback.success("pong:" + request)
+                    return True
+            app.add_query_handler(Handler())
+            start(PAGE % "one")
+            second = app.create_browser(page(PAGE % "two"))
+            wait_until(app, lambda: ("page", "one") in js and ("page", "two") in js, "both pages")
+            second.get_main_frame().execute_java_script("ask('from two')", "", 0)
+            boxes[0].get_main_frame().execute_java_script("ask('from one')", "", 0)
+            wait_until(app, lambda: ("ok", "from two", "pong:from two") in js
+                       and ("ok", "from one", "pong:from one") in js, "both answers")
+            assert (second.get_identifier(), True, "from two") in seen, seen
+            assert (boxes[0].get_identifier(), True, "from one") in seen, seen
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_closing_one_browser_leaves_the_others_and_the_app_running(self):
+        self.run_osr_script(prelude=self.LOCAL_SERVER + """
+        import time as _time
+        class SlowHandler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+            def do_GET(self):
+                _time.sleep(4)
+                self.send_response(200)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+        slow = http.server.ThreadingHTTPServer(("127.0.0.1", 0), SlowHandler)
+        threading.Thread(target=slow.serve_forever, daemon=True).start()
+        SLOW = "http://127.0.0.1:%d/slow" % slow.server_address[1]
+        """, body="""
+            start(RED)
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the first page")
+            second = app.create_browser(page(RED))
+            wait_until(app, lambda: len(boxes) == 2, "the second browser")
+            third = app.create_browser(SLOW)                   # still loading for seconds
+            wait_until(app, lambda: len(boxes) == 3 and third.is_loading(), "the loading third browser")
+            assert app.is_ready_to_execute_javascript is True  # that is about the first browser only
+            assert app.execute_javascript("report('still', 1)") is True
+            wait_until(app, lambda: ("still", 1) in js, "the script of the first browser")
+            second.get_host().close_browser(True)
+            wait_until(app, lambda: second.get_identifier() in closed, "the second browser to close")
+            assert app.is_running is True
+            assert boxes[0].is_valid() and third.is_valid()
+            assert app.execute_javascript("report('after', 2)") is True
+            wait_until(app, lambda: ("after", 2) in js, "the first browser after the close")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_browser_can_have_a_request_context_of_its_own(self):
+        self.run_osr_script(prelude=self.LOCAL_SERVER, body="""
+            asked = []
+            class Resources(cefweaver.ResourceRequestHandler):
+                pass
+            class Contexts(cefweaver.RequestContextHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                is_download, request_initiator):
+                    asked.append((browser.get_identifier() if browser else None, request.get_url()))
+                    return Resources(), False
+            start(RED)
+            context = cefweaver.RequestContext.create_context(types.RequestContextSettings(), Contexts())
+            second = app.create_browser(BASE + "/hello", request_context=context)
+            wait_until(app, lambda: (second.get_identifier(), BASE + "/hello") in asked, "the request")
+            assert second.get_host().get_request_context().is_same(context)
+            assert not boxes[0].get_host().get_request_context().is_same(context)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_windowed_app_can_create_windowed_and_offscreen_browsers(self):
+        self.run_osr_script("""
+            app.set_client(MyClient())
+            app.initialize(page(RED + '<script>report("page", "one")</script>'))
+            wait_until(app, lambda: ("page", "one") in js and boxes, "the first page")
+            windowed = app.create_browser(page(RED + '<script>report("page", "two")</script>'))
+            drawn = app.create_browser(page(RED), offscreen=True)
+            wait_until(app, lambda: ("page", "two") in js and len(boxes) == 3, "the browsers")
+            wait_until(app, lambda: any(p["browser"] == drawn.get_identifier() for p in paints), "its frame")
+            assert boxes[0].get_host().is_window_rendering_disabled() is False
+            assert windowed.get_host().is_window_rendering_disabled() is False
+            assert drawn.get_host().is_window_rendering_disabled() is True
+            assert not any(p["browser"] in (boxes[0].get_identifier(), windowed.get_identifier()) for p in paints)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_create_browser_checks_its_arguments(self):
+        self.run_osr_script("""
+            start(RED)
+            for bad in ({"url": 3}, {"request_context": "no"}, {"offscreen": "yes"}, {"transparent": 1}):
+                try:
+                    app.create_browser(**dict({"url": "about:blank"}, **bad))
+                except TypeError:
+                    continue
+                raise AssertionError("accepted %r" % (bad,))
+            assert len(boxes) == 1
+            app.shutdown()
+            print("OK")
+        """)
 
     # -- offscreen input beyond one letter, touch, IME, and the popup of a <select> ------------
 

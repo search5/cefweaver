@@ -23,6 +23,11 @@ public:
   // The request context of the first browser (none: the global one). Set before it is created.
   static void SetRequestContext(CefRefPtr<CefRequestContext> context);
   static void LoadUrl(std::string url);
+  // A browser as java-cef's CefClient.createBrowser(): on the UI thread, once CEF runs. The
+  // first browser is made by OnContextInitialized() the same way.
+  static CefRefPtr<CefBrowser> CreateBrowser(const std::string& url, bool offscreen,
+                                             bool transparent,
+                                             CefRefPtr<CefRequestContext> request_context);
   CefRefPtr<CefBrowser>Browser;
   CefRefPtr<CefClient> m_UserClient;
   std::vector<JavascriptBinding> m_JavascriptBindings;

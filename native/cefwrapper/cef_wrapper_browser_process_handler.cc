@@ -60,6 +60,59 @@ bool CefWrapperBrowserProcessHandler::OnAlreadyRunningAppRelaunch(
                         : false;
 }
 
+CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
+    const std::string& url, bool offscreen, bool transparent,
+    CefRefPtr<CefRequestContext> request_context) {
+  CEF_REQUIRE_UI_THREAD();
+  CefRefPtr<CefWrapperBrowserProcessHandler> self = GetInstance();
+  CefBrowserSettings browser_settings;
+
+  CefWindowInfo window_info;
+  // Alloy style only, as in java-cef: it adds the client callbacks (DoClose, ...) and
+  // supports a client-provided parent window and windowless rendering.
+  window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+  if (offscreen) {
+    // No window: CEF draws into the buffer of the user's render handler.
+    window_info.SetAsWindowless(kNullWindowHandle);
+    browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
+    if (!transparent) {
+      // CEF takes a clear browser colour as "paint transparent" (and then ignores the colour
+      // of CefSettings), so an opaque browser gets its colour here, white by default as in
+      // java-cef.
+      const unsigned int color = g_BackgroundColor.load();
+      browser_settings.background_color = (color >> 24) == 0xFF ? color : 0xFFFFFFFF;
+    }
+  }
+
+#if defined(OS_WIN)
+  // On Windows we need to specify certain flags that will be passed to
+  // CreateWindowEx().
+  window_info.SetAsPopup(nullptr, "cefsimple");
+#endif
+
+  CefRefPtr<CefDictionaryValue> extra = CefDictionaryValue::Create();
+  // Only the names cross the process boundary. The binding objects hold
+  // std::string and function pointers of this process, so they must not be
+  // copied as raw memory into the renderer process.
+  if (!self->m_JavascriptBindings.empty()) {
+    CefRefPtr<CefListValue> names = CefListValue::Create();
+    for (size_t i = 0; i < self->m_JavascriptBindings.size(); ++i) {
+      names->SetString(i, self->m_JavascriptBindings[i].functionName);
+    }
+    extra->SetList("JSCallbackNames", names);
+  }
+  if (!self->m_JavascriptPythonBindings.empty()) {
+    CefRefPtr<CefListValue> names = CefListValue::Create();
+    for (size_t i = 0; i < self->m_JavascriptPythonBindings.size(); ++i) {
+      names->SetString(i, self->m_JavascriptPythonBindings[i].MessageTopic);
+    }
+    extra->SetList("JSNativePythonApiNames", names);
+  }
+
+  return CefBrowserHost::CreateBrowserSync(window_info, CefWrapperClientHandler::GetInstance(),
+                                           url, browser_settings, extra, request_context);
+}
+
 void CefWrapperBrowserProcessHandler::OnContextInitialized()
 {
   CEF_REQUIRE_UI_THREAD();
@@ -79,60 +132,7 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   SimpleRenderProcessHandler::getInstance()->SetJavascriptBindings(
       m_JavascriptBindings, m_JavascriptPythonBindings);
 
-  CefBrowserSettings browser_settings;
-
-  std::string url;
-  url = StartUrl;
-
-  CefWindowInfo window_info;
-  // Alloy style only, as in java-cef: it adds the client callbacks (DoClose, ...) and
-  // supports a client-provided parent window and windowless rendering.
-  window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
-  if (g_Offscreen.load()) {
-    // No window: CEF draws into the buffer of the user's render handler.
-    window_info.SetAsWindowless(kNullWindowHandle);
-    browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
-    if (!g_Transparent.load()) {
-      // CEF takes a clear browser colour as "paint transparent" (and then ignores the colour
-      // of CefSettings), so an opaque browser gets its colour here, white by default as in
-      // java-cef.
-      const unsigned int color = g_BackgroundColor.load();
-      browser_settings.background_color = (color >> 24) == 0xFF ? color : 0xFFFFFFFF;
-    }
-  }
-
-#if defined(OS_WIN)
-  // On Windows we need to specify certain flags that will be passed to
-  // CreateWindowEx().
-  window_info.SetAsPopup(nullptr, "cefsimple");
-#endif
-
-  CefRefPtr<CefDictionaryValue> extra = CefDictionaryValue::Create();
-  // Only the names cross the process boundary. The binding objects hold
-  // std::string and function pointers of this process, so they must not be
-  // copied as raw memory into the renderer process.
-  if(!m_JavascriptBindings.empty())
-  {
-    CefRefPtr<CefListValue> names = CefListValue::Create();
-    for (size_t i = 0; i < m_JavascriptBindings.size(); ++i)
-    {
-      names->SetString(i, m_JavascriptBindings[i].functionName);
-    }
-    extra->SetList("JSCallbackNames", names);
-  }
-
-  if(!m_JavascriptPythonBindings.empty())
-  {
-    CefRefPtr<CefListValue> names = CefListValue::Create();
-    for (size_t i = 0; i < m_JavascriptPythonBindings.size(); ++i)
-    {
-      names->SetString(i, m_JavascriptPythonBindings[i].MessageTopic);
-    }
-    extra->SetList("JSNativePythonApiNames", names);
-  }
-
-  Browser = CefBrowserHost::CreateBrowserSync(window_info, handler, url, browser_settings,
-                                                extra, m_RequestContext);
+  Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext);
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
 }
