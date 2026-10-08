@@ -32,6 +32,7 @@ updated: 2026-10-08
 | macOS | 지원하지 않기로 했고 구성 단계에서 중단합니다. 필요한 작업은 [플랫폼 지원 현황](../concepts/platform-support.md)에 있습니다. | |
 | 서브프로세스 종료 오류의 **원인 메커니즘** | `main`에 `no_stack_protector`를 붙이면 사라지고 순정 `main`에는 검사 자체가 없다는 것만 확인했습니다. "zygote 자식이 스택 보호값이 다른 채 이 프레임으로 돌아온다"는 코드 주석의 설명은 추정입니다. | Chromium의 `ForkWithFlags`/zygote 코드와 TLS의 스택 보호값 처리를 확인 |
 | 클라이언트 핸들러의 **`do_close`가 `True`를 돌려줄 때** 닫기를 막는지 | 구현은 했으나(래퍼는 사용자의 결과가 `True`이면 아무것도 하지 않고 `true`를 돌려줌) 시험에서 창 닫기를 일으키지 않았습니다. | `browser`의 호스트에서 닫기를 요청하는 생성 범위(`CefBrowserHost`)를 연 뒤 시험 |
+| 핸들러의 **구조체 입력과 출력** (`on_contents_bounds_change`, `get_root_window_screen_rect`)이 Python에서 | C++ 프록시는 실제로 실행해 확인했고(생성기 시험) Cython은 컴파일되지만, 이 두 이벤트는 헤더가 밝힌 조건(창 영역이 바뀔 때, 오프스크린 렌더링)을 만들지 못해서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링 또는 자동 크기 조정으로 이벤트를 일으켜 확인 |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
 | 헤더 주석의 한국어 번역 | `cef_origin` 위키에는 1,348개 메서드의 한국어 설명이 있으나 생성 스텁에는 헤더의 영어 주석을 그대로 씁니다. | 생성기가 위키의 `db/ko/*.json`을 읽도록 확장 |
 
@@ -40,14 +41,13 @@ updated: 2026-10-08
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
 - **Python에 열린 핸들러는 일부**입니다. 표시, 수명 주기, 로드 핸들러는 `set_client()`로 받을 수 있지만, 컨텍스트 메뉴 핸들러와 JavaScript 바인딩 메시지(`OnProcessMessageReceived`)는 `CefWrapperClientHandler`가 고정해서 처리하고 위임하지 않습니다. 나머지 핸들러 15개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `set_client()`의 전달 대상(`forward_..._handler_`)은 CEF가 `Get...Handler()`를 부를 때마다 잠금 없이 바뀝니다. 이벤트와 getter가 한 스레드(UI 스레드)에서 오는 동안에는 안전하지만, CEF 헤더가 스레드를 밝힌 것은 표시와 수명 주기 핸들러뿐이고 getter가 어느 스레드에서 불리는지는 확인하지 않았습니다.
-- `uv build --wheel`이 `_g_export_Client`, `_g_export_SchemeHandlerFactory`에 대해 `defined but not used` 경고를 냅니다. 생성기가 다른 메서드가 반환하지 않는 핸들러에도 `_g_export_*`를 만들기 때문이며 동작에는 영향이 없습니다. 반환하는 메서드가 있을 때만 만들도록 고칠 수 있습니다.
 - 사용자의 `get_load_handler()` 같은 getter는 **이벤트마다** Python에서 실행될 수 있습니다. 비용은 측정하지 않았습니다.
 - **리눅스에서 창 제목을 설정하지 않습니다**(`PlatformTitleChange`가 비어 있음).
 - **JS 값은 네 종류만**(정수, 불리언, 실수, 문자열) 전달되고 반환값은 없습니다. 인자 없는 C++ 바인딩 경로는 Python에 노출하지 않았습니다.
 - `Browser` 전역 참조(`CefWrapperBrowserProcessHandler::Browser`)와 `g_IsRunning`은 동기화되어 있지 않습니다. 다른 Python 스레드에서 `load_url`/`execute_javascript`를 부를 수는 있지만(CEF 쪽 `CefFrame`은 어느 스레드든 가능) 이 전역을 보호하지는 않습니다.
 - `CefWrapper::IsReadyToExecuteJavascript()`는 `CefWrapperClientHandler::GetInstance()`의 널을 확인하지 않습니다. Python 래퍼가 상태로 먼저 거릅니다.
 - `resources_dir_path` 설정은 Linux에서 `icudtl.dat` 위치에 영향이 없습니다. 런타임 파일은 `libcef.so`와 같은 디렉터리여야 합니다([런타임 파일 배치](../concepts/runtime-layout.md)).
-- 생성기는 값 타입 구조체, 벡터, 맵, 소유 포인터, 라이브러리 메서드의 출력 인자, 라이브러리 클래스의 상속을 지원하지 않습니다([생성 범위와 커버리지](generated-api-coverage.md)).
+- 생성기는 벡터, 맵, 소유 포인터, 평범한 데이터가 아닌 구조체, 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환, 라이브러리 클래스의 상속을 지원하지 않습니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `ext-modules` 설정이 Linux 전용이고 정적이라서 플랫폼별로 나눌 수 없습니다.
 - `tools/prepare.py`의 스테이징은 Linux만 구현했습니다.
 - 소스 빌드(`build_cef.py`)는 Linux x86_64만 지원하고 cefpython처럼 CEF에 자체 패치를 적용하지 않습니다.

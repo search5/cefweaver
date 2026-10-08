@@ -18,7 +18,7 @@ virtual methods).
 """
 
 from model import py_class_name, snake_case
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Void
+from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Void
 
 
 def field_name(plan):
@@ -34,6 +34,8 @@ def table_in_types(param):
         return ["int"]
     if isinstance(kind, Str):
         return ["const CefString*"]
+    if isinstance(kind, Struct):
+        return ["const %s*" % kind.cls]
     if isinstance(kind, LibRef):
         return [kind.cls + "*"]
     if isinstance(kind, Buffer):
@@ -49,6 +51,8 @@ def table_out_type(param):
         return "int*"
     if isinstance(kind, Str):
         return "CefString*"
+    if isinstance(kind, Struct):
+        return kind.cls + "*"
     raise AssertionError(kind)
 
 
@@ -124,6 +128,8 @@ def _method(model, cls, plan):
                 out.append("    CefString out_%s;" % name)
             elif isinstance(kind, Enum):
                 out.append("    int out_%s = 0;" % name)
+            elif isinstance(kind, Struct):
+                out.append("    %s out_%s;" % (kind.cls, name))
             else:
                 out.append("    %s out_%s = %s();" % (kind.cpp, name, kind.cpp))
             args.append("&out_%s" % name)
@@ -131,7 +137,7 @@ def _method(model, cls, plan):
             args.append(name)
         elif isinstance(kind, Enum):
             args.append("static_cast<int>(%s)" % name)
-        elif isinstance(kind, Str):
+        elif isinstance(kind, (Str, Struct)):
             args.append("&%s" % name)
         elif isinstance(kind, LibRef):
             args.append("%s.get()" % name)

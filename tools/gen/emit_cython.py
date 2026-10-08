@@ -16,7 +16,8 @@ import re
 from emit_cpp import (field_name, table_in_types, table_out_type, table_param_types,
                       table_ret_type)
 from model import py_class_name, py_method_name
-from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Void
+from model import py_class_name as _py_class_name  # noqa: F401
+from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -66,12 +67,23 @@ def _used_enums(plans):
     return sorted(names)
 
 
+def all_structs(model):
+    """Every value type struct of the headers, as {class name: Struct}.
+
+    They are generated whether or not a method in scope uses them: they are part of
+    the public API (a caller builds a Rect to pass it to CEF) and cost nothing.
+    """
+    return {cls: Struct(cls, info.fields) for cls, info in sorted(model.structs.items())}
+
+
 def _used_typedefs(plans):
     names = set()
     for plan in plans:
         kinds = [plan.ret] + [p.kind for p in plan.params]
         for kind in kinds:
             if isinstance(kind, Prim) and kind.cpp == "cef_color_t":
+                names.add("cef_color_t")
+            if isinstance(kind, Struct) and any(f.cpp == "cef_color_t" for f in kind.fields):
                 names.add("cef_color_t")
     return sorted(names)
 
@@ -86,6 +98,8 @@ def _cy_method_signature(plan):
             args.append(kind.cname)
         elif isinstance(kind, Str):
             args.append("const CefString&")
+        elif isinstance(kind, Struct):
+            args.append("const %s&" % kind.cls)
         elif isinstance(kind, LibRef):
             args.append("CefRefPtr[%s]" % kind.cls)
         elif isinstance(kind, ClientRef):
@@ -101,6 +115,8 @@ def _cy_method_signature(plan):
         rtype = ret.cname
     elif isinstance(ret, Str):
         rtype = "CefString"
+    elif isinstance(ret, Struct):
+        rtype = ret.cls
     elif isinstance(ret, (LibRef, ClientRef)):
         rtype = "CefRefPtr[%s]" % ret.cls
     else:
@@ -150,6 +166,18 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
     if enums:
         out.append('cdef extern from "include/internal/cef_types.h":')
         out += ["    ctypedef enum %s:" % e + "\n        pass" for e in enums]
+        out.append("")
+
+    structs = all_structs(model)
+    if structs:
+        out.append("# Value type structs (plain data, copied to and from Python named tuples)")
+        out.append('cdef extern from "include/internal/cef_types_wrappers.h":')
+        for struct in structs.values():
+            out.append("    cdef cppclass %s:" % struct.cls)
+            out.append("        %s()" % struct.cls)
+            for f in struct.fields:
+                cname = "" if f.name == f.cname else ' "%s"' % f.cname
+                out.append("        %s %s%s" % (cy_c(f.cpp), f.name, cname))
         out.append("")
 
     # Forward declarations first: classes refer to each other.
@@ -219,6 +247,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
+from collections import namedtuple as _namedtuple
 from libc.string cimport strcmp as _strcmp
 
 
@@ -259,7 +288,36 @@ cdef void _g_release(void* py) noexcept with gil:
 '''
 
 
+def _struct_pxi(struct):
+    """The named tuple of a value type struct and its conversions."""
+    py = py_class_name(struct.cls)
+    names = [f.name for f in struct.fields]
+    temps = ["_f%d" % i for i in range(len(names))]
+    out = ['%s = _namedtuple("%s", [%s])' % (py, py, ", ".join('"%s"' % n for n in names)),
+           '%s.__doc__ = "The CEF value type %s (%s). Anywhere one is expected, a tuple with the '
+           'same fields works too."' % (py, struct.cls, ", ".join(names)),
+           "",
+           "",
+           "cdef inline object _g_from_%s(const %s* value):" % (py, struct.cls),
+           "    return %s(%s)" % (py, ", ".join("value.%s" % n for n in names)),
+           "",
+           "",
+           "cdef inline int _g_to_%s(object obj, %s* out) except -1:" % (py, struct.cls),
+           "    try:",
+           "        %s = obj" % ("%s," % temps[0] if len(temps) == 1 else ", ".join(temps)),
+           "    except (TypeError, ValueError):",
+           '        raise TypeError("expected a %s (or a sequence of %d values), not %%r" %% (obj,)) from None'
+           % (py, len(names))]
+    for n, t in zip(names, temps):
+        out.append("    out.%s = %s" % (n, t))
+    out.append("    return 0")
+    return out
+
+
 def _py_default(kind):
+    if isinstance(kind, Struct):
+        return "%s(%s)" % (py_class_name(kind.cls), ", ".join(
+            {"bool": "False", "float": "0.0"}.get(f.py, "0") for f in kind.fields))
     if isinstance(kind, Prim):
         return {"bool": "False", "float": "0.0"}.get(kind.py, "0")
     if isinstance(kind, Enum):
@@ -276,11 +334,16 @@ def _annotation(kind):
         return "int"
     if isinstance(kind, Str):
         return "str"
-    if isinstance(kind, (LibRef, ClientRef)):
+    if isinstance(kind, (LibRef, ClientRef, Struct)):
         return py_class_name(kind.cls)
     if isinstance(kind, Void):
         return "None"
     raise AssertionError(kind)
+
+
+def struct_tuple_annotation(kind):
+    """`tuple[int, int, int, int]`: what is accepted in place of the named tuple."""
+    return "tuple[%s]" % ", ".join(f.py for f in kind.fields)
 
 
 def _library_method(plan, owner_py):
@@ -303,6 +366,11 @@ def _library_method(plan, owner_py):
                 pre += ["if %s is not None:" % n, "    _a%d = _g_cef(%s)" % (i, n)]
             else:
                 pre.append("_a%d = _g_cef(%s)" % (i, n))
+            call_args.append("_a%d" % i)
+        elif isinstance(kind, Struct):
+            sig.append(n)
+            decls.append("cdef %s _a%d" % (kind.cls, i))
+            pre.append("_g_to_%s(%s, &_a%d)" % (py_class_name(kind.cls), n, i))
             call_args.append("_a%d" % i)
         elif isinstance(kind, LibRef):
             sig.append("%s %s%s" % (py_class_name(kind.cls), n, "" if param.optional else " not None"))
@@ -344,6 +412,8 @@ def _library_method(plan, owner_py):
         body.append(base + "cdef CefString _r")
     elif isinstance(ret, LibRef):
         body.append(base + "cdef CefRefPtr[%s] _r" % ret.cls)
+    elif isinstance(ret, Struct):
+        body.append(base + "cdef %s _r" % ret.cls)
     for p in pre:
         body.append(base + p)
     receiver = ("%s." % plan.owner) if plan.static and plan.owner else ("_p." if not plan.static else "")
@@ -360,6 +430,8 @@ def _library_method(plan, owner_py):
         body.append(base + "return _g_str(_r)")
     elif isinstance(ret, LibRef):
         body.append(base + "return _wrap_%s(_r)" % py_class_name(ret.cls))
+    elif isinstance(ret, Struct):
+        body.append(base + "return _g_from_%s(&_r)" % py_class_name(ret.cls))
     return lines + body
 
 
@@ -398,6 +470,8 @@ def _trampoline(plan, cls_py):
             py_args.append(n)
         elif isinstance(kind, Str):
             py_args.append("_g_str(%s[0])" % n)
+        elif isinstance(kind, Struct):
+            py_args.append("_g_from_%s(%s)" % (py_class_name(kind.cls), n))
         elif isinstance(kind, LibRef):
             py_args.append("_wrap_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
         elif isinstance(kind, Buffer):
@@ -434,6 +508,8 @@ def _trampoline(plan, cls_py):
             out.append("        %s[0] = _g_cef(%s)" % (param.name, var))
         elif isinstance(kind, Enum):
             out.append("        %s[0] = <int>%s" % (param.name, var))
+        elif isinstance(kind, Struct):
+            out.append("        _g_to_%s(%s, %s)" % (py_class_name(kind.cls), var, param.name))
         else:
             out.append("        %s[0] = %s" % (param.name, var))
     ret = plan.ret
@@ -458,6 +534,15 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
     out = ["# " + banner, "# GENERATED by tools/gen/generate.py. DO NOT EDIT.", ""]
     out += PRELUDE.strip("\n").split("\n")
     out.append("")
+
+    structs = all_structs(model)
+    if structs:
+        out.append("")
+        out.append("# Value type structs")
+        for struct in structs.values():
+            out += _struct_pxi(struct)
+            out.append("")
+            out.append("")
 
     out.append("# Forward declarations (the classes refer to each other)")
     for cls in lib:
@@ -537,7 +622,7 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
         out.append("    return ref")
         out.append("")
         out.append("")
-        out.append("cdef %s* _g_export_%s(object obj) except? NULL:" % (cn, py))
+        out.append("cdef inline %s* _g_export_%s(object obj) except? NULL:" % (cn, py))
         out.append("    \"\"\"A reference for CEF to keep (the proxy calls Release() on it).\"\"\"")
         out.append("    cdef CefRefPtr[%s] ref = _g_make_%s(obj)" % (cn, py))
         out.append("    cdef %s* raw = ref.get()" % cn)
@@ -556,7 +641,8 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
         out.append("")
         out.append("")
 
-    names = ([py_class_name(c.get_name()) for c in lib + cli] +
+    names = ([py_class_name(s.cls) for s in structs.values()] +
+             [py_class_name(c.get_name()) for c in lib + cli] +
              [public_function_name(p.cef_name) for p in function_plans if p.supported])
     out.append("__generated_all__ = [%s]" % ", ".join('"%s"' % n for n in names))
     return "\n".join(out) + "\n"

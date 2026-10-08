@@ -44,7 +44,7 @@
 ## 참조 (reference)
 
 - [설계 결정 기록](pages/reference/design-decisions.md): 빌드, 바인딩, 런타임, 시험, 저장소 운영의 결정과 이유
-- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 103+3개와 제외 39개, 전체 81% 중 남은 장애물, 생성기의 한계와 다음 단계
+- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 106+3개와 제외 36개, 전체 85% 중 남은 장애물, 생성기의 한계와 다음 단계
 - [커버리지 보고서 (생성됨)](pages/reference/coverage-report.md): 생성기가 쓰는 보고서 전문(제외된 메서드의 사유, 클래스별 지원 비율)
 - [용어집](pages/reference/glossary.md): CEF, 프로세스, 생성기, 위키 용어 정의
 - [알려진 제약과 미검증 항목](pages/reference/known-constraints.md): 미검증 항목, 한계, 문서와 메타데이터의 불일치, 환경 제약

@@ -31,3 +31,9 @@
 - 생성기: `scope.py`에 `CefClient`, `CefLoadHandler`, `CefLifeSpanHandler`, `CefDisplayHandler` 추가, `emit_cpp.py`에 전달 클래스(`Cw<이름>Forward`) 방출. 래퍼: `CefWrapperClientHandler`가 전달 클래스를 상속해 이벤트를 사용자 핸들러로 넘기고, `CefWrapper::SetClient`와 `CefApp.set_client()` 추가.
 - 갱신한 페이지: [C++ 핸들러](pages/components/native-handlers.md), [핸들러 프록시 구조](pages/concepts/handler-proxies.md), [생성 범위와 커버리지](pages/reference/generated-api-coverage.md), [Python API 참조](pages/reference/python-api.md), [설계 결정 기록](pages/reference/design-decisions.md), [알려진 제약과 미검증 항목](pages/reference/known-constraints.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F15), [시험](pages/components/tests.md), [새 클래스를 생성 범위에 추가하기](pages/procedures/add-class-to-generator.md) 외 개수와 줄 수를 맞춘 페이지.
 - 시험은 37개(통합 17, 생성기 19, 위키 1)이고 모두 통과했습니다.
+
+## [2026-10-08] ingest | 값 타입 구조체 지원
+
+- 사용자가 정한 순서(값 타입 구조체, 이어서 `CefBrowserHost`, 둘 다 TDD)의 첫 단계입니다. 시험을 먼저 쓰고(`Struct`를 가져오지 못해 실패) 구현했습니다.
+- 헤더에서 필드를 읽는 `Model.structs`, `Struct` 종류, 세 방출기의 변환을 추가했습니다. 전체 지원이 81%에서 85%로, 범위 안의 메서드가 106개에서 109개로 늘었습니다.
+- 갱신: [생성 범위와 커버리지](pages/reference/generated-api-coverage.md), [바인딩 생성기의 설계](pages/concepts/binding-generator.md), [새 타입 지원 추가하기](pages/procedures/add-type-to-generator.md), [Python API 참조](pages/reference/python-api.md), [설계 결정 기록](pages/reference/design-decisions.md), [알려진 제약과 미검증 항목](pages/reference/known-constraints.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F16), [시험](pages/components/tests.md). 미사용 함수 경고는 `inline`으로 해소해서 알려진 제약에서 뺐습니다.

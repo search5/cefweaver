@@ -39,6 +39,38 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_transition_type_t:
         pass
 
+# Value type structs (plain data, copied to and from Python named tuples)
+cdef extern from "include/internal/cef_types_wrappers.h":
+    cdef cppclass CefInsets:
+        CefInsets()
+        int top
+        int left
+        int bottom
+        int right
+    cdef cppclass CefMouseEvent:
+        CefMouseEvent()
+        int x
+        int y
+        uint32_t modifiers
+    cdef cppclass CefPoint:
+        CefPoint()
+        int x
+        int y
+    cdef cppclass CefRange:
+        CefRange()
+        uint32_t from_ "from"
+        uint32_t to
+    cdef cppclass CefRect:
+        CefRect()
+        int x
+        int y
+        int width
+        int height
+    cdef cppclass CefSize:
+        CefSize()
+        int width
+        int height
+
 # Forward declarations
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted)
@@ -214,8 +246,11 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) noexcept
         void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) noexcept
         cpp_bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) noexcept
+        cpp_bool (*fn_on_auto_resize)(void*, CefBrowser*, const CefSize*) noexcept
         void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) noexcept
         void (*fn_on_media_access_change)(void*, CefBrowser*, cpp_bool, cpp_bool) noexcept
+        cpp_bool (*fn_on_contents_bounds_change)(void*, CefBrowser*, const CefRect*) noexcept
+        cpp_bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
     cdef cppclass CwDisplayHandlerProxy(CefDisplayHandler):
         CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks&)
     cdef cppclass CwLifeSpanHandlerCallbacks:

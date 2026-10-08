@@ -10,6 +10,7 @@ import keyword
 import os
 import re
 import sys
+from dataclasses import dataclass
 
 VENDOR_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
 if VENDOR_DIR not in sys.path:
@@ -46,6 +47,55 @@ def py_param_name(cef_name):
     return _safe(snake_case(cef_name))
 
 
+# -- value type structs -----------------------------------------------------------------
+
+# The field types a struct may have to be handled as plain data: C type -> Python type.
+_FIELD_TYPES = {
+    "bool": "bool", "int": "int", "int16_t": "int", "uint16_t": "int", "int32_t": "int",
+    "uint32_t": "int", "int64_t": "int", "uint64_t": "int", "float": "float", "double": "float",
+    "cef_color_t": "int",
+}
+
+
+@dataclass(frozen=True)
+class StructField:
+    cname: str  # the member of the C struct (may be a Python keyword)
+    name: str  # PEP 8 name in Python
+    cpp: str  # the C type
+    py: str  # annotation in Python: int, bool or float
+
+
+@dataclass(frozen=True)
+class StructInfo:
+    cls: str  # the C++ class CEF uses in signatures, e.g. CefRect
+    cname: str  # the C struct it derives from, e.g. cef_rect_t
+    fields: tuple
+
+
+def _strip_comments(text):
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def parse_struct_fields(body):
+    """Fields of a C struct body, or None if any member is not plain data.
+
+    Plain data means a primitive type per member: no pointers, arrays, enumerations,
+    nested structs or `size` headers (CefKeyEvent and the like are not handled yet).
+    """
+    fields = []
+    for statement in _strip_comments(body).split(";"):
+        statement = " ".join(statement.split())
+        if not statement:
+            continue
+        found = re.match(r"^([A-Za-z_][\w ]*?) (\w+)$", statement)
+        if not found or found.group(1) not in _FIELD_TYPES or found.group(2) == "size":
+            return None
+        ctype, cname = found.groups()
+        fields.append(StructField(cname, py_param_name(cname), ctype, _FIELD_TYPES[ctype]))
+    return tuple(fields) or None
+
+
 # -- the model -----------------------------------------------------------------------
 
 
@@ -65,6 +115,7 @@ class Model:
         self.classes = {c.get_name(): c for c in header.get_classes()}
         self.functions = {f.get_name(): f for f in header.get_funcs()}
         self.enums = self._find_enums()
+        self.structs = self._find_structs()
 
     def _read(self, path):
         if path not in self._sources:
@@ -84,6 +135,27 @@ class Model:
                 for match in re.finditer(r"typedef\s+enum\s*\w*\s*\{.*?\}\s*(\w+)\s*;", text, re.S):
                     names.add(match.group(1))
         return names
+
+    def _find_structs(self):
+        """The plain data structs CEF passes by value: `class CefRect : public cef_rect_t`."""
+        internal = os.path.join(self.cef_root, "include", "internal")
+        wrappers = os.path.join(internal, "cef_types_wrappers.h")
+        if not os.path.isfile(wrappers):
+            return {}
+        bodies = {}
+        for filename in sorted(os.listdir(internal)):
+            if filename.endswith(".h"):
+                text = self._read(os.path.join(internal, filename))
+                for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
+                    bodies[match.group(2)] = match.group(1)
+        structs = {}
+        for match in re.finditer(r"\bclass\s+(Cef\w+)\s*:\s*public\s+(cef_\w+_t)\s*\{",
+                                 self._read(wrappers)):
+            cls, cname = match.groups()
+            fields = parse_struct_fields(bodies[cname]) if cname in bodies else None
+            if fields:
+                structs[cls] = StructInfo(cls, cname, fields)
+        return structs
 
     def header_path(self, cls):
         """`include/cef_x.h` as it is written in an #include line."""

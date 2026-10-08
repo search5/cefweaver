@@ -52,14 +52,24 @@ report.py       커버리지 보고서
 | `Enum` | `typedef enum { } cef_x_t;`로 선언된 열거형 | `int` |
 | `LibRef` | 생성 범위 안의 CEF 구현 클래스의 `CefRefPtr<T>` | 래퍼 객체(널이면 `None`) |
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
+| `Struct` | 필드가 모두 기본형인 값 타입(`CefRect`, `CefPoint`, `CefSize`, `CefInsets`, `CefRange`, `CefMouseEvent`) | 이름 있는 튜플(`Rect(x, y, width, height)`). 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍 | `memoryview` |
 
 파서의 `result_type`을 기준으로 삼되 두 가지는 따로 처리합니다. 첫째, 파서의 `is_result_struct_enum()`은 "참조나 포인터가 아니다"라는 어림짐작일 뿐이라서 쓰지 않고, 열거형은 헤더에서 `typedef enum`을 직접 찾아 구분합니다. 둘째, 파서의 `get_result_ptr_type_root()`는 C++ 클래스명이 아니라 C API 이름(`cef_request_t`)을 돌려주므로 선언된 타입 문자열(`CefRefPtr<CefRequest>`)에서 이름을 뽑습니다(이 오류로 초기 보고서의 수치가 틀렸다가 고쳤습니다).
 
+## 값 타입 구조체
+
+`CefRect`처럼 CEF가 값으로 주고받는 데이터는 헤더에서 읽어 만듭니다. `include/internal/cef_types_wrappers.h`의 `class CefX : public cef_x_t`로 C++ 클래스를 찾고, `cef_x_t`의 선언에서 필드를 읽습니다(`tools/gen/model.py`의 `Model.structs`). 모든 필드가 기본형(`int`, `uint32_t`, `float` 등)일 때만 받아들이고, 포인터, 배열, 열거형, 문자형, 다른 구조체, `size` 머리가 하나라도 있으면 지원하지 않습니다.
+
+- Python에서는 `collections.namedtuple`입니다(`Rect(x, y, width, height)`). 예약어인 필드는 밑줄을 붙입니다(`Range.from_`).
+- 입력(`const CefRect&`)은 `Rect` 또는 필드 수가 같은 시퀀스를 받고 아니면 `TypeError`입니다. 핸들러가 받을 때는 `Rect`로, 출력 인자는 핸들러가 `Rect` 또는 튜플로 돌려줍니다.
+- 구조체는 범위와 상관없이 항상 생성합니다(호출하는 쪽이 `Rect`를 만들어 CEF에 넘기기 때문입니다).
+- C++ 프록시의 표에서는 입력이 `const CefRect*`, 출력이 `CefRect*`이고, 프록시가 값을 복사합니다.
+
 ## 메서드 계획 규칙
 
-- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 출력 인자는 아직 미지원입니다. 클라이언트 객체를 반환하는 메서드도 미지원입니다.
-- 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형)는 Python 메서드의 반환값이 됩니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
+- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 출력 인자는 아직 미지원입니다(구조체도 마찬가지). 클라이언트 객체를 반환하는 메서드도 미지원입니다. 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
+- 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형, 구조체)는 Python 메서드의 반환값이 됩니다. 구조체를 값으로 **반환**하는 핸들러 메서드는 아직 미지원입니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
 - `void*`와 크기는 `Buffer` 하나로 합쳐집니다(핸들러 쪽만).
 - 헤더가 `optional_param`으로 표시한 인자만 `None`을 허용합니다. 라이브러리 메서드에 허용되지 않은 곳에 `None`을 넘기면 C++가 죽는 대신 `TypeError`입니다.
 - 이름: `Cef` 접두사를 떼고 클래스는 그대로, 메서드와 인자는 snake_case, 예약어는 밑줄을 붙입니다(`Continue` → `continue_`).
@@ -70,9 +80,9 @@ report.py       커버리지 보고서
 
 ## 아직 없는 것
 
-- 값 타입 구조체(`CefRect`, `CefPoint` 등), 벡터, 맵, 소유 포인터(`CefOwnPtr`)
+- 벡터, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(`size` 머리, 열거형 필드가 있는 `CefKeyEvent`, `CefPopupFeatures` 등)
 - 상속 관계가 있는 라이브러리 클래스(부모 클래스가 `CefBaseRefCounted`가 아닌 경우)
-- 라이브러리 메서드의 출력 인자
+- 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환
 - 헤더 주석의 한국어 번역(`cef_origin` 위키의 설명)을 스텁에 쓰는 일
 
 남은 일과 순서는 [생성기의 한계와 다음 단계](../reference/generated-api-coverage.md)에 있습니다.

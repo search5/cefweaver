@@ -17,7 +17,7 @@ updated: 2026-10-08
 
 ## 어떤 타입부터
 
-`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 하면 효과가 큽니다.
+`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 처음에 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 했고, 값 타입 구조체를 지원한 뒤(2026-10-08)에는 벡터 58, 값 타입 33, 소유 포인터 32, 출력 인자 25 순입니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)). 구조체 종류(`Struct`)가 이 절차를 따른 예입니다: `typesys.py`에 종류, `model.py`에 헤더 읽기, 세 방출기에 변환, `tests/test_generator.py`에 분류와 실제 C++ 실행 시험.
 
 ## 절차
 
@@ -28,7 +28,7 @@ updated: 2026-10-08
    - `emit_cpp.py`: 함수 포인터 표의 C 타입(`table_in_types`, `table_out_type`, `table_ret_type`), 프록시의 변환 코드(`_method`)
    - `emit_cython.py`: 선언(`_cy_method_signature`), 라이브러리 메서드 변환(`_library_method`), 트램펄린(`_trampoline`), 필요한 `ctypedef`나 `cdef extern` 선언(`emit_pxd`)
    - `emit_pyi.py`와 `emit_cython._annotation`: 스텁의 타입 표기
-5. **시험**: `tests/test_generator.py`에 분류 시험을 추가하고(예: `GetHeaderMap`이 지원됨으로 바뀌는지), 통합 시험을 추가합니다.
+5. **시험(먼저 쓰고 실패를 확인)**: `tests/test_generator.py`에 분류 시험을 추가하고(예: `GetHeaderMap`이 지원됨으로 바뀌는지), 생성된 C++를 컴파일해서 **실행**하는 시험(구조체 시험처럼 프록시를 직접 부르면 `libcef` 없이도 값 전달을 확인할 수 있습니다)과 통합 시험을 추가합니다.
 6. **생성과 빌드**: `python tools/gen/generate.py`, `uv build --wheel`, 시험. 새로 열린 메서드 수가 보고서에 반영됩니다.
 7. **위키 갱신**: 이 페이지의 "어떤 타입부터"와 커버리지 페이지, [생성기의 설계](../concepts/binding-generator.md)의 종류 표.
 
@@ -36,7 +36,7 @@ updated: 2026-10-08
 
 - **소유권과 수명**: 값으로 복사하는가, 참조를 유지하는가. `CefOwnPtr`는 소유권이 호출자에게 넘어갑니다.
 - **방향**: CEF가 채워 주는 출력인지, 우리가 넘기는 입력인지, 양방향인지. 출력은 핸들러에서는 반환값이 됩니다.
-- **Python 표현**: 구조체는 `dataclass`나 `NamedTuple`, 벡터는 `list`, 맵은 `dict` 또는 `list[tuple]`(헤더 맵은 같은 키가 여러 번 나올 수 있는 `multimap`)가 후보입니다.
+- **Python 표현**: 구조체는 `NamedTuple`로 정했습니다(`dataclass`는 튜플처럼 풀어서 받지 못합니다). 벡터는 `list`, 맵은 `dict` 또는 `list[tuple]`(헤더 맵은 같은 키가 여러 번 나올 수 있는 `multimap`)가 후보입니다.
 - **변환 비용**: 큰 벡터를 자주 복사하는 콜백이 있는지.
 
 ## 관련 페이지

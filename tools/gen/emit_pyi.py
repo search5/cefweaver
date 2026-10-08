@@ -1,13 +1,21 @@
 """Emit the type stub (.pyi) of the compiled module."""
 
-from emit_cython import _annotation, _docstring, public_function_name
+from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
+                         struct_tuple_annotation)
 from model import py_class_name
-from typesys import Buffer, ClientRef, LibRef, Void
+from typesys import Buffer, ClientRef, LibRef, Struct, Void
 
 
-def _param_annotation(param):
+def _value_annotation(kind):
+    """A value type is also accepted as a plain tuple where Python hands it to CEF."""
+    return "%s | %s" % (_annotation(kind), struct_tuple_annotation(kind))
+
+
+def _param_annotation(param, client_side):
     if isinstance(param.kind, Buffer):
         return "memoryview"
+    if isinstance(param.kind, Struct) and not client_side:
+        return _value_annotation(param.kind)
     text = _annotation(param.kind)
     # None is accepted only where the header says optional_param.
     return text + " | None" if param.optional else text
@@ -17,7 +25,7 @@ def _return_annotation(plan, client_side):
     if client_side:
         parts = []
         for _, kind in plan.results:
-            text = _annotation(kind)
+            text = _value_annotation(kind) if isinstance(kind, Struct) else _annotation(kind)
             parts.append(text + " | None" if isinstance(kind, (LibRef, ClientRef)) else text)
         if not parts:
             return "None"
@@ -31,7 +39,7 @@ def _return_annotation(plan, client_side):
 def _stub(plan, client_side, indent, model, name=None, with_self=True):
     pad = " " * indent
     params = ([] if plan.static or not with_self else ["self"])
-    params += ["%s: %s" % (p.name, _param_annotation(p)) for p in plan.ins]
+    params += ["%s: %s" % (p.name, _param_annotation(p, client_side)) for p in plan.ins]
     lines = []
     if plan.static and plan.owner:
         lines.append(pad + "@staticmethod")
@@ -55,6 +63,15 @@ def emit(model, scope, plans_by_class, function_plans, handwritten, banner):
     out += handwritten.rstrip("\n").split("\n")
     out.append("")
     out.append("")
+
+    for struct in all_structs(model).values():
+        out.append("class %s(NamedTuple):" % py_class_name(struct.cls))
+        out.append('    """The CEF value type %s. Anywhere one is expected, a tuple with the same '
+                   'fields works too."""' % struct.cls)
+        for f in struct.fields:
+            out.append("    %s: %s" % (f.name, f.py))
+        out.append("")
+        out.append("")
 
     for cls in scope.library_classes + scope.client_classes:
         client = cls.is_client_side()

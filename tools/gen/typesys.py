@@ -67,6 +67,14 @@ class ClientRef(Kind):
 
 
 @dataclass(frozen=True)
+class Struct(Kind):
+    """A plain data struct passed by value (CefRect, CefPoint, ...): a named tuple in Python."""
+
+    cls: str  # the C++ class, e.g. CefRect
+    fields: tuple  # of model.StructField
+
+
+@dataclass(frozen=True)
 class Buffer(Kind):
     """`void* data, <integer> size`: a writable memoryview in Python."""
 
@@ -104,6 +112,8 @@ def classify(model, scope, analysis):
             raise Unsupported("pointer to %s" % spelled)
         if spelled in _PRIMITIVES:
             return Prim(spelled, _PRIMITIVES[spelled])
+        if spelled in model.structs:
+            return Struct(spelled, model.structs[spelled].fields)
         raise Unsupported("struct-like value type %s" % spelled)
 
     if result == "string":
@@ -244,6 +254,8 @@ def _check_return(kind, client_side):
     if client_side:
         if isinstance(kind, LibRef):
             raise Unsupported("a client method returning a library object")
+        if isinstance(kind, Struct):
+            raise Unsupported("a client method returning the value type %s" % kind.cls)
     else:
         if isinstance(kind, ClientRef):
             raise Unsupported("a library method returning a client object")

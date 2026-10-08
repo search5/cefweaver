@@ -110,6 +110,16 @@ class ApiWithoutCef(unittest.TestCase):
         app.set_client(cefweaver.Client())
         app.set_client(None)  # removes it again
 
+    def test_value_types_are_named_tuples(self):
+        for name in ("Point", "Rect", "Size", "Insets", "Range", "MouseEvent"):
+            self.assertIn(name, cefweaver.__all__)
+        rect = cefweaver.Rect(1, 2, 3, 4)
+        self.assertEqual(rect, (1, 2, 3, 4))  # a tuple, so it also unpacks and compares
+        self.assertEqual((rect.x, rect.y, rect.width, rect.height), (1, 2, 3, 4))
+        self.assertEqual(cefweaver.Size._fields, ("width", "height"))
+        self.assertEqual(cefweaver.Range._fields, ("from_", "to"))  # `from` is a keyword
+        self.assertEqual(cefweaver.MouseEvent._fields, ("x", "y", "modifiers"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")

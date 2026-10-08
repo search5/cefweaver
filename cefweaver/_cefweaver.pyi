@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
 
 class CefApp:
     """An embedded Chromium (CEF) instance.
@@ -41,6 +41,47 @@ class CefApp:
     def is_running(self) -> bool: ...
     @property
     def is_ready_to_execute_javascript(self) -> bool: ...
+
+
+class Insets(NamedTuple):
+    """The CEF value type CefInsets. Anywhere one is expected, a tuple with the same fields works too."""
+    top: int
+    left: int
+    bottom: int
+    right: int
+
+
+class MouseEvent(NamedTuple):
+    """The CEF value type CefMouseEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    x: int
+    y: int
+    modifiers: int
+
+
+class Point(NamedTuple):
+    """The CEF value type CefPoint. Anywhere one is expected, a tuple with the same fields works too."""
+    x: int
+    y: int
+
+
+class Range(NamedTuple):
+    """The CEF value type CefRange. Anywhere one is expected, a tuple with the same fields works too."""
+    from_: int
+    to: int
+
+
+class Rect(NamedTuple):
+    """The CEF value type CefRect. Anywhere one is expected, a tuple with the same fields works too."""
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+class Size(NamedTuple):
+    """The CEF value type CefSize. Anywhere one is expected, a tuple with the same fields works too."""
+    width: int
+    height: int
 
 
 class Browser:
@@ -445,6 +486,13 @@ class DisplayHandler:
         being output to the console.
         """
         ...
+    def on_auto_resize(self, browser: Browser, new_size: Size) -> bool:
+        """Called when auto-resize is enabled via
+        CefBrowserHost::SetAutoResizeEnabled and the contents have auto-resized.
+        |new_size| will be the desired size in DIP coordinates. Return true if
+        the resize was handled or false for default handling.
+        """
+        ...
     def on_loading_progress_change(self, browser: Browser, progress: float) -> None:
         """Called when the overall page loading progress has changed. |progress|
         ranges from 0.0 to 1.0.
@@ -453,6 +501,34 @@ class DisplayHandler:
     def on_media_access_change(self, browser: Browser, has_video_access: bool, has_audio_access: bool) -> None:
         """Called when the browser's access to an audio and/or video source has
         changed.
+        """
+        ...
+    def on_contents_bounds_change(self, browser: Browser, new_bounds: Rect) -> bool:
+        """Called when JavaScript is requesting new bounds via window.moveTo/By() or
+        window.resizeTo/By(). |new_bounds| are in DIP screen coordinates.
+
+        With Views-hosted browsers |new_bounds| are the desired bounds for
+        the containing CefWindow and may be passed directly to
+        CefWindow::SetBounds. With external (client-provided) parent on macOS and
+        Windows |new_bounds| are the desired frame bounds for the containing root
+        window. With other non-Views browsers |new_bounds| are the desired bounds
+        for the browser content only unless the client implements either
+        CefDisplayHandler::GetRootWindowScreenRect for windowed browsers or
+        CefRenderHandler::GetWindowScreenRect for windowless browsers. Clients may
+        expand browser content bounds to window bounds using OS-specific or
+        CefDisplay methods.
+
+        Return true if this method was handled or false for default handling.
+        Default move/resize behavior is only provided with Views-hosted Chrome
+        style browsers.
+        """
+        ...
+    def get_root_window_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
+        """Called to retrieve the external (client-provided) root window rectangle in
+        screen DIP coordinates. Only called for windowed browsers on Windows and
+        Linux. Return true if the rectangle was provided. Return false to use the
+        root window bounds on Windows or the browser content bounds on Linux. For
+        additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
         """
         ...
 

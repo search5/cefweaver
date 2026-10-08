@@ -1,6 +1,6 @@
 import os
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NamedTuple
 
 class CefApp:
     """An embedded Chromium (CEF) instance.

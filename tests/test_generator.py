@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import ClientRef, Enum, LibRef, Prim, Str, Void  # noqa: E402
+from typesys import ClientRef, Enum, LibRef, Prim, Str, Struct, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -58,6 +58,7 @@ class WithHeaders(unittest.TestCase):
         cls.plan_method = staticmethod(plan_method)
         cls.model = model.Model(CEF_ROOT)
         cls.scope = Scope.current(cls.model)
+        cls.everything = Scope.everything(cls.model)
 
     def plan(self, cls_name, method_name):
         cls = self.model.classes[cls_name]
@@ -175,6 +176,128 @@ class WithHeaders(unittest.TestCase):
                  "-I" + os.path.dirname(generate_outputs()["proxies"]), path],
                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+
+
+    # -- value type structs (CefRect, CefPoint, ...) ------------------------------------
+
+    def plan_in(self, scope, cls_name, method_name):
+        cls = self.model.classes[cls_name]
+        for method in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs()):
+            if method.get_name() == method_name:
+                return self.plan_method(self.model, scope, cls_name, method,
+                                        client_side=cls.is_client_side())
+        raise KeyError(method_name)
+
+    def test_struct_fields_are_read_from_the_c_headers(self):
+        rect = self.model.structs["CefRect"]
+        self.assertEqual(rect.cname, "cef_rect_t")
+        self.assertEqual([(f.cname, f.cpp) for f in rect.fields],
+                         [("x", "int"), ("y", "int"), ("width", "int"), ("height", "int")])
+        mouse = self.model.structs["CefMouseEvent"]
+        self.assertEqual([(f.cname, f.cpp) for f in mouse.fields],
+                         [("x", "int"), ("y", "int"), ("modifiers", "uint32_t")])
+
+    def test_field_names_avoid_python_keywords(self):
+        range_ = self.model.structs["CefRange"]
+        self.assertEqual([f.name for f in range_.fields], ["from_", "to"])
+        self.assertEqual([f.cname for f in range_.fields], ["from", "to"])
+
+    def test_structs_that_are_not_plain_data_stay_unsupported(self):
+        # A `size` header, enumeration or character fields: not handled yet.
+        for name in ("CefKeyEvent", "CefPopupFeatures", "CefTouchEvent"):
+            self.assertNotIn(name, self.model.structs, name)
+
+    def test_a_struct_input_of_a_handler(self):
+        plan = self.plan("CefDisplayHandler", "OnContentsBoundsChange")
+        self.assertTrue(plan.supported, plan.reason)
+        kind = plan.params[1].kind
+        self.assertIsInstance(kind, Struct)
+        self.assertEqual(kind.cls, "CefRect")
+        self.assertEqual([f.name for f in kind.fields], ["x", "y", "width", "height"])
+        self.assertFalse(plan.params[1].out)
+
+    def test_a_struct_output_of_a_handler_is_returned(self):
+        plan = self.plan("CefDisplayHandler", "GetRootWindowScreenRect")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.outs], ["rect"])
+        self.assertEqual([name for name, _ in plan.results], ["return", "rect"])
+
+    def test_library_methods_take_and_return_structs(self):
+        everything = self.everything
+        plan = self.plan_in(everything, "CefDisplay", "GetBounds")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.ret, Struct)
+        plan = self.plan_in(everything, "CefBrowserHost", "SetAutoResizeEnabled")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([type(p.kind).__name__ for p in plan.params], ["Prim", "Struct", "Struct"])
+
+    def test_a_handler_returning_a_struct_is_reported(self):
+        plan = self.plan_in(self.everything, "CefViewDelegate", "GetPreferredSize")
+        self.assertFalse(plan.supported)
+        self.assertIn("returning the value type CefSize", plan.reason)
+
+    def test_struct_tables_use_pointers(self):
+        header = self.generated("proxies")
+        self.assertIn("bool (*fn_on_contents_bounds_change)(void*, CefBrowser*, const CefRect*)",
+                      header)
+        self.assertIn("bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*)", header)
+
+    def test_the_stub_declares_named_tuples(self):
+        stub = self.generated("pyi")
+        self.assertIn("class Rect(NamedTuple):", stub)
+        self.assertIn("    width: int", stub)
+        self.assertIn("class Range(NamedTuple):", stub)
+        self.assertIn("    from_: int\n    to: int\n", stub)
+        self.assertIn("def on_contents_bounds_change(self, browser: Browser, new_bounds: Rect) -> bool:",
+                      stub)
+
+    @unittest.skipUnless(shutil.which("c++") and os.path.isfile(
+        os.path.join(CEF_ROOT, "Release", "libcef.so")), "needs a C++ compiler and libcef.so")
+    def test_a_proxy_passes_structs_in_and_copies_them_out(self):
+        # Runs the generated C++: input structs reach the table as pointers, and an output
+        # struct filled by the table lands in the reference parameter of the CEF method.
+        source = (
+            '#include "cefweaver_proxies.h"\n'
+            "#include <cstdio>\n"
+            "struct Seen { int x, y, width, height; };\n"
+            "static bool bounds(void* py, CefBrowser*, const CefRect* r) {\n"
+            "  *static_cast<Seen*>(py) = Seen{r->x, r->y, r->width, r->height};\n"
+            "  return true;\n"
+            "}\n"
+            "static bool screen(void*, CefBrowser*, CefRect* rect) {\n"
+            "  rect->x = 10; rect->y = 20; rect->width = 30; rect->height = 40;\n"
+            "  return true;\n"
+            "}\n"
+            "int main() {\n"
+            "  Seen seen{};\n"
+            "  CwDisplayHandlerCallbacks cb;\n"
+            "  cb.py = &seen;\n"
+            "  cb.fn_on_contents_bounds_change = bounds;\n"
+            "  cb.fn_get_root_window_screen_rect = screen;\n"
+            "  CefRefPtr<CefDisplayHandler> ref = new CwDisplayHandlerProxy(cb);\n"
+            "  CefDisplayHandler* handler = ref.get();  // operator-> would need the wrapper library\n"
+            "  bool a = handler->OnContentsBoundsChange(nullptr, CefRect(5, 6, 7, 8));\n"
+            "  CefRect out(9, 9, 9, 9);\n"
+            "  bool b = handler->GetRootWindowScreenRect(nullptr, out);\n"
+            '  std::printf("%d %d,%d,%d,%d %d %d,%d,%d,%d\\n", a, seen.x, seen.y, seen.width,\n'
+            "              seen.height, b, out.x, out.y, out.width, out.height);\n"
+            "  return 0;\n"
+            "}\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "structs.cc")
+            exe = os.path.join(tmp, "structs")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(source)
+            libdir = os.path.join(CEF_ROOT, "Release")  # CefString lives in libcef
+            built = subprocess.run(
+                ["c++", "-std=c++20", "-I" + CEF_ROOT,
+                 "-I" + os.path.dirname(generate_outputs()["proxies"]), path, "-o", exe,
+                 "-L" + libdir, "-l:libcef.so", "-Wl,-rpath," + libdir],
+                capture_output=True, text=True)
+            self.assertEqual(built.returncode, 0, built.stderr[-3000:])
+            ran = subprocess.run([exe], capture_output=True, text=True)
+        self.assertEqual(ran.stdout.strip(), "1 5,6,7,8 1 10,20,30,40", ran.stderr)
 
 
     def test_generated_files_are_up_to_date(self):

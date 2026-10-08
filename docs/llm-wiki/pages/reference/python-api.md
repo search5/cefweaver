@@ -43,6 +43,7 @@ updated: 2026-10-08
 | --- | --- |
 | CEF가 구현하는 클래스(래퍼) | `Request`, `Response`, `Callback`, `ResourceReadCallback`, `ResourceSkipCallback`, `Browser`, `Frame` |
 | 애플리케이션이 구현하는 클래스(상속해서 씀) | `ResourceHandler`, `SchemeHandlerFactory`, `Client`, `LoadHandler`, `LifeSpanHandler`, `DisplayHandler` |
+| 값 타입(이름 있는 튜플) | `Point(x, y)`, `Rect(x, y, width, height)`, `Size(width, height)`, `Insets(top, left, bottom, right)`, `Range(from_, to)`, `MouseEvent(x, y, modifiers)` |
 | 전역 함수 | `register_scheme_handler_factory(scheme_name, domain_name, factory) -> bool`, `clear_scheme_handler_factories() -> bool`, `get_mime_type(extension) -> str` |
 
 규칙은 다음과 같습니다([바인딩 생성기의 설계](../concepts/binding-generator.md), [핸들러 프록시 구조](../concepts/handler-proxies.md)).
@@ -52,6 +53,7 @@ updated: 2026-10-08
 - 핸들러는 기반 클래스를 상속하고 필요한 메서드만 재정의합니다. 재정의하지 않은 메서드는 CEF의 기본 동작을 따릅니다. 출력 인자는 반환값으로 돌려줍니다(반환값이 먼저).
 - `None`은 헤더가 `optional_param`으로 표시한 곳에만 허용됩니다. 그 밖에 `None`을 넘기면 `TypeError`입니다.
 - 라이브러리 메서드가 CEF 객체를 반환하면 `X | None`(CEF가 객체를 주지 않을 수 있음)이고, `Create()` 정적 메서드만 항상 객체를 돌려줍니다.
+- 값 타입은 튜플이라서 풀어서 받을 수 있고(`x, y, w, h = rect`), CEF에 넘길 때는 같은 필드의 일반 튜플도 됩니다. 길이가 다르면 `TypeError`입니다.
 - 예외는 `sys.excepthook`으로 보고되고 CEF로 전파되지 않습니다.
 
 ## 예

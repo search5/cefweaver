@@ -98,6 +98,7 @@ def build_all(cef_root):
 
     names = [py_class_name(c.get_name()) for c in scope.library_classes + scope.client_classes]
     names += [emit_cython.public_function_name(p.cef_name) for p in function_plans if p.supported]
+    names += [py_class_name(cls) for cls in emit_cython.all_structs(model)]
     assert len(names) == len(set(names)), "duplicate public names: %s" % names
 
     banner = "Generated from CEF " + cef_version(cef_root)

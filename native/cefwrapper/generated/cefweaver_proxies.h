@@ -161,6 +161,13 @@ class CwDisplayHandlerForward : public CefDisplayHandler {
     return forward_display_handler_->OnConsoleMessage(browser, level, message, source, line);
   }
 
+  bool OnAutoResize(CefRefPtr<CefBrowser> browser, const CefSize& new_size) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::OnAutoResize(browser, new_size);
+    }
+    return forward_display_handler_->OnAutoResize(browser, new_size);
+  }
+
   void OnLoadingProgressChange(CefRefPtr<CefBrowser> browser, double progress) override {
     if (!forward_display_handler_) {
       CefDisplayHandler::OnLoadingProgressChange(browser, progress);
@@ -176,6 +183,20 @@ class CwDisplayHandlerForward : public CefDisplayHandler {
     }
     forward_display_handler_->OnMediaAccessChange(browser, has_video_access, has_audio_access);
   }
+
+  bool OnContentsBoundsChange(CefRefPtr<CefBrowser> browser, const CefRect& new_bounds) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::OnContentsBoundsChange(browser, new_bounds);
+    }
+    return forward_display_handler_->OnContentsBoundsChange(browser, new_bounds);
+  }
+
+  bool GetRootWindowScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!forward_display_handler_) {
+      return CefDisplayHandler::GetRootWindowScreenRect(browser, rect);
+    }
+    return forward_display_handler_->GetRootWindowScreenRect(browser, rect);
+  }
 };
 
 struct CwDisplayHandlerCallbacks {
@@ -187,8 +208,11 @@ struct CwDisplayHandlerCallbacks {
   bool (*fn_on_tooltip)(void*, CefBrowser*, CefString*) = nullptr;
   void (*fn_on_status_message)(void*, CefBrowser*, const CefString*) = nullptr;
   bool (*fn_on_console_message)(void*, CefBrowser*, int, const CefString*, const CefString*, int) = nullptr;
+  bool (*fn_on_auto_resize)(void*, CefBrowser*, const CefSize*) = nullptr;
   void (*fn_on_loading_progress_change)(void*, CefBrowser*, double) = nullptr;
   void (*fn_on_media_access_change)(void*, CefBrowser*, bool, bool) = nullptr;
+  bool (*fn_on_contents_bounds_change)(void*, CefBrowser*, const CefRect*) = nullptr;
+  bool (*fn_get_root_window_screen_rect)(void*, CefBrowser*, CefRect*) = nullptr;
 };
 
 class CwDisplayHandlerProxy : public CefDisplayHandler {
@@ -250,6 +274,14 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
     return result;
   }
 
+  bool OnAutoResize(CefRefPtr<CefBrowser> browser, const CefSize& new_size) override {
+    if (!cb_.fn_on_auto_resize) {
+      return CefDisplayHandler::OnAutoResize(browser, new_size);
+    }
+    bool result = cb_.fn_on_auto_resize(cb_.py, browser.get(), &new_size);
+    return result;
+  }
+
   void OnLoadingProgressChange(CefRefPtr<CefBrowser> browser, double progress) override {
     if (!cb_.fn_on_loading_progress_change) {
       CefDisplayHandler::OnLoadingProgressChange(browser, progress);
@@ -264,6 +296,24 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
       return;
     }
     cb_.fn_on_media_access_change(cb_.py, browser.get(), has_video_access, has_audio_access);
+  }
+
+  bool OnContentsBoundsChange(CefRefPtr<CefBrowser> browser, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_contents_bounds_change) {
+      return CefDisplayHandler::OnContentsBoundsChange(browser, new_bounds);
+    }
+    bool result = cb_.fn_on_contents_bounds_change(cb_.py, browser.get(), &new_bounds);
+    return result;
+  }
+
+  bool GetRootWindowScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!cb_.fn_get_root_window_screen_rect) {
+      return CefDisplayHandler::GetRootWindowScreenRect(browser, rect);
+    }
+    CefRect out_rect;
+    bool result = cb_.fn_get_root_window_screen_rect(cb_.py, browser.get(), &out_rect);
+    rect = out_rect;
+    return result;
   }
 
  private:

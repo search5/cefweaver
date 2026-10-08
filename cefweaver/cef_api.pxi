@@ -6,6 +6,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
+from collections import namedtuple as _namedtuple
 from libc.string cimport strcmp as _strcmp
 
 
@@ -43,6 +44,121 @@ cdef void _g_report() noexcept:
 
 cdef void _g_release(void* py) noexcept with gil:
     Py_DECREF(<object>py)
+
+
+# Value type structs
+Insets = _namedtuple("Insets", ["top", "left", "bottom", "right"])
+Insets.__doc__ = "The CEF value type CefInsets (top, left, bottom, right). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_Insets(const CefInsets* value):
+    return Insets(value.top, value.left, value.bottom, value.right)
+
+
+cdef inline int _g_to_Insets(object obj, CefInsets* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Insets (or a sequence of 4 values), not %r" % (obj,)) from None
+    out.top = _f0
+    out.left = _f1
+    out.bottom = _f2
+    out.right = _f3
+    return 0
+
+
+MouseEvent = _namedtuple("MouseEvent", ["x", "y", "modifiers"])
+MouseEvent.__doc__ = "The CEF value type CefMouseEvent (x, y, modifiers). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_MouseEvent(const CefMouseEvent* value):
+    return MouseEvent(value.x, value.y, value.modifiers)
+
+
+cdef inline int _g_to_MouseEvent(object obj, CefMouseEvent* out) except -1:
+    try:
+        _f0, _f1, _f2 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a MouseEvent (or a sequence of 3 values), not %r" % (obj,)) from None
+    out.x = _f0
+    out.y = _f1
+    out.modifiers = _f2
+    return 0
+
+
+Point = _namedtuple("Point", ["x", "y"])
+Point.__doc__ = "The CEF value type CefPoint (x, y). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_Point(const CefPoint* value):
+    return Point(value.x, value.y)
+
+
+cdef inline int _g_to_Point(object obj, CefPoint* out) except -1:
+    try:
+        _f0, _f1 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Point (or a sequence of 2 values), not %r" % (obj,)) from None
+    out.x = _f0
+    out.y = _f1
+    return 0
+
+
+Range = _namedtuple("Range", ["from_", "to"])
+Range.__doc__ = "The CEF value type CefRange (from_, to). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_Range(const CefRange* value):
+    return Range(value.from_, value.to)
+
+
+cdef inline int _g_to_Range(object obj, CefRange* out) except -1:
+    try:
+        _f0, _f1 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Range (or a sequence of 2 values), not %r" % (obj,)) from None
+    out.from_ = _f0
+    out.to = _f1
+    return 0
+
+
+Rect = _namedtuple("Rect", ["x", "y", "width", "height"])
+Rect.__doc__ = "The CEF value type CefRect (x, y, width, height). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_Rect(const CefRect* value):
+    return Rect(value.x, value.y, value.width, value.height)
+
+
+cdef inline int _g_to_Rect(object obj, CefRect* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Rect (or a sequence of 4 values), not %r" % (obj,)) from None
+    out.x = _f0
+    out.y = _f1
+    out.width = _f2
+    out.height = _f3
+    return 0
+
+
+Size = _namedtuple("Size", ["width", "height"])
+Size.__doc__ = "The CEF value type CefSize (width, height). Anywhere one is expected, a tuple with the same fields works too."
+
+
+cdef inline object _g_from_Size(const CefSize* value):
+    return Size(value.width, value.height)
+
+
+cdef inline int _g_to_Size(object obj, CefSize* out) except -1:
+    try:
+        _f0, _f1 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Size (or a sequence of 2 values), not %r" % (obj,)) from None
+    out.width = _f0
+    out.height = _f1
+    return 0
+
 
 # Forward declarations (the classes refer to each other)
 cdef class Browser
@@ -996,7 +1112,7 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     return ref
 
 
-cdef CefClient* _g_export_Client(object obj) except? NULL:
+cdef inline CefClient* _g_export_Client(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefClient] ref = _g_make_Client(obj)
     cdef CefClient* raw = ref.get()
@@ -1053,6 +1169,14 @@ class DisplayHandler:
         """
         return False
 
+    def on_auto_resize(self, browser, new_size):
+        """Called when auto-resize is enabled via
+        CefBrowserHost::SetAutoResizeEnabled and the contents have auto-resized.
+        |new_size| will be the desired size in DIP coordinates. Return true if
+        the resize was handled or false for default handling.
+        """
+        return False
+
     def on_loading_progress_change(self, browser, progress):
         """Called when the overall page loading progress has changed. |progress|
         ranges from 0.0 to 1.0.
@@ -1064,6 +1188,36 @@ class DisplayHandler:
         changed.
         """
         return None
+
+    def on_contents_bounds_change(self, browser, new_bounds):
+        """Called when JavaScript is requesting new bounds via window.moveTo/By() or
+        window.resizeTo/By(). |new_bounds| are in DIP screen coordinates.
+
+        With Views-hosted browsers |new_bounds| are the desired bounds for
+        the containing CefWindow and may be passed directly to
+        CefWindow::SetBounds. With external (client-provided) parent on macOS and
+        Windows |new_bounds| are the desired frame bounds for the containing root
+        window. With other non-Views browsers |new_bounds| are the desired bounds
+        for the browser content only unless the client implements either
+        CefDisplayHandler::GetRootWindowScreenRect for windowed browsers or
+        CefRenderHandler::GetWindowScreenRect for windowless browsers. Clients may
+        expand browser content bounds to window bounds using OS-specific or
+        CefDisplay methods.
+
+        Return true if this method was handled or false for default handling.
+        Default move/resize behavior is only provided with Views-hosted Chrome
+        style browsers.
+        """
+        return False
+
+    def get_root_window_screen_rect(self, browser):
+        """Called to retrieve the external (client-provided) root window rectangle in
+        screen DIP coordinates. Only called for windowed browsers on Windows and
+        Linux. Return true if the rectangle was provided. Return false to use the
+        root window bounds on Windows or the browser content bounds on Linux. For
+        additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
+        """
+        return False, Rect(0, 0, 0, 0)
 
 
 cdef void _DisplayHandler_on_address_change(void* py, CefBrowser* browser, CefFrame* frame, const CefString* url) noexcept with gil:
@@ -1109,6 +1263,15 @@ cdef cpp_bool _DisplayHandler_on_console_message(void* py, CefBrowser* browser, 
         _g_report()
         return 0
 
+cdef cpp_bool _DisplayHandler_on_auto_resize(void* py, CefBrowser* browser, const CefSize* new_size) noexcept with gil:
+    try:
+        _r = (<object>py).on_auto_resize(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_from_Size(new_size))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 cdef void _DisplayHandler_on_loading_progress_change(void* py, CefBrowser* browser, double progress) noexcept with gil:
     try:
         _r = (<object>py).on_loading_progress_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), progress)
@@ -1120,6 +1283,25 @@ cdef void _DisplayHandler_on_media_access_change(void* py, CefBrowser* browser, 
         _r = (<object>py).on_media_access_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), has_video_access, has_audio_access)
     except BaseException:
         _g_report()
+
+cdef cpp_bool _DisplayHandler_on_contents_bounds_change(void* py, CefBrowser* browser, const CefRect* new_bounds) noexcept with gil:
+    try:
+        _r = (<object>py).on_contents_bounds_change(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_from_Rect(new_bounds))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _DisplayHandler_get_root_window_screen_rect(void* py, CefBrowser* browser, CefRect* rect) noexcept with gil:
+    try:
+        _r = (<object>py).get_root_window_screen_rect(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+        _r0, _r1 = _r
+        _g_to_Rect(_r1, rect)
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
 
 
 cdef CefRefPtr[CefDisplayHandler] _g_make_DisplayHandler(object obj) except *:
@@ -1146,15 +1328,21 @@ cdef CefRefPtr[CefDisplayHandler] _g_make_DisplayHandler(object obj) except *:
         cb.fn_on_status_message = _DisplayHandler_on_status_message
     if getattr(cls, "on_console_message", None) is not DisplayHandler.on_console_message:
         cb.fn_on_console_message = _DisplayHandler_on_console_message
+    if getattr(cls, "on_auto_resize", None) is not DisplayHandler.on_auto_resize:
+        cb.fn_on_auto_resize = _DisplayHandler_on_auto_resize
     if getattr(cls, "on_loading_progress_change", None) is not DisplayHandler.on_loading_progress_change:
         cb.fn_on_loading_progress_change = _DisplayHandler_on_loading_progress_change
     if getattr(cls, "on_media_access_change", None) is not DisplayHandler.on_media_access_change:
         cb.fn_on_media_access_change = _DisplayHandler_on_media_access_change
+    if getattr(cls, "on_contents_bounds_change", None) is not DisplayHandler.on_contents_bounds_change:
+        cb.fn_on_contents_bounds_change = _DisplayHandler_on_contents_bounds_change
+    if getattr(cls, "get_root_window_screen_rect", None) is not DisplayHandler.get_root_window_screen_rect:
+        cb.fn_get_root_window_screen_rect = _DisplayHandler_get_root_window_screen_rect
     ref = CefRefPtr[CefDisplayHandler](<CefDisplayHandler*>new CwDisplayHandlerProxy(cb))
     return ref
 
 
-cdef CefDisplayHandler* _g_export_DisplayHandler(object obj) except? NULL:
+cdef inline CefDisplayHandler* _g_export_DisplayHandler(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefDisplayHandler] ref = _g_make_DisplayHandler(obj)
     cdef CefDisplayHandler* raw = ref.get()
@@ -1369,7 +1557,7 @@ cdef CefRefPtr[CefLifeSpanHandler] _g_make_LifeSpanHandler(object obj) except *:
     return ref
 
 
-cdef CefLifeSpanHandler* _g_export_LifeSpanHandler(object obj) except? NULL:
+cdef inline CefLifeSpanHandler* _g_export_LifeSpanHandler(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefLifeSpanHandler] ref = _g_make_LifeSpanHandler(obj)
     cdef CefLifeSpanHandler* raw = ref.get()
@@ -1479,7 +1667,7 @@ cdef CefRefPtr[CefLoadHandler] _g_make_LoadHandler(object obj) except *:
     return ref
 
 
-cdef CefLoadHandler* _g_export_LoadHandler(object obj) except? NULL:
+cdef inline CefLoadHandler* _g_export_LoadHandler(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefLoadHandler] ref = _g_make_LoadHandler(obj)
     cdef CefLoadHandler* raw = ref.get()
@@ -1684,7 +1872,7 @@ cdef CefRefPtr[CefResourceHandler] _g_make_ResourceHandler(object obj) except *:
     return ref
 
 
-cdef CefResourceHandler* _g_export_ResourceHandler(object obj) except? NULL:
+cdef inline CefResourceHandler* _g_export_ResourceHandler(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefResourceHandler] ref = _g_make_ResourceHandler(obj)
     cdef CefResourceHandler* raw = ref.get()
@@ -1737,7 +1925,7 @@ cdef CefRefPtr[CefSchemeHandlerFactory] _g_make_SchemeHandlerFactory(object obj)
     return ref
 
 
-cdef CefSchemeHandlerFactory* _g_export_SchemeHandlerFactory(object obj) except? NULL:
+cdef inline CefSchemeHandlerFactory* _g_export_SchemeHandlerFactory(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefSchemeHandlerFactory] ref = _g_make_SchemeHandlerFactory(obj)
     cdef CefSchemeHandlerFactory* raw = ref.get()
@@ -1797,4 +1985,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Browser", "Callback", "Frame", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "Client", "DisplayHandler", "LifeSpanHandler", "LoadHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "Browser", "Callback", "Frame", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "Client", "DisplayHandler", "LifeSpanHandler", "LoadHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
