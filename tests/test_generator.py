@@ -348,14 +348,12 @@ class WithHeaders(unittest.TestCase):
     # (tools/gen/surface.py): this list only shrinks, and a method that is added or removed
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
-        "CefBrowserHost": ["AddDevToolsMessageObserver", "DragTargetDragEnter", "PrintToPDF",
-                           "RunFileDialog"],
+        "CefBrowserHost": ["DragTargetDragEnter", "PrintToPDF"],
         "CefCommandLine": None, "CefCookieAccessFilter": None, "CefCookieManager": None,
-        "CefDevToolsMessageObserver": None, "CefDragData": None, "CefRequestContext": None,
+        "CefDragData": None, "CefRequestContext": None,
         "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
         "CefURLRequestClient": None,
         "CefDragHandler": ["OnDragEnter"],
-        "CefFrame": ["GetSource", "GetText"],
         "CefRenderHandler": ["StartDragging"],
         "CefResourceRequestHandler": ["GetCookieAccessFilter"],
     }
@@ -427,6 +425,24 @@ class WithHeaders(unittest.TestCase):
         self.assertIsInstance(plan.ret, Prim)
         self.assertEqual(plan.ret.py, "int")
         self.assertIn("def get_window_handle(self) -> int:", self.generated("pyi"))
+
+    def test_the_visitor_the_file_dialog_callback_and_the_devtools_observer_are_generated(self):
+        for name in ("CefStringVisitor", "CefRunFileDialogCallback", "CefDevToolsMessageObserver"):
+            self.assertTrue(self.scope.is_client(name), name)
+        self.assertTrue(self.scope.is_library("CefRegistration"))
+        for cls, name in (("CefFrame", "GetSource"), ("CefFrame", "GetText"),
+                          ("CefBrowserHost", "RunFileDialog"),
+                          ("CefBrowserHost", "AddDevToolsMessageObserver")):
+            plan = self.plan(cls, name)
+            self.assertTrue(plan.supported, "%s::%s: %s" % (cls, name, plan.reason))
+        stub = self.generated("pyi")
+        for text in ("class StringVisitor:", "def visit(self, string: str) -> None:",
+                     "class RunFileDialogCallback:",
+                     "def on_file_dialog_dismissed(self, file_paths: list[str]) -> None:",
+                     "class DevToolsMessageObserver:", "class Registration:",
+                     "def add_dev_tools_message_observer(self, observer: DevToolsMessageObserver) "
+                     "-> Registration | None:"):
+            self.assertIn(text, stub)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))

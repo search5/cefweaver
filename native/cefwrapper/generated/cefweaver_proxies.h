@@ -9,6 +9,7 @@
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
+#include "include/cef_devtools_message_observer.h"
 #include "include/cef_dialog_handler.h"
 #include "include/cef_display_handler.h"
 #include "include/cef_download_handler.h"
@@ -25,6 +26,7 @@
 #include "include/cef_print_handler.h"
 #include "include/cef_print_settings.h"
 #include "include/cef_process_message.h"
+#include "include/cef_registration.h"
 #include "include/cef_render_handler.h"
 #include "include/cef_request.h"
 #include "include/cef_request_handler.h"
@@ -34,6 +36,7 @@
 #include "include/cef_scheme.h"
 #include "include/cef_ssl_info.h"
 #include "include/cef_stream.h"
+#include "include/cef_string_visitor.h"
 #include "include/cef_task_manager.h"
 #include "include/cef_unresponsive_process_callback.h"
 #include "include/cef_values.h"
@@ -501,6 +504,119 @@ class CwContextMenuHandlerProxy : public CefContextMenuHandler {
 
   IMPLEMENT_REFCOUNTING(CwContextMenuHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwContextMenuHandlerProxy);
+};
+
+// ---- CefDevToolsMessageObserver ----
+
+class CwDevToolsMessageObserverForward : public CefDevToolsMessageObserver {
+ protected:
+  CefRefPtr<CefDevToolsMessageObserver> forward_dev_tools_message_observer_;
+
+ public:
+  bool OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) override {
+    if (!forward_dev_tools_message_observer_) {
+      return CefDevToolsMessageObserver::OnDevToolsMessage(browser, message, message_size);
+    }
+    return forward_dev_tools_message_observer_->OnDevToolsMessage(browser, message, message_size);
+  }
+
+  void OnDevToolsMethodResult(CefRefPtr<CefBrowser> browser, int message_id, bool success, const void* result, size_t result_size) override {
+    if (!forward_dev_tools_message_observer_) {
+      CefDevToolsMessageObserver::OnDevToolsMethodResult(browser, message_id, success, result, result_size);
+      return;
+    }
+    forward_dev_tools_message_observer_->OnDevToolsMethodResult(browser, message_id, success, result, result_size);
+  }
+
+  void OnDevToolsEvent(CefRefPtr<CefBrowser> browser, const CefString& method, const void* params, size_t params_size) override {
+    if (!forward_dev_tools_message_observer_) {
+      CefDevToolsMessageObserver::OnDevToolsEvent(browser, method, params, params_size);
+      return;
+    }
+    forward_dev_tools_message_observer_->OnDevToolsEvent(browser, method, params, params_size);
+  }
+
+  void OnDevToolsAgentAttached(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_dev_tools_message_observer_) {
+      CefDevToolsMessageObserver::OnDevToolsAgentAttached(browser);
+      return;
+    }
+    forward_dev_tools_message_observer_->OnDevToolsAgentAttached(browser);
+  }
+
+  void OnDevToolsAgentDetached(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_dev_tools_message_observer_) {
+      CefDevToolsMessageObserver::OnDevToolsAgentDetached(browser);
+      return;
+    }
+    forward_dev_tools_message_observer_->OnDevToolsAgentDetached(browser);
+  }
+};
+
+struct CwDevToolsMessageObserverCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_dev_tools_message)(void*, CefBrowser*, void*, size_t) = nullptr;
+  void (*fn_on_dev_tools_method_result)(void*, CefBrowser*, int, bool, void*, size_t) = nullptr;
+  void (*fn_on_dev_tools_event)(void*, CefBrowser*, const CefString*, void*, size_t) = nullptr;
+  void (*fn_on_dev_tools_agent_attached)(void*, CefBrowser*) = nullptr;
+  void (*fn_on_dev_tools_agent_detached)(void*, CefBrowser*) = nullptr;
+};
+
+class CwDevToolsMessageObserverProxy : public CefDevToolsMessageObserver {
+ public:
+  explicit CwDevToolsMessageObserverProxy(const CwDevToolsMessageObserverCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDevToolsMessageObserverProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) override {
+    if (!cb_.fn_on_dev_tools_message) {
+      return CefDevToolsMessageObserver::OnDevToolsMessage(browser, message, message_size);
+    }
+    bool result = cb_.fn_on_dev_tools_message(cb_.py, browser.get(), const_cast<void*>(message), message_size);
+    return result;
+  }
+
+  void OnDevToolsMethodResult(CefRefPtr<CefBrowser> browser, int message_id, bool success, const void* result, size_t result_size) override {
+    if (!cb_.fn_on_dev_tools_method_result) {
+      CefDevToolsMessageObserver::OnDevToolsMethodResult(browser, message_id, success, result, result_size);
+      return;
+    }
+    cb_.fn_on_dev_tools_method_result(cb_.py, browser.get(), message_id, success, const_cast<void*>(result), result_size);
+  }
+
+  void OnDevToolsEvent(CefRefPtr<CefBrowser> browser, const CefString& method, const void* params, size_t params_size) override {
+    if (!cb_.fn_on_dev_tools_event) {
+      CefDevToolsMessageObserver::OnDevToolsEvent(browser, method, params, params_size);
+      return;
+    }
+    cb_.fn_on_dev_tools_event(cb_.py, browser.get(), &method, const_cast<void*>(params), params_size);
+  }
+
+  void OnDevToolsAgentAttached(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_dev_tools_agent_attached) {
+      CefDevToolsMessageObserver::OnDevToolsAgentAttached(browser);
+      return;
+    }
+    cb_.fn_on_dev_tools_agent_attached(cb_.py, browser.get());
+  }
+
+  void OnDevToolsAgentDetached(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_dev_tools_agent_detached) {
+      CefDevToolsMessageObserver::OnDevToolsAgentDetached(browser);
+      return;
+    }
+    cb_.fn_on_dev_tools_agent_detached(cb_.py, browser.get());
+  }
+
+ private:
+  CwDevToolsMessageObserverCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDevToolsMessageObserverProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDevToolsMessageObserverProxy);
 };
 
 // ---- CefDialogHandler ----
@@ -2508,6 +2624,50 @@ class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
   DISALLOW_COPY_AND_ASSIGN(CwResourceRequestHandlerProxy);
 };
 
+// ---- CefRunFileDialogCallback ----
+
+class CwRunFileDialogCallbackForward : public CefRunFileDialogCallback {
+ protected:
+  CefRefPtr<CefRunFileDialogCallback> forward_run_file_dialog_callback_;
+
+ public:
+  void OnFileDialogDismissed(const std::vector<CefString>& file_paths) override {
+    if (!forward_run_file_dialog_callback_) {
+      return;
+    }
+    forward_run_file_dialog_callback_->OnFileDialogDismissed(file_paths);
+  }
+};
+
+struct CwRunFileDialogCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_file_dialog_dismissed)(void*, const std::vector<CefString>*) = nullptr;
+};
+
+class CwRunFileDialogCallbackProxy : public CefRunFileDialogCallback {
+ public:
+  explicit CwRunFileDialogCallbackProxy(const CwRunFileDialogCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwRunFileDialogCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnFileDialogDismissed(const std::vector<CefString>& file_paths) override {
+    if (!cb_.fn_on_file_dialog_dismissed) {
+      return;
+    }
+    cb_.fn_on_file_dialog_dismissed(cb_.py, &file_paths);
+  }
+
+ private:
+  CwRunFileDialogCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwRunFileDialogCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwRunFileDialogCallbackProxy);
+};
+
 // ---- CefSchemeHandlerFactory ----
 
 class CwSchemeHandlerFactoryForward : public CefSchemeHandlerFactory {
@@ -2556,6 +2716,50 @@ class CwSchemeHandlerFactoryProxy : public CefSchemeHandlerFactory {
 
   IMPLEMENT_REFCOUNTING(CwSchemeHandlerFactoryProxy);
   DISALLOW_COPY_AND_ASSIGN(CwSchemeHandlerFactoryProxy);
+};
+
+// ---- CefStringVisitor ----
+
+class CwStringVisitorForward : public CefStringVisitor {
+ protected:
+  CefRefPtr<CefStringVisitor> forward_string_visitor_;
+
+ public:
+  void Visit(const CefString& string) override {
+    if (!forward_string_visitor_) {
+      return;
+    }
+    forward_string_visitor_->Visit(string);
+  }
+};
+
+struct CwStringVisitorCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_visit)(void*, const CefString*) = nullptr;
+};
+
+class CwStringVisitorProxy : public CefStringVisitor {
+ public:
+  explicit CwStringVisitorProxy(const CwStringVisitorCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwStringVisitorProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void Visit(const CefString& string) override {
+    if (!cb_.fn_visit) {
+      return;
+    }
+    cb_.fn_visit(cb_.py, &string);
+  }
+
+ private:
+  CwStringVisitorCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwStringVisitorProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwStringVisitorProxy);
 };
 
 // ---- CefWriteHandler ----

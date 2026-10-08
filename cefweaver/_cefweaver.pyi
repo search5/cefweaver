@@ -412,6 +412,23 @@ class BrowserHost:
         on the UI thread.
         """
         ...
+    def run_file_dialog(self, mode: FileDialogMode | int, title: str | None, default_file_path: str | None, accept_filters: Sequence[str], callback: RunFileDialogCallback) -> None:
+        """Call to run a file chooser dialog. Only a single file chooser dialog may
+        be pending at any given time. |mode| represents the type of dialog to
+        display. |title| to the title to be used for the dialog and may be empty
+        to show the default title (\"Open\" or \"Save\" depending on the mode).
+        |default_file_path| is the path with optional directory and/or file name
+        component that will be initially selected in the dialog. |accept_filters|
+        are used to restrict the selectable file types and may any combination of
+        (a) valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b)
+        individual file extensions (e.g.
+        \".txt\" or \".png\"), or (c) combined description and file extension
+        delimited using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\").
+        |callback| will be executed after the dialog is dismissed or immediately
+        if another dialog is already pending. The dialog will be initiated
+        asynchronously on the UI thread.
+        """
+        ...
     def start_download(self, url: str) -> None:
         """Download the file at |url| using CefDownloadHandler."""
         ...
@@ -483,6 +500,13 @@ class BrowserHost:
         method will return the assigned message ID if called on the UI thread and
         the message was successfully submitted for validation, otherwise 0. See
         the SendDevToolsMessage documentation for additional usage information.
+        """
+        ...
+    def add_dev_tools_message_observer(self, observer: DevToolsMessageObserver) -> Registration | None:
+        """Add an observer for DevTools protocol messages (method results and
+        events). The observer will remain registered until the returned
+        Registration object is destroyed. See the SendDevToolsMessage
+        documentation for additional usage information.
         """
         ...
     def replace_misspelling(self, word: str) -> None:
@@ -1292,6 +1316,16 @@ class Frame:
         browser process.
         """
         ...
+    def get_source(self, visitor: StringVisitor) -> None:
+        """Retrieve this frame's HTML source as a string sent to the specified
+        visitor.
+        """
+        ...
+    def get_text(self, visitor: StringVisitor) -> None:
+        """Retrieve this frame's display text as a string sent to the specified
+        visitor.
+        """
+        ...
     def load_request(self, request: Request) -> None:
         """Load the request represented by the |request| object.
 
@@ -1982,6 +2016,10 @@ class ProcessMessage:
         ...
 
 
+class Registration:
+    """Generic callback interface used for managing the lifespan of a registration."""
+
+
 class Request:
     """Class used to represent a web request. The methods of this class may be
     called on any thread.
@@ -2640,6 +2678,70 @@ class ContextMenuHandler:
     def on_quick_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
         """Called when the quick menu for a windowless browser is dismissed
         irregardless of whether the menu was canceled or a command was selected.
+        """
+        ...
+
+
+class DevToolsMessageObserver:
+    """Callback interface for CefBrowserHost::AddDevToolsMessageObserver. The
+    methods of this class will be called on the browser process UI thread.
+    """
+    def on_dev_tools_message(self, browser: Browser, message: memoryview) -> bool:
+        """Method that will be called on receipt of a DevTools protocol message.
+        |browser| is the originating browser instance. |message| is a UTF8-encoded
+        JSON dictionary representing either a method result or an event. |message|
+        is only valid for the scope of this callback and should be copied if
+        necessary. Return true if the message was handled or false if the message
+        should be further processed and passed to the OnDevToolsMethodResult or
+        OnDevToolsEvent methods as appropriate.
+
+        Method result dictionaries include an \"id\" (int) value that identifies the
+        orginating method call sent from CefBrowserHost::SendDevToolsMessage, and
+        optionally either a \"result\" (dictionary) or \"error\" (dictionary) value.
+        The \"error\" dictionary will contain \"code\" (int) and \"message\" (string)
+        values. Event dictionaries include a \"method\" (string) value and
+        optionally a \"params\" (dictionary) value. See the DevTools protocol
+        documentation at https://chromedevtools.github.io/devtools-protocol/ for
+        details of supported method calls and the expected \"result\" or \"params\"
+        dictionary contents. JSON dictionaries can be parsed using the
+        CefParseJSON function if desired, however be aware of performance
+        considerations when parsing large messages (some of which may exceed 1MB
+        in size).
+        """
+        ...
+    def on_dev_tools_method_result(self, browser: Browser, message_id: int, success: bool, result: memoryview) -> None:
+        """Method that will be called after attempted execution of a DevTools
+        protocol method. |browser| is the originating browser instance.
+        |message_id| is the \"id\" value that identifies the originating method call
+        message. If the method succeeded |success| will be true and |result| will
+        be the UTF8-encoded JSON \"result\" dictionary value (which may be empty).
+        If the method failed |success| will be false and |result| will be the
+        UTF8-encoded JSON \"error\" dictionary value. |result| is only valid for the
+        scope of this callback and should be copied if necessary. See the
+        OnDevToolsMessage documentation for additional details on |result|
+        contents.
+        """
+        ...
+    def on_dev_tools_event(self, browser: Browser, method: str, params: memoryview) -> None:
+        """Method that will be called on receipt of a DevTools protocol event.
+        |browser| is the originating browser instance. |method| is the \"method\"
+        value. |params| is the UTF8-encoded JSON \"params\" dictionary value (which
+        may be empty). |params| is only valid for the scope of this callback and
+        should be copied if necessary. See the OnDevToolsMessage documentation for
+        additional details on |params| contents.
+        """
+        ...
+    def on_dev_tools_agent_attached(self, browser: Browser) -> None:
+        """Method that will be called when the DevTools agent has attached. |browser|
+        is the originating browser instance. This will generally occur in response
+        to the first message sent while the agent is detached.
+        """
+        ...
+    def on_dev_tools_agent_detached(self, browser: Browser) -> None:
+        """Method that will be called when the DevTools agent has detached. |browser|
+        is the originating browser instance. Any method results that were pending
+        before the agent became detached will not be delivered, and any active
+        event subscriptions will be canceled.
         """
         ...
 
@@ -3621,6 +3723,18 @@ class ResourceRequestHandler:
         ...
 
 
+class RunFileDialogCallback:
+    """Callback interface for CefBrowserHost::RunFileDialog. The methods of this
+    class will be called on the browser process UI thread.
+    """
+    def on_file_dialog_dismissed(self, file_paths: list[str]) -> None:
+        """Called asynchronously after the file dialog is dismissed.
+        |file_paths| will be a single value or a list of values depending on the
+        dialog mode. If the selection was cancelled |file_paths| will be empty.
+        """
+        ...
+
+
 class SchemeHandlerFactory:
     """Class that creates CefResourceHandler instances for handling scheme
     requests. The methods of this class will always be called on the IO thread.
@@ -3633,6 +3747,13 @@ class SchemeHandlerFactory:
         (for example, if the request came from CefURLRequest). The |request|
         object passed to this method cannot be modified.
         """
+        ...
+
+
+class StringVisitor:
+    """Implement this interface to receive string values asynchronously."""
+    def visit(self, string: str) -> None:
+        """Method that will be executed."""
         ...
 
 

@@ -2413,6 +2413,77 @@ class WithCef(unittest.TestCase):
         """)
 
 
+    def test_a_string_visitor_gets_the_source_and_the_text_of_a_frame(self):
+        self.run_osr_script("""
+            got = {}
+            class Source(cefweaver.StringVisitor):
+                def visit(self, string):
+                    got["source"] = string
+            class Text(cefweaver.StringVisitor):
+                def visit(self, string):
+                    got["text"] = string
+            start('<p id="x">hello <b>there</b></p>')
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            frame = boxes[0].get_main_frame()
+            frame.get_source(Source())
+            frame.get_text(Text())
+            wait_until(app, lambda: len(got) == 2, "both visitors")
+            assert '<p id="x">hello <b>there</b></p>' in got["source"], got
+            assert got["text"].strip() == "hello there", got
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_run_file_dialog_reports_the_files_the_dialog_handler_chose(self):
+        self.run_osr_script("""
+            import os, tempfile
+            path = os.path.join(tempfile.mkdtemp(), "picked.txt")
+            open(path, "w").write("x")
+            asked, dismissed = [], []
+            class Files(cefweaver.DialogHandler):
+                def on_file_dialog(self, browser, mode, title, default_file_path, accept_filters,
+                                   accept_extensions, accept_descriptions, callback):
+                    asked.append((mode, title, default_file_path))
+                    callback.continue_([path])
+                    return True
+            class Done(cefweaver.RunFileDialogCallback):
+                def on_file_dialog_dismissed(self, file_paths):
+                    dismissed.append(file_paths)
+            handlers["dialog"] = Files()
+            start(RED)
+            boxes[0].get_host().run_file_dialog(types.FileDialogMode.OPEN, "Pick", "/tmp", [".txt"], Done())
+            wait_until(app, lambda: dismissed, "the dismissed dialog")
+            assert dismissed == [[path]], dismissed
+            assert asked and asked[0][0] == types.FileDialogMode.OPEN, asked
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_devtools_message_observer_gets_the_result_of_a_method(self):
+        self.run_osr_script("""
+            results, events = [], []
+            class Observer(cefweaver.DevToolsMessageObserver):
+                def on_dev_tools_method_result(self, browser, message_id, success, result):
+                    results.append((message_id, success, bytes(result)))
+                def on_dev_tools_event(self, browser, method, params):
+                    events.append((method, bytes(params)))
+            start(RED)
+            host = boxes[0].get_host()
+            observer = Observer()
+            registration = host.add_dev_tools_message_observer(observer)
+            assert registration is not None
+            params = cefweaver.DictionaryValue.create()
+            params.set_string("expression", "1 + 2")
+            message_id = host.execute_dev_tools_method(0, "Runtime.evaluate", params)
+            assert message_id > 0, message_id
+            wait_until(app, lambda: results, "the method result")
+            assert results[0][0] == message_id and results[0][1] is True, results
+            assert b'"value":3' in results[0][2], results[0]
+            app.shutdown()
+            print("OK")
+        """)
+
+
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))
               and os.environ.get("CEFWEAVER_TEST_WAYLAND") == "1")
 

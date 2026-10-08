@@ -517,6 +517,7 @@ cdef class PrintDialogCallback
 cdef class PrintJobCallback
 cdef class PrintSettings
 cdef class ProcessMessage
+cdef class Registration
 cdef class Request
 cdef class ResourceReadCallback
 cdef class ResourceSkipCallback
@@ -1154,6 +1155,39 @@ cdef class BrowserHost:
             _p.SetZoomLevel(zoom_level)
         return None
 
+    def run_file_dialog(self, int mode, title, default_file_path, accept_filters, callback):
+        """Call to run a file chooser dialog. Only a single file chooser dialog may
+        be pending at any given time. |mode| represents the type of dialog to
+        display. |title| to the title to be used for the dialog and may be empty
+        to show the default title (\"Open\" or \"Save\" depending on the mode).
+        |default_file_path| is the path with optional directory and/or file name
+        component that will be initially selected in the dialog. |accept_filters|
+        are used to restrict the selectable file types and may any combination of
+        (a) valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b)
+        individual file extensions (e.g.
+        \".txt\" or \".png\"), or (c) combined description and file extension
+        delimited using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\").
+        |callback| will be executed after the dialog is dismissed or immediately
+        if another dialog is already pending. The dialog will be initiated
+        asynchronously on the UI thread.
+        """
+        cdef CefString _a1
+        cdef CefString _a2
+        cdef vector[CefString] _a3
+        cdef CefRefPtr[CefRunFileDialogCallback] _a4
+        cdef CefBrowserHost* _p = self._ptr()
+        if title is not None:
+            _a1 = _g_cef(title)
+        if default_file_path is not None:
+            _a2 = _g_cef(default_file_path)
+        _g_str_vector(accept_filters, _a3)
+        if callback is None:
+            raise TypeError("callback must not be None")
+        _a4 = _g_make_RunFileDialogCallback(callback)
+        with nogil:
+            _p.RunFileDialog(<cef_file_dialog_mode_t>mode, _a1, _a2, _a3, _a4)
+        return None
+
     def start_download(self, url):
         """Download the file at |url| using CefDownloadHandler."""
         cdef CefString _a0
@@ -1279,6 +1313,22 @@ cdef class BrowserHost:
         with nogil:
             _r = _p.ExecuteDevToolsMethod(message_id, _a1, _a2)
         return _r
+
+    def add_dev_tools_message_observer(self, observer):
+        """Add an observer for DevTools protocol messages (method results and
+        events). The observer will remain registered until the returned
+        Registration object is destroyed. See the SendDevToolsMessage
+        documentation for additional usage information.
+        """
+        cdef CefRefPtr[CefDevToolsMessageObserver] _a0
+        cdef CefBrowserHost* _p = self._ptr()
+        cdef CefRefPtr[CefRegistration] _r
+        if observer is None:
+            raise TypeError("observer must not be None")
+        _a0 = _g_make_DevToolsMessageObserver(observer)
+        with nogil:
+            _r = _p.AddDevToolsMessageObserver(_a0)
+        return _wrap_Registration(_r)
 
     def replace_misspelling(self, word):
         """If a misspelled word is currently selected in an editable node calling
@@ -3028,6 +3078,32 @@ cdef class Frame:
             _p.ViewSource()
         return None
 
+    def get_source(self, visitor):
+        """Retrieve this frame's HTML source as a string sent to the specified
+        visitor.
+        """
+        cdef CefRefPtr[CefStringVisitor] _a0
+        cdef CefFrame* _p = self._ptr()
+        if visitor is None:
+            raise TypeError("visitor must not be None")
+        _a0 = _g_make_StringVisitor(visitor)
+        with nogil:
+            _p.GetSource(_a0)
+        return None
+
+    def get_text(self, visitor):
+        """Retrieve this frame's display text as a string sent to the specified
+        visitor.
+        """
+        cdef CefRefPtr[CefStringVisitor] _a0
+        cdef CefFrame* _p = self._ptr()
+        if visitor is None:
+            raise TypeError("visitor must not be None")
+        _a0 = _g_make_StringVisitor(visitor)
+        with nogil:
+            _p.GetText(_a0)
+        return None
+
     def load_request(self, Request request not None):
         """Load the request represented by the |request| object.
 
@@ -4747,6 +4823,33 @@ cdef object _wrap_ProcessMessage(CefRefPtr[CefProcessMessage] ref):
     if ref.get() == NULL:
         return None
     obj = ProcessMessage.__new__(ProcessMessage)
+    obj._ref = ref
+    return obj
+
+
+cdef class Registration:
+    """Generic callback interface used for managing the lifespan of a registration."""
+    cdef CefRefPtr[CefRegistration] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("Registration objects are created by CEF or by a create() function")
+
+    cdef CefRegistration* _ptr(self) except NULL:
+        cdef CefRegistration* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("Registration has no CEF object")
+        return p
+
+
+cdef object _wrap_Registration(CefRefPtr[CefRegistration] ref):
+    cdef Registration obj
+    if ref.get() == NULL:
+        return None
+    obj = Registration.__new__(Registration)
     obj._ref = ref
     return obj
 
@@ -6617,6 +6720,165 @@ cdef inline CefContextMenuHandler* _g_export_ContextMenuHandler(object obj) exce
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefContextMenuHandler] ref = _g_make_ContextMenuHandler(obj)
     cdef CefContextMenuHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class DevToolsMessageObserver:
+    """Callback interface for CefBrowserHost::AddDevToolsMessageObserver. The
+    methods of this class will be called on the browser process UI thread.
+    """
+
+    def on_dev_tools_message(self, browser, message):
+        """Method that will be called on receipt of a DevTools protocol message.
+        |browser| is the originating browser instance. |message| is a UTF8-encoded
+        JSON dictionary representing either a method result or an event. |message|
+        is only valid for the scope of this callback and should be copied if
+        necessary. Return true if the message was handled or false if the message
+        should be further processed and passed to the OnDevToolsMethodResult or
+        OnDevToolsEvent methods as appropriate.
+
+        Method result dictionaries include an \"id\" (int) value that identifies the
+        orginating method call sent from CefBrowserHost::SendDevToolsMessage, and
+        optionally either a \"result\" (dictionary) or \"error\" (dictionary) value.
+        The \"error\" dictionary will contain \"code\" (int) and \"message\" (string)
+        values. Event dictionaries include a \"method\" (string) value and
+        optionally a \"params\" (dictionary) value. See the DevTools protocol
+        documentation at https://chromedevtools.github.io/devtools-protocol/ for
+        details of supported method calls and the expected \"result\" or \"params\"
+        dictionary contents. JSON dictionaries can be parsed using the
+        CefParseJSON function if desired, however be aware of performance
+        considerations when parsing large messages (some of which may exceed 1MB
+        in size).
+        """
+        return False
+
+    def on_dev_tools_method_result(self, browser, message_id, success, result):
+        """Method that will be called after attempted execution of a DevTools
+        protocol method. |browser| is the originating browser instance.
+        |message_id| is the \"id\" value that identifies the originating method call
+        message. If the method succeeded |success| will be true and |result| will
+        be the UTF8-encoded JSON \"result\" dictionary value (which may be empty).
+        If the method failed |success| will be false and |result| will be the
+        UTF8-encoded JSON \"error\" dictionary value. |result| is only valid for the
+        scope of this callback and should be copied if necessary. See the
+        OnDevToolsMessage documentation for additional details on |result|
+        contents.
+        """
+        return None
+
+    def on_dev_tools_event(self, browser, method, params):
+        """Method that will be called on receipt of a DevTools protocol event.
+        |browser| is the originating browser instance. |method| is the \"method\"
+        value. |params| is the UTF8-encoded JSON \"params\" dictionary value (which
+        may be empty). |params| is only valid for the scope of this callback and
+        should be copied if necessary. See the OnDevToolsMessage documentation for
+        additional details on |params| contents.
+        """
+        return None
+
+    def on_dev_tools_agent_attached(self, browser):
+        """Method that will be called when the DevTools agent has attached. |browser|
+        is the originating browser instance. This will generally occur in response
+        to the first message sent while the agent is detached.
+        """
+        return None
+
+    def on_dev_tools_agent_detached(self, browser):
+        """Method that will be called when the DevTools agent has detached. |browser|
+        is the originating browser instance. Any method results that were pending
+        before the agent became detached will not be delivered, and any active
+        event subscriptions will be canceled.
+        """
+        return None
+
+
+cdef cpp_bool _DevToolsMessageObserver_on_dev_tools_message(void* py, CefBrowser* browser, void* message, size_t message_size) noexcept with gil:
+    try:
+        _view_message = PyMemoryView_FromMemory(<char*>message, message_size, PyBUF_READ)
+        try:
+            _r = (<object>py).on_dev_tools_message(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _view_message)
+        finally:
+            try:
+                _view_message.release()
+            except BaseException:
+                pass
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _DevToolsMessageObserver_on_dev_tools_method_result(void* py, CefBrowser* browser, int message_id, cpp_bool success, void* result, size_t result_size) noexcept with gil:
+    try:
+        _view_result = PyMemoryView_FromMemory(<char*>result, result_size, PyBUF_READ)
+        try:
+            _r = (<object>py).on_dev_tools_method_result(_wrap_Browser(CefRefPtr[CefBrowser](browser)), message_id, success, _view_result)
+        finally:
+            try:
+                _view_result.release()
+            except BaseException:
+                pass
+    except BaseException:
+        _g_report()
+
+cdef void _DevToolsMessageObserver_on_dev_tools_event(void* py, CefBrowser* browser, const CefString* method, void* params, size_t params_size) noexcept with gil:
+    try:
+        _view_params = PyMemoryView_FromMemory(<char*>params, params_size, PyBUF_READ)
+        try:
+            _r = (<object>py).on_dev_tools_event(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(method[0]), _view_params)
+        finally:
+            try:
+                _view_params.release()
+            except BaseException:
+                pass
+    except BaseException:
+        _g_report()
+
+cdef void _DevToolsMessageObserver_on_dev_tools_agent_attached(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_dev_tools_agent_attached(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef void _DevToolsMessageObserver_on_dev_tools_agent_detached(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_dev_tools_agent_detached(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDevToolsMessageObserver] _g_make_DevToolsMessageObserver(object obj) except *:
+    cdef CefRefPtr[CefDevToolsMessageObserver] ref
+    cdef CwDevToolsMessageObserverCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DevToolsMessageObserver):
+        raise TypeError("expected a DevToolsMessageObserver or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_dev_tools_message", None) is not DevToolsMessageObserver.on_dev_tools_message:
+        cb.fn_on_dev_tools_message = _DevToolsMessageObserver_on_dev_tools_message
+    if getattr(cls, "on_dev_tools_method_result", None) is not DevToolsMessageObserver.on_dev_tools_method_result:
+        cb.fn_on_dev_tools_method_result = _DevToolsMessageObserver_on_dev_tools_method_result
+    if getattr(cls, "on_dev_tools_event", None) is not DevToolsMessageObserver.on_dev_tools_event:
+        cb.fn_on_dev_tools_event = _DevToolsMessageObserver_on_dev_tools_event
+    if getattr(cls, "on_dev_tools_agent_attached", None) is not DevToolsMessageObserver.on_dev_tools_agent_attached:
+        cb.fn_on_dev_tools_agent_attached = _DevToolsMessageObserver_on_dev_tools_agent_attached
+    if getattr(cls, "on_dev_tools_agent_detached", None) is not DevToolsMessageObserver.on_dev_tools_agent_detached:
+        cb.fn_on_dev_tools_agent_detached = _DevToolsMessageObserver_on_dev_tools_agent_detached
+    ref = CefRefPtr[CefDevToolsMessageObserver](<CefDevToolsMessageObserver*>new CwDevToolsMessageObserverProxy(cb))
+    return ref
+
+
+cdef inline CefDevToolsMessageObserver* _g_export_DevToolsMessageObserver(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDevToolsMessageObserver] ref = _g_make_DevToolsMessageObserver(obj)
+    cdef CefDevToolsMessageObserver* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -9012,6 +9274,53 @@ cdef inline CefResourceRequestHandler* _g_export_ResourceRequestHandler(object o
     return raw
 
 
+class RunFileDialogCallback:
+    """Callback interface for CefBrowserHost::RunFileDialog. The methods of this
+    class will be called on the browser process UI thread.
+    """
+
+    def on_file_dialog_dismissed(self, file_paths):
+        """Called asynchronously after the file dialog is dismissed.
+        |file_paths| will be a single value or a list of values depending on the
+        dialog mode. If the selection was cancelled |file_paths| will be empty.
+        """
+        return None
+
+
+cdef void _RunFileDialogCallback_on_file_dialog_dismissed(void* py, const vector[CefString]* file_paths) noexcept with gil:
+    try:
+        _r = (<object>py).on_file_dialog_dismissed(_g_str_list(file_paths))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefRunFileDialogCallback] _g_make_RunFileDialogCallback(object obj) except *:
+    cdef CefRefPtr[CefRunFileDialogCallback] ref
+    cdef CwRunFileDialogCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, RunFileDialogCallback):
+        raise TypeError("expected a RunFileDialogCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_file_dialog_dismissed", None) is not RunFileDialogCallback.on_file_dialog_dismissed:
+        cb.fn_on_file_dialog_dismissed = _RunFileDialogCallback_on_file_dialog_dismissed
+    ref = CefRefPtr[CefRunFileDialogCallback](<CefRunFileDialogCallback*>new CwRunFileDialogCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefRunFileDialogCallback* _g_export_RunFileDialogCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefRunFileDialogCallback] ref = _g_make_RunFileDialogCallback(obj)
+    cdef CefRunFileDialogCallback* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class SchemeHandlerFactory:
     """Class that creates CefResourceHandler instances for handling scheme
     requests. The methods of this class will always be called on the IO thread.
@@ -9060,6 +9369,48 @@ cdef inline CefSchemeHandlerFactory* _g_export_SchemeHandlerFactory(object obj) 
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefSchemeHandlerFactory] ref = _g_make_SchemeHandlerFactory(obj)
     cdef CefSchemeHandlerFactory* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class StringVisitor:
+    """Implement this interface to receive string values asynchronously."""
+
+    def visit(self, string):
+        """Method that will be executed."""
+        return None
+
+
+cdef void _StringVisitor_visit(void* py, const CefString* string) noexcept with gil:
+    try:
+        _r = (<object>py).visit(_g_str(string[0]))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefStringVisitor] _g_make_StringVisitor(object obj) except *:
+    cdef CefRefPtr[CefStringVisitor] ref
+    cdef CwStringVisitorCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, StringVisitor):
+        raise TypeError("expected a StringVisitor or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "visit", None) is not StringVisitor.visit:
+        cb.fn_visit = _StringVisitor_visit
+    ref = CefRefPtr[CefStringVisitor](<CefStringVisitor*>new CwStringVisitorProxy(cb))
+    return ref
+
+
+cdef inline CefStringVisitor* _g_export_StringVisitor(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefStringVisitor] ref = _g_make_StringVisitor(obj)
+    cdef CefStringVisitor* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -9236,4 +9587,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "SchemeHandlerFactory", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

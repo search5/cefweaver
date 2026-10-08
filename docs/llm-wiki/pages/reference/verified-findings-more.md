@@ -128,6 +128,15 @@ updated: 2026-10-08
 - **결과**: 창 있는 브라우저는 X11 창 번호(양의 정수), 오프스크린은 0입니다. Linux에서 `CefWindowHandle`은 `unsigned long`이라 `int`로 엽니다(Windows는 포인터라 따로 다룰 일이 생기면 그때 정함).
 - **영향**: 바닥의 격차 1개가 메워졌습니다.
 
+## F49. 문자열 방문자, 파일 대화상자 콜백, DevTools 관찰자
+
+- **방법**: 오프스크린 브라우저에서 각 메서드를 일으켰습니다.
+- **결과**:
+  - `frame.get_source(visitor)`가 `<p id="x">hello <b>there</b></p>`가 든 HTML을, `get_text(visitor)`가 `hello there`를 `visit(string)`으로 줍니다.
+  - `host.run_file_dialog(FileDialogMode.OPEN, title, 기본 경로, 필터, callback)`은 `DialogHandler.on_file_dialog`가 고른 경로를 `RunFileDialogCallback.on_file_dialog_dismissed(file_paths)`로 알립니다.
+  - `host.add_dev_tools_message_observer(observer)`가 `Registration`을 돌려주고, `execute_dev_tools_method(0, "Runtime.evaluate", params)`의 메시지 번호가 `on_dev_tools_method_result(browser, message_id, success, result)`의 번호와 같으며 `result`(읽기 전용 `memoryview`의 JSON)에 `"value":3`이 들어 있습니다.
+- **영향**: 바닥의 격차 7개가 메워졌습니다(`Frame` 2, `BrowserHost` 2, `DevToolsMessageObserver` 2, `Registration`은 java-cef도 메서드가 없음).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

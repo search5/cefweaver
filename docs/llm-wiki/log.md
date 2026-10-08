@@ -176,3 +176,7 @@
 ## [2026-10-08] ingest | 격차 메우기 3: 창 핸들
 
 - `CefWindowHandle`(Linux에서 `unsigned long`)을 정수로 열어 `BrowserHost.get_window_handle()`을 만들었습니다. F48. 격차 71개에서 70개.
+
+## [2026-10-08] ingest | 격차 메우기 4: 방문자, 파일 대화상자 콜백, DevTools 관찰자
+
+- `CefStringVisitor`, `CefRunFileDialogCallback`, `CefDevToolsMessageObserver`, `CefRegistration`을 범위에 넣어 `Frame.get_source`/`get_text`, `BrowserHost.run_file_dialog`, `add_dev_tools_message_observer`를 열었습니다. F49.
