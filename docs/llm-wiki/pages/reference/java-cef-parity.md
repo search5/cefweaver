@@ -94,3 +94,4 @@ java-cef의 Java 보조 클래스(`BoolRef`, `IntRef`, `StringRef`, 어댑터 �
 - [생성 범위와 커버리지](generated-api-coverage.md)
 - [커버리지 보고서 (생성됨)](coverage-report.md)
 - [설계 결정 기록](design-decisions.md)
+- [cefpython과 cefweaver의 API 차이](../analyses/cefpython-comparison.md)
