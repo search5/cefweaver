@@ -57,6 +57,9 @@ SURFACE = {
         "GetSwitchValue", "GetSwitches", "HasArguments", "HasSwitch", "HasSwitches", "Reset",
         "SetProgram",
     }),
+    "CefCompletionCallback": frozenset({
+        "OnComplete",
+    }),
     "CefContextMenuHandler": frozenset({
         "OnBeforeContextMenu", "OnContextMenuCommand", "OnContextMenuDismissed",
     }),
@@ -72,6 +75,9 @@ SURFACE = {
     "CefCookieManager": frozenset({
         "DeleteCookies", "FlushStore", "GetGlobalManager", "SetCookie", "VisitAllCookies",
         "VisitUrlCookies",
+    }),
+    "CefCookieVisitor": frozenset({
+        "Visit",
     }),
     "CefDevToolsMessageObserver": frozenset({
         "OnDevToolsEvent", "OnDevToolsMethodResult",
@@ -158,6 +164,9 @@ SURFACE = {
     "CefMessageRouter": frozenset({
         "AddHandler", "CancelPending", "Create", "RemoveHandler",
     }),
+    "CefPdfPrintCallback": frozenset({
+        "OnPdfPrintFinished",
+    }),
     "CefPostData": frozenset({
         "AddElement", "Create", "GetElementCount", "GetElements", "IsReadOnly", "RemoveElement",
         "RemoveElements",
@@ -230,11 +239,17 @@ SURFACE = {
         "GetStatusText", "IsReadOnly", "SetError", "SetHeaderByName", "SetHeaderMap",
         "SetMimeType", "SetStatus", "SetStatusText",
     }),
+    "CefRunFileDialogCallback": frozenset({
+        "OnFileDialogDismissed",
+    }),
     "CefSchemeHandlerFactory": frozenset({
         "Create",
     }),
     "CefSchemeRegistrar": frozenset({
         "AddCustomScheme",
+    }),
+    "CefStringVisitor": frozenset({
+        "Visit",
     }),
     "CefURLRequest": frozenset({
         "Cancel", "Create", "GetRequestError", "GetRequestStatus", "GetResponse",

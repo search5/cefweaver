@@ -200,3 +200,7 @@
 ## [2026-10-08] ingest | 격차 메우기 9: 드래그와 질의 취소, 격차 0
 
 - `CefDragData`와 드래그 관련 메서드(`DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter`)를 열고 라우터의 `CancelPending`(`cancel_pending_queries`)을 더했습니다. F54. 바닥의 격차는 0이 되었습니다(시험이 고정). CEF의 한계 하나를 찾았습니다(`get_file_name`).
+
+## [2026-10-08] schema | java-cef 동등성 마무리
+
+- 도출 도구에서 빠졌던 java-cef의 단순 콜백(`CompletionCallback`, `CookieVisitor`, `StringVisitor`, `RunFileDialogCallback`, `PdfPrintCallback`)을 매핑에 더해 "바닥 위" 분류를 바로잡았습니다(294개에서 289개). 바닥의 격차는 0이고, 바닥 위의 구성은 [java-cef 동등성](pages/reference/java-cef-parity.md)에 묶음별로 정리했습니다.

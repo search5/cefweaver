@@ -18,6 +18,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 # java-cef's own class name -> the CEF class (handlers and callbacks that java-cef writes).
 HANDLERS = {
+    "CompletionCallback": "CefCompletionCallback",
+    "CookieVisitor": "CefCookieVisitor",
+    "PdfPrintCallback": "CefPdfPrintCallback",
+    "RunFileDialogCallback": "CefRunFileDialogCallback",
+    "StringVisitor": "CefStringVisitor",
     "ContextMenuHandler": "CefContextMenuHandler",
     "CookieAccessFilter": "CefCookieAccessFilter",
     "DevToolsMessageObserver": "CefDevToolsMessageObserver",

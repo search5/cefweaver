@@ -252,10 +252,8 @@ Generated, and not opened by java-cef (beyond the floor):
   CefBrowserHost                  35  35 methods
   CefClient                        1  1 methods
   CefCommandLine                  10  10 methods
-  CefCompletionCallback            1  the whole class
   CefContextMenuHandler            4  4 methods
   CefContextMenuParams             2  2 methods
-  CefCookieVisitor                 1  the whole class
   CefDeleteCookiesCallback         1  the whole class
   CefDevToolsMessageObserver       3  3 methods
   CefDictionaryValue              30  the whole class
@@ -270,7 +268,6 @@ Generated, and not opened by java-cef (beyond the floor):
   CefListValue                    29  the whole class
   CefMenuModel                     8  8 methods
   CefMenuModelDelegate             7  the whole class
-  CefPdfPrintCallback              1  the whole class
   CefPostData                      1  1 methods
   CefProcessMessage                6  the whole class
   CefReadHandler                   5  the whole class
@@ -280,19 +277,17 @@ Generated, and not opened by java-cef (beyond the floor):
   CefRequestHandler                4  4 methods
   CefResponse                      4  4 methods
   CefRunContextMenuCallback        2  the whole class
-  CefRunFileDialogCallback         1  the whole class
   CefRunQuickMenuCallback          2  the whole class
   CefSSLInfo                       1  the whole class
   CefSetCookieCallback             1  the whole class
   CefStreamReader                  8  the whole class
   CefStreamWriter                  7  the whole class
-  CefStringVisitor                 1  the whole class
   CefTaskManager                   6  the whole class
   CefURLRequest                    2  2 methods
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  294 methods
+  ----  289 methods
 ```
 
 ## 관련 페이지

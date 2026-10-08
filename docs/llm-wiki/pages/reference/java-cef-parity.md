@@ -43,16 +43,31 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다. 총 294개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
+닫지 않고 둡니다(사용자 결정). 총 289개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
 
-- **값 컨테이너와 프로세스 메시지**: `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage`. (`RequestContext`의 설정은 `Value`가 필요해서 바닥이 이것을 쓰게 됩니다.)
-- **스트림**: `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler`, `WriteHandler`(java-cef는 드래그 파일 내용용 쓰기 핸들러만 안에서 씀).
-- **화면과 작업**: `Display`, `TaskManager`.
-- **메뉴**: `MenuModelDelegate`, `RunContextMenuCallback`, `RunQuickMenuCallback`, 컨텍스트 메뉴 핸들러의 `RunContextMenu`/`RunQuickMenu` 등 4개.
-- **핸들러의 추가 메서드**: `DisplayHandler`(6), `RenderHandler`(6: 스크롤, IME, 텍스트 선택, 터치, 가상 키보드), `RequestHandler`(4), `LifeSpanHandler`(1), `DownloadHandler`(1), `DragHandler`(1), `Client`(1: 프로세스 메시지).
-- **브라우저 호스트 등의 추가 메서드**: `BrowserHost` 33개(IME, 터치, 줌, 탐색 항목 등), `Browser` 2개, `Frame` 4개, `MenuModel` 8개, `ContextMenuParams` 2개, `DownloadItem` 4개, `Response` 4개, `PostData` 1개.
-- **그 밖**: `SSLInfo`, `UnresponsiveProcessCallback`, 시간(`datetime`)과 바이트열 규칙의 일반 규칙들(`bytes-and-times.md`).
-- **메시지 라우터**: 바이트열 요청과 응답은 java-cef에 없습니다(문자열만).
+| 묶음 | 항목 | 메서드 |
+| --- | --- | --- |
+| 값 컨테이너와 프로세스 메시지 | `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage` | 96 |
+| 스트림 | `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler` (java-cef는 드래그 파일 내용용 `WriteHandler`만 안에서 씀) | 33 |
+| 화면과 작업 | `Display`, `TaskManager` | 22 |
+| 메뉴 | `MenuModelDelegate`, `RunContextMenuCallback`, `RunQuickMenuCallback`, `ContextMenuHandler`의 4개, `MenuModel`의 8개, `ContextMenuParams`의 2개 | 25 |
+| 핸들러의 추가 메서드 | `DisplayHandler` 6, `RenderHandler` 6(스크롤, IME, 텍스트 선택, 터치, 가상 키보드), `RequestHandler` 4, `DevToolsMessageObserver` 3, `LifeSpanHandler`, `DownloadHandler`, `DragHandler`, `Client`(프로세스 메시지), `RequestContextHandler` 각 1 | 24 |
+| 라이브러리 클래스의 추가 메서드 | `BrowserHost` 35(IME, 터치, 줌, 탐색 항목 등), `RequestContext` 18(웹사이트 설정, 색상 등), `CommandLine` 10, `Frame` 5, `DownloadItem` 4, `Response` 4, `DragData` 3, `Browser` 2, `URLRequest` 2, `PostData` 1 | 84 |
+| 쿠키 콜백 | `SetCookieCallback`, `DeleteCookiesCallback`(java-cef는 완료 콜백만) | 2 |
+| 그 밖 | `SSLInfo`, `UnresponsiveProcessCallback` | 3 |
+
+메서드 수에 잡히지 않는 것도 있습니다.
+
+- **메시지 라우터의 바이트열**: 요청과 응답을 `bytes`로 주고받습니다(java-cef는 문자열만).
+- **유형 모듈**: 모든 CEF 열거형과 구조체 22개(java-cef는 쓰는 것만 Java 클래스로 둠), 구조체 필드의 기본값.
+- **시간, 헤더 맵**: `datetime`(마이크로초)과 `dict`(java-cef는 `Date` 밀리초, `Map`).
+- **래퍼 고유**: `devtools_menu`, `add_javascript_binding`, `add_resource`는 java-cef에 없는 기능입니다(래퍼에서 온 것).
+- **PostData의 추가, 요청 컨텍스트의 `create_context` 중복 오버로드**(첫 번째만).
+
+## 아직 열지 않은 것 (java-cef도 열지 않았거나 해당 없음)
+
+- `CommandLine.init_from_argv`(`char* const*`), `AudioHandler.on_audio_stream_packet`(`float**`): java-cef도 열지 않은 포인터 배열이라 같은 수준(안 엶)에 둡니다.
+- `get_raw_data` 등 CEF가 소유한 메모리를 가리키는 `void*`: 안전을 위해 닫아 둡니다([바이트열과 시간](bytes-and-times.md)).
 
 ## 관련 페이지
 
