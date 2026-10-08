@@ -214,10 +214,18 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         "        T* get() nogil",
         "",
         'cdef extern from "include/internal/cef_string.h":',
+        "    ctypedef struct cef_string_t:",
+        "        pass",
         "    cdef cppclass CefString:",
         "        CefString()",
         "        CefString(const string&)",
+        "        CefString(cef_string_t*)",
+        "        cpp_bool FromString(const string&)",
         "        string ToString() nogil",
+        "",
+        'cdef extern from "include/internal/cef_time.h":',
+        "    ctypedef struct cef_basetime_t:",
+        "        int64_t val",
         "",
     ]
     for name in _used_typedefs(all_plans):
@@ -377,6 +385,18 @@ cdef inline int _g_map_set(object source, cpp_map[CefString, CefString]& out) ex
     return 0
 
 
+# A cef_string_t member of a struct <-> str
+cdef object _g_string_field(const cef_string_t* value):
+    cdef CefString text = CefString(<cef_string_t*>value)
+    return text.ToString().decode("utf-8", "replace")
+
+
+cdef int _g_set_string_field(cef_string_t* target, object value) except -1:
+    cdef CefString text = CefString(target)
+    text.FromString(_g_std(value))
+    return 0
+
+
 # CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
 cdef object _EPOCH_1601 = _datetime(1601, 1, 1, tzinfo=_timezone.utc)
 
@@ -445,6 +465,10 @@ def _struct_pxi(struct):
     temps = ["_f%d" % i for i in range(len(names))]
 
     def from_c(f):
+        if f.string:
+            return "_g_string_field(&value.%s)" % f.name
+        if f.time:
+            return "_g_from_basetime(value.%s.val)" % f.name
         if f.struct:  # a nested struct: the C struct and its C++ class have the same layout
             return "_g_from_%s(<const %s*>&value.%s)" % (py_class_name(f.struct), f.struct, f.name)
         if f.enum:
@@ -462,7 +486,11 @@ def _struct_pxi(struct):
            '        raise TypeError("expected a %s (or a sequence of %d values), not %%r" %% (obj,)) from None'
            % (py, len(names))]
     for f, t in zip(struct.fields, temps):
-        if f.struct:
+        if f.string:
+            out.append("    _g_set_string_field(&out.%s, %s)" % (f.name, t))
+        elif f.time:
+            out.append("    out.%s.val = _g_to_basetime(%s)" % (f.name, t))
+        elif f.struct:
             out.append("    _g_to_%s(%s, <%s*>&out.%s)" % (py_class_name(f.struct), t, f.struct, f.name))
         elif f.enum:
             out.append("    out.%s = <%s><int>%s" % (f.name, f.cpp, t))
@@ -512,8 +540,7 @@ def _vector_helpers(vectors):
 
 def _py_default(kind):
     if isinstance(kind, Struct):
-        return "%s(%s)" % (py_class_name(kind.cls), ", ".join(
-            {"bool": "False", "float": "0.0"}.get(f.py, "0") for f in kind.fields))
+        return "%s()" % py_class_name(kind.cls)  # every field has a default
     if isinstance(kind, Prim):
         return {"bool": "False", "float": "0.0"}.get(kind.py, "0")
     if isinstance(kind, Enum):

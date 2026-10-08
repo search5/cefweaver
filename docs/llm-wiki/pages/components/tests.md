@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 205개(통합 101, 생성기 103, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 209개(통합 103, 생성기 105, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -44,6 +44,8 @@ updated: 2026-10-08
 | `ApiWithoutCef` | `test_streams_read_and_write_bytes_in_items`, `test_python_objects_can_be_the_source_and_the_sink_of_a_stream`, `test_a_zip_reader_reads_a_file_of_the_archive` | 파일 스트림의 항목 단위 읽기와 쓰기(항목 크기, 부분 읽기, 끝, `seek`), 메모리 스트림, Python의 `ReadHandler`와 `WriteHandler`, `zipfile`로 만든 ZIP의 파일 읽기와 열린 파일이 없을 때의 `RuntimeError` |
 | `ApiWithoutCef` | `test_a_request_carries_post_data_made_of_bytes` | `PostDataElement.set_to_bytes`/`get_bytes`(크기가 앞인 규약, 부분, 남은 것보다 큰 요청, 잘못된 인자), `PostData`와 `Request.set_post_data`로 왕복 |
 | `ApiWithoutCef` | `test_header_maps_are_dicts` | `Request`/`Response`의 `get_header_map`/`set_header_map`/`Request.set`이 `dict`로 왕복함(대소문자 구분 없는 조회, 빈 맵, 잘못된 인자) |
+| `ApiWithoutCef` | `test_structs_with_strings_and_times_have_defaults` | 문자열과 시간이 든 구조체(`PdfPrintSettings`, `Cookie`)와 모든 구조체의 기본값 |
+| `WithCef` | `test_print_to_pdf_writes_a_pdf_and_tells_the_callback` | `print_to_pdf(path, PdfPrintSettings, callback)`이 `%PDF`로 시작하는 파일을 쓰고 `on_pdf_print_finished(path, True)` |
 | `WithCef` | `test_a_string_visitor_gets_the_source_and_the_text_of_a_frame`, `test_run_file_dialog_reports_the_files_the_dialog_handler_chose`, `test_a_devtools_message_observer_gets_the_result_of_a_method` | `Frame.get_source`/`get_text`의 `StringVisitor`, `run_file_dialog`가 `DialogHandler`의 선택을 `on_file_dialog_dismissed`로 알림, `add_dev_tools_message_observer`와 `execute_dev_tools_method(Runtime.evaluate)`의 결과 JSON(`"value":3`) |
 | `WithCef` | `test_the_window_handle_is_the_native_window_of_a_windowed_browser`, `test_an_offscreen_browser_has_no_window_handle` | `get_window_handle()`이 창 있는 브라우저에서는 X11 창 번호(양의 정수), 오프스크린에서는 0 |
 | `WithCef` | `test_the_life_span_handler_decides_about_a_popup_from_its_url_and_name`, `test_the_display_handler_gets_the_cursor_type` | `on_before_popup(browser, frame, target_url, target_frame_name)`가 `True`면 `window.open`이 `null`, `False`면 두 번째 브라우저가 생김, 마우스를 `cursor:pointer` 위로 옮기면 `on_cursor_change`가 `CursorType.HAND`를 받음 |

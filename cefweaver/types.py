@@ -6,9 +6,10 @@
 Enumerations are `enum.IntEnum` (or `enum.IntFlag` for bit flags), so a member can be used
 wherever CEF wants an integer, and a value CEF reports that has no member is passed on as a
 plain int. Value types are `typing.NamedTuple`: they unpack, and a tuple with the same fields
-works wherever one is expected.
+works wherever one is expected; every field has a default (zero, "" or None, as in C++).
 """
 
+import datetime
 import enum
 from typing import NamedTuple
 
@@ -1724,139 +1725,227 @@ class ZoomCommand(enum.IntEnum):
 
 class AudioParameters(NamedTuple):
     """The CEF value type CefAudioParameters. Anywhere one is expected, a tuple with the same fields works too."""
-    channel_layout: ChannelLayout
-    sample_rate: int
-    frames_per_buffer: int
+    channel_layout: ChannelLayout = 0
+    sample_rate: int = 0
+    frames_per_buffer: int = 0
+
+
+class Cookie(NamedTuple):
+    """The CEF value type CefCookie. Anywhere one is expected, a tuple with the same fields works too."""
+    name: str = ""
+    value: str = ""
+    domain: str = ""
+    path: str = ""
+    secure: int = 0
+    httponly: int = 0
+    creation: datetime.datetime | None = None
+    last_access: datetime.datetime | None = None
+    has_expires: int = 0
+    expires: datetime.datetime | None = None
+    same_site: CookieSameSite = 0
+    priority: CookiePriority = 0
 
 
 class Insets(NamedTuple):
     """The CEF value type CefInsets. Anywhere one is expected, a tuple with the same fields works too."""
-    top: int
-    left: int
-    bottom: int
-    right: int
+    top: int = 0
+    left: int = 0
+    bottom: int = 0
+    right: int = 0
 
 
 class KeyEvent(NamedTuple):
     """The CEF value type CefKeyEvent. Anywhere one is expected, a tuple with the same fields works too."""
-    type: KeyEventType
-    modifiers: int
-    windows_key_code: int
-    native_key_code: int
-    is_system_key: int
-    character: int
-    unmodified_character: int
-    focus_on_editable_field: int
+    type: KeyEventType = 0
+    modifiers: int = 0
+    windows_key_code: int = 0
+    native_key_code: int = 0
+    is_system_key: int = 0
+    character: int = 0
+    unmodified_character: int = 0
+    focus_on_editable_field: int = 0
+
+
+class LinuxWindowProperties(NamedTuple):
+    """The CEF value type CefLinuxWindowProperties. Anywhere one is expected, a tuple with the same fields works too."""
+    wayland_app_id: str = ""
+    wm_class_class: str = ""
+    wm_class_name: str = ""
+    wm_role_name: str = ""
+
+
+class MediaSinkDeviceInfo(NamedTuple):
+    """The CEF value type CefMediaSinkDeviceInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    ip_address: str = ""
+    port: int = 0
+    model_name: str = ""
 
 
 class MouseEvent(NamedTuple):
     """The CEF value type CefMouseEvent. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
-    modifiers: int
+    x: int = 0
+    y: int = 0
+    modifiers: int = 0
+
+
+class PdfPrintSettings(NamedTuple):
+    """The CEF value type CefPdfPrintSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    landscape: int = 0
+    print_background: int = 0
+    scale: float = 0.0
+    paper_width: float = 0.0
+    paper_height: float = 0.0
+    prefer_css_page_size: int = 0
+    margin_type: PdfPrintMarginType = 0
+    margin_top: float = 0.0
+    margin_right: float = 0.0
+    margin_bottom: float = 0.0
+    margin_left: float = 0.0
+    page_ranges: str = ""
+    display_header_footer: int = 0
+    header_template: str = ""
+    footer_template: str = ""
+    generate_tagged_pdf: int = 0
+    generate_document_outline: int = 0
 
 
 class Point(NamedTuple):
     """The CEF value type CefPoint. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
+    x: int = 0
+    y: int = 0
 
 
 class PopupFeatures(NamedTuple):
     """The CEF value type CefPopupFeatures. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    x_set: int
-    y: int
-    y_set: int
-    width: int
-    width_set: int
-    height: int
-    height_set: int
-    is_popup: int
+    x: int = 0
+    x_set: int = 0
+    y: int = 0
+    y_set: int = 0
+    width: int = 0
+    width_set: int = 0
+    height: int = 0
+    height_set: int = 0
+    is_popup: int = 0
 
 
 class Range(NamedTuple):
     """The CEF value type CefRange. Anywhere one is expected, a tuple with the same fields works too."""
-    from_: int
-    to: int
+    from_: int = 0
+    to: int = 0
 
 
 class Rect(NamedTuple):
     """The CEF value type CefRect. Anywhere one is expected, a tuple with the same fields works too."""
-    x: int
-    y: int
-    width: int
-    height: int
+    x: int = 0
+    y: int = 0
+    width: int = 0
+    height: int = 0
+
+
+class RequestContextSettings(NamedTuple):
+    """The CEF value type CefRequestContextSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    cache_path: str = ""
+    persist_session_cookies: int = 0
+    accept_language_list: str = ""
+    cookieable_schemes_list: str = ""
+    cookieable_schemes_exclude_defaults: int = 0
 
 
 class ScreenInfo(NamedTuple):
     """The CEF value type CefScreenInfo. Anywhere one is expected, a tuple with the same fields works too."""
-    device_scale_factor: float
-    depth: int
-    depth_per_component: int
-    is_monochrome: int
-    rect: Rect
-    available_rect: Rect
+    device_scale_factor: float = 0.0
+    depth: int = 0
+    depth_per_component: int = 0
+    is_monochrome: int = 0
+    rect: Rect = Rect()
+    available_rect: Rect = Rect()
 
 
 class Size(NamedTuple):
     """The CEF value type CefSize. Anywhere one is expected, a tuple with the same fields works too."""
-    width: int
-    height: int
+    width: int = 0
+    height: int = 0
+
+
+class TaskInfo(NamedTuple):
+    """The CEF value type CefTaskInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    id: int = 0
+    type: TaskType = 0
+    is_killable: int = 0
+    title: str = ""
+    cpu_usage: float = 0.0
+    number_of_processors: int = 0
+    memory: int = 0
+    gpu_memory: int = 0
+    is_gpu_memory_inflated: int = 0
 
 
 class TouchEvent(NamedTuple):
     """The CEF value type CefTouchEvent. Anywhere one is expected, a tuple with the same fields works too."""
-    id: int
-    x: float
-    y: float
-    radius_x: float
-    radius_y: float
-    rotation_angle: float
-    pressure: float
-    type: TouchEventType
-    modifiers: int
-    pointer_type: PointerType
+    id: int = 0
+    x: float = 0.0
+    y: float = 0.0
+    radius_x: float = 0.0
+    radius_y: float = 0.0
+    rotation_angle: float = 0.0
+    pressure: float = 0.0
+    type: TouchEventType = 0
+    modifiers: int = 0
+    pointer_type: PointerType = 0
 
 
 class TouchHandleState(NamedTuple):
     """The CEF value type CefTouchHandleState. Anywhere one is expected, a tuple with the same fields works too."""
-    touch_handle_id: int
-    flags: int
-    enabled: int
-    orientation: HorizontalAlignment
-    mirror_vertical: int
-    mirror_horizontal: int
-    origin: Point
-    alpha: float
+    touch_handle_id: int = 0
+    flags: int = 0
+    enabled: int = 0
+    orientation: HorizontalAlignment = 0
+    mirror_vertical: int = 0
+    mirror_horizontal: int = 0
+    origin: Point = Point()
+    alpha: float = 0.0
+
+
+class URLParts(NamedTuple):
+    """The CEF value type CefURLParts. Anywhere one is expected, a tuple with the same fields works too."""
+    spec: str = ""
+    scheme: str = ""
+    username: str = ""
+    password: str = ""
+    host: str = ""
+    port: str = ""
+    origin: str = ""
+    path: str = ""
+    query: str = ""
+    fragment: str = ""
 
 
 class BoxLayoutSettings(NamedTuple):
     """The CEF value type CefBoxLayoutSettings. Anywhere one is expected, a tuple with the same fields works too."""
-    horizontal: int
-    inside_border_horizontal_spacing: int
-    inside_border_vertical_spacing: int
-    inside_border_insets: Insets
-    between_child_spacing: int
-    main_axis_alignment: AxisAlignment
-    cross_axis_alignment: AxisAlignment
-    minimum_cross_axis_size: int
-    default_flex: int
+    horizontal: int = 0
+    inside_border_horizontal_spacing: int = 0
+    inside_border_vertical_spacing: int = 0
+    inside_border_insets: Insets = Insets()
+    between_child_spacing: int = 0
+    main_axis_alignment: AxisAlignment = 0
+    cross_axis_alignment: AxisAlignment = 0
+    minimum_cross_axis_size: int = 0
+    default_flex: int = 0
 
 
 class CompositionUnderline(NamedTuple):
     """The CEF value type CefCompositionUnderline. Anywhere one is expected, a tuple with the same fields works too."""
-    range: Range
-    color: int
-    background_color: int
-    thick: int
-    style: CompositionUnderlineStyle
+    range: Range = Range()
+    color: int = 0
+    background_color: int = 0
+    thick: int = 0
+    style: CompositionUnderlineStyle = 0
 
 
 class DraggableRegion(NamedTuple):
     """The CEF value type CefDraggableRegion. Anywhere one is expected, a tuple with the same fields works too."""
-    bounds: Rect
-    draggable: int
+    bounds: Rect = Rect()
+    draggable: int = 0
 
 
 __all__ = [
@@ -1885,6 +1974,7 @@ __all__ = [
     "ContextMenuMediaStateFlags",
     "ContextMenuMediaType",
     "ContextMenuTypeFlags",
+    "Cookie",
     "CookiePriority",
     "CookieSameSite",
     "CursorType",
@@ -1910,11 +2000,13 @@ __all__ = [
     "JsonWriterOptions",
     "KeyEvent",
     "KeyEventType",
+    "LinuxWindowProperties",
     "LogItems",
     "LogSeverity",
     "MediaAccessPermissionTypes",
     "MediaRouteConnectionState",
     "MediaRouteCreateResult",
+    "MediaSinkDeviceInfo",
     "MediaSinkIconType",
     "MenuAnchorPosition",
     "MenuColorType",
@@ -1927,6 +2019,7 @@ __all__ = [
     "PaintElementType",
     "PathKey",
     "PdfPrintMarginType",
+    "PdfPrintSettings",
     "PermissionRequestResult",
     "PermissionRequestTypes",
     "Point",
@@ -1939,6 +2032,7 @@ __all__ = [
     "Range",
     "Rect",
     "ReferrerPolicy",
+    "RequestContextSettings",
     "ResourceType",
     "ResponseFilterStatus",
     "Resultcode",
@@ -1953,6 +2047,7 @@ __all__ = [
     "SslVersion",
     "State",
     "StorageType",
+    "TaskInfo",
     "TaskType",
     "TerminationStatus",
     "TestCertType",
@@ -1966,6 +2061,7 @@ __all__ = [
     "TouchHandleState",
     "TouchHandleStateFlags",
     "TransitionType",
+    "URLParts",
     "URLRequestStatus",
     "UriUnescapeRule",
     "UrlrequestFlags",

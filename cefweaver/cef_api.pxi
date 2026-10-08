@@ -67,6 +67,18 @@ cdef inline int _g_map_set(object source, cpp_map[CefString, CefString]& out) ex
     return 0
 
 
+# A cef_string_t member of a struct <-> str
+cdef object _g_string_field(const cef_string_t* value):
+    cdef CefString text = CefString(<cef_string_t*>value)
+    return text.ToString().decode("utf-8", "replace")
+
+
+cdef int _g_set_string_field(cef_string_t* target, object value) except -1:
+    cdef CefString text = CefString(target)
+    text.FromString(_g_std(value))
+    return 0
+
+
 # CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
 cdef object _EPOCH_1601 = _datetime(1601, 1, 1, tzinfo=_timezone.utc)
 
@@ -128,7 +140,7 @@ cdef void _g_release(void* py) noexcept with gil:
 
 
 # Value type structs: the named tuples are defined in cefweaver/types.py
-from cefweaver.types import AudioParameters, Insets, KeyEvent, MouseEvent, Point, PopupFeatures, Range, Rect, ScreenInfo, Size, TouchEvent, TouchHandleState, BoxLayoutSettings, CompositionUnderline, DraggableRegion
+from cefweaver.types import AudioParameters, Cookie, Insets, KeyEvent, LinuxWindowProperties, MediaSinkDeviceInfo, MouseEvent, PdfPrintSettings, Point, PopupFeatures, Range, Rect, RequestContextSettings, ScreenInfo, Size, TaskInfo, TouchEvent, TouchHandleState, URLParts, BoxLayoutSettings, CompositionUnderline, DraggableRegion
 
 cdef inline object _g_from_AudioParameters(const CefAudioParameters* value):
     return AudioParameters(_g_enum(_types.ChannelLayout, value.channel_layout), value.sample_rate, value.frames_per_buffer)
@@ -142,6 +154,30 @@ cdef inline int _g_to_AudioParameters(object obj, CefAudioParameters* out) excep
     out.channel_layout = <cef_channel_layout_t><int>_f0
     out.sample_rate = _f1
     out.frames_per_buffer = _f2
+    return 0
+
+
+cdef inline object _g_from_Cookie(const CefCookie* value):
+    return Cookie(_g_string_field(&value.name), _g_string_field(&value.value), _g_string_field(&value.domain), _g_string_field(&value.path), value.secure, value.httponly, _g_from_basetime(value.creation.val), _g_from_basetime(value.last_access.val), value.has_expires, _g_from_basetime(value.expires.val), _g_enum(_types.CookieSameSite, value.same_site), _g_enum(_types.CookiePriority, value.priority))
+
+
+cdef inline int _g_to_Cookie(object obj, CefCookie* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8, _f9, _f10, _f11 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a Cookie (or a sequence of 12 values), not %r" % (obj,)) from None
+    _g_set_string_field(&out.name, _f0)
+    _g_set_string_field(&out.value, _f1)
+    _g_set_string_field(&out.domain, _f2)
+    _g_set_string_field(&out.path, _f3)
+    out.secure = _f4
+    out.httponly = _f5
+    out.creation.val = _g_to_basetime(_f6)
+    out.last_access.val = _g_to_basetime(_f7)
+    out.has_expires = _f8
+    out.expires.val = _g_to_basetime(_f9)
+    out.same_site = <cef_cookie_same_site_t><int>_f10
+    out.priority = <cef_cookie_priority_t><int>_f11
     return 0
 
 
@@ -181,6 +217,37 @@ cdef inline int _g_to_KeyEvent(object obj, CefKeyEvent* out) except -1:
     return 0
 
 
+cdef inline object _g_from_LinuxWindowProperties(const CefLinuxWindowProperties* value):
+    return LinuxWindowProperties(_g_string_field(&value.wayland_app_id), _g_string_field(&value.wm_class_class), _g_string_field(&value.wm_class_name), _g_string_field(&value.wm_role_name))
+
+
+cdef inline int _g_to_LinuxWindowProperties(object obj, CefLinuxWindowProperties* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a LinuxWindowProperties (or a sequence of 4 values), not %r" % (obj,)) from None
+    _g_set_string_field(&out.wayland_app_id, _f0)
+    _g_set_string_field(&out.wm_class_class, _f1)
+    _g_set_string_field(&out.wm_class_name, _f2)
+    _g_set_string_field(&out.wm_role_name, _f3)
+    return 0
+
+
+cdef inline object _g_from_MediaSinkDeviceInfo(const CefMediaSinkDeviceInfo* value):
+    return MediaSinkDeviceInfo(_g_string_field(&value.ip_address), value.port, _g_string_field(&value.model_name))
+
+
+cdef inline int _g_to_MediaSinkDeviceInfo(object obj, CefMediaSinkDeviceInfo* out) except -1:
+    try:
+        _f0, _f1, _f2 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a MediaSinkDeviceInfo (or a sequence of 3 values), not %r" % (obj,)) from None
+    _g_set_string_field(&out.ip_address, _f0)
+    out.port = _f1
+    _g_set_string_field(&out.model_name, _f2)
+    return 0
+
+
 cdef inline object _g_from_MouseEvent(const CefMouseEvent* value):
     return MouseEvent(value.x, value.y, value.modifiers)
 
@@ -193,6 +260,35 @@ cdef inline int _g_to_MouseEvent(object obj, CefMouseEvent* out) except -1:
     out.x = _f0
     out.y = _f1
     out.modifiers = _f2
+    return 0
+
+
+cdef inline object _g_from_PdfPrintSettings(const CefPdfPrintSettings* value):
+    return PdfPrintSettings(value.landscape, value.print_background, value.scale, value.paper_width, value.paper_height, value.prefer_css_page_size, _g_enum(_types.PdfPrintMarginType, value.margin_type), value.margin_top, value.margin_right, value.margin_bottom, value.margin_left, _g_string_field(&value.page_ranges), value.display_header_footer, _g_string_field(&value.header_template), _g_string_field(&value.footer_template), value.generate_tagged_pdf, value.generate_document_outline)
+
+
+cdef inline int _g_to_PdfPrintSettings(object obj, CefPdfPrintSettings* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8, _f9, _f10, _f11, _f12, _f13, _f14, _f15, _f16 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a PdfPrintSettings (or a sequence of 17 values), not %r" % (obj,)) from None
+    out.landscape = _f0
+    out.print_background = _f1
+    out.scale = _f2
+    out.paper_width = _f3
+    out.paper_height = _f4
+    out.prefer_css_page_size = _f5
+    out.margin_type = <cef_pdf_print_margin_type_t><int>_f6
+    out.margin_top = _f7
+    out.margin_right = _f8
+    out.margin_bottom = _f9
+    out.margin_left = _f10
+    _g_set_string_field(&out.page_ranges, _f11)
+    out.display_header_footer = _f12
+    _g_set_string_field(&out.header_template, _f13)
+    _g_set_string_field(&out.footer_template, _f14)
+    out.generate_tagged_pdf = _f15
+    out.generate_document_outline = _f16
     return 0
 
 
@@ -261,6 +357,23 @@ cdef inline int _g_to_Rect(object obj, CefRect* out) except -1:
     return 0
 
 
+cdef inline object _g_from_RequestContextSettings(const CefRequestContextSettings* value):
+    return RequestContextSettings(_g_string_field(&value.cache_path), value.persist_session_cookies, _g_string_field(&value.accept_language_list), _g_string_field(&value.cookieable_schemes_list), value.cookieable_schemes_exclude_defaults)
+
+
+cdef inline int _g_to_RequestContextSettings(object obj, CefRequestContextSettings* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a RequestContextSettings (or a sequence of 5 values), not %r" % (obj,)) from None
+    _g_set_string_field(&out.cache_path, _f0)
+    out.persist_session_cookies = _f1
+    _g_set_string_field(&out.accept_language_list, _f2)
+    _g_set_string_field(&out.cookieable_schemes_list, _f3)
+    out.cookieable_schemes_exclude_defaults = _f4
+    return 0
+
+
 cdef inline object _g_from_ScreenInfo(const CefScreenInfo* value):
     return ScreenInfo(value.device_scale_factor, value.depth, value.depth_per_component, value.is_monochrome, _g_from_Rect(<const CefRect*>&value.rect), _g_from_Rect(<const CefRect*>&value.available_rect))
 
@@ -290,6 +403,27 @@ cdef inline int _g_to_Size(object obj, CefSize* out) except -1:
         raise TypeError("expected a Size (or a sequence of 2 values), not %r" % (obj,)) from None
     out.width = _f0
     out.height = _f1
+    return 0
+
+
+cdef inline object _g_from_TaskInfo(const CefTaskInfo* value):
+    return TaskInfo(value.id, _g_enum(_types.TaskType, value.type), value.is_killable, _g_string_field(&value.title), value.cpu_usage, value.number_of_processors, value.memory, value.gpu_memory, value.is_gpu_memory_inflated)
+
+
+cdef inline int _g_to_TaskInfo(object obj, CefTaskInfo* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a TaskInfo (or a sequence of 9 values), not %r" % (obj,)) from None
+    out.id = _f0
+    out.type = <cef_task_type_t><int>_f1
+    out.is_killable = _f2
+    _g_set_string_field(&out.title, _f3)
+    out.cpu_usage = _f4
+    out.number_of_processors = _f5
+    out.memory = _f6
+    out.gpu_memory = _f7
+    out.is_gpu_memory_inflated = _f8
     return 0
 
 
@@ -332,6 +466,28 @@ cdef inline int _g_to_TouchHandleState(object obj, CefTouchHandleState* out) exc
     out.mirror_horizontal = _f5
     _g_to_Point(_f6, <CefPoint*>&out.origin)
     out.alpha = _f7
+    return 0
+
+
+cdef inline object _g_from_URLParts(const CefURLParts* value):
+    return URLParts(_g_string_field(&value.spec), _g_string_field(&value.scheme), _g_string_field(&value.username), _g_string_field(&value.password), _g_string_field(&value.host), _g_string_field(&value.port), _g_string_field(&value.origin), _g_string_field(&value.path), _g_string_field(&value.query), _g_string_field(&value.fragment))
+
+
+cdef inline int _g_to_URLParts(object obj, CefURLParts* out) except -1:
+    try:
+        _f0, _f1, _f2, _f3, _f4, _f5, _f6, _f7, _f8, _f9 = obj
+    except (TypeError, ValueError):
+        raise TypeError("expected a URLParts (or a sequence of 10 values), not %r" % (obj,)) from None
+    _g_set_string_field(&out.spec, _f0)
+    _g_set_string_field(&out.scheme, _f1)
+    _g_set_string_field(&out.username, _f2)
+    _g_set_string_field(&out.password, _f3)
+    _g_set_string_field(&out.host, _f4)
+    _g_set_string_field(&out.port, _f5)
+    _g_set_string_field(&out.origin, _f6)
+    _g_set_string_field(&out.path, _f7)
+    _g_set_string_field(&out.query, _f8)
+    _g_set_string_field(&out.fragment, _f9)
     return 0
 
 
@@ -1202,6 +1358,23 @@ cdef class BrowserHost:
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
             _p.Print()
+        return None
+
+    def print_to_pdf(self, path, settings, callback):
+        """Print the current browser contents to the PDF file specified by |path| and
+        execute |callback| on completion. The caller is responsible for deleting
+        |path| when done. For PDF printing to work on Linux you must implement the
+        CefPrintHandler::GetPdfPaperSize method.
+        """
+        cdef CefString _a0
+        cdef CefPdfPrintSettings _a1
+        cdef CefRefPtr[CefPdfPrintCallback] _a2
+        cdef CefBrowserHost* _p = self._ptr()
+        _a0 = _g_cef(path)
+        _g_to_PdfPrintSettings(settings, &_a1)
+        _a2 = _g_make_PdfPrintCallback(callback)
+        with nogil:
+            _p.PrintToPDF(_a0, _a1, _a2)
         return None
 
     def find(self, search_text, bint forward, bint match_case, bint find_next):
@@ -5788,6 +5961,20 @@ cdef class TaskManager:
             _r = _p.GetTaskIdsList(_a0)
         return (_r, _g_list_int64_t(&_a0))
 
+    def get_task_info(self, int64_t task_id, info):
+        """Gets information about the task with |task_id|.
+        Returns true if the information about the task was successfully
+        retrieved and false if the |task_id| is invalid or the method was called
+        from the incorrect thread.
+        """
+        cdef CefTaskInfo _a1
+        cdef CefTaskManager* _p = self._ptr()
+        cdef cpp_bool _r
+        _g_to_TaskInfo(info, &_a1)
+        with nogil:
+            _r = _p.GetTaskInfo(task_id, _a1)
+        return (_r, _g_from_TaskInfo(&_a1))
+
     def kill_task(self, int64_t task_id):
         """Attempts to terminate a task with |task_id|.
         Returns false if the |task_id| is invalid, the call is made from an
@@ -7057,7 +7244,7 @@ class DisplayHandler:
         root window bounds on Windows or the browser content bounds on Linux. For
         additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
         """
-        return False, Rect(0, 0, 0, 0)
+        return False, Rect()
 
 
 cdef void _DisplayHandler_on_address_change(void* py, CefBrowser* browser, CefFrame* frame, const CefString* url) noexcept with gil:
@@ -8123,6 +8310,53 @@ cdef inline CefMenuModelDelegate* _g_export_MenuModelDelegate(object obj) except
     return raw
 
 
+class PdfPrintCallback:
+    """Callback interface for CefBrowserHost::PrintToPDF. The methods of this class
+    will be called on the browser process UI thread.
+    """
+
+    def on_pdf_print_finished(self, path, ok):
+        """Method that will be executed when the PDF printing has completed. |path|
+        is the output path. |ok| will be true if the printing completed
+        successfully or false otherwise.
+        """
+        return None
+
+
+cdef void _PdfPrintCallback_on_pdf_print_finished(void* py, const CefString* path, cpp_bool ok) noexcept with gil:
+    try:
+        _r = (<object>py).on_pdf_print_finished(_g_str(path[0]), ok)
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefPdfPrintCallback] _g_make_PdfPrintCallback(object obj) except *:
+    cdef CefRefPtr[CefPdfPrintCallback] ref
+    cdef CwPdfPrintCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, PdfPrintCallback):
+        raise TypeError("expected a PdfPrintCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_pdf_print_finished", None) is not PdfPrintCallback.on_pdf_print_finished:
+        cb.fn_on_pdf_print_finished = _PdfPrintCallback_on_pdf_print_finished
+    ref = CefRefPtr[CefPdfPrintCallback](<CefPdfPrintCallback*>new CwPdfPrintCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefPdfPrintCallback* _g_export_PdfPrintCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefPdfPrintCallback] ref = _g_make_PdfPrintCallback(obj)
+    cdef CefPdfPrintCallback* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class PrintHandler:
     """Implement this interface to handle printing on Linux. Each browser will have
     only one print job in progress at a time. The methods of this class will be
@@ -8166,7 +8400,7 @@ class PrintHandler:
         """Return the PDF paper size in device units. Used in combination with
         CefBrowserHost::PrintToPDF().
         """
-        return Size(0, 0)
+        return Size()
 
 
 cdef void _PrintHandler_on_print_start(void* py, CefBrowser* browser) noexcept with gil:
@@ -8381,13 +8615,13 @@ class RenderHandler:
         Return true if the rectangle was provided. If this method returns false
         the rectangle from GetViewRect will be used.
         """
-        return False, Rect(0, 0, 0, 0)
+        return False, Rect()
 
     def get_view_rect(self, browser):
         """Called to retrieve the view rectangle in screen DIP coordinates. This
         method must always provide a non-empty rectangle.
         """
-        return Rect(0, 0, 0, 0)
+        return Rect()
 
     def get_screen_point(self, browser, view_x, view_y):
         """Called to retrieve the translation from view DIP coordinates to screen
@@ -8406,7 +8640,7 @@ class RenderHandler:
         will be used. If the rectangle is still empty or invalid popups may not be
         drawn correctly.
         """
-        return False, ScreenInfo(0.0, 0, 0, 0, 0, 0)
+        return False, ScreenInfo()
 
     def on_popup_show(self, browser, show):
         """Called when the browser wants to show or hide the popup widget. The popup
@@ -8437,7 +8671,7 @@ class RenderHandler:
         """Called to retrieve the size of the touch handle for the specified
         |orientation|.
         """
-        return Size(0, 0)
+        return Size()
 
     def on_touch_handle_state_changed(self, browser, state):
         """Called when touch handle state is updated. The client is responsible for
@@ -9587,4 +9821,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

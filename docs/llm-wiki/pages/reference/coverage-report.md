@@ -14,24 +14,24 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 580 methods/functions in 59 classes, 3 global functions
+Generated now: 583 methods/functions in 60 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
     21  class
-     6  struct
+     4  struct
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  a library method returning a client object
      1  struct-like value type
-  ----  30 skipped
+  ----  28 skipped
 
-If every class were generated, the type support alone would cover 1487 of 1598 methods/functions (93%).
+If every class were generated, the type support alone would cover 1498 of 1598 methods/functions (94%).
 What blocks the rest, by type:
     32  ownptr pointer
-    18  struct
     11  a library method returning a client object
     11  rawptr pointer
      8  vector of values
      8  struct-like value type
+     7  struct
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      2  pointer to
@@ -71,7 +71,7 @@ Per class (supported/total methods, when every class is generated):
   * CefBinaryValue                         library   8/9  
     CefBoxLayout                           library   2/2  
   * CefBrowser                             library  21/21 
-  * CefBrowserHost                         library  67/72 
+  * CefBrowserHost                         library  68/72 
     CefBrowserProcessHandler               client    6/7  
     CefBrowserView                         library   5/6  
     CefBrowserViewDelegate                 client    9/10 
@@ -87,9 +87,9 @@ Per class (supported/total methods, when every class is generated):
     CefComponentUpdater                    library   5/5  
   * CefContextMenuHandler                  client    7/7  
   * CefContextMenuParams                   library  20/20 
-    CefCookieAccessFilter                  client    0/2  
-    CefCookieManager                       library   5/6  
-    CefCookieVisitor                       client    0/1  
+    CefCookieAccessFilter                  client    2/2  
+    CefCookieManager                       library   6/6  
+    CefCookieVisitor                       client    1/1  
     CefDOMDocument                         library  14/14 
     CefDOMNode                             library  26/26 
     CefDOMVisitor                          client    1/1  
@@ -126,7 +126,7 @@ Per class (supported/total methods, when every class is generated):
     CefMediaRouteCreateCallback            client    1/1  
     CefMediaRouter                         library   6/6  
     CefMediaSink                           library   7/7  
-    CefMediaSinkDeviceInfoCallback         client    0/1  
+    CefMediaSinkDeviceInfoCallback         client    1/1  
     CefMediaSource                         library   3/3  
     CefMenuButton                          library   3/3  
     CefMenuButtonDelegate                  client    1/1  
@@ -136,7 +136,7 @@ Per class (supported/total methods, when every class is generated):
     CefNavigationEntryVisitor              client    1/1  
     CefOverlayController                   library  19/19 
     CefPanel                               library  13/13 
-    CefPdfPrintCallback                    client    1/1  
+  * CefPdfPrintCallback                    client    1/1  
     CefPermissionHandler                   client    3/3  
     CefPermissionPromptCallback            library   1/1  
   * CefPostData                            library   8/8  
@@ -153,7 +153,7 @@ Per class (supported/total methods, when every class is generated):
   * CefRenderHandler                       client   16/17 
     CefRenderProcessHandler                client    9/9  
   * CefRequest                             library  23/23 
-    CefRequestContext                      library  24/26 
+    CefRequestContext                      library  25/26 
     CefRequestContextHandler               client    2/2  
   * CefRequestHandler                      client   11/11 
     CefResolveCallback                     client    1/1  
@@ -184,7 +184,7 @@ Per class (supported/total methods, when every class is generated):
   * CefStreamWriter                        library   7/7  
   * CefStringVisitor                       client    1/1  
     CefTask                                client    1/1  
-  * CefTaskManager                         library   5/6  
+  * CefTaskManager                         library   6/6  
     CefTaskRunner                          library   5/7  
     CefTestServer                          library   3/3  
     CefTestServerConnection                library   5/5  
@@ -221,7 +221,7 @@ Per class (supported/total methods, when every class is generated):
     CefViewDelegate                        client   11/11 
     CefWaitableEvent                       library   6/6  
     CefWindow                              library  43/43 
-    CefWindowDelegate                      client   21/23 
+    CefWindowDelegate                      client   22/23 
   * CefWriteHandler                        client    5/5  
     CefX509CertPrincipal                   library   7/7  
     CefX509Certificate                     library  10/10 
@@ -230,7 +230,7 @@ Per class (supported/total methods, when every class is generated):
   (* = generated now)
 
 Opened by java-cef, not generated yet (the gaps):
-  CefBrowserHost                   2/30   type not supported yet
+  CefBrowserHost                   1/30   type not supported yet
   CefCommandLine                  12/12   class not generated yet
   CefCookieAccessFilter            2/2    class not generated yet
   CefCookieManager                 6/6    class not generated yet
@@ -243,7 +243,7 @@ Opened by java-cef, not generated yet (the gaps):
   CefSchemeRegistrar               1/1    class not generated yet
   CefURLRequest                    5/5    class not generated yet
   CefURLRequestClient              5/5    class not generated yet
-  ----  64 methods
+  ----  63 methods
 
 Generated, and not opened by java-cef (beyond the floor):
   CefBinaryValue                   8  the whole class
@@ -264,6 +264,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefListValue                    29  the whole class
   CefMenuModel                     8  8 methods
   CefMenuModelDelegate             7  the whole class
+  CefPdfPrintCallback              1  the whole class
   CefPostData                      1  1 methods
   CefProcessMessage                6  the whole class
   CefReadHandler                   5  the whole class
@@ -277,11 +278,11 @@ Generated, and not opened by java-cef (beyond the floor):
   CefStreamReader                  8  the whole class
   CefStreamWriter                  7  the whole class
   CefStringVisitor                 1  the whole class
-  CefTaskManager                   5  the whole class
+  CefTaskManager                   6  the whole class
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  252 methods
+  ----  254 methods
 ```
 
 ## 관련 페이지

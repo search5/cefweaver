@@ -137,6 +137,13 @@ updated: 2026-10-08
   - `host.add_dev_tools_message_observer(observer)`가 `Registration`을 돌려주고, `execute_dev_tools_method(0, "Runtime.evaluate", params)`의 메시지 번호가 `on_dev_tools_method_result(browser, message_id, success, result)`의 번호와 같으며 `result`(읽기 전용 `memoryview`의 JSON)에 `"value":3`이 들어 있습니다.
 - **영향**: 바닥의 격차 7개가 메워졌습니다(`Frame` 2, `BrowserHost` 2, `DevToolsMessageObserver` 2, `Registration`은 java-cef도 메서드가 없음).
 
+## F50. 문자열과 시간이 든 구조체, PDF 인쇄
+
+- **방법**: `CefStructBase<Traits>` 구조체(문자열, 시간 필드)를 열고 `print_to_pdf`로 PDF를 만들었습니다.
+- **결과**: `types.PdfPrintSettings(scale=1.0, paper_width=8.27, paper_height=11.69, print_background=1, page_ranges="1", margin_type=PdfPrintMarginType.DEFAULT)`를 `host.print_to_pdf(path, settings, callback)`에 주면 `%PDF`로 시작하는 파일이 생기고 `on_pdf_print_finished(path, True)`가 옵니다(오프스크린에서도 됨). `Cookie`, `RequestContextSettings`, `URLParts`, `MediaSinkDeviceInfo`, `TaskInfo`, `LinuxWindowProperties`도 같은 방식으로 공개되어 구조체가 22개가 되었습니다(`CefSettings`와 `CefBrowserSettings`는 배열이나 포인터가 있어 제외).
+- **발견**: 이 구조체는 파서가 `structure`로 분류해서 이름으로 찾도록 고쳤습니다. 문자열 필드는 `CefString(&field)`로 감싸 읽고 씁니다. 모든 구조체의 필드에 기본값을 주도록 바꿔(`Rect()`가 `(0, 0, 0, 0)`) 설정 구조체를 필요한 필드만으로 만들 수 있습니다.
+- **영향**: 바닥의 격차 1개가 메워졌고(`PrintToPDF`) 쿠키와 요청 컨텍스트 설정의 길이 열렸습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

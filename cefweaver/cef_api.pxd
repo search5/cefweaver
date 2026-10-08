@@ -24,10 +24,18 @@ cdef extern from "include/internal/cef_ptr.h":
         T* get() nogil
 
 cdef extern from "include/internal/cef_string.h":
+    ctypedef struct cef_string_t:
+        pass
     cdef cppclass CefString:
         CefString()
         CefString(const string&)
+        CefString(cef_string_t*)
+        cpp_bool FromString(const string&)
         string ToString() nogil
+
+cdef extern from "include/internal/cef_time.h":
+    ctypedef struct cef_basetime_t:
+        int64_t val
 
 ctypedef uint32_t cef_color_t
 ctypedef unsigned long cef_window_handle_t
@@ -52,6 +60,10 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_context_menu_media_type_t:
         pass
     ctypedef enum cef_context_menu_type_flags_t:
+        pass
+    ctypedef enum cef_cookie_priority_t:
+        pass
+    ctypedef enum cef_cookie_same_site_t:
         pass
     ctypedef enum cef_cursor_type_t:
         pass
@@ -85,6 +97,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_paint_element_type_t:
         pass
+    ctypedef enum cef_pdf_print_margin_type_t:
+        pass
     ctypedef enum cef_pointer_type_t:
         pass
     ctypedef enum cef_postdataelement_type_t:
@@ -102,6 +116,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_runtime_style_t:
         pass
     ctypedef enum cef_state_t:
+        pass
+    ctypedef enum cef_task_type_t:
         pass
     ctypedef enum cef_termination_status_t:
         pass
@@ -140,6 +156,20 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         cef_channel_layout_t channel_layout
         int sample_rate
         int frames_per_buffer
+    cdef cppclass CefCookie:
+        CefCookie()
+        cef_string_t name
+        cef_string_t value
+        cef_string_t domain
+        cef_string_t path
+        int secure
+        int httponly
+        cef_basetime_t creation
+        cef_basetime_t last_access
+        int has_expires
+        cef_basetime_t expires
+        cef_cookie_same_site_t same_site
+        cef_cookie_priority_t priority
     cdef cppclass CefInsets:
         CefInsets()
         int top
@@ -156,11 +186,41 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         char16_t character
         char16_t unmodified_character
         int focus_on_editable_field
+    cdef cppclass CefLinuxWindowProperties:
+        CefLinuxWindowProperties()
+        cef_string_t wayland_app_id
+        cef_string_t wm_class_class
+        cef_string_t wm_class_name
+        cef_string_t wm_role_name
+    cdef cppclass CefMediaSinkDeviceInfo:
+        CefMediaSinkDeviceInfo()
+        cef_string_t ip_address
+        int port
+        cef_string_t model_name
     cdef cppclass CefMouseEvent:
         CefMouseEvent()
         int x
         int y
         uint32_t modifiers
+    cdef cppclass CefPdfPrintSettings:
+        CefPdfPrintSettings()
+        int landscape
+        int print_background
+        double scale
+        double paper_width
+        double paper_height
+        int prefer_css_page_size
+        cef_pdf_print_margin_type_t margin_type
+        double margin_top
+        double margin_right
+        double margin_bottom
+        double margin_left
+        cef_string_t page_ranges
+        int display_header_footer
+        cef_string_t header_template
+        cef_string_t footer_template
+        int generate_tagged_pdf
+        int generate_document_outline
     cdef cppclass CefPoint:
         CefPoint()
         int x
@@ -186,6 +246,13 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int y
         int width
         int height
+    cdef cppclass CefRequestContextSettings:
+        CefRequestContextSettings()
+        cef_string_t cache_path
+        int persist_session_cookies
+        cef_string_t accept_language_list
+        cef_string_t cookieable_schemes_list
+        int cookieable_schemes_exclude_defaults
     cdef cppclass CefScreenInfo:
         CefScreenInfo()
         float device_scale_factor
@@ -198,6 +265,17 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         CefSize()
         int width
         int height
+    cdef cppclass CefTaskInfo:
+        CefTaskInfo()
+        int64_t id
+        cef_task_type_t type
+        int is_killable
+        cef_string_t title
+        double cpu_usage
+        int number_of_processors
+        int64_t memory
+        int64_t gpu_memory
+        int is_gpu_memory_inflated
     cdef cppclass CefTouchEvent:
         CefTouchEvent()
         int id
@@ -220,6 +298,18 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int mirror_horizontal
         cef_point_t origin
         float alpha
+    cdef cppclass CefURLParts:
+        CefURLParts()
+        cef_string_t spec
+        cef_string_t scheme
+        cef_string_t username
+        cef_string_t password
+        cef_string_t host
+        cef_string_t port
+        cef_string_t origin
+        cef_string_t path
+        cef_string_t query
+        cef_string_t fragment
     cdef cppclass CefBoxLayoutSettings:
         CefBoxLayoutSettings()
         int horizontal
@@ -342,6 +432,8 @@ cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefPdfPrintCallback(CefBaseRefCounted)
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
@@ -428,6 +520,7 @@ cdef extern from "include/cef_browser.h":
         void RunFileDialog(cef_file_dialog_mode_t, const CefString&, const CefString&, const vector[CefString]&, CefRefPtr[CefRunFileDialogCallback]) nogil
         void StartDownload(const CefString&) nogil
         void Print() nogil
+        void PrintToPDF(const CefString&, const CefPdfPrintSettings&, CefRefPtr[CefPdfPrintCallback]) nogil
         void Find(const CefString&, cpp_bool, cpp_bool, cpp_bool) nogil
         void StopFinding(cpp_bool) nogil
         void CloseDevTools() nogil
@@ -899,6 +992,7 @@ cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted):
         size_t GetTasksCount() nogil
         cpp_bool GetTaskIdsList(vector[int64_t]&) nogil
+        cpp_bool GetTaskInfo(int64_t, CefTaskInfo&) nogil
         cpp_bool KillTask(int64_t) nogil
         int64_t GetTaskIdForBrowserId(int) nogil
         @staticmethod
@@ -992,6 +1086,9 @@ cdef extern from "include/cef_load_handler.h":
         pass
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefPdfPrintCallback(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted):
@@ -1168,6 +1265,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_format_label)(void*, CefMenuModel*, CefString*) noexcept
     cdef cppclass CwMenuModelDelegateProxy(CefMenuModelDelegate):
         CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks&)
+    cdef cppclass CwPdfPrintCallbackCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_pdf_print_finished)(void*, const CefString*, cpp_bool) noexcept
+    cdef cppclass CwPdfPrintCallbackProxy(CefPdfPrintCallback):
+        CwPdfPrintCallbackProxy(const CwPdfPrintCallbackCallbacks&)
     cdef cppclass CwPrintHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

@@ -348,7 +348,7 @@ class WithHeaders(unittest.TestCase):
     # (tools/gen/surface.py): this list only shrinks, and a method that is added or removed
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
-        "CefBrowserHost": ["DragTargetDragEnter", "PrintToPDF"],
+        "CefBrowserHost": ["DragTargetDragEnter"],
         "CefCommandLine": None, "CefCookieAccessFilter": None, "CefCookieManager": None,
         "CefDragData": None, "CefRequestContext": None,
         "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
@@ -443,6 +443,38 @@ class WithHeaders(unittest.TestCase):
                      "def add_dev_tools_message_observer(self, observer: DevToolsMessageObserver) "
                      "-> Registration | None:"):
             self.assertIn(text, stub)
+
+    def test_structs_with_strings_and_times_are_read_from_the_traits_classes(self):
+        # CefPdfPrintSettings, CefCookie: `using CefX = CefStructBase<CefXTraits>`, with
+        # cef_string_t members (str), cef_basetime_t members (datetime) and a `size` header.
+        pdf = self.model.structs["CefPdfPrintSettings"]
+        fields = {f.name: f for f in pdf.fields}
+        self.assertEqual(fields["page_ranges"].py, "str")
+        self.assertTrue(fields["page_ranges"].string)
+        self.assertEqual(fields["margin_type"].py, "PdfPrintMarginType")
+        self.assertEqual(fields["scale"].py, "float")
+        self.assertNotIn("size", fields)
+        cookie = {f.name: f for f in self.model.structs["CefCookie"].fields}
+        self.assertTrue(cookie["creation"].time)
+        self.assertEqual(cookie["same_site"].py, "CookieSameSite")
+        self.assertTrue(cookie["name"].string)
+        self.assertIn("CefRequestContextSettings", self.model.structs)
+
+    def test_print_to_pdf_takes_the_settings_and_a_callback(self):
+        self.assertTrue(self.scope.is_client("CefPdfPrintCallback"))
+        plan = self.plan("CefBrowserHost", "PrintToPDF")
+        self.assertTrue(plan.supported, plan.reason)
+        stub = self.generated("pyi")
+        self.assertIn("class PdfPrintCallback:", stub)
+        self.assertIn("def on_pdf_print_finished(self, path: str, ok: bool) -> None:", stub)
+        self.assertIn("def print_to_pdf(self, path: str, settings: PdfPrintSettings | tuple[", stub)
+        with open(generate_outputs()["types"], encoding="utf-8") as f:
+            types_text = f.read()
+        self.assertIn("class PdfPrintSettings(NamedTuple):", types_text)
+        self.assertIn("    page_ranges: str = \"\"\n", types_text)
+        self.assertIn("    scale: float = 0.0\n", types_text)
+        self.assertIn("    x: int = 0\n", types_text)             # every struct has defaults
+        self.assertIn("    bounds: Rect = Rect()\n", types_text)    # a nested struct too
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
@@ -581,8 +613,8 @@ class WithHeaders(unittest.TestCase):
         for name in ("CefTouchEvent", "CefTouchHandleState", "CefCompositionUnderline"):
             self.assertIn(name, self.model.structs)
         # What has pointers or strings stays out.
-        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefCookie"):
-            self.assertNotIn(name, self.model.structs)
+        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefSettings"):
+            self.assertNotIn(name, self.model.structs, name)
 
     def test_methods_that_take_the_new_structs_are_generated(self):
         for cls, method in (("CefBrowserHost", "SendKeyEvent"),
@@ -605,8 +637,8 @@ class WithHeaders(unittest.TestCase):
         with open(files["types"], encoding="utf-8") as f:
             types_text = f.read()
         self.assertIn("class KeyEvent(NamedTuple):", types_text)
-        self.assertIn("    type: KeyEventType\n", types_text)
-        self.assertIn("    x_set: int\n", types_text)
+        self.assertIn("    type: KeyEventType = 0\n", types_text)
+        self.assertIn("    x_set: int = 0\n", types_text)
         with open(files["pyi"], encoding="utf-8") as f:
             stub = f.read()
         self.assertIn("def send_key_event(self, event: KeyEvent | tuple[", stub)
@@ -619,7 +651,7 @@ class WithHeaders(unittest.TestCase):
 
     def test_structs_that_are_not_plain_data_stay_unsupported(self):
         # Pointers, arrays, strings: not plain data.
-        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefCookie", "CefSettings"):
+        for name in ("CefCursorInfo", "CefAcceleratedPaintInfo", "CefSettings"):
             self.assertNotIn(name, self.model.structs, name)
 
     def test_a_struct_input_of_a_handler(self):
@@ -668,7 +700,7 @@ class WithHeaders(unittest.TestCase):
                       stub)
         types_source = self.generated("types")
         self.assertIn("class Rect(NamedTuple):", types_source)
-        self.assertIn("    from_: int\n    to: int", types_source)
+        self.assertIn("    from_: int = 0\n    to: int = 0", types_source)
 
     @unittest.skipUnless(shutil.which("c++") and os.path.isfile(
         os.path.join(CEF_ROOT, "Release", "libcef.so")), "needs a C++ compiler and libcef.so")
@@ -760,7 +792,6 @@ class WithHeaders(unittest.TestCase):
     def test_browser_host_methods_that_cannot_be_generated_say_why(self):
         reasons = {
             "ShowDevTools": "cef_window_info_t",
-            "PrintToPDF": "cef_pdf_print_settings_t",
         }
         for name, expected in reasons.items():
             plan = self.plan("CefBrowserHost", name)

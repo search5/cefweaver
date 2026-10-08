@@ -22,9 +22,10 @@ HEADER = '''"""The CEF enumerations and value types (see tools/gen/emit_types.py
 Enumerations are `enum.IntEnum` (or `enum.IntFlag` for bit flags), so a member can be used
 wherever CEF wants an integer, and a value CEF reports that has no member is passed on as a
 plain int. Value types are `typing.NamedTuple`: they unpack, and a tuple with the same fields
-works wherever one is expected.
+works wherever one is expected; every field has a default (zero, "" or None, as in C++).
 """
 
+import datetime
 import enum
 from typing import NamedTuple
 '''
@@ -58,7 +59,15 @@ def emit(model, banner):
         out += _docstring("The CEF value type %s. Anywhere one is expected, a tuple with the "
                           "same fields works too." % cls, 4)
         for f in struct.fields:
-            out.append("    %s: %s" % (f.name, f.py))
+            if f.string:
+                default = '""'
+            elif f.time:
+                default = "None"
+            elif f.struct:
+                default = "%s()" % f.py
+            else:
+                default = {"bool": "False", "float": "0.0"}.get(f.py, "0")
+            out.append("    %s: %s = %s" % (f.name, f.py, default))
         names.append(py)
 
     out += ["", "", "__all__ = ["]

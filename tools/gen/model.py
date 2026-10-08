@@ -66,6 +66,8 @@ class StructField:
     py: str  # annotation in Python: int, bool or float, or the class of a nested struct
     struct: str = ""  # the C++ class of a nested struct (CefRect in CefDraggableRegion), else ""
     enum: bool = False  # `py` is the Python enumeration of the member (`cpp` is its C name)
+    string: bool = False  # a cef_string_t member (str)
+    time: bool = False  # a cef_basetime_t member (a datetime)
 
 
 @dataclass(frozen=True)
@@ -101,7 +103,12 @@ def parse_struct_fields(body, nested=None, enums=None):
                 continue
             return None
         ctype, cname = found.groups()
-        if ctype in enums:
+        if ctype == "cef_string_t":
+            fields.append(StructField(cname, py_param_name(cname), ctype, "str", "", False, True))
+        elif ctype == "cef_basetime_t":
+            fields.append(StructField(cname, py_param_name(cname), ctype,
+                                      "datetime.datetime | None", "", False, False, True))
+        elif ctype in enums:
             fields.append(StructField(cname, py_param_name(cname), ctype, enums[ctype], "", True))
         elif ctype in _FIELD_TYPES:
             fields.append(StructField(cname, py_param_name(cname), ctype, _FIELD_TYPES[ctype]))
@@ -370,6 +377,12 @@ class Model:
             r"\bclass\s+(Cef\w+)\s*:\s*public\s+(?:CefStructBaseSimple<\s*)?(cef_\w+_t)\s*>?\s*\{", text))
         classes.update((c, cn) for c, cn in re.findall(
             r"\busing\s+(Cef\w+)\s*=\s*CefStructBaseSimple<\s*(cef_\w+_t)\s*>\s*;", text))
+        # The ones with strings: `using CefCookie = CefStructBase<CefCookieTraits>;` and
+        # `struct CefCookieTraits { using struct_type = cef_cookie_t; ...`
+        traits = dict(re.findall(r"\bstruct\s+(Cef\w+Traits)\s*\{\s*using\s+struct_type\s*=\s*(cef_\w+_t)\s*;", text))
+        for c, tr in re.findall(r"\busing\s+(Cef\w+)\s*=\s*CefStructBase<\s*(Cef\w+Traits)\s*>\s*;", text):
+            if tr in traits:
+                classes[c] = traits[tr]
         enum_names = {cname: info.py_name for cname, info in self.enum_defs.items()}
         by_cname = {cn: c for c, cn in classes.items()}
         structs = {}

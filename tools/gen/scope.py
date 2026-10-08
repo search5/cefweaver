@@ -67,6 +67,7 @@ CLIENT_CLASSES = [
     "CefResourceRequestHandler",
     "CefReadHandler",
     "CefWriteHandler",
+    "CefPdfPrintCallback",
     "CefStringVisitor",
     "CefRunFileDialogCallback",
     "CefDevToolsMessageObserver",

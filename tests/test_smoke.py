@@ -435,6 +435,16 @@ class ApiWithoutCef(unittest.TestCase):
             with self.assertRaises((TypeError, AttributeError)):
                 request.set_header_map(bad)
 
+    def test_structs_with_strings_and_times_have_defaults(self):
+        settings = cefweaver.types.PdfPrintSettings()
+        self.assertEqual((settings.landscape, settings.scale, settings.page_ranges), (0, 0.0, ""))
+        landscape = settings._replace(landscape=1, page_ranges="1-2", header_template="<b>x</b>")
+        self.assertEqual((landscape.landscape, landscape.page_ranges), (1, "1-2"))
+        cookie = cefweaver.types.Cookie()
+        self.assertEqual((cookie.name, cookie.expires), ("", None))
+        self.assertEqual(cefweaver.Rect(), (0, 0, 0, 0))           # every struct has defaults
+        self.assertEqual(cefweaver.types.DraggableRegion().bounds, cefweaver.Rect())
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -2479,6 +2489,29 @@ class WithCef(unittest.TestCase):
             wait_until(app, lambda: results, "the method result")
             assert results[0][0] == message_id and results[0][1] is True, results
             assert b'"value":3' in results[0][2], results[0]
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_print_to_pdf_writes_a_pdf_and_tells_the_callback(self):
+        self.run_osr_script("""
+            import os, tempfile
+            path = os.path.join(tempfile.mkdtemp(), "page.pdf")
+            done = []
+            class Finished(cefweaver.PdfPrintCallback):
+                def on_pdf_print_finished(self, path, ok):
+                    done.append((path, ok))
+            start('<h1>to pdf</h1>')
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            settings = types.PdfPrintSettings(scale=1.0, paper_width=8.27, paper_height=11.69,
+                                              print_background=1, page_ranges="1",
+                                              margin_type=types.PdfPrintMarginType.DEFAULT)
+            boxes[0].get_host().print_to_pdf(path, settings, Finished())
+            wait_until(app, lambda: done, "the end of the print")
+            assert done == [(path, True)], done
+            data = open(path, "rb").read()
+            assert data.startswith(b"%PDF") and len(data) > 500, data[:20]
             app.shutdown()
             print("OK")
         """)

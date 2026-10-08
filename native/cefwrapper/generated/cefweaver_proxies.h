@@ -1631,6 +1631,50 @@ class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
 };
 
+// ---- CefPdfPrintCallback ----
+
+class CwPdfPrintCallbackForward : public CefPdfPrintCallback {
+ protected:
+  CefRefPtr<CefPdfPrintCallback> forward_pdf_print_callback_;
+
+ public:
+  void OnPdfPrintFinished(const CefString& path, bool ok) override {
+    if (!forward_pdf_print_callback_) {
+      return;
+    }
+    forward_pdf_print_callback_->OnPdfPrintFinished(path, ok);
+  }
+};
+
+struct CwPdfPrintCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_pdf_print_finished)(void*, const CefString*, bool) = nullptr;
+};
+
+class CwPdfPrintCallbackProxy : public CefPdfPrintCallback {
+ public:
+  explicit CwPdfPrintCallbackProxy(const CwPdfPrintCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwPdfPrintCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnPdfPrintFinished(const CefString& path, bool ok) override {
+    if (!cb_.fn_on_pdf_print_finished) {
+      return;
+    }
+    cb_.fn_on_pdf_print_finished(cb_.py, &path, ok);
+  }
+
+ private:
+  CwPdfPrintCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwPdfPrintCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwPdfPrintCallbackProxy);
+};
+
 // ---- CefPrintHandler ----
 
 class CwPrintHandlerForward : public CefPrintHandler {

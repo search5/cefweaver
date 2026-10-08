@@ -209,6 +209,8 @@ def classify(model, scope, analysis):
         if cname in model.enums and not analysis.is_byaddr():
             info = model.enum_defs.get(cname)
             return Enum(spelled, cname, info.py_name if info else "")
+        if spelled in model.structs and not analysis.is_byaddr():
+            return Struct(spelled, model.structs[spelled].fields)  # one with strings (a Traits class)
         raise Unsupported("struct %s" % cname)
 
     if result == "refptr":

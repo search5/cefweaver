@@ -21,11 +21,10 @@ updated: 2026-10-08
 
 ## 바닥의 격차 (java-cef는 열고 우리는 아직 안 연 것)
 
-시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 64개입니다.
+시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 389개 가운데 63개입니다.
 
 | 묶음 | 항목 | 필요한 것 |
 | --- | --- | --- |
-| PDF 인쇄 | `BrowserHost.PrintToPDF`(+`PdfPrintCallback`) | 문자열이 있는 구조체(`PdfPrintSettings`) |
 | 드래그 | `CefDragData`(24), `DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter` | `DragData`, 쓰기 핸들러 |
 | 쿠키 | `CefCookieManager`(6), `CefCookieAccessFilter`(2), `ResourceRequestHandler.GetCookieAccessFilter` | 쿠키 구조체, 방문자와 완료 콜백 |
 | URL 요청 | `CefURLRequest`(5), `CefURLRequestClient`(5) | 클래스 추가 |
@@ -34,6 +33,7 @@ updated: 2026-10-08
 
 ### 메운 격차
 
+- PDF 인쇄(`BrowserHost.PrintToPDF`, `PdfPrintCallback`): 문자열이 든 구조체(`PdfPrintSettings`)를 열어서. 같은 능력으로 `Cookie`, `RequestContextSettings` 등 22개 구조체가 공개됨([검증](verified-findings-more.md) F50).
 - 문자열 방문자(`Frame.GetSource`/`GetText`), 파일 대화상자 콜백(`BrowserHost.RunFileDialog`), DevTools 메시지 관찰자(`AddDevToolsMessageObserver`, `Registration`)([검증](verified-findings-more.md) F49).
 - 창 핸들(`BrowserHost.GetWindowHandle`): Linux의 X11 창 번호를 정수로([검증](verified-findings-more.md) F48).
 - 헤더 맵(`Request.GetHeaderMap`/`SetHeaderMap`/`Set`, `Response.GetHeaderMap`/`SetHeaderMap`): 문자열 멀티맵 ↔ `dict`([검증](verified-findings-more.md) F47).
@@ -41,7 +41,7 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다. 총 252개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
+닫지 않고 둡니다. 총 254개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
 
 - **값 컨테이너와 프로세스 메시지**: `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage`. (`RequestContext`의 설정은 `Value`가 필요해서 바닥이 이것을 쓰게 됩니다.)
 - **스트림**: `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler`, `WriteHandler`(java-cef는 드래그 파일 내용용 쓰기 핸들러만 안에서 씀).

@@ -180,3 +180,7 @@
 ## [2026-10-08] ingest | 격차 메우기 4: 방문자, 파일 대화상자 콜백, DevTools 관찰자
 
 - `CefStringVisitor`, `CefRunFileDialogCallback`, `CefDevToolsMessageObserver`, `CefRegistration`을 범위에 넣어 `Frame.get_source`/`get_text`, `BrowserHost.run_file_dialog`, `add_dev_tools_message_observer`를 열었습니다. F49.
+
+## [2026-10-08] ingest | 격차 메우기 5: 문자열과 시간이 든 구조체, PDF 인쇄
+
+- 구조체가 `cef_string_t`(`str`), `cef_basetime_t`(`datetime`) 필드를 갖고 `CefStructBase<Traits>` 형태여도 열립니다. 구조체가 15개에서 22개가 되었고 모든 필드에 기본값을 줍니다. `PdfPrintCallback`과 `BrowserHost.print_to_pdf`를 열었습니다. F50. 격차 64개에서 63개.

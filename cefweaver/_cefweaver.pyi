@@ -129,17 +129,24 @@ from .types import (
 )
 from .types import (
     AudioParameters as AudioParameters,
+    Cookie as Cookie,
     Insets as Insets,
     KeyEvent as KeyEvent,
+    LinuxWindowProperties as LinuxWindowProperties,
+    MediaSinkDeviceInfo as MediaSinkDeviceInfo,
     MouseEvent as MouseEvent,
+    PdfPrintSettings as PdfPrintSettings,
     Point as Point,
     PopupFeatures as PopupFeatures,
     Range as Range,
     Rect as Rect,
+    RequestContextSettings as RequestContextSettings,
     ScreenInfo as ScreenInfo,
     Size as Size,
+    TaskInfo as TaskInfo,
     TouchEvent as TouchEvent,
     TouchHandleState as TouchHandleState,
+    URLParts as URLParts,
     BoxLayoutSettings as BoxLayoutSettings,
     CompositionUnderline as CompositionUnderline,
     DraggableRegion as DraggableRegion,
@@ -434,6 +441,13 @@ class BrowserHost:
         ...
     def print(self) -> None:
         """Print the current browser contents."""
+        ...
+    def print_to_pdf(self, path: str, settings: PdfPrintSettings | tuple[int, int, float, float, float, int, PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int], callback: PdfPrintCallback | None) -> None:
+        """Print the current browser contents to the PDF file specified by |path| and
+        execute |callback| on completion. The caller is responsible for deleting
+        |path| when done. For PDF printing to work on Linux you must implement the
+        CefPrintHandler::GetPdfPaperSize method.
+        """
         ...
     def find(self, search_text: str, forward: bool, match_case: bool, find_next: bool) -> None:
         """Search for |searchText|. |forward| indicates whether to search forward or
@@ -2343,6 +2357,13 @@ class TaskManager:
         Returns false if the method was called from the incorrect thread.
         """
         ...
+    def get_task_info(self, task_id: int, info: TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]) -> tuple[bool, TaskInfo]:
+        """Gets information about the task with |task_id|.
+        Returns true if the information about the task was successfully
+        retrieved and false if the |task_id| is invalid or the method was called
+        from the incorrect thread.
+        """
+        ...
     def kill_task(self, task_id: int) -> bool:
         """Attempts to terminate a task with |task_id|.
         Returns false if the |task_id| is invalid, the call is made from an
@@ -3279,6 +3300,18 @@ class MenuModelDelegate:
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
         """Optionally modify a menu item label. Return true if |label| was modified."""
+        ...
+
+
+class PdfPrintCallback:
+    """Callback interface for CefBrowserHost::PrintToPDF. The methods of this class
+    will be called on the browser process UI thread.
+    """
+    def on_pdf_print_finished(self, path: str, ok: bool) -> None:
+        """Method that will be executed when the PDF printing has completed. |path|
+        is the output path. |ok| will be true if the printing completed
+        successfully or false otherwise.
+        """
         ...
 
 
