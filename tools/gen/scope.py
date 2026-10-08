@@ -37,6 +37,8 @@ LIBRARY_CLASSES = [
     "CefAuthCallback",
     "CefSSLInfo",
     "CefUnresponsiveProcessCallback",
+    "CefPostData",
+    "CefPostDataElement",
     "CefStreamReader",
     "CefStreamWriter",
     "CefZipReader",

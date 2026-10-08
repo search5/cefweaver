@@ -7,6 +7,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
+from datetime import datetime as _datetime, timedelta as _timedelta, timezone as _timezone
 from cefweaver import types as _types
 from libc.string cimport strcmp as _strcmp
 
@@ -29,6 +30,24 @@ cdef string _g_std(object value) except *:
 cdef CefString _g_cef(object value) except *:
     cdef string s = _g_std(value)
     return CefString(s)
+
+
+# CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
+cdef object _EPOCH_1601 = _datetime(1601, 1, 1, tzinfo=_timezone.utc)
+
+
+cdef object _g_from_basetime(int64_t value):
+    if value == 0:
+        return None
+    return _EPOCH_1601 + _timedelta(microseconds=value)
+
+
+cdef int64_t _g_to_basetime(object when) except? -1:
+    if when is None:
+        return 0
+    if when.tzinfo is None:  # a naive datetime is taken as UTC
+        when = when.replace(tzinfo=_timezone.utc)
+    return (when - _EPOCH_1601) // _timedelta(microseconds=1)
 
 
 cdef object _g_str(const CefString& value):
@@ -376,6 +395,14 @@ cdef inline int _g_vector_DraggableRegion(object seq, vector[CefDraggableRegion]
     return 0
 
 
+cdef inline list _g_list_PostDataElement(const vector[CefRefPtr[CefPostDataElement]]* values):
+    cdef list result = []
+    cdef size_t i
+    for i in range(values.size()):
+        result.append(_wrap_PostDataElement(values[0][i]))
+    return result
+
+
 cdef inline list _g_list_Range(const vector[CefRange]* values):
     cdef list result = []
     cdef size_t i
@@ -449,6 +476,8 @@ cdef class Frame
 cdef class JSDialogCallback
 cdef class ListValue
 cdef class MenuModel
+cdef class PostData
+cdef class PostDataElement
 cdef class PrintDialogCallback
 cdef class PrintJobCallback
 cdef class PrintSettings
@@ -2669,6 +2698,22 @@ cdef class DownloadItem:
             _r = _p.GetReceivedBytes()
         return _r
 
+    def get_start_time(self):
+        """Returns the time that the download started."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefBaseTime _r
+        with nogil:
+            _r = _p.GetStartTime()
+        return _g_from_basetime(_r.val)
+
+    def get_end_time(self):
+        """Returns the time that the download ended."""
+        cdef CefDownloadItem* _p = self._ptr()
+        cdef CefBaseTime _r
+        with nogil:
+            _r = _p.GetEndTime()
+        return _g_from_basetime(_r.val)
+
     def get_full_path(self):
         """Returns the full path to the downloaded or downloading file."""
         cdef CefDownloadItem* _p = self._ptr()
@@ -4049,6 +4094,225 @@ cdef object _wrap_MenuModel(CefRefPtr[CefMenuModel] ref):
     return obj
 
 
+cdef class PostData:
+    """Class used to represent post data for a web request. The methods of this
+    class may be called on any thread.
+    """
+    cdef CefRefPtr[CefPostData] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("PostData objects are created by CEF or by a create() function")
+
+    cdef CefPostData* _ptr(self) except NULL:
+        cdef CefPostData* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("PostData has no CEF object")
+        return p
+
+    def is_read_only(self):
+        """Returns true if this object is read-only."""
+        cdef CefPostData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def has_excluded_elements(self):
+        """Returns true if the underlying POST data includes elements that are not
+        represented by this CefPostData object (for example, multi-part file
+        upload data). Modifying CefPostData objects with excluded elements may
+        result in the request failing.
+        """
+        cdef CefPostData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.HasExcludedElements()
+        return _r
+
+    def get_element_count(self):
+        """Returns the number of existing post data elements."""
+        cdef CefPostData* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetElementCount()
+        return _r
+
+    def get_elements(self):
+        """Retrieve the post data elements."""
+        cdef vector[CefRefPtr[CefPostDataElement]] _a0
+        cdef CefPostData* _p = self._ptr()
+        with nogil:
+            _p.GetElements(_a0)
+        return _g_list_PostDataElement(&_a0)
+
+    def remove_element(self, PostDataElement element not None):
+        """Remove the specified post data element.  Returns true if the removal
+        succeeds.
+        """
+        cdef CefRefPtr[CefPostDataElement] _a0
+        cdef CefPostData* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = element._ref
+        with nogil:
+            _r = _p.RemoveElement(_a0)
+        return _r
+
+    def add_element(self, PostDataElement element not None):
+        """Add the specified post data element.  Returns true if the add succeeds."""
+        cdef CefRefPtr[CefPostDataElement] _a0
+        cdef CefPostData* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = element._ref
+        with nogil:
+            _r = _p.AddElement(_a0)
+        return _r
+
+    def remove_elements(self):
+        """Remove all existing post data elements."""
+        cdef CefPostData* _p = self._ptr()
+        with nogil:
+            _p.RemoveElements()
+        return None
+
+    @staticmethod
+    def create():
+        """Create a new CefPostData object."""
+        cdef CefRefPtr[CefPostData] _r
+        with nogil:
+            _r = CefPostData.Create()
+        return _wrap_PostData(_r)
+
+
+cdef object _wrap_PostData(CefRefPtr[CefPostData] ref):
+    cdef PostData obj
+    if ref.get() == NULL:
+        return None
+    obj = PostData.__new__(PostData)
+    obj._ref = ref
+    return obj
+
+
+cdef class PostDataElement:
+    """Class used to represent a single element in the request post data. The
+    methods of this class may be called on any thread.
+    """
+    cdef CefRefPtr[CefPostDataElement] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("PostDataElement objects are created by CEF or by a create() function")
+
+    cdef CefPostDataElement* _ptr(self) except NULL:
+        cdef CefPostDataElement* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("PostDataElement has no CEF object")
+        return p
+
+    def is_read_only(self):
+        """Returns true if this object is read-only."""
+        cdef CefPostDataElement* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def set_to_empty(self):
+        """Remove all contents from the post data element."""
+        cdef CefPostDataElement* _p = self._ptr()
+        with nogil:
+            _p.SetToEmpty()
+        return None
+
+    def set_to_file(self, file_name):
+        """The post data element will represent a file."""
+        cdef CefString _a0
+        cdef CefPostDataElement* _p = self._ptr()
+        _a0 = _g_cef(file_name)
+        with nogil:
+            _p.SetToFile(_a0)
+        return None
+
+    def set_to_bytes(self, bytes):
+        """The post data element will represent bytes.  The bytes passed
+        in will be copied.
+        """
+        cdef const unsigned char[::1] _v0
+        cdef const void* _a0 = NULL
+        cdef size_t _n0 = 0
+        cdef CefPostDataElement* _p = self._ptr()
+        if bytes is None:
+            raise TypeError("bytes must be bytes-like, not None")
+        _v0 = bytes
+        _n0 = _v0.shape[0]
+        if _n0:
+            _a0 = &_v0[0]
+        with nogil:
+            _p.SetToBytes(_n0, _a0)
+        return None
+
+    def get_type(self):
+        """Return the type of this post data element."""
+        cdef CefPostDataElement* _p = self._ptr()
+        cdef cef_postdataelement_type_t _r
+        with nogil:
+            _r = _p.GetType()
+        return _g_enum(_types.PostdataelementType, <int>_r)
+
+    def get_file(self):
+        """Return the file name."""
+        cdef CefPostDataElement* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFile()
+        return _g_str(_r)
+
+    def get_bytes_count(self):
+        """Return the number of bytes."""
+        cdef CefPostDataElement* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetBytesCount()
+        return _r
+
+    def get_bytes(self, size_t size):
+        """Read up to |size| bytes into |bytes| and return the number of bytes
+        actually read.
+        """
+        cdef bytes _b0
+        cdef char* _c0
+        cdef CefPostDataElement* _p = self._ptr()
+        cdef size_t _r
+        _b0 = PyBytes_FromStringAndSize(NULL, size)
+        _c0 = _b0
+        with nogil:
+            _r = _p.GetBytes(size, <void*>_c0)
+        return _b0[:_r]
+
+    @staticmethod
+    def create():
+        """Create a new CefPostDataElement object."""
+        cdef CefRefPtr[CefPostDataElement] _r
+        with nogil:
+            _r = CefPostDataElement.Create()
+        return _wrap_PostDataElement(_r)
+
+
+cdef object _wrap_PostDataElement(CefRefPtr[CefPostDataElement] ref):
+    cdef PostDataElement obj
+    if ref.get() == NULL:
+        return None
+    obj = PostDataElement.__new__(PostDataElement)
+    obj._ref = ref
+    return obj
+
+
 cdef class PrintDialogCallback:
     """Callback interface for asynchronous continuation of print dialog requests."""
     cdef CefRefPtr[CefPrintDialogCallback] _ref
@@ -4519,6 +4783,23 @@ cdef class Request:
         with nogil:
             _r = _p.GetReferrerPolicy()
         return _g_enum(_types.ReferrerPolicy, <int>_r)
+
+    def get_post_data(self):
+        """Get the post data."""
+        cdef CefRequest* _p = self._ptr()
+        cdef CefRefPtr[CefPostData] _r
+        with nogil:
+            _r = _p.GetPostData()
+        return _wrap_PostData(_r)
+
+    def set_post_data(self, PostData post_data not None):
+        """Set the post data."""
+        cdef CefRefPtr[CefPostData] _a0
+        cdef CefRequest* _p = self._ptr()
+        _a0 = post_data._ref
+        with nogil:
+            _p.SetPostData(_a0)
+        return None
 
     def get_header_by_name(self, name):
         """Returns the first header value for |name| or an empty string if not found.
@@ -5732,6 +6013,14 @@ cdef class ZipReader:
         with nogil:
             _r = _p.GetFileSize()
         return _r
+
+    def get_file_last_modified(self):
+        """Returns the last modified timestamp for the file."""
+        cdef CefZipReader* _p = self._ptr()
+        cdef CefBaseTime _r
+        with nogil:
+            _r = _p.GetFileLastModified()
+        return _g_from_basetime(_r.val)
 
     def open_file(self, password):
         """Opens the file for reading of uncompressed data. A read password may
@@ -8761,4 +9050,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "SchemeHandlerFactory", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "SchemeHandlerFactory", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

@@ -18,8 +18,8 @@ virtual methods).
 """
 
 from model import py_class_name, snake_case
-from typesys import (Buffer, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Vector,
-                     Void)
+from typesys import (Buffer, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Time,
+                     Vector, Void)
 
 
 def field_name(plan):
@@ -44,6 +44,8 @@ def table_in_types(param):
     kind = param.kind
     if isinstance(kind, Prim):
         return [kind.cpp]
+    if isinstance(kind, Time):
+        return ["int64_t"]
     if isinstance(kind, Enum):
         return ["int"]
     if isinstance(kind, Str):
@@ -99,7 +101,8 @@ def declaration(param):
     if isinstance(param.kind, Buffer):
         if param.kind.size_expr:
             return "%svoid* %s" % ("const " if param.kind.readonly else "", param.cef_name)
-        return "void* %s, %s %s" % (param.cef_name, param.kind.size_cpp, param.size_name)
+        return "%svoid* %s, %s %s" % ("const " if param.kind.readonly else "", param.cef_name,
+                                      param.kind.size_cpp, param.size_name)
     text = ("const " if param.const else "") + param.spelled + (
         "&" if param.byref else "*" if param.byaddr else "")
     return "%s %s" % (text, param.cef_name)
@@ -162,6 +165,8 @@ def _method(model, cls, plan):
             args.append("&out_%s" % name)
         elif isinstance(kind, Prim):
             args.append(name)
+        elif isinstance(kind, Time):
+            args.append("%s.val" % name)
         elif isinstance(kind, Enum):
             args.append("static_cast<int>(%s)" % name)
         elif isinstance(kind, (Str, Struct, Vector)):

@@ -57,6 +57,7 @@
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약
 - [오프스크린 렌더링](pages/reference/offscreen-rendering.md): `offscreen`, `RenderHandler.on_paint`의 읽기 전용 버퍼, 제약
 - [스트림과 ZIP 읽기](pages/reference/streams.md): `fread`/`fwrite` 규약(`ptr, size, n`)을 `read(n, size=1)`, `write(data, size=1)`로 연 규칙과 핸들러
+- [바이트열과 시간](pages/reference/bytes-and-times.md): `void*` 표(복사, 크기가 앞, 의도적 제외)와 `CefBaseTime` → `datetime`
 
 ## 요약 (summaries)
 

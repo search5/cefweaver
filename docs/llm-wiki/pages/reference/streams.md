@@ -45,9 +45,10 @@ Python 핸들러가 `n`보다 많은 항목을 돌려주면 프록시가 `n`으�
 
 ## 제약
 
-- `ZipReader.get_file_last_modified`는 날짜 구조체(`CefBaseTime`) 때문에 생성되지 않습니다.
+- `ZipReader.get_file_last_modified`는 `datetime`(UTC)입니다. ZIP 파일에는 시간대가 없어서 CEF가 정한 해석을 그대로 따릅니다(시험은 하루 이내의 일치만 확인).
 - 스트림을 CEF 내부가 쓰는 경로(예: 리소스 응답으로 `ResourceHandler`에서 스트림을 읽게 하기)는 시험하지 않았습니다.
-- 다른 크기가 둘인 포인터(`CefV8Value::CreateArrayBuffer` 등)는 아직 없는 표 항목이라 생성되지 않습니다.
+- java-cef는 스트림을 `CefDragData.GetFileContents(OutputStream)`용 `WriteHandler` 하나에서만 씁니다(`Seek`는 항상 -1). 읽기 스트림, ZIP, `ReadHandler`는 쓰지 않으므로 우리가 이미 더 넓게 엽니다. CEF 내부가 `CefWriteHandler`를 쓰는 같은 경로는 `CefDragData`가 범위에 들어올 때(`start_dragging`) 확인할 수 있습니다.
+- 다른 크기가 둘인 포인터(`CefV8Value::CreateArrayBuffer` 등)는 일부러 제외합니다([바이트열과 시간](bytes-and-times.md)).
 
 ## 관련 페이지
 

@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 53개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 583개 가운데 535개가 생성되고 48개가 제외되며, 함수 3개를 더해 538개입니다.
+범위(`scope.py`)는 클래스 55개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 600개 가운데 557개가 생성되고 43개가 제외되며, 함수 3개를 더해 560개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ updated: 2026-10-08
 | `CefCallback` | 라이브러리 | 2/2 | |
 | `CefResourceReadCallback` | 라이브러리 | 1/1 | |
 | `CefResourceSkipCallback` | 라이브러리 | 1/1 | |
-| `CefRequest` | 라이브러리 | 18/23 | `CefPostData`가 범위 밖(3), 헤더 맵(멀티맵) 2 |
+| `CefRequest` | 라이브러리 | 20/23 | 헤더 맵(멀티맵) 2, `set`의 `CefPostData` 아닌 인자 1 |
 | `CefResponse` | 라이브러리 | 16/18 | 헤더 맵(멀티맵) 2 |
 | `CefFrame` | 라이브러리 | 21/26 | `CefStringVisitor`(2), `CefV8Context`, `CefDOMVisitor`, `CefURLRequest`가 범위 밖(5) |
 | `CefBrowser` | 라이브러리 | 21/21 | |
@@ -39,7 +39,8 @@ updated: 2026-10-08
 | `CefValue` | 라이브러리 | 23/23 | |
 | `CefListValue` | 라이브러리 | 29/29 | |
 | `CefDictionaryValue` | 라이브러리 | 30/30 | |
-| `CefStreamReader`, `CefStreamWriter`, `CefZipReader` | 라이브러리 | 8/8, 7/7, 12/13 | `CefZipReader.get_file_last_modified`(`CefBaseTime`). [스트림과 ZIP 읽기](streams.md) |
+| `CefStreamReader`, `CefStreamWriter`, `CefZipReader` | 라이브러리 | 8/8, 7/7, 13/13 | [스트림과 ZIP 읽기](streams.md) |
+| `CefPostData`, `CefPostDataElement` | 라이브러리 | 8/8, 9/9 | 본문이 바이트열이면 `set_to_bytes`/`get_bytes` |
 | `CefReadHandler`, `CefWriteHandler` | 핸들러 | 5/5씩 | |
 | `CefBinaryValue` | 라이브러리 | 8/9 | 타입 없는 포인터 1(`get_raw_data`, 일부러 열지 않음) |
 | `CefDragHandler` | 핸들러 | 1/2 | 범위 밖 클래스 `CefDragData`(`on_drag_enter`) |
@@ -54,29 +55,28 @@ updated: 2026-10-08
 | `CefRequestHandler` | 핸들러 | 10/11 | 범위 밖 클래스 `CefX509Certificate`(`on_select_client_certificate`) |
 | `CefResourceRequestHandler` | 핸들러 | 6/8 | 범위 밖 클래스 `CefCookieAccessFilter`(`get_cookie_access_filter`, 쿠키 구조체), `CefResponseFilter`(`get_resource_response_filter`) |
 | `CefAuthCallback`, `CefSSLInfo`, `CefUnresponsiveProcessCallback` | 라이브러리 | 2/2, 1/2, 2/2 | `CefSSLInfo.get_x509_certificate`(범위 밖 `CefX509Certificate`) |
-| `CefDownloadItem` | 라이브러리 | 18/20 | 값 타입 `CefBaseTime`(`get_start_time`, `get_end_time`) |
+| `CefDownloadItem` | 라이브러리 | 20/20 | 시간은 `datetime`(`get_start_time`, `get_end_time`) |
 
-제외된 48개의 사유는 범위 밖 클래스 28, 구조체 `cef_window_info_t` 5, 멀티맵 4, 값 타입 `CefWindowHandle` 2와 `CefBaseTime` 3, 구조체 `cef_pdf_print_settings_t`와 `cef_task_info_t` 각 1, 값 타입 `CefCursorHandle`과 `CefAcceleratedPaintInfo` 각 1, 타입 없는 포인터 1(`get_raw_data`), 클라이언트 객체 반환 1입니다. 범위 밖 클래스 가운데 5개는 `CefClient`가 돌려줄 다른 핸들러입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
+제외된 43개의 사유는 범위 밖 클래스 25, 구조체 `cef_window_info_t` 5, 멀티맵 5, 값 타입 `CefWindowHandle` 2, 구조체 `cef_pdf_print_settings_t`와 `cef_task_info_t` 각 1, 값 타입 `CefCursorHandle`과 `CefAcceleratedPaintInfo` 각 1, 일부러 제외한 포인터 1(`get_raw_data`), 클라이언트 객체 반환 1입니다. 범위 밖 클래스 가운데 5개는 `CefClient`가 돌려줄 다른 핸들러입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
 
 ## 모든 클래스를 범위에 넣는다면
 
-보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,458개(91%)입니다. 지원을 넓힌 순서대로 81%(1,287), 85%(1,354, 값 타입 구조체와 문자열 벡터), 86%(1,373), 87%(1,398, 라이브러리 출력 인자), 89%(1,422, 벡터의 요소 종류 확대), 90%(1,432, 구조체 종류 확대), 90%(1,446, 바이트열), 91%(1,454, 구조체 반환과 `T*` 출력 인자)였습니다. 남은 장애물은 다음과 같습니다.
+보고서는 "모든 클래스를 범위에 넣었을 때 타입 지원만으로 어디까지 되는가"도 계산합니다. 154 헤더에서 메서드와 함수 1,598개 가운데 1,469개(92%)입니다. 지원을 넓힌 순서대로 81%(1,287), 85%(1,354, 값 타입 구조체와 문자열 벡터), 86%(1,373), 87%(1,398, 라이브러리 출력 인자), 89%(1,422, 벡터의 요소 종류 확대), 90%(1,432, 구조체 종류 확대), 90%(1,446, 바이트열), 91%(1,454, 구조체 반환과 `T*` 출력 인자)였습니다. 남은 장애물은 다음과 같습니다.
 
 | 개수 | 사유 | 대응 |
 | --- | --- | --- |
-| 34 | 값 타입(`CefKeyEvent`, `CefBaseTime`, `CefWindowHandle`, `CefTouchEvent` 등 평범한 데이터가 아닌 것) | 구조체 종류의 확장 |
 | 32 | 소유 포인터(`CefOwnPtr`) | 소유권 이전 규칙 |
-| 24 | 타입 없는 포인터(`void*` 단독 등) | |
-| 18 | C 구조체(`cef_*_t`: 설정, 쿠키, `cef_window_info_t` 등) | 구조체 종류의 확장 |
+| 19 | C 구조체(`cef_*_t`: 설정, 쿠키, `cef_window_info_t` 등) | 구조체 종류의 확장 |
+| 12 | 값 타입(`CefWindowHandle`, `CefCursorHandle`, `CefAcceleratedPaintInfo` 등 평범한 데이터가 아닌 것) | |
 | 11 | 라이브러리 메서드가 핸들러 객체를 반환 | |
 | 11 | 원시 포인터(`CefRawPtr`) | |
-| 9 | 벡터(요소가 `CefCompositionUnderline`처럼 평범하지 않은 구조체이거나 `CefRawPtr`) | 요소 종류 추가 |
-| 8 | 포인터 | |
-| 8 | 멀티맵 | |
+| 9 | 멀티맵 | |
+| 9 | `void*`: CEF나 V8이 소유하거나 CEF가 보관하는 메모리 | 일부러 제외하고 사유를 보고서에 적음 |
+| 8 | 벡터(요소가 평범하지 않거나 `CefRawPtr`) | 요소 종류 추가 |
 | 5 | `CefRefPtr` 참조(객체 참조 출력 인자) | 방향 규칙 |
 | 4 | 라이브러리 메서드에 주는 객체 목록(`CefV8Value` 목록 등) | 입력 방향 추가 |
 | 4 | 맵 | |
-| 5 | 핸들러 메서드가 구조체를 값으로 반환(`CefSize` 4, `CefRect` 1) | 반환 규칙 |
+| 2 | 다른 포인터(`char* const*`의 `argv`, `float**`의 오디오 채널) | |
 | 2 | 클래스 | |
 | 1 | 핸들러 메서드가 라이브러리 객체를 반환 | |
 

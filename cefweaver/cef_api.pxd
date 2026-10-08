@@ -83,6 +83,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_pointer_type_t:
         pass
+    ctypedef enum cef_postdataelement_type_t:
+        pass
     ctypedef enum cef_process_id_t:
         pass
     ctypedef enum cef_quick_menu_edit_state_flags_t:
@@ -113,6 +115,11 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_zoom_command_t:
         pass
+
+cdef extern from "include/internal/cef_time_wrappers.h":
+    cdef cppclass CefBaseTime:
+        int64_t val
+        CefBaseTime()
 
 # Value type structs (plain data, copied to and from Python named tuples)
 cdef extern from "include/internal/cef_types_wrappers.h":
@@ -265,6 +272,10 @@ cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
+cdef extern from "include/cef_request.h":
+    cdef cppclass CefPostData(CefBaseRefCounted)
+cdef extern from "include/cef_request.h":
+    cdef cppclass CefPostDataElement(CefBaseRefCounted)
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_print_handler.h":
@@ -551,6 +562,8 @@ cdef extern from "include/cef_download_item.h":
         int GetPercentComplete() nogil
         int64_t GetTotalBytes() nogil
         int64_t GetReceivedBytes() nogil
+        CefBaseTime GetStartTime() nogil
+        CefBaseTime GetEndTime() nogil
         CefString GetFullPath() nogil
         uint32_t GetId() nogil
         CefString GetURL() nogil
@@ -692,6 +705,31 @@ cdef extern from "include/cef_menu_model.h":
         @staticmethod
         CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
 
+cdef extern from "include/cef_request.h":
+    cdef cppclass CefPostData(CefBaseRefCounted):
+        cpp_bool IsReadOnly() nogil
+        cpp_bool HasExcludedElements() nogil
+        size_t GetElementCount() nogil
+        void GetElements(vector[CefRefPtr[CefPostDataElement]]&) nogil
+        cpp_bool RemoveElement(CefRefPtr[CefPostDataElement]) nogil
+        cpp_bool AddElement(CefRefPtr[CefPostDataElement]) nogil
+        void RemoveElements() nogil
+        @staticmethod
+        CefRefPtr[CefPostData] Create() nogil
+
+cdef extern from "include/cef_request.h":
+    cdef cppclass CefPostDataElement(CefBaseRefCounted):
+        cpp_bool IsReadOnly() nogil
+        void SetToEmpty() nogil
+        void SetToFile(const CefString&) nogil
+        void SetToBytes(size_t, const void*) nogil
+        cef_postdataelement_type_t GetType() nogil
+        CefString GetFile() nogil
+        size_t GetBytesCount() nogil
+        size_t GetBytes(size_t, void*) nogil
+        @staticmethod
+        CefRefPtr[CefPostDataElement] Create() nogil
+
 cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintDialogCallback(CefBaseRefCounted):
         void Continue(CefRefPtr[CefPrintSettings]) nogil
@@ -748,6 +786,8 @@ cdef extern from "include/cef_request.h":
         void SetReferrer(const CefString&, cef_referrer_policy_t) nogil
         CefString GetReferrerURL() nogil
         cef_referrer_policy_t GetReferrerPolicy() nogil
+        CefRefPtr[CefPostData] GetPostData() nogil
+        void SetPostData(CefRefPtr[CefPostData]) nogil
         CefString GetHeaderByName(const CefString&) nogil
         void SetHeaderByName(const CefString&, const CefString&, cpp_bool) nogil
         int GetFlags() nogil
@@ -877,6 +917,7 @@ cdef extern from "include/cef_zip_reader.h":
         cpp_bool Close() nogil
         CefString GetFileName() nogil
         int64_t GetFileSize() nogil
+        CefBaseTime GetFileLastModified() nogil
         cpp_bool OpenFile(const CefString&) nogil
         cpp_bool CloseFile() nogil
         int ReadFile(void*, size_t) nogil

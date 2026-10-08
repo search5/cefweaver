@@ -17,7 +17,7 @@ from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -128,7 +128,10 @@ def _cy_method_signature(plan):
         kind = param.kind
         ref = "&" if param.out else ""  # an output parameter of a library method
         if isinstance(kind, Bytes):
-            args += ["const void*" if param.const and not param.out else "void*", cy_c(kind.size_cpp)]
+            pair = ["const void*" if param.const and not param.out else "void*", cy_c(kind.size_cpp)]
+            args += pair[::-1] if kind.size_first else pair
+        elif isinstance(kind, Time):
+            args.append("CefBaseTime")
         elif isinstance(kind, ItemBytes):
             args += ["void*" if param.out else "const void*", cy_c(kind.size_cpp),
                      cy_c(kind.size_cpp)]
@@ -155,6 +158,8 @@ def _cy_method_signature(plan):
         rtype = cy_c(ret.cpp)
     elif isinstance(ret, Enum):
         rtype = ret.cname
+    elif isinstance(ret, Time):
+        rtype = "CefBaseTime"
     elif isinstance(ret, Str):
         rtype = "CefString"
     elif isinstance(ret, Struct):
@@ -216,6 +221,8 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         out += ["    ctypedef enum %s:" % e + "\n        pass" for e in enums]
         out.append("")
 
+    out += ['cdef extern from "include/internal/cef_time_wrappers.h":',
+            "    cdef cppclass CefBaseTime:", "        int64_t val", "        CefBaseTime()", ""]
     if structs:
         out.append("# Value type structs (plain data, copied to and from Python named tuples)")
         out.append('cdef extern from "include/internal/cef_types_wrappers.h":')
@@ -298,6 +305,7 @@ from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
 import sys as _sys
+from datetime import datetime as _datetime, timedelta as _timedelta, timezone as _timezone
 from cefweaver import types as _types
 from libc.string cimport strcmp as _strcmp
 
@@ -320,6 +328,24 @@ cdef string _g_std(object value) except *:
 cdef CefString _g_cef(object value) except *:
     cdef string s = _g_std(value)
     return CefString(s)
+
+
+# CefBaseTime: microseconds since 1601-01-01 UTC (cef_time.h); 0 is the null time.
+cdef object _EPOCH_1601 = _datetime(1601, 1, 1, tzinfo=_timezone.utc)
+
+
+cdef object _g_from_basetime(int64_t value):
+    if value == 0:
+        return None
+    return _EPOCH_1601 + _timedelta(microseconds=value)
+
+
+cdef int64_t _g_to_basetime(object when) except? -1:
+    if when is None:
+        return 0
+    if when.tzinfo is None:  # a naive datetime is taken as UTC
+        when = when.replace(tzinfo=_timezone.utc)
+    return (when - _EPOCH_1601) // _timedelta(microseconds=1)
 
 
 cdef object _g_str(const CefString& value):
@@ -457,6 +483,8 @@ def _annotation(kind):
         return kind.py or "int"
     if isinstance(kind, Str):
         return "str"
+    if isinstance(kind, Time):
+        return "datetime.datetime | None"
     if isinstance(kind, (LibRef, ClientRef, Struct)):
         return py_class_name(kind.cls)
     if isinstance(kind, Vector):
@@ -518,7 +546,7 @@ def _library_method(plan, owner_py):
                 decls += ["cdef bytes _b%d" % i, "cdef char* _c%d" % i]
                 pre += ["_b%d = PyBytes_FromStringAndSize(NULL, %s)" % (i, size),
                         "_c%d = _b%d" % (i, i)]  # the pointer is taken before `nogil`
-                call_args += ["<void*>_c%d" % i, size]
+                call_args += [size, "<void*>_c%d" % i] if kind.size_first else ["<void*>_c%d" % i, size]
             else:
                 # Any bytes-like object; the memoryview keeps it alive during the call.
                 sig.append(n)
@@ -530,7 +558,8 @@ def _library_method(plan, owner_py):
                         "_v%d = %s" % (i, n), "_n%d = _v%d.shape[0]" % (i, i),
                         "if _n%d:" % i, "    _a%d = &_v%d[0]" % (i, i)]
                 # CEF copies what a non-const `void*` points to (CreateForData); it is not written
-                call_args += ["_a%d" % i if param.const else "<void*>_a%d" % i, "_n%d" % i]
+                pointer = "_a%d" % i if param.const else "<void*>_a%d" % i
+                call_args += ["_n%d" % i, pointer] if kind.size_first else [pointer, "_n%d" % i]
             continue
         if param.out:
             # An output parameter of a library method: a local that is returned to Python
@@ -560,6 +589,11 @@ def _library_method(plan, owner_py):
         elif isinstance(kind, Prim):
             sig.append("%s %s" % (cy_arg(kind.cpp), n))
             call_args.append(n)
+        elif isinstance(kind, Time):
+            sig.append(n)
+            decls.append("cdef CefBaseTime _a%d" % i)
+            pre.append("_a%d.val = _g_to_basetime(%s)" % (i, n))
+            call_args.append("_a%d" % i)
         elif isinstance(kind, Enum):
             sig.append("int %s" % n)
             call_args.append("<%s>%s" % (kind.cname, n))
@@ -612,6 +646,8 @@ def _library_method(plan, owner_py):
         body.append(base + "cdef %s _r" % cy_c(ret.cpp))
     elif isinstance(ret, Enum):
         body.append(base + "cdef %s _r" % ret.cname)
+    elif isinstance(ret, Time):
+        body.append(base + "cdef CefBaseTime _r")
     elif isinstance(ret, Str):
         body.append(base + "cdef CefString _r")
     elif isinstance(ret, LibRef):
@@ -635,6 +671,8 @@ def _library_method(plan, owner_py):
         pass  # the return value is the length of the bytes
     elif isinstance(ret, Prim):
         values.append("_r")
+    elif isinstance(ret, Time):
+        values.append("_g_from_basetime(_r.val)")
     elif isinstance(ret, Enum):
         values.append("_g_enum(_types.%s, <int>_r)" % ret.py if ret.py else "<int>_r")
     elif isinstance(ret, Str):
@@ -704,6 +742,8 @@ def _trampoline(plan, cls_py):
         kind, n = param.kind, param.name
         if isinstance(kind, Prim):
             py_args.append(n)
+        elif isinstance(kind, Time):
+            py_args.append("_g_from_basetime(%s)" % n)
         elif isinstance(kind, Enum):
             py_args.append("_g_enum(_types.%s, %s)" % (kind.py, n) if kind.py else n)
         elif isinstance(kind, Str):

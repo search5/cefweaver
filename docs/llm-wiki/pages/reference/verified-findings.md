@@ -176,6 +176,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
   - ZIP의 첫 파일을 열어 100바이트씩 읽으면 앞부분과 나머지가 맞고 끝에서 `b""`입니다. 열린 파일이 없는데 읽으면 CEF가 -1을 돌려주어 `RuntimeError`입니다.
 - **영향**: 앞서 제외한 `CefStreamWriter::Write` 같은 "크기 인자가 둘인" 경우가 표로 열렸습니다([스트림과 ZIP 읽기](streams.md)).
 
+## F45. 시간(`datetime`)과 `void*` 표
+
+- **방법**: 시간을 돌려주는 CEF 메서드와 PostData를 시험하고, 범위 밖 핸들러까지 포함한 넓은 범위로 프록시를 컴파일했습니다.
+- **결과**:
+  - `ZipReader.get_file_last_modified()`가 시간대가 있는 `datetime`을 돌려주고 ZIP에 적은 2020-01-02 12:00과 하루 이내로 맞습니다. 다운로드의 `get_start_time()`은 현재 시각과 2분 안이고 `get_end_time() >= get_start_time()`입니다.
+  - `PostDataElement.set_to_bytes`/`get_bytes`, `PostData`, `Request.set_post_data`/`get_post_data`가 `\x00\xff`를 포함한 바이트열을 왕복합니다.
+- **발견(잠재 결함, 수정)**: 범위 밖 핸들러의 `const void*`(`DevToolsMessageObserver.on_dev_tools_message`, `ServerHandler.on_web_socket_message`, `URLRequestClient.on_download_data`, `MediaObserver`)가 const 없는 `void*`로 선언되어 있어서 범위에 넣으면 헤더와 맞지 않아 컴파일이 깨질 계획이었습니다. const를 지키고 읽기 전용 `memoryview`로 바꿨고, 범위 밖 핸들러 다섯을 넣은 넓은 범위의 프록시를 컴파일하는 시험을 더했습니다.
+- **java-cef와의 비교**(소스 확인): 날짜는 `java.util.Date`로 바꾸는 한 방향이고 밀리초로 줄입니다. 스트림은 드래그 데이터의 `GetFileContents`용 `WriteHandler` 하나뿐입니다.
+- **영향**: 열린 메서드가 늘었고(타입 지원 92%) `void*` 때문에 막힌 것은 일부러 제외한 9개로 줄었습니다([바이트열과 시간](bytes-and-times.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

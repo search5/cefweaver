@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -129,7 +129,7 @@ class WithHeaders(unittest.TestCase):
         # size; any other `void*` says why it is not generated.
         plan = self.plan_in(self.everything, "CefV8Value", "CreateArrayBuffer")
         self.assertFalse(plan.supported)
-        self.assertIn("pointer", plan.reason)
+        self.assertIn("V8", plan.reason)  # a reason in words, not "untyped pointer"
 
     def test_the_stub_shows_bytes(self):
         stub = self.generated("pyi")
@@ -247,6 +247,103 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("def read(self, ptr: memoryview, size: int) -> int:", stub)
         self.assertIn("def write(self, ptr: memoryview, size: int) -> int:", stub)
 
+    def test_a_time_is_a_datetime(self):
+        # CefBaseTime is microseconds since 1601 in UTC (cef_time.h): a timezone-aware datetime.
+        plan = self.plan("CefZipReader", "GetFileLastModified")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.ret, Time)
+        for name in ("GetStartTime", "GetEndTime"):
+            plan = self.plan("CefDownloadItem", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        plan = self.plan_in(self.everything, "CefV8Value", "CreateDate")  # a time given to CEF
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, Time)
+        stub = self.generated("pyi")
+        self.assertIn("def get_file_last_modified(self) -> datetime.datetime | None:", stub)
+        self.assertIn("import datetime", stub)
+
+    def test_the_post_data_bytes_have_their_own_order_of_size_and_pointer(self):
+        # SetToBytes(size_t size, const void* bytes) and GetBytes(size_t size, void* bytes).
+        for name in ("CefPostData", "CefPostDataElement"):
+            self.assertTrue(self.scope.is_library(name), name)
+        plan = self.plan("CefPostDataElement", "SetToBytes")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, Bytes)
+        self.assertEqual([p.name for p in plan.ins], ["bytes"])
+        plan = self.plan("CefPostDataElement", "GetBytes")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertTrue(plan.params[0].out or plan.params[1].out)
+        for name in ("GetPostData", "SetPostData"):
+            plan = self.plan("CefRequest", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        stub = self.generated("pyi")
+        self.assertIn("def set_to_bytes(self, bytes: bytes | bytearray | memoryview) -> None:", stub)
+        self.assertIn("def get_bytes(self, size: int) -> bytes:", stub)
+
+    def test_the_array_buffer_with_a_copy_takes_bytes(self):
+        plan = self.plan_in(self.everything, "CefV8Value", "CreateArrayBufferWithCopy")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[0].kind, Bytes)
+
+    def test_every_pointer_to_void_is_generated_or_says_why(self):
+        # A `void*` the tables do not know is not left as "untyped pointer": the ones that stay
+        # out are pointers into memory that CEF or V8 owns (or that CEF keeps), each with its
+        # reason. Methods out for another type (a multimap) are not about the pointer.
+        deliberate = {
+            "CefBinaryValue::GetRawData", "CefSharedMemoryRegion::Memory",
+            "CefSharedProcessMessageBuilder::Memory", "CefV8BackingStore::Data",
+            "CefV8Value::GetArrayBufferData", "CefV8Value::CreateArrayBuffer",
+            "CefV8ArrayBufferReleaseCallback::ReleaseBuffer",
+            "CefResourceBundleHandler::GetDataResource",
+            "CefResourceBundleHandler::GetDataResourceForScale",
+        }
+        out = {}
+        for name, cls in sorted(self.model.classes.items()):
+            for method in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs()):
+                plan = self.plan_method(self.model, self.everything, name, method,
+                                        client_side=cls.is_client_side())
+                types = [method.get_retval().get_type()] + [x.get_type() for x in method.get_arguments()]
+                if (any(t.get_type() == "void" and t.is_byaddr() for t in types)
+                        or "%s::%s" % (name, plan.cef_name) in deliberate) and not plan.supported:
+                    out["%s::%s" % (name, plan.cef_name)] = plan.reason
+        self.assertTrue(deliberate <= set(out), deliberate - set(out))
+        for name, reason in out.items():
+            for generic in ("untyped pointer", "pointer to void", "struct-like value type void"):
+                self.assertNotIn(generic, reason, name)
+            if name in deliberate:
+                self.assertGreater(len(reason), 40, name)  # a sentence, not a type name
+
+    def test_the_proxies_of_the_handlers_with_buffers_compile_in_a_wide_scope(self):
+        # Handlers outside the scope that take a `const void*` (DevTools messages, WebSocket
+        # data, downloaded data, response filters): a const pointer is declared const and read
+        # only, which a header check of the current scope alone would not show.
+        import emit_cpp
+        import scope as scope_module
+        wide = scope_module.Scope(
+            self.model, scope_module.LIBRARY_CLASSES,
+            scope_module.CLIENT_CLASSES + ["CefDevToolsMessageObserver", "CefMediaObserver",
+                                           "CefServerHandler", "CefURLRequestClient",
+                                           "CefResponseFilter"], [])
+        plans = {}
+        for cls in wide.library_classes + wide.client_classes:
+            side = cls.is_client_side()
+            plans[cls.get_name()] = (
+                [self.plan_method(self.model, wide, cls.get_name(), m, client_side=side)
+                 for m in cls.get_virtual_funcs()])
+        text = emit_cpp.emit(self.model, wide, plans, "test")
+        self.assertIn("const void* message", text)  # OnDevToolsMessage keeps its const
+        with tempfile.TemporaryDirectory() as tmp:
+            header = os.path.join(tmp, "wide_proxies.h")
+            with open(header, "w", encoding="utf-8") as f:
+                f.write(text)
+            path = os.path.join(tmp, "wide.cc")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write('#include "wide_proxies.h"\n')
+            result = subprocess.run(
+                ["c++", "-std=c++20", "-fsyntax-only", "-I" + CEF_ROOT, "-I" + tmp, path],
+                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr[-3000:])
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
@@ -268,9 +365,11 @@ class WithHeaders(unittest.TestCase):
         plan = self.plan("CefRequest", "GetHeaderMap")
         self.assertFalse(plan.supported)
         self.assertIn("multimap", plan.reason)
-        plan = self.plan("CefRequest", "GetPostData")
+        plan = self.plan("CefDownloadItem", "GetSuggestedFileName")
+        self.assertTrue(plan.supported, plan.reason)
+        plan = self.plan("CefBrowserHost", "GetNavigationEntries")
         self.assertFalse(plan.supported)
-        self.assertIn("CefPostData is not generated yet", plan.reason)
+        self.assertIn("CefNavigationEntryVisitor is not generated yet", plan.reason)
 
     def test_pure_virtual_methods_are_detected(self):
         cls = self.model.classes["CefResourceHandler"]

@@ -156,3 +156,7 @@
 ## [2026-10-08] ingest | 스트림과 ZIP 읽기 (크기가 둘인 포인터)
 
 - 사용자의 질문("크기 인자가 둘인 경우는 왜 제외하는가")에 따라 `ItemBytes`를 더했습니다. `CefStreamReader`, `CefStreamWriter`, `CefZipReader`, `CefReadHandler`, `CefWriteHandler`를 범위에 넣고 `ptr, size, n` 규약을 `read(n, size=1)`, `write(data, size=1)`로 엽니다. `ReadFile`의 음수는 `RuntimeError`, 핸들러의 반환값은 `n`으로 제한합니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 185개가 통과합니다. F44. 새 페이지 [스트림과 ZIP 읽기](pages/reference/streams.md).
+
+## [2026-10-08] ingest | 시간(datetime)과 void* 표 완성
+
+- 사용자의 요청(`GetFileLastModified`도 생성, 표에 없는 `void*`도 표로, 스트림의 CEF 내부 경로를 java-cef는 어떻게 하는지)에 따라 `Time` 종류(`CefBaseTime` → `datetime`), `BYTES_SIZE_FIRST`(`PostDataElement`), 복사하는 V8 배열, 의도적 제외 사유(`DELIBERATE_POINTERS`)를 더했습니다. `CefPostData`와 `CefPostDataElement`를 범위에 넣었습니다. 핸들러의 `const void*`가 const 없이 선언되던 잠재 결함도 고쳤습니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 191개가 통과합니다. F45. 새 페이지 [바이트열과 시간](pages/reference/bytes-and-times.md).

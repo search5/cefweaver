@@ -373,15 +373,20 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual(sink.parts, [(b"xyz", 1), (b"1234", 2)])
 
     def test_a_zip_reader_reads_a_file_of_the_archive(self):
-        import tempfile, os, zipfile
+        import datetime, tempfile, os, zipfile
         path = os.path.join(tempfile.mkdtemp(), "a.zip")
         with zipfile.ZipFile(path, "w") as archive:
-            archive.writestr("first.txt", "one" * 100)
+            first = zipfile.ZipInfo("first.txt", date_time=(2020, 1, 2, 12, 0, 0))
+            archive.writestr(first, "one" * 100)
             archive.writestr("second.txt", "two")
         zip_reader = cefweaver.ZipReader.create(cefweaver.StreamReader.create_for_file(path))
         self.assertTrue(zip_reader.move_to_first_file())
         self.assertEqual(zip_reader.get_file_name(), "first.txt")
         self.assertEqual(zip_reader.get_file_size(), 300)
+        modified = zip_reader.get_file_last_modified()     # a datetime in UTC (the zip has no zone)
+        self.assertIsNotNone(modified.tzinfo)
+        self.assertLess(abs((modified - datetime.datetime(2020, 1, 2, 12, tzinfo=datetime.timezone.utc))
+                            .total_seconds()), 24 * 3600)
         self.assertTrue(zip_reader.open_file(""))
         self.assertEqual(zip_reader.read_file(100), b"one" * 33 + b"o")  # a part of the file
         self.assertEqual(zip_reader.read_file(1000), b"ne" + b"one" * 66)  # the rest
@@ -392,6 +397,25 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertFalse(zip_reader.move_to_next_file())
         with self.assertRaises(RuntimeError):
             zip_reader.read_file(10)                              # no file is open: CEF reports -1
+
+    def test_a_request_carries_post_data_made_of_bytes(self):
+        element = cefweaver.PostDataElement.create()
+        element.set_to_bytes(b"name=value&n=\x00\xff")
+        self.assertEqual(element.get_bytes_count(), 15)
+        self.assertEqual(element.get_bytes(15), b"name=value&n=\x00\xff")
+        self.assertEqual(element.get_bytes(4), b"name")             # a part
+        self.assertEqual(element.get_bytes(100), b"name=value&n=\x00\xff")  # no more than it has
+        for bad in ("text", None, 5):
+            with self.assertRaises(TypeError):
+                element.set_to_bytes(bad)
+        data = cefweaver.PostData.create()
+        self.assertTrue(data.add_element(element))
+        request = cefweaver.Request.create()
+        request.set_url("http://example.test/")
+        request.set_post_data(data)
+        elements = request.get_post_data().get_elements()
+        self.assertEqual(len(elements), 1)
+        self.assertEqual(elements[0].get_bytes(15), b"name=value&n=\x00\xff")
 
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
@@ -2119,7 +2143,7 @@ class WithCef(unittest.TestCase):
             import os, tempfile
             folder = tempfile.mkdtemp()
             target = os.path.join(folder, "saved.txt")
-            began, updates = [], []
+            began, updates, times = [], [], []
             class Downloads(cefweaver.DownloadHandler):
                 def on_before_download(self, browser, download_item, suggested_name, callback):
                     began.append((suggested_name, download_item.get_url()))
@@ -2127,6 +2151,7 @@ class WithCef(unittest.TestCase):
                     return True
                 def on_download_updated(self, browser, download_item, callback):
                     updates.append((download_item.is_complete(), download_item.get_received_bytes()))
+                    times.append((download_item.get_start_time(), download_item.get_end_time()))
             handlers["download"] = Downloads()
             start(RED)
             app.add_resource("http://files.test/a.bin", b"0123456789", mime_type="application/octet-stream",
@@ -2136,6 +2161,11 @@ class WithCef(unittest.TestCase):
             assert began == [("named.txt", "http://files.test/a.bin")], began
             assert updates[-1] == (True, 10), updates
             assert open(target, "rb").read() == b"0123456789"
+            import datetime
+            start, end = times[-1]                    # UTC datetimes with a time zone
+            now = datetime.datetime.now(datetime.timezone.utc)
+            assert start.tzinfo is not None and abs((now - start).total_seconds()) < 120, start
+            assert end >= start, (start, end)
             app.shutdown()
             print("OK")
         """)

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
@@ -109,6 +110,7 @@ from .types import (
     MenuItemType,
     MouseButtonType,
     PaintElementType,
+    PostdataelementType,
     ProcessId,
     QuickMenuEditStateFlags,
     ReferrerPolicy,
@@ -1181,6 +1183,12 @@ class DownloadItem:
     def get_received_bytes(self) -> int:
         """Returns the number of received bytes."""
         ...
+    def get_start_time(self) -> datetime.datetime | None:
+        """Returns the time that the download started."""
+        ...
+    def get_end_time(self) -> datetime.datetime | None:
+        """Returns the time that the download ended."""
+        ...
     def get_full_path(self) -> str:
         """Returns the full path to the downloaded or downloading file."""
         ...
@@ -1755,6 +1763,81 @@ class MenuModel:
         ...
 
 
+class PostData:
+    """Class used to represent post data for a web request. The methods of this
+    class may be called on any thread.
+    """
+    def is_read_only(self) -> bool:
+        """Returns true if this object is read-only."""
+        ...
+    def has_excluded_elements(self) -> bool:
+        """Returns true if the underlying POST data includes elements that are not
+        represented by this CefPostData object (for example, multi-part file
+        upload data). Modifying CefPostData objects with excluded elements may
+        result in the request failing.
+        """
+        ...
+    def get_element_count(self) -> int:
+        """Returns the number of existing post data elements."""
+        ...
+    def get_elements(self) -> list[PostDataElement]:
+        """Retrieve the post data elements."""
+        ...
+    def remove_element(self, element: PostDataElement) -> bool:
+        """Remove the specified post data element.  Returns true if the removal
+        succeeds.
+        """
+        ...
+    def add_element(self, element: PostDataElement) -> bool:
+        """Add the specified post data element.  Returns true if the add succeeds."""
+        ...
+    def remove_elements(self) -> None:
+        """Remove all existing post data elements."""
+        ...
+    @staticmethod
+    def create() -> PostData:
+        """Create a new CefPostData object."""
+        ...
+
+
+class PostDataElement:
+    """Class used to represent a single element in the request post data. The
+    methods of this class may be called on any thread.
+    """
+    def is_read_only(self) -> bool:
+        """Returns true if this object is read-only."""
+        ...
+    def set_to_empty(self) -> None:
+        """Remove all contents from the post data element."""
+        ...
+    def set_to_file(self, file_name: str) -> None:
+        """The post data element will represent a file."""
+        ...
+    def set_to_bytes(self, bytes: bytes | bytearray | memoryview) -> None:
+        """The post data element will represent bytes.  The bytes passed
+        in will be copied.
+        """
+        ...
+    def get_type(self) -> PostdataelementType:
+        """Return the type of this post data element."""
+        ...
+    def get_file(self) -> str:
+        """Return the file name."""
+        ...
+    def get_bytes_count(self) -> int:
+        """Return the number of bytes."""
+        ...
+    def get_bytes(self, size: int) -> bytes:
+        """Read up to |size| bytes into |bytes| and return the number of bytes
+        actually read.
+        """
+        ...
+    @staticmethod
+    def create() -> PostDataElement:
+        """Create a new CefPostDataElement object."""
+        ...
+
+
 class PrintDialogCallback:
     """Callback interface for asynchronous continuation of print dialog requests."""
     def continue_(self, settings: PrintSettings) -> None:
@@ -1916,6 +1999,12 @@ class Request:
         ...
     def get_referrer_policy(self) -> ReferrerPolicy:
         """Get the referrer policy."""
+        ...
+    def get_post_data(self) -> PostData | None:
+        """Get the post data."""
+        ...
+    def set_post_data(self, post_data: PostData) -> None:
+        """Set the post data."""
         ...
     def get_header_by_name(self, name: str) -> str:
         """Returns the first header value for |name| or an empty string if not found.
@@ -2373,6 +2462,9 @@ class ZipReader:
         ...
     def get_file_size(self) -> int:
         """Returns the uncompressed size of the file."""
+        ...
+    def get_file_last_modified(self) -> datetime.datetime | None:
+        """Returns the last modified timestamp for the file."""
         ...
     def open_file(self, password: str | None) -> bool:
         """Opens the file for reading of uncompressed data. A read password may

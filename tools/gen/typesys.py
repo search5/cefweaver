@@ -97,6 +97,12 @@ class Buffer(Kind):
 
 
 @dataclass(frozen=True)
+class Time(Kind):
+    """`CefBaseTime`: microseconds since 1601-01-01 UTC (cef_time.h). A timezone-aware
+    `datetime` in Python; 0, CEF's null time, is None."""
+
+
+@dataclass(frozen=True)
 class Ignored(Kind):
     """A parameter of a handler method that is not given to Python: the platform's native
     event (`CefEventHandle`, an XEvent* on Linux). java-cef does not pass it either."""
@@ -110,6 +116,7 @@ class Bytes(Kind):
     bytes written, only trims them)."""
 
     size_cpp: str  # type of the size parameter
+    size_first: bool = False  # `size_t size, const void* bytes` (CefPostDataElement)
 
 
 @dataclass(frozen=True)
@@ -176,6 +183,8 @@ def classify(model, scope, analysis):
             return Prim(spelled, _PRIMITIVES[spelled])
         if spelled in model.structs:
             return Struct(spelled, model.structs[spelled].fields)
+        if spelled == "CefBaseTime":
+            return Time()
         raise Unsupported("struct-like value type %s" % spelled)
 
     if result == "string":
@@ -293,13 +302,39 @@ CLAMPED_RETURNS = {("CefReadHandler", "Read"): "n", ("CefWriteHandler", "Write")
 # Library methods with `ptr, size, n` (fread/fwrite): "in" copies bytes in, "out" fills them.
 ITEM_BYTES = {("CefStreamWriter", "Write"): "in", ("CefStreamReader", "Read"): "out"}
 # A `void*` that CEF only reads and copies, though the header does not say const.
-BYTES_IN_COPY = {("CefStreamReader", "CreateForData", "data")}
+BYTES_IN_COPY = {("CefStreamReader", "CreateForData", "data"),
+                 ("CefV8Value", "CreateArrayBufferWithCopy", "buffer")}
 
 
 # Library methods that fill a buffer of the size the caller gives (and return how much they
 # wrote): (class, method) -> the buffer parameter. Others with a pointer and sizes
 # (CefStreamReader::Read: ptr, size, n) have a different meaning for each size.
 BYTES_OUT = {("CefBinaryValue", "GetData"): "buffer", ("CefZipReader", "ReadFile"): "buffer"}
+
+# Library methods in which the size comes before the pointer: (class, method) -> "in" or "out".
+BYTES_SIZE_FIRST = {("CefPostDataElement", "SetToBytes"): "in",
+                    ("CefPostDataElement", "GetBytes"): "out"}
+
+# Pointers that stay out, with the reason (shown in the coverage report): memory that CEF or V8
+# owns can be freed while a Python object still points to it, and memory that Python lends for
+# longer than a call needs it kept alive.
+_OWNED = "a pointer into memory that %s owns and can free while Python still holds it"
+DELIBERATE_POINTERS = {
+    ("CefBinaryValue", "GetRawData"): (_OWNED % "CEF") + " (get_data() copies the bytes)",
+    ("CefSharedMemoryRegion", "Memory"): _OWNED % "CEF's shared memory region",
+    ("CefSharedProcessMessageBuilder", "Memory"): _OWNED % "CEF's shared memory builder",
+    ("CefV8BackingStore", "Data"): _OWNED % "V8",
+    ("CefV8Value", "GetArrayBufferData"): _OWNED % "V8",
+    ("CefV8Value", "CreateArrayBuffer"):
+        "V8 would share this memory and free it through a callback, so Python's bytes cannot "
+        "be lent to it (CreateArrayBufferWithCopy copies)",
+    ("CefV8ArrayBufferReleaseCallback", "ReleaseBuffer"):
+        "the release of memory that V8 shared with the host (see CreateArrayBuffer)",
+    ("CefResourceBundleHandler", "GetDataResource"):
+        "CEF keeps the pointer the handler returns, so the bytes would have to outlive every use",
+    ("CefResourceBundleHandler", "GetDataResourceForScale"):
+        "CEF keeps the pointer the handler returns, so the bytes would have to outlive every use",
+}
 
 
 def plan_method(model, scope, owner, method, *, client_side, static=False):
@@ -313,6 +348,8 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
         const_method=method.is_const() if hasattr(method, "is_const") else False,
     )
     try:
+        if (owner, method.get_name()) in DELIBERATE_POINTERS:
+            raise Unsupported(DELIBERATE_POINTERS[(owner, method.get_name())])
         retval = method.get_retval().get_type()
         plan.ret = classify(model, scope, retval)
         plan.ret_spelled = retval.get_type()
@@ -325,6 +362,19 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             argument = arguments[i]
             analysis = argument.get_type()
             name = argument.get_name()
+            direction = BYTES_SIZE_FIRST.get((owner, method.get_name()))
+            if (direction and not client_side and i + 1 < len(arguments)
+                    and _is_size_t(model, scope, argument)
+                    and arguments[i + 1].get_type().get_type() == "void"
+                    and arguments[i + 1].get_type().is_byaddr()):
+                # `size_t size, void* bytes` -> bytes in or out, the size first
+                plan.params.append(ParamPlan(
+                    arguments[i + 1].get_name(), py_param_name(arguments[i + 1].get_name()),
+                    "void*", Bytes("size_t", size_first=True), out=direction == "out",
+                    const=direction == "in"))
+                plan.params[-1].size_name = name
+                i += 2
+                continue
             if analysis.get_type() == "void" and analysis.is_byaddr():
                 entry = SIZED_BUFFERS.get((owner, method.get_name(), name))
                 if client_side and entry:
@@ -371,7 +421,9 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                 if not isinstance(size, Prim) or size.py != "int":
                     raise Unsupported("untyped pointer parameter %s" % name)
                 plan.params.append(
-                    ParamPlan(name, py_param_name(name), "void*", Buffer(size.cpp)))
+                    ParamPlan(name, py_param_name(name), "void*",
+                              Buffer(size.cpp, readonly=analysis.is_const()),
+                              const=analysis.is_const()))
                 plan.params[-1].size_name = arguments[i + 1].get_name()
                 i += 2
                 continue
@@ -399,6 +451,8 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                     raise Unsupported("output parameter %s of a library method" % name)
                 if client_side and isinstance(kind, Vector):
                     raise Unsupported("output vector %s of a handler method" % name)
+                if isinstance(kind, Time):
+                    raise Unsupported("output parameter %s of type time" % name)
                 if isinstance(kind, (LibRef, ClientRef)):
                     raise Unsupported("output parameter %s of object type" % name)
             elif isinstance(kind, Vector) and not client_side and isinstance(kind.element, LibRef):
@@ -435,6 +489,8 @@ def _is_size_t(model, scope, argument):
 
 def _check_return(kind, client_side):
     if client_side:
+        if isinstance(kind, Time):
+            raise Unsupported("a client method returning a time")
         if isinstance(kind, LibRef):
             raise Unsupported("a client method returning a library object")
     else:

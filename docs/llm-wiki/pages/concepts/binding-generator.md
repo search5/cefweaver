@@ -54,6 +54,7 @@ report.py       커버리지 보고서
 | `ClientRef` | 생성 범위 안의 애플리케이션 구현 클래스의 `CefRefPtr<T>` | 핸들러 객체 |
 | `Struct` | 필드가 기본형, 열거형, 다른 구조체인 값 타입(`CefRect`, `CefPoint`, `CefMouseEvent`, `CefKeyEvent`, `CefScreenInfo` 등 15개) | 이름 있는 튜플(`Rect(x, y, width, height)`), 정의는 `cefweaver.types`. 받는 쪽에는 같은 필드의 튜플도 됩니다. |
 | `Vector` | `std::vector<T>`. 요소는 문자열, 숫자(`bool` 제외), 값 타입 구조체, 라이브러리 객체(`CefRefPtr<T>`, 출력과 핸들러 입력만) | `list[str]`, `list[int]`, `list[Rect]`, `list[Display]` (라이브러리에 주는 쪽은 아무 시퀀스) |
+| `Time` | `CefBaseTime`(1601년부터의 마이크로초) | 시간대가 있는 `datetime`(UTC), 0은 `None` ([바이트열과 시간](../reference/bytes-and-times.md)) |
 | `ItemBytes` | 라이브러리 메서드의 `void*`, `size_t size`, `size_t n`(`fread`/`fwrite`, `ITEM_BYTES` 표) | `write(data, size=1) -> int`, `read(n, size=1) -> bytes`. [스트림과 ZIP 읽기](../reference/streams.md) |
 | `Ignored` | 핸들러의 `CefEventHandle os_event`(Linux에서 `XEvent*`)처럼 Python에 넘기지 않는 인자(java-cef도 넘기지 않음) | 서명에서 빠짐 |
 | `Bytes` | 라이브러리 메서드의 `const void*`와 `size_t` 쌍(뒤에 크기가 또 있으면 제외), 또는 `BYTES_OUT` 표의 `void*`와 `size_t`(`BinaryValue.GetData`) | `bytes` 같은 바이트열 입력, 출력은 `get_data(size, offset) -> bytes` |

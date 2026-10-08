@@ -14,32 +14,38 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 538 methods/functions in 53 classes, 3 global functions
+Generated now: 560 methods/functions in 55 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    28  class
-     7  struct-like value type
+    25  class
      7  struct
-     4  multimap of values
-     1  pointer to
+     5  multimap of values
+     4  struct-like value type
+     1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  a library method returning a client object
-  ----  48 skipped
+  ----  43 skipped
 
-If every class were generated, the type support alone would cover 1458 of 1598 methods/functions (91%).
+If every class were generated, the type support alone would cover 1469 of 1598 methods/functions (92%).
 What blocks the rest, by type:
     32  ownptr pointer
-    22  struct-like value type
     19  struct
+    12  struct-like value type
     11  a library method returning a client object
     11  rawptr pointer
      9  multimap of values
      8  vector of values
-     7  pointer to
-     5  untyped pointer
      5  reference to a CefRefPtr
      4  vector of objects passed to a library method
      4  map of values
+     2  pointer to
+     2  CEF keeps the pointer the handler returns, so the bytes would have to outlive every use
+     2  a pointer into memory that V8 owns and can free while Python still holds it
      2  class
+     1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
+     1  a pointer into memory that CEF's shared memory region owns and can free while Python still holds it
+     1  a pointer into memory that CEF's shared memory builder owns and can free while Python still holds it
+     1  the release of memory that V8 shared with the host (see CreateArrayBuffer)
+     1  V8 would share this memory and free it through a callback, so Python's bytes cannot be lent to it (CreateArrayBufferWithCopy copies)
      1  a client method returning a library object
 
 Per class (supported/total methods, when every class is generated):
@@ -98,7 +104,7 @@ Per class (supported/total methods, when every class is generated):
   * CefDisplayHandler                      client   12/13 
   * CefDownloadHandler                     client    3/3  
     CefDownloadImageCallback               client    1/1  
-  * CefDownloadItem                        library  18/20 
+  * CefDownloadItem                        library  20/20 
   * CefDownloadItemCallback                library   3/3  
     CefDragData                            library  28/28 
   * CefDragHandler                         client    2/2  
@@ -129,15 +135,15 @@ Per class (supported/total methods, when every class is generated):
     CefMenuButtonDelegate                  client    1/1  
   * CefMenuModel                           library  57/57 
   * CefMenuModelDelegate                   client    7/7  
-    CefNavigationEntry                     library   9/10 
+    CefNavigationEntry                     library  10/10 
     CefNavigationEntryVisitor              client    1/1  
     CefOverlayController                   library  19/19 
     CefPanel                               library  13/13 
     CefPdfPrintCallback                    client    1/1  
     CefPermissionHandler                   client    3/3  
     CefPermissionPromptCallback            library   1/1  
-    CefPostData                            library   8/8  
-    CefPostDataElement                     library   7/9  
+  * CefPostData                            library   8/8  
+  * CefPostDataElement                     library   9/9  
     CefPreferenceManager                   library   9/9  
     CefPreferenceObserver                  client    1/1  
     CefPreferenceRegistrar                 library   1/1  
@@ -212,7 +218,7 @@ Per class (supported/total methods, when every class is generated):
     CefV8Interceptor                       client    2/4  
     CefV8StackFrame                        library   8/8  
     CefV8StackTrace                        library   4/4  
-    CefV8Value                             library  56/67 
+    CefV8Value                             library  59/67 
   * CefValue                               library  23/23 
     CefView                                library  51/52 
     CefViewDelegate                        client   11/11 
@@ -221,9 +227,9 @@ Per class (supported/total methods, when every class is generated):
     CefWindowDelegate                      client   21/23 
   * CefWriteHandler                        client    5/5  
     CefX509CertPrincipal                   library   7/7  
-    CefX509Certificate                     library   8/10 
+    CefX509Certificate                     library  10/10 
     CefXmlReader                           library  30/30 
-  * CefZipReader                           library  12/13 
+  * CefZipReader                           library  13/13 
   (* = generated now)
 ```
 
