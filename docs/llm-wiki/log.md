@@ -238,3 +238,7 @@
 ## [2026-10-08] query | cefpython과의 API 차이
 
 - cefpython의 API 문서 항목 459개를 스텁과 대조해 [cefpython과 cefweaver의 API 차이](pages/analyses/cefpython-comparison.md)에 저장했습니다.
+
+## [2026-10-08] ingest | root_cache_path와 창 배경색 확인
+
+- `Settings.root_cache_path`를 더해 java-cef의 `CefSettings` 20개를 모두 열었습니다. 창이 있는 브라우저의 배경색은 "픽셀을 읽을 수 없다"고 적었으나 시도하지 않은 것이었고, `XGetImage`로 읽어 확인했습니다(F58 정정).

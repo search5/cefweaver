@@ -2,7 +2,7 @@
 
 ``CefApp.settings`` is a ``Settings`` object. A field left at ``None`` is not given to CEF,
 which then uses its own default. The settings are read by ``CefApp.initialize()`` and cannot
-change afterwards. The cache and resources paths and the subprocess path have their own
+change afterwards. The cache path, the resources path and the subprocess path have their own
 ``CefApp`` methods (``set_cache_path()``, ``set_resources_path()``, ``set_subprocess_path()``),
 and the offscreen mode is ``CefApp.offscreen``.
 """
@@ -11,6 +11,7 @@ from . import types
 
 # name -> (kind, description); the kinds are "str", "bool", "int", "port", "color" and "severity"
 _FIELDS = {
+    "root_cache_path": ("str", "The directory of the profile data shared by the caches below it (CEF's ``root_cache_path``). ``set_cache_path()`` must name a directory within it; without that the cache is the root itself."),
     "user_agent": ("str", "The user agent string; it replaces the default one."),
     "user_agent_product": ("str", "The product token of the default user agent, e.g. ``Product/1.2``."),
     "locale": ("str", "The UI locale, e.g. ``ko`` (also the language of the pages)."),

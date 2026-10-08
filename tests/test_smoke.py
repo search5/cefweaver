@@ -122,13 +122,14 @@ class ApiWithoutCef(unittest.TestCase):
         app = cefweaver.CefApp()
         settings = app.settings
         self.assertIsInstance(settings, cefweaver.Settings)
-        names = ("user_agent", "user_agent_product", "locale", "log_file", "log_severity",
+        names = ("root_cache_path", "user_agent", "user_agent_product", "locale", "log_file", "log_severity",
                  "javascript_flags", "remote_debugging_port", "persist_session_cookies",
                  "command_line_args_disabled", "chrome_policy_id", "uncaught_exception_stack_size",
                  "background_color", "cookieable_schemes_list", "cookieable_schemes_exclude_defaults")
         for name in names:
             self.assertIsNone(getattr(settings, name), name)       # unset: CEF decides
         settings.user_agent = "Agent/1"
+        settings.root_cache_path = "/tmp/root"
         settings.log_severity = cefweaver.types.LogSeverity.WARNING
         settings.remote_debugging_port = 9222
         settings.persist_session_cookies = True
@@ -3437,6 +3438,63 @@ class WithCef(unittest.TestCase):
             app.shutdown()
             print("OK")
         """)
+
+    X11_PIXEL = """
+        import ctypes
+        x11 = ctypes.CDLL("libX11.so.6")
+        x11.XOpenDisplay.restype = ctypes.c_void_p
+        x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+        x11.XGetImage.restype = ctypes.c_void_p
+        x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                                  ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+        x11.XGetPixel.restype = ctypes.c_ulong
+        x11.XGetPixel.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+        x11_display = x11.XOpenDisplay(None)
+        def window_pixel(browser, x=20, y=20):
+            # the 0xRRGGBB colour at (x, y) of the window of a windowed browser, or None
+            window = browser.get_host().get_window_handle()
+            image = x11.XGetImage(x11_display, window, x, y, 1, 1, 0xFFFFFFFF, 2)   # ZPixmap
+            return x11.XGetPixel(image, 0, 0) if image else None
+    """
+
+    def test_the_background_color_fills_the_window_where_a_page_draws_none(self):
+        # the pixels of a window are read from the X server with Xlib
+        for color, expected in ((None, 0xFFFFFF), (0xFF00FF00, 0x00FF00)):
+            self.run_osr_script(prelude=self.X11_PIXEL, body="""
+                if %r is not None:
+                    app.settings.background_color = %r
+                app.set_client(MyClient())
+                app.initialize(page(""))
+                wait_until(app, lambda: boxes and app.is_ready_to_execute_javascript, "the page")
+                wait_until(app, lambda: window_pixel(boxes[0]) == %r, "the colour %x of the window")
+                app.shutdown()
+                print("OK")
+            """ % (color, color, expected, expected))
+
+    def test_the_root_cache_path_holds_the_profile_data_and_the_cache_path_lies_within(self):
+        import os
+        import tempfile as temporary
+        with temporary.TemporaryDirectory(prefix="cefweaver-root-") as root:
+            profile = os.path.join(root, "profile")
+            self.run_osr_script("""
+                app.settings.root_cache_path = %r
+                app.set_cache_path(%r)                       # within the root, as CEF requires
+                start(RED)
+                app.shutdown()
+                print("OK")
+            """ % (root, profile))
+            # CEF keeps the profile data (Local State, Default/) in the root; the cache path is made
+            self.assertTrue(os.path.isdir(profile), os.listdir(root))
+            self.assertTrue(os.path.exists(os.path.join(root, "Local State")), os.listdir(root))
+            self.assertTrue(os.path.isdir(os.path.join(root, "Default")), os.listdir(root))
+        with temporary.TemporaryDirectory(prefix="cefweaver-root-") as root:
+            self.run_osr_script("""
+                app.settings.root_cache_path = %r            # no cache path of its own: the root
+                start(RED)
+                app.shutdown()
+                print("OK")
+            """ % root)
+            self.assertTrue(os.path.exists(os.path.join(root, "Local State")), os.listdir(root))
 
     def test_the_settings_without_a_visible_effect_are_accepted_by_cef(self):
         # Their effect needs more than a page (a policy file, a JavaScript exception handler of the

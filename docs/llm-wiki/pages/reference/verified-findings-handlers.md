@@ -58,8 +58,8 @@ updated: 2026-10-08
   - `persist_session_cookies`: 캐시 디렉터리를 공유하는 두 프로세스에서 켜면 세션 쿠키가 다음 프로세스에 남고(쓰는 쪽은 `CookieManager.flush_store` 뒤 종료), 끄면 남지 않습니다.
   - `background_color`: 투명하지 않은 오프스크린 브라우저에서 문서가 그리지 않는 곳이 그 색이 됩니다(`0xFF00FF00`이 초록).
 - **효과를 확인하지 못한 것**: `chrome_policy_id`, `uncaught_exception_stack_size`, `command_line_args_disabled`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults`는 설정하고 CEF가 시작해 페이지가 동작하는 것만 확인했습니다(정책 파일, 렌더러의 예외 핸들러, 쿠키를 쓰는 사용자 스킴이 필요함).
-- **발견(CEF의 규칙)**: 오프스크린 브라우저는 브라우저 설정의 색 알파가 0이면 "투명하게 그린다"로 확정되어 `CefSettings.background_color`를 보지 않습니다(`CefContext::GetBackgroundColor`). java-cef도 투명하지 않을 때 브라우저 설정에 흰색을 넣습니다. 그래서 `CefApp.transparent`(기본 `True`, 지금까지의 동작)를 만들고, `False`이면 `settings.background_color`(알파 0xFF일 때) 또는 흰색을 브라우저 설정에 넣습니다. 창이 있는 브라우저는 전역 `background_color`가 그대로 쓰입니다(픽셀을 읽을 수 없어 확인하지 못함).
-- **설정에 없는 것**: `root_cache_path`는 `set_cache_path()`가 `cache_path`와 함께 정하므로 따로 두지 않았습니다(java-cef는 둘을 따로 정함).
+- **발견(CEF의 규칙)**: 오프스크린 브라우저는 브라우저 설정의 색 알파가 0이면 "투명하게 그린다"로 확정되어 `CefSettings.background_color`를 보지 않습니다(`CefContext::GetBackgroundColor`). java-cef도 투명하지 않을 때 브라우저 설정에 흰색을 넣습니다. 그래서 `CefApp.transparent`(기본 `True`, 지금까지의 동작)를 만들고, `False`이면 `settings.background_color`(알파 0xFF일 때) 또는 흰색을 브라우저 설정에 넣습니다. 창이 있는 브라우저는 전역 `background_color`가 그대로 쓰입니다. 창의 픽셀은 X 서버에서 `XGetImage`로 읽어 확인했습니다(`ctypes`로 `libX11`을 부름): 설정하지 않으면 `0xFFFFFF`, `0xFF00FF00`을 주면 `0x00FF00`입니다.
+- **`root_cache_path`**: 따로 정할 수 있습니다(java-cef와 같음). 정하면 프로필 데이터(`Local State`, `Default/`)가 그 아래에 생기고, `set_cache_path()`의 디렉터리는 만들어지기만 합니다(CEF가 프로필을 루트에 둠). `set_cache_path()`가 루트 안에 있지 않으면 CEF의 요구(캐시 경로는 루트이거나 그 안)에 맞추어 캐시 경로를 루트로 바꿉니다. 정하지 않으면 지금까지처럼 둘이 같습니다.
 
 ## F59. 버전 조회
 

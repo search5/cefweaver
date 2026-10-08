@@ -117,6 +117,7 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
     const std::string& name = entry.first;
     cef_string_t* target = name == "user_agent" ? &settings.user_agent
                         : name == "user_agent_product" ? &settings.user_agent_product
+                        : name == "root_cache_path" ? &settings.root_cache_path
                         : name == "locale" ? &settings.locale
                         : name == "log_file" ? &settings.log_file
                         : name == "javascript_flags" ? &settings.javascript_flags
@@ -125,6 +126,18 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
                                                             : nullptr;
     if (target) {
       cef_string_utf8_to_utf16(entry.second.c_str(), entry.second.size(), target);
+    }
+  }
+  // CEF wants cache_path to be the root_cache_path or a directory within it: a cache path that
+  // lies elsewhere gives way to the root.
+  const auto root = m_StringSettings.find("root_cache_path");
+  if (root != m_StringSettings.end()) {
+    const std::filesystem::path root_path = std::filesystem::path(root->second).lexically_normal();
+    const std::filesystem::path cache_path =
+        std::filesystem::path(CefString(&settings.cache_path).ToString()).lexically_normal();
+    const std::filesystem::path relative = cache_path.lexically_relative(root_path);
+    if (relative.empty() || *relative.begin() == "..") {
+      CefString(&settings.cache_path) = root->second;
     }
   }
   for (const auto& entry : m_IntSettings) {

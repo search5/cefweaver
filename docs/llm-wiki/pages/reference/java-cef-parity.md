@@ -70,7 +70,7 @@ updated: 2026-10-08
 
 | 항목 | java-cef | cefweaver |
 | --- | --- | --- |
-| `CefSettings`의 필드 20개 (**해결**: [F58](verified-findings-handlers.md)) | 모두 | 이제 `CefApp.settings`로 14개를 더해 모두(`root_cache_path`는 `set_cache_path()`가 함께 정함). 이전에는 6개만(`browser_subprocess_path`, `windowless_rendering_enabled`, `cache_path`와 `root_cache_path`, `resources_dir_path`와 `locales_dir_path`). 없는 것 14개: `command_line_args_disabled`, `persist_session_cookies`, `user_agent`, `user_agent_product`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`, `chrome_policy_id`, `uncaught_exception_stack_size`, `background_color`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults` |
+| `CefSettings`의 필드 20개 (**해결**: [F58](verified-findings-handlers.md)) | 모두 | 모두. `CefApp.settings`의 15개(`root_cache_path` 포함)와 `set_subprocess_path()`, `set_cache_path()`, `set_resources_path()`(리소스와 로케일 디렉터리), `offscreen`의 5개 |
 | 버전 조회 (**해결**: [F59](verified-findings-handlers.md)) | `CefApp.getVersion()`: JCEF, CEF, Chrome 버전 | `cefweaver.get_version()`, `CefApp.get_version()` |
 | 브라우저 여러 개 (**해결**: [F60](verified-findings-handlers.md)) | `CefClient.createBrowser(url, osr, transparent, requestContext)`를 몇 번이든 | `CefApp.create_browser(url, offscreen, transparent, request_context)` |
 | 투명한 오프스크린 (**해결**) | `createBrowser`의 `isTransparent` | `CefApp.transparent` |
