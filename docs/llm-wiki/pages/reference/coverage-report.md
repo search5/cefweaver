@@ -14,25 +14,24 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 166 methods/functions in 14 classes, 3 global functions
+Generated now: 245 methods/functions in 17 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
     32  class
      6  struct-like value type
      5  struct
      4  multimap of values
+     2  vector of values
      1  a library method returning a client object
      1  vector of values passed to a library method
      1  untyped pointer
-     1  vector of values
-  ----  51 skipped
+  ----  52 skipped
 
-If every class were generated, the type support alone would cover 1373 of 1598 methods/functions (86%).
+If every class were generated, the type support alone would cover 1398 of 1598 methods/functions (87%).
 What blocks the rest, by type:
     36  vector of values
     33  struct-like value type
     32  ownptr pointer
-    25  output parameter
     24  untyped pointer
     18  struct
     11  a library method returning a client object
@@ -99,7 +98,7 @@ Per class (supported/total methods, when every class is generated):
     CefDevToolsMessageObserver             client    5/5  
     CefDialogHandler                       client    1/1  
     CefDictionaryValue                     library  30/30 
-    CefDisplay                             library  13/16 
+  * CefDisplay                             library  15/16 
   * CefDisplayHandler                      client   12/13 
     CefDownloadHandler                     client    3/3  
     CefDownloadImageCallback               client    1/1  
@@ -113,7 +112,7 @@ Per class (supported/total methods, when every class is generated):
     CefFocusHandler                        client    3/3  
   * CefFrame                               library  26/26 
     CefFrameHandler                        client    5/5  
-    CefImage                               library   7/14 
+    CefImage                               library  11/14 
     CefJSDialogCallback                    library   1/1  
     CefJSDialogHandler                     client    4/4  
     CefKeyboardHandler                     client    0/2  
@@ -132,8 +131,8 @@ Per class (supported/total methods, when every class is generated):
     CefMediaSource                         library   3/3  
     CefMenuButton                          library   3/3  
     CefMenuButtonDelegate                  client    1/1  
-    CefMenuModel                           library  53/57 
-    CefMenuModelDelegate                   client    7/7  
+  * CefMenuModel                           library  57/57 
+  * CefMenuModelDelegate                   client    7/7  
     CefNavigationEntry                     library   9/10 
     CefNavigationEntryVisitor              client    1/1  
     CefOverlayController                   library  19/19 
@@ -143,7 +142,7 @@ Per class (supported/total methods, when every class is generated):
     CefPermissionPromptCallback            library   1/1  
     CefPostData                            library   7/8  
     CefPostDataElement                     library   7/9  
-    CefPreferenceManager                   library   8/9  
+    CefPreferenceManager                   library   9/9  
     CefPreferenceObserver                  client    1/1  
     CefPreferenceRegistrar                 library   1/1  
     CefPrintDialogCallback                 library   2/2  
@@ -194,7 +193,7 @@ Per class (supported/total methods, when every class is generated):
     CefTextfield                           library  32/32 
     CefTextfieldDelegate                   client    1/2  
     CefThread                              library   4/5  
-    CefTranslatorTest                      library  29/61 
+    CefTranslatorTest                      library  31/61 
     CefTranslatorTestRefPtrClient          client    1/1  
     CefTranslatorTestRefPtrClientChild     client    1/1  
     CefTranslatorTestRefPtrLibrary         library   3/3  
@@ -219,7 +218,7 @@ Per class (supported/total methods, when every class is generated):
     CefV8StackTrace                        library   4/4  
     CefV8Value                             library  56/67 
     CefValue                               library  23/23 
-    CefView                                library  45/52 
+    CefView                                library  51/52 
     CefViewDelegate                        client    8/11 
     CefWaitableEvent                       library   6/6  
     CefWindow                              library  41/43 

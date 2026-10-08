@@ -11,10 +11,13 @@
 #include "include/cef_frame.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_load_handler.h"
+#include "include/cef_menu_model.h"
+#include "include/cef_menu_model_delegate.h"
 #include "include/cef_request.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
+#include "include/views/cef_display.h"
 #include <vector>
 
 // ---- CefClient ----
@@ -532,6 +535,153 @@ class CwLoadHandlerProxy : public CefLoadHandler {
 
   IMPLEMENT_REFCOUNTING(CwLoadHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwLoadHandlerProxy);
+};
+
+// ---- CefMenuModelDelegate ----
+
+class CwMenuModelDelegateForward : public CefMenuModelDelegate {
+ protected:
+  CefRefPtr<CefMenuModelDelegate> forward_menu_model_delegate_;
+
+ public:
+  void ExecuteCommand(CefRefPtr<CefMenuModel> menu_model, int command_id, cef_event_flags_t event_flags) override {
+    if (!forward_menu_model_delegate_) {
+      return;
+    }
+    forward_menu_model_delegate_->ExecuteCommand(menu_model, command_id, event_flags);
+  }
+
+  void MouseOutsideMenu(CefRefPtr<CefMenuModel> menu_model, const CefPoint& screen_point) override {
+    if (!forward_menu_model_delegate_) {
+      CefMenuModelDelegate::MouseOutsideMenu(menu_model, screen_point);
+      return;
+    }
+    forward_menu_model_delegate_->MouseOutsideMenu(menu_model, screen_point);
+  }
+
+  void UnhandledOpenSubmenu(CefRefPtr<CefMenuModel> menu_model, bool is_rtl) override {
+    if (!forward_menu_model_delegate_) {
+      CefMenuModelDelegate::UnhandledOpenSubmenu(menu_model, is_rtl);
+      return;
+    }
+    forward_menu_model_delegate_->UnhandledOpenSubmenu(menu_model, is_rtl);
+  }
+
+  void UnhandledCloseSubmenu(CefRefPtr<CefMenuModel> menu_model, bool is_rtl) override {
+    if (!forward_menu_model_delegate_) {
+      CefMenuModelDelegate::UnhandledCloseSubmenu(menu_model, is_rtl);
+      return;
+    }
+    forward_menu_model_delegate_->UnhandledCloseSubmenu(menu_model, is_rtl);
+  }
+
+  void MenuWillShow(CefRefPtr<CefMenuModel> menu_model) override {
+    if (!forward_menu_model_delegate_) {
+      CefMenuModelDelegate::MenuWillShow(menu_model);
+      return;
+    }
+    forward_menu_model_delegate_->MenuWillShow(menu_model);
+  }
+
+  void MenuClosed(CefRefPtr<CefMenuModel> menu_model) override {
+    if (!forward_menu_model_delegate_) {
+      CefMenuModelDelegate::MenuClosed(menu_model);
+      return;
+    }
+    forward_menu_model_delegate_->MenuClosed(menu_model);
+  }
+
+  bool FormatLabel(CefRefPtr<CefMenuModel> menu_model, CefString& label) override {
+    if (!forward_menu_model_delegate_) {
+      return CefMenuModelDelegate::FormatLabel(menu_model, label);
+    }
+    return forward_menu_model_delegate_->FormatLabel(menu_model, label);
+  }
+};
+
+struct CwMenuModelDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_execute_command)(void*, CefMenuModel*, int, int) = nullptr;
+  void (*fn_mouse_outside_menu)(void*, CefMenuModel*, const CefPoint*) = nullptr;
+  void (*fn_unhandled_open_submenu)(void*, CefMenuModel*, bool) = nullptr;
+  void (*fn_unhandled_close_submenu)(void*, CefMenuModel*, bool) = nullptr;
+  void (*fn_menu_will_show)(void*, CefMenuModel*) = nullptr;
+  void (*fn_menu_closed)(void*, CefMenuModel*) = nullptr;
+  bool (*fn_format_label)(void*, CefMenuModel*, CefString*) = nullptr;
+};
+
+class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
+ public:
+  explicit CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwMenuModelDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void ExecuteCommand(CefRefPtr<CefMenuModel> menu_model, int command_id, cef_event_flags_t event_flags) override {
+    if (!cb_.fn_execute_command) {
+      return;
+    }
+    cb_.fn_execute_command(cb_.py, menu_model.get(), command_id, static_cast<int>(event_flags));
+  }
+
+  void MouseOutsideMenu(CefRefPtr<CefMenuModel> menu_model, const CefPoint& screen_point) override {
+    if (!cb_.fn_mouse_outside_menu) {
+      CefMenuModelDelegate::MouseOutsideMenu(menu_model, screen_point);
+      return;
+    }
+    cb_.fn_mouse_outside_menu(cb_.py, menu_model.get(), &screen_point);
+  }
+
+  void UnhandledOpenSubmenu(CefRefPtr<CefMenuModel> menu_model, bool is_rtl) override {
+    if (!cb_.fn_unhandled_open_submenu) {
+      CefMenuModelDelegate::UnhandledOpenSubmenu(menu_model, is_rtl);
+      return;
+    }
+    cb_.fn_unhandled_open_submenu(cb_.py, menu_model.get(), is_rtl);
+  }
+
+  void UnhandledCloseSubmenu(CefRefPtr<CefMenuModel> menu_model, bool is_rtl) override {
+    if (!cb_.fn_unhandled_close_submenu) {
+      CefMenuModelDelegate::UnhandledCloseSubmenu(menu_model, is_rtl);
+      return;
+    }
+    cb_.fn_unhandled_close_submenu(cb_.py, menu_model.get(), is_rtl);
+  }
+
+  void MenuWillShow(CefRefPtr<CefMenuModel> menu_model) override {
+    if (!cb_.fn_menu_will_show) {
+      CefMenuModelDelegate::MenuWillShow(menu_model);
+      return;
+    }
+    cb_.fn_menu_will_show(cb_.py, menu_model.get());
+  }
+
+  void MenuClosed(CefRefPtr<CefMenuModel> menu_model) override {
+    if (!cb_.fn_menu_closed) {
+      CefMenuModelDelegate::MenuClosed(menu_model);
+      return;
+    }
+    cb_.fn_menu_closed(cb_.py, menu_model.get());
+  }
+
+  bool FormatLabel(CefRefPtr<CefMenuModel> menu_model, CefString& label) override {
+    if (!cb_.fn_format_label) {
+      return CefMenuModelDelegate::FormatLabel(menu_model, label);
+    }
+    CefString out_label;
+    bool result = cb_.fn_format_label(cb_.py, menu_model.get(), &out_label);
+    label = out_label;
+    return result;
+  }
+
+ private:
+  CwMenuModelDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwMenuModelDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
 };
 
 // ---- CefResourceHandler ----

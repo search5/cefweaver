@@ -460,6 +460,53 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("MouseButtonType | int", stub)  # a library method also takes a plain int
 
 
+    # -- output parameters of library methods ---------------------------------------------
+
+    def test_output_only_parameters_of_a_library_method_are_returned(self):
+        plan = self.plan_in(self.everything, "CefMenuModel", "GetAccelerator")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.outs],
+                         ["key_code", "shift_pressed", "ctrl_pressed", "alt_pressed"])
+        self.assertEqual([p.name for p in plan.ins], ["command_id"])
+        self.assertEqual([name for name, _ in plan.results],
+                         ["return", "key_code", "shift_pressed", "ctrl_pressed", "alt_pressed"])
+        self.assertFalse(any(p.inout for p in plan.outs))
+
+    def test_a_typedef_output_parameter_keeps_its_type(self):
+        plan = self.plan_in(self.everything, "CefMenuModel", "GetColor")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Prim("cef_color_t", "int"))
+        self.assertIsInstance(plan.ins[1].kind, Enum)  # the color type goes in
+
+    def test_a_string_output_parameter(self):
+        plan = self.plan_in(self.everything, "CefTranslatorTest", "GetStringByRef")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Str())
+
+    def test_a_struct_given_by_reference_goes_in_and_comes_back(self):
+        # CefDisplay::ConvertPointToPixels(CefPoint& point) reads the point and changes it.
+        plan = self.plan_in(self.everything, "CefDisplay", "ConvertPointToPixels")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertTrue(plan.params[0].out and plan.params[0].inout)
+        self.assertEqual([p.name for p in plan.ins], ["point"])
+        self.assertEqual([name for name, _ in plan.results], ["point"])
+
+    def test_handler_output_parameters_stay_output_only(self):
+        plan = self.plan("CefDisplayHandler", "GetRootWindowScreenRect")
+        self.assertFalse(any(p.inout for p in plan.outs))
+
+    def test_the_menu_model_and_the_display_are_generated(self):
+        for name in ("CefMenuModel", "CefDisplay"):
+            self.assertTrue(self.scope.is_library(name), name)
+        self.assertTrue(self.scope.is_client("CefMenuModelDelegate"))
+
+    def test_the_stub_returns_the_output_parameters(self):
+        stub = self.generated("pyi")
+        self.assertIn("def get_accelerator(self, command_id: int) -> tuple[bool, int, bool, bool, bool]:",
+                      stub)
+        self.assertIn("def convert_point_to_pixels(self, point: Point | tuple[int, int]) -> Point:", stub)
+
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

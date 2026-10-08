@@ -57,6 +57,8 @@ updated: 2026-10-08
 | `CefBrowserHost`를 값 타입 구조체 다음에 범위에 추가 | 구조체가 먼저 있어야 마우스, 크기 인자가 열립니다. 닫기와 줌, 입력 메서드 53개가 열렸고 구조체의 라이브러리 쪽 경로를 시험할 수 있었습니다. | 사용자(순서) |
 | 래퍼는 **Alloy 스타일 브라우저만** 만듭니다(`CefWindowInfo.runtime_style = ALLOY`, `CefWrapperBrowserProcessHandler::OnContextInitialized`) | java-cef도 같은 설정입니다(`CefBrowser_N.cpp`: 일반 브라우저를 Java UI에 통합하려면 Alloy가 필요). Alloy는 클라이언트 콜백(`do_close` 등)을 더하고, 클라이언트가 준 부모 창과 오프스크린 렌더링을 지원하며, GUI 툴킷에 끼워 넣는 이 프로젝트의 목표에 맞습니다. Chrome 스타일은 Chrome UI를 주지만 `do_close`가 호출되지 않았고 입력 좌표에 창 장식의 오프셋이 있었습니다([실험으로 확인한 사실](verified-findings-api.md) F18). 대가로 창 제목을 래퍼가 X11로 설정합니다. 두 스타일이 따로 있는 까닭은 역사입니다: Alloy는 2013년부터 있던 content 계층(`WebContents`) 기반의 얇은 CEF 창이고, Chrome은 2020년에 시작한 완전한 Chrome `Browser` 창 위의 구현입니다. 그래서 Chrome은 확장 프로그램, 자동 완성, 권한 UI 같은 Chrome 기능을 주는 대신 콜백이 적고 오프스크린 렌더링을 지원하지 않습니다(cef_origin 위키의 `wiki/architecture.md`). Chrome UI 기능은 포기합니다. 필요해지면 Chrome 스타일을 선택 옵션으로 다시 여는 방안을 검토합니다. | 사용자(제안) |
 | 열거형과 값 타입을 **`cefweaver.types`**(순수 파이썬 `IntEnum`, `IntFlag`, `NamedTuple`)에 모음. CEF에 줄 때는 정수와 튜플 그대로, 받을 때는 멤버로 변환하고 모르는 값은 `int`로 | 마법 숫자(`0`, `-102`)를 이름으로 바꾸고, 타입 검사기가 읽을 수 있게 하며, 예외 없이 새 CEF 값을 통과시킵니다. 순수 파이썬이라 CEF 없이도 불러옵니다. | 사용자(요청), 변환 방식은 구현 중 판단 |
+| 라이브러리 메서드의 **구조체 참조는 입출력**, 기본형, 문자열, 열거형, 벡터 참조는 **출력 전용** | 헤더가 방향을 표시하지 않아서 실제 메서드로 정했습니다. 좌표 변환(`ConvertPointToPixels`)은 값을 읽고 고치고, 가속키와 색의 getter는 쓰기만 합니다. 출력 전용을 입출력으로 보면 호출할 때마다 쓸데없는 인자를 넘겨야 합니다. | 구현 중 판단 |
+| 출력 인자 검증을 위해 `CefMenuModel`, `CefMenuModelDelegate`, `CefDisplay`를 범위에 추가 | 범위 안에서 실행으로 검증할 사용처가 있는 클래스입니다. `MenuModel`은 컨텍스트 메뉴 핸들러에도 필요합니다. | 구현 중 판단 |
 | `set_client()`는 `initialize()` 전에만 | 브라우저를 만들 때 클라이언트가 정해져야 합니다. 이후에는 `RuntimeError`. | 구현 중 판단 |
 
 ## 서브프로세스와 런타임

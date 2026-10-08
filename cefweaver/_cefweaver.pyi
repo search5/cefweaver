@@ -46,7 +46,10 @@ class CefApp:
 from .types import (
     DragOperationsMask,
     ErrorCode,
+    EventFlags,
     LogSeverity,
+    MenuColorType,
+    MenuItemType,
     MouseButtonType,
     PaintElementType,
     ReferrerPolicy,
@@ -564,6 +567,101 @@ class Callback:
         ...
 
 
+class Display:
+    """This class typically, but not always, corresponds to a physical display
+    connected to the system. A fake Display may exist on a headless system, or a
+    Display may correspond to a remote, virtual display. All size and position
+    values are in density independent pixel (DIP) coordinates unless otherwise
+    indicated. Methods must be called on the browser process UI thread unless
+    otherwise indicated.
+
+    For details on coordinate systems and usage see
+    https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
+    """
+    def get_id(self) -> int:
+        """Returns the unique identifier for this Display."""
+        ...
+    def get_device_scale_factor(self) -> float:
+        """Returns this Display's device pixel scale factor. This specifies how much
+        the UI should be scaled when the actual output has more pixels than
+        standard displays (which is around 100~120dpi). The potential return
+        values differ by platform. Windowed browsers with 1.0 zoom will have a
+        JavaScript `window.devicePixelRatio` value matching the associated
+        Display's GetDeviceScaleFactor() value.
+        """
+        ...
+    def convert_point_to_pixels(self, point: Point | tuple[int, int]) -> Point:
+        """Convert |point| from DIP coordinates to pixel coordinates using this
+        Display's device scale factor.
+        """
+        ...
+    def convert_point_from_pixels(self, point: Point | tuple[int, int]) -> Point:
+        """Convert |point| from pixel coordinates to DIP coordinates using this
+        Display's device scale factor.
+        """
+        ...
+    def get_bounds(self) -> Rect:
+        """Returns this Display's bounds in DIP screen coordinates. This is the full
+        size of the display.
+        """
+        ...
+    def get_work_area(self) -> Rect:
+        """Returns this Display's work area in DIP screen coordinates. This excludes
+        areas of the display that are occupied with window manager toolbars, etc.
+        """
+        ...
+    def get_rotation(self) -> int:
+        """Returns this Display's rotation in degrees."""
+        ...
+    @staticmethod
+    def get_primary_display() -> Display | None:
+        """Returns the primary Display."""
+        ...
+    @staticmethod
+    def get_display_nearest_point(point: Point | tuple[int, int], input_pixel_coords: bool) -> Display | None:
+        """Returns the Display nearest |point|. Set |input_pixel_coords| to true if
+        |point| is in pixel screen coordinates instead of DIP screen coordinates.
+        """
+        ...
+    @staticmethod
+    def get_display_matching_bounds(bounds: Rect | tuple[int, int, int, int], input_pixel_coords: bool) -> Display | None:
+        """Returns the Display that most closely intersects |bounds|.  Set
+        |input_pixel_coords| to true if |bounds| is in pixel screen coordinates
+        instead of DIP screen coordinates.
+        """
+        ...
+    @staticmethod
+    def get_display_count() -> int:
+        """Returns the total number of Displays. Mirrored displays are excluded; this
+        method is intended to return the number of distinct, usable displays.
+        """
+        ...
+    @staticmethod
+    def convert_screen_point_to_pixels(point: Point | tuple[int, int]) -> Point:
+        """Convert |point| from DIP screen coordinates to pixel screen coordinates.
+        This method is only used on Windows.
+        """
+        ...
+    @staticmethod
+    def convert_screen_point_from_pixels(point: Point | tuple[int, int]) -> Point:
+        """Convert |point| from pixel screen coordinates to DIP screen coordinates.
+        This method is only used on Windows.
+        """
+        ...
+    @staticmethod
+    def convert_screen_rect_to_pixels(rect: Rect | tuple[int, int, int, int]) -> Rect:
+        """Convert |rect| from DIP screen coordinates to pixel screen coordinates.
+        This method is only used on Windows.
+        """
+        ...
+    @staticmethod
+    def convert_screen_rect_from_pixels(rect: Rect | tuple[int, int, int, int]) -> Rect:
+        """Convert |rect| from pixel screen coordinates to DIP screen coordinates.
+        This method is only used on Windows.
+        """
+        ...
+
+
 class Frame:
     """Class used to represent a frame in the browser window. When used in the
     browser process the methods of this class may be called on any thread unless
@@ -651,6 +749,272 @@ class Frame:
         ...
     def get_browser(self) -> Browser | None:
         """Returns the browser that this frame belongs to."""
+        ...
+
+
+class MenuModel:
+    """Supports creation and modification of menus. See cef_menu_id_t for the
+    command ids that have default implementations. All user-defined command ids
+    should be between MENU_ID_USER_FIRST and MENU_ID_USER_LAST. The methods of
+    this class can only be accessed on the browser process the UI thread.
+    """
+    def is_sub_menu(self) -> bool:
+        """Returns true if this menu is a submenu."""
+        ...
+    def clear(self) -> bool:
+        """Clears the menu. Returns true on success."""
+        ...
+    def get_count(self) -> int:
+        """Returns the number of items in this menu."""
+        ...
+    def add_separator(self) -> bool:
+        """Add a separator to the menu. Returns true on success."""
+        ...
+    def add_item(self, command_id: int, label: str) -> bool:
+        """Add an item to the menu. Returns true on success."""
+        ...
+    def add_check_item(self, command_id: int, label: str) -> bool:
+        """Add a check item to the menu. Returns true on success."""
+        ...
+    def add_radio_item(self, command_id: int, label: str, group_id: int) -> bool:
+        """Add a radio item to the menu. Only a single item with the specified
+        |group_id| can be checked at a time. Returns true on success.
+        """
+        ...
+    def add_sub_menu(self, command_id: int, label: str) -> MenuModel | None:
+        """Add a sub-menu to the menu. The new sub-menu is returned."""
+        ...
+    def insert_separator_at(self, index: int) -> bool:
+        """Insert a separator in the menu at the specified |index|. Returns true on
+        success.
+        """
+        ...
+    def insert_item_at(self, index: int, command_id: int, label: str) -> bool:
+        """Insert an item in the menu at the specified |index|. Returns true on
+        success.
+        """
+        ...
+    def insert_check_item_at(self, index: int, command_id: int, label: str) -> bool:
+        """Insert a check item in the menu at the specified |index|. Returns true on
+        success.
+        """
+        ...
+    def insert_radio_item_at(self, index: int, command_id: int, label: str, group_id: int) -> bool:
+        """Insert a radio item in the menu at the specified |index|. Only a single
+        item with the specified |group_id| can be checked at a time. Returns true
+        on success.
+        """
+        ...
+    def insert_sub_menu_at(self, index: int, command_id: int, label: str) -> MenuModel | None:
+        """Insert a sub-menu in the menu at the specified |index|. The new sub-menu
+        is returned.
+        """
+        ...
+    def remove(self, command_id: int) -> bool:
+        """Removes the item with the specified |command_id|. Returns true on success."""
+        ...
+    def remove_at(self, index: int) -> bool:
+        """Removes the item at the specified |index|. Returns true on success."""
+        ...
+    def get_index_of(self, command_id: int) -> int:
+        """Returns the index associated with the specified |command_id| or -1 if not
+        found due to the command id not existing in the menu.
+        """
+        ...
+    def get_command_id_at(self, index: int) -> int:
+        """Returns the command id at the specified |index| or -1 if not found due to
+        invalid range or the index being a separator.
+        """
+        ...
+    def set_command_id_at(self, index: int, command_id: int) -> bool:
+        """Sets the command id at the specified |index|. Returns true on success."""
+        ...
+    def get_label(self, command_id: int) -> str:
+        """Returns the label for the specified |command_id| or empty if not found."""
+        ...
+    def get_label_at(self, index: int) -> str:
+        """Returns the label at the specified |index| or empty if not found due to
+        invalid range or the index being a separator.
+        """
+        ...
+    def set_label(self, command_id: int, label: str) -> bool:
+        """Sets the label for the specified |command_id|. Returns true on success."""
+        ...
+    def set_label_at(self, index: int, label: str) -> bool:
+        """Set the label at the specified |index|. Returns true on success."""
+        ...
+    def get_type(self, command_id: int) -> MenuItemType:
+        """Returns the item type for the specified |command_id|."""
+        ...
+    def get_type_at(self, index: int) -> MenuItemType:
+        """Returns the item type at the specified |index|."""
+        ...
+    def get_group_id(self, command_id: int) -> int:
+        """Returns the group id for the specified |command_id| or -1 if invalid."""
+        ...
+    def get_group_id_at(self, index: int) -> int:
+        """Returns the group id at the specified |index| or -1 if invalid."""
+        ...
+    def set_group_id(self, command_id: int, group_id: int) -> bool:
+        """Sets the group id for the specified |command_id|. Returns true on success."""
+        ...
+    def set_group_id_at(self, index: int, group_id: int) -> bool:
+        """Sets the group id at the specified |index|. Returns true on success."""
+        ...
+    def get_sub_menu(self, command_id: int) -> MenuModel | None:
+        """Returns the submenu for the specified |command_id| or empty if invalid."""
+        ...
+    def get_sub_menu_at(self, index: int) -> MenuModel | None:
+        """Returns the submenu at the specified |index| or empty if invalid."""
+        ...
+    def is_visible(self, command_id: int) -> bool:
+        """Returns true if the specified |command_id| is visible."""
+        ...
+    def is_visible_at(self, index: int) -> bool:
+        """Returns true if the specified |index| is visible."""
+        ...
+    def set_visible(self, command_id: int, visible: bool) -> bool:
+        """Change the visibility of the specified |command_id|. Returns true on
+        success.
+        """
+        ...
+    def set_visible_at(self, index: int, visible: bool) -> bool:
+        """Change the visibility at the specified |index|. Returns true on success."""
+        ...
+    def is_enabled(self, command_id: int) -> bool:
+        """Returns true if the specified |command_id| is enabled."""
+        ...
+    def is_enabled_at(self, index: int) -> bool:
+        """Returns true if the specified |index| is enabled."""
+        ...
+    def set_enabled(self, command_id: int, enabled: bool) -> bool:
+        """Change the enabled status of the specified |command_id|. Returns true on
+        success.
+        """
+        ...
+    def set_enabled_at(self, index: int, enabled: bool) -> bool:
+        """Change the enabled status at the specified |index|. Returns true on
+        success.
+        """
+        ...
+    def is_checked(self, command_id: int) -> bool:
+        """Returns true if the specified |command_id| is checked. Only applies to
+        check and radio items.
+        """
+        ...
+    def is_checked_at(self, index: int) -> bool:
+        """Returns true if the specified |index| is checked. Only applies to check
+        and radio items.
+        """
+        ...
+    def set_checked(self, command_id: int, checked: bool) -> bool:
+        """Check the specified |command_id|. Only applies to check and radio items.
+        Returns true on success.
+        """
+        ...
+    def set_checked_at(self, index: int, checked: bool) -> bool:
+        """Check the specified |index|. Only applies to check and radio items.
+        Returns true on success.
+        """
+        ...
+    def has_accelerator(self, command_id: int) -> bool:
+        """Returns true if the specified |command_id| has a keyboard accelerator
+        assigned.
+        """
+        ...
+    def has_accelerator_at(self, index: int) -> bool:
+        """Returns true if the specified |index| has a keyboard accelerator assigned."""
+        ...
+    def set_accelerator(self, command_id: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool) -> bool:
+        """Set the keyboard accelerator for the specified |command_id|. |key_code|
+        can be any virtual key or character value. Returns true on success.
+        """
+        ...
+    def set_accelerator_at(self, index: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool) -> bool:
+        """Set the keyboard accelerator at the specified |index|. |key_code| can be
+        any virtual key or character value. Returns true on success.
+        """
+        ...
+    def remove_accelerator(self, command_id: int) -> bool:
+        """Remove the keyboard accelerator for the specified |command_id|. Returns
+        true on success.
+        """
+        ...
+    def remove_accelerator_at(self, index: int) -> bool:
+        """Remove the keyboard accelerator at the specified |index|. Returns true on
+        success.
+        """
+        ...
+    def get_accelerator(self, command_id: int) -> tuple[bool, int, bool, bool, bool]:
+        """Retrieves the keyboard accelerator for the specified |command_id|. Returns
+        true on success.
+        """
+        ...
+    def get_accelerator_at(self, index: int) -> tuple[bool, int, bool, bool, bool]:
+        """Retrieves the keyboard accelerator for the specified |index|. Returns true
+        on success.
+        """
+        ...
+    def set_color(self, command_id: int, color_type: MenuColorType | int, color: int) -> bool:
+        """Set the explicit color for |command_id| and |color_type| to |color|.
+        Specify a |color| value of 0 to remove the explicit color. If no explicit
+        color or default color is set for |color_type| then the system color will
+        be used. Returns true on success.
+        """
+        ...
+    def set_color_at(self, index: int, color_type: MenuColorType | int, color: int) -> bool:
+        """Set the explicit color for |command_id| and |index| to |color|. Specify a
+        |color| value of 0 to remove the explicit color. Specify an |index| value
+        of -1 to set the default color for items that do not have an explicit
+        color set. If no explicit color or default color is set for |color_type|
+        then the system color will be used. Returns true on success.
+        """
+        ...
+    def get_color(self, command_id: int, color_type: MenuColorType | int) -> tuple[bool, int]:
+        """Returns in |color| the color that was explicitly set for |command_id| and
+        |color_type|. If a color was not set then 0 will be returned in |color|.
+        Returns true on success.
+        """
+        ...
+    def get_color_at(self, index: int, color_type: MenuColorType | int) -> tuple[bool, int]:
+        """Returns in |color| the color that was explicitly set for |command_id| and
+        |color_type|. Specify an |index| value of -1 to return the default color
+        in |color|. If a color was not set then 0 will be returned in |color|.
+        Returns true on success.
+        """
+        ...
+    def set_font_list(self, command_id: int, font_list: str | None) -> bool:
+        """Sets the font list for the specified |command_id|. If |font_list| is empty
+        the system font will be used. Returns true on success. The format is
+        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names
+          (case-sensitive \"Bold\" and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
+        """
+        ...
+    def set_font_list_at(self, index: int, font_list: str | None) -> bool:
+        """Sets the font list for the specified |index|. Specify an |index| value of
+        -1 to set the default font. If |font_list| is empty the system font will
+        be used. Returns true on success. The format is
+        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names
+          (case-sensitive \"Bold\" and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
+        """
+        ...
+    @staticmethod
+    def create_menu_model(delegate: MenuModelDelegate) -> MenuModel | None:
+        """Create a new MenuModel with the specified |delegate|."""
         ...
 
 
@@ -1126,6 +1490,42 @@ class LoadHandler:
         See net\\base\\net_error_list.h for complete descriptions of the error
         codes.
         """
+        ...
+
+
+class MenuModelDelegate:
+    """Implement this interface to handle menu model events. The methods of this
+    class will be called on the browser process UI thread unless otherwise
+    indicated.
+    """
+    def execute_command(self, menu_model: MenuModel, command_id: int, event_flags: EventFlags) -> None:
+        """Perform the action associated with the specified |command_id| and
+        optional |event_flags|.
+        """
+        ...
+    def mouse_outside_menu(self, menu_model: MenuModel, screen_point: Point) -> None:
+        """Called when the user moves the mouse outside the menu and over the owning
+        window.
+        """
+        ...
+    def unhandled_open_submenu(self, menu_model: MenuModel, is_rtl: bool) -> None:
+        """Called on unhandled open submenu keyboard commands. |is_rtl| will be true
+        if the menu is displaying a right-to-left language.
+        """
+        ...
+    def unhandled_close_submenu(self, menu_model: MenuModel, is_rtl: bool) -> None:
+        """Called on unhandled close submenu keyboard commands. |is_rtl| will be true
+        if the menu is displaying a right-to-left language.
+        """
+        ...
+    def menu_will_show(self, menu_model: MenuModel) -> None:
+        """The menu is about to show."""
+        ...
+    def menu_closed(self, menu_model: MenuModel) -> None:
+        """The menu has closed."""
+        ...
+    def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
+        """Optionally modify a menu item label. Return true if |label| was modified."""
         ...
 
 

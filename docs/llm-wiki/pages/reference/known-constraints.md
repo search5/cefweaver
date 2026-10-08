@@ -32,6 +32,7 @@ updated: 2026-10-08
 | F27이 **이전 CEF 버전**에서도 나는지 | 152의 `cefsimple`로 확인하려 했으나 원격 디버깅 포트가 열리지 않아 중단했습니다. | 152 표준 배포본으로 `cefsimple` 또는 cefweaver를 빌드해 `data:` + `srcdoc` 페이지 시험 |
 | Alloy 스타일에서 **네이티브 Wayland** | 시험은 X11(`ozone-platform=x11`)로만 실행했고, Wayland 조사([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md))는 Chrome 스타일 기준입니다. 실제 화면에 창을 여는 일이라 사용자의 허락 없이 실행하지 않았습니다. | Wayland 세션에서 `ozone-platform` 없이 실행해 창이 뜨는지 확인 |
 | **Chrome 스타일 선택 옵션**을 열 때의 위험(옵션은 아직 없고 Alloy만 지원) | (1) 래퍼의 컨텍스트 메뉴 항목("Show DevTools" 등)이 Chrome 스타일에서 동작하는지 시험한 적이 없고, Python에서 메뉴를 열고 항목을 고르는 수단도 없습니다. (2) Chrome 스타일과 외부 메시지 펌프와 부모 창 지정의 조합은 다룬 적이 없습니다. (3) Chrome 스타일은 오프스크린 렌더링을 지원하지 않아서, 오프스크린 옵션을 열 때 조합을 막는 검사가 필요합니다. 수정 범위는 작습니다: 옵션 전달 약 20줄, 스타일 분기 2곳(창 제목과 로드 오류 페이지를 지금은 쓰이지 않는 명령줄 스위치 `enable-chrome-runtime`으로 판단하므로 `GetRuntimeStyle()`로 바꿔야 함), 시험 몇 개. | 선택 옵션을 열 때 두 스타일에서 확인 |
+| **구조체 참조가 입출력이라는 판단**의 일반성 | 헤더는 참조 인자의 방향(출력인지 입출력인지)을 표시하지 않습니다. 구조체는 입출력, 그 밖은 출력 전용으로 정한 근거는 `CefDisplay`와 `CefView`의 좌표 변환(입출력, 시험으로 확인)과 `CefMenuModel`, `CefImage`의 기본형 출력(출력 전용)입니다. 구조체를 순수 출력으로 쓰는 `CefTranslatorTest::GetPointByRef`는 범위 밖이라 확인하지 못했습니다(그런 메서드는 호출할 때 아무 구조체나 넘겨야 함). | 범위에 넣고 호출해 보기 |
 | 헤더 주석의 한국어 번역 | `cef_origin` 위키에는 1,348개 메서드의 한국어 설명이 있으나 생성 스텁에는 헤더의 영어 주석을 그대로 씁니다. | 생성기가 위키의 `db/ko/*.json`을 읽도록 확장 |
 
 ## 2. 알려진 한계
@@ -46,7 +47,7 @@ updated: 2026-10-08
 - `Browser` 전역 참조(`CefWrapperBrowserProcessHandler::Browser`)와 `g_IsRunning`은 동기화되어 있지 않습니다. 다른 Python 스레드에서 `load_url`/`execute_javascript`를 부를 수는 있지만(CEF 쪽 `CefFrame`은 어느 스레드든 가능) 이 전역을 보호하지는 않습니다.
 - `CefWrapper::IsReadyToExecuteJavascript()`는 `CefWrapperClientHandler::GetInstance()`의 널을 확인하지 않습니다. Python 래퍼가 상태로 먼저 거릅니다.
 - `resources_dir_path` 설정은 Linux에서 `icudtl.dat` 위치에 영향이 없습니다. 런타임 파일은 `libcef.so`와 같은 디렉터리여야 합니다([런타임 파일 배치](../concepts/runtime-layout.md)).
-- 생성기는 문자열이 아닌 요소의 벡터, 라이브러리 메서드에 주는 벡터, 맵, 소유 포인터, 평범한 데이터가 아닌 구조체, 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환, 라이브러리 클래스의 상속을 지원하지 않습니다([생성 범위와 커버리지](generated-api-coverage.md)).
+- 생성기는 라이브러리 메서드의 객체 참조 출력 인자(`CefRefPtr<T>&`), 문자열이 아닌 요소의 벡터, 라이브러리 메서드에 주는 벡터, 맵, 소유 포인터, 평범한 데이터가 아닌 구조체, 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환, 라이브러리 클래스의 상속을 지원하지 않습니다([생성 범위와 커버리지](generated-api-coverage.md)).
 - `ext-modules` 설정이 Linux 전용이고 정적이라서 플랫폼별로 나눌 수 없습니다.
 - `tools/prepare.py`의 스테이징은 Linux만 구현했습니다.
 - 소스 빌드(`build_cef.py`)는 Linux x86_64만 지원하고 cefpython처럼 CEF에 자체 패치를 적용하지 않습니다.

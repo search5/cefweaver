@@ -171,6 +171,9 @@ class ParamPlan:
     spelled: str  # the C++ type as written
     kind: Kind
     out: bool = False  # filled by the callee and returned from the Python method
+    # A library method that takes a struct by non-const reference reads and changes it
+    # (CefDisplay::ConvertPointToPixels): the Python method takes it and returns it.
+    inout: bool = False
     const: bool = False
     byref: bool = False
     optional: bool = False  # the header marks it optional_param: None is allowed
@@ -201,7 +204,7 @@ class MethodPlan:
 
     @property
     def ins(self):
-        return [p for p in self.params if not p.out]
+        return [p for p in self.params if not p.out or p.inout]
 
     @property
     def results(self):
@@ -248,7 +251,7 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             kind = classify(model, scope, analysis)
             out = analysis.is_byref() and not analysis.is_const() and not isinstance(kind, LibRef)
             if out:
-                if not client_side and not isinstance(kind, Vector):
+                if not client_side and not isinstance(kind, (Vector, Prim, Str, Enum, Struct)):
                     raise Unsupported("output parameter %s of a library method" % name)
                 if client_side and isinstance(kind, Vector):
                     raise Unsupported("output vector %s of a handler method" % name)
@@ -263,7 +266,8 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             plan.params.append(ParamPlan(name, py_param_name(name), analysis.get_type(), kind,
                                          out=out, const=analysis.is_const(),
                                          byref=analysis.is_byref(),
-                                         optional=name in optional_names))
+                                         optional=name in optional_names,
+                                         inout=out and not client_side and isinstance(kind, Struct)))
             i += 1
     except Unsupported as reason:
         plan.reason = str(reason)

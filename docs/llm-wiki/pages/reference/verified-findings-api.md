@@ -118,6 +118,16 @@ updated: 2026-10-08
 - **부수 발견(제 실수)**: 전처리 조건을 처리하는 첫 구현이 "이 분기가 선택되었는가" 대신 "이 `#if` 묶음에서 이미 분기가 선택되었는가"를 봐서 `#else` 가지의 멤버까지 포함했고, 그 결과 `ContentSettingTypes`에 같은 이름이 두 번 나와 `types.py`를 불러오지 못했습니다. 시험(`test_only_the_selected_branch_of_a_condition_is_read`, `test_every_enumerator_is_defined_once`)을 먼저 추가해 실패를 확인한 뒤 고쳤습니다.
 - **부수 발견(빌드)**: F27을 조사하며 Chrome 스타일 변형으로 만든 정적 라이브러리를 소스만 되돌리고 다시 빌드하지 않아, 그 뒤 wheel이 Chrome 스타일로 만들어졌습니다. 스타일을 고정하는 시험(`test_the_browsers_are_alloy_style`)이 잡았습니다. 네이티브 소스를 건드렸다 되돌렸다면 `python tools/prepare.py`를 다시 실행해야 합니다.
 
+## F29. 라이브러리 메서드의 출력 인자
+
+- **방법**: `MenuModel`(창 없이 만들 수 있음)과 `Display`를 범위에 넣고 출력 인자를 가진 메서드를 실행했습니다. `Display`는 변환이 눈에 보이도록 `--force-device-scale-factor=2`를 주었습니다.
+- **결과**:
+  - 출력 전용: `menu.get_accelerator(1)`은 설정 전 `(False, 0, False, False, False)`, `set_accelerator(1, 65, True, False, True)` 뒤 `(True, 65, True, False, True)`. `get_color`는 `cef_color_t`(정수의 typedef)를 `(True, 0xFF112233)`으로 돌려줍니다.
+  - 구조체 입출력: 배율 2.0에서 `convert_point_to_pixels(Point(10, 20))`이 `Point(20, 40)`, `convert_point_from_pixels((40, 80))`이 `(20, 40)`입니다. 배율 1.0에서도 `(10, 20)`을 그대로 돌려주어 값이 CEF로 들어가는 것이 확인됩니다(출력 전용이었다면 `(0, 0)`). 일반 튜플도 받습니다.
+  - `Display`의 경계는 배율 2.0에서 DIP로 640x512(1280x1024 화면)입니다.
+  - `MenuModel.create_menu_model(delegate)`에는 `MenuModelDelegate`(핸들러 7개 메서드)가 필요하고, 창이나 브라우저 없이 `initialize()` 뒤에 만들 수 있었습니다.
+- **영향**: 라이브러리 출력 인자(기본형, 문자열, 열거형, 구조체)를 지원합니다. 모든 클래스를 넣었을 때의 지원이 87%가 되었고 "출력 인자" 장애물이 사라졌습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

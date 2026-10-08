@@ -94,16 +94,17 @@ def _cy_method_signature(plan):
     args = []
     for param in plan.params:
         kind = param.kind
+        ref = "&" if param.out else ""  # an output parameter of a library method
         if isinstance(kind, Prim):
-            args.append(cy_c(kind.cpp))
+            args.append(cy_c(kind.cpp) + ref)
         elif isinstance(kind, Enum):
-            args.append(kind.cname)
+            args.append(kind.cname + ref)
         elif isinstance(kind, Str):
-            args.append("const CefString&")
+            args.append("CefString&" if param.out else "const CefString&")
         elif isinstance(kind, Struct):
-            args.append("const %s&" % kind.cls)
+            args.append("%s&" % kind.cls if param.out else "const %s&" % kind.cls)
         elif isinstance(kind, Vector):
-            args.append("vector[CefString]&")  # an output parameter of a library method
+            args.append("vector[CefString]&")
         elif isinstance(kind, LibRef):
             args.append("CefRefPtr[%s]" % kind.cls)
         elif isinstance(kind, ClientRef):
@@ -372,9 +373,22 @@ def _library_method(plan, owner_py):
     for i, param in enumerate(plan.params):
         kind, n = param.kind, param.name
         if param.out:
-            # An output parameter of a library method: a local that is returned to Python.
-            assert isinstance(kind, Vector), kind
-            decls.append("cdef vector[CefString] _a%d" % i)
+            # An output parameter of a library method: a local that is returned to Python
+            # (a struct is also an argument: it is read, changed by CEF and returned).
+            if isinstance(kind, Vector):
+                decls.append("cdef vector[CefString] _a%d" % i)
+            elif isinstance(kind, Str):
+                decls.append("cdef CefString _a%d" % i)
+            elif isinstance(kind, Enum):
+                decls.append("cdef %s _a%d" % (kind.cname, i))
+                pre.append("_a%d = <%s>0" % (i, kind.cname))
+            elif isinstance(kind, Prim):
+                decls.append("cdef %s _a%d" % (cy_c(kind.cpp), i))
+                pre.append("_a%d = %s" % (i, "False" if kind.py == "bool" else "0"))
+            elif isinstance(kind, Struct):
+                sig.append(n)
+                decls.append("cdef %s _a%d" % (kind.cls, i))
+                pre.append("_g_to_%s(%s, &_a%d)" % (py_class_name(kind.cls), n, i))
             call_args.append("_a%d" % i)
             continue
         if isinstance(kind, Prim):
@@ -456,8 +470,19 @@ def _library_method(plan, owner_py):
     elif isinstance(ret, Struct):
         values.append("_g_from_%s(&_r)" % py_class_name(ret.cls))
     for i, param in enumerate(plan.params):
-        if param.out:
+        if not param.out:
+            continue
+        kind = param.kind
+        if isinstance(kind, Vector):
             values.append("_g_str_list(&_a%d)" % i)
+        elif isinstance(kind, Str):
+            values.append("_g_str(_a%d)" % i)
+        elif isinstance(kind, Enum):
+            values.append("_g_enum(_types.%s, <int>_a%d)" % (kind.py, i) if kind.py else "<int>_a%d" % i)
+        elif isinstance(kind, Struct):
+            values.append("_g_from_%s(&_a%d)" % (py_class_name(kind.cls), i))
+        else:
+            values.append("_a%d" % i)
     if not values:
         body.append(base + "return None")
     elif len(values) == 1:

@@ -28,12 +28,19 @@ cdef extern from "include/internal/cef_string.h":
         CefString(const string&)
         string ToString() nogil
 
+ctypedef uint32_t cef_color_t
 cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_drag_operations_mask_t:
         pass
     ctypedef enum cef_errorcode_t:
         pass
+    ctypedef enum cef_event_flags_t:
+        pass
     ctypedef enum cef_log_severity_t:
+        pass
+    ctypedef enum cef_menu_color_type_t:
+        pass
+    ctypedef enum cef_menu_item_type_t:
         pass
     ctypedef enum cef_mouse_button_type_t:
         pass
@@ -93,8 +100,12 @@ cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowserHost(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
+cdef extern from "include/views/cef_display.h":
+    cdef cppclass CefDisplay(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted)
+cdef extern from "include/cef_menu_model.h":
+    cdef cppclass CefMenuModel(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -111,6 +122,8 @@ cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
 cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted)
+cdef extern from "include/cef_menu_model_delegate.h":
+    cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
@@ -203,6 +216,32 @@ cdef extern from "include/cef_callback.h":
         void Continue() nogil
         void Cancel() nogil
 
+cdef extern from "include/views/cef_display.h":
+    cdef cppclass CefDisplay(CefBaseRefCounted):
+        int64_t GetID() nogil
+        float GetDeviceScaleFactor() nogil
+        void ConvertPointToPixels(CefPoint&) nogil
+        void ConvertPointFromPixels(CefPoint&) nogil
+        CefRect GetBounds() nogil
+        CefRect GetWorkArea() nogil
+        int GetRotation() nogil
+        @staticmethod
+        CefRefPtr[CefDisplay] GetPrimaryDisplay() nogil
+        @staticmethod
+        CefRefPtr[CefDisplay] GetDisplayNearestPoint(const CefPoint&, cpp_bool) nogil
+        @staticmethod
+        CefRefPtr[CefDisplay] GetDisplayMatchingBounds(const CefRect&, cpp_bool) nogil
+        @staticmethod
+        size_t GetDisplayCount() nogil
+        @staticmethod
+        CefPoint ConvertScreenPointToPixels(const CefPoint&) nogil
+        @staticmethod
+        CefPoint ConvertScreenPointFromPixels(const CefPoint&) nogil
+        @staticmethod
+        CefRect ConvertScreenRectToPixels(const CefRect&) nogil
+        @staticmethod
+        CefRect ConvertScreenRectFromPixels(const CefRect&) nogil
+
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted):
         cpp_bool IsValid() nogil
@@ -225,6 +264,67 @@ cdef extern from "include/cef_frame.h":
         CefRefPtr[CefFrame] GetParent() nogil
         CefString GetURL() nogil
         CefRefPtr[CefBrowser] GetBrowser() nogil
+
+cdef extern from "include/cef_menu_model.h":
+    cdef cppclass CefMenuModel(CefBaseRefCounted):
+        cpp_bool IsSubMenu() nogil
+        cpp_bool Clear() nogil
+        size_t GetCount() nogil
+        cpp_bool AddSeparator() nogil
+        cpp_bool AddItem(int, const CefString&) nogil
+        cpp_bool AddCheckItem(int, const CefString&) nogil
+        cpp_bool AddRadioItem(int, const CefString&, int) nogil
+        CefRefPtr[CefMenuModel] AddSubMenu(int, const CefString&) nogil
+        cpp_bool InsertSeparatorAt(size_t) nogil
+        cpp_bool InsertItemAt(size_t, int, const CefString&) nogil
+        cpp_bool InsertCheckItemAt(size_t, int, const CefString&) nogil
+        cpp_bool InsertRadioItemAt(size_t, int, const CefString&, int) nogil
+        CefRefPtr[CefMenuModel] InsertSubMenuAt(size_t, int, const CefString&) nogil
+        cpp_bool Remove(int) nogil
+        cpp_bool RemoveAt(size_t) nogil
+        int GetIndexOf(int) nogil
+        int GetCommandIdAt(size_t) nogil
+        cpp_bool SetCommandIdAt(size_t, int) nogil
+        CefString GetLabel(int) nogil
+        CefString GetLabelAt(size_t) nogil
+        cpp_bool SetLabel(int, const CefString&) nogil
+        cpp_bool SetLabelAt(size_t, const CefString&) nogil
+        cef_menu_item_type_t GetType(int) nogil
+        cef_menu_item_type_t GetTypeAt(size_t) nogil
+        int GetGroupId(int) nogil
+        int GetGroupIdAt(size_t) nogil
+        cpp_bool SetGroupId(int, int) nogil
+        cpp_bool SetGroupIdAt(size_t, int) nogil
+        CefRefPtr[CefMenuModel] GetSubMenu(int) nogil
+        CefRefPtr[CefMenuModel] GetSubMenuAt(size_t) nogil
+        cpp_bool IsVisible(int) nogil
+        cpp_bool IsVisibleAt(size_t) nogil
+        cpp_bool SetVisible(int, cpp_bool) nogil
+        cpp_bool SetVisibleAt(size_t, cpp_bool) nogil
+        cpp_bool IsEnabled(int) nogil
+        cpp_bool IsEnabledAt(size_t) nogil
+        cpp_bool SetEnabled(int, cpp_bool) nogil
+        cpp_bool SetEnabledAt(size_t, cpp_bool) nogil
+        cpp_bool IsChecked(int) nogil
+        cpp_bool IsCheckedAt(size_t) nogil
+        cpp_bool SetChecked(int, cpp_bool) nogil
+        cpp_bool SetCheckedAt(size_t, cpp_bool) nogil
+        cpp_bool HasAccelerator(int) nogil
+        cpp_bool HasAcceleratorAt(size_t) nogil
+        cpp_bool SetAccelerator(int, int, cpp_bool, cpp_bool, cpp_bool) nogil
+        cpp_bool SetAcceleratorAt(size_t, int, cpp_bool, cpp_bool, cpp_bool) nogil
+        cpp_bool RemoveAccelerator(int) nogil
+        cpp_bool RemoveAcceleratorAt(size_t) nogil
+        cpp_bool GetAccelerator(int, int&, cpp_bool&, cpp_bool&, cpp_bool&) nogil
+        cpp_bool GetAcceleratorAt(size_t, int&, cpp_bool&, cpp_bool&, cpp_bool&) nogil
+        cpp_bool SetColor(int, cef_menu_color_type_t, cef_color_t) nogil
+        cpp_bool SetColorAt(int, cef_menu_color_type_t, cef_color_t) nogil
+        cpp_bool GetColor(int, cef_menu_color_type_t, cef_color_t&) nogil
+        cpp_bool GetColorAt(int, cef_menu_color_type_t, cef_color_t&) nogil
+        cpp_bool SetFontList(int, const CefString&) nogil
+        cpp_bool SetFontListAt(int, const CefString&) nogil
+        @staticmethod
+        CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
 
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted):
@@ -289,6 +389,9 @@ cdef extern from "include/cef_life_span_handler.h":
 cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_menu_model_delegate.h":
+    cdef cppclass CefMenuModelDelegate(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted):
         pass
@@ -349,6 +452,18 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_load_error)(void*, CefBrowser*, CefFrame*, int, const CefString*, const CefString*) noexcept
     cdef cppclass CwLoadHandlerProxy(CefLoadHandler):
         CwLoadHandlerProxy(const CwLoadHandlerCallbacks&)
+    cdef cppclass CwMenuModelDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_execute_command)(void*, CefMenuModel*, int, int) noexcept
+        void (*fn_mouse_outside_menu)(void*, CefMenuModel*, const CefPoint*) noexcept
+        void (*fn_unhandled_open_submenu)(void*, CefMenuModel*, cpp_bool) noexcept
+        void (*fn_unhandled_close_submenu)(void*, CefMenuModel*, cpp_bool) noexcept
+        void (*fn_menu_will_show)(void*, CefMenuModel*) noexcept
+        void (*fn_menu_closed)(void*, CefMenuModel*) noexcept
+        cpp_bool (*fn_format_label)(void*, CefMenuModel*, CefString*) noexcept
+    cdef cppclass CwMenuModelDelegateProxy(CefMenuModelDelegate):
+        CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks&)
     cdef cppclass CwResourceHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

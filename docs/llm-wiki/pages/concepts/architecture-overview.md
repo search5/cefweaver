@@ -39,7 +39,7 @@ libcef.so  (CEF 배포본에 이미 만들어져 있는 파일. 소스 빌드를
 ## 두 갈래의 Python 인터페이스
 
 1. **손으로 쓴 경로**: `CefApp`이 `CefWrapper`(C++)를 감쌉니다. 초기화, 메시지 루프, 종료, URL 로드, JavaScript 실행, JS에서 Python으로의 호출이 여기에 있습니다. 규모가 작고 결정이 고정되어 있습니다([Cython 확장 모듈](../components/cython-extension.md), [JavaScript 바인딩](javascript-bindings.md)).
-2. **생성된 경로**: CEF의 클래스를 거의 그대로 중계하는 래퍼입니다. CEF 헤더를 읽는 생성기가 C++ 프록시, Cython 래퍼, 타입 스텁을 만듭니다. 지금은 14개 클래스와 전역 함수 3개이고 확장할 수 있게 설계되었습니다([바인딩 생성기의 설계](binding-generator.md)).
+2. **생성된 경로**: CEF의 클래스를 거의 그대로 중계하는 래퍼입니다. CEF 헤더를 읽는 생성기가 C++ 프록시, Cython 래퍼, 타입 스텁을 만듭니다. 지금은 17개 클래스와 전역 함수 3개이고 확장할 수 있게 설계되었습니다([바인딩 생성기의 설계](binding-generator.md)).
 
 `CefApp.add_resource()`는 두 경로를 잇는 예입니다. 손으로 쓴 클래스가 생성된 `ResourceHandler`와 `SchemeHandlerFactory`만 사용해서 구현되어 있습니다([리소스 제공](resource-serving.md)).
 

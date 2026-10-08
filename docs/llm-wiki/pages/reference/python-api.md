@@ -113,6 +113,19 @@ host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), 0, False, 1)  # 0: 
 host.close_browser(False)
 ```
 
+## 출력 인자를 돌려주는 메서드
+
+C++에서 값을 참조 인자로 돌려주는 라이브러리 메서드는 파이썬에서 **반환값**입니다. 반환값이 있으면 그것이 먼저이고 출력이 뒤따릅니다.
+
+```python
+ok, key_code, shift, ctrl, alt = menu.get_accelerator(command_id)   # MenuModel
+ok, color = menu.get_color(command_id, types.MenuColorType.TEXT)
+
+point = display.convert_point_to_pixels(types.Point(10, 20))        # Display: a point goes in and comes back
+```
+
+구조체 참조(`CefPoint&`)만 입출력으로 다룹니다(`CefDisplay`와 `CefView`의 좌표 변환이 값을 읽고 고치기 때문). 그 밖의 참조 인자는 출력 전용이며 헤더가 방향을 표시하지 않으므로 이 구분은 헤더가 아닌 추정에 근거합니다([알려진 제약과 미검증 항목](known-constraints.md)).
+
 ## 목록을 돌려주는 메서드
 
 문자열 벡터는 `list[str]`입니다. 라이브러리 메서드의 출력 인자는 Python 반환값이 되고(`browser.get_frame_names()`, `browser.get_frame_identifiers()`), 핸들러가 받는 경우는 인자입니다(`DisplayHandler.on_favicon_url_change(browser, icon_urls)`). 프레임 식별자는 `"5-725574D5..."` 같은 문자열이고, 이름 목록의 순서는 호출마다 같다는 보장이 없습니다(`['inner', '']`와 `['', 'inner']`가 모두 나왔습니다). 시험에서 `srcdoc` iframe을 쓸 때는 `data:` 페이지가 아니라 `add_resource` 페이지에 넣어야 합니다(F27).

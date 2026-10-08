@@ -167,6 +167,12 @@ class ApiWithoutCef(unittest.TestCase):
         request.set_url("http://example.test/")
         self.assertIsInstance(request.get_transition_type(), types.TransitionType)
 
+    def test_the_menu_model_and_the_display_are_public(self):
+        for name in ("MenuModel", "MenuModelDelegate", "Display"):
+            self.assertIn(name, cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.MenuModel, "get_accelerator"))
+        self.assertTrue(hasattr(cefweaver.Display, "convert_point_to_pixels"))
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -957,6 +963,50 @@ class WithCef(unittest.TestCase):
             error = errors[0]
             assert isinstance(error, types.ErrorCode), type(error)
             assert error is types.ErrorCode.CONNECTION_REFUSED, error
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+    def test_output_parameters_of_a_library_method_come_back_with_its_result(self):
+        result = run_cef("""
+            from cefweaver import types
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            menu = cefweaver.MenuModel.create_menu_model(cefweaver.MenuModelDelegate())
+            menu.add_item(1, "First")
+
+            # Several outputs: the result first, then each output parameter.
+            assert menu.get_accelerator(1) == (False, 0, False, False, False)
+            assert menu.set_accelerator(1, 65, True, False, True) is True
+            assert menu.get_accelerator(1) == (True, 65, True, False, True)
+
+            # One output (a typedef of an integer) after the result.
+            assert menu.set_color(1, types.MenuColorType.TEXT, 0xFF112233) is True
+            assert menu.get_color(1, types.MenuColorType.TEXT) == (True, 0xFF112233)
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_struct_given_to_a_library_method_is_changed_and_returned(self):
+        # CefDisplay::ConvertPointToPixels changes the point it is given. At scale 1 it would
+        # not show whether the point went in, so the device scale factor is forced to 2.
+        result = run_cef("""
+            from cefweaver import types
+            app.add_command_line_switch("force-device-scale-factor", "2")
+            app.initialize("about:blank")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+            display = cefweaver.Display.get_primary_display()
+            assert display.get_device_scale_factor() == 2.0
+            to_pixels = display.convert_point_to_pixels(types.Point(10, 20))
+            assert isinstance(to_pixels, types.Point) and to_pixels == (20, 40), to_pixels
+            assert display.convert_point_from_pixels((40, 80)) == (20, 40)  # a plain tuple goes in
+            bounds = display.get_bounds()
+            assert isinstance(bounds, types.Rect) and bounds.width > 0, bounds
             app.shutdown()
             print("OK")
         """)
