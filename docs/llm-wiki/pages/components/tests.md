@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 70개(통합 32, 생성기 37, 위키 점검 1) 있습니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 72개(통합 34, 생성기 37, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -27,6 +27,8 @@ updated: 2026-10-08
 | | `test_value_types_are_named_tuples` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`의 공개 여부, 튜플 동작, 필드 이름(`from_`) |
 | | `test_the_browser_host_is_public` | `BrowserHost`와 주요 메서드, `Browser.get_host`의 공개 여부 |
 | | `test_browser_lists_its_frames_as_lists_of_strings` | `Browser.get_frame_names`, `get_frame_identifiers`의 공개 여부 |
+| | `test_known_cef_issue_a_srcdoc_iframe_in_a_data_page_never_finishes_loading` | `expectedFailure`. `data:` 페이지의 `srcdoc` iframe이 로드를 끝내지 못하는 CEF의 문제(F27)를 기록하고, CEF가 고치면 알려 줌 |
+| | `test_a_srcdoc_iframe_loads_in_a_page_served_over_http` | F27의 우회(`add_resource`로 제공) |
 | | `test_set_client_checks_its_argument` | `Client`가 아닌 객체와 핸들러는 `TypeError`, `None`은 허용 |
 | `WithCef` (실제 CEF) | `test_javascript_to_python_binding_and_shutdown` | 네 가지 값 형식(한글 포함)의 전달, 종료 후 `is_running`이 거짓 |
 | | `test_zero_argument_call_and_exceptions_do_not_crash` | 인자 없는 호출, 콜백 예외가 CEF를 죽이지 않음 |

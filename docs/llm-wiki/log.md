@@ -60,3 +60,8 @@
 - 스텁 수정: 핸들러가 받는 문자열, 구조체, 목록에 잘못 붙던 `| None` 5곳을 고쳤습니다.
 - `data:` 페이지의 `srcdoc` iframe이 로드를 끝내지 못하는 현상을 발견했습니다(F26, 원인 미조사).
 - 갱신: [생성 범위와 커버리지](pages/reference/generated-api-coverage.md), [바인딩 생성기의 설계](pages/concepts/binding-generator.md), [Python API 참조](pages/reference/python-api.md), [실험으로 확인한 사실](pages/reference/verified-findings.md)(F26), [시험](pages/components/tests.md) 외.
+
+## [2026-10-08] ingest | F26(data: 페이지의 srcdoc iframe) 원인 조사
+
+- 원인은 cefweaver가 아니라 CEF 154.0.34입니다(F27). 우리 코드가 없는 `cefsimple`도 같은 페이지에서 멈추고, 일반 Chrome 155는 정상입니다. 조건(부모 URL이 `data:`/`about:blank`), 배제한 가설(GPU, 샌드박스, 사이트 격리, 스타일, 위임, 기능 플래그, 불투명 출처)과 우회를 기록했습니다.
+- 고칠 수 없어서 `expectedFailure` 시험으로 CEF의 수정을 감지하게 했습니다. 이전 CEF(152)에서의 동작은 확인하지 못했습니다.

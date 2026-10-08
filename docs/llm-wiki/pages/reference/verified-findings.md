@@ -164,8 +164,29 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 
 - **방법**: `browser.get_frame_names()`, `get_frame_identifiers()`(라이브러리의 출력 인자)와 `on_favicon_url_change`(핸들러의 입력)를 실행했습니다.
 - **결과**: 둘 다 `list[str]`로 오고 내용이 맞습니다(프레임 이름 `inner`, 아이콘 URL `http://fav.test/icon.png`). 이름 목록의 순서는 일정하지 않았습니다. 식별자는 `5-<16진수>` 꼴의 문자열입니다.
-- **부수 발견**: `<iframe srcdoc=...>`가 들어 있는 `data:` 페이지는 시작 URL이든 `load_url`이든 **로드가 끝나지 않습니다**(`on_load_end`가 오지 않고 로딩 상태가 계속 참). 같은 iframe이 `http://` 페이지(`add_resource`)나 `src='about:blank'`이면 정상입니다. 원인은 조사하지 않았고, 시험은 `about:blank` iframe을 씁니다.
+- **부수 발견**: F27 (`data:` 페이지의 `srcdoc` iframe).
 - **부수 수정**: 핸들러가 받는 문자열, 구조체, 목록은 `optional_param` 표시와 상관없이 `None`이 아니라 값(빈 값 포함)으로 옵니다. 스텁이 `title: str | None`처럼 잘못 적었던 5곳을 고쳤습니다. 라이브러리 메서드의 입력만 `None`을 허용합니다.
+
+## F27. data: 페이지의 srcdoc iframe이 로드를 끝내지 못한다 (CEF 154.0.34의 문제)
+
+- **증상**: 페이지 URL이 `data:`(또는 `about:blank`)이고 `<iframe srcdoc=...>`가 있으면 `on_load_end`가 오지 않고 로딩 상태가 계속 참입니다. 자식 프레임의 `about:srcdoc` 탐색이 `on_load_error`로 `ERR_ABORTED`(-3)로 보고됩니다. 렌더러는 CPU를 쓰지 않고 잠든 채(`Sl`) 원격 디버깅의 `Page.getFrameTree`와 `Runtime.evaluate`에도 응답하지 않습니다.
+- **원인은 cefweaver가 아닙니다.** CEF 배포본의 공식 예제 `cefsimple`(우리 코드 없음, 같은 `libcef` 154.0.34)을 따로 빌드해 같은 페이지를 열어도 똑같이 멈추고, 다른 페이지는 정상입니다. 일반 Google Chrome 155는 같은 페이지를 정상으로 로드합니다(`document.readyState`가 `complete`, iframe 내용 `child`).
+- **조건 비교** (모두 `srcdoc` iframe 포함 페이지):
+
+  | 부모 페이지 | 결과 |
+  | --- | --- |
+  | `data:` URL (시작 URL이든 `load_url`이든, base64든 퍼센트 인코딩이든) | 멈춤 |
+  | `about:blank`에서 JavaScript로 iframe을 넣음 | 멈춤 |
+  | `http://`(`add_resource`) | 정상 |
+  | `http://` + CSP `sandbox`(출처가 불투명) | 정상 |
+  | `file://` | 정상 |
+  | `data:` 부모의 `<iframe src="about:blank">`, `<iframe src="data:...">` | 정상 |
+
+- **배제한 것**: GPU(`disable-gpu`, `disable-gpu-compositing`, swiftshader, `in-process-gpu`), 샌드박스, 사이트 격리(`disable-site-isolation-trials`, `disable-features=IsolateOrigins,site-per-process`), `disable-web-security`, 렌더러 백그라운딩, Chrome/Alloy 스타일(두 스타일 모두 멈춤), 클라이언트 위임(`set_client` 없이도 멈춤), JS 바인딩, 출처의 불투명성(CSP `sandbox`로 확인), CEF 렌더러에 붙는 기능 플래그(일반 Chrome에 같은 `--enable-features`, `--disable-features`를 줘도 정상).
+- **고칠 수 없는 이유**: 원인이 미리 빌드된 `libcef` 안에 있습니다. `ptrace_scope=1`이라 렌더러에 `gdb`를 붙이지 못했고 `libcef`는 심볼이 없어서 스택을 봐도 이름이 나오지 않을 것입니다. 받을 수 있는 가장 새 버전이 154.0.34입니다.
+- **확인하지 못한 것**: 152 등 이전 CEF에서도 같은지(152의 `cefsimple`은 원격 디버깅 포트를 열지 않아 시간 관계로 중단), 이후 CEF에서 고쳐졌는지.
+- **우회**: 페이지를 `app.add_resource("http://...")`로 제공하거나 `file://`을 쓰고, `data:` 페이지에서는 `srcdoc` 대신 `src`를 쓰는 iframe을 씁니다.
+- **시험**: `test_known_cef_issue_a_srcdoc_iframe_in_a_data_page_never_finishes_loading`이 `expectedFailure`로 이 문제를 지킵니다. CEF가 고치면 "예상 밖 성공"으로 알려 줍니다. `test_a_srcdoc_iframe_loads_in_a_page_served_over_http`가 우회를 확인합니다.
 
 ## 관련 페이지
 

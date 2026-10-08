@@ -111,7 +111,7 @@ host.close_browser(False)
 
 ## 목록을 돌려주는 메서드
 
-문자열 벡터는 `list[str]`입니다. 라이브러리 메서드의 출력 인자는 Python 반환값이 되고(`browser.get_frame_names()`, `browser.get_frame_identifiers()`), 핸들러가 받는 경우는 인자입니다(`DisplayHandler.on_favicon_url_change(browser, icon_urls)`). 프레임 식별자는 `"5-725574D5..."` 같은 문자열이고, 이름 목록의 순서는 호출마다 같다는 보장이 없습니다(`['inner', '']`와 `['', 'inner']`가 모두 나왔습니다).
+문자열 벡터는 `list[str]`입니다. 라이브러리 메서드의 출력 인자는 Python 반환값이 되고(`browser.get_frame_names()`, `browser.get_frame_identifiers()`), 핸들러가 받는 경우는 인자입니다(`DisplayHandler.on_favicon_url_change(browser, icon_urls)`). 프레임 식별자는 `"5-725574D5..."` 같은 문자열이고, 이름 목록의 순서는 호출마다 같다는 보장이 없습니다(`['inner', '']`와 `['', 'inner']`가 모두 나왔습니다). 시험에서 `srcdoc` iframe을 쓸 때는 `data:` 페이지가 아니라 `add_resource` 페이지에 넣어야 합니다(F27).
 
 ## 관련 페이지
 

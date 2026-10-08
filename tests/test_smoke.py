@@ -836,5 +836,46 @@ class WithCef(unittest.TestCase):
         self.assertIn("OK", result.stdout)
 
 
+    @unittest.expectedFailure
+    def test_known_cef_issue_a_srcdoc_iframe_in_a_data_page_never_finishes_loading(self):
+        # CEF 154.0.34 stops the renderer of a page that has an <iframe srcdoc> when the
+        # page's own URL is data: or about:blank (the child load is reported as ERR_ABORTED).
+        # CEF's own cefsimple sample does the same, a plain Chrome 155 does not, and it is
+        # not the GPU, the sandbox, the runtime style or a feature flag. If this test starts
+        # to pass, CEF fixed it: remove expectedFailure and the entry in known-constraints.
+        result = run_cef("""
+            app.initialize(page("<iframe name='inner' srcdoc='child'></iframe>"))
+            wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page", timeout=4)
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_srcdoc_iframe_loads_in_a_page_served_over_http(self):
+        # The workaround for the issue above: serve the page with add_resource().
+        result = run_cef("""
+            boxes = []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            app.add_resource("http://srcdoc.test/",
+                             "<html><body><iframe name='inner' srcdoc='child'></iframe></body></html>")
+            app.load_url("http://srcdoc.test/")
+            wait_until(app, lambda: app.is_ready_to_execute_javascript and
+                       "inner" in boxes[0].get_frame_names(), "the page with its srcdoc frame")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
