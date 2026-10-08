@@ -367,6 +367,8 @@ cdef extern from "include/cef_download_item.h":
     cdef cppclass CefDownloadItem(CefBaseRefCounted)
 cdef extern from "include/cef_download_handler.h":
     cdef cppclass CefDownloadItemCallback(CefBaseRefCounted)
+cdef extern from "include/cef_drag_data.h":
+    cdef cppclass CefDragData(CefBaseRefCounted)
 cdef extern from "include/cef_dialog_handler.h":
     cdef cppclass CefFileDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
@@ -579,6 +581,7 @@ cdef extern from "include/cef_browser.h":
         void ImeCommitText(const CefString&, const CefRange&, int) nogil
         void ImeFinishComposingText(cpp_bool) nogil
         void ImeCancelComposition() nogil
+        void DragTargetDragEnter(CefRefPtr[CefDragData], const CefMouseEvent&, cef_drag_operations_mask_t) nogil
         void DragTargetDragOver(const CefMouseEvent&, cef_drag_operations_mask_t) nogil
         void DragTargetDragLeave() nogil
         void DragTargetDrop(const CefMouseEvent&) nogil
@@ -753,6 +756,37 @@ cdef extern from "include/cef_download_handler.h":
         void Cancel() nogil
         void Pause() nogil
         void Resume() nogil
+
+cdef extern from "include/cef_drag_data.h":
+    cdef cppclass CefDragData(CefBaseRefCounted):
+        CefRefPtr[CefDragData] Clone() nogil
+        cpp_bool IsReadOnly() nogil
+        cpp_bool IsLink() nogil
+        cpp_bool IsFragment() nogil
+        cpp_bool IsFile() nogil
+        CefString GetLinkURL() nogil
+        CefString GetLinkTitle() nogil
+        CefString GetLinkMetadata() nogil
+        CefString GetFragmentText() nogil
+        CefString GetFragmentHtml() nogil
+        CefString GetFragmentBaseURL() nogil
+        CefString GetFileName() nogil
+        size_t GetFileContents(CefRefPtr[CefStreamWriter]) nogil
+        cpp_bool GetFileNames(vector[CefString]&) nogil
+        cpp_bool GetFilePaths(vector[CefString]&) nogil
+        void SetLinkURL(const CefString&) nogil
+        void SetLinkTitle(const CefString&) nogil
+        void SetLinkMetadata(const CefString&) nogil
+        void SetFragmentText(const CefString&) nogil
+        void SetFragmentHtml(const CefString&) nogil
+        void SetFragmentBaseURL(const CefString&) nogil
+        void ResetFileContents() nogil
+        void AddFile(const CefString&, const CefString&) nogil
+        void ClearFilenames() nogil
+        CefPoint GetImageHotspot() nogil
+        cpp_bool HasImage() nogil
+        @staticmethod
+        CefRefPtr[CefDragData] Create() nogil
 
 cdef extern from "include/cef_dialog_handler.h":
     cdef cppclass CefFileDialogCallback(CefBaseRefCounted):
@@ -1363,6 +1397,7 @@ cdef extern from "generated/cefweaver_proxies.h":
     cdef cppclass CwDragHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
+        cpp_bool (*fn_on_drag_enter)(void*, CefBrowser*, CefDragData*, int) noexcept
         void (*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, const vector[CefDraggableRegion]*) noexcept
     cdef cppclass CwDragHandlerProxy(CefDragHandler):
         CwDragHandlerProxy(const CwDragHandlerCallbacks&)
@@ -1460,6 +1495,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_paint)(void*, CefBrowser*, int, const vector[CefRect]*, void*, size_t, int, int) noexcept
         void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) noexcept
         void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) noexcept
+        cpp_bool (*fn_start_dragging)(void*, CefBrowser*, CefDragData*, int, int, int) noexcept
         void (*fn_update_drag_cursor)(void*, CefBrowser*, int) noexcept
         void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) noexcept
         void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const vector[CefRect]*) noexcept

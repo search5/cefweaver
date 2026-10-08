@@ -477,6 +477,48 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual((line.get_switches(), line.get_arguments()), ({}, []))
         self.assertFalse(line.has_switches() or line.has_arguments())
 
+    def test_drag_data_holds_a_link_text_and_files(self):
+        data = cefweaver.DragData.create()
+        # CEF's kinds: a drag is a link, a file or else a fragment (so a new one is a fragment)
+        self.assertEqual((data.is_link(), data.is_fragment(), data.is_file()), (False, True, False))
+        data.set_fragment_text("some text")
+        data.set_fragment_html("<b>some</b> text")
+        data.set_fragment_base_url("http://example.test/")
+        self.assertEqual((data.get_fragment_text(), data.get_fragment_html()),
+                         ("some text", "<b>some</b> text"))
+        self.assertEqual(data.get_fragment_base_url(), "http://example.test/")
+        data.set_link_url("http://example.test/a")
+        data.set_link_title("A link")
+        data.set_link_metadata("text/plain:name.txt:http://example.test/file.txt")  # mime:name:url
+        self.assertEqual((data.is_link(), data.is_fragment()), (True, False))
+        self.assertEqual((data.get_link_url(), data.get_link_title(), data.get_link_metadata()),
+                         ("http://example.test/a", "A link",
+                          "text/plain:name.txt:http://example.test/file.txt"))
+        data.add_file("/tmp/one.txt", "one.txt")
+        self.assertTrue(data.is_file())
+        # (get_file_name() is for the image of a drag with file contents: CEF ends the process
+        # with a failed CHECK when there is none, so it is not called here)
+        self.assertEqual(data.get_file_paths(), (True, ["/tmp/one.txt"]))
+        self.assertEqual(data.get_file_names(), (True, ["one.txt"]))
+        self.assertEqual(cefweaver.DragData.create().get_file_paths(), (False, []))
+        copy = data.clone()
+        copy.set_link_url("http://example.test/b")
+        self.assertEqual(data.get_link_url(), "http://example.test/a")       # a copy of its own
+        self.assertFalse(data.is_read_only())
+        # the contents of a file go to a stream writer (java-cef's OutputStream); this one has none
+        class Sink(cefweaver.WriteHandler):
+            def write(self, ptr, size):
+                return len(ptr) // size
+            def seek(self, offset, whence):
+                return 0
+            def tell(self):
+                return 0
+            def flush(self):
+                return 0
+            def may_block(self):
+                return False
+        self.assertEqual(data.get_file_contents(cefweaver.StreamWriter.create_for_handler(Sink())), 0)
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1914,10 +1956,15 @@ class WithCef(unittest.TestCase):
         paints, boxes, js = [], [], []
         size = [200, 100]
         screen = [None]  # a ScreenInfo to give, or None to leave the screen to CEF
+        dragged, drag_return = [], [False]  # what start_dragging() got, and what it answers
         app.add_javascript_binding("report", lambda *a: js.append(a))
         class Render(cefweaver.RenderHandler):
             def get_view_rect(self, browser):
                 return cefweaver.Rect(0, 0, size[0], size[1])
+            def start_dragging(self, browser, drag_data, allowed_ops, x, y):
+                dragged.append((drag_data.get_fragment_text(), drag_data.is_fragment(),
+                                allowed_ops, x, y))
+                return drag_return[0]
             def get_screen_info(self, browser):
                 if screen[0] is None:
                     return False, cefweaver.ScreenInfo(1.0, 24, 8, 0, cefweaver.Rect(0, 0, 0, 0),
@@ -1951,6 +1998,8 @@ class WithCef(unittest.TestCase):
                 return handlers.get("dialog")
             def get_download_handler(self):
                 return handlers.get("download")
+            def get_drag_handler(self):
+                return handlers.get("drag")
             def get_keyboard_handler(self):
                 return handlers.get("keyboard")
             def get_print_handler(self):
@@ -2866,6 +2915,82 @@ class WithCef(unittest.TestCase):
             assert relaunched[0][0] == "yes", relaunched
             assert os.path.realpath(relaunched[0][1]) == os.path.realpath(cache), relaunched
             process.wait(timeout=30)
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_dropping_drag_data_on_an_offscreen_page(self):
+        self.run_osr_script("""
+            entered = []
+            class Drags(cefweaver.DragHandler):
+                def on_drag_enter(self, browser, drag_data, mask):
+                    entered.append((drag_data.get_fragment_text(), mask))
+                    return False                          # let the page have it
+            handlers["drag"] = Drags()
+            start('<div style="position:fixed;left:0;top:0;width:200px;height:100px" '
+                  'ondragover="event.preventDefault()" '
+                  'ondrop="event.preventDefault(); report(\\'dropped\\', event.dataTransfer.getData(\\'text/plain\\'))">'
+                  'drop here</div>')
+            host = boxes[0].get_host()
+            data = cefweaver.DragData.create()
+            data.set_fragment_text("payload")
+            copy = types.DragOperationsMask.COPY
+            def drop():
+                host.drag_target_drag_enter(data, (50, 50, 0), copy)
+                host.drag_target_drag_over((60, 60, 0), copy)
+                host.drag_target_drop((60, 60, 0))
+            send_until(app, drop, lambda: ("dropped", "payload") in js, "the drop")
+            assert entered and entered[0][0] == "payload" and entered[0][1] & copy, entered
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_starting_a_drag_from_an_offscreen_page(self):
+        self.run_osr_script("""
+            drag_return[0] = True                        # the host takes over the drag
+            start('<div draggable="true" style="position:fixed;left:0;top:0;width:200px;height:100px"'
+                  ' ondragstart="event.dataTransfer.setData(\\'text/plain\\', \\'carried\\')">drag me</div>')
+            host = boxes[0].get_host()
+            LEFT = 16                                    # EVENTFLAG_LEFT_MOUSE_BUTTON
+            def pull():
+                host.send_mouse_click_event((20, 20, 0), types.MouseButtonType.LEFT, False, 1)
+                for x in (30, 50, 80, 120):
+                    host.send_mouse_move_event((x, 30, LEFT), False)
+            send_until(app, pull, lambda: dragged, "the drag")
+            assert dragged[0][0] == "carried" and dragged[0][1] is True, dragged
+            assert dragged[0][2] != 0, dragged            # the operations the page allows
+            host.drag_source_ended_at(120, 30, types.DragOperationsMask.NONE)
+            host.drag_source_system_drag_ended()
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_pending_queries_can_be_canceled_from_the_host(self):
+        self.run_query_script("""
+            pending, canceled = {}, []
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    pending[request] = (query_id, callback)
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            handler, other = Handler(), Handler()
+            app.add_query_handler(handler)
+            start()
+            app.execute_javascript("ask('one', true); ask('two', true)")
+            wait_until(app, lambda: len(pending) == 2, "two queries")
+            assert app.cancel_pending_queries(None, other) is None     # not its queries: nothing
+            for _ in range(50):
+                app.do_message_loop_work(); time.sleep(0.005)
+            assert canceled == [], canceled
+            app.cancel_pending_queries(boxes[0], None)                 # all of one browser
+            wait_until(app, lambda: len(canceled) == 2, "both cancellations")
+            assert sorted(canceled) == sorted(q for q, _ in pending.values()), canceled
+            wait_until(app, lambda: {r[1] for r in js if r[0] == "fail" and r[2] == -1} == {"one", "two"},
+                       "the failures of the page")             # onFailure(-1, message)
+            assert pending["one"][1].success("late") is False
             app.shutdown()
             print("OK")
         """)

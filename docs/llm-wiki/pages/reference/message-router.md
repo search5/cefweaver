@@ -40,6 +40,7 @@ window.cefQuery({request: "ping", persistent: false,
 | --- | --- |
 | `CefApp.add_query_handler(handler, first=False)` | 핸들러를 더합니다. 처음 더하는 것은 `initialize()` 전이어야 합니다(렌더러가 시작할 때 라우터를 만듭니다). 시작 뒤에는 라우터가 있을 때만 더할 수 있고 없으면 `RuntimeError`입니다. `QueryHandler`가 아니면 `TypeError`, 이미 더했으면 `ValueError`. 순서대로 물어보고 `first=True`이면 맨 앞에 둡니다. |
 | `CefApp.remove_query_handler(handler) -> bool` | 뺍니다. 받아 둔 질의는 취소되어 `on_query_canceled()`가 불리고 페이지의 `onFailure`가 -1을 받습니다. 더한 적이 없으면 `False`. |
+| `CefApp.cancel_pending_queries(browser=None, handler=None)` | 브라우저와 핸들러(둘 다 `None`이면 전부)의 열린 질의를 취소합니다. `on_query_canceled`가 불리고 페이지의 `onFailure`가 -1을 받습니다. |
 | `CefApp.set_query_functions(query="cefQuery", cancel="cefQueryCancel")` | JavaScript 함수 이름. `initialize()` 전에만(`RuntimeError`), `str`이 아니면 `TypeError`, 식별자가 아니면 `ValueError`. |
 | `QueryHandler.on_query(browser, frame, query_id, request, persistent, callback) -> bool` | `request`는 `str`, 페이지가 `ArrayBuffer`를 보내면 `bytes`. `True`면 받은 것이고 `callback`으로 지금 또는 나중에(다른 스레드도 가능) 답해야 합니다. 어느 핸들러도 받지 않으면 페이지의 `onFailure`가 -1을 받습니다. 예외는 `sys.excepthook`으로 가고 "받지 않음"입니다. |
 | `QueryHandler.on_query_canceled(browser, frame, query_id)` | 페이지가 `cefQueryCancel`을 불렀거나, 페이지를 떠났거나, 렌더러나 브라우저가 사라졌거나, 핸들러를 뺐을 때. |

@@ -199,6 +199,9 @@ bool CefWrapper::RemoveQueryHandler(PythonQueryHandler* handler) {
   return QueryRouter::RemoveHandler(handler);
 }
 bool CefWrapper::QueryRouterExists() { return QueryRouter::Exists(); }
+void CefWrapper::CancelPendingQueries(CefRefPtr<CefBrowser> browser, PythonQueryHandler* handler) {
+  QueryRouter::CancelPending(browser, handler);
+}
 void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
                              app_context_ptr context, app_relaunch_ptr relaunch) {
   AppHooks& hooks = GetAppHooks();

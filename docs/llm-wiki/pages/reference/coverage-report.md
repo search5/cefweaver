@@ -14,17 +14,17 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 660 methods/functions in 71 classes, 3 global functions
+Generated now: 690 methods/functions in 72 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    22  class
+    20  class
      4  struct
      3  a library method returning a client object
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
      1  pointer to
      1  struct-like value type
      1  another overload of CreateContext is generated (Python has one name)
-  ----  33 skipped
+  ----  31 skipped
 
 If every class were generated, the type support alone would cover 2131 of 2255 methods/functions (95%).
 What blocks the rest, by type:
@@ -115,7 +115,7 @@ Per class (supported/total methods, when every class is generated):
     CefDownloadImageCallback               client    1/1  
   * CefDownloadItem                        library  20/20 
   * CefDownloadItemCallback                library   3/3  
-    CefDragData                            library  28/28 
+  * CefDragData                            library  28/28 
   * CefDragHandler                         client    2/2  
     CefEndTracingCallback                  client    1/1  
   * CefFileDialogCallback                  library   2/2  
@@ -244,11 +244,7 @@ Per class (supported/total methods, when every class is generated):
   (* = generated now)
 
 Opened by java-cef, not generated yet (the gaps):
-  CefBrowserHost                   1/30   type not supported yet
-  CefDragData                     24/24   class not generated yet
-  CefDragHandler                   1/1    type not supported yet
-  CefRenderHandler                 1/9    type not supported yet
-  ----  27 methods
+  ----  0 methods
 
 Generated, and not opened by java-cef (beyond the floor):
   CefBinaryValue                   8  the whole class
@@ -267,6 +263,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefDisplayHandler                6  6 methods
   CefDownloadHandler               1  1 methods
   CefDownloadItem                  4  4 methods
+  CefDragData                      3  3 methods
   CefDragHandler                   1  1 methods
   CefFrame                         5  5 methods
   CefLifeSpanHandler               1  1 methods
@@ -295,7 +292,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  291 methods
+  ----  294 methods
 ```
 
 ## 관련 페이지

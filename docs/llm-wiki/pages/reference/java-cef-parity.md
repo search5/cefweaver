@@ -21,14 +21,17 @@ updated: 2026-10-08
 
 ## 바닥의 격차 (java-cef는 열고 우리는 아직 안 연 것)
 
-시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 이 목록을 고정합니다. 격차를 메우면 시험의 기대값에서 지웁니다. 지금 394개 가운데 27개입니다.
+**지금은 없습니다**(389개 가운데 0개). 시험 `test_the_gaps_to_the_java_cef_floor_are_the_listed_ones`가 목록이 비어 있음을 고정합니다. java-cef가 CEF 클래스의 메서드로 여는 것은 모두 생성되었거나 직접 써서(`SchemeRegistrar`) 열려 있습니다. java-cef의 Java 쪽 사정이라 해당이 없는 것은 아래에 적었습니다.
 
-| 묶음 | 항목 | 필요한 것 |
-| --- | --- | --- |
-| 드래그 | `CefDragData`(24), `DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter` | `DragData`, 쓰기 핸들러 |
+해당이 없어 열지 않은 것:
+
+- `onScheduleMessagePumpWork`, `onBeforeTerminate`, `stateHasChanged`(앱 핸들러): 우리는 호출하는 쪽이 `do_message_loop_work()`를 부르는 구조입니다([앱 핸들러](app-handler.md)).
+- Java 객체의 관리(`Dispose`)와 AWT 창(`SetParent`, `SetWindowVisibility`, `UpdateUI`, `WindowHandler`, `CreateBrowser`, `CreateDevTools`).
+- java-cef의 `CefMessageRouter`/`CefQueryCallback`에 해당하는 것은 `add_query_handler`, `remove_query_handler`, `cancel_pending_queries`, `QueryCallback`입니다.
 
 ### 메운 격차
 
+- 드래그(`CefDragData` 24개, `DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter`)와 라우터의 `CancelPending`([검증](verified-findings-more.md) F54).
 - 명령줄(`CefCommandLine` 12개)과 앱 훅(`AppHandler`: 명령줄 처리, 사용자 스킴 등록과 렌더러 전파, 컨텍스트 초기화, 두 번째 시작), `SchemeRegistrar`(직접 쓴 클래스)([검증](verified-findings-more.md) F53, [앱 핸들러](app-handler.md)). 하지 않은 것: java-cef의 `onScheduleMessagePumpWork`, `onBeforeTerminate`, `stateHasChanged`(우리 구조에는 해당 없음).
 - 요청 컨텍스트(`CefRequestContext`, 부모 `CefPreferenceManager`의 환경설정 메서드 포함, `CefRequestContextHandler`)와 URL 요청(`CefURLRequest`, `CefURLRequestClient`)([검증](verified-findings-more.md) F52).
 - 쿠키(`CookieManager` 6개, `CookieVisitor`, 완료 콜백들, `CookieAccessFilter` 2개, `ResourceRequestHandler.GetCookieAccessFilter`)([검증](verified-findings-more.md) F51).
@@ -40,7 +43,7 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다. 총 291개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
+닫지 않고 둡니다. 총 294개 메서드이고 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별로는 다음과 같습니다.
 
 - **값 컨테이너와 프로세스 메시지**: `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage`. (`RequestContext`의 설정은 `Value`가 필요해서 바닥이 이것을 쓰게 됩니다.)
 - **스트림**: `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler`, `WriteHandler`(java-cef는 드래그 파일 내용용 쓰기 핸들러만 안에서 씀).

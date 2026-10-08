@@ -47,6 +47,7 @@ LIBRARY_CLASSES = [
     "CefRequestContext",
     "CefURLRequest",
     "CefCommandLine",
+    "CefDragData",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.

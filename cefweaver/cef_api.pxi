@@ -666,6 +666,7 @@ cdef class DictionaryValue
 cdef class Display
 cdef class DownloadItem
 cdef class DownloadItemCallback
+cdef class DragData
 cdef class FileDialogCallback
 cdef class Frame
 cdef class JSDialogCallback
@@ -1784,6 +1785,24 @@ cdef class BrowserHost:
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
             _p.ImeCancelComposition()
+        return None
+
+    def drag_target_drag_enter(self, DragData drag_data not None, event, int allowed_ops):
+        """Call this method when the user drags the mouse into the web view (before
+        calling DragTargetDragOver/DragTargetLeave/DragTargetDrop).
+        |drag_data| should not contain file contents as this type of data is not
+        allowed to be dragged into the web view. File contents can be removed
+        using CefDragData::ResetFileContents (for example, if |drag_data| comes
+        from CefRenderHandler::StartDragging). This method is only used when
+        window rendering is disabled.
+        """
+        cdef CefRefPtr[CefDragData] _a0
+        cdef CefMouseEvent _a1
+        cdef CefBrowserHost* _p = self._ptr()
+        _a0 = drag_data._ref
+        _g_to_MouseEvent(event, &_a1)
+        with nogil:
+            _p.DragTargetDragEnter(_a0, _a1, <cef_drag_operations_mask_t>allowed_ops)
         return None
 
     def drag_target_drag_over(self, event, int allowed_ops):
@@ -3507,6 +3526,283 @@ cdef object _wrap_DownloadItemCallback(CefRefPtr[CefDownloadItemCallback] ref):
     if ref.get() == NULL:
         return None
     obj = DownloadItemCallback.__new__(DownloadItemCallback)
+    obj._ref = ref
+    return obj
+
+
+cdef class DragData:
+    """Class used to represent drag data. The methods of this class may be called
+    on any thread.
+    """
+    cdef CefRefPtr[CefDragData] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("DragData objects are created by CEF or by a create() function")
+
+    cdef CefDragData* _ptr(self) except NULL:
+        cdef CefDragData* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("DragData has no CEF object")
+        return p
+
+    def clone(self):
+        """Returns a copy of the current object."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefRefPtr[CefDragData] _r
+        with nogil:
+            _r = _p.Clone()
+        return _wrap_DragData(_r)
+
+    def is_read_only(self):
+        """Returns true if this object is read-only."""
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def is_link(self):
+        """Returns true if the drag data is a link."""
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsLink()
+        return _r
+
+    def is_fragment(self):
+        """Returns true if the drag data is a text or html fragment."""
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsFragment()
+        return _r
+
+    def is_file(self):
+        """Returns true if the drag data is a file."""
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsFile()
+        return _r
+
+    def get_link_url(self):
+        """Return the link URL that is being dragged."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetLinkURL()
+        return _g_str(_r)
+
+    def get_link_title(self):
+        """Return the title associated with the link being dragged."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetLinkTitle()
+        return _g_str(_r)
+
+    def get_link_metadata(self):
+        """Return the metadata, if any, associated with the link being dragged."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetLinkMetadata()
+        return _g_str(_r)
+
+    def get_fragment_text(self):
+        """Return the plain text fragment that is being dragged."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFragmentText()
+        return _g_str(_r)
+
+    def get_fragment_html(self):
+        """Return the text/html fragment that is being dragged."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFragmentHtml()
+        return _g_str(_r)
+
+    def get_fragment_base_url(self):
+        """Return the base URL that the fragment came from. This value is used for
+        resolving relative URLs and may be empty.
+        """
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFragmentBaseURL()
+        return _g_str(_r)
+
+    def get_file_name(self):
+        """Return the name of the file being dragged out of the browser window."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFileName()
+        return _g_str(_r)
+
+    def get_file_contents(self, StreamWriter writer):
+        """Write the contents of the file being dragged out of the web view into
+        |writer|. Returns the number of bytes sent to |writer|. If |writer| is
+        NULL this method will return the size of the file contents in bytes.
+        Call GetFileName() to get a suggested name for the file.
+        """
+        cdef CefRefPtr[CefStreamWriter] _a0
+        cdef CefDragData* _p = self._ptr()
+        cdef size_t _r
+        if writer is not None:
+            _a0 = writer._ref
+        with nogil:
+            _r = _p.GetFileContents(_a0)
+        return _r
+
+    def get_file_names(self):
+        """Retrieve the list of file names that are being dragged into the browser
+        window.
+        """
+        cdef vector[CefString] _a0
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetFileNames(_a0)
+        return (_r, _g_str_list(&_a0))
+
+    def get_file_paths(self):
+        """Retrieve the list of file paths that are being dragged into the browser
+        window.
+        """
+        cdef vector[CefString] _a0
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetFilePaths(_a0)
+        return (_r, _g_str_list(&_a0))
+
+    def set_link_url(self, url):
+        """Set the link URL that is being dragged."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if url is not None:
+            _a0 = _g_cef(url)
+        with nogil:
+            _p.SetLinkURL(_a0)
+        return None
+
+    def set_link_title(self, title):
+        """Set the title associated with the link being dragged."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if title is not None:
+            _a0 = _g_cef(title)
+        with nogil:
+            _p.SetLinkTitle(_a0)
+        return None
+
+    def set_link_metadata(self, data):
+        """Set the metadata associated with the link being dragged."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if data is not None:
+            _a0 = _g_cef(data)
+        with nogil:
+            _p.SetLinkMetadata(_a0)
+        return None
+
+    def set_fragment_text(self, text):
+        """Set the plain text fragment that is being dragged."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if text is not None:
+            _a0 = _g_cef(text)
+        with nogil:
+            _p.SetFragmentText(_a0)
+        return None
+
+    def set_fragment_html(self, html):
+        """Set the text/html fragment that is being dragged."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if html is not None:
+            _a0 = _g_cef(html)
+        with nogil:
+            _p.SetFragmentHtml(_a0)
+        return None
+
+    def set_fragment_base_url(self, base_url):
+        """Set the base URL that the fragment came from."""
+        cdef CefString _a0
+        cdef CefDragData* _p = self._ptr()
+        if base_url is not None:
+            _a0 = _g_cef(base_url)
+        with nogil:
+            _p.SetFragmentBaseURL(_a0)
+        return None
+
+    def reset_file_contents(self):
+        """Reset the file contents. You should do this before calling
+        CefBrowserHost::DragTargetDragEnter as the web view does not allow us to
+        drag in this kind of data.
+        """
+        cdef CefDragData* _p = self._ptr()
+        with nogil:
+            _p.ResetFileContents()
+        return None
+
+    def add_file(self, path, display_name):
+        """Add a file that is being dragged into the webview."""
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefDragData* _p = self._ptr()
+        _a0 = _g_cef(path)
+        if display_name is not None:
+            _a1 = _g_cef(display_name)
+        with nogil:
+            _p.AddFile(_a0, _a1)
+        return None
+
+    def clear_filenames(self):
+        """Clear list of filenames."""
+        cdef CefDragData* _p = self._ptr()
+        with nogil:
+            _p.ClearFilenames()
+        return None
+
+    def get_image_hotspot(self):
+        """Get the image hotspot (drag start location relative to image dimensions)."""
+        cdef CefDragData* _p = self._ptr()
+        cdef CefPoint _r
+        with nogil:
+            _r = _p.GetImageHotspot()
+        return _g_from_Point(&_r)
+
+    def has_image(self):
+        """Returns true if an image representation of drag data is available."""
+        cdef CefDragData* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.HasImage()
+        return _r
+
+    @staticmethod
+    def create():
+        """Create a new CefDragData object."""
+        cdef CefRefPtr[CefDragData] _r
+        with nogil:
+            _r = CefDragData.Create()
+        return _wrap_DragData(_r)
+
+
+cdef object _wrap_DragData(CefRefPtr[CefDragData] ref):
+    cdef DragData obj
+    if ref.get() == NULL:
+        return None
+    obj = DragData.__new__(DragData)
     obj._ref = ref
     return obj
 
@@ -8669,6 +8965,14 @@ class DragHandler:
     of this class will be called on the UI thread.
     """
 
+    def on_drag_enter(self, browser, drag_data, mask):
+        """Called when an external drag event enters the browser window. |dragData|
+        contains the drag event data and |mask| represents the type of drag
+        operation. Return false for default drag handling behavior or true to
+        cancel the drag event.
+        """
+        return False
+
     def on_draggable_regions_changed(self, browser, frame, regions):
         """Called whenever draggable regions for the browser window change. These can
         be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
@@ -8678,6 +8982,15 @@ class DragHandler:
         """
         return None
 
+
+cdef cpp_bool _DragHandler_on_drag_enter(void* py, CefBrowser* browser, CefDragData* drag_data, int mask) noexcept with gil:
+    try:
+        _r = (<object>py).on_drag_enter(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_DragData(CefRefPtr[CefDragData](drag_data)), _g_enum(_types.DragOperationsMask, mask))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
 
 cdef void _DragHandler_on_draggable_regions_changed(void* py, CefBrowser* browser, CefFrame* frame, const vector[CefDraggableRegion]* regions) noexcept with gil:
     try:
@@ -8698,6 +9011,8 @@ cdef CefRefPtr[CefDragHandler] _g_make_DragHandler(object obj) except *:
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "on_drag_enter", None) is not DragHandler.on_drag_enter:
+        cb.fn_on_drag_enter = _DragHandler_on_drag_enter
     if getattr(cls, "on_draggable_regions_changed", None) is not DragHandler.on_draggable_regions_changed:
         cb.fn_on_draggable_regions_changed = _DragHandler_on_draggable_regions_changed
     ref = CefRefPtr[CefDragHandler](<CefDragHandler*>new CwDragHandlerProxy(cb))
@@ -9852,6 +10167,23 @@ class RenderHandler:
         """
         return None
 
+    def start_dragging(self, browser, drag_data, allowed_ops, x, y):
+        """Called when the user starts dragging content in the web view. Contextual
+        information about the dragged content is supplied by |drag_data|.
+        (|x|, |y|) is the drag start location in screen coordinates.
+        OS APIs that run a system message loop may be used within the
+        StartDragging call.
+
+        Return false to abort the drag operation. Don't call any of
+        CefBrowserHost::DragSource*Ended* methods after returning false.
+
+        Return true to handle the drag operation. Call
+        CefBrowserHost::DragSourceEndedAt and DragSourceSystemDragEnded either
+        synchronously or asynchronously to inform the web view that the drag
+        operation has ended.
+        """
+        return False
+
     def update_drag_cursor(self, browser, operation):
         """Called when the web view wants to update the mouse cursor during a
         drag & drop operation. |operation| describes the allowed operation
@@ -9964,6 +10296,15 @@ cdef void _RenderHandler_on_touch_handle_state_changed(void* py, CefBrowser* bro
     except BaseException:
         _g_report()
 
+cdef cpp_bool _RenderHandler_start_dragging(void* py, CefBrowser* browser, CefDragData* drag_data, int allowed_ops, int x, int y) noexcept with gil:
+    try:
+        _r = (<object>py).start_dragging(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_DragData(CefRefPtr[CefDragData](drag_data)), _g_enum(_types.DragOperationsMask, allowed_ops), x, y)
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 cdef void _RenderHandler_update_drag_cursor(void* py, CefBrowser* browser, int operation) noexcept with gil:
     try:
         _r = (<object>py).update_drag_cursor(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.DragOperationsMask, operation))
@@ -10025,6 +10366,8 @@ cdef CefRefPtr[CefRenderHandler] _g_make_RenderHandler(object obj) except *:
         cb.fn_get_touch_handle_size = _RenderHandler_get_touch_handle_size
     if getattr(cls, "on_touch_handle_state_changed", None) is not RenderHandler.on_touch_handle_state_changed:
         cb.fn_on_touch_handle_state_changed = _RenderHandler_on_touch_handle_state_changed
+    if getattr(cls, "start_dragging", None) is not RenderHandler.start_dragging:
+        cb.fn_start_dragging = _RenderHandler_start_dragging
     if getattr(cls, "update_drag_cursor", None) is not RenderHandler.update_drag_cursor:
         cb.fn_update_drag_cursor = _RenderHandler_update_drag_cursor
     if getattr(cls, "on_scroll_offset_changed", None) is not RenderHandler.on_scroll_offset_changed:
@@ -11266,4 +11609,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "DragData", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

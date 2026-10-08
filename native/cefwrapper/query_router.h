@@ -105,6 +105,8 @@ class QueryRouter {
   static bool AddHandler(PythonQueryHandler* handler, bool first);
   static bool RemoveHandler(PythonQueryHandler* handler);
   static bool HasHandlers();
+  // Cancels the pending queries of a browser and/or a handler (both null: all of them).
+  static void CancelPending(CefRefPtr<CefBrowser> browser, PythonQueryHandler* handler);
 
   // Creates the router if there are handlers; null otherwise. Call before the first browser.
   static CefRefPtr<CefMessageRouterBrowserSide> Create();

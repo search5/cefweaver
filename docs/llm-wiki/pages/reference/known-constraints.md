@@ -38,6 +38,8 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
+- **`DragData.get_file_name()`은 파일 내용이 있는 드래그에서만 부릅니다.** 없을 때 부르면 CEF 안의 `CHECK`가 실패해 프로세스가 죽습니다(F54, CEF의 계약).
+
 - **요청 핸들러의 `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`와 리소스 요청 핸들러의 `on_protocol_execution`은 실행해 보지 못했습니다**(TLS 서버, 렌더러 종료 등이 필요). `get_auth_credentials`, `on_resource_redirect`, `on_resource_response`는 로컬 HTTP 서버로 확인했습니다(F52). 쿠키 접근 필터(`CefCookieAccessFilter`)와 응답 필터는 생성되지 않습니다. `CefRequestContextHandler`는 `CefRequestContext`가 범위 밖이라 없습니다.
 
 - **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.

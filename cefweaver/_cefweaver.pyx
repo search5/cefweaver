@@ -513,6 +513,22 @@ cdef class CefApp:
             raise ValueError("the frame rate must be from 1 to 60, not %d" % value)
         self._wrapper.SetWindowlessFrameRate(value)
 
+    def cancel_pending_queries(self, Browser browser=None, handler=None):
+        """Cancel the pending queries of ``browser`` and/or of ``handler`` (both ``None``: all of
+        them). ``QueryHandler.on_query_canceled()`` is called and the page's ``onFailure`` gets
+        -1. Returns None. Call it on the thread that called ``initialize()``."""
+        self._require_running()
+        cdef CefRefPtr[CefBrowser] ref
+        cdef PythonQueryHandler* ptr = NULL
+        if handler is not None:
+            bridge = self._query_bridges.get(handler)
+            if bridge is None:
+                return None  # a handler that was never added has no queries
+            ptr = (<_QueryBridge>bridge)._ptr
+        if browser is not None:
+            ref = browser._ref
+        self._wrapper.CancelPendingQueries(ref, ptr)
+
     def add_javascript_binding(self, name, callback):
         """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
 

@@ -174,6 +174,11 @@ bool QueryRouter::RemoveHandler(PythonQueryHandler* handler) {
 }
 
 bool QueryRouter::HasHandlers() { return !g_handlers.empty(); }
+void QueryRouter::CancelPending(CefRefPtr<CefBrowser> browser, PythonQueryHandler* handler) {
+  if (g_router) {
+    g_router->CancelPending(browser, handler);
+  }
+}
 
 CefRefPtr<CefMessageRouterBrowserSide> QueryRouter::Create() {
   if (!g_router && !g_handlers.empty()) {

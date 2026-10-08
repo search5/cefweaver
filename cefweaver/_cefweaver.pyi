@@ -76,6 +76,7 @@ class CefApp:
     def set_app_handler(self, handler: AppHandler | None) -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
+    def cancel_pending_queries(self, browser: Browser | None = None, handler: QueryHandler | None = None) -> None: ...
     @property
     def offscreen(self) -> bool: ...
     @offscreen.setter
@@ -701,6 +702,16 @@ class BrowserHost:
         contents without applying them. See comments on ImeSetComposition for
         usage.
         This method is only used when window rendering is disabled.
+        """
+        ...
+    def drag_target_drag_enter(self, drag_data: DragData, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
+        """Call this method when the user drags the mouse into the web view (before
+        calling DragTargetDragOver/DragTargetLeave/DragTargetDrop).
+        |drag_data| should not contain file contents as this type of data is not
+        allowed to be dragged into the web view. File contents can be removed
+        using CefDragData::ResetFileContents (for example, if |drag_data| comes
+        from CefRenderHandler::StartDragging). This method is only used when
+        window rendering is disabled.
         """
         ...
     def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
@@ -1464,6 +1475,107 @@ class DownloadItemCallback:
         ...
     def resume(self) -> None:
         """Call to resume the download."""
+        ...
+
+
+class DragData:
+    """Class used to represent drag data. The methods of this class may be called
+    on any thread.
+    """
+    def clone(self) -> DragData | None:
+        """Returns a copy of the current object."""
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if this object is read-only."""
+        ...
+    def is_link(self) -> bool:
+        """Returns true if the drag data is a link."""
+        ...
+    def is_fragment(self) -> bool:
+        """Returns true if the drag data is a text or html fragment."""
+        ...
+    def is_file(self) -> bool:
+        """Returns true if the drag data is a file."""
+        ...
+    def get_link_url(self) -> str:
+        """Return the link URL that is being dragged."""
+        ...
+    def get_link_title(self) -> str:
+        """Return the title associated with the link being dragged."""
+        ...
+    def get_link_metadata(self) -> str:
+        """Return the metadata, if any, associated with the link being dragged."""
+        ...
+    def get_fragment_text(self) -> str:
+        """Return the plain text fragment that is being dragged."""
+        ...
+    def get_fragment_html(self) -> str:
+        """Return the text/html fragment that is being dragged."""
+        ...
+    def get_fragment_base_url(self) -> str:
+        """Return the base URL that the fragment came from. This value is used for
+        resolving relative URLs and may be empty.
+        """
+        ...
+    def get_file_name(self) -> str:
+        """Return the name of the file being dragged out of the browser window."""
+        ...
+    def get_file_contents(self, writer: StreamWriter | None) -> int:
+        """Write the contents of the file being dragged out of the web view into
+        |writer|. Returns the number of bytes sent to |writer|. If |writer| is
+        NULL this method will return the size of the file contents in bytes.
+        Call GetFileName() to get a suggested name for the file.
+        """
+        ...
+    def get_file_names(self) -> tuple[bool, list[str]]:
+        """Retrieve the list of file names that are being dragged into the browser
+        window.
+        """
+        ...
+    def get_file_paths(self) -> tuple[bool, list[str]]:
+        """Retrieve the list of file paths that are being dragged into the browser
+        window.
+        """
+        ...
+    def set_link_url(self, url: str | None) -> None:
+        """Set the link URL that is being dragged."""
+        ...
+    def set_link_title(self, title: str | None) -> None:
+        """Set the title associated with the link being dragged."""
+        ...
+    def set_link_metadata(self, data: str | None) -> None:
+        """Set the metadata associated with the link being dragged."""
+        ...
+    def set_fragment_text(self, text: str | None) -> None:
+        """Set the plain text fragment that is being dragged."""
+        ...
+    def set_fragment_html(self, html: str | None) -> None:
+        """Set the text/html fragment that is being dragged."""
+        ...
+    def set_fragment_base_url(self, base_url: str | None) -> None:
+        """Set the base URL that the fragment came from."""
+        ...
+    def reset_file_contents(self) -> None:
+        """Reset the file contents. You should do this before calling
+        CefBrowserHost::DragTargetDragEnter as the web view does not allow us to
+        drag in this kind of data.
+        """
+        ...
+    def add_file(self, path: str, display_name: str | None) -> None:
+        """Add a file that is being dragged into the webview."""
+        ...
+    def clear_filenames(self) -> None:
+        """Clear list of filenames."""
+        ...
+    def get_image_hotspot(self) -> Point:
+        """Get the image hotspot (drag start location relative to image dimensions)."""
+        ...
+    def has_image(self) -> bool:
+        """Returns true if an image representation of drag data is available."""
+        ...
+    @staticmethod
+    def create() -> DragData:
+        """Create a new CefDragData object."""
         ...
 
 
@@ -3449,6 +3561,13 @@ class DragHandler:
     """Implement this interface to handle events related to dragging. The methods
     of this class will be called on the UI thread.
     """
+    def on_drag_enter(self, browser: Browser, drag_data: DragData, mask: DragOperationsMask) -> bool:
+        """Called when an external drag event enters the browser window. |dragData|
+        contains the drag event data and |mask| represents the type of drag
+        operation. Return false for default drag handling behavior or true to
+        cancel the drag event.
+        """
+        ...
     def on_draggable_regions_changed(self, browser: Browser, frame: Frame, regions: list[DraggableRegion]) -> None:
         """Called whenever draggable regions for the browser window change. These can
         be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
@@ -3962,6 +4081,22 @@ class RenderHandler:
     def on_touch_handle_state_changed(self, browser: Browser, state: TouchHandleState) -> None:
         """Called when touch handle state is updated. The client is responsible for
         rendering the touch handles.
+        """
+        ...
+    def start_dragging(self, browser: Browser, drag_data: DragData, allowed_ops: DragOperationsMask, x: int, y: int) -> bool:
+        """Called when the user starts dragging content in the web view. Contextual
+        information about the dragged content is supplied by |drag_data|.
+        (|x|, |y|) is the drag start location in screen coordinates.
+        OS APIs that run a system message loop may be used within the
+        StartDragging call.
+
+        Return false to abort the drag operation. Don't call any of
+        CefBrowserHost::DragSource*Ended* methods after returning false.
+
+        Return true to handle the drag operation. Call
+        CefBrowserHost::DragSourceEndedAt and DragSourceSystemDragEnded either
+        synchronously or asynchronously to inform the web view that the drag
+        operation has ended.
         """
         ...
     def update_drag_cursor(self, browser: Browser, operation: DragOperationsMask) -> None:

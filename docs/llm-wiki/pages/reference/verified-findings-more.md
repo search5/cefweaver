@@ -176,6 +176,17 @@ updated: 2026-10-08
 - **발견**: 시험이 `/tmp`에 CEF 캐시를 매번 새로 만들고 지우지 않아 1,225개(약 7GB)가 쌓여 가상 X 서버가 뜨지 못하는 지경이 되었습니다(`디스크 할당량이 초과됨`). 시험 실행 하나의 모든 임시 파일을 한 디렉터리(`TMPDIR`)에 모아 끝나면 지우도록 고쳤습니다.
 - **영향**: 바닥의 격차 13개가 메워졌습니다(`CommandLine` 12, `SchemeRegistrar` 1).
 
+## F54. 드래그와 드롭, 질의 취소
+
+- **방법**: `DragData`를 CEF 없이 다루고, 오프스크린 페이지에서 드롭과 드래그 시작을 일으켰습니다.
+- **결과**:
+  - `DragData.create()`로 만든 것은 조각(`is_fragment`)이고 링크 URL을 정하면 링크가 됩니다. 조각 텍스트와 HTML, 링크 URL, 제목, 메타데이터(`mime:이름:url` 형식이어야 읽혀서 돌아옴), 파일(`add_file`, `get_file_paths()`는 `(True, 경로 목록)`, 없으면 `(False, [])`), `clone()`이 동작합니다.
+  - `host.drag_target_drag_enter(data, 위치, COPY)`, `drag_target_drag_over`, `drag_target_drop`으로 페이지의 `ondrop`에 `payload`가 닿고 `DragHandler.on_drag_enter(browser, drag_data, mask)`가 같은 `DragData`로 옵니다.
+  - `draggable="true"` 요소를 마우스로 끌면 `RenderHandler.start_dragging(browser, drag_data, allowed_ops, x, y)`가 페이지가 `dataTransfer.setData`로 넣은 `carried`와 함께 오고, `True`를 돌려준 뒤 `drag_source_ended_at`과 `drag_source_system_drag_ended`로 끝낼 수 있습니다.
+  - `cancel_pending_queries(browser, handler)`는 해당 질의를 취소하고(`on_query_canceled`) 페이지의 `onFailure`가 -1을 받습니다. 다른 핸들러의 질의는 건드리지 않습니다.
+- **발견(CEF의 한계)**: 파일 내용이 없는 `DragData`에서 `get_file_name()`을 부르면 CEF 안의 `CHECK`가 실패해 프로세스가 죽습니다(`GetSafeFilenameForImageFileContents`). 이미지 파일 내용이 있는 드래그용 메서드입니다.
+- **영향**: 바닥의 격차 27개가 모두 메워졌습니다([java-cef 동등성](java-cef-parity.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

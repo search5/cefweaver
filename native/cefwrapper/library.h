@@ -51,6 +51,7 @@ public:
   bool AddQueryHandler(PythonQueryHandler* handler, bool first);
   bool RemoveQueryHandler(PythonQueryHandler* handler);
   bool QueryRouterExists();
+  void CancelPendingQueries(CefRefPtr<CefBrowser> browser, PythonQueryHandler* handler);
   // java-cef's CefAppHandler hooks (app_hooks.h); before InitCefSimple().
   void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
                    app_context_ptr context, app_relaunch_ptr relaunch);

@@ -348,10 +348,6 @@ class WithHeaders(unittest.TestCase):
     # (tools/gen/surface.py): this list only shrinks, and a method that is added or removed
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
-        "CefBrowserHost": ["DragTargetDragEnter"],
-        "CefDragData": None,
-        "CefDragHandler": ["OnDragEnter"],
-        "CefRenderHandler": ["StartDragging"],
     }
 
     def test_the_gaps_to_the_java_cef_floor_are_the_listed_ones(self):
@@ -553,6 +549,18 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("class CommandLine:", stub)
         self.assertIn("def get_switches(self) -> dict[str, str]:", stub)
         self.assertIn("def get_arguments(self) -> list[str]:", stub)
+
+    def test_drag_data_and_the_drag_methods_that_use_it_are_generated(self):
+        self.assertTrue(self.scope.is_library("CefDragData"))
+        for cls, name in (("CefBrowserHost", "DragTargetDragEnter"), ("CefDragHandler", "OnDragEnter"),
+                          ("CefRenderHandler", "StartDragging"), ("CefDragData", "GetFileContents"),
+                          ("CefDragData", "Create")):
+            plan = self.plan(cls, name)
+            self.assertTrue(plan.supported, "%s::%s: %s" % (cls, name, plan.reason))
+        stub = self.generated("pyi")
+        self.assertIn("class DragData:", stub)
+        self.assertIn("def on_drag_enter(self, browser: Browser, drag_data: DragData, "
+                      "mask: DragOperationsMask) -> bool:", stub)
 
     def test_the_request_context_handler_is_generated(self):
         self.assertTrue(self.scope.is_client("CefRequestContextHandler"))

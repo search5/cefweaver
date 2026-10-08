@@ -196,3 +196,7 @@
 ## [2026-10-08] ingest | 격차 메우기 8: 명령줄과 앱 핸들러 훅
 
 - `CommandLine`을 생성하고, 직접 쓴 `AppHandler`와 `SchemeRegistrar`로 java-cef의 앱 훅(명령줄 처리, 사용자 스킴 등록, 컨텍스트 초기화, 두 번째 시작)을 열었습니다. 사용자 스킴은 렌더러에 명령줄로 전파합니다. 시험이 `/tmp`를 7GB 채우던 문제를 고쳤습니다. F53. 격차 40개에서 27개.
+
+## [2026-10-08] ingest | 격차 메우기 9: 드래그와 질의 취소, 격차 0
+
+- `CefDragData`와 드래그 관련 메서드(`DragHandler.OnDragEnter`, `RenderHandler.StartDragging`, `BrowserHost.DragTargetDragEnter`)를 열고 라우터의 `CancelPending`(`cancel_pending_queries`)을 더했습니다. F54. 바닥의 격차는 0이 되었습니다(시험이 고정). CEF의 한계 하나를 찾았습니다(`get_file_name`).

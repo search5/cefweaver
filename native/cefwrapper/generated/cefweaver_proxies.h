@@ -16,6 +16,7 @@
 #include "include/cef_display_handler.h"
 #include "include/cef_download_handler.h"
 #include "include/cef_download_item.h"
+#include "include/cef_drag_data.h"
 #include "include/cef_drag_handler.h"
 #include "include/cef_focus_handler.h"
 #include "include/cef_frame.h"
@@ -1198,6 +1199,13 @@ class CwDragHandlerForward : public CefDragHandler {
   CefRefPtr<CefDragHandler> forward_drag_handler_;
 
  public:
+  bool OnDragEnter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> dragData, DragOperationsMask mask) override {
+    if (!forward_drag_handler_) {
+      return CefDragHandler::OnDragEnter(browser, dragData, mask);
+    }
+    return forward_drag_handler_->OnDragEnter(browser, dragData, mask);
+  }
+
   void OnDraggableRegionsChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const std::vector<CefDraggableRegion>& regions) override {
     if (!forward_drag_handler_) {
       CefDragHandler::OnDraggableRegionsChanged(browser, frame, regions);
@@ -1210,6 +1218,7 @@ class CwDragHandlerForward : public CefDragHandler {
 struct CwDragHandlerCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  bool (*fn_on_drag_enter)(void*, CefBrowser*, CefDragData*, int) = nullptr;
   void (*fn_on_draggable_regions_changed)(void*, CefBrowser*, CefFrame*, const std::vector<CefDraggableRegion>*) = nullptr;
 };
 
@@ -1220,6 +1229,14 @@ class CwDragHandlerProxy : public CefDragHandler {
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  bool OnDragEnter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> dragData, DragOperationsMask mask) override {
+    if (!cb_.fn_on_drag_enter) {
+      return CefDragHandler::OnDragEnter(browser, dragData, mask);
+    }
+    bool result = cb_.fn_on_drag_enter(cb_.py, browser.get(), dragData.get(), static_cast<int>(mask));
+    return result;
   }
 
   void OnDraggableRegionsChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const std::vector<CefDraggableRegion>& regions) override {
@@ -2183,6 +2200,13 @@ class CwRenderHandlerForward : public CefRenderHandler {
     forward_render_handler_->OnTouchHandleStateChanged(browser, state);
   }
 
+  bool StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, DragOperationsMask allowed_ops, int x, int y) override {
+    if (!forward_render_handler_) {
+      return CefRenderHandler::StartDragging(browser, drag_data, allowed_ops, x, y);
+    }
+    return forward_render_handler_->StartDragging(browser, drag_data, allowed_ops, x, y);
+  }
+
   void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {
     if (!forward_render_handler_) {
       CefRenderHandler::UpdateDragCursor(browser, operation);
@@ -2236,6 +2260,7 @@ struct CwRenderHandlerCallbacks {
   void (*fn_on_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, void*, size_t, int, int) = nullptr;
   void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
   void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) = nullptr;
+  bool (*fn_start_dragging)(void*, CefBrowser*, CefDragData*, int, int, int) = nullptr;
   void (*fn_update_drag_cursor)(void*, CefBrowser*, int) = nullptr;
   void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) = nullptr;
   void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const std::vector<CefRect>*) = nullptr;
@@ -2332,6 +2357,14 @@ class CwRenderHandlerProxy : public CefRenderHandler {
       return;
     }
     cb_.fn_on_touch_handle_state_changed(cb_.py, browser.get(), &state);
+  }
+
+  bool StartDragging(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDragData> drag_data, DragOperationsMask allowed_ops, int x, int y) override {
+    if (!cb_.fn_start_dragging) {
+      return CefRenderHandler::StartDragging(browser, drag_data, allowed_ops, x, y);
+    }
+    bool result = cb_.fn_start_dragging(cb_.py, browser.get(), drag_data.get(), static_cast<int>(allowed_ops), x, y);
+    return result;
   }
 
   void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {

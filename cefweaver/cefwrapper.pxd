@@ -86,5 +86,6 @@ cdef extern from "library.h":
         cpp_bool AddQueryHandler(PythonQueryHandler* handler, cpp_bool first)
         cpp_bool RemoveQueryHandler(PythonQueryHandler* handler)
         cpp_bool QueryRouterExists()
+        void CancelPendingQueries(CefRefPtr[CefBrowser] browser, PythonQueryHandler* handler)
         void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
                          app_context_ptr context, app_relaunch_ptr relaunch)
