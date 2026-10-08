@@ -1,0 +1,60 @@
+"""``PictureStore``: the pixels of the view and of the popup, kept between frames."""
+
+import cefweaver
+
+from .adapter import Frame
+
+
+class PictureChange:
+    """What ``PictureStore.apply`` did: ``kind`` (``NEW``, ``DIRTY``, ``POPUP``, ``POPUP_HIDDEN``) and, for
+    ``DIRTY``, the rectangles that changed (device pixels, cut to the picture)."""
+
+    def __init__(self, kind, rects=()):
+        self.kind, self.rects = kind, list(rects)
+
+
+class PictureStore:
+    """For a toolkit that wraps the pixels without copying them (cairo, ``QImage``) and wants to know what changed.
+
+    CEF's buffer is valid during ``present()`` only. The store keeps its own copy as ``pixels`` (BGRA,
+    ``width * height * 4`` bytes) and changes it in place for a frame of the same size, only in the dirty
+    rows, so that a surface made around ``pixels`` stays valid. A frame of another size makes new pixels:
+    ``NEW``, and the toolkit makes a new surface. The popup is kept the same way (``popup_pixels``,
+    ``popup_size``, ``popup_rect``), whole.
+    """
+
+    NEW, DIRTY, POPUP, POPUP_HIDDEN = "new", "dirty", "popup", "popup-hidden"
+
+    def __init__(self):
+        self.pixels = None
+        self.size = (0, 0)
+        self.popup_pixels = None
+        self.popup_size = (0, 0)
+        self.popup_rect = None
+
+    def apply(self, frame):
+        if frame.kind == Frame.POPUP_HIDDEN:
+            self.popup_pixels = None
+            return PictureChange(self.POPUP_HIDDEN)
+        if frame.kind == Frame.POPUP:
+            self.popup_pixels = bytearray(frame.buffer)
+            self.popup_size = (frame.width, frame.height)
+            self.popup_rect = frame.rect
+            return PictureChange(self.POPUP)
+        width, height = frame.width, frame.height
+        if self.pixels is None or self.size != (width, height):
+            self.pixels = bytearray(frame.buffer)
+            self.size = (width, height)
+            return PictureChange(self.NEW, [cefweaver.Rect(0, 0, width, height)])
+        stride, cut = width * 4, []
+        for rect in frame.dirty_rects:
+            x0, x1 = max(0, rect.x), min(width, rect.x + rect.width)
+            y0, y1 = max(0, rect.y), min(height, rect.y + rect.height)
+            if x1 <= x0 or y1 <= y0:
+                continue
+            for y in range(y0, y1):
+                start = y * stride + x0 * 4
+                self.pixels[start:start + (x1 - x0) * 4] = frame.buffer[start:start + (x1 - x0) * 4]
+            cut.append(cefweaver.Rect(x0, y0, x1 - x0, y1 - y0))
+        return PictureChange(self.DIRTY, cut)
+

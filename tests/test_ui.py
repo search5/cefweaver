@@ -758,6 +758,60 @@ class WidgetBase(unittest.TestCase):
         widget.view.client.get_life_span_handler().on_after_created(FakeBrowser([]))
 
 
+class Pictures(unittest.TestCase):
+    """``ui.PictureStore``: the pixels of the view and of the popup, kept between frames."""
+
+    def frame(self, pixels, width, height, rects=None, kind=ui.Frame.VIEW, rect=None):
+        return ui.Frame(kind, width, height, memoryview(bytes(pixels)), rects if rects is not None else [cefweaver.Rect(0, 0, width, height)], rect)
+
+    def test_the_first_frame_is_stored_whole_and_is_new(self):
+        store = ui.PictureStore()
+        change = store.apply(self.frame(range(16), 2, 2))
+        self.assertEqual((change.kind, bytes(store.pixels), store.size), (ui.PictureStore.NEW, bytes(range(16)), (2, 2)))
+
+    def test_a_frame_of_the_same_size_changes_only_the_dirty_rows(self):
+        store = ui.PictureStore()
+        store.apply(self.frame([1] * 32, 2, 4))                          # 2 x 4 pixels, 8 bytes a row
+        change = store.apply(self.frame([9] * 32, 2, 4, rects=[cefweaver.Rect(1, 1, 1, 2)]))
+        self.assertEqual(change.kind, ui.PictureStore.DIRTY)
+        self.assertEqual(change.rects, [cefweaver.Rect(1, 1, 1, 2)])
+        pixels = bytes(store.pixels)
+        for y in range(4):
+            row = pixels[y * 8:(y + 1) * 8]
+            expected = bytes([1] * 4 + ([9] * 4 if y in (1, 2) else [1] * 4))
+            self.assertEqual(row, expected, "row %d" % y)
+
+    def test_dirty_rects_outside_the_picture_are_cut(self):
+        store = ui.PictureStore()
+        store.apply(self.frame([0] * 16, 2, 2))
+        change = store.apply(self.frame([5] * 16, 2, 2, rects=[cefweaver.Rect(1, 1, 10, 10), cefweaver.Rect(5, 5, 1, 1)]))
+        self.assertEqual(change.rects, [cefweaver.Rect(1, 1, 1, 1)])
+        self.assertEqual(bytes(store.pixels)[12:16], bytes([5] * 4))
+
+    def test_another_size_is_new_again_with_new_pixels(self):
+        store = ui.PictureStore()
+        store.apply(self.frame([0] * 16, 2, 2))
+        first = store.pixels
+        change = store.apply(self.frame([7] * 24, 3, 2))
+        self.assertEqual((change.kind, store.size), (ui.PictureStore.NEW, (3, 2)))
+        self.assertIsNot(store.pixels, first)
+
+    def test_the_store_does_not_depend_on_the_buffer_of_the_frame(self):
+        store = ui.PictureStore()
+        data = bytearray(16)
+        store.apply(ui.Frame(ui.Frame.VIEW, 2, 2, memoryview(data), []))
+        data[0] = 99
+        self.assertEqual(store.pixels[0], 0)
+
+    def test_the_popup_is_kept_with_its_place_until_it_is_hidden(self):
+        store = ui.PictureStore()
+        place = cefweaver.Rect(3, 4, 2, 2)
+        change = store.apply(self.frame([2] * 16, 2, 2, kind=ui.Frame.POPUP, rect=place))
+        self.assertEqual((change.kind, bytes(store.popup_pixels), store.popup_size, store.popup_rect), (ui.PictureStore.POPUP, bytes([2] * 16), (2, 2), place))
+        change = store.apply(ui.Frame(ui.Frame.POPUP_HIDDEN))
+        self.assertEqual((change.kind, store.popup_pixels), (ui.PictureStore.POPUP_HIDDEN, None))
+
+
 class Navigation(unittest.TestCase):
     def test_navigation_goes_to_the_browser(self):
         view, _, calls = make_view()

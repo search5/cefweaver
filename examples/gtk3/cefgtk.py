@@ -190,7 +190,7 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         self.runtime = runtime
         self.attach_view(GtkAdapter(self))
         self.view_width, self.view_height = 800, 600    # in GTK pixels, until the first allocation
-        self.pixels = None                              # the picture: BGRA, device pixels
+        self.store = ui.PictureStore()                  # the pixels of the picture and of the popup, BGRA, device pixels
         self.surface = None
         self.popup_surface = None
         self.set_can_focus(True)
@@ -246,35 +246,24 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     # -- painting ------------------------------------------------------------------------------
 
     def present_frame(self, frame):
-        buffer, width, height, dirty_rects = frame.buffer, frame.width, frame.height, frame.dirty_rects
-        if frame.kind == ui.Frame.POPUP_HIDDEN:
-            self.popup_surface = None
-            self.queue_draw()
-            return
-        if frame.kind == ui.Frame.POPUP:
-            data = bytearray(buffer)                    # the memoryview is valid during this call only
-            self.popup_surface = cairo.ImageSurface.create_for_data(data, cairo.FORMAT_ARGB32, width, height, width * 4)
-            self.popup_surface.set_device_scale(self.get_scale_factor(), self.get_scale_factor())
-            self.popup_data = data
-            self.queue_draw()
-            return
-        if self.pixels is None or self.surface is None or self.surface.get_width() != width or self.surface.get_height() != height:
-            self.pixels = bytearray(buffer)
-            self.surface = cairo.ImageSurface.create_for_data(self.pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
-            scale = self.get_scale_factor()
-            self.surface.set_device_scale(scale, scale)
-            self.queue_draw()
-            return
-        stride = width * 4
-        for rect in dirty_rects:                        # only the rows that changed
-            x0, x1 = max(0, rect.x), min(width, rect.x + rect.width)
-            for y in range(max(0, rect.y), min(height, rect.y + rect.height)):
-                start = y * stride + x0 * 4
-                self.pixels[start:start + (x1 - x0) * 4] = buffer[start:start + (x1 - x0) * 4]
-        self.surface.mark_dirty()
+        change = self.store.apply(frame)
         scale = self.get_scale_factor()
-        for rect in dirty_rects:
-            self.queue_draw_area(rect.x // scale, rect.y // scale, rect.width // scale + 2, rect.height // scale + 2)
+        if change.kind == ui.PictureStore.POPUP_HIDDEN:
+            self.popup_surface = None
+        elif change.kind == ui.PictureStore.POPUP:
+            width, height = self.store.popup_size
+            self.popup_surface = cairo.ImageSurface.create_for_data(self.store.popup_pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
+            self.popup_surface.set_device_scale(scale, scale)
+        elif change.kind == ui.PictureStore.NEW:
+            width, height = self.store.size
+            self.surface = cairo.ImageSurface.create_for_data(self.store.pixels, cairo.FORMAT_ARGB32, width, height, width * 4)
+            self.surface.set_device_scale(scale, scale)
+        else:
+            self.surface.mark_dirty()
+            for rect in change.rects:
+                self.queue_draw_area(rect.x // scale, rect.y // scale, rect.width // scale + 2, rect.height // scale + 2)
+            return
+        self.queue_draw()
 
     def do_draw(self, cr):
         cr.set_source_rgb(1, 1, 1)

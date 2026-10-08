@@ -205,7 +205,7 @@ class CefWidget(ui.BrowserWidget, QWidget):
         super().__init__(parent)
         self.runtime = runtime
         self.attach_view(QtAdapter(self, runtime.loop))
-        self.pixels = None                              # the picture: BGRA, device pixels
+        self.store = ui.PictureStore()                  # the pixels of the picture and of the popup, BGRA, device pixels
         self.image = None
         self.popup_image = None
         self.cursor_rect = QRect(0, 0, 1, 20)
@@ -235,32 +235,23 @@ class CefWidget(ui.BrowserWidget, QWidget):
     # -- painting --------------------------------------------------------------------------------
 
     def present_frame(self, frame):
+        change = self.store.apply(frame)
         ratio = self.devicePixelRatioF()
-        buffer, width, height = frame.buffer, frame.width, frame.height
-        if frame.kind == ui.Frame.POPUP_HIDDEN:
+        if change.kind == ui.PictureStore.POPUP_HIDDEN:
             self.popup_image = None
-            self.update()
-            return
-        if frame.kind == ui.Frame.POPUP:
-            data = bytearray(buffer)                    # the memoryview is valid during this call only
-            image = QImage(data, width, height, width * 4, QImage.Format.Format_ARGB32)
-            image.setDevicePixelRatio(ratio)
-            self.popup_data, self.popup_image = data, image
-            self.update()
-            return
-        if self.image is None or self.image.width() != width or self.image.height() != height:
-            self.pixels = bytearray(buffer)
-            self.image = QImage(self.pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
+        elif change.kind == ui.PictureStore.POPUP:
+            width, height = self.store.popup_size
+            self.popup_image = QImage(self.store.popup_pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
+            self.popup_image.setDevicePixelRatio(ratio)
+        elif change.kind == ui.PictureStore.NEW:
+            width, height = self.store.size
+            self.image = QImage(self.store.pixels, width, height, width * 4, QImage.Format.Format_ARGB32)
             self.image.setDevicePixelRatio(ratio)
-            self.update()
+        else:
+            for rect in change.rects:                   # only what changed
+                self.update(QRect(int(rect.x / ratio), int(rect.y / ratio), int(rect.width / ratio) + 2, int(rect.height / ratio) + 2))
             return
-        stride = width * 4
-        for rect in frame.dirty_rects:                  # only the rows that changed
-            x0, x1 = max(0, rect.x), min(width, rect.x + rect.width)
-            for y in range(max(0, rect.y), min(height, rect.y + rect.height)):
-                start = y * stride + x0 * 4
-                self.pixels[start:start + (x1 - x0) * 4] = buffer[start:start + (x1 - x0) * 4]
-            self.update(QRect(int(rect.x / ratio), int(rect.y / ratio), int(rect.width / ratio) + 2, int(rect.height / ratio) + 2))
+        self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)

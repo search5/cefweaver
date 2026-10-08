@@ -319,3 +319,7 @@
 ## [2026-10-08] ingest | 위젯 기반 클래스 BrowserWidget (cefweaver.ui)
 
 - 여섯 위젯에 똑같던 위임 메서드(`load_url`, `go_back`, `commit_text` 등)와 제목, 주소, 로딩, 준비 알림의 연결을 `ui.BrowserWidget`(`attach_view`와 훅 `browser_*`)로 올렸습니다. 위젯 파일은 GTK 514, Tk 286, SDL2 365, Kivy 298, wx 309, Qt 420줄이 되었고 점검은 바뀌지 않고 통과합니다. (Kivy는 훅을 어댑터 클래스에 잘못 끼웠다가 점검이 시간 초과로 알려 주어 고쳤습니다.)
+
+## [2026-10-08] ingest | 그림 저장소 PictureStore (cefweaver.ui)
+
+- GTK 3와 Qt가 각자 가지던 "더러운 행만 복사"와 크기가 바뀌면 새 표면을 만드는 코드를 `ui.PictureStore`로 올렸습니다. 이로써 툴킷 고유의 사정으로 남던 네 가지(드래그 시작 전략, 표, 위젯 기반 클래스, 그림 저장소)를 모두 뺐습니다. 설치본 기준으로 전체 시험 382개와 여섯 예제의 점검이 통과합니다.
