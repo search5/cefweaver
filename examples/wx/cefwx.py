@@ -163,23 +163,19 @@ class _DropTarget(wx.DropTarget):
         return wx.DragCopy
 
 
-class CefPanel(wx.Panel):
+class CefPanel(ui.BrowserWidget, wx.Panel):
     """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
 
     def __init__(self, parent, runtime):
         super().__init__(parent, style=wx.WANTS_CHARS)
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         self.runtime = runtime
-        self.view = ui.BrowserView(WxAdapter(self))
+        self.attach_view(WxAdapter(self))
         self.bitmap = self.popup_bitmap = None
         self.picture = (0, 0)
         self.on_title = self.on_address = lambda value: None
         self.on_loading = lambda loading, back, forward: None
         self.on_ready = lambda: None
-        self.view.on_title = lambda title: self.on_title(title)
-        self.view.on_address = lambda url: self.on_address(url)
-        self.view.on_loading = lambda *state: self.on_loading(*state)
-        self.view.on_ready = self._on_ready
         self.SetDropTarget(_DropTarget(self))
         self.Bind(wx.EVT_PAINT, self._on_paint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
@@ -194,32 +190,18 @@ class CefPanel(wx.Panel):
 
     # -- the browser -----------------------------------------------------------------------------
 
-    @property
-    def browser(self):
-        return self.view.browser
+    def browser_title(self, title):
+        self.on_title(title)
 
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
+    def browser_address(self, url):
+        self.on_address(url)
 
-    def _on_ready(self):
+    def browser_loading(self, loading, can_back, can_forward):
+        self.on_loading(loading, can_back, can_forward)
+
+    def browser_ready(self):
         self.view.focus(self.HasFocus())
         self.on_ready()
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def close_browser(self):
-        self.view.close_browser()
 
     def _on_size(self, event):
         self.view.resized()
@@ -293,13 +275,6 @@ class CefPanel(wx.Panel):
         character = event.GetUnicodeKey()
         if character >= 0x20 and not event.ControlDown() and not event.AltDown():
             self.view.text(chr(character))              # a letter, or what an input method committed
-
-    def commit_text(self, text):
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        """wx gives no preedit of an input method; this is for applications that have one."""
-        self.view.preedit(text, cursor)
 
     # -- drag and drop: into the page ------------------------------------------------------------
 

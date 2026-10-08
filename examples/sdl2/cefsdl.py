@@ -77,7 +77,7 @@ class _Timer:
         self.function = None
 
 
-class SdlBrowser:
+class SdlBrowser(ui.BrowserWidget):
     """The window, the browser and the event loop. It is the ``ui.ToolkitAdapter`` of its own ``BrowserView``."""
 
     capabilities = frozenset()      # no drag source and no clipboard CEF could use: the view does both
@@ -109,10 +109,8 @@ class SdlBrowser:
         self.quit = False
         self._closing = False
         # CEF
-        self.view = ui.BrowserView(self)
-        self.view.on_title = self._on_title
-        self.view.on_address = lambda url: setattr(self, "url", url)
-        self.view.on_loading = self._on_loading
+        self.attach_view(self)
+        self.on_ready = lambda: None                    # set by the application: the browser exists, load a page
         self.session = ui.Session(self, switches, cache_path)
         self.app, self.bridge = self.session.app, self.session.bridge
         self._update_size()
@@ -200,52 +198,24 @@ class SdlBrowser:
     # -- the application ---------------------------------------------------------------------------------
 
     @property
-    def browser(self):
-        return self.view.browser
-
-    @property
     def started(self):
         return self.session.started
 
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
-
-    @property
-    def on_ready(self):
-        return self.view.on_ready
-
-    @on_ready.setter
-    def on_ready(self, function):
-        self.view.on_ready = function
-
-    def _on_title(self, title):
+    def browser_title(self, title):
         self.title = title or "cefweaver SDL2"
         sdl2.SDL_SetWindowTitle(self.window, self.title.encode("utf-8"))
 
-    def _on_loading(self, loading, can_back, can_forward):
+    def browser_address(self, url):
+        self.url = url
+
+    def browser_loading(self, loading, can_back, can_forward):
         self.can_back, self.can_forward = can_back, can_forward
+
+    def browser_ready(self):
+        self.on_ready()
 
     def start(self, url):
         self.session.start(self.view, url)
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def commit_text(self, text):
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        self.view.preedit(text, cursor)
 
     def close(self):
         """Close the browser and shut CEF down; ``step()`` goes on until that is done."""

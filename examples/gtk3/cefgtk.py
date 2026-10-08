@@ -177,7 +177,7 @@ class GtkAdapter(GlibLoop):
         self.w.set_drag_operation(operation)
 
 
-class CefWidget(Gtk.DrawingArea):
+class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     __gsignals__ = {
         "title-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "address-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
@@ -188,11 +188,7 @@ class CefWidget(Gtk.DrawingArea):
     def __init__(self, runtime):
         super().__init__()
         self.runtime = runtime
-        self.view = ui.BrowserView(GtkAdapter(self))
-        self.view.on_title = lambda title: self.emit("title-changed", title)
-        self.view.on_address = lambda url: self.emit("address-changed", url)
-        self.view.on_loading = lambda loading, back, forward: self.emit("loading-changed", loading, back, forward)
-        self.view.on_ready = self._on_ready
+        self.attach_view(GtkAdapter(self))
         self.view_width, self.view_height = 800, 600    # in GTK pixels, until the first allocation
         self.pixels = None                              # the picture: BGRA, device pixels
         self.surface = None
@@ -231,39 +227,21 @@ class CefWidget(Gtk.DrawingArea):
     # -- the browser ---------------------------------------------------------------------------
 
     @property
-    def browser(self):
-        return self.view.browser
-
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
-
-    @property
-    def popup_rect(self):
-        return self.view.popup_rect
-
-    @property
     def drag_operation(self):
         return self.view.drag_operation
 
-    def _on_ready(self):
+    def browser_title(self, title):
+        self.emit("title-changed", title)
+
+    def browser_address(self, url):
+        self.emit("address-changed", url)
+
+    def browser_loading(self, loading, can_back, can_forward):
+        self.emit("loading-changed", loading, can_back, can_forward)
+
+    def browser_ready(self):
         self.view.focus(self.has_focus())
         self.emit("browser-ready")
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def close(self):
-        self.view.close_browser()
 
     # -- painting ------------------------------------------------------------------------------
 
@@ -392,14 +370,6 @@ class CefWidget(Gtk.DrawingArea):
         unicode_value = Gdk.keyval_to_unicode(event.keyval)
         self.view.key(down, windows_key_code(event), event.hardware_keycode, key_modifiers(event.state),
                       char=chr(unicode_value) if unicode_value and down else None)
-
-    def commit_text(self, text):
-        """Text from the input method (also called by the tests)."""
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        """The text being composed (underlined in the page)."""
-        self.view.preedit(text, cursor)
 
     def _on_commit(self, context, text):
         self.commit_text(text)

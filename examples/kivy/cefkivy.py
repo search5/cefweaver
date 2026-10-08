@@ -114,7 +114,7 @@ class KivyAdapter(KivyLoop):
         Clipboard.copy(text)
 
 
-class CefView(Widget):
+class CefView(ui.BrowserWidget, Widget):
     """The browser. Events: ``on_title(title)``, ``on_address(url)``, ``on_loading(loading, back, forward)``,
     ``on_ready()``."""
 
@@ -123,11 +123,7 @@ class CefView(Widget):
     def __init__(self, runtime, **kwargs):
         super().__init__(**kwargs)
         self.runtime = runtime
-        self.view = ui.BrowserView(KivyAdapter(self))
-        self.view.on_title = lambda title: self.dispatch("on_title", title or "")
-        self.view.on_address = lambda url: self.dispatch("on_address", url)
-        self.view.on_loading = lambda *state: self.dispatch("on_loading", *state)
-        self.view.on_ready = self._on_ready
+        self.attach_view(KivyAdapter(self))
         self.texture = self.popup_texture = None
         self.picture = (0, 0)
         self._buttons = set()
@@ -159,32 +155,18 @@ class CefView(Widget):
 
     # -- the browser -----------------------------------------------------------------------------
 
-    @property
-    def browser(self):
-        return self.view.browser
+    def browser_title(self, title):
+        self.dispatch("on_title", title or "")
 
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
+    def browser_address(self, url):
+        self.dispatch("on_address", url)
 
-    def _on_ready(self):
+    def browser_loading(self, loading, can_back, can_forward):
+        self.dispatch("on_loading", loading, can_back, can_forward)
+
+    def browser_ready(self):
         self.view.focus(True)
         self.dispatch("on_ready")
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def close_browser(self):
-        self.view.close_browser()
 
     def screen_origin(self):
         return self.view.adapter.screen_origin()
@@ -296,12 +278,6 @@ class CefView(Widget):
 
     def _on_textedit(self, window, text):
         self.view.preedit(text, len(text))
-
-    def commit_text(self, text):
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        self.view.preedit(text, cursor)
 
     # -- drops from other programs ---------------------------------------------------------------------
 

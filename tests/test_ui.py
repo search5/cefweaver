@@ -696,6 +696,68 @@ class Tables(unittest.TestCase):
         self.assertEqual((table.get(types.CursorType.HAND), table.get(types.CursorType.WAIT)), ("hand2", "arrow"))
 
 
+class WidgetBase(unittest.TestCase):
+    """``ui.BrowserWidget``: what every toolkit widget of a browser does the same way."""
+
+    def make(self):
+        calls = []
+
+        class Widget(ui.BrowserWidget):
+            def __init__(self, adapter):
+                self.attach_view(adapter)
+                self.events = []
+
+            def browser_title(self, title):
+                self.events.append(("title", title))
+
+            def browser_address(self, url):
+                self.events.append(("address", url))
+
+            def browser_loading(self, loading, back, forward):
+                self.events.append(("loading", loading, back, forward))
+
+            def browser_ready(self):
+                self.events.append(("ready",))
+
+        widget = Widget(FakeAdapter())
+        widget.view.browser = FakeBrowser(calls)
+        return widget, calls
+
+    def test_the_widget_has_a_view_and_forwards_its_state(self):
+        widget, _ = self.make()
+        self.assertIsInstance(widget.view, ui.BrowserView)
+        self.assertIs(widget.browser, widget.view.browser)
+        self.assertFalse(widget.popup_visible)
+        self.assertIsNone(widget.popup_rect)
+
+    def test_navigation_and_text_go_to_the_view(self):
+        widget, calls = self.make()
+        widget.load_url("http://a/")
+        widget.go_back()
+        widget.reload()
+        widget.commit_text("한")
+        widget.set_preedit("하", 1)
+        widget.close_browser()
+        self.assertEqual([c[0] for c in calls], ["load_url", "go_back", "reload", "ime_commit_text", "ime_set_composition", "close_browser"])
+
+    def test_the_notifications_of_the_view_call_the_hooks_of_the_widget(self):
+        widget, calls = self.make()
+        view = widget.view
+        view.client.get_display_handler().on_title_change(None, "t")
+        view.client.get_display_handler().on_address_change(None, FakeFrame(calls), "http://a/")
+        view.client.get_load_handler().on_loading_state_change(None, True, False, False)
+        view.client.get_life_span_handler().on_after_created(FakeBrowser(calls))
+        self.assertEqual(widget.events, [("title", "t"), ("address", "http://a/"), ("loading", True, False, False), ("ready",)])
+
+    def test_a_widget_without_hooks_works_too(self):
+        class Plain(ui.BrowserWidget):
+            def __init__(self):
+                self.attach_view(FakeAdapter())
+        widget = Plain()
+        widget.view.client.get_display_handler().on_title_change(None, "t")      # nothing to call: no error
+        widget.view.client.get_life_span_handler().on_after_created(FakeBrowser([]))
+
+
 class Navigation(unittest.TestCase):
     def test_navigation_goes_to_the_browser(self):
         view, _, calls = make_view()

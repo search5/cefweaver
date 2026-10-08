@@ -315,3 +315,7 @@
 ## [2026-10-08] ingest | 키, 수정 키, 커서 표를 객체로 (cefweaver.ui)
 
 - 여섯 위젯이 각자 갖던 `windows_key_code`, `modifier_flags`, 커서 사전 조회를 `KeyTable`, `MaskModifiers`/`NamedModifiers`/`EventModifiers`, `CursorTable`로 올렸습니다. 위젯에는 툴킷의 이름 표만 남습니다. 여섯 예제의 점검은 바뀌지 않고 통과합니다.
+
+## [2026-10-08] ingest | 위젯 기반 클래스 BrowserWidget (cefweaver.ui)
+
+- 여섯 위젯에 똑같던 위임 메서드(`load_url`, `go_back`, `commit_text` 등)와 제목, 주소, 로딩, 준비 알림의 연결을 `ui.BrowserWidget`(`attach_view`와 훅 `browser_*`)로 올렸습니다. 위젯 파일은 GTK 514, Tk 286, SDL2 365, Kivy 298, wx 309, Qt 420줄이 되었고 점검은 바뀌지 않고 통과합니다. (Kivy는 훅을 어댑터 클래스에 잘못 끼웠다가 점검이 시간 초과로 알려 주어 고쳤습니다.)

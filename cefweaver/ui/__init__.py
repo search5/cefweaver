@@ -9,7 +9,8 @@ from .adapter import DragPayload, Frame, ToolkitAdapter
 from .session import Session
 from .tables import CursorTable, EventModifiers, KeyTable, MaskModifiers, NamedModifiers, function_range
 from .view import BrowserView
+from .widget import BrowserWidget
 from . import keys
 
-__all__ = ["BrowserView", "CursorTable", "DragPayload", "EventModifiers", "Frame", "KeyTable", "MaskModifiers",
+__all__ = ["BrowserView", "BrowserWidget", "CursorTable", "DragPayload", "EventModifiers", "Frame", "KeyTable", "MaskModifiers",
            "NamedModifiers", "Session", "ToolkitAdapter", "function_range", "keys"]

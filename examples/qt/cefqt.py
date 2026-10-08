@@ -195,7 +195,7 @@ class QtAdapter:
         return self.w.run_drag(payload, allowed)         # runs until the drag is over
 
 
-class CefWidget(QWidget):
+class CefWidget(ui.BrowserWidget, QWidget):
     title_changed = Signal(str)
     address_changed = Signal(str)
     loading_changed = Signal(bool, bool, bool)
@@ -204,11 +204,7 @@ class CefWidget(QWidget):
     def __init__(self, runtime, parent=None):
         super().__init__(parent)
         self.runtime = runtime
-        self.view = ui.BrowserView(QtAdapter(self, runtime.loop))
-        self.view.on_title = self.title_changed.emit
-        self.view.on_address = self.address_changed.emit
-        self.view.on_loading = self.loading_changed.emit
-        self.view.on_ready = self._on_ready
+        self.attach_view(QtAdapter(self, runtime.loop))
         self.pixels = None                              # the picture: BGRA, device pixels
         self.image = None
         self.popup_image = None
@@ -223,32 +219,18 @@ class CefWidget(QWidget):
 
     # -- the browser -----------------------------------------------------------------------------
 
-    @property
-    def browser(self):
-        return self.view.browser
+    def browser_title(self, title):
+        self.title_changed.emit(title)
 
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
+    def browser_address(self, url):
+        self.address_changed.emit(url)
 
-    def _on_ready(self):
+    def browser_loading(self, loading, can_back, can_forward):
+        self.loading_changed.emit(loading, can_back, can_forward)
+
+    def browser_ready(self):
         self.view.focus(self.hasFocus())
         self.browser_ready_signal.emit()
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def close_browser(self):
-        self.view.close_browser()
 
     # -- painting --------------------------------------------------------------------------------
 
@@ -365,12 +347,6 @@ class CefWidget(QWidget):
         if query == Qt.InputMethodQuery.ImEnabled:
             return True
         return super().inputMethodQuery(query)
-
-    def commit_text(self, text):
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        self.view.preedit(text, cursor)
 
     # -- drag and drop: into the page ----------------------------------------------------------------
 

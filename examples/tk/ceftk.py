@@ -163,13 +163,13 @@ class TkAdapter:
         self.w.clipboard_append(text)
 
 
-class CefCanvas(tkinter.Canvas):
+class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
     """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
 
     def __init__(self, master, runtime, **options):
         super().__init__(master, highlightthickness=0, background="white", takefocus=True, **options)
         self.runtime = runtime
-        self.view = ui.BrowserView(TkAdapter(self, runtime.loop))
+        self.attach_view(TkAdapter(self, runtime.loop))
         self.view_width, self.view_height = 800, 600
         self.image = None                               # the picture (PIL) and what Tk shows of it
         self.photo = None
@@ -180,10 +180,6 @@ class CefCanvas(tkinter.Canvas):
         self.on_title = self.on_address = lambda value: None
         self.on_loading = lambda loading, back, forward: None
         self.on_ready = lambda: None
-        self.view.on_title = lambda title: self.on_title(title)
-        self.view.on_address = lambda url: self.on_address(url)
-        self.view.on_loading = lambda *state: self.on_loading(*state)
-        self.view.on_ready = self._on_ready
         self.bind("<Configure>", self._on_configure)
         self.bind("<Motion>", self._on_motion)
         self.bind("<B1-Motion>", self._on_motion)
@@ -205,36 +201,18 @@ class CefCanvas(tkinter.Canvas):
 
     # -- the browser -----------------------------------------------------------------------------
 
-    @property
-    def browser(self):
-        return self.view.browser
+    def browser_title(self, title):
+        self.on_title(title)
 
-    @property
-    def popup_visible(self):
-        return self.view.popup_visible
+    def browser_address(self, url):
+        self.on_address(url)
 
-    @property
-    def popup_rect(self):
-        return self.view.popup_rect
+    def browser_loading(self, loading, can_back, can_forward):
+        self.on_loading(loading, can_back, can_forward)
 
-    def _on_ready(self):
+    def browser_ready(self):
         self.view.focus(self.focus_get() is self)
         self.on_ready()
-
-    def load_url(self, url):
-        self.view.load_url(url)
-
-    def go_back(self):
-        self.view.go_back()
-
-    def go_forward(self):
-        self.view.go_forward()
-
-    def reload(self):
-        self.view.reload()
-
-    def close_browser(self):
-        self.view.close_browser()
 
     def _on_configure(self, event):
         if (event.width, event.height) != (self.view_width, self.view_height):
@@ -306,10 +284,3 @@ class CefCanvas(tkinter.Canvas):
             return
         self.view.key(down, windows_key_code(event), event.keycode, modifier_flags(event.state),
                       char=text if down and text and text.isprintable() else None)
-
-    def commit_text(self, text):
-        self.view.commit_text(text)
-
-    def set_preedit(self, text, cursor):
-        """Tk gives no preedit of an input method; this is for applications that have one."""
-        self.view.preedit(text, cursor)
