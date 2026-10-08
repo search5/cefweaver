@@ -234,3 +234,7 @@
 ## [2026-10-08] ingest | 브라우저 여러 개 (F60)
 
 - `CefApp.create_browser(url, offscreen, transparent, request_context)`를 더했습니다(java-cef의 `createBrowser`). 브라우저 생성을 `CefWrapperBrowserProcessHandler::CreateBrowser`로 빼서 첫 브라우저도 같은 경로로 만듭니다. `execute_javascript`의 준비 표시가 다른 브라우저의 로딩에 따라 바뀌던 결함을 고쳤습니다. 이로써 java-cef와의 격차 목록이 모두 닫혔습니다.
+
+## [2026-10-08] query | cefpython과의 API 차이
+
+- cefpython의 API 문서 항목 459개를 스텁과 대조해 [cefpython과 cefweaver의 API 차이](pages/analyses/cefpython-comparison.md)에 저장했습니다.
