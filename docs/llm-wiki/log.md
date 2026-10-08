@@ -160,3 +160,7 @@
 ## [2026-10-08] ingest | 시간(datetime)과 void* 표 완성
 
 - 사용자의 요청(`GetFileLastModified`도 생성, 표에 없는 `void*`도 표로, 스트림의 CEF 내부 경로를 java-cef는 어떻게 하는지)에 따라 `Time` 종류(`CefBaseTime` → `datetime`), `BYTES_SIZE_FIRST`(`PostDataElement`), 복사하는 V8 배열, 의도적 제외 사유(`DELIBERATE_POINTERS`)를 더했습니다. `CefPostData`와 `CefPostDataElement`를 범위에 넣었습니다. 핸들러의 `const void*`가 const 없이 선언되던 잠재 결함도 고쳤습니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 191개가 통과합니다. F45. 새 페이지 [바이트열과 시간](pages/reference/bytes-and-times.md).
+
+## [2026-10-08] schema | java-cef의 목록을 바닥으로 삼는다
+
+- 사용자의 결정: java-cef가 여는 것은 바닥(java-cef의 동작에 맞춰 모두 구현), 그보다 더 연 것은 닫지 않고 위키에 정리. 범위를 java-cef 안으로 줄이려던 작업은 중단하고 되돌렸습니다. `tools/gen/surface.py`(java-cef의 네이티브 코드에서 뽑은 목록)와 `derive_surface.py`, 보고서의 격차와 바닥 위 절, 격차를 고정하는 시험을 더했습니다. 격차는 389개 가운데 78개입니다.

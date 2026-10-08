@@ -75,4 +75,63 @@ def build_report(model, current, universe):
         mark = "*" if (current.is_library(name) or current.is_client(name)) else " "
         lines.append("  %s %-38s %s %3d/%-3d" % (mark, name, side, good, total))
     lines.append("  (* = generated now)")
+    lines += _java_cef_sections(model, current, generated)
     return "\n".join(lines) + "\n"
+
+
+def generated_methods(model, current):
+    """{(class, method)} that are generated."""
+    return {(p.owner, p.cef_name) for p in all_plans(model, current)
+            if p.supported and p.owner in (current._library | current._client)}
+
+
+def java_cef_gaps(model, current):
+    """{class: [methods]}: what java-cef opens and cefweaver has not generated yet. java-cef is
+    the floor of the API (tools/gen/surface.py is its list)."""
+    from surface import SURFACE
+    done = generated_methods(model, current)
+    gaps = {}
+    for name in sorted(SURFACE):
+        if name not in model.classes:
+            continue  # java-cef's own class (the message router), not a CEF one
+        cls = model.classes[name]
+        wanted = {m.get_name() for m in list(cls.get_virtual_funcs()) + list(cls.get_static_funcs())}
+        wanted &= SURFACE[name]
+        missing = sorted(m for m in wanted if (name, m) not in done)
+        if missing:
+            gaps[name] = (missing, len(wanted))
+    return gaps
+
+
+def beyond_java_cef(model, current):
+    """{class: [methods]}: generated, and not opened by java-cef (the whole class when
+    java-cef has none of it)."""
+    from surface import SURFACE
+    beyond = {}
+    for owner, method in sorted(generated_methods(model, current)):
+        if method not in SURFACE.get(owner, ()):
+            beyond.setdefault(owner, []).append(method)
+    return beyond
+
+
+def _java_cef_sections(model, current, generated):
+    """java-cef is the floor: what it opens and cefweaver has not yet, and what cefweaver
+    opens that java-cef does not."""
+    from surface import SURFACE
+    lines = ["", "Opened by java-cef, not generated yet (the gaps):"]
+    gap_total = 0
+    for name, (missing, wanted) in java_cef_gaps(model, current).items():
+        gap_total += len(missing)
+        why = ("class not generated yet" if not (current.is_library(name) or current.is_client(name))
+               else "type not supported yet")
+        lines.append("  %-30s %3d/%-3d  %s" % (name, len(missing), wanted, why))
+    lines.append("  ----  %d methods" % gap_total)
+
+    lines += ["", "Generated, and not opened by java-cef (beyond the floor):"]
+    extra_total = 0
+    for name, methods in beyond_java_cef(model, current).items():
+        extra_total += len(methods)
+        whole = "the whole class" if name not in SURFACE else "%d methods" % len(methods)
+        lines.append("  %-30s %3d  %s" % (name, len(methods), whole))
+    lines.append("  ----  %d methods" % extra_total)
+    return lines

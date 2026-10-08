@@ -58,6 +58,7 @@
 - [오프스크린 렌더링](pages/reference/offscreen-rendering.md): `offscreen`, `RenderHandler.on_paint`의 읽기 전용 버퍼, 제약
 - [스트림과 ZIP 읽기](pages/reference/streams.md): `fread`/`fwrite` 규약(`ptr, size, n`)을 `read(n, size=1)`, `write(data, size=1)`로 연 규칙과 핸들러
 - [바이트열과 시간](pages/reference/bytes-and-times.md): `void*` 표(복사, 크기가 앞, 의도적 제외)와 `CefBaseTime` → `datetime`
+- [java-cef 동등성 (바닥과 그 위)](pages/reference/java-cef-parity.md): java-cef가 여는 것이 바닥, 격차와 바닥 위 목록
 
 ## 요약 (summaries)
 

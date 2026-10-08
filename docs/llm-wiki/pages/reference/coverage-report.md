@@ -231,6 +231,63 @@ Per class (supported/total methods, when every class is generated):
     CefXmlReader                           library  30/30 
   * CefZipReader                           library  13/13 
   (* = generated now)
+
+Opened by java-cef, not generated yet (the gaps):
+  CefBrowserHost                   5/30   type not supported yet
+  CefCommandLine                  12/12   class not generated yet
+  CefCookieAccessFilter            2/2    class not generated yet
+  CefCookieManager                 6/6    class not generated yet
+  CefDevToolsMessageObserver       2/2    class not generated yet
+  CefDisplayHandler                1/7    type not supported yet
+  CefDragData                     24/24   class not generated yet
+  CefDragHandler                   1/1    type not supported yet
+  CefFrame                         2/19   type not supported yet
+  CefLifeSpanHandler               1/4    type not supported yet
+  CefRenderHandler                 1/9    type not supported yet
+  CefRequest                       3/23   type not supported yet
+  CefRequestContext                3/3    class not generated yet
+  CefRequestContextHandler         1/1    class not generated yet
+  CefResourceRequestHandler        1/7    type not supported yet
+  CefResponse                      2/14   type not supported yet
+  CefSchemeRegistrar               1/1    class not generated yet
+  CefURLRequest                    5/5    class not generated yet
+  CefURLRequestClient              5/5    class not generated yet
+  ----  78 methods
+
+Generated, and not opened by java-cef (beyond the floor):
+  CefBinaryValue                   8  the whole class
+  CefBrowser                       2  2 methods
+  CefBrowserHost                  33  33 methods
+  CefClient                        1  1 methods
+  CefContextMenuHandler            4  4 methods
+  CefContextMenuParams             2  2 methods
+  CefDictionaryValue              30  the whole class
+  CefDisplay                      16  the whole class
+  CefDisplayHandler                6  6 methods
+  CefDownloadHandler               1  1 methods
+  CefDownloadItem                  4  4 methods
+  CefDragHandler                   1  1 methods
+  CefFrame                         4  4 methods
+  CefLifeSpanHandler               1  1 methods
+  CefListValue                    29  the whole class
+  CefMenuModel                     8  8 methods
+  CefMenuModelDelegate             7  the whole class
+  CefPostData                      1  1 methods
+  CefProcessMessage                6  the whole class
+  CefReadHandler                   5  the whole class
+  CefRenderHandler                 6  6 methods
+  CefRequestHandler                4  4 methods
+  CefResponse                      4  4 methods
+  CefRunContextMenuCallback        2  the whole class
+  CefRunQuickMenuCallback          2  the whole class
+  CefSSLInfo                       1  the whole class
+  CefStreamReader                  8  the whole class
+  CefStreamWriter                  7  the whole class
+  CefTaskManager                   5  the whole class
+  CefUnresponsiveProcessCallback   2  the whole class
+  CefValue                        23  the whole class
+  CefZipReader                    13  the whole class
+  ----  246 methods
 ```
 
 ## 관련 페이지

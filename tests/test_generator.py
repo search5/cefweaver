@@ -344,6 +344,47 @@ class WithHeaders(unittest.TestCase):
                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr[-3000:])
 
+    # What java-cef opens and cefweaver has not generated yet. java-cef is the floor of the API
+    # (tools/gen/surface.py): this list only shrinks, and a method that is added or removed
+    # without changing it fails here. When a gap is closed, delete it from this table.
+    EXPECTED_GAPS = {
+        "CefBrowserHost": ["AddDevToolsMessageObserver", "DragTargetDragEnter", "GetWindowHandle",
+                           "PrintToPDF", "RunFileDialog"],
+        "CefCommandLine": None, "CefCookieAccessFilter": None, "CefCookieManager": None,
+        "CefDevToolsMessageObserver": None, "CefDragData": None, "CefRequestContext": None,
+        "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
+        "CefURLRequestClient": None,
+        "CefDisplayHandler": ["OnCursorChange"],
+        "CefDragHandler": ["OnDragEnter"],
+        "CefFrame": ["GetSource", "GetText"],
+        "CefLifeSpanHandler": ["OnBeforePopup"],
+        "CefRenderHandler": ["StartDragging"],
+        "CefRequest": ["GetHeaderMap", "Set", "SetHeaderMap"],
+        "CefResourceRequestHandler": ["GetCookieAccessFilter"],
+        "CefResponse": ["GetHeaderMap", "SetHeaderMap"],
+    }
+
+    def test_the_gaps_to_the_java_cef_floor_are_the_listed_ones(self):
+        import report
+        gaps = report.java_cef_gaps(self.model, self.scope)
+        found = {name: (methods if name in self.scope._library | self.scope._client else None)
+                 for name, (methods, _) in gaps.items()}
+        self.assertEqual(found, self.EXPECTED_GAPS)
+
+    def test_the_java_cef_list_names_only_cef_methods_of_known_classes(self):
+        # surface.py is derived from java-cef's code; a name that is no CEF method is java-cef's own
+        # (a Java-side helper) and is ignored, but every class of CEF in it must exist.
+        from surface import SURFACE
+        own = {"CefMessageRouter", "CefQueryCallback", "CefRegistration"}
+        for name, methods in SURFACE.items():
+            if name in own:
+                continue
+            self.assertIn(name, self.model.classes, name)
+            header = {m.get_name() for m in list(self.model.classes[name].get_virtual_funcs())
+                      + list(self.model.classes[name].get_static_funcs())}
+            if name not in ("CefBrowser", "CefBrowserHost", "CefFrame", "CefClient"):
+                self.assertTrue(methods & header, name)  # it opens something that exists
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
