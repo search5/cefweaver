@@ -3466,6 +3466,33 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    def test_the_app_can_be_used_from_on_after_created_of_the_first_browser(self):
+        # The first browser is made inside initialize(): its on_after_created() runs before
+        # initialize() has returned, and that is where an application wants to add resources
+        # and load its page.
+        self.run_osr_script("""
+            problems, created = [], []
+            class Early(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+                    try:
+                        app.add_resource("http://early.test/", '<script>report("early", 1)</script>')
+                        assert app.load_url("http://early.test/") is True
+                        app.execute_javascript("1")
+                        created.append(True)
+                    except BaseException as error:
+                        problems.append(repr(error))
+            MyClient.__init__ = lambda self: setattr(self, "render", Render()) or setattr(self, "life", Early())
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize("about:blank")
+            assert not problems, problems
+            assert created == [True], created
+            wait_until(app, lambda: ("early", 1) in js, "the page that was added and loaded from on_after_created")
+            app.shutdown()
+            print("OK")
+        """)
+
     # -- JSON calls between JavaScript and Python (cefpython's JavascriptBindings) --------------
 
     BRIDGE_PAGE = """

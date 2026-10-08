@@ -731,11 +731,14 @@ cdef class CefApp:
         if _cef_was_shut_down:
             raise RuntimeError("CEF can be initialized only once per process, "
                                "and it was shut down already")
+        # The first browser is made inside this call and its handlers (on_after_created) run before
+        # it returns: the application can use the app from there.
+        self._initialized = True
         with nogil:
             ok = self._wrapper.InitCefSimple(url)
         if not ok:
+            self._initialized = False
             raise RuntimeError("CefInitialize() failed")
-        self._initialized = True
 
     def do_message_loop_work(self):
         """Run one iteration of the CEF message loop; call it regularly."""

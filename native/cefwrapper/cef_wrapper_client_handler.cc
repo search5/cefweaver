@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 
+#include "cef_wrapper_browser_process_handler.h"
 #include "global_vars.h"
 #include "include/base/cef_callback.h"
 #include "include/cef_app.h"
@@ -177,6 +178,8 @@ void CefWrapperClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
   browser_list_.push_back(browser);
   if (primary_browser_id_ == 0 && !browser->IsPopup()) {
     primary_browser_id_ = browser->GetIdentifier();
+    // Known now, not when CreateBrowserSync() returns: load_url() works from on_after_created().
+    CefWrapperBrowserProcessHandler::GetInstance()->Browser = browser;
   }
   CwLifeSpanHandlerForward::OnAfterCreated(browser);
 }
