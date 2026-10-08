@@ -56,6 +56,11 @@ class ToolkitAdapter(Protocol):
     ``set_ime_rect(x, y, w, h)``     where the input method puts its candidate window
     ``start_drag_out(payload, allowed)``   start a drag of the toolkit (capability ``"drag_out"``); without
                                      it the view carries the drag out itself, inside the page only
+    ``drag_start``                   an attribute: when the toolkit can start its drag. ``"immediate"`` (the
+                                     default; ``start_drag_out`` returns whether it started), ``"posted"``
+                                     (from the loop, once CEF's callback is over: Qt) or ``"on_motion"`` (with
+                                     the next move of the pointer, button down: wx on GTK). The call may
+                                     run until the drag is over; then ``view.drag_out_finished`` follows
     ``drag_operation_changed(operation)``  CEF's answer to a drag over the view arrives later
     """
 

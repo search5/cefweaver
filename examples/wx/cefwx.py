@@ -95,6 +95,7 @@ class WxAdapter(WxLoop):
     clipboard, but not one CEF could use from this thread."""
 
     capabilities = frozenset({"drag_out"})
+    drag_start = "on_motion"        # wx (GTK) starts a drag only inside a mouse event handler
 
     def __init__(self, panel):
         self.p = panel
@@ -133,7 +134,8 @@ class WxAdapter(WxLoop):
             wx.TheClipboard.Close()
 
     def start_drag_out(self, payload, allowed):
-        return self.p.begin_drag(payload)
+        self.p.run_drag(payload)                        # runs until the drag is over
+        return True
 
 
 class _DropTarget(wx.DropTarget):
@@ -183,8 +185,6 @@ class CefPanel(wx.Panel):
         self.view = ui.BrowserView(WxAdapter(self))
         self.bitmap = self.popup_bitmap = None
         self.picture = (0, 0)
-        self._pending_drag = None                       # the payload to drag at the next pointer move
-        self._dragging_out = False                      # inside wx.DropSource.DoDragDrop
         self.on_title = self.on_address = lambda value: None
         self.on_loading = lambda loading, back, forward: None
         self.on_ready = lambda: None
@@ -284,14 +284,8 @@ class CefPanel(wx.Panel):
             rotation = event.GetWheelRotation()
             horizontal = event.GetWheelAxis() == wx.MOUSE_WHEEL_HORIZONTAL
             self.view.wheel(x, y, rotation if horizontal else 0, 0 if horizontal else rotation, mods)
-        elif event.ButtonUp() and self._pending_drag is not None:
-            self._pending_drag = None                   # the button went up before the pointer moved again
-            self.view.drag_out_finished(x, y, types.DragOperationsMask.NONE)
         elif event.ButtonDown() or event.ButtonUp() or event.ButtonDClick():
             self.view.mouse_button(x, y, self._BUTTONS.get(event.GetButton()), not event.ButtonUp(), mods)
-        elif event.Dragging() and self._pending_drag is not None and event.LeftIsDown():
-            payload, self._pending_drag = self._pending_drag, None
-            self._run_drag(payload)
         elif event.Moving() or event.Dragging():
             self.view.mouse_move(x, y, mods)
         event.Skip()
@@ -322,35 +316,22 @@ class CefPanel(wx.Panel):
     # -- drag and drop: into the page ------------------------------------------------------------
 
     def drag_enter(self, x, y):
-        if self._dragging_out:                          # the page's own drag: CEF knows the data already
-            self.view.drag_enter(x, y, types.DragOperationsMask.COPY)
+        self.view.drag_enter(x, y, types.DragOperationsMask.COPY)     # the view ignores it for another program
 
     def drag_over(self, x, y):
-        if self._dragging_out:
-            self.view.drag_over(x, y, types.DragOperationsMask.COPY)
+        self.view.drag_over(x, y, types.DragOperationsMask.COPY)
 
     def drag_leave(self):
-        if self._dragging_out:
-            self.view.drag_leave()
+        self.view.drag_leave()
 
     def drag_drop(self, x, y, text=None, files=None):
-        if self._dragging_out:
-            self.view.drag_drop(x, y, types.DragOperationsMask.COPY)
-        else:                                           # from another program: wx has the data only now
-            self.view.drop(x, y, text=text, files=files)
+        self.view.drag_drop(x, y, types.DragOperationsMask.COPY, text=text, files=files)   # data only now
 
     # -- drag and drop: out of the page ------------------------------------------------------------
 
-    def begin_drag(self, payload):
-        """``WxAdapter.start_drag_out``. wx (GTK) starts a drag only inside a mouse event handler, so it
-        starts with the next pointer move (``_on_mouse``); DoDragDrop() then runs a loop of its own, in
-        which CEF goes on through the timers."""
-        if not (payload.files or payload.text or payload.url):
-            return False
-        self._pending_drag = payload
-        return True
-
-    def _run_drag(self, payload):
+    def run_drag(self, payload):
+        """``WxAdapter.start_drag_out``, called by the view with the next move of the pointer: DoDragDrop() runs
+        a loop of its own, in which CEF goes on through the timers."""
         if payload.files:
             data = wx.FileDataObject()
             for name in payload.files:
@@ -359,11 +340,7 @@ class CefPanel(wx.Panel):
             data = wx.TextDataObject(payload.text or payload.url)   # DropSource does not own it: keep it alive
         source = wx.DropSource(self)
         source.SetData(data)
-        self._dragging_out = True
-        try:
-            result = source.DoDragDrop(wx.Drag_CopyOnly)
-        finally:
-            self._dragging_out = False
+        result = source.DoDragDrop(wx.Drag_CopyOnly)
         position = self.ScreenToClient(wx.GetMousePosition())
         operation = types.DragOperationsMask.COPY if result == wx.DragCopy else types.DragOperationsMask.NONE
         self.view.drag_out_finished(position.x, position.y, operation)

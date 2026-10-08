@@ -439,6 +439,119 @@ class DragOut(unittest.TestCase):
         self.assertFalse(view.client.get_render_handler().start_dragging(None, self.data(text=""), 1, 0, 0))
 
 
+class DragOutStrategies(unittest.TestCase):
+    """How a toolkit lets a drag start: at once, from the event loop, or at the next pointer move with the button down."""
+
+    def setup(self, how):
+        adapter = FakeAdapter()
+        adapter.capabilities = frozenset({"drag_out"})
+        adapter.drag_start = how
+        adapter.started = []
+        adapter.result = True
+        adapter.start_drag_out = lambda payload, allowed: adapter.started.append((payload, allowed)) or adapter.result
+        view, _, calls = make_view(adapter)
+        data = cefweaver.DragData.create()
+        data.set_fragment_text("t")
+        return view, adapter, calls, data
+
+    def start(self, view, data):
+        return view.client.get_render_handler().start_dragging(None, data, types.DragOperationsMask.COPY, 5, 6)
+
+    def test_an_immediate_drag_starts_in_the_call(self):
+        view, adapter, _, data = self.setup("immediate")
+        self.assertTrue(self.start(view, data))
+        self.assertEqual(len(adapter.started), 1)
+
+    def test_a_posted_drag_starts_from_the_loop_and_is_answered_for_cef_at_once(self):
+        view, adapter, calls, data = self.setup("posted")
+        self.assertTrue(self.start(view, data))
+        self.assertEqual(adapter.started, [])
+        adapter.run_posted()
+        self.assertEqual(len(adapter.started), 1)
+        self.assertTrue(view.dragging_out)
+
+    def test_a_posted_drag_that_cannot_start_is_ended_for_cef(self):
+        view, adapter, calls, data = self.setup("posted")
+        adapter.result = False
+        self.start(view, data)
+        adapter.run_posted()
+        self.assertFalse(view.dragging_out)
+        self.assertEqual(named(calls, "drag_source_ended_at")[0][2], types.DragOperationsMask.NONE)
+        self.assertEqual(named(calls, "drag_source_system_drag_ended"), [()])
+
+    def test_a_drag_on_motion_waits_for_the_pointer_to_move_with_the_button_down(self):
+        view, adapter, calls, data = self.setup("on_motion")
+        self.assertTrue(self.start(view, data))
+        view.mouse_move(8, 8, 0)                         # no button: not yet
+        self.assertEqual(adapter.started, [])
+        view.mouse_move(9, 9, keys.LEFT_BUTTON)
+        self.assertEqual(len(adapter.started), 1)
+        self.assertEqual(named(calls, "send_mouse_move_event")[-1][0], types.MouseEvent(8, 8, 0))   # that move did not reach the page
+
+    def test_a_drag_on_motion_is_ended_when_the_button_goes_up_first(self):
+        view, adapter, calls, data = self.setup("on_motion")
+        self.start(view, data)
+        view.mouse_button(7, 7, "left", False, 0)
+        self.assertEqual(adapter.started, [])
+        self.assertFalse(view.dragging_out)
+        self.assertEqual(named(calls, "drag_source_ended_at"), [(7, 7, types.DragOperationsMask.NONE)])
+        self.assertEqual(named(calls, "drag_target_drop"), [])
+
+    def test_the_view_knows_when_its_own_drag_is_going_on(self):
+        view, adapter, calls, data = self.setup("immediate")
+        self.assertFalse(view.dragging_out)
+        self.start(view, data)
+        self.assertTrue(view.dragging_out)
+        view.drag_out_finished(1, 1, types.DragOperationsMask.COPY)
+        self.assertFalse(view.dragging_out)
+
+
+class DragInWithoutEarlyData(unittest.TestCase):
+    """A toolkit that gives the data only at the drop (wx) calls the steps without data, then drag_drop with it."""
+
+    ops = types.DragOperationsMask.COPY
+
+    def test_the_steps_without_data_of_another_program_do_not_reach_cef(self):
+        view, adapter, calls = make_view()
+        view.drag_enter(1, 1, self.ops)
+        view.drag_over(2, 2, self.ops)
+        view.drag_leave()
+        adapter.run_posted()
+        self.assertEqual([c for c in calls if c[0].startswith("drag_target")], [])
+
+    def test_a_drop_with_data_that_was_not_entered_is_a_one_shot_drop(self):
+        view, adapter, calls = make_view()
+        view.drag_enter(1, 1, self.ops)
+        view.drag_drop(3, 3, self.ops, text="dropped")
+        self.assertEqual([c[0] for c in calls if c[0].startswith("drag_target")], ["drag_target_drag_enter", "drag_target_drag_over"])
+        view.client.get_render_handler().update_drag_cursor(None, self.ops)
+        adapter.run_later()
+        self.assertEqual(len(named(calls, "drag_target_drop")), 1)
+
+    def test_the_own_drag_of_the_page_goes_step_by_step_without_data(self):
+        adapter = FakeAdapter()
+        adapter.capabilities = frozenset({"drag_out"})
+        adapter.start_drag_out = lambda payload, allowed: True
+        view, _, calls = make_view(adapter)
+        data = cefweaver.DragData.create()
+        data.set_fragment_text("own")
+        view.client.get_render_handler().start_dragging(None, data, self.ops, 0, 0)
+        view.drag_enter(1, 1, self.ops)
+        view.drag_over(2, 2, self.ops)
+        view.drag_drop(3, 3, self.ops)
+        self.assertEqual([c[0] for c in calls if c[0].startswith("drag_target")],
+                         ["drag_target_drag_enter", "drag_target_drag_over", "drag_target_drag_over", "drag_target_drop"])
+
+    def test_after_a_drop_the_next_drag_starts_again(self):
+        view, adapter, calls = make_view()
+        view.drag_enter(0, 0, self.ops, text="a")
+        view.drag_drop(1, 1, self.ops)
+        view.drag_enter(0, 0, self.ops)                  # another program, no data yet
+        view.drag_over(1, 1, self.ops)
+        self.assertEqual(len(named(calls, "drag_target_drag_enter")), 1)
+        self.assertEqual(len(named(calls, "drag_target_drag_over")), 1)    # only the one of the first drop
+
+
 class DragIn(unittest.TestCase):
     ops = types.DragOperationsMask.COPY
 

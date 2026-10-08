@@ -130,7 +130,11 @@ class QtLoop(QObject):
 
     def __init__(self):
         super().__init__()
-        self._run.connect(lambda function: function())
+        # queued even when it is emitted in the GUI thread: post() means "from the loop, not in this call"
+        self._run.connect(self._invoke, Qt.ConnectionType.QueuedConnection)
+
+    def _invoke(self, function):
+        function()
 
     def post(self, function):
         self._run.emit(function)
@@ -156,6 +160,7 @@ class QtAdapter:
     keys with the clipboard of Qt (no ``native_clipboard``)."""
 
     capabilities = frozenset({"drag_out"})
+    drag_start = "posted"           # QDrag.exec() runs an event loop of its own: not inside the callback of CEF
 
     def __init__(self, widget, loop):
         self.w, self.loop = widget, loop
@@ -197,7 +202,7 @@ class QtAdapter:
         QApplication.clipboard().setText(text)
 
     def start_drag_out(self, payload, allowed):
-        return self.w.begin_drag(payload, allowed)
+        return self.w.run_drag(payload, allowed)         # runs until the drag is over
 
 
 class CefWidget(QWidget):
@@ -218,7 +223,6 @@ class CefWidget(QWidget):
         self.image = None
         self.popup_image = None
         self.cursor_rect = QRect(0, 0, 1, 20)
-        self._drag_out = None
         self._dropping = False
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -426,9 +430,9 @@ class CefWidget(QWidget):
 
     # -- drag and drop: out of the page -------------------------------------------------------------
 
-    def begin_drag(self, payload, allowed_ops):
-        """``QtAdapter.start_drag_out``: a QDrag of what the page drags. It starts from the event loop (not
-        inside the callback of CEF): QDrag.exec() runs an event loop of its own, in which CEF has to go on."""
+    def run_drag(self, payload, allowed_ops):
+        """``QtAdapter.start_drag_out``: a QDrag of what the page drags. QDrag.exec() runs an event loop of its
+        own, in which CEF goes on."""
         mime = QMimeData()
         text = payload.text or payload.url
         if text:
@@ -441,18 +445,10 @@ class CefWidget(QWidget):
             mime.setHtml(payload.html)
         if not mime.formats():
             return False
-        self._drag_out = (mime, drop_actions(allowed_ops) or Qt.DropAction.CopyAction)
-        QTimer.singleShot(0, self._run_drag)
-        return True
-
-    def _run_drag(self):
-        if self._drag_out is None:
-            return
-        mime, actions = self._drag_out
         drag = QDrag(self)
         drag.setMimeData(mime)
-        result = drag.exec(actions, Qt.DropAction.CopyAction)
+        result = drag.exec(drop_actions(allowed_ops) or Qt.DropAction.CopyAction, Qt.DropAction.CopyAction)
         position = self.mapFromGlobal(QCursor.pos())
-        self._drag_out = None
         operation = cef_operations(result) if result != Qt.DropAction.IgnoreAction else types.DragOperationsMask.NONE
         self.view.drag_out_finished(position.x(), position.y(), operation)
+        return True

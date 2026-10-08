@@ -53,6 +53,8 @@ class BrowserView:
         self._emulated = None                           # the DragData of a drag the view carries itself
         self._emulated_ops = types.DragOperationsMask.COPY
         self._outgoing = None                           # the DragData of a drag the toolkit carries
+        self._pending = None                            # (payload, allowed) of a drag that waits for the pointer to move
+        self._entered = False                           # CEF was told that a drag entered
         self._leaving = False
         self._over_answered = False
 
@@ -100,8 +102,18 @@ class BrowserView:
 
     # -- the mouse -------------------------------------------------------------------------------
 
+    @property
+    def dragging_out(self):
+        """True while a drag that the page started goes on (CEF has been told, ``drag_out_finished`` is due)."""
+        return self._outgoing is not None
+
     def mouse_move(self, x, y, mods, leave=False):
         self._position = (x, y)
+        if self._pending is not None and mods & keys.LEFT_BUTTON:
+            payload, allowed = self._pending
+            self._pending = None
+            self._start_outgoing(payload, allowed)      # the toolkit's drag runs from here, until it is over
+            return
         if self._emulated is not None:
             mouse = types.MouseEvent(x, y, 0)
             self.host(lambda h: h.drag_target_drag_over(mouse, self._emulated_ops))
@@ -116,6 +128,10 @@ class BrowserView:
         if kind is None:
             return
         self._position = (x, y)
+        if self._pending is not None and not pressed:   # the button went up before the pointer moved
+            self._pending = None
+            self.drag_out_finished(x, y, types.DragOperationsMask.NONE)
+            return
         if self._emulated is not None and button == "left" and not pressed:
             self._end_emulated(x, y)
             return
@@ -227,32 +243,51 @@ class BrowserView:
 
     def drag_enter(self, x, y, operations, text=None, html=None, url=None, files=None):
         """A drag from the toolkit entered the view, step by step (``drag_over``, ``drag_leave`` or
-        ``drag_drop`` follow). Without data it is the drag of the page itself, over its own view."""
-        data = self._outgoing if self._outgoing is not None else self._drag_data(text, html, url, files)
+        ``drag_drop`` follow). Without data it is the drag of the page itself, over its own view; a toolkit
+        that has the data only at the drop (wx) calls the steps without it and the view ignores them for a drag
+        of another program, until ``drag_drop`` brings the data."""
+        if self._outgoing is not None:
+            data = self._outgoing
+        elif text or html or url or files:
+            data = self._drag_data(text, html, url, files)
+        else:
+            return
+        self._entered = True
         self._leaving = False
         self.drag_operation = types.DragOperationsMask.COPY          # until CEF answers the dragover
         mouse = types.MouseEvent(x, y, 0)
         self.host(lambda h: h.drag_target_drag_enter(data, mouse, operations))
 
     def drag_over(self, x, y, operations):
+        if not self._entered:
+            return
         mouse = types.MouseEvent(x, y, 0)
         self.host(lambda h: h.drag_target_drag_over(mouse, operations))
 
     def drag_leave(self):
         """The drag left. Toolkits (GTK) say so just before a drop, so CEF is told after the next turn of the
         loop, if no ``drag_drop`` came."""
+        if not self._entered:
+            return
         self._leaving = True
         self.adapter.post(self._finish_leave)
 
     def _finish_leave(self):
         if self._leaving:
             self.host(lambda h: h.drag_target_drag_leave())
+            self._entered = False
         self._leaving = False
 
-    def drag_drop(self, x, y, operations):
+    def drag_drop(self, x, y, operations, text=None, html=None, url=None, files=None):
+        """The drop. If the drag was entered with its data, this ends it. Otherwise (data only now) it is a
+        ``drop()`` with the data given here."""
         self._leaving = False
-        mouse = types.MouseEvent(x, y, 0)
-        self.host(lambda h: (h.drag_target_drag_over(mouse, operations), h.drag_target_drop(mouse)))
+        if self._entered:
+            self._entered = False
+            mouse = types.MouseEvent(x, y, 0)
+            self.host(lambda h: (h.drag_target_drag_over(mouse, operations), h.drag_target_drop(mouse)))
+        elif text or html or url or files:
+            self.drop(x, y, text=text, html=html, url=url, files=files)
 
     def drop(self, x, y, text=None, html=None, url=None, files=None):
         """A drop of a toolkit that tells only the drop itself, with its data: the view makes the whole drag
@@ -287,14 +322,27 @@ class BrowserView:
         if not (payload.text or payload.html or payload.url or payload.files):
             return False
         self._outgoing = data
+        how = getattr(self.adapter, "drag_start", "immediate")
+        if how == "posted":                             # from the loop, not inside the callback of CEF
+            self.adapter.post(lambda: self._start_outgoing(payload, allowed) if self._outgoing is data else None)
+            return True
+        if how == "on_motion":                          # with the next move of the pointer, button down
+            self._pending = (payload, allowed)
+            return True
         if not self.adapter.start_drag_out(payload, allowed):
             self._outgoing = None
             return False
         return True
 
+    def _start_outgoing(self, payload, allowed):
+        """Let the toolkit start the drag; CEF has been told it started, so a refusal is told as an end."""
+        if not self.adapter.start_drag_out(payload, allowed):
+            self.drag_out_finished(*self._position, types.DragOperationsMask.NONE)
+
     def drag_out_finished(self, x, y, operation):
         """The drag the toolkit started (``start_drag_out``) is over, where and with what result."""
         self._outgoing = None
+        self._pending = None
         self.drag_operation = types.DragOperationsMask.COPY
         self.host(lambda h: (h.drag_source_ended_at(x, y, operation), h.drag_source_system_drag_ended()))
 

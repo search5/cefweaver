@@ -33,7 +33,9 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 
 `resized()`, `focus(bool)`, `shown(bool)`, `mouse_move(x, y, mods, leave=False)`, `mouse_button(x, y, "left"|"middle"|"right", pressed, mods, clicks=None)`, `wheel(x, y, dx, dy, mods)`, `key(down, windows_key_code, native_code, mods, char=None)`(클립보드 키를 처리했으면 True), `text(str)`, `preedit(str, cursor)`. 좌표는 논리 픽셀이고 수정 키는 `keys`의 합입니다.
 
-드래그 앤 드롭은 툴킷이 말하는 방식에 따라 둘 중 하나입니다. 단계마다 알려 주는 툴킷(GTK, Qt)은 `drag_enter(x, y, ops, text=, html=, url=, files=)`, `drag_over`, `drag_leave`, `drag_drop`을, 놓는 순간만 알려 주는 툴킷(wx, SDL2, Kivy)은 `drop(x, y, text=, ...)`을 부릅니다. 나가는 드래그는 어댑터에 `start_drag_out`이 없으면 뷰가 페이지 안에서만 중계하고, 있으면 `DragPayload`를 받아 툴킷의 드래그를 시작한 뒤 끝나면 `drag_out_finished(x, y, operation)`을 부릅니다.
+드래그 앤 드롭은 툴킷이 말하는 방식에 따라 갈립니다. 단계마다 데이터와 함께 알려 주는 툴킷(GTK, Qt)은 `drag_enter(x, y, ops, text=, html=, url=, files=)`, `drag_over`, `drag_leave`, `drag_drop`을 부릅니다. 데이터를 놓는 순간에야 주는 툴킷(wx)은 같은 메서드를 데이터 없이 부르고 `drag_drop(..., text=)`에 데이터를 실으며, 데이터 없는 단계는 페이지 자신의 드래그가 아니면 뷰가 무시합니다. 놓는 순간만 아는 툴킷(SDL2, Kivy)은 `drop(x, y, text=, ...)`을 부릅니다.
+
+나가는 드래그는 어댑터에 `start_drag_out`이 없으면 뷰가 페이지 안에서만 중계하고, 있으면 `DragPayload`를 받아 툴킷의 드래그를 시작합니다. **언제 시작하는지는 어댑터의 `drag_start` 속성**이 정하고 뷰가 일정을 맡습니다: `"immediate"`(GTK. 호출 안에서), `"posted"`(Qt. CEF의 콜백이 끝난 뒤 루프에서), `"on_motion"`(wx. 버튼을 누른 채 포인터가 다음에 움직일 때. 그 전에 버튼을 떼면 뷰가 `NONE`으로 끝냄). 시작한 호출은 드래그가 끝날 때까지 돌아오지 않아도 되고, 끝나면 `drag_out_finished(x, y, operation)`을 부릅니다. `view.dragging_out`은 페이지의 드래그가 진행 중인지 알려 줍니다.
 
 ## 예제에서 옮겨 온 규칙 (시험으로 지킴)
 
@@ -54,7 +56,7 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 | `sdl2` | 547줄에서 405줄 | 25개 통과(2번 연속) | 뷰이자 루프인 클래스가 `post`(큐와 `SDL_PushEvent`)와 `call_later`(시간 순 목록과 `SDL_WaitEventTimeout`)를 직접 구현. 드롭은 `drop()`으로 통일되어 `dragover`의 답을 기다림 |
 | `kivy` | 530줄에서 333줄 | 26개 통과(2번 연속), 실제 앱의 창 닫기도 종료 코드 0 | `Clock.schedule_once`가 `post`와 `call_later`를 겸함(`ClockEvent`가 `cancel()`을 가짐). 드롭 이벤트가 위치를 주므로 `drop(x, y, ...)`에 그대로 대응 |
 | `wx` | 547줄에서 369줄 | 27개 통과(2번 연속) | `drag_out` 능력과 `drop()`을 함께 시험. 위젯에는 wx 고유의 것만 남음: 마우스 핸들러 안에서만 드래그를 시작하는 규칙, `DropSource`가 데이터를 소유하지 않는 것, 자기 드래그와 외부 드롭을 가르는 `_dragging_out` |
-| `qt` | 573줄에서 458줄 | 27개 통과: PyQt6와 PySide6 모두, 배율 1과 2 | 시그널이 `post`를, `QTimer`가 `call_later`를 맡음. 복사와 붙여넣기 모두 뷰가 Qt 클립보드로 처리(붙여넣기는 일반 텍스트만. 이식 전에는 CEF에 맡겼음) |
+| `qt` | 573줄에서 458줄(옮긴 뒤 드래그 전략을 뷰로 올려 더 줄었음) | 27개 통과: PyQt6와 PySide6 모두, 배율 1과 2 | 시그널이 `post`를, `QTimer`가 `call_later`를 맡음. 복사와 붙여넣기 모두 뷰가 Qt 클립보드로 처리(붙여넣기는 일반 텍스트만. 이식 전에는 CEF에 맡겼음) |
 
 GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친 것: 인터페이스에서 고친 것 셋: `BrowserView.commit_text()`(입력기가 확정한 글자는 ASCII 한 글자도 입력기 경로로. `text()`는 한 글자를 키로 만듦), `DragPayload`의 시작 위치 `x`, `y`, 새 드래그가 시작할 때 `drag_operation`을 복사로 되돌리기. 또 `Session`이 툴킷에 요구하는 것은 `post`와 `call_later`뿐이라 위젯(과 그 어댑터)이 생기기 전에 CEF를 만들 수 있습니다(`GlibLoop`).
 
