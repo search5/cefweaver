@@ -148,3 +148,7 @@
 ## [2026-10-08] ingest | 키보드와 인쇄 핸들러 (무시하는 인자, T* 출력, 구조체 반환)
 
 - 생성기에 `Ignored`(키보드의 `CefEventHandle os_event`), 핸들러의 `T*` 출력 인자(`bool* is_keyboard_shortcut`), 구조체를 값으로 반환하는 핸들러 메서드(`GetPdfPaperSize`, 숨은 출력 인자)를 더했습니다. `CefKeyboardHandler`, `CefPrintHandler`와 인쇄 콜백 둘을 범위에 넣었습니다. 시험을 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 176개가 통과합니다. F42. 프린터가 없어 인쇄 대화상자와 작업은 확인하지 못했습니다.
+
+## [2026-10-08] ingest | 요청 핸들러와 리소스 요청 핸들러 (java-cef의 핸들러 13개 완성)
+
+- `CefRequestHandler`, `CefResourceRequestHandler`와 `CefAuthCallback`, `CefSSLInfo`, `CefUnresponsiveProcessCallback`을 범위에 넣고, 래퍼의 라우터용 요청 핸들러를 `CwRequestHandlerForward`로 바꿔 사용자의 핸들러와 결합했습니다(취소된 탐색은 라우터에 알리지 않음). 시험 4개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했으며 전체 180개가 통과합니다. F43. 인증과 인증서 오류 등은 서버가 필요해 확인하지 못했습니다.

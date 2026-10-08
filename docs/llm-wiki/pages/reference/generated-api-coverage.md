@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 43개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 520개 가운데 476개가 생성되고 44개가 제외되며, 함수 3개를 더해 479개입니다.
+범위(`scope.py`)는 클래스 48개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 545개 가운데 498개가 생성되고 47개가 제외되며, 함수 3개를 더해 501개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -42,16 +42,19 @@ updated: 2026-10-08
 | `CefBinaryValue` | 라이브러리 | 8/9 | 타입 없는 포인터 1(`get_raw_data`, 일부러 열지 않음) |
 | `CefDragHandler` | 핸들러 | 1/2 | 범위 밖 클래스 `CefDragData`(`on_drag_enter`) |
 | `CefBrowserHost` | 라이브러리 | 58/72 | 범위 밖 클래스 11(`CefRequestContext`, `CefNavigationEntry`, `CefDragData` 등), 값 타입 `CefWindowHandle` 2, 구조체 `cef_window_info_t`(`show_dev_tools`), `cef_pdf_print_settings_t`(`print_to_pdf`), 클라이언트 객체 반환 1(`get_client`) |
-| `CefClient` | 핸들러 | 13/19 | 다른 핸들러 6개가 범위 밖(`CefRequestHandler`, `CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`) |
+| `CefClient` | 핸들러 | 14/19 | 다른 핸들러 5개가 범위 밖(`CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`; java-cef도 구현하지 않음) |
 | `CefLoadHandler` | 핸들러 | 4/4 | |
 | `CefLifeSpanHandler` | 핸들러 | 4/6 | 값 타입 `CefPopupFeatures`(`on_before_popup`), 구조체 `cef_window_info_t`(`on_before_dev_tools_popup`) |
 | `CefDisplayHandler` | 핸들러 | 12/13 | 값 타입 `CefCursorHandle`(`on_cursor_change`) |
 | `CefRenderHandler` | 핸들러 | 14/17 | 범위 밖 클래스 `CefAccessibilityHandler`, `CefDragData`, 값 타입 `CefAcceleratedPaintInfo` |
 | `CefFocusHandler`, `CefJSDialogHandler`, `CefDialogHandler`, `CefDownloadHandler`, `CefKeyboardHandler`, `CefPrintHandler` | 핸들러 | 3/3, 4/4, 1/1, 3/3, 2/2, 6/6 | 키보드의 `os_event`는 Python에 넘기지 않음 |
 | `CefJSDialogCallback`, `CefFileDialogCallback`, `CefBeforeDownloadCallback`, `CefDownloadItemCallback`, `CefPrintDialogCallback`, `CefPrintJobCallback` | 라이브러리 | 1/1, 2/2, 1/1, 3/3, 2/2, 1/1 | |
+| `CefRequestHandler` | 핸들러 | 10/11 | 범위 밖 클래스 `CefX509Certificate`(`on_select_client_certificate`) |
+| `CefResourceRequestHandler` | 핸들러 | 6/8 | 범위 밖 클래스 `CefCookieAccessFilter`(`get_cookie_access_filter`, 쿠키 구조체), `CefResponseFilter`(`get_resource_response_filter`) |
+| `CefAuthCallback`, `CefSSLInfo`, `CefUnresponsiveProcessCallback` | 라이브러리 | 2/2, 1/2, 2/2 | `CefSSLInfo.get_x509_certificate`(범위 밖 `CefX509Certificate`) |
 | `CefDownloadItem` | 라이브러리 | 18/20 | 값 타입 `CefBaseTime`(`get_start_time`, `get_end_time`) |
 
-제외된 44개의 사유는 범위 밖 클래스 25, 구조체 `cef_window_info_t` 5, 멀티맵 4, 값 타입 `CefWindowHandle` 2와 `CefBaseTime` 2, 구조체 `cef_pdf_print_settings_t`와 `cef_task_info_t` 각 1, 값 타입 `CefCursorHandle`과 `CefAcceleratedPaintInfo` 각 1, 타입 없는 포인터 1(`get_raw_data`), 클라이언트 객체 반환 1입니다. 범위 밖 클래스 가운데 6개는 `CefClient`가 돌려줄 다른 핸들러입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
+제외된 47개의 사유는 범위 밖 클래스 28, 구조체 `cef_window_info_t` 5, 멀티맵 4, 값 타입 `CefWindowHandle` 2와 `CefBaseTime` 2, 구조체 `cef_pdf_print_settings_t`와 `cef_task_info_t` 각 1, 값 타입 `CefCursorHandle`과 `CefAcceleratedPaintInfo` 각 1, 타입 없는 포인터 1(`get_raw_data`), 클라이언트 객체 반환 1입니다. 범위 밖 클래스 가운데 5개는 `CefClient`가 돌려줄 다른 핸들러입니다. 범위 밖 클래스는 그 클래스를 추가하면 열립니다([새 클래스를 생성 범위에 추가하기](../procedures/add-class-to-generator.md)).
 
 ## 모든 클래스를 범위에 넣는다면
 
@@ -94,7 +97,7 @@ updated: 2026-10-08
 
 `CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`), `CefBrowserHost`, 문자열 벡터, 라이브러리 메서드의 출력 인자(`MenuModel`, `Display`), 벡터의 요소 종류 확대(구조체 목록, 객체 목록, 정수 목록, 중첩 구조체)와 `DragHandler`, 컨텍스트 메뉴(`ContextMenuHandler`, `ContextMenuParams`), 프로세스 메시지와 값 컨테이너(`ProcessMessage`, `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`)를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-1. java-cef가 구현하는 핸들러 13개 가운데 12개를 추가했고(`CefRenderHandler`는 [오프스크린 렌더링](offscreen-rendering.md)), 요청 핸들러가 남았습니다. 래퍼가 라우터를 위해 이미 `CefRequestHandler`를 구현하고 있어서 사용자의 핸들러와 결합해야 하고, `CefResourceRequestHandler` 등 딸린 클래스가 많습니다.
+1. (완료) java-cef가 구현하는 핸들러 13개를 모두 추가했습니다(`CefRenderHandler`는 [오프스크린 렌더링](offscreen-rendering.md), 요청 핸들러는 래퍼의 라우터용 요청 핸들러와 결합). java-cef가 구현하는데 우리에게 없는 것: `CefCookieAccessFilter`(쿠키 구조체), `CefRequestContextHandler`(`CefRequestContext`), `GetResourceHandler`는 있음.
 2. (완료) 구조체 종류를 `size` 머리, 열거형, `char16_t`까지 넓혔습니다(`CefKeyEvent`, `CefScreenInfo`, `CefPopupFeatures`, `CefTouchEvent`, `CefTouchHandleState`, `CefCompositionUnderline`). 남은 구조체는 `CefWindowInfo`, `CefBrowserSettings`, `CefCookie`처럼 문자열이나 포인터가 있는 것입니다.
 3. (완료) 버퍼 종류: 핸들러의 `on_paint`는 읽기 전용 `memoryview`(크기 규칙 표 `SIZED_BUFFERS`), 라이브러리 메서드의 `const void*`와 `size_t` 쌍은 `bytes` 입력, `BinaryValue.get_data`는 `bytes` 출력(`BYTES_OUT` 표)입니다. 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
 4. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).

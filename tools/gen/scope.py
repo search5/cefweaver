@@ -34,6 +34,9 @@ LIBRARY_CLASSES = [
     "CefDownloadItem",
     "CefPrintDialogCallback",
     "CefPrintJobCallback",
+    "CefAuthCallback",
+    "CefSSLInfo",
+    "CefUnresponsiveProcessCallback",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -54,6 +57,8 @@ CLIENT_CLASSES = [
     "CefDownloadHandler",
     "CefKeyboardHandler",
     "CefPrintHandler",
+    "CefRequestHandler",
+    "CefResourceRequestHandler",
 ]
 
 # Global functions.

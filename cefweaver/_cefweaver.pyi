@@ -89,6 +89,7 @@ class CefApp:
 
 
 from .types import (
+    CertStatus,
     ColorModel,
     ContextMenuEditStateFlags,
     ContextMenuMediaStateFlags,
@@ -112,10 +113,13 @@ from .types import (
     QuickMenuEditStateFlags,
     ReferrerPolicy,
     ResourceType,
+    ReturnValue,
     RuntimeStyle,
     State,
+    TerminationStatus,
     TextInputMode,
     TransitionType,
+    URLRequestStatus,
     ValueType,
     WindowOpenDisposition,
     ZoomCommand,
@@ -137,6 +141,18 @@ from .types import (
     CompositionUnderline as CompositionUnderline,
     DraggableRegion as DraggableRegion,
 )
+
+
+class AuthCallback:
+    """Callback interface used for asynchronous continuation of authentication
+    requests.
+    """
+    def continue_(self, username: str | None, password: str | None) -> None:
+        """Continue the authentication request."""
+        ...
+    def cancel(self) -> None:
+        """Cancel the authentication request."""
+        ...
 
 
 class BeforeDownloadCallback:
@@ -2065,6 +2081,15 @@ class RunQuickMenuCallback:
         ...
 
 
+class SSLInfo:
+    """Class representing SSL information."""
+    def get_cert_status(self) -> CertStatus:
+        """Returns a bitmask containing any and all problems verifying the server
+        certificate.
+        """
+        ...
+
+
 class TaskManager:
     """Class that facilitates managing the browser-related tasks.
     The methods of this class may only be called on the UI thread.
@@ -2103,6 +2128,16 @@ class TaskManager:
         """Returns the global task manager object.
         Returns nullptr if the method was called from the incorrect thread.
         """
+        ...
+
+
+class UnresponsiveProcessCallback:
+    """Callback interface for asynchronous handling of an unresponsive process."""
+    def wait(self) -> None:
+        """Reset the timeout for the unresponsive process."""
+        ...
+    def terminate(self) -> None:
+        """Terminate the unresponsive process."""
         ...
 
 
@@ -2281,6 +2316,9 @@ class Client:
         ...
     def get_render_handler(self) -> RenderHandler | None:
         """Return the handler for off-screen rendering events."""
+        ...
+    def get_request_handler(self) -> RequestHandler | None:
+        """Return the handler for browser request events."""
         ...
     def on_process_message_received(self, browser: Browser, frame: Frame, source_process: ProcessId, message: ProcessMessage) -> bool:
         """Called when a new message is received from a different process. Return
@@ -2968,6 +3006,125 @@ class RenderHandler:
         ...
 
 
+class RequestHandler:
+    """Implement this interface to handle events related to browser requests. The
+    methods of this class will be called on the thread indicated.
+    """
+    def on_before_browse(self, browser: Browser, frame: Frame, request: Request, user_gesture: bool, is_redirect: bool) -> bool:
+        """Called on the UI thread before browser navigation. Return true to cancel
+        the navigation or false to allow the navigation to proceed. The |request|
+        object cannot be modified in this callback.
+        CefLoadHandler::OnLoadingStateChange will be called twice in all cases.
+        If the navigation is allowed CefLoadHandler::OnLoadStart and
+        CefLoadHandler::OnLoadEnd will be called. If the navigation is canceled
+        CefLoadHandler::OnLoadError will be called with an |errorCode| value of
+        ERR_ABORTED. The |user_gesture| value will be true if the browser
+        navigated via explicit user gesture (e.g. clicking a link) or false if it
+        navigated automatically (e.g. via the DomContentLoaded event).
+        """
+        ...
+    def on_open_url_from_tab(self, browser: Browser, frame: Frame, target_url: str, target_disposition: WindowOpenDisposition, user_gesture: bool) -> bool:
+        """Called on the UI thread before OnBeforeBrowse in certain limited cases
+        where navigating a new or different browser might be desirable. This
+        includes user-initiated navigation that might open in a special way (e.g.
+        links clicked via middle-click or ctrl + left-click) and certain types of
+        cross-origin navigation initiated from the renderer process (e.g.
+        navigating the top-level frame to/from a file URL). The |browser| and
+        |frame| values represent the source of the navigation. The
+        |target_disposition| value indicates where the user intended to navigate
+        the browser based on standard Chromium behaviors (e.g. current tab,
+        new tab, etc). The |user_gesture| value will be true if the browser
+        navigated via explicit user gesture (e.g. clicking a link) or false if it
+        navigated automatically (e.g. via the DomContentLoaded event). Return true
+        to cancel the navigation or false to allow the navigation to proceed in
+        the source browser's top-level frame.
+        """
+        ...
+    def get_resource_request_handler(self, browser: Browser, frame: Frame, request: Request, is_navigation: bool, is_download: bool, request_initiator: str) -> tuple[ResourceRequestHandler | None, bool]:
+        """Called on the browser process IO thread before a resource request is
+        initiated. The |browser| and |frame| values represent the source of the
+        request. |request| represents the request contents and cannot be modified
+        in this callback. |is_navigation| will be true if the resource request is
+        a navigation. |is_download| will be true if the resource request is a
+        download. |request_initiator| is the origin (scheme + domain) of the page
+        that initiated the request. Set |disable_default_handling| to true to
+        disable default handling of the request, in which case it will need to be
+        handled via CefResourceRequestHandler::GetResourceHandler or it will be
+        canceled. To allow the resource load to proceed with default handling
+        return NULL. To specify a handler for the resource return a
+        CefResourceRequestHandler object. If this callback returns NULL the same
+        method will be called on the associated CefRequestContextHandler, if any.
+        """
+        ...
+    def get_auth_credentials(self, browser: Browser, origin_url: str, is_proxy: bool, host: str, port: int, realm: str, scheme: str, callback: AuthCallback) -> bool:
+        """Called on the IO thread when the browser needs credentials from the user.
+        |origin_url| is the origin making this authentication request. |isProxy|
+        indicates whether the host is a proxy server. |host| contains the hostname
+        and |port| contains the port number. |realm| is the realm of the challenge
+        and may be empty. |scheme| is the authentication scheme used, such as
+        \"basic\" or \"digest\", and will be empty if the source of the request is an
+        FTP server. Return true to continue the request and call
+        CefAuthCallback::Continue() either in this method or at a later time when
+        the authentication information is available. Return false to cancel the
+        request immediately.
+        """
+        ...
+    def on_certificate_error(self, browser: Browser, cert_error: ErrorCode, request_url: str, ssl_info: SSLInfo, callback: Callback) -> bool:
+        """Called on the UI thread to handle requests for URLs with an invalid
+        SSL certificate. Return true and call CefCallback methods either in this
+        method or at a later time to continue or cancel the request. Return false
+        to cancel the request immediately. If
+        cef_settings_t.ignore_certificate_errors is set all invalid certificates
+        will be accepted without calling this method.
+        """
+        ...
+    def on_render_view_ready(self, browser: Browser) -> None:
+        """Called on the browser process UI thread when the render view associated
+        with |browser| is ready to receive/handle IPC messages in the render
+        process.
+        """
+        ...
+    def on_render_process_unresponsive(self, browser: Browser, callback: UnresponsiveProcessCallback) -> bool:
+        """Called on the browser process UI thread when the render process is
+        unresponsive as indicated by a lack of input event processing for at
+        least 15 seconds. Return false for the default behavior which is to
+        continue waiting with Alloy style or display of the \"Page
+        unresponsive\" dialog with Chrome style. Return true and don't
+        execute the callback to continue waiting without display of the Chrome
+        style dialog. Return true and call CefUnresponsiveProcessCallback::Wait
+        either in this method or at a later time to reset the wait timer.
+        In cases where you continue waiting there may be another call to this
+        method if the process remains unresponsive. Return true and call
+        CefUnresponsiveProcessCallback::Terminate either in this method or at a
+        later time to terminate the unresponsive process, resulting in a call to
+        OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the
+        process becomes responsive after this method is called. This functionality
+        depends on the hang monitor which can be disabled by passing the
+        `--disable-hang-monitor` command-line flag.
+        """
+        ...
+    def on_render_process_responsive(self, browser: Browser) -> None:
+        """Called on the browser process UI thread when the render process becomes
+        responsive after previously being unresponsive. See documentation on
+        OnRenderProcessUnresponsive.
+        """
+        ...
+    def on_render_process_terminated(self, browser: Browser, status: TerminationStatus, error_code: int, error_string: str) -> None:
+        """Called on the browser process UI thread when the render process
+        terminates unexpectedly. |status| indicates how the process terminated.
+        |error_code| and |error_string| represent the error that would be
+        displayed in Chrome's \"Aw, Snap!\" view. Possible |error_code| values
+        include cef_resultcode_t non-normal exit values and platform-specific
+        crash values (for example, a Posix signal or Windows hardware exception).
+        """
+        ...
+    def on_document_available_in_main_frame(self, browser: Browser) -> None:
+        """Called on the browser process UI thread when the window.document object of
+        the main frame has been created.
+        """
+        ...
+
+
 class ResourceHandler:
     """Class used to implement a custom request handler interface. The methods of
     this class will be called on the IO thread unless otherwise indicated.
@@ -3045,6 +3202,87 @@ class ResourceHandler:
         ...
     def cancel(self) -> None:
         """Request processing has been canceled."""
+        ...
+
+
+class ResourceRequestHandler:
+    """Implement this interface to handle events related to browser requests. The
+    methods of this class will be called on the IO thread unless otherwise
+    indicated.
+    """
+    def on_before_resource_load(self, browser: Browser | None, frame: Frame | None, request: Request, callback: Callback) -> ReturnValue | int:
+        """Called on the IO thread before a resource request is loaded. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. To
+        redirect or change the resource load optionally modify |request|.
+        Modification of the request URL will be treated as a redirect. Return
+        RV_CONTINUE to continue the request immediately. Return RV_CONTINUE_ASYNC
+        and call CefCallback methods at a later time to continue or cancel the
+        request asynchronously. Return RV_CANCEL to cancel the request
+        immediately.
+        """
+        ...
+    def get_resource_handler(self, browser: Browser | None, frame: Frame | None, request: Request) -> ResourceHandler | None:
+        """Called on the IO thread before a resource is loaded. The |browser| and
+        |frame| values represent the source of the request, and may be NULL for
+        requests originating from service workers or CefURLRequest. To allow the
+        resource to load using the default network loader return NULL. To specify
+        a handler for the resource return a CefResourceHandler object. The
+        |request| object cannot not be modified in this callback.
+        """
+        ...
+    def on_resource_redirect(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> str:
+        """Called on the IO thread when a resource load is redirected. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. The
+        |request| parameter will contain the old URL and other request-related
+        information. The |response| parameter will contain the response that
+        resulted in the redirect. The |new_url| parameter will contain the new URL
+        and can be changed if desired. The |request| and |response| objects cannot
+        be modified in this callback.
+        """
+        ...
+    def on_resource_response(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> bool:
+        """Called on the IO thread when a resource response is received. The
+        |browser| and |frame| values represent the source of the request, and may
+        be NULL for requests originating from service workers or CefURLRequest. To
+        allow the resource load to proceed without modification return false. To
+        redirect or retry the resource load optionally modify |request| and return
+        true. Modification of the request URL will be treated as a redirect.
+        Requests handled using the default network loader cannot be redirected in
+        this callback. The |response| object cannot be modified in this callback.
+
+        WARNING: Redirecting using this method is deprecated. Use
+        OnBeforeResourceLoad or GetResourceHandler to perform redirects.
+        """
+        ...
+    def on_resource_load_complete(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, status: URLRequestStatus, received_content_length: int) -> None:
+        """Called on the IO thread when a resource load has completed. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. |request|
+        and |response| represent the request and response respectively and cannot
+        be modified in this callback. |status| indicates the load completion
+        status. |received_content_length| is the number of response bytes actually
+        read. This method will be called for all requests, including requests that
+        are aborted due to CEF shutdown or destruction of the associated browser.
+        In cases where the associated browser is destroyed this callback may
+        arrive after the CefLifeSpanHandler::OnBeforeClose callback for that
+        browser. The CefFrame::IsValid method can be used to test for this
+        situation, and care should be taken not to call |browser| or |frame|
+        methods that modify state (like LoadURL, SendProcessMessage, etc.) if the
+        frame is invalid.
+        """
+        ...
+    def on_protocol_execution(self, browser: Browser | None, frame: Frame | None, request: Request) -> bool:
+        """Called on the IO thread to handle requests for URLs with an unknown
+        protocol component. The |browser| and |frame| values represent the source
+        of the request, and may be NULL for requests originating from service
+        workers or CefURLRequest. |request| cannot be modified in this callback.
+        Set |allow_os_execution| to true to attempt execution via the registered
+        OS protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD
+        TO ENFORCE RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE
+        ALLOWING OS EXECUTION.
+        """
         ...
 
 

@@ -1777,6 +1777,8 @@ class WithCef(unittest.TestCase):
                 return handlers.get("keyboard")
             def get_print_handler(self):
                 return handlers.get("print")
+            def get_request_handler(self):
+                return handlers.get("request")
         def start(body):
             app.offscreen = True
             app.set_client(MyClient())
@@ -2102,6 +2104,99 @@ class WithCef(unittest.TestCase):
             # With no printer (this environment) CEF reports an error instead of asking for
             # the dialog and the job: only the start, the settings and the reset arrive.
             assert order == ["start", ("settings", True), "reset"], order
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_the_request_handler_can_cancel_a_navigation(self):
+        self.run_osr_script("""
+            asked = []
+            class Requests(cefweaver.RequestHandler):
+                def on_before_browse(self, browser, frame, request, user_gesture, is_redirect):
+                    asked.append((frame.is_main(), request.get_url(), user_gesture, is_redirect))
+                    return request.get_url().endswith("/blocked")     # True cancels it
+            handlers["request"] = Requests()
+            start(RED)
+            for name in ("blocked", "allowed"):
+                app.add_resource("http://nav.test/" + name,
+                                 "<script>report('loaded', '%s')</script>" % name)
+            app.load_url("http://nav.test/blocked")
+            wait_until(app, lambda: any(a[1].endswith("/blocked") for a in asked),
+                       "the first navigation")
+            app.load_url("http://nav.test/allowed")
+            wait_until(app, lambda: ("loaded", "allowed") in js, "the allowed page")
+            site = [a for a in asked if a[1].startswith("http://nav.test")]  # not the start page
+            assert [a[1] for a in site] == ["http://nav.test/blocked", "http://nav.test/allowed"], asked
+            assert all(a[0] is True for a in site), asked
+            assert ("loaded", "blocked") not in js, js              # it never loaded
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_resource_request_handler_sees_and_can_cancel_resources(self):
+        self.run_osr_script("""
+            events, seen = [], []
+            class Resources(cefweaver.ResourceRequestHandler):
+                def on_before_resource_load(self, browser, frame, request, callback):
+                    seen.append(request.get_url())
+                    if request.get_url().endswith("/image.png"):
+                        return types.ReturnValue.CANCEL
+                    return types.ReturnValue.CONTINUE
+                def on_resource_load_complete(self, browser, frame, request, response, status,
+                                              received_content_length):
+                    events.append((request.get_url(), status, received_content_length))
+            class Requests(cefweaver.RequestHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                 is_download, request_initiator):
+                    return Resources(), False                      # (the handler, disable defaults)
+            handlers["request"] = Requests()
+            start(RED)
+            app.add_resource("http://res.test/page", "<img src='/image.png' "
+                             "onerror=\\"report('image', 'blocked')\\" onload=\\"report('image', 'ok')\\">")
+            app.add_resource("http://res.test/image.png", b"x", mime_type="image/png")
+            app.load_url("http://res.test/page")
+            wait_until(app, lambda: ("image", "blocked") in js, "the canceled image")
+            assert "http://res.test/page" in seen and "http://res.test/image.png" in seen, seen
+            wait_until(app, lambda: any(e[0].endswith("/page") for e in events), "the page complete")
+            page = [e for e in events if e[0].endswith("/page")][0]
+            assert page[1] == types.URLRequestStatus.SUCCESS and page[2] > 0, page
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_router_and_the_users_request_handler_both_get_the_navigation(self):
+        self.run_query_script("""
+            asked, canceled, pending = [], [], {}
+            class Requests(cefweaver.RequestHandler):
+                def on_before_browse(self, browser, frame, request, user_gesture, is_redirect):
+                    asked.append(request.get_url())
+                    return request.get_url().endswith("/stay")        # the user cancels this one
+            class Handler(cefweaver.QueryHandler):
+                def on_query(self, browser, frame, query_id, request, persistent, callback):
+                    pending[query_id] = callback
+                    return True
+                def on_query_canceled(self, browser, frame, query_id):
+                    canceled.append(query_id)
+            class Client2(MyClient):
+                def get_request_handler(self):
+                    return Requests()
+            MyClient = Client2
+            app.add_query_handler(Handler())
+            start()
+            app.execute_javascript("ask('open', true)")
+            wait_until(app, lambda: pending, "the query")
+            app.add_resource("http://nav.test/stay", "<p>stay</p>")
+            app.add_resource("http://nav.test/go", "<p>go</p>")
+            app.load_url("http://nav.test/stay")                       # canceled by the user
+            wait_until(app, lambda: any(u.endswith("/stay") for u in asked), "the first navigation")
+            for _ in range(100):
+                app.do_message_loop_work(); time.sleep(0.005)
+            assert canceled == [], canceled                             # the page was not left
+            app.load_url("http://nav.test/go")                         # allowed: the query ends
+            wait_until(app, lambda: canceled, "the cancellation by the navigation")
+            site = [u for u in asked if u.startswith("http://nav.test")]  # not the start page
+            assert site == ["http://nav.test/stay", "http://nav.test/go"], asked
             app.shutdown()
             print("OK")
         """)

@@ -433,6 +433,7 @@ cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:
 
 
 # Forward declarations (the classes refer to each other)
+cdef class AuthCallback
 cdef class BeforeDownloadCallback
 cdef class BinaryValue
 cdef class Browser
@@ -458,8 +459,59 @@ cdef class ResourceSkipCallback
 cdef class Response
 cdef class RunContextMenuCallback
 cdef class RunQuickMenuCallback
+cdef class SSLInfo
 cdef class TaskManager
+cdef class UnresponsiveProcessCallback
 cdef class Value
+
+cdef class AuthCallback:
+    """Callback interface used for asynchronous continuation of authentication
+    requests.
+    """
+    cdef CefRefPtr[CefAuthCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("AuthCallback objects are created by CEF or by a create() function")
+
+    cdef CefAuthCallback* _ptr(self) except NULL:
+        cdef CefAuthCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("AuthCallback has no CEF object")
+        return p
+
+    def continue_(self, username, password):
+        """Continue the authentication request."""
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefAuthCallback* _p = self._ptr()
+        if username is not None:
+            _a0 = _g_cef(username)
+        if password is not None:
+            _a1 = _g_cef(password)
+        with nogil:
+            _p.Continue(_a0, _a1)
+        return None
+
+    def cancel(self):
+        """Cancel the authentication request."""
+        cdef CefAuthCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+
+cdef object _wrap_AuthCallback(CefRefPtr[CefAuthCallback] ref):
+    cdef AuthCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = AuthCallback.__new__(AuthCallback)
+    obj._ref = ref
+    return obj
+
 
 cdef class BeforeDownloadCallback:
     """Callback interface used to asynchronously continue a download."""
@@ -4923,6 +4975,43 @@ cdef object _wrap_RunQuickMenuCallback(CefRefPtr[CefRunQuickMenuCallback] ref):
     return obj
 
 
+cdef class SSLInfo:
+    """Class representing SSL information."""
+    cdef CefRefPtr[CefSSLInfo] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("SSLInfo objects are created by CEF or by a create() function")
+
+    cdef CefSSLInfo* _ptr(self) except NULL:
+        cdef CefSSLInfo* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("SSLInfo has no CEF object")
+        return p
+
+    def get_cert_status(self):
+        """Returns a bitmask containing any and all problems verifying the server
+        certificate.
+        """
+        cdef CefSSLInfo* _p = self._ptr()
+        cdef cef_cert_status_t _r
+        with nogil:
+            _r = _p.GetCertStatus()
+        return _g_enum(_types.CertStatus, <int>_r)
+
+
+cdef object _wrap_SSLInfo(CefRefPtr[CefSSLInfo] ref):
+    cdef SSLInfo obj
+    if ref.get() == NULL:
+        return None
+    obj = SSLInfo.__new__(SSLInfo)
+    obj._ref = ref
+    return obj
+
+
 cdef class TaskManager:
     """Class that facilitates managing the browser-related tasks.
     The methods of this class may only be called on the UI thread.
@@ -5008,6 +5097,47 @@ cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
     if ref.get() == NULL:
         return None
     obj = TaskManager.__new__(TaskManager)
+    obj._ref = ref
+    return obj
+
+
+cdef class UnresponsiveProcessCallback:
+    """Callback interface for asynchronous handling of an unresponsive process."""
+    cdef CefRefPtr[CefUnresponsiveProcessCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("UnresponsiveProcessCallback objects are created by CEF or by a create() function")
+
+    cdef CefUnresponsiveProcessCallback* _ptr(self) except NULL:
+        cdef CefUnresponsiveProcessCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("UnresponsiveProcessCallback has no CEF object")
+        return p
+
+    def wait(self):
+        """Reset the timeout for the unresponsive process."""
+        cdef CefUnresponsiveProcessCallback* _p = self._ptr()
+        with nogil:
+            _p.Wait()
+        return None
+
+    def terminate(self):
+        """Terminate the unresponsive process."""
+        cdef CefUnresponsiveProcessCallback* _p = self._ptr()
+        with nogil:
+            _p.Terminate()
+        return None
+
+
+cdef object _wrap_UnresponsiveProcessCallback(CefRefPtr[CefUnresponsiveProcessCallback] ref):
+    cdef UnresponsiveProcessCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = UnresponsiveProcessCallback.__new__(UnresponsiveProcessCallback)
     obj._ref = ref
     return obj
 
@@ -5351,6 +5481,10 @@ class Client:
         """Return the handler for off-screen rendering events."""
         return None
 
+    def get_request_handler(self):
+        """Return the handler for browser request events."""
+        return None
+
     def on_process_message_received(self, browser, frame, source_process, message):
         """Called when a new message is received from a different process. Return
         true if the message was handled or false otherwise.  It is safe to keep a
@@ -5467,6 +5601,15 @@ cdef CefRenderHandler* _Client_get_render_handler(void* py) noexcept with gil:
         _g_report()
         return NULL
 
+cdef CefRequestHandler* _Client_get_request_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_request_handler()
+        _r0 = _r
+        return _g_export_RequestHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef cpp_bool _Client_on_process_message_received(void* py, CefBrowser* browser, CefFrame* frame, int source_process, CefProcessMessage* message) noexcept with gil:
     try:
         _r = (<object>py).on_process_message_received(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_enum(_types.ProcessId, source_process), _wrap_ProcessMessage(CefRefPtr[CefProcessMessage](message)))
@@ -5513,6 +5656,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
         cb.fn_get_print_handler = _Client_get_print_handler
     if getattr(cls, "get_render_handler", None) is not Client.get_render_handler:
         cb.fn_get_render_handler = _Client_get_render_handler
+    if getattr(cls, "get_request_handler", None) is not Client.get_request_handler:
+        cb.fn_get_request_handler = _Client_get_request_handler
     if getattr(cls, "on_process_message_received", None) is not Client.on_process_message_received:
         cb.fn_on_process_message_received = _Client_on_process_message_received
     ref = CefRefPtr[CefClient](<CefClient*>new CwClientProxy(cb))
@@ -7250,6 +7395,260 @@ cdef inline CefRenderHandler* _g_export_RenderHandler(object obj) except? NULL:
     return raw
 
 
+class RequestHandler:
+    """Implement this interface to handle events related to browser requests. The
+    methods of this class will be called on the thread indicated.
+    """
+
+    def on_before_browse(self, browser, frame, request, user_gesture, is_redirect):
+        """Called on the UI thread before browser navigation. Return true to cancel
+        the navigation or false to allow the navigation to proceed. The |request|
+        object cannot be modified in this callback.
+        CefLoadHandler::OnLoadingStateChange will be called twice in all cases.
+        If the navigation is allowed CefLoadHandler::OnLoadStart and
+        CefLoadHandler::OnLoadEnd will be called. If the navigation is canceled
+        CefLoadHandler::OnLoadError will be called with an |errorCode| value of
+        ERR_ABORTED. The |user_gesture| value will be true if the browser
+        navigated via explicit user gesture (e.g. clicking a link) or false if it
+        navigated automatically (e.g. via the DomContentLoaded event).
+        """
+        return False
+
+    def on_open_url_from_tab(self, browser, frame, target_url, target_disposition, user_gesture):
+        """Called on the UI thread before OnBeforeBrowse in certain limited cases
+        where navigating a new or different browser might be desirable. This
+        includes user-initiated navigation that might open in a special way (e.g.
+        links clicked via middle-click or ctrl + left-click) and certain types of
+        cross-origin navigation initiated from the renderer process (e.g.
+        navigating the top-level frame to/from a file URL). The |browser| and
+        |frame| values represent the source of the navigation. The
+        |target_disposition| value indicates where the user intended to navigate
+        the browser based on standard Chromium behaviors (e.g. current tab,
+        new tab, etc). The |user_gesture| value will be true if the browser
+        navigated via explicit user gesture (e.g. clicking a link) or false if it
+        navigated automatically (e.g. via the DomContentLoaded event). Return true
+        to cancel the navigation or false to allow the navigation to proceed in
+        the source browser's top-level frame.
+        """
+        return False
+
+    def get_resource_request_handler(self, browser, frame, request, is_navigation, is_download, request_initiator):
+        """Called on the browser process IO thread before a resource request is
+        initiated. The |browser| and |frame| values represent the source of the
+        request. |request| represents the request contents and cannot be modified
+        in this callback. |is_navigation| will be true if the resource request is
+        a navigation. |is_download| will be true if the resource request is a
+        download. |request_initiator| is the origin (scheme + domain) of the page
+        that initiated the request. Set |disable_default_handling| to true to
+        disable default handling of the request, in which case it will need to be
+        handled via CefResourceRequestHandler::GetResourceHandler or it will be
+        canceled. To allow the resource load to proceed with default handling
+        return NULL. To specify a handler for the resource return a
+        CefResourceRequestHandler object. If this callback returns NULL the same
+        method will be called on the associated CefRequestContextHandler, if any.
+        """
+        return None, False
+
+    def get_auth_credentials(self, browser, origin_url, is_proxy, host, port, realm, scheme, callback):
+        """Called on the IO thread when the browser needs credentials from the user.
+        |origin_url| is the origin making this authentication request. |isProxy|
+        indicates whether the host is a proxy server. |host| contains the hostname
+        and |port| contains the port number. |realm| is the realm of the challenge
+        and may be empty. |scheme| is the authentication scheme used, such as
+        \"basic\" or \"digest\", and will be empty if the source of the request is an
+        FTP server. Return true to continue the request and call
+        CefAuthCallback::Continue() either in this method or at a later time when
+        the authentication information is available. Return false to cancel the
+        request immediately.
+        """
+        return False
+
+    def on_certificate_error(self, browser, cert_error, request_url, ssl_info, callback):
+        """Called on the UI thread to handle requests for URLs with an invalid
+        SSL certificate. Return true and call CefCallback methods either in this
+        method or at a later time to continue or cancel the request. Return false
+        to cancel the request immediately. If
+        cef_settings_t.ignore_certificate_errors is set all invalid certificates
+        will be accepted without calling this method.
+        """
+        return False
+
+    def on_render_view_ready(self, browser):
+        """Called on the browser process UI thread when the render view associated
+        with |browser| is ready to receive/handle IPC messages in the render
+        process.
+        """
+        return None
+
+    def on_render_process_unresponsive(self, browser, callback):
+        """Called on the browser process UI thread when the render process is
+        unresponsive as indicated by a lack of input event processing for at
+        least 15 seconds. Return false for the default behavior which is to
+        continue waiting with Alloy style or display of the \"Page
+        unresponsive\" dialog with Chrome style. Return true and don't
+        execute the callback to continue waiting without display of the Chrome
+        style dialog. Return true and call CefUnresponsiveProcessCallback::Wait
+        either in this method or at a later time to reset the wait timer.
+        In cases where you continue waiting there may be another call to this
+        method if the process remains unresponsive. Return true and call
+        CefUnresponsiveProcessCallback::Terminate either in this method or at a
+        later time to terminate the unresponsive process, resulting in a call to
+        OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the
+        process becomes responsive after this method is called. This functionality
+        depends on the hang monitor which can be disabled by passing the
+        `--disable-hang-monitor` command-line flag.
+        """
+        return False
+
+    def on_render_process_responsive(self, browser):
+        """Called on the browser process UI thread when the render process becomes
+        responsive after previously being unresponsive. See documentation on
+        OnRenderProcessUnresponsive.
+        """
+        return None
+
+    def on_render_process_terminated(self, browser, status, error_code, error_string):
+        """Called on the browser process UI thread when the render process
+        terminates unexpectedly. |status| indicates how the process terminated.
+        |error_code| and |error_string| represent the error that would be
+        displayed in Chrome's \"Aw, Snap!\" view. Possible |error_code| values
+        include cef_resultcode_t non-normal exit values and platform-specific
+        crash values (for example, a Posix signal or Windows hardware exception).
+        """
+        return None
+
+    def on_document_available_in_main_frame(self, browser):
+        """Called on the browser process UI thread when the window.document object of
+        the main frame has been created.
+        """
+        return None
+
+
+cdef cpp_bool _RequestHandler_on_before_browse(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, cpp_bool user_gesture, cpp_bool is_redirect) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_browse(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), user_gesture, is_redirect)
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _RequestHandler_on_open_url_from_tab(void* py, CefBrowser* browser, CefFrame* frame, const CefString* target_url, int target_disposition, cpp_bool user_gesture) noexcept with gil:
+    try:
+        _r = (<object>py).on_open_url_from_tab(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_str(target_url[0]), _g_enum(_types.WindowOpenDisposition, target_disposition), user_gesture)
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef CefResourceRequestHandler* _RequestHandler_get_resource_request_handler(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, cpp_bool is_navigation, cpp_bool is_download, const CefString* request_initiator, cpp_bool* disable_default_handling) noexcept with gil:
+    try:
+        _r = (<object>py).get_resource_request_handler(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), is_navigation, is_download, _g_str(request_initiator[0]))
+        _r0, _r1 = _r
+        disable_default_handling[0] = _r1
+        return _g_export_ResourceRequestHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef cpp_bool _RequestHandler_get_auth_credentials(void* py, CefBrowser* browser, const CefString* origin_url, cpp_bool is_proxy, const CefString* host, int port, const CefString* realm, const CefString* scheme, CefAuthCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).get_auth_credentials(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_str(origin_url[0]), is_proxy, _g_str(host[0]), port, _g_str(realm[0]), _g_str(scheme[0]), _wrap_AuthCallback(CefRefPtr[CefAuthCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _RequestHandler_on_certificate_error(void* py, CefBrowser* browser, int cert_error, const CefString* request_url, CefSSLInfo* ssl_info, CefCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_certificate_error(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.ErrorCode, cert_error), _g_str(request_url[0]), _wrap_SSLInfo(CefRefPtr[CefSSLInfo](ssl_info)), _wrap_Callback(CefRefPtr[CefCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _RequestHandler_on_render_view_ready(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_render_view_ready(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _RequestHandler_on_render_process_unresponsive(void* py, CefBrowser* browser, CefUnresponsiveProcessCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_render_process_unresponsive(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_UnresponsiveProcessCallback(CefRefPtr[CefUnresponsiveProcessCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _RequestHandler_on_render_process_responsive(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_render_process_responsive(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+cdef void _RequestHandler_on_render_process_terminated(void* py, CefBrowser* browser, int status, int error_code, const CefString* error_string) noexcept with gil:
+    try:
+        _r = (<object>py).on_render_process_terminated(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _g_enum(_types.TerminationStatus, status), error_code, _g_str(error_string[0]))
+    except BaseException:
+        _g_report()
+
+cdef void _RequestHandler_on_document_available_in_main_frame(void* py, CefBrowser* browser) noexcept with gil:
+    try:
+        _r = (<object>py).on_document_available_in_main_frame(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefRequestHandler] _g_make_RequestHandler(object obj) except *:
+    cdef CefRefPtr[CefRequestHandler] ref
+    cdef CwRequestHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, RequestHandler):
+        raise TypeError("expected a RequestHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_before_browse", None) is not RequestHandler.on_before_browse:
+        cb.fn_on_before_browse = _RequestHandler_on_before_browse
+    if getattr(cls, "on_open_url_from_tab", None) is not RequestHandler.on_open_url_from_tab:
+        cb.fn_on_open_url_from_tab = _RequestHandler_on_open_url_from_tab
+    if getattr(cls, "get_resource_request_handler", None) is not RequestHandler.get_resource_request_handler:
+        cb.fn_get_resource_request_handler = _RequestHandler_get_resource_request_handler
+    if getattr(cls, "get_auth_credentials", None) is not RequestHandler.get_auth_credentials:
+        cb.fn_get_auth_credentials = _RequestHandler_get_auth_credentials
+    if getattr(cls, "on_certificate_error", None) is not RequestHandler.on_certificate_error:
+        cb.fn_on_certificate_error = _RequestHandler_on_certificate_error
+    if getattr(cls, "on_render_view_ready", None) is not RequestHandler.on_render_view_ready:
+        cb.fn_on_render_view_ready = _RequestHandler_on_render_view_ready
+    if getattr(cls, "on_render_process_unresponsive", None) is not RequestHandler.on_render_process_unresponsive:
+        cb.fn_on_render_process_unresponsive = _RequestHandler_on_render_process_unresponsive
+    if getattr(cls, "on_render_process_responsive", None) is not RequestHandler.on_render_process_responsive:
+        cb.fn_on_render_process_responsive = _RequestHandler_on_render_process_responsive
+    if getattr(cls, "on_render_process_terminated", None) is not RequestHandler.on_render_process_terminated:
+        cb.fn_on_render_process_terminated = _RequestHandler_on_render_process_terminated
+    if getattr(cls, "on_document_available_in_main_frame", None) is not RequestHandler.on_document_available_in_main_frame:
+        cb.fn_on_document_available_in_main_frame = _RequestHandler_on_document_available_in_main_frame
+    ref = CefRefPtr[CefRequestHandler](<CefRequestHandler*>new CwRequestHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefRequestHandler* _g_export_RequestHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefRequestHandler] ref = _g_make_RequestHandler(obj)
+    cdef CefRequestHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class ResourceHandler:
     """Class used to implement a custom request handler interface. The methods of
     this class will be called on the IO thread unless otherwise indicated.
@@ -7455,6 +7854,180 @@ cdef inline CefResourceHandler* _g_export_ResourceHandler(object obj) except? NU
     return raw
 
 
+class ResourceRequestHandler:
+    """Implement this interface to handle events related to browser requests. The
+    methods of this class will be called on the IO thread unless otherwise
+    indicated.
+    """
+
+    def on_before_resource_load(self, browser, frame, request, callback):
+        """Called on the IO thread before a resource request is loaded. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. To
+        redirect or change the resource load optionally modify |request|.
+        Modification of the request URL will be treated as a redirect. Return
+        RV_CONTINUE to continue the request immediately. Return RV_CONTINUE_ASYNC
+        and call CefCallback methods at a later time to continue or cancel the
+        request asynchronously. Return RV_CANCEL to cancel the request
+        immediately.
+        """
+        return 0
+
+    def get_resource_handler(self, browser, frame, request):
+        """Called on the IO thread before a resource is loaded. The |browser| and
+        |frame| values represent the source of the request, and may be NULL for
+        requests originating from service workers or CefURLRequest. To allow the
+        resource to load using the default network loader return NULL. To specify
+        a handler for the resource return a CefResourceHandler object. The
+        |request| object cannot not be modified in this callback.
+        """
+        return None
+
+    def on_resource_redirect(self, browser, frame, request, response):
+        """Called on the IO thread when a resource load is redirected. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. The
+        |request| parameter will contain the old URL and other request-related
+        information. The |response| parameter will contain the response that
+        resulted in the redirect. The |new_url| parameter will contain the new URL
+        and can be changed if desired. The |request| and |response| objects cannot
+        be modified in this callback.
+        """
+        return ""
+
+    def on_resource_response(self, browser, frame, request, response):
+        """Called on the IO thread when a resource response is received. The
+        |browser| and |frame| values represent the source of the request, and may
+        be NULL for requests originating from service workers or CefURLRequest. To
+        allow the resource load to proceed without modification return false. To
+        redirect or retry the resource load optionally modify |request| and return
+        true. Modification of the request URL will be treated as a redirect.
+        Requests handled using the default network loader cannot be redirected in
+        this callback. The |response| object cannot be modified in this callback.
+
+        WARNING: Redirecting using this method is deprecated. Use
+        OnBeforeResourceLoad or GetResourceHandler to perform redirects.
+        """
+        return False
+
+    def on_resource_load_complete(self, browser, frame, request, response, status, received_content_length):
+        """Called on the IO thread when a resource load has completed. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. |request|
+        and |response| represent the request and response respectively and cannot
+        be modified in this callback. |status| indicates the load completion
+        status. |received_content_length| is the number of response bytes actually
+        read. This method will be called for all requests, including requests that
+        are aborted due to CEF shutdown or destruction of the associated browser.
+        In cases where the associated browser is destroyed this callback may
+        arrive after the CefLifeSpanHandler::OnBeforeClose callback for that
+        browser. The CefFrame::IsValid method can be used to test for this
+        situation, and care should be taken not to call |browser| or |frame|
+        methods that modify state (like LoadURL, SendProcessMessage, etc.) if the
+        frame is invalid.
+        """
+        return None
+
+    def on_protocol_execution(self, browser, frame, request):
+        """Called on the IO thread to handle requests for URLs with an unknown
+        protocol component. The |browser| and |frame| values represent the source
+        of the request, and may be NULL for requests originating from service
+        workers or CefURLRequest. |request| cannot be modified in this callback.
+        Set |allow_os_execution| to true to attempt execution via the registered
+        OS protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD
+        TO ENFORCE RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE
+        ALLOWING OS EXECUTION.
+        """
+        return False
+
+
+cdef int _ResourceRequestHandler_on_before_resource_load(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_resource_load(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Callback(CefRefPtr[CefCallback](callback)))
+        _r0 = _r
+        return <int>_r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef CefResourceHandler* _ResourceRequestHandler_get_resource_handler(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request) noexcept with gil:
+    try:
+        _r = (<object>py).get_resource_handler(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)))
+        _r0 = _r
+        return _g_export_ResourceHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef void _ResourceRequestHandler_on_resource_redirect(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response, CefString* new_url) noexcept with gil:
+    try:
+        _r = (<object>py).on_resource_redirect(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)))
+        _r0 = _r
+        new_url[0] = _g_cef(_r0)
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _ResourceRequestHandler_on_resource_response(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response) noexcept with gil:
+    try:
+        _r = (<object>py).on_resource_response(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _ResourceRequestHandler_on_resource_load_complete(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response, int status, int64_t received_content_length) noexcept with gil:
+    try:
+        _r = (<object>py).on_resource_load_complete(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)), _g_enum(_types.URLRequestStatus, status), received_content_length)
+    except BaseException:
+        _g_report()
+
+cdef void _ResourceRequestHandler_on_protocol_execution(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, cpp_bool* allow_os_execution) noexcept with gil:
+    try:
+        _r = (<object>py).on_protocol_execution(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)))
+        _r0 = _r
+        allow_os_execution[0] = _r0
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefResourceRequestHandler] _g_make_ResourceRequestHandler(object obj) except *:
+    cdef CefRefPtr[CefResourceRequestHandler] ref
+    cdef CwResourceRequestHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, ResourceRequestHandler):
+        raise TypeError("expected a ResourceRequestHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_before_resource_load", None) is not ResourceRequestHandler.on_before_resource_load:
+        cb.fn_on_before_resource_load = _ResourceRequestHandler_on_before_resource_load
+    if getattr(cls, "get_resource_handler", None) is not ResourceRequestHandler.get_resource_handler:
+        cb.fn_get_resource_handler = _ResourceRequestHandler_get_resource_handler
+    if getattr(cls, "on_resource_redirect", None) is not ResourceRequestHandler.on_resource_redirect:
+        cb.fn_on_resource_redirect = _ResourceRequestHandler_on_resource_redirect
+    if getattr(cls, "on_resource_response", None) is not ResourceRequestHandler.on_resource_response:
+        cb.fn_on_resource_response = _ResourceRequestHandler_on_resource_response
+    if getattr(cls, "on_resource_load_complete", None) is not ResourceRequestHandler.on_resource_load_complete:
+        cb.fn_on_resource_load_complete = _ResourceRequestHandler_on_resource_load_complete
+    if getattr(cls, "on_protocol_execution", None) is not ResourceRequestHandler.on_protocol_execution:
+        cb.fn_on_protocol_execution = _ResourceRequestHandler_on_protocol_execution
+    ref = CefRefPtr[CefResourceRequestHandler](<CefResourceRequestHandler*>new CwResourceRequestHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefResourceRequestHandler* _g_export_ResourceRequestHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefResourceRequestHandler] ref = _g_make_ResourceRequestHandler(obj)
+    cdef CefResourceRequestHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class SchemeHandlerFactory:
     """Class that creates CefResourceHandler instances for handling scheme
     requests. The methods of this class will always be called on the IO thread.
@@ -7559,4 +8132,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "RenderHandler", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Insets", "KeyEvent", "MouseEvent", "Point", "PopupFeatures", "Range", "Rect", "ScreenInfo", "Size", "TouchEvent", "TouchHandleState", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "TaskManager", "UnresponsiveProcessCallback", "Value", "Client", "ContextMenuHandler", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PrintHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

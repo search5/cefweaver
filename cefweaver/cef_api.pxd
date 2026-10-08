@@ -35,6 +35,8 @@ cdef extern from *:
 cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_axis_alignment_t:
         pass
+    ctypedef enum cef_cert_status_t:
+        pass
     ctypedef enum cef_channel_layout_t:
         pass
     ctypedef enum cef_color_model_t:
@@ -89,15 +91,21 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_resource_type_t:
         pass
+    ctypedef enum cef_return_value_t:
+        pass
     ctypedef enum cef_runtime_style_t:
         pass
     ctypedef enum cef_state_t:
+        pass
+    ctypedef enum cef_termination_status_t:
         pass
     ctypedef enum cef_text_input_mode_t:
         pass
     ctypedef enum cef_touch_event_type_t:
         pass
     ctypedef enum cef_transition_type_t:
+        pass
+    ctypedef enum cef_urlrequest_status_t:
         pass
     ctypedef enum cef_value_type_t:
         pass
@@ -225,6 +233,8 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int draggable
 
 # Forward declarations
+cdef extern from "include/cef_auth_callback.h":
+    cdef cppclass CefAuthCallback(CefBaseRefCounted)
 cdef extern from "include/cef_download_handler.h":
     cdef cppclass CefBeforeDownloadCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
@@ -275,8 +285,12 @@ cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefRunContextMenuCallback(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefRunQuickMenuCallback(CefBaseRefCounted)
+cdef extern from "include/cef_ssl_info.h":
+    cdef cppclass CefSSLInfo(CefBaseRefCounted)
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted)
+cdef extern from "include/cef_unresponsive_process_callback.h":
+    cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefValue(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
@@ -307,12 +321,21 @@ cdef extern from "include/cef_print_handler.h":
     cdef cppclass CefPrintHandler(CefBaseRefCounted)
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted)
+cdef extern from "include/cef_request_handler.h":
+    cdef cppclass CefRequestHandler(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted)
+cdef extern from "include/cef_resource_request_handler.h":
+    cdef cppclass CefResourceRequestHandler(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted)
 
 # Library classes (implemented by CEF)
+cdef extern from "include/cef_auth_callback.h":
+    cdef cppclass CefAuthCallback(CefBaseRefCounted):
+        void Continue(const CefString&, const CefString&) nogil
+        void Cancel() nogil
+
 cdef extern from "include/cef_download_handler.h":
     cdef cppclass CefBeforeDownloadCallback(CefBaseRefCounted):
         void Continue(const CefString&, cpp_bool) nogil
@@ -765,6 +788,10 @@ cdef extern from "include/cef_context_menu_handler.h":
         void Continue(int, cef_event_flags_t) nogil
         void Cancel() nogil
 
+cdef extern from "include/cef_ssl_info.h":
+    cdef cppclass CefSSLInfo(CefBaseRefCounted):
+        cef_cert_status_t GetCertStatus() nogil
+
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted):
         size_t GetTasksCount() nogil
@@ -773,6 +800,11 @@ cdef extern from "include/cef_task_manager.h":
         int64_t GetTaskIdForBrowserId(int) nogil
         @staticmethod
         CefRefPtr[CefTaskManager] GetTaskManager() nogil
+
+cdef extern from "include/cef_unresponsive_process_callback.h":
+    cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted):
+        void Wait() nogil
+        void Terminate() nogil
 
 cdef extern from "include/cef_values.h":
     cdef cppclass CefValue(CefBaseRefCounted):
@@ -844,8 +876,14 @@ cdef extern from "include/cef_print_handler.h":
 cdef extern from "include/cef_render_handler.h":
     cdef cppclass CefRenderHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_request_handler.h":
+    cdef cppclass CefRequestHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_resource_request_handler.h":
+    cdef cppclass CefResourceRequestHandler(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted):
@@ -876,6 +914,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
         CefPrintHandler* (*fn_get_print_handler)(void*) noexcept
         CefRenderHandler* (*fn_get_render_handler)(void*) noexcept
+        CefRequestHandler* (*fn_get_request_handler)(void*) noexcept
         cpp_bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) noexcept
     cdef cppclass CwClientProxy(CefClient):
         CwClientProxy(const CwClientCallbacks&)
@@ -1012,6 +1051,21 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_virtual_keyboard_requested)(void*, CefBrowser*, int) noexcept
     cdef cppclass CwRenderHandlerProxy(CefRenderHandler):
         CwRenderHandlerProxy(const CwRenderHandlerCallbacks&)
+    cdef cppclass CwRequestHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_on_before_browse)(void*, CefBrowser*, CefFrame*, CefRequest*, cpp_bool, cpp_bool) noexcept
+        cpp_bool (*fn_on_open_url_from_tab)(void*, CefBrowser*, CefFrame*, const CefString*, int, cpp_bool) noexcept
+        CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, cpp_bool, cpp_bool, const CefString*, cpp_bool*) noexcept
+        cpp_bool (*fn_get_auth_credentials)(void*, CefBrowser*, const CefString*, cpp_bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) noexcept
+        cpp_bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefSSLInfo*, CefCallback*) noexcept
+        void (*fn_on_render_view_ready)(void*, CefBrowser*) noexcept
+        cpp_bool (*fn_on_render_process_unresponsive)(void*, CefBrowser*, CefUnresponsiveProcessCallback*) noexcept
+        void (*fn_on_render_process_responsive)(void*, CefBrowser*) noexcept
+        void (*fn_on_render_process_terminated)(void*, CefBrowser*, int, int, const CefString*) noexcept
+        void (*fn_on_document_available_in_main_frame)(void*, CefBrowser*) noexcept
+    cdef cppclass CwRequestHandlerProxy(CefRequestHandler):
+        CwRequestHandlerProxy(const CwRequestHandlerCallbacks&)
     cdef cppclass CwResourceHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1024,6 +1078,17 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_cancel)(void*) noexcept
     cdef cppclass CwResourceHandlerProxy(CefResourceHandler):
         CwResourceHandlerProxy(const CwResourceHandlerCallbacks&)
+    cdef cppclass CwResourceRequestHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        int (*fn_on_before_resource_load)(void*, CefBrowser*, CefFrame*, CefRequest*, CefCallback*) noexcept
+        CefResourceHandler* (*fn_get_resource_handler)(void*, CefBrowser*, CefFrame*, CefRequest*) noexcept
+        void (*fn_on_resource_redirect)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, CefString*) noexcept
+        cpp_bool (*fn_on_resource_response)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*) noexcept
+        void (*fn_on_resource_load_complete)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, int, int64_t) noexcept
+        void (*fn_on_protocol_execution)(void*, CefBrowser*, CefFrame*, CefRequest*, cpp_bool*) noexcept
+    cdef cppclass CwResourceRequestHandlerProxy(CefResourceRequestHandler):
+        CwResourceRequestHandlerProxy(const CwResourceRequestHandlerCallbacks&)
     cdef cppclass CwSchemeHandlerFactoryCallbacks:
         void* py
         void (*release)(void*) noexcept

@@ -38,6 +38,8 @@ updated: 2026-10-08
 
 ## 2. 알려진 한계
 
+- **요청 핸들러의 `get_auth_credentials`, `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`와 리소스 요청 핸들러의 `on_resource_redirect`, `on_resource_response`, `on_protocol_execution`은 실행해 보지 못했습니다**(서버, 인증서, 렌더러 종료 등이 필요, F43). 쿠키 접근 필터(`CefCookieAccessFilter`)와 응답 필터는 생성되지 않습니다. `CefRequestContextHandler`는 `CefRequestContext`가 범위 밖이라 없습니다.
+
 - **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
 
 - **오프스크린 렌더링에는 `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다.** 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).

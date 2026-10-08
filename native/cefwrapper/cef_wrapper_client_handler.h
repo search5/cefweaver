@@ -23,7 +23,7 @@
 // the handler in its forward_..._ member, which GetDisplayHandler() and the like fill
 // from the user's client every time CEF asks for the handler.
 class CefWrapperClientHandler : public CefClient,
-                      public CefRequestHandler,
+                      public CwRequestHandlerForward,
                       public CwDisplayHandlerForward,
                       public CwDragHandlerForward,
                       public CwLifeSpanHandlerForward,
@@ -68,8 +68,9 @@ public:
     return (forward_context_menu_handler_ || g_DevToolsMenuEnabled.load()) ? this : nullptr;
   }
 
-  // The request handler exists for the message router (navigations and the end of the
-  // renderer cancel the queries of a page); there is none without a query handler.
+  // The wrapper has a request handler for the message router (a navigation and the end of the
+  // renderer cancel the queries of a page) and passes every event on to the user's request
+  // handler. CEF gets this one if either of them exists.
   CefRefPtr<CefRequestHandler> GetRequestHandler() override;
   bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                       CefRefPtr<CefRequest> request, bool user_gesture,

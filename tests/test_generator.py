@@ -195,6 +195,25 @@ class WithHeaders(unittest.TestCase):
             header = f.read()
         self.assertIn("CefSize GetPdfPaperSize(", header)
 
+    def test_the_request_handlers_are_generated(self):
+        for name in ("CefRequestHandler", "CefResourceRequestHandler"):
+            self.assertTrue(self.scope.is_client(name), name)
+        for name in ("CefAuthCallback", "CefSSLInfo", "CefUnresponsiveProcessCallback"):
+            self.assertTrue(self.scope.is_library(name), name)
+        plan = self.plan("CefRequestHandler", "GetResourceRequestHandler")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([name for name, _ in plan.results], ["return", "disable_default_handling"])
+        for name in ("OnBeforeBrowse", "GetAuthCredentials", "OnCertificateError",
+                     "OnRenderProcessTerminated"):
+            plan = self.plan("CefRequestHandler", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        plan = self.plan("CefResourceRequestHandler", "OnBeforeResourceLoad")
+        self.assertTrue(plan.supported, plan.reason)
+        stub = self.generated("pyi")
+        for text in ("class RequestHandler:", "class ResourceRequestHandler:",
+                     "class AuthCallback:", "def get_request_handler(self) -> RequestHandler | None:"):
+            self.assertIn(text, stub)
+
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))
         files = generate_outputs()
@@ -247,9 +266,9 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(plan.ret, ClientRef("CefLoadHandler"))
 
     def test_handlers_that_are_not_generated_yet_are_reported(self):
-        plan = self.plan("CefClient", "GetRequestHandler")
+        plan = self.plan("CefClient", "GetAudioHandler")
         self.assertFalse(plan.supported)
-        self.assertIn("CefRequestHandler is not generated yet", plan.reason)
+        self.assertIn("CefAudioHandler is not generated yet", plan.reason)
 
     def test_enumerations_reach_the_load_handler(self):
         plan = self.plan("CefLoadHandler", "OnLoadError")

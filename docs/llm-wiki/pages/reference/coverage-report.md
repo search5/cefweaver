@@ -14,16 +14,16 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 479 methods/functions in 43 classes, 3 global functions
+Generated now: 501 methods/functions in 48 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    25  class
+    28  class
      7  struct
      6  struct-like value type
      4  multimap of values
      1  pointer to
      1  a library method returning a client object
-  ----  44 skipped
+  ----  47 skipped
 
 If every class were generated, the type support alone would cover 1454 of 1598 methods/functions (91%).
 What blocks the rest, by type:
@@ -63,7 +63,7 @@ Per class (supported/total methods, when every class is generated):
     CefApiVersionTestScopedLibraryChildChildV2 library   2/4  
     CefApp                                 client    4/5  
     CefAudioHandler                        client    4/5  
-    CefAuthCallback                        library   2/2  
+  * CefAuthCallback                        library   2/2  
   * CefBeforeDownloadCallback              library   1/1  
   * CefBinaryValue                         library   8/9  
     CefBoxLayout                           library   2/2  
@@ -152,20 +152,20 @@ Per class (supported/total methods, when every class is generated):
   * CefRequest                             library  20/23 
     CefRequestContext                      library  24/26 
     CefRequestContextHandler               client    2/2  
-    CefRequestHandler                      client   11/11 
+  * CefRequestHandler                      client   11/11 
     CefResolveCallback                     client    1/1  
     CefResourceBundle                      library   4/4  
     CefResourceBundleHandler               client    1/3  
   * CefResourceHandler                     client    7/7  
   * CefResourceReadCallback                library   1/1  
-    CefResourceRequestHandler              client    8/8  
+  * CefResourceRequestHandler              client    8/8  
   * CefResourceSkipCallback                library   1/1  
   * CefResponse                            library  16/18 
     CefResponseFilter                      client    2/2  
   * CefRunContextMenuCallback              library   2/2  
     CefRunFileDialogCallback               client    1/1  
   * CefRunQuickMenuCallback                library   2/2  
-    CefSSLInfo                             library   2/2  
+  * CefSSLInfo                             library   2/2  
     CefSSLStatus                           library   5/5  
   * CefSchemeHandlerFactory                client    1/1  
     CefSchemeRegistrar                     library   1/1  
@@ -202,7 +202,7 @@ Per class (supported/total methods, when every class is generated):
     CefTranslatorTestScopedLibraryChildChild library   2/3  
     CefURLRequest                          library   7/8  
     CefURLRequestClient                    client    5/5  
-    CefUnresponsiveProcessCallback         library   2/2  
+  * CefUnresponsiveProcessCallback         library   2/2  
     CefV8Accessor                          client    1/2  
     CefV8ArrayBufferReleaseCallback        client    0/1  
     CefV8BackingStore                      library   3/4  

@@ -157,6 +157,16 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **확인하지 못함**: 프린터가 없는 환경이라 Chromium이 오류를 내고(`print_error_dialog`) `on_print_dialog`, `on_print_job`은 오지 않았습니다. `get_pdf_paper_size`(구조체 반환)는 컴파일과 생성만 확인했고 CEF가 부르는 경우를 만들지 못했습니다. `on_key_event`(페이지가 처리하지 않은 키)도 단정하지 않았습니다.
 - **영향**: java-cef의 13개 핸들러 가운데 12개가 되었습니다(요청이 남음).
 
+## F43. 요청 핸들러와 리소스 요청 핸들러
+
+- **방법**: 사용자의 `RequestHandler`를 달고 탐색과 하위 리소스를 일으켰습니다. 메시지 라우터와 함께도 시험했습니다.
+- **결과**:
+  - `on_before_browse(browser, frame, request, user_gesture, is_redirect)`가 `True`를 돌려주면 그 페이지는 로드되지 않습니다(시작 페이지의 `data:` URL 탐색도 이 핸들러로 옵니다).
+  - `get_resource_request_handler(...)`가 `(ResourceRequestHandler, disable_default_handling)`을 돌려주면 그 핸들러의 `on_before_resource_load`가 `ReturnValue.CANCEL`로 하위 리소스(이미지)를 취소하고 페이지의 `onerror`가 불립니다. `on_resource_load_complete`가 `URLRequestStatus.SUCCESS`와 수신 바이트 수를 줍니다.
+  - 라우터와 사용자의 요청 핸들러가 함께 있을 때, 사용자가 탐색을 취소(`True`)하면 열린 질의가 취소되지 않고 허용된 탐색에서만 취소됩니다.
+- **확인하지 못함**: `get_auth_credentials`(`AuthCallback`)와 `on_certificate_error`는 서버가 필요해 실행하지 않았습니다. `on_render_process_terminated`, `on_open_url_from_tab`, `on_resource_redirect`, `on_resource_response`, `on_protocol_execution`도 실행하지 않았습니다. `get_cookie_access_filter`는 쿠키 구조체 때문에 생성되지 않습니다.
+- **영향**: java-cef의 핸들러 13개를 모두 갖추었습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

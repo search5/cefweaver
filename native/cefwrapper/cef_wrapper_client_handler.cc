@@ -46,7 +46,8 @@ CefWrapperClientHandler::CefWrapperClientHandler(
 CefWrapperClientHandler::~CefWrapperClientHandler() { g_instance = nullptr; }
 
 CefRefPtr<CefRequestHandler> CefWrapperClientHandler::GetRequestHandler() {
-  return QueryRouter::Exists() ? this : nullptr;
+  forward_request_handler_ = user_client_ ? user_client_->GetRequestHandler() : nullptr;
+  return (QueryRouter::Exists() || forward_request_handler_) ? this : nullptr;
 }
 
 bool CefWrapperClientHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
@@ -54,11 +55,16 @@ bool CefWrapperClientHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
                                              CefRefPtr<CefRequest> request, bool user_gesture,
                                              bool is_redirect) {
   CEF_REQUIRE_UI_THREAD();
-  // The navigation is allowed (false), so the queries of the page it leaves are canceled.
-  if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
-    router->OnBeforeBrowse(browser, frame);
+  // The user's handler decides first; true cancels the navigation.
+  const bool canceled = CwRequestHandlerForward::OnBeforeBrowse(browser, frame, request,
+                                                                user_gesture, is_redirect);
+  // Only an allowed navigation leaves the page, so only then are its queries canceled.
+  if (!canceled) {
+    if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
+      router->OnBeforeBrowse(browser, frame);
+    }
   }
-  return false;
+  return canceled;
 }
 
 void CefWrapperClientHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
@@ -69,6 +75,7 @@ void CefWrapperClientHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> br
   if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
     router->OnRenderProcessTerminated(browser);
   }
+  CwRequestHandlerForward::OnRenderProcessTerminated(browser, status, error_code, error_string);
 }
 
 
