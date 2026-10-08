@@ -36,7 +36,7 @@ updated: 2026-10-08
 
 | 방향 | 지원 |
 | --- | --- |
-| 라이브러리 메서드의 반환 | 지원: `DownloadItem.get_start_time`/`get_end_time`/`get_last_modified` 등, `ZipReader.get_file_last_modified` |
+| 라이브러리 메서드의 반환 | 지원: `DownloadItem.get_start_time`/`get_end_time`, `ZipReader.get_file_last_modified`(이 둘은 시험으로 확인), 범위 밖 `NavigationEntry`, `X509Certificate`, `V8Value.get_date_value` |
 | 라이브러리 메서드의 입력 | 지원(예: `V8Value.create_date`, 범위 밖) |
 | 핸들러 메서드의 입력 | 지원 |
 | 핸들러의 반환과 출력 | 지원하지 않음 |
