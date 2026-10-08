@@ -27,7 +27,7 @@ updated: 2026-10-08
 | `scope.py` | 생성할 클래스와 함수의 목록(`LIBRARY_CLASSES`, `CLIENT_CLASSES`, `FUNCTIONS`), `Scope.current()`와 `Scope.everything()`(커버리지 측정용으로 모든 클래스를 범위에 넣음) |
 | `report.py` | `all_plans()`, `build_report()`. 사유를 `struct`, `class`, `output parameter` 같은 묶음으로 집계합니다. |
 | `emit_cpp.py` | C++ 프록시 헤더 |
-| `emit_types.py` | `cefweaver/types.py`(열거형과 값 타입). 값은 `model.py`가 헤더에서 읽습니다. |
+| `emit_types.py` | `cefweaver/types/`(열거형 `enums.py`, 값 타입 `structs.py`, `__init__.py`). 값은 `model.py`가 헤더에서 읽습니다. |
 | `emit_cython.py` | `.pxd`(`emit_pxd`)와 `.pxi`(`emit_pxi`), 공통 변환 함수(`cy_c`, `cy_arg`, `public_function_name`, `_docstring` 등) |
 | `emit_pyi.py` | 타입 스텁. 손으로 쓴 `handwritten.pyi`를 앞에 붙입니다. |
 | `handwritten.pyi` | `CefApp`의 스텁(손으로 씀). `CefApp`의 공개 API를 바꾸면 이 파일도 고쳐야 합니다. |

@@ -14,6 +14,21 @@ sources:
   - examples/wx/smoke.py
   - examples/kivy/cefkivy.py
   - examples/kivy/smoke.py
+  - examples/qt/browser.py
+  - examples/qt/pyproject.toml
+  - examples/qt/README.md
+  - examples/tk/browser.py
+  - examples/tk/pyproject.toml
+  - examples/tk/README.md
+  - examples/sdl2/browser.py
+  - examples/sdl2/pyproject.toml
+  - examples/sdl2/README.md
+  - examples/wx/browser.py
+  - examples/wx/pyproject.toml
+  - examples/wx/README.md
+  - examples/kivy/browser.py
+  - examples/kivy/pyproject.toml
+  - examples/kivy/README.md
 updated: 2026-10-08
 ---
 
@@ -38,6 +53,18 @@ updated: 2026-10-08
 | `kivy` | `Clock.schedule_once` | `on_textedit`, `on_textinput` | 들어오는 드롭만(텍스트, 파일) | 26 |
 
 점검 수는 실행 출력의 `ok` 줄 수입니다. Qt는 `QT_SCALE_FACTOR=2`에서도 통과했습니다. Tk, SDL2, wx, Kivy는 1배만 확인했습니다.
+
+## 각 예제의 구성과 실행
+
+모두 `uv build --wheel`로 만든 wheel을 로컬 의존성으로 쓰고(`pyproject.toml`의 `tool.uv.sources`), `uv sync --python 3.13` 뒤 `uv run python browser.py [주소 | demo]`로 실행합니다. 파일은 위젯(`cef<툴킷>.py`), 데모 브라우저(`browser.py`), 점검(`smoke.py`), `README.md`입니다.
+
+| 예제 | 위젯 | 설치의 특이점 | 점검 실행의 고정 |
+| --- | --- | --- | --- |
+| `qt` | `CefWidget`(`cefqt.py`, 환경 변수 `CEFQT_BINDING`) | extras `pyqt`, `pyside`(PySide는 `UV_PROJECT_ENVIRONMENT=.venv-pyside`) | `QT_QPA_PLATFORM=xcb` |
+| `tk` | `CefCanvas`(`ceftk.py`) | Pillow, uv의 CPython에 Tk 8.6 포함 | 없음(Tk는 `DISPLAY`만 봄) |
+| `sdl2` | `SdlBrowser`(`cefsdl.py`, 뷰이자 이벤트 루프) | `pysdl2`, `pysdl2-dll` | `SDL_VIDEODRIVER=x11` |
+| `wx` | `CefPanel`(`cefwx.py`) | wxPython 사이트의 wheel 주소를 직접 지정(PyPI는 소스 빌드) | `GDK_BACKEND=x11` |
+| `kivy` | `CefView`(`cefkivy.py`) | `kivy`(SDL2 포함), 클립보드는 `xsel` | `SDL_VIDEODRIVER=x11` |
 
 ## 툴킷이 가르쳐 준 것 (공통)
 

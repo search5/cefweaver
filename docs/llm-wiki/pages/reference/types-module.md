@@ -6,7 +6,9 @@ sources:
   - tools/gen/emit_types.py
   - tools/gen/emit_cython.py
   - tools/gen/emit_pyi.py
-  - cefweaver/types.py
+  - cefweaver/types/__init__.py
+  - cefweaver/types/enums.py
+  - cefweaver/types/structs.py
   - cefweaver/__init__.py
   - tests/test_generator.py
   - tests/test_smoke.py
@@ -15,7 +17,7 @@ updated: 2026-10-08
 
 # types 모듈 (열거형과 값 타입)
 
-`cefweaver.types`는 CEF의 열거형과 값 타입 구조체를 파이썬 타입으로 모은 모듈입니다. `cefweaver/types.py`는 순수 파이썬 파일이고(컴파일된 코드 없음) 생성기가 CEF 헤더에서 만듭니다. 직접 고치지 않습니다.
+`cefweaver.types`는 CEF의 열거형과 값 타입 구조체를 파이썬 타입으로 모은 모듈입니다. `cefweaver/types/`는 순수 파이썬 패키지이고(`enums.py`, `structs.py`, 둘을 내보내는 `__init__.py`. 컴파일된 코드 없음) 생성기가 CEF 헤더에서 만듭니다. 직접 고치지 않습니다.
 
 ```python
 from cefweaver import types
@@ -65,7 +67,7 @@ class Load(cefweaver.LoadHandler):
 
 ## 시험
 
-생성기 시험은 값 읽기(마우스 버튼, 오류 코드, 평가된 시프트, 마스크), 플래그 판별, 전처리 분기, 멤버 중복 없음, 생성된 `types.py`를 실행해서 `IntEnum`, `IntFlag`, `NamedTuple`이 동작하는지를 확인합니다. 통합 시험은 라이브러리 메서드의 반환이 멤버인지(`request.get_resource_type()`), 핸들러가 `ErrorCode` 멤버를 받는지, 수정자 플래그(`SHIFT_DOWN | CONTROL_DOWN`)가 페이지의 `shiftKey`와 `ctrlKey`로 도착하는지를 확인합니다([시험](../components/tests.md)).
+생성기 시험은 값 읽기(마우스 버튼, 오류 코드, 평가된 시프트, 마스크), 플래그 판별, 전처리 분기, 멤버 중복 없음, 생성된 `types` 패키지를 임시 디렉터리에서 임포트해서 `IntEnum`, `IntFlag`, `NamedTuple`이 동작하는지를 확인합니다. 통합 시험은 라이브러리 메서드의 반환이 멤버인지(`request.get_resource_type()`), 핸들러가 `ErrorCode` 멤버를 받는지, 수정자 플래그(`SHIFT_DOWN | CONTROL_DOWN`)가 페이지의 `shiftKey`와 `ctrlKey`로 도착하는지를 확인합니다([시험](../components/tests.md)).
 
 ## 관련 페이지
 

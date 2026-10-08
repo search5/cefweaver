@@ -22,7 +22,7 @@ Python 응용
   cefweaver.Request, ResourceHandler    CEF 헤더에서 생성한 래퍼(PEP 8 이름)
         |
 Cython 확장 cefweaver._cefweaver
-  _cefweaver.pyx (손으로 씀) + cef_api.pxi, cef_api.pxd (생성) + cefwrapper.pxd (손으로 씀)
+  _cefweaver.pyx (손으로 씀) + cef_api.pxi + api/*.pxi, cef_api.pxd (생성) + cefwrapper.pxd (손으로 씀)
         |                                   |
         |                       생성된 C++ 프록시 cefweaver_proxies.h
         |                       (CEF가 호출하는 핸들러를 Python 객체로 위임)

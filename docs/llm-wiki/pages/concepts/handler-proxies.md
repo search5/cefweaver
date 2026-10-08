@@ -21,7 +21,7 @@ CEF의 핸들러(애플리케이션이 구현하는 클래스, 파서 용어로 
 - `Cw<이름>Proxy`: CEF 클래스를 상속해 모든 가상 메서드를 구현하는 C++ 클래스입니다. 각 메서드는 표의 항목을 부릅니다.
 - `Cw<이름>Forward`: 손으로 쓴 핸들러가 이벤트를 **관찰하고도 사용자에게 넘기게** 하는 기반 클래스입니다([전달 클래스](#전달-클래스)).
 
-Cython 쪽(`cefweaver/cef_api.pxi`)은 Python 기반 클래스(예: `class ResourceHandler`), 메서드마다 CEF가 부르는 **트램펄린** 함수(`noexcept with gil`), 표를 채우고 프록시를 만드는 `_g_make_*`, CEF에 넘길 참조(+1)를 만드는 `_g_export_*`, CEF 객체를 감싸는 `_wrap_*`를 만듭니다.
+Cython 쪽(`cefweaver/api/cef_<헤더>.pxi`, 색인은 `cef_api.pxi`)은 Python 기반 클래스(예: `class ResourceHandler`), 메서드마다 CEF가 부르는 **트램펄린** 함수(`noexcept with gil`), 표를 채우고 프록시를 만드는 `_g_make_*`, CEF에 넘길 참조(+1)를 만드는 `_g_export_*`, CEF 객체를 감싸는 `_wrap_*`를 만듭니다.
 
 ```
 CEF 스레드 --> Cw...Proxy::Method() --> 표의 함수 포인터 --> 트램펄린(with gil) --> Python 메서드

@@ -40,7 +40,7 @@ cefweaver/
     __init__.py               libcef 선로드, 공개 이름                 [cython-extension]
     _cefweaver.pyx            확장 모듈 본체(손으로 씀)
     cefwrapper.pxd            CefWrapper 선언(손으로 씀)
-    cef_api.pxd, cef_api.pxi, _cefweaver.pyi, py.typed   (생성)
+    cef_api.pxd, cef_api.pxi(색인), api/*.pxi(헤더별), types/(패키지), _cefweaver.pyi, py.typed   (생성)
     (스테이징된 런타임: libcef.so, *.pak, icudtl.dat, locales/, cefsubprocess ... 은 git 제외)
   tools/
     prepare.py                CEF 확보, 빌드, 스테이징                 [tool-prepare]

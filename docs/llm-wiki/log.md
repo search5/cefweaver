@@ -287,3 +287,11 @@
 ## [2026-10-08] ingest | 툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)
 
 - `examples/`에 다섯 툴킷의 오프스크린 위젯 예제를 더했습니다. 공통 데모 페이지와 점검(`common/demo.py`, `common/checks.py`)을 쓰고, 모두 실제 X 이벤트로 구동해 통과했습니다. 새 페이지 `toolkit-examples.md`, F69, 알려진 제약 두 항목(tkdnd 중단, 드롭 경합), `README.rst` 불일치 행을 고쳤습니다.
+
+## [2026-10-08] schema | 생성 파일을 나눠 낸다 (api/*.pxi, types/)
+
+- 11,777줄이던 `cef_api.pxi`를 색인(`cef_api.pxi`)과 헤더별 부분 `cefweaver/api/*.pxi`(45개와 공통 부분)로, 2,140줄이던 `types.py`를 패키지 `cefweaver/types/`(`enums.py`, `structs.py`, `__init__.py`)로 나눴습니다. 생성기는 `generate.py`의 `SPLIT`, `output_path`, `whole`, `stale_files`로 여러 파일을 다루고, 없어진 부분은 `--check`가 잡고 쓰기가 지웁니다. Cython이 `include`를 따라가므로 부분만 바뀌어도 다시 컴파일됩니다(확인함). `.pxd`와 `.pyi`는 그대로 하나입니다.
+
+## [2026-10-08] ingest | 툴킷 예제 위키 보강
+
+- `toolkit-examples.md`에 각 예제의 위젯, 설치의 특이점, 점검 실행의 고정을 표로 더하고 `sources`에 예제별 `browser.py`, `pyproject.toml`, `README.md`를 올렸습니다.

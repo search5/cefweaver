@@ -19,7 +19,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 | --- | --- |
 | `cefweaver/_cefweaver.pyx` | 모듈 본체(약 290줄). `CefApp` 클래스, JS 바인딩 중계, `add_resource` 구현. 생성된 `cef_api.pxi`를 `include`합니다. |
 | `cefweaver/cefwrapper.pxd` | `CefWrapper`(`SetClient` 포함)와 `CefValueWrapper`의 C++ 선언. 블록될 수 있는 메서드는 `nogil`입니다. |
-| `cefweaver/cef_api.pxd`, `cef_api.pxi` | 생성 파일([생성된 파일](generated-files.md)) |
+| `cefweaver/cef_api.pxd`, `cef_api.pxi`(색인), `api/*.pxi`(헤더별 부분) | 생성 파일([생성된 파일](generated-files.md)) |
 | `cefweaver/__init__.py` | 패키지 진입점 |
 | `cefweaver/_cefweaver.pyi`, `py.typed` | 타입 스텁(생성). PEP 561 표식 |
 
@@ -48,7 +48,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 
 ## 모듈을 불러올 때
 
-생성된 `cef_api.pxi`의 맨 앞이 `cef_api_hash(CEF_API_VERSION, 0)`를 호출하고, 반환된 해시가 컴파일에 쓴 헤더의 `CEF_API_HASH_PLATFORM`과 다르면 `ImportError`를 냅니다. CEF는 이 호출로 API 버전을 설정하며, 설정 전에 라이브러리 객체(`Request.create()` 등)를 쓰면 `CefRequest_0_CppToC called with invalid version -1` FATAL로 프로세스가 중단되기 때문입니다([실험으로 확인한 사실](../reference/verified-findings.md)).
+생성된 `api/prelude.pxi`(색인 `cef_api.pxi`가 가장 먼저 포함)의 맨 앞이 `cef_api_hash(CEF_API_VERSION, 0)`를 호출하고, 반환된 해시가 컴파일에 쓴 헤더의 `CEF_API_HASH_PLATFORM`과 다르면 `ImportError`를 냅니다. CEF는 이 호출로 API 버전을 설정하며, 설정 전에 라이브러리 객체(`Request.create()` 등)를 쓰면 `CefRequest_0_CppToC called with invalid version -1` FATAL로 프로세스가 중단되기 때문입니다([실험으로 확인한 사실](../reference/verified-findings.md)).
 
 ## 빌드 설정
 
