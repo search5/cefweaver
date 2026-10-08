@@ -89,8 +89,18 @@ java-cef의 Java 보조 클래스(`BoolRef`, `IntRef`, `StringRef`, 어댑터 �
 
 ## 아직 열지 않은 것 (java-cef도 열지 않았거나 해당 없음)
 
-- `CommandLine.init_from_argv`(`char* const*`), `AudioHandler.on_audio_stream_packet`(`float**`): java-cef도 열지 않은 포인터 배열이라 같은 수준(안 엶)에 둡니다.
+- `CommandLine.init_from_argv`(`char* const*`): java-cef도 열지 않은 포인터 배열이라 같은 수준(안 엶)에 둡니다. (이전에 `AudioHandler.on_audio_stream_packet`도 여기 적었는데 틀렸습니다: java-cef에는 `CefAudioHandler`가 아예 없습니다. 아래 "오디오, WebRTC"를 보십시오.)
 - `get_raw_data` 등 CEF가 소유한 메모리를 가리키는 `void*`: 안전을 위해 닫아 둡니다([바이트열과 시간](bytes-and-times.md)).
+
+## 오디오, WebRTC (2026-10-08 점검)
+
+java-cef 소스(`java/org/cef/handler/`의 핸들러 목록과 `native/client_handler.h`의 `ClientHandler`)에서 확인했습니다. 위키에는 이 주제의 페이지가 없었고(컨텍스트 메뉴 페이지에만 `MediaType`이 나옴), 소스로 직접 찾았습니다.
+
+- **java-cef에 없는 것**: `CefAudioHandler`(오디오 스트림 시작, 패킷, 정지, 오류)와 `CefPermissionHandler`(`OnRequestMediaAccessPermission`: getUserMedia, `OnShowPermissionPrompt`)가 모두 없습니다. `ClientHandler`가 `GetAudioHandler`나 `GetPermissionHandler`를 재정의하지 않고, 저장소 전체에 `webrtc`, `media-stream`, `getUserMedia`, `MediaAccess`, `PermissionHandler`, `AudioHandler`, 자동 재생 관련 스위치가 한 군데도 없습니다.
+- **있는 것은 둘뿐입니다**: (1) `CefBrowser_N.cpp`의 리눅스 키 변환이 `XF86XK_Audio*` 키(음량, 재생, 다음 곡)를 `VKEY_MEDIA_*`로 바꿔 줍니다. 오디오 처리가 아니라 키보드 입력입니다. (2) 컨텍스트 메뉴의 `CefContextMenuParams.MediaType`에 `CM_MEDIATYPE_AUDIO`가 있습니다.
+- **CEF에는 있음**: 이 저장소가 쓰는 CEF 154 헤더에 `cef_audio_handler.h`(`GetAudioParameters`, `OnAudioStreamStarted`, `OnAudioStreamPacket`, `OnAudioStreamStopped`, `OnAudioStreamError`)와 `cef_permission_handler.h`(`CefPermissionHandler`의 세 메서드, `CefMediaAccessCallback`, `CefPermissionPromptCallback`)가 있습니다. java-cef가 쓰는 CEF 152에 있는지는 `third_party/cef`가 내려받아져 있지 않아 확인하지 못했습니다.
+- **핸들러를 두지 않으면 어떻게 되는가**(CEF 154 헤더 주석): 마이크나 카메라 요청은 Chrome 스타일이면 권한 UI를 띄우고 **Alloy 스타일이면 거부**합니다. `--enable-media-stream` 스위치를 주면 모든 권한을 허용하고 이 메서드는 불리지 않습니다. 이 기본 동작을 실제로 실행해서 확인하지는 않았습니다.
+- **cefweaver**: `AudioHandler`와 `PermissionHandler`는 아직 범위(`tools/gen/scope.py`)에 없어서 열리지 않았습니다. 생성기 보고서로는 `PermissionHandler`가 3/3(모두 지원 가능한 타입), `AudioHandler`가 4/5(`on_audio_stream_packet`의 `float**`만 현재 타입 체계 밖)입니다. 둘 다 java-cef가 열지 않았으므로 우리 방침상 "바닥 위(더 여는 것)"에 해당합니다.
 
 ## 관련 페이지
 

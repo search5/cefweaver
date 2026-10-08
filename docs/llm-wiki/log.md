@@ -335,3 +335,7 @@
 ## [2026-10-08] ingest | quickstart와 어댑터 정리
 
 - 여섯 어댑터 모듈에서 쓰이지 않던 별명(`SHIFT, CONTROL, ALT`, 단추 상수)을 지우고, 키 표의 숫자 20을 `keys.VK_CAPITAL`로 바꿨습니다. 드래그 동작 변환(GTK와 Qt)은 툴킷마다 달라질 수 있어서 통합하지 않기로 했습니다. 예제마다 `quickstart.py`를 만들고(코드는 예제 README와 `README.rst`에 그대로 실음), 시험이 문서와 파일의 일치(`QuickstartDocs`)와 실제 실행·정상 종료(`Quickstarts`)를 확인합니다.
+
+## [2026-10-08] query | java-cef의 오디오와 WebRTC 처리
+
+- java-cef에는 `CefAudioHandler`도 `CefPermissionHandler`도 없음을 소스로 확인했습니다(키보드의 미디어 키 변환과 컨텍스트 메뉴의 `MediaType`만 있음). `java-cef-parity.md`가 `AudioHandler.on_audio_stream_packet`을 "java-cef도 열지 않은 포인터 배열"이라 적은 것은 틀려서 고쳤고, 확인한 내용과 핸들러가 없을 때의 CEF 기본 동작(Alloy는 거부)을 "오디오, WebRTC" 절에 기록했습니다.
