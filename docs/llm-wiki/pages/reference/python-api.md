@@ -23,7 +23,7 @@ updated: 2026-10-08
 | `set_subprocess_path(path)` | `cefsubprocess` 실행 파일 경로. 기본: 모듈 디렉터리의 `cefsubprocess` |
 | `set_cache_path(path)`, `set_resources_path(path)` | 캐시와 프로필 디렉터리(기본: 현재 디렉터리의 `cache/`), `resources_dir_path`로 전달(Linux에서는 `icudtl.dat` 위치에 영향이 없음) |
 | `offscreen`, `windowless_frame_rate`, `transparent` (속성) | 창 없이 그리는 오프스크린 렌더링(`initialize()` 전에만). `transparent`는 문서가 그리지 않는 곳을 투명으로 둘지(기본 `True`). [오프스크린 렌더링](offscreen-rendering.md) |
-| `settings` (속성) | java-cef의 `CefSettings`에 해당하는 `cefweaver.Settings`: 사용자 에이전트, 로케일, 로그, 원격 디버깅 포트 등 14개 필드. `initialize()` 전에만. [F58](verified-findings-handlers.md) |
+| `settings` (속성) | java-cef의 `CefSettings`에 해당하는 `cefweaver.Settings`: 사용자 에이전트, 로케일, 로그, 원격 디버깅 포트 등 14개 필드. `initialize()` 전에만. [F58](verified-findings-handlers.md). `get_version()`(정적, 모듈 함수도 있음)은 cefweaver, CEF, Chromium의 `Version`을 CEF 시작 전에도 줍니다([F59](verified-findings-handlers.md)) |
 | `add_command_line_switch(name, value="")` | Chromium 스위치(브라우저 프로세스에만 적용되고 렌더러 등 자식 프로세스에는 전달되지 않음, F36). 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
 | `set_app_handler(handler)` | 명령줄, 사용자 스킴 등록, 컨텍스트 초기화, 두 번째 시작에 대한 훅(`AppHandler`). `initialize()` 전에만. [앱 핸들러](app-handler.md). 같은 훅(`on_context_initialized`)에서 `set_request_context(context)`로 첫 브라우저의 `RequestContext`를 정합니다([F55](verified-findings-handlers.md)) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |

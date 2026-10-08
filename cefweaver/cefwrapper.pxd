@@ -57,6 +57,10 @@ cdef extern from "app_hooks.h":
                                           const string& current_directory) noexcept
 
 
+cdef extern from "include/cef_version_info.h":
+    int cef_version_info(int entry)
+
+
 cdef extern from "library.h":
     cdef cppclass CefWrapper:
         CefWrapper()

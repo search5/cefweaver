@@ -6,6 +6,7 @@ sources:
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
   - cefweaver/settings.py
+  - cefweaver/version.py
   - native/cefwrapper/library.cpp
   - native/cefwrapper/javascript_bindings_handler.h
   - native/cefwrapper/javascript_python_binding_handler.h
@@ -59,6 +60,11 @@ updated: 2026-10-08
 - **효과를 확인하지 못한 것**: `chrome_policy_id`, `uncaught_exception_stack_size`, `command_line_args_disabled`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults`는 설정하고 CEF가 시작해 페이지가 동작하는 것만 확인했습니다(정책 파일, 렌더러의 예외 핸들러, 쿠키를 쓰는 사용자 스킴이 필요함).
 - **발견(CEF의 규칙)**: 오프스크린 브라우저는 브라우저 설정의 색 알파가 0이면 "투명하게 그린다"로 확정되어 `CefSettings.background_color`를 보지 않습니다(`CefContext::GetBackgroundColor`). java-cef도 투명하지 않을 때 브라우저 설정에 흰색을 넣습니다. 그래서 `CefApp.transparent`(기본 `True`, 지금까지의 동작)를 만들고, `False`이면 `settings.background_color`(알파 0xFF일 때) 또는 흰색을 브라우저 설정에 넣습니다. 창이 있는 브라우저는 전역 `background_color`가 그대로 쓰입니다(픽셀을 읽을 수 없어 확인하지 못함).
 - **설정에 없는 것**: `root_cache_path`는 `set_cache_path()`가 `cache_path`와 함께 정하므로 따로 두지 않았습니다(java-cef는 둘을 따로 정함).
+
+## F59. 버전 조회
+
+- **방법**: `cefweaver.get_version()`을 CEF를 시작하기 전에 불러, 설치된 CEF 헤더(`cef_version.h`)의 값과 비교했습니다.
+- **결과**: `Version(cefweaver, cef_major, cef_minor, cef_patch, cef_commit, chrome_major, chrome_minor, chrome_build, chrome_patch)`가 헤더의 `CEF_VERSION_*`, `CEF_COMMIT_NUMBER`, `CHROME_VERSION_*`와 같고, `version.cef`(`154.0.34`)와 `version.chrome`(`154.0.8037.98`)이 문자열을 줍니다. `CefApp.get_version()`은 같은 값을 돌려줍니다. 값은 libcef의 `cef_version_info()`에서 오므로 `initialize()` 전에도 부를 수 있습니다. `cefweaver` 항목은 설치된 패키지 메타데이터의 버전입니다(java-cef의 JCEF 버전에 해당).
 
 ## 관련 페이지
 

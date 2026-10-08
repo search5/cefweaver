@@ -15,6 +15,7 @@ its script in a separate Python process.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -89,6 +90,28 @@ def run_cef(script, timeout=90, ozone="x11"):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_the_version_is_known_before_cef_starts_and_matches_the_cef_headers(self):
+        version = cefweaver.get_version()                          # java-cef: CefApp.getVersion()
+        self.assertIsInstance(version, cefweaver.Version)
+        self.assertEqual(cefweaver.CefApp.get_version(), version)
+        self.assertEqual(cefweaver.CefApp().get_version(), version)
+        self.assertRegex(version.cefweaver, r"^\d+\.\d+")
+        self.assertEqual(version.cef, "%d.%d.%d" % (version.cef_major, version.cef_minor, version.cef_patch))
+        self.assertEqual(version.chrome, "%d.%d.%d.%d" % (version.chrome_major, version.chrome_minor,
+                                                          version.chrome_build, version.chrome_patch))
+        header = os.path.join(os.path.dirname(__file__), "..", "build", "native", "cef", "include",
+                              "cef_version.h")
+        if not os.path.exists(header):
+            self.skipTest("the CEF headers are not here")
+        text = open(header, encoding="utf-8").read()
+        def number(name):
+            return int(re.search(r"#define %s (\d+)" % name, text).group(1))
+        self.assertEqual((version.cef_major, version.cef_minor, version.cef_patch, version.cef_commit),
+                         (number("CEF_VERSION_MAJOR"), number("CEF_VERSION_MINOR"), number("CEF_VERSION_PATCH"),
+                          number("CEF_COMMIT_NUMBER")))
+        self.assertEqual((version.chrome_major, version.chrome_minor, version.chrome_build, version.chrome_patch),
+                         tuple(number("CHROME_VERSION_" + n) for n in ("MAJOR", "MINOR", "BUILD", "PATCH")))
+
     def test_settings_hold_the_fields_of_the_java_cef_settings_and_check_them(self):
         app = cefweaver.CefApp()
         settings = app.settings

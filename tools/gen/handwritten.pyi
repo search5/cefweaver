@@ -4,6 +4,9 @@ from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 
 from .settings import Settings
+from .version import Version
+
+def _cef_version_info(entry: int) -> int: ...
 
 class QueryHandler:
     """Answers the queries a page sends with `window.cefQuery({request, persistent,
@@ -70,6 +73,8 @@ class CefApp:
     @devtools_menu.setter
     def devtools_menu(self, value: bool) -> None: ...
     def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None: ...
+    @staticmethod
+    def get_version() -> Version: ...
     @property
     def transparent(self) -> bool: ...
     @transparent.setter

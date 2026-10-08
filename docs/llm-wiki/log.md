@@ -226,3 +226,7 @@
 ## [2026-10-08] ingest | 설정과 투명한 오프스크린 (F58)
 
 - java-cef의 `CefSettings` 필드 14개를 `CefApp.settings`(`cefweaver.Settings`)로 열었고 투명한 오프스크린(`CefApp.transparent`)을 더했습니다. 효과를 관찰한 것과 시작만 확인한 것을 구분해 F58에 적었습니다. CEF가 오프스크린에서 전역 `background_color`를 보지 않는 규칙을 찾았습니다.
+
+## [2026-10-08] ingest | 버전 조회 (F59)
+
+- `cefweaver.get_version()`과 `CefApp.get_version()`을 더했습니다(CEF, Chromium, cefweaver의 버전). 헤더의 값과 같음을 시험했습니다.

@@ -26,7 +26,7 @@ from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
 from cefweaver.cef_api cimport *
-from cefweaver.cefwrapper cimport (CefValueWrapper, CefWrapper, PythonQueryHandler,
+from cefweaver.cefwrapper cimport (cef_version_info, CefValueWrapper, CefWrapper, PythonQueryHandler,
                                    QueryCallbackHolder, SchemeRegistrarProxy)
 
 
@@ -321,6 +321,12 @@ cdef cpp_bool _app_on_relaunch(void* handler, CefRefPtr[CefCommandLine] command_
 # is declared in cef_api.pxi, where the library objects use it as well.)
 
 
+def _cef_version_info(int entry):
+    """One entry of cef_version_info(): the CEF major, minor, patch, commit, then the Chromium
+    major, minor, build, patch."""
+    return cef_version_info(entry)
+
+
 cdef class CefApp:
     """An embedded Chromium (CEF) instance.
 
@@ -378,6 +384,12 @@ cdef class CefApp:
             raise RuntimeError("CEF has been shut down")
 
     # -- configuration (before initialize) ------------------------------------
+
+    @staticmethod
+    def get_version():
+        """The ``Version`` of cefweaver, CEF and Chromium; the same as ``cefweaver.get_version()``."""
+        import cefweaver
+        return cefweaver.get_version()
 
     @property
     def settings(self):

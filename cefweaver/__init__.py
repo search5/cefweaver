@@ -20,7 +20,17 @@ elif sys.platform == "win32":
 from . import types  # noqa: E402  (enumerations and value types; plain Python)
 from . import settings as _settings  # noqa: E402,F401
 from .settings import Settings  # noqa: E402
+from .version import Version  # noqa: E402
 from . import _cefweaver  # noqa: E402
 from ._cefweaver import *  # noqa: E402,F401,F403  (the public names are listed in __all__)
 
-__all__ = list(_cefweaver.__all__) + ["types", "Settings"]
+
+def get_version():
+    """The ``Version`` of cefweaver, CEF and Chromium (callable at any time, also before
+    ``initialize()``; java-cef's ``CefApp.getVersion()``)."""
+    from . import version as _version
+    entries = [_cefweaver._cef_version_info(i) for i in range(8)]
+    return _version.Version(_version._package_version(), *entries)
+
+
+__all__ = list(_cefweaver.__all__) + ["types", "Settings", "Version", "get_version"]
