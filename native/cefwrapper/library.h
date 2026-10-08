@@ -8,6 +8,7 @@
 #include "javascript_binding.h"
 #include "query_router.h"
 #include "app_hooks.h"
+#include <map>
 
 class CefWrapper {
 public:
@@ -40,7 +41,12 @@ public:
   void SetDevToolsMenuEnabled(bool enabled);
   bool DevToolsMenuEnabled();
   // Offscreen rendering and its frame rate; read when the browser is created.
+  // The fields of java-cef's CefSettings (see cefweaver/settings.py): read by InitCefSimple().
+  void SetStringSetting(std::string name, std::string value);
+  void SetIntSetting(std::string name, long long value);
   void SetOffscreen(bool enabled);
+  void SetTransparent(bool transparent);
+  bool Transparent();
   void SetRequestContext(CefRefPtr<CefRequestContext> context);
   bool Offscreen();
   void SetWindowlessFrameRate(int frames_per_second);
@@ -68,6 +74,9 @@ private:
 
     bool m_UseCustomCefResourcesPath = false;
     std::string m_CustomCefResourcesPath = "";
+
+    std::map<std::string, std::string> m_StringSettings;
+    std::map<std::string, long long> m_IntSettings;
 
     bool m_UseCustomCefCachePath = false;
     std::string m_CustomCefCachePath = "";

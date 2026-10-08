@@ -92,6 +92,13 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
     // No window: CEF draws into the buffer of the user's render handler.
     window_info.SetAsWindowless(kNullWindowHandle);
     browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
+    if (!g_Transparent.load()) {
+      // CEF takes a clear browser colour as "paint transparent" (and then ignores the colour
+      // of CefSettings), so an opaque browser gets its colour here, white by default as in
+      // java-cef.
+      const unsigned int color = g_BackgroundColor.load();
+      browser_settings.background_color = (color >> 24) == 0xFF ? color : 0xFFFFFFFF;
+    }
   }
 
 #if defined(OS_WIN)

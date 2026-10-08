@@ -19,6 +19,8 @@ import os
 import sys
 from urllib.parse import urlsplit
 
+from cefweaver.settings import Settings as _Settings
+
 from libc.stdint cimport int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
@@ -344,6 +346,7 @@ cdef class CefApp:
     cdef dict _query_bridges  # QueryHandler -> _QueryBridge
     cdef object _client  # the client of set_client()
     cdef object _app_handler  # the AppHandler of set_app_handler()
+    cdef object _settings  # the Settings (see settings.py)
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -356,6 +359,7 @@ cdef class CefApp:
         self._query_bridges = {}
         self._client = None
         self._app_handler = None
+        self._settings = _Settings()
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -374,6 +378,19 @@ cdef class CefApp:
             raise RuntimeError("CEF has been shut down")
 
     # -- configuration (before initialize) ------------------------------------
+
+    @property
+    def settings(self):
+        """The ``Settings`` of CEF (java-cef's ``CefSettings``); change its fields before
+        ``initialize()``, which reads them."""
+        return self._settings
+
+    @settings.setter
+    def settings(self, value):
+        self._require_not_initialized()
+        if not isinstance(value, _Settings):
+            raise TypeError("settings must be a cefweaver.Settings")
+        self._settings = value
 
     def set_subprocess_path(self, path):
         """Path of the cefsubprocess executable."""
@@ -500,6 +517,18 @@ cdef class CefApp:
         self._wrapper.SetOffscreen(bool(value))
 
     @property
+    def transparent(self):
+        """Whether an offscreen browser paints transparent pixels where the page draws nothing
+        (the default; java-cef's ``isTransparent``). ``False`` paints them in the opaque
+        ``settings.background_color``, white if there is none. Before ``initialize()`` only."""
+        return bool(self._wrapper.Transparent())
+
+    @transparent.setter
+    def transparent(self, value):
+        self._require_not_initialized()
+        self._wrapper.SetTransparent(bool(value))
+
+    @property
     def windowless_frame_rate(self):
         """Frames per second of an offscreen browser (1 to 60, 30 by default); it is the
         upper bound of the ``on_paint()`` calls. Before ``initialize()`` only."""
@@ -577,6 +606,12 @@ cdef class CefApp:
                 and "ozone-platform" not in self._switch_names
                 and "ozone-platform-hint" not in self._switch_names):
             self._wrapper.AddCommandLineSwitch(b"ozone-platform", b"x11")
+        for name, value in self._settings._given().items():
+            if isinstance(value, str):
+                self._wrapper.SetStringSetting(_utf8(name), _utf8(value))
+            else:
+                self._wrapper.SetIntSetting(_utf8(name), int(value))
+        self._settings._freeze()
         if _cef_was_shut_down:
             raise RuntimeError("CEF can be initialized only once per process, "
                                "and it was shut down already")

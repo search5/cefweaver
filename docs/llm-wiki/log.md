@@ -222,3 +222,7 @@
 ## [2026-10-08] lint | java-cef 격차 점검
 
 - JNI 수준의 격차는 0입니다(java-cef 소스에서 목록을 다시 뽑아 같았음). 이 도구가 보지 못하는 Java 쪽 공개 API를 대조해 설정 필드 14개, 버전 조회, 브라우저 여러 개, 투명한 오프스크린이 없음을 [java-cef 동등성](pages/reference/java-cef-parity.md)에 기록했습니다.
+
+## [2026-10-08] ingest | 설정과 투명한 오프스크린 (F58)
+
+- java-cef의 `CefSettings` 필드 14개를 `CefApp.settings`(`cefweaver.Settings`)로 열었고 투명한 오프스크린(`CefApp.transparent`)을 더했습니다. 효과를 관찰한 것과 시작만 확인한 것을 구분해 F58에 적었습니다. CEF가 오프스크린에서 전역 `background_color`를 보지 않는 규칙을 찾았습니다.

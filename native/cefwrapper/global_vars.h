@@ -12,6 +12,10 @@ inline std::atomic<bool> g_DevToolsMenuEnabled{false};
 // Offscreen (windowless) rendering: the browser draws into a buffer that the user's render
 // handler receives (on_paint), and has no window. Read when the browser is created.
 inline std::atomic<bool> g_Offscreen{false};
+// An offscreen browser paints nothing clear (default) or is opaque; the colour (ARGB) is
+// CefSettings.background_color, which an opaque offscreen browser uses (0: white).
+inline std::atomic<bool> g_Transparent{true};
+inline std::atomic<unsigned int> g_BackgroundColor{0};
 // Frames per second of an offscreen browser (CEF accepts 1 to 60).
 inline std::atomic<int> g_WindowlessFrameRate{30};
 

@@ -89,6 +89,58 @@ def run_cef(script, timeout=90, ozone="x11"):
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
 class ApiWithoutCef(unittest.TestCase):
+    def test_settings_hold_the_fields_of_the_java_cef_settings_and_check_them(self):
+        app = cefweaver.CefApp()
+        settings = app.settings
+        self.assertIsInstance(settings, cefweaver.Settings)
+        names = ("user_agent", "user_agent_product", "locale", "log_file", "log_severity",
+                 "javascript_flags", "remote_debugging_port", "persist_session_cookies",
+                 "command_line_args_disabled", "chrome_policy_id", "uncaught_exception_stack_size",
+                 "background_color", "cookieable_schemes_list", "cookieable_schemes_exclude_defaults")
+        for name in names:
+            self.assertIsNone(getattr(settings, name), name)       # unset: CEF decides
+        settings.user_agent = "Agent/1"
+        settings.log_severity = cefweaver.types.LogSeverity.WARNING
+        settings.remote_debugging_port = 9222
+        settings.persist_session_cookies = True
+        settings.background_color = 0xFF00FF00
+        self.assertEqual(settings.user_agent, "Agent/1")
+        settings.user_agent = None                                 # back to unset
+        self.assertIsNone(settings.user_agent)
+        with self.assertRaises(AttributeError):
+            settings.no_such_setting = 1                           # a typo does not pass silently
+        with self.assertRaises(TypeError):
+            settings.user_agent = 3
+        with self.assertRaises(TypeError):
+            settings.persist_session_cookies = "yes"
+        with self.assertRaises(TypeError):
+            settings.remote_debugging_port = True                  # a bool is not a port
+        with self.assertRaises(ValueError):
+            settings.remote_debugging_port = 70000
+        with self.assertRaises(ValueError):
+            settings.background_color = -1
+        fresh = cefweaver.Settings(locale="ko", remote_debugging_port=9333)
+        self.assertEqual((fresh.locale, fresh.remote_debugging_port), ("ko", 9333))
+        with self.assertRaises(TypeError):
+            cefweaver.Settings(unknown=1)
+        app.shutdown()
+
+    def test_transparent_is_a_flag_for_the_offscreen_browser(self):
+        app = cefweaver.CefApp()
+        self.assertIs(app.transparent, True)
+        app.transparent = False
+        self.assertIs(app.transparent, False)
+        app.shutdown()
+
+    def test_settings_are_given_to_the_app_and_cannot_change_after_initialize(self):
+        app = cefweaver.CefApp()
+        mine = cefweaver.Settings(locale="ko")
+        app.settings = mine
+        self.assertIs(app.settings, mine)
+        with self.assertRaises(TypeError):
+            app.settings = {"locale": "ko"}
+        app.shutdown()
+
     def test_calls_before_initialize_raise(self):
         app = cefweaver.CefApp()
         for call in (lambda: app.do_message_loop_work(),
@@ -2089,6 +2141,7 @@ class WithCef(unittest.TestCase):
                          + textwrap.dedent(body))
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
+        return result.stdout
 
     def test_on_paint_gives_a_read_only_view_of_the_pixels(self):
         self.run_osr_script("""
@@ -3286,6 +3339,146 @@ class WithCef(unittest.TestCase):
             app.shutdown()
             print("OK")
         """)
+
+    # -- the fields of java-cef's CefSettings ------------------------------------------------
+
+    def test_the_user_agent_and_its_product_are_set(self):
+        self.run_osr_script("""
+            app.settings.user_agent = "CefweaverTest/1.0"
+            start('<script>report("ua", navigator.userAgent)</script>')
+            wait_until(app, lambda: ("ua", "CefweaverTest/1.0") in js, "the user agent")
+            app.shutdown()
+            print("OK")
+        """)
+        self.run_osr_script("""
+            app.settings.user_agent_product = "Product/9.9"
+            start('<script>report("ua", navigator.userAgent)</script>')
+            wait_until(app, lambda: any(r[0] == "ua" for r in js), "the user agent")
+            ua = [r for r in js if r[0] == "ua"][0][1]
+            assert "Product/9.9" in ua and "Chrome/" not in ua.split("Product/9.9")[0].split()[-1], ua
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_locale_and_the_javascript_flags_are_set(self):
+        self.run_osr_script("""
+            app.settings.locale = "ko"
+            app.settings.javascript_flags = "--expose-gc"
+            start('<script>report("page", navigator.language, typeof gc)</script>')
+            wait_until(app, lambda: any(r[0] == "page" for r in js), "the page")
+            found = [r for r in js if r[0] == "page"][0]
+            assert found[1].startswith("ko") and found[2] == "function", found
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_log_file_and_severity_are_set(self):
+        self.run_osr_script("""
+            import os
+            log = os.path.join(tempfile.mkdtemp(prefix="cefweaver-log-"), "cef.log")
+            app.settings.log_file = log
+            app.settings.log_severity = cefweaver.types.LogSeverity.VERBOSE
+            start(RED)
+            app.shutdown()
+            assert os.path.getsize(log) > 0, "the log file is empty"
+            print("OK")
+        """)
+
+    def test_the_remote_debugging_port_is_open(self):
+        self.run_osr_script("""
+            import json, socket, threading, urllib.request
+            with socket.socket() as holder:
+                holder.bind(("127.0.0.1", 0))
+                port = holder.getsockname()[1]
+            app.settings.remote_debugging_port = port
+            start(RED)
+            answers = []
+            def fetch():
+                try:
+                    answers.append(json.load(urllib.request.urlopen("http://127.0.0.1:%d/json/version" % port, timeout=5)))
+                except Exception as error:
+                    answers.append(error)
+            threading.Thread(target=fetch).start()
+            wait_until(app, lambda: answers, "the debugging endpoint")
+            assert isinstance(answers[0], dict) and "Browser" in answers[0], answers
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_settings_without_a_visible_effect_are_accepted_by_cef(self):
+        # Their effect needs more than a page (a policy file, a JavaScript exception handler of the
+        # renderer, a scheme with cookies): here CEF only has to start with them.
+        self.run_osr_script("""
+            app.settings.chrome_policy_id = "cefweaver.test"
+            app.settings.uncaught_exception_stack_size = 5
+            app.settings.command_line_args_disabled = True
+            app.settings.cookieable_schemes_list = "http,https,cwtest"
+            app.settings.cookieable_schemes_exclude_defaults = False
+            start('<script>report("alive")</script>')
+            wait_until(app, lambda: ("alive",) in js, "the page")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_offscreen_page_is_transparent_unless_told_otherwise(self):
+        self.run_osr_script("""
+            assert app.transparent is True                    # as before: nothing painted is clear
+            start("")
+            wait_until(app, lambda: paints and paints[-1]["first"] == bytes([0, 0, 0, 0]), "a clear pixel")
+            app.shutdown()
+            print("OK")
+        """)
+        self.run_osr_script("""
+            app.transparent = False                           # java-cef: createBrowser(..., false)
+            start("")
+            wait_until(app, lambda: paints and paints[-1]["first"] == bytes([255, 255, 255, 255]), "a white pixel")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_background_color_shows_where_an_opaque_page_draws_none(self):
+        self.run_osr_script("""
+            app.settings.background_color = 0xFF00FF00         # ARGB: opaque green
+            app.transparent = False
+            start("")
+            wait_until(app, lambda: paints and paints[-1]["first"] == bytes([0, 255, 0, 255]), "the green")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_session_cookies_survive_a_restart_only_when_asked_to(self):
+        import tempfile as temporary
+        with temporary.TemporaryDirectory(prefix="cefweaver-profile-") as profile:
+            def run(persist, write):
+                return self.run_osr_script("""
+                    app.set_cache_path(%r)
+                    app.settings.persist_session_cookies = %r
+                    class Cookies(cefweaver.CompletionCallback):
+                        done = False
+                        def on_complete(self):
+                            Cookies.done = True
+                    start('<p>x</p>')
+                    app.add_resource("http://persist.test/", "<p>cookie</p>")
+                    app.load_url("http://persist.test/")
+                    wait_until(app, lambda: app.is_ready_to_execute_javascript, "the page")
+                    if %r:
+                        app.execute_javascript("document.cookie = 'session=1'")
+                        manager = cefweaver.CookieManager.get_global_manager(None)
+                        for _ in range(100):
+                            app.do_message_loop_work(); time.sleep(0.01)
+                        manager.flush_store(Cookies())
+                        wait_until(app, lambda: Cookies.done, "the flush")
+                    else:
+                        app.execute_javascript("report('cookie', document.cookie)")
+                        wait_until(app, lambda: any(r[0] == "cookie" for r in js), "the cookie")
+                        print("COOKIE", [r for r in js if r[0] == "cookie"][0][1])
+                    app.shutdown()
+                    print("OK")
+                """ % (profile, persist, write))
+            run(True, True)                                       # write a session cookie
+            self.assertIn("COOKIE session=1", run(True, False))   # the next process still has it
+            run(False, True)
+            self.assertNotIn("COOKIE session=1", run(False, False))
 
     # -- offscreen input beyond one letter, touch, IME, and the popup of a <select> ------------
 

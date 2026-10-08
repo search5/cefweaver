@@ -5,6 +5,8 @@ sources:
   - tests/test_smoke.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
+  - cefweaver/settings.py
+  - native/cefwrapper/library.cpp
   - native/cefwrapper/javascript_bindings_handler.h
   - native/cefwrapper/javascript_python_binding_handler.h
 updated: 2026-10-08
@@ -43,6 +45,20 @@ updated: 2026-10-08
   - `add_javascript_binding`이 켜지면 자식의 `report()` 호출에서 렌더러가 죽었습니다. 렌더러 쪽 `Execute`가 `browser->GetMainFrame()->SendProcessMessage`를 불렀는데, 교차 사이트 자식의 렌더러 프로세스에서는 메인 프레임이 원격 프레임이라 `GetMainFrame()`이 널이기 때문입니다.
   - 호출한 V8 컨텍스트의 프레임(`CefV8Context::GetCurrentContext()->GetFrame()`)에서 메시지를 보내도록 고쳤습니다(두 바인딩 핸들러). 이제 자식 프레임의 `report()`와 메시지 라우터 질의가 브라우저에 닿고, 질의는 자식 프레임(`frame.is_main()`이 `False`)으로 알려집니다. 서로 다른 렌더러 프로세스에 있는 프레임의 라우터가 이것으로 확인되었습니다.
 - **유실처럼 보였던 것(정정)**: 자식 프레임이 붙는 중에 메인 프레임에서 보낸 첫 질의가 간혹 오지 않았습니다. 라우터의 문제가 아니었습니다. `app.execute_javascript`는 페이지가 로딩 중이면 실행하지 않고 `False`를 돌려주는데(`OnLoadingStateChange`가 준비 표시를 끔), 자식 iframe의 로드도 로딩에 포함되어 실행되지 않은 것을 시험이 반환값을 보지 않고 지나쳤습니다. 유실된 10번 중 6번은 반환값이 `False`였고 실행된 4번은 모두 답이 왔으며, `Frame.execute_java_script`로 같은 일을 하면 10번 모두 정상이었습니다. `is_ready_to_execute_javascript`를 기다린 뒤에 보내면 10번 모두 통과합니다.
+
+## F58. 설정(`CefSettings`)과 투명한 오프스크린
+
+- **방법**: `CefApp.settings`(`cefweaver.Settings`)의 필드를 정하고 `initialize()`한 뒤 효과를 관찰했습니다.
+- **효과를 확인한 것**:
+  - `user_agent`: `navigator.userAgent`가 그 문자열이 됩니다. `user_agent_product`: 기본 사용자 에이전트에 그 토큰이 들어갑니다.
+  - `locale="ko"`: `navigator.language`가 `ko`로 시작합니다. `javascript_flags="--expose-gc"`: 페이지에 `gc`가 있습니다.
+  - `log_file`, `log_severity`: 로그 파일이 만들어지고 내용이 있습니다.
+  - `remote_debugging_port`: `http://127.0.0.1:<포트>/json/version`이 `Browser` 항목을 줍니다.
+  - `persist_session_cookies`: 캐시 디렉터리를 공유하는 두 프로세스에서 켜면 세션 쿠키가 다음 프로세스에 남고(쓰는 쪽은 `CookieManager.flush_store` 뒤 종료), 끄면 남지 않습니다.
+  - `background_color`: 투명하지 않은 오프스크린 브라우저에서 문서가 그리지 않는 곳이 그 색이 됩니다(`0xFF00FF00`이 초록).
+- **효과를 확인하지 못한 것**: `chrome_policy_id`, `uncaught_exception_stack_size`, `command_line_args_disabled`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults`는 설정하고 CEF가 시작해 페이지가 동작하는 것만 확인했습니다(정책 파일, 렌더러의 예외 핸들러, 쿠키를 쓰는 사용자 스킴이 필요함).
+- **발견(CEF의 규칙)**: 오프스크린 브라우저는 브라우저 설정의 색 알파가 0이면 "투명하게 그린다"로 확정되어 `CefSettings.background_color`를 보지 않습니다(`CefContext::GetBackgroundColor`). java-cef도 투명하지 않을 때 브라우저 설정에 흰색을 넣습니다. 그래서 `CefApp.transparent`(기본 `True`, 지금까지의 동작)를 만들고, `False`이면 `settings.background_color`(알파 0xFF일 때) 또는 흰색을 브라우저 설정에 넣습니다. 창이 있는 브라우저는 전역 `background_color`가 그대로 쓰입니다(픽셀을 읽을 수 없어 확인하지 못함).
+- **설정에 없는 것**: `root_cache_path`는 `set_cache_path()`가 `cache_path`와 함께 정하므로 따로 두지 않았습니다(java-cef는 둘을 따로 정함).
 
 ## 관련 페이지
 

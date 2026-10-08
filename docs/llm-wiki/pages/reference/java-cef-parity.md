@@ -70,10 +70,10 @@ updated: 2026-10-08
 
 | 항목 | java-cef | cefweaver |
 | --- | --- | --- |
-| `CefSettings`의 필드 20개 | 모두 | 6개만(`browser_subprocess_path`, `windowless_rendering_enabled`, `cache_path`와 `root_cache_path`, `resources_dir_path`와 `locales_dir_path`). 없는 것 14개: `command_line_args_disabled`, `persist_session_cookies`, `user_agent`, `user_agent_product`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`, `chrome_policy_id`, `uncaught_exception_stack_size`, `background_color`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults` |
+| `CefSettings`의 필드 20개 (**해결**: [F58](verified-findings-handlers.md)) | 모두 | 이제 `CefApp.settings`로 14개를 더해 모두(`root_cache_path`는 `set_cache_path()`가 함께 정함). 이전에는 6개만(`browser_subprocess_path`, `windowless_rendering_enabled`, `cache_path`와 `root_cache_path`, `resources_dir_path`와 `locales_dir_path`). 없는 것 14개: `command_line_args_disabled`, `persist_session_cookies`, `user_agent`, `user_agent_product`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`, `chrome_policy_id`, `uncaught_exception_stack_size`, `background_color`, `cookieable_schemes_list`, `cookieable_schemes_exclude_defaults` |
 | 버전 조회 | `CefApp.getVersion()`: JCEF, CEF, Chrome 버전 | 없음(`cef_version_info`가 생성 범위 밖) |
 | 브라우저 여러 개 | `CefClient.createBrowser(url, osr, transparent, requestContext)`를 몇 번이든 | 첫 브라우저 하나(`set_request_context`로 컨텍스트만 지정) |
-| 투명한 오프스크린 | `createBrowser`의 `isTransparent` | 없음 |
+| 투명한 오프스크린 (**해결**) | `createBrowser`의 `isTransparent` | `CefApp.transparent` |
 
 설정 가운데 일부(`user_agent`, `locale`, `log_file`, `log_severity`, `javascript_flags`, `remote_debugging_port`)는 같은 뜻의 명령줄 스위치를 `add_command_line_switch`로 줄 수 있을 가능성이 있으나, 설정 필드와 같은지는 확인하지 않았습니다. 나머지 필드는 스위치가 없어 설정 구조체로만 줄 수 있습니다.
 

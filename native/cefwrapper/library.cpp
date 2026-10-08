@@ -113,6 +113,41 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
     CefString(&settings.browser_subprocess_path).FromASCII(ExePath().c_str());
   }
 
+  for (const auto& entry : m_StringSettings) {
+    const std::string& name = entry.first;
+    cef_string_t* target = name == "user_agent" ? &settings.user_agent
+                        : name == "user_agent_product" ? &settings.user_agent_product
+                        : name == "locale" ? &settings.locale
+                        : name == "log_file" ? &settings.log_file
+                        : name == "javascript_flags" ? &settings.javascript_flags
+                        : name == "chrome_policy_id" ? &settings.chrome_policy_id
+                        : name == "cookieable_schemes_list" ? &settings.cookieable_schemes_list
+                                                            : nullptr;
+    if (target) {
+      cef_string_utf8_to_utf16(entry.second.c_str(), entry.second.size(), target);
+    }
+  }
+  for (const auto& entry : m_IntSettings) {
+    const std::string& name = entry.first;
+    const long long value = entry.second;
+    if (name == "log_severity") {
+      settings.log_severity = static_cast<cef_log_severity_t>(value);
+    } else if (name == "remote_debugging_port") {
+      settings.remote_debugging_port = static_cast<int>(value);
+    } else if (name == "persist_session_cookies") {
+      settings.persist_session_cookies = value != 0;
+    } else if (name == "command_line_args_disabled") {
+      settings.command_line_args_disabled = value != 0;
+    } else if (name == "uncaught_exception_stack_size") {
+      settings.uncaught_exception_stack_size = static_cast<int>(value);
+    } else if (name == "background_color") {
+      settings.background_color = static_cast<cef_color_t>(value);
+      g_BackgroundColor.store(static_cast<unsigned int>(value));
+    } else if (name == "cookieable_schemes_exclude_defaults") {
+      settings.cookieable_schemes_exclude_defaults = value != 0;
+    }
+  }
+
   if (!CefInitialize(main_args, settings, m_App.get(), sandbox_info)) {
     m_App = nullptr;
     return false;
@@ -214,6 +249,12 @@ void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_sc
 void CefWrapper::SetRequestContext(CefRefPtr<CefRequestContext> context) {
   CefWrapperBrowserProcessHandler::SetRequestContext(context);
 }
+void CefWrapper::SetStringSetting(std::string name, std::string value) {
+  m_StringSettings[name] = value;
+}
+void CefWrapper::SetIntSetting(std::string name, long long value) { m_IntSettings[name] = value; }
+void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
+bool CefWrapper::Transparent() { return g_Transparent.load(); }
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
 bool CefWrapper::Offscreen() { return g_Offscreen.load(); }
 void CefWrapper::SetWindowlessFrameRate(int frames_per_second) {

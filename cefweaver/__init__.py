@@ -18,7 +18,9 @@ elif sys.platform == "win32":
     os.add_dll_directory(_package_dir)  # libcef.dll next to the module (not tested yet)
 
 from . import types  # noqa: E402  (enumerations and value types; plain Python)
+from . import settings as _settings  # noqa: E402,F401
+from .settings import Settings  # noqa: E402
 from . import _cefweaver  # noqa: E402
 from ._cefweaver import *  # noqa: E402,F401,F403  (the public names are listed in __all__)
 
-__all__ = list(_cefweaver.__all__) + ["types"]
+__all__ = list(_cefweaver.__all__) + ["types", "Settings"]

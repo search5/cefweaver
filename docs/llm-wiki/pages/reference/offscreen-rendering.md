@@ -60,6 +60,10 @@ app.set_client(MyClient())
 - 키보드는 `Backspace`, `Delete`, 화살표, `Shift`+문자, 한글(`CHAR`), `Enter`까지 확인했고, 터치와 IME도 페이지의 이벤트와 입력값으로 확인했습니다(F55). 한글 조합은 글자 경계(`on_ime_composition_range_changed`)와 밑줄의 두께와 모양까지 확인했고 밑줄 색은 반영되지 않았습니다(F56).
 - GPU 가속 페인트(`on_accelerated_paint`)는 쓰지 않습니다. CPU 버퍼만 받습니다.
 
+## 투명도
+
+`CefApp.transparent`(기본 `True`)가 참이면 문서가 그리지 않는 곳은 투명한 픽셀(`0, 0, 0, 0`)입니다. `False`이면 `settings.background_color`(알파 0xFF), 없으면 흰색입니다([F58](verified-findings-handlers.md)). java-cef의 `createBrowser(..., isTransparent, ...)`에 해당합니다.
+
 ## 관련 페이지
 
 - [Python API 참조](python-api.md)
