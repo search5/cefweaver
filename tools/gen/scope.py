@@ -43,6 +43,7 @@ LIBRARY_CLASSES = [
     "CefStreamWriter",
     "CefZipReader",
     "CefRegistration",
+    "CefCookieManager",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.
@@ -68,6 +69,11 @@ CLIENT_CLASSES = [
     "CefReadHandler",
     "CefWriteHandler",
     "CefPdfPrintCallback",
+    "CefCookieVisitor",
+    "CefSetCookieCallback",
+    "CefDeleteCookiesCallback",
+    "CefCompletionCallback",
+    "CefCookieAccessFilter",
     "CefStringVisitor",
     "CefRunFileDialogCallback",
     "CefDevToolsMessageObserver",

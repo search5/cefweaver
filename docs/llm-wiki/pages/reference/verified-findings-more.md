@@ -144,6 +144,15 @@ updated: 2026-10-08
 - **발견**: 이 구조체는 파서가 `structure`로 분류해서 이름으로 찾도록 고쳤습니다. 문자열 필드는 `CefString(&field)`로 감싸 읽고 씁니다. 모든 구조체의 필드에 기본값을 주도록 바꿔(`Rect()`가 `(0, 0, 0, 0)`) 설정 구조체를 필요한 필드만으로 만들 수 있습니다.
 - **영향**: 바닥의 격차 1개가 메워졌고(`PrintToPDF`) 쿠키와 요청 컨텍스트 설정의 길이 열렸습니다.
 
+## F51. 쿠키, 그리고 구조체 문자열 쓰기의 결함
+
+- **방법**: 전역 쿠키 관리자로 쿠키를 설정, 방문, 삭제하고, 리소스 요청 핸들러의 쿠키 접근 필터로 `Set-Cookie` 응답과 다음 요청을 관찰했습니다.
+- **결과**:
+  - `CookieManager.get_global_manager(None)`, `set_cookie(url, Cookie(...), callback)`(`SetCookieCallback.on_complete(True)`), `visit_all_cookies`와 `visit_url_cookies`(`CookieVisitor.visit(cookie, count, total) -> (계속, 지우기)`; 도메인은 Chromium이 `.cookie.test`로 정규화), `delete_cookies`(`DeleteCookiesCallback.on_complete(1)`), `flush_store`(`CompletionCallback.on_complete()`)가 동작하고 삭제한 쿠키는 다시 방문하면 없습니다.
+  - `Set-Cookie: token=xyz`를 주는 리소스에서 `can_save_cookie`가 `("token", "xyz")`를, 다음 요청에서 `can_send_cookie`가 `token`을 받습니다. 두 메서드는 `browser`와 `frame`이 `None`일 수 있습니다.
+- **발견(결함, 수정)**: 구조체의 문자열 필드를 쓰는 코드가 값을 구조체에 쓰지 못했습니다. Cython의 `cdef CefString text = CefString(target)`은 참조가 아니라 **복사**를 만들어 쿠키 설정이 모두 `False`였습니다(이름, 값이 빈 채로 CEF에 감). 앞의 `PdfPrintSettings.page_ranges` 등도 조용히 무시되고 있었습니다. `cef_string_from_utf8`로 구조체에 직접 쓰도록 고쳤습니다.
+- **영향**: 바닥의 격차 9개가 메워졌습니다(`CookieManager` 6, `CookieAccessFilter` 2, `GetCookieAccessFilter` 1).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

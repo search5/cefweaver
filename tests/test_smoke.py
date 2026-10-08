@@ -2517,6 +2517,90 @@ class WithCef(unittest.TestCase):
         """)
 
 
+    def test_the_cookie_manager_sets_visits_and_deletes_cookies(self):
+        self.run_osr_script("""
+            T = types
+            flushed, set_results, deleted, seen = [], [], [], []
+            class Done(cefweaver.CompletionCallback):
+                def on_complete(self):
+                    flushed.append(True)
+            class SetDone(cefweaver.SetCookieCallback):
+                def on_complete(self, success):
+                    set_results.append(success)
+            class DeleteDone(cefweaver.DeleteCookiesCallback):
+                def on_complete(self, num_deleted):
+                    deleted.append(num_deleted)
+            class Visitor(cefweaver.CookieVisitor):
+                def visit(self, cookie, count, total):
+                    seen.append((cookie.name, cookie.value, cookie.domain, count, total))
+                    return True, False                 # go on, do not delete
+            start(RED)
+            manager = cefweaver.CookieManager.get_global_manager(None)
+            assert manager is not None
+            import datetime
+            now = datetime.datetime.now(datetime.timezone.utc)
+            expires = now + datetime.timedelta(days=1)
+            cookie = T.Cookie(name="session", value="abc", domain="cookie.test", path="/",
+                              secure=0, httponly=1, has_expires=1, expires=expires,
+                              creation=now, last_access=now,
+                              same_site=T.CookieSameSite.UNSPECIFIED, priority=T.CookiePriority.MEDIUM)
+            assert manager.set_cookie("http://cookie.test/", cookie, SetDone()) is True
+            wait_until(app, lambda: set_results, "the cookie to be set")
+            assert set_results == [True], set_results
+            assert manager.visit_all_cookies(Visitor()) is True
+            wait_until(app, lambda: seen, "the visit")
+            assert ("session", "abc", ".cookie.test", 0, 1) in seen, seen   # a domain cookie
+            del seen[:]
+            assert manager.visit_url_cookies("http://cookie.test/", True, Visitor()) is True
+            wait_until(app, lambda: seen, "the visit of the URL")
+            assert seen[0][:2] == ("session", "abc"), seen
+            assert manager.delete_cookies("http://cookie.test/", "session", DeleteDone()) is True
+            wait_until(app, lambda: deleted, "the deletion")
+            assert deleted == [1], deleted
+            assert manager.flush_store(Done()) is True
+            wait_until(app, lambda: flushed, "the flush")
+            del seen[:]
+            manager.visit_all_cookies(Visitor())
+            for _ in range(100):
+                app.do_message_loop_work(); time.sleep(0.005)
+            assert not [c for c in seen if c[0] == "session"], seen   # it is gone
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_cookie_access_filter_sees_the_cookies_of_a_resource(self):
+        self.run_osr_script("""
+            saved, sent = [], []
+            class Filter(cefweaver.CookieAccessFilter):
+                def can_save_cookie(self, browser, frame, request, response, cookie):
+                    saved.append((request.get_url(), cookie.name, cookie.value))
+                    return True
+                def can_send_cookie(self, browser, frame, request, cookie):
+                    sent.append((request.get_url(), cookie.name))
+                    return True
+            class Resources(cefweaver.ResourceRequestHandler):
+                def get_cookie_access_filter(self, browser, frame, request):
+                    return Filter()
+            class Requests(cefweaver.RequestHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation,
+                                                 is_download, request_initiator):
+                    return Resources(), False
+            handlers["request"] = Requests()
+            start(RED)
+            app.add_resource("http://cookie.test/set", "<p>set</p>",
+                             headers={"Set-Cookie": "token=xyz; Path=/"})
+            app.add_resource("http://cookie.test/next", "<p>next</p>")
+            app.load_url("http://cookie.test/set")
+            wait_until(app, lambda: saved, "the cookie to be saved")
+            assert saved[0] == ("http://cookie.test/set", "token", "xyz"), saved
+            app.load_url("http://cookie.test/next")
+            wait_until(app, lambda: sent, "the cookie to be sent")
+            assert ("http://cookie.test/next", "token") in sent, sent
+            app.shutdown()
+            print("OK")
+        """)
+
+
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))
               and os.environ.get("CEFWEAVER_TEST_WAYLAND") == "1")
 

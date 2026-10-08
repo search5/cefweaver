@@ -9,6 +9,7 @@
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
+#include "include/cef_cookie.h"
 #include "include/cef_devtools_message_observer.h"
 #include "include/cef_dialog_handler.h"
 #include "include/cef_display_handler.h"
@@ -362,6 +363,50 @@ class CwClientProxy : public CefClient {
   DISALLOW_COPY_AND_ASSIGN(CwClientProxy);
 };
 
+// ---- CefCompletionCallback ----
+
+class CwCompletionCallbackForward : public CefCompletionCallback {
+ protected:
+  CefRefPtr<CefCompletionCallback> forward_completion_callback_;
+
+ public:
+  void OnComplete() override {
+    if (!forward_completion_callback_) {
+      return;
+    }
+    forward_completion_callback_->OnComplete();
+  }
+};
+
+struct CwCompletionCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_complete)(void*) = nullptr;
+};
+
+class CwCompletionCallbackProxy : public CefCompletionCallback {
+ public:
+  explicit CwCompletionCallbackProxy(const CwCompletionCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwCompletionCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnComplete() override {
+    if (!cb_.fn_on_complete) {
+      return;
+    }
+    cb_.fn_on_complete(cb_.py);
+  }
+
+ private:
+  CwCompletionCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwCompletionCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwCompletionCallbackProxy);
+};
+
 // ---- CefContextMenuHandler ----
 
 class CwContextMenuHandlerForward : public CefContextMenuHandler {
@@ -504,6 +549,158 @@ class CwContextMenuHandlerProxy : public CefContextMenuHandler {
 
   IMPLEMENT_REFCOUNTING(CwContextMenuHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwContextMenuHandlerProxy);
+};
+
+// ---- CefCookieAccessFilter ----
+
+class CwCookieAccessFilterForward : public CefCookieAccessFilter {
+ protected:
+  CefRefPtr<CefCookieAccessFilter> forward_cookie_access_filter_;
+
+ public:
+  bool CanSendCookie(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, const CefCookie& cookie) override {
+    if (!forward_cookie_access_filter_) {
+      return CefCookieAccessFilter::CanSendCookie(browser, frame, request, cookie);
+    }
+    return forward_cookie_access_filter_->CanSendCookie(browser, frame, request, cookie);
+  }
+
+  bool CanSaveCookie(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response, const CefCookie& cookie) override {
+    if (!forward_cookie_access_filter_) {
+      return CefCookieAccessFilter::CanSaveCookie(browser, frame, request, response, cookie);
+    }
+    return forward_cookie_access_filter_->CanSaveCookie(browser, frame, request, response, cookie);
+  }
+};
+
+struct CwCookieAccessFilterCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_can_send_cookie)(void*, CefBrowser*, CefFrame*, CefRequest*, const CefCookie*) = nullptr;
+  bool (*fn_can_save_cookie)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, const CefCookie*) = nullptr;
+};
+
+class CwCookieAccessFilterProxy : public CefCookieAccessFilter {
+ public:
+  explicit CwCookieAccessFilterProxy(const CwCookieAccessFilterCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwCookieAccessFilterProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool CanSendCookie(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, const CefCookie& cookie) override {
+    if (!cb_.fn_can_send_cookie) {
+      return CefCookieAccessFilter::CanSendCookie(browser, frame, request, cookie);
+    }
+    bool result = cb_.fn_can_send_cookie(cb_.py, browser.get(), frame.get(), request.get(), &cookie);
+    return result;
+  }
+
+  bool CanSaveCookie(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response, const CefCookie& cookie) override {
+    if (!cb_.fn_can_save_cookie) {
+      return CefCookieAccessFilter::CanSaveCookie(browser, frame, request, response, cookie);
+    }
+    bool result = cb_.fn_can_save_cookie(cb_.py, browser.get(), frame.get(), request.get(), response.get(), &cookie);
+    return result;
+  }
+
+ private:
+  CwCookieAccessFilterCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwCookieAccessFilterProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwCookieAccessFilterProxy);
+};
+
+// ---- CefCookieVisitor ----
+
+class CwCookieVisitorForward : public CefCookieVisitor {
+ protected:
+  CefRefPtr<CefCookieVisitor> forward_cookie_visitor_;
+
+ public:
+  bool Visit(const CefCookie& cookie, int count, int total, bool& deleteCookie) override {
+    if (!forward_cookie_visitor_) {
+      return bool();
+    }
+    return forward_cookie_visitor_->Visit(cookie, count, total, deleteCookie);
+  }
+};
+
+struct CwCookieVisitorCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_visit)(void*, const CefCookie*, int, int, bool*) = nullptr;
+};
+
+class CwCookieVisitorProxy : public CefCookieVisitor {
+ public:
+  explicit CwCookieVisitorProxy(const CwCookieVisitorCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwCookieVisitorProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool Visit(const CefCookie& cookie, int count, int total, bool& deleteCookie) override {
+    if (!cb_.fn_visit) {
+      return bool();
+    }
+    bool out_deleteCookie = bool();
+    bool result = cb_.fn_visit(cb_.py, &cookie, count, total, &out_deleteCookie);
+    deleteCookie = out_deleteCookie;
+    return result;
+  }
+
+ private:
+  CwCookieVisitorCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwCookieVisitorProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwCookieVisitorProxy);
+};
+
+// ---- CefDeleteCookiesCallback ----
+
+class CwDeleteCookiesCallbackForward : public CefDeleteCookiesCallback {
+ protected:
+  CefRefPtr<CefDeleteCookiesCallback> forward_delete_cookies_callback_;
+
+ public:
+  void OnComplete(int num_deleted) override {
+    if (!forward_delete_cookies_callback_) {
+      return;
+    }
+    forward_delete_cookies_callback_->OnComplete(num_deleted);
+  }
+};
+
+struct CwDeleteCookiesCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_complete)(void*, int) = nullptr;
+};
+
+class CwDeleteCookiesCallbackProxy : public CefDeleteCookiesCallback {
+ public:
+  explicit CwDeleteCookiesCallbackProxy(const CwDeleteCookiesCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDeleteCookiesCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnComplete(int num_deleted) override {
+    if (!cb_.fn_on_complete) {
+      return;
+    }
+    cb_.fn_on_complete(cb_.py, num_deleted);
+  }
+
+ private:
+  CwDeleteCookiesCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDeleteCookiesCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDeleteCookiesCallbackProxy);
 };
 
 // ---- CefDevToolsMessageObserver ----
@@ -2538,6 +2735,13 @@ class CwResourceRequestHandlerForward : public CefResourceRequestHandler {
   CefRefPtr<CefResourceRequestHandler> forward_resource_request_handler_;
 
  public:
+  CefRefPtr<CefCookieAccessFilter> GetCookieAccessFilter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override {
+    if (!forward_resource_request_handler_) {
+      return CefResourceRequestHandler::GetCookieAccessFilter(browser, frame, request);
+    }
+    return forward_resource_request_handler_->GetCookieAccessFilter(browser, frame, request);
+  }
+
   ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override {
     if (!forward_resource_request_handler_) {
       return CefResourceRequestHandler::OnBeforeResourceLoad(browser, frame, request, callback);
@@ -2587,6 +2791,7 @@ class CwResourceRequestHandlerForward : public CefResourceRequestHandler {
 struct CwResourceRequestHandlerCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  CefCookieAccessFilter* (*fn_get_cookie_access_filter)(void*, CefBrowser*, CefFrame*, CefRequest*) = nullptr;
   int (*fn_on_before_resource_load)(void*, CefBrowser*, CefFrame*, CefRequest*, CefCallback*) = nullptr;
   CefResourceHandler* (*fn_get_resource_handler)(void*, CefBrowser*, CefFrame*, CefRequest*) = nullptr;
   void (*fn_on_resource_redirect)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, CefString*) = nullptr;
@@ -2602,6 +2807,19 @@ class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  CefRefPtr<CefCookieAccessFilter> GetCookieAccessFilter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request) override {
+    if (!cb_.fn_get_cookie_access_filter) {
+      return CefResourceRequestHandler::GetCookieAccessFilter(browser, frame, request);
+    }
+    CefCookieAccessFilter* raw = cb_.fn_get_cookie_access_filter(cb_.py, browser.get(), frame.get(), request.get());
+    CefRefPtr<CefCookieAccessFilter> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
   }
 
   ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override {
@@ -2760,6 +2978,50 @@ class CwSchemeHandlerFactoryProxy : public CefSchemeHandlerFactory {
 
   IMPLEMENT_REFCOUNTING(CwSchemeHandlerFactoryProxy);
   DISALLOW_COPY_AND_ASSIGN(CwSchemeHandlerFactoryProxy);
+};
+
+// ---- CefSetCookieCallback ----
+
+class CwSetCookieCallbackForward : public CefSetCookieCallback {
+ protected:
+  CefRefPtr<CefSetCookieCallback> forward_set_cookie_callback_;
+
+ public:
+  void OnComplete(bool success) override {
+    if (!forward_set_cookie_callback_) {
+      return;
+    }
+    forward_set_cookie_callback_->OnComplete(success);
+  }
+};
+
+struct CwSetCookieCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_complete)(void*, bool) = nullptr;
+};
+
+class CwSetCookieCallbackProxy : public CefSetCookieCallback {
+ public:
+  explicit CwSetCookieCallbackProxy(const CwSetCookieCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwSetCookieCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnComplete(bool success) override {
+    if (!cb_.fn_on_complete) {
+      return;
+    }
+    cb_.fn_on_complete(cb_.py, success);
+  }
+
+ private:
+  CwSetCookieCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwSetCookieCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwSetCookieCallbackProxy);
 };
 
 // ---- CefStringVisitor ----

@@ -349,13 +349,12 @@ class WithHeaders(unittest.TestCase):
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
         "CefBrowserHost": ["DragTargetDragEnter"],
-        "CefCommandLine": None, "CefCookieAccessFilter": None, "CefCookieManager": None,
+        "CefCommandLine": None,
         "CefDragData": None, "CefRequestContext": None,
         "CefRequestContextHandler": None, "CefSchemeRegistrar": None, "CefURLRequest": None,
         "CefURLRequestClient": None,
         "CefDragHandler": ["OnDragEnter"],
         "CefRenderHandler": ["StartDragging"],
-        "CefResourceRequestHandler": ["GetCookieAccessFilter"],
     }
 
     def test_the_gaps_to_the_java_cef_floor_are_the_listed_ones(self):
@@ -475,6 +474,23 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("    scale: float = 0.0\n", types_text)
         self.assertIn("    x: int = 0\n", types_text)             # every struct has defaults
         self.assertIn("    bounds: Rect = Rect()\n", types_text)    # a nested struct too
+
+    def test_the_cookie_manager_visitors_and_access_filter_are_generated(self):
+        self.assertTrue(self.scope.is_library("CefCookieManager"))
+        for name in ("CefCookieVisitor", "CefSetCookieCallback", "CefDeleteCookiesCallback",
+                     "CefCompletionCallback", "CefCookieAccessFilter"):
+            self.assertTrue(self.scope.is_client(name), name)
+        plan = self.plan("CefCookieVisitor", "Visit")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([name for name, _ in plan.results], ["return", "delete_cookie"])
+        stub = self.generated("pyi")
+        for text in ("class CookieManager:", "class CookieVisitor:", "class CookieAccessFilter:",
+                     "def visit(self, cookie: Cookie, count: int, total: int) -> tuple[bool, bool]:",
+                     "def can_send_cookie(self, browser: Browser | None, frame: Frame | None, "
+                     "request: Request, cookie: Cookie) -> bool:",
+                     "def get_cookie_access_filter(self, browser: Browser | None, frame: Frame | None, "
+                     "request: Request) -> CookieAccessFilter | None:"):
+            self.assertIn(text, stub)
 
     def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
         self.assertTrue(self.scope.is_client("CefRenderHandler"))

@@ -74,8 +74,10 @@ cdef object _g_string_field(const cef_string_t* value):
 
 
 cdef int _g_set_string_field(cef_string_t* target, object value) except -1:
-    cdef CefString text = CefString(target)
-    text.FromString(_g_std(value))
+    # Written into the struct itself: a CefString made from the pointer and assigned in Cython
+    # would be a copy.
+    cdef string utf8 = _g_std(value)
+    cef_string_from_utf8(utf8.c_str(), utf8.size(), target)
     return 0
 
 
@@ -658,6 +660,7 @@ cdef class Browser
 cdef class BrowserHost
 cdef class Callback
 cdef class ContextMenuParams
+cdef class CookieManager
 cdef class DictionaryValue
 cdef class Display
 cdef class DownloadItem
@@ -2274,6 +2277,144 @@ cdef object _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams] ref):
     if ref.get() == NULL:
         return None
     obj = ContextMenuParams.__new__(ContextMenuParams)
+    obj._ref = ref
+    return obj
+
+
+cdef class CookieManager:
+    """Class used for managing cookies. The methods of this class may be called on
+    any thread unless otherwise indicated.
+    """
+    cdef CefRefPtr[CefCookieManager] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("CookieManager objects are created by CEF or by a create() function")
+
+    cdef CefCookieManager* _ptr(self) except NULL:
+        cdef CefCookieManager* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("CookieManager has no CEF object")
+        return p
+
+    def visit_all_cookies(self, visitor):
+        """Visit all cookies on the UI thread. The returned cookies are ordered by
+        longest path, then by earliest creation date. Returns false if cookies
+        cannot be accessed.
+        """
+        cdef CefRefPtr[CefCookieVisitor] _a0
+        cdef CefCookieManager* _p = self._ptr()
+        cdef cpp_bool _r
+        if visitor is None:
+            raise TypeError("visitor must not be None")
+        _a0 = _g_make_CookieVisitor(visitor)
+        with nogil:
+            _r = _p.VisitAllCookies(_a0)
+        return _r
+
+    def visit_url_cookies(self, url, bint include_http_only, visitor):
+        """Visit a subset of cookies on the UI thread. The results are filtered by
+        the given url scheme, host, domain and path. If |includeHttpOnly| is true
+        HTTP-only cookies will also be included in the results. The returned
+        cookies are ordered by longest path, then by earliest creation date.
+        Returns false if cookies cannot be accessed.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefCookieVisitor] _a2
+        cdef CefCookieManager* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(url)
+        if visitor is None:
+            raise TypeError("visitor must not be None")
+        _a2 = _g_make_CookieVisitor(visitor)
+        with nogil:
+            _r = _p.VisitUrlCookies(_a0, include_http_only, _a2)
+        return _r
+
+    def set_cookie(self, url, cookie, callback):
+        """Sets a cookie given a valid URL and explicit user-provided cookie
+        attributes. This function expects each attribute to be well-formed. It
+        will check for disallowed characters (e.g. the ';' character is disallowed
+        within the cookie value attribute) and fail without setting the cookie if
+        such characters are found. If |callback| is non-NULL it will be executed
+        asnychronously on the UI thread after the cookie has been set. Returns
+        false if an invalid URL is specified or if cookies cannot be accessed.
+        """
+        cdef CefString _a0
+        cdef CefCookie _a1
+        cdef CefRefPtr[CefSetCookieCallback] _a2
+        cdef CefCookieManager* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(url)
+        _g_to_Cookie(cookie, &_a1)
+        _a2 = _g_make_SetCookieCallback(callback)
+        with nogil:
+            _r = _p.SetCookie(_a0, _a1, _a2)
+        return _r
+
+    def delete_cookies(self, url, cookie_name, callback):
+        """Delete all cookies that match the specified parameters. If both |url| and
+        |cookie_name| values are specified all host and domain cookies matching
+        both will be deleted. If only |url| is specified all host cookies (but not
+        domain cookies) irrespective of path will be deleted. If |url| is empty
+        all cookies for all hosts and domains will be deleted. If |callback| is
+        non-NULL it will be executed asnychronously on the UI thread after the
+        cookies have been deleted. Returns false if a non-empty invalid URL is
+        specified or if cookies cannot be accessed. Cookies can alternately be
+        deleted using the Visit*Cookies() methods.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefRefPtr[CefDeleteCookiesCallback] _a2
+        cdef CefCookieManager* _p = self._ptr()
+        cdef cpp_bool _r
+        if url is not None:
+            _a0 = _g_cef(url)
+        if cookie_name is not None:
+            _a1 = _g_cef(cookie_name)
+        _a2 = _g_make_DeleteCookiesCallback(callback)
+        with nogil:
+            _r = _p.DeleteCookies(_a0, _a1, _a2)
+        return _r
+
+    def flush_store(self, callback):
+        """Flush the backing store (if any) to disk. If |callback| is non-NULL it
+        will be executed asnychronously on the UI thread after the flush is
+        complete. Returns false if cookies cannot be accessed.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefCookieManager* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _r = _p.FlushStore(_a0)
+        return _r
+
+    @staticmethod
+    def get_global_manager(callback):
+        """Returns the global cookie manager. By default data will be stored at
+        cef_settings_t.cache_path if specified or in memory otherwise. If
+        |callback| is non-NULL it will be executed asnychronously on the UI thread
+        after the manager's storage has been initialized. Using this method is
+        equivalent to calling
+        CefRequestContext::GetGlobalContext()->GetDefaultCookieManager().
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRefPtr[CefCookieManager] _r
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _r = CefCookieManager.GetGlobalManager(_a0)
+        return _wrap_CookieManager(_r)
+
+
+cdef object _wrap_CookieManager(CefRefPtr[CefCookieManager] ref):
+    cdef CookieManager obj
+    if ref.get() == NULL:
+        return None
+    obj = CookieManager.__new__(CookieManager)
     obj._ref = ref
     return obj
 
@@ -6752,6 +6893,48 @@ cdef inline CefClient* _g_export_Client(object obj) except? NULL:
     return raw
 
 
+class CompletionCallback:
+    """Generic callback interface used for asynchronous completion."""
+
+    def on_complete(self):
+        """Method that will be called once the task is complete."""
+        return None
+
+
+cdef void _CompletionCallback_on_complete(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).on_complete()
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefCompletionCallback] _g_make_CompletionCallback(object obj) except *:
+    cdef CefRefPtr[CefCompletionCallback] ref
+    cdef CwCompletionCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, CompletionCallback):
+        raise TypeError("expected a CompletionCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_complete", None) is not CompletionCallback.on_complete:
+        cb.fn_on_complete = _CompletionCallback_on_complete
+    ref = CefRefPtr[CefCompletionCallback](<CefCompletionCallback*>new CwCompletionCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefCompletionCallback* _g_export_CompletionCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefCompletionCallback] ref = _g_make_CompletionCallback(obj)
+    cdef CefCompletionCallback* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class ContextMenuHandler:
     """Implement this interface to handle context menu events. The methods of this
     class will be called on the UI thread.
@@ -6907,6 +7090,179 @@ cdef inline CefContextMenuHandler* _g_export_ContextMenuHandler(object obj) exce
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefContextMenuHandler] ref = _g_make_ContextMenuHandler(obj)
     cdef CefContextMenuHandler* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class CookieAccessFilter:
+    """Implement this interface to filter cookies that may be sent or received from
+    resource requests. The methods of this class will be called on the IO thread
+    unless otherwise indicated.
+    """
+
+    def can_send_cookie(self, browser, frame, request, cookie):
+        """Called on the IO thread before a resource request is sent. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. |request|
+        cannot be modified in this callback. Return true if the specified cookie
+        can be sent with the request or false otherwise.
+        """
+        return False
+
+    def can_save_cookie(self, browser, frame, request, response, cookie):
+        """Called on the IO thread after a resource response is received. The
+        |browser| and |frame| values represent the source of the request, and may
+        be NULL for requests originating from service workers or CefURLRequest.
+        |request| cannot be modified in this callback. Return true if the
+        specified cookie returned with the response can be saved or false
+        otherwise.
+        """
+        return False
+
+
+cdef cpp_bool _CookieAccessFilter_can_send_cookie(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, const CefCookie* cookie) noexcept with gil:
+    try:
+        _r = (<object>py).can_send_cookie(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _g_from_Cookie(cookie))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _CookieAccessFilter_can_save_cookie(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response, const CefCookie* cookie) noexcept with gil:
+    try:
+        _r = (<object>py).can_save_cookie(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)), _g_from_Cookie(cookie))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefCookieAccessFilter] _g_make_CookieAccessFilter(object obj) except *:
+    cdef CefRefPtr[CefCookieAccessFilter] ref
+    cdef CwCookieAccessFilterCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, CookieAccessFilter):
+        raise TypeError("expected a CookieAccessFilter or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "can_send_cookie", None) is not CookieAccessFilter.can_send_cookie:
+        cb.fn_can_send_cookie = _CookieAccessFilter_can_send_cookie
+    if getattr(cls, "can_save_cookie", None) is not CookieAccessFilter.can_save_cookie:
+        cb.fn_can_save_cookie = _CookieAccessFilter_can_save_cookie
+    ref = CefRefPtr[CefCookieAccessFilter](<CefCookieAccessFilter*>new CwCookieAccessFilterProxy(cb))
+    return ref
+
+
+cdef inline CefCookieAccessFilter* _g_export_CookieAccessFilter(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefCookieAccessFilter] ref = _g_make_CookieAccessFilter(obj)
+    cdef CefCookieAccessFilter* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class CookieVisitor:
+    """Interface to implement for visiting cookie values. The methods of this class
+    will always be called on the UI thread.
+    """
+
+    def visit(self, cookie, count, total):
+        """Method that will be called once for each cookie. |count| is the 0-based
+        index for the current cookie. |total| is the total number of cookies.
+        Set |deleteCookie| to true to delete the cookie currently being visited.
+        Return false to stop visiting cookies. This method may never be called if
+        no cookies are found.
+        """
+        return False, False
+
+
+cdef cpp_bool _CookieVisitor_visit(void* py, const CefCookie* cookie, int count, int total, cpp_bool* delete_cookie) noexcept with gil:
+    try:
+        _r = (<object>py).visit(_g_from_Cookie(cookie), count, total)
+        _r0, _r1 = _r
+        delete_cookie[0] = _r1
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefCookieVisitor] _g_make_CookieVisitor(object obj) except *:
+    cdef CefRefPtr[CefCookieVisitor] ref
+    cdef CwCookieVisitorCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, CookieVisitor):
+        raise TypeError("expected a CookieVisitor or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "visit", None) is not CookieVisitor.visit:
+        cb.fn_visit = _CookieVisitor_visit
+    ref = CefRefPtr[CefCookieVisitor](<CefCookieVisitor*>new CwCookieVisitorProxy(cb))
+    return ref
+
+
+cdef inline CefCookieVisitor* _g_export_CookieVisitor(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefCookieVisitor] ref = _g_make_CookieVisitor(obj)
+    cdef CefCookieVisitor* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class DeleteCookiesCallback:
+    """Interface to implement to be notified of asynchronous completion via
+    CefCookieManager::DeleteCookies().
+    """
+
+    def on_complete(self, num_deleted):
+        """Method that will be called upon completion. |num_deleted| will be the
+        number of cookies that were deleted.
+        """
+        return None
+
+
+cdef void _DeleteCookiesCallback_on_complete(void* py, int num_deleted) noexcept with gil:
+    try:
+        _r = (<object>py).on_complete(num_deleted)
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDeleteCookiesCallback] _g_make_DeleteCookiesCallback(object obj) except *:
+    cdef CefRefPtr[CefDeleteCookiesCallback] ref
+    cdef CwDeleteCookiesCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DeleteCookiesCallback):
+        raise TypeError("expected a DeleteCookiesCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_complete", None) is not DeleteCookiesCallback.on_complete:
+        cb.fn_on_complete = _DeleteCookiesCallback_on_complete
+    ref = CefRefPtr[CefDeleteCookiesCallback](<CefDeleteCookiesCallback*>new CwDeleteCookiesCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefDeleteCookiesCallback* _g_export_DeleteCookiesCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDeleteCookiesCallback] ref = _g_make_DeleteCookiesCallback(obj)
+    cdef CefDeleteCookiesCallback* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -9340,6 +9696,15 @@ class ResourceRequestHandler:
     indicated.
     """
 
+    def get_cookie_access_filter(self, browser, frame, request):
+        """Called on the IO thread before a resource request is loaded. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. To
+        optionally filter cookies for the request return a CefCookieAccessFilter
+        object. The |request| object cannot not be modified in this callback.
+        """
+        return None
+
     def on_before_resource_load(self, browser, frame, request, callback):
         """Called on the IO thread before a resource request is loaded. The |browser|
         and |frame| values represent the source of the request, and may be NULL
@@ -9421,6 +9786,15 @@ class ResourceRequestHandler:
         return False
 
 
+cdef CefCookieAccessFilter* _ResourceRequestHandler_get_cookie_access_filter(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request) noexcept with gil:
+    try:
+        _r = (<object>py).get_cookie_access_filter(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)))
+        _r0 = _r
+        return _g_export_CookieAccessFilter(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef int _ResourceRequestHandler_on_before_resource_load(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefCallback* callback) noexcept with gil:
     try:
         _r = (<object>py).on_before_resource_load(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Callback(CefRefPtr[CefCallback](callback)))
@@ -9483,6 +9857,8 @@ cdef CefRefPtr[CefResourceRequestHandler] _g_make_ResourceRequestHandler(object 
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "get_cookie_access_filter", None) is not ResourceRequestHandler.get_cookie_access_filter:
+        cb.fn_get_cookie_access_filter = _ResourceRequestHandler_get_cookie_access_filter
     if getattr(cls, "on_before_resource_load", None) is not ResourceRequestHandler.on_before_resource_load:
         cb.fn_on_before_resource_load = _ResourceRequestHandler_on_before_resource_load
     if getattr(cls, "get_resource_handler", None) is not ResourceRequestHandler.get_resource_handler:
@@ -9603,6 +9979,52 @@ cdef inline CefSchemeHandlerFactory* _g_export_SchemeHandlerFactory(object obj) 
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefSchemeHandlerFactory] ref = _g_make_SchemeHandlerFactory(obj)
     cdef CefSchemeHandlerFactory* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class SetCookieCallback:
+    """Interface to implement to be notified of asynchronous completion via
+    CefCookieManager::SetCookie().
+    """
+
+    def on_complete(self, success):
+        """Method that will be called upon completion. |success| will be true if the
+        cookie was set successfully.
+        """
+        return None
+
+
+cdef void _SetCookieCallback_on_complete(void* py, cpp_bool success) noexcept with gil:
+    try:
+        _r = (<object>py).on_complete(success)
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefSetCookieCallback] _g_make_SetCookieCallback(object obj) except *:
+    cdef CefRefPtr[CefSetCookieCallback] ref
+    cdef CwSetCookieCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, SetCookieCallback):
+        raise TypeError("expected a SetCookieCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_complete", None) is not SetCookieCallback.on_complete:
+        cb.fn_on_complete = _SetCookieCallback_on_complete
+    ref = CefRefPtr[CefSetCookieCallback](<CefSetCookieCallback*>new CwSetCookieCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefSetCookieCallback* _g_export_SetCookieCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefSetCookieCallback] ref = _g_make_SetCookieCallback(obj)
+    cdef CefSetCookieCallback* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -9821,4 +10243,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "ContextMenuHandler", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

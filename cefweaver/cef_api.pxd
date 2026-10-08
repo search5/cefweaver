@@ -26,6 +26,7 @@ cdef extern from "include/internal/cef_ptr.h":
 cdef extern from "include/internal/cef_string.h":
     ctypedef struct cef_string_t:
         pass
+    int cef_string_from_utf8(const char* src, size_t src_len, cef_string_t* output)
     cdef cppclass CefString:
         CefString()
         CefString(const string&)
@@ -348,6 +349,8 @@ cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuParams(CefBaseRefCounted)
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefCookieManager(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefDictionaryValue(CefBaseRefCounted)
 cdef extern from "include/views/cef_display.h":
@@ -408,8 +411,16 @@ cdef extern from "include/cef_zip_reader.h":
     cdef cppclass CefZipReader(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
+cdef extern from "include/cef_callback.h":
+    cdef cppclass CefCompletionCallback(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuHandler(CefBaseRefCounted)
+cdef extern from "include/cef_resource_request_handler.h":
+    cdef cppclass CefCookieAccessFilter(CefBaseRefCounted)
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefCookieVisitor(CefBaseRefCounted)
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefDeleteCookiesCallback(CefBaseRefCounted)
 cdef extern from "include/cef_devtools_message_observer.h":
     cdef cppclass CefDevToolsMessageObserver(CefBaseRefCounted)
 cdef extern from "include/cef_dialog_handler.h":
@@ -450,6 +461,8 @@ cdef extern from "include/cef_browser.h":
     cdef cppclass CefRunFileDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted)
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefSetCookieCallback(CefBaseRefCounted)
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
@@ -595,6 +608,16 @@ cdef extern from "include/cef_context_menu_handler.h":
         cpp_bool IsSpellCheckEnabled() nogil
         cef_context_menu_edit_state_flags_t GetEditStateFlags() nogil
         cpp_bool IsCustomMenu() nogil
+
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefCookieManager(CefBaseRefCounted):
+        cpp_bool VisitAllCookies(CefRefPtr[CefCookieVisitor]) nogil
+        cpp_bool VisitUrlCookies(const CefString&, cpp_bool, CefRefPtr[CefCookieVisitor]) nogil
+        cpp_bool SetCookie(const CefString&, const CefCookie&, CefRefPtr[CefSetCookieCallback]) nogil
+        cpp_bool DeleteCookies(const CefString&, const CefString&, CefRefPtr[CefDeleteCookiesCallback]) nogil
+        cpp_bool FlushStore(CefRefPtr[CefCompletionCallback]) nogil
+        @staticmethod
+        CefRefPtr[CefCookieManager] GetGlobalManager(CefRefPtr[CefCompletionCallback]) nogil
 
 cdef extern from "include/cef_values.h":
     cdef cppclass CefDictionaryValue(CefBaseRefCounted):
@@ -1051,8 +1074,20 @@ cdef extern from "include/cef_zip_reader.h":
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_callback.h":
+    cdef cppclass CefCompletionCallback(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_resource_request_handler.h":
+    cdef cppclass CefCookieAccessFilter(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefCookieVisitor(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefDeleteCookiesCallback(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_devtools_message_observer.h":
     cdef cppclass CefDevToolsMessageObserver(CefBaseRefCounted):
@@ -1114,6 +1149,9 @@ cdef extern from "include/cef_browser.h":
 cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_cookie.h":
+    cdef cppclass CefSetCookieCallback(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted):
         pass
@@ -1150,6 +1188,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) noexcept
     cdef cppclass CwClientProxy(CefClient):
         CwClientProxy(const CwClientCallbacks&)
+    cdef cppclass CwCompletionCallbackCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_complete)(void*) noexcept
+    cdef cppclass CwCompletionCallbackProxy(CefCompletionCallback):
+        CwCompletionCallbackProxy(const CwCompletionCallbackCallbacks&)
     cdef cppclass CwContextMenuHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1162,6 +1206,25 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_quick_menu_dismissed)(void*, CefBrowser*, CefFrame*) noexcept
     cdef cppclass CwContextMenuHandlerProxy(CefContextMenuHandler):
         CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks&)
+    cdef cppclass CwCookieAccessFilterCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_can_send_cookie)(void*, CefBrowser*, CefFrame*, CefRequest*, const CefCookie*) noexcept
+        cpp_bool (*fn_can_save_cookie)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, const CefCookie*) noexcept
+    cdef cppclass CwCookieAccessFilterProxy(CefCookieAccessFilter):
+        CwCookieAccessFilterProxy(const CwCookieAccessFilterCallbacks&)
+    cdef cppclass CwCookieVisitorCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_visit)(void*, const CefCookie*, int, int, cpp_bool*) noexcept
+    cdef cppclass CwCookieVisitorProxy(CefCookieVisitor):
+        CwCookieVisitorProxy(const CwCookieVisitorCallbacks&)
+    cdef cppclass CwDeleteCookiesCallbackCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_complete)(void*, int) noexcept
+    cdef cppclass CwDeleteCookiesCallbackProxy(CefDeleteCookiesCallback):
+        CwDeleteCookiesCallbackProxy(const CwDeleteCookiesCallbackCallbacks&)
     cdef cppclass CwDevToolsMessageObserverCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1341,6 +1404,7 @@ cdef extern from "generated/cefweaver_proxies.h":
     cdef cppclass CwResourceRequestHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
+        CefCookieAccessFilter* (*fn_get_cookie_access_filter)(void*, CefBrowser*, CefFrame*, CefRequest*) noexcept
         int (*fn_on_before_resource_load)(void*, CefBrowser*, CefFrame*, CefRequest*, CefCallback*) noexcept
         CefResourceHandler* (*fn_get_resource_handler)(void*, CefBrowser*, CefFrame*, CefRequest*) noexcept
         void (*fn_on_resource_redirect)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, CefString*) noexcept
@@ -1361,6 +1425,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefResourceHandler* (*fn_create)(void*, CefBrowser*, CefFrame*, const CefString*, CefRequest*) noexcept
     cdef cppclass CwSchemeHandlerFactoryProxy(CefSchemeHandlerFactory):
         CwSchemeHandlerFactoryProxy(const CwSchemeHandlerFactoryCallbacks&)
+    cdef cppclass CwSetCookieCallbackCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_complete)(void*, cpp_bool) noexcept
+    cdef cppclass CwSetCookieCallbackProxy(CefSetCookieCallback):
+        CwSetCookieCallbackProxy(const CwSetCookieCallbackCallbacks&)
     cdef cppclass CwStringVisitorCallbacks:
         void* py
         void (*release)(void*) noexcept

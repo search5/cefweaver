@@ -940,6 +940,64 @@ class ContextMenuParams:
         ...
 
 
+class CookieManager:
+    """Class used for managing cookies. The methods of this class may be called on
+    any thread unless otherwise indicated.
+    """
+    def visit_all_cookies(self, visitor: CookieVisitor) -> bool:
+        """Visit all cookies on the UI thread. The returned cookies are ordered by
+        longest path, then by earliest creation date. Returns false if cookies
+        cannot be accessed.
+        """
+        ...
+    def visit_url_cookies(self, url: str, include_http_only: bool, visitor: CookieVisitor) -> bool:
+        """Visit a subset of cookies on the UI thread. The results are filtered by
+        the given url scheme, host, domain and path. If |includeHttpOnly| is true
+        HTTP-only cookies will also be included in the results. The returned
+        cookies are ordered by longest path, then by earliest creation date.
+        Returns false if cookies cannot be accessed.
+        """
+        ...
+    def set_cookie(self, url: str, cookie: Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, CookieSameSite, CookiePriority], callback: SetCookieCallback | None) -> bool:
+        """Sets a cookie given a valid URL and explicit user-provided cookie
+        attributes. This function expects each attribute to be well-formed. It
+        will check for disallowed characters (e.g. the ';' character is disallowed
+        within the cookie value attribute) and fail without setting the cookie if
+        such characters are found. If |callback| is non-NULL it will be executed
+        asnychronously on the UI thread after the cookie has been set. Returns
+        false if an invalid URL is specified or if cookies cannot be accessed.
+        """
+        ...
+    def delete_cookies(self, url: str | None, cookie_name: str | None, callback: DeleteCookiesCallback | None) -> bool:
+        """Delete all cookies that match the specified parameters. If both |url| and
+        |cookie_name| values are specified all host and domain cookies matching
+        both will be deleted. If only |url| is specified all host cookies (but not
+        domain cookies) irrespective of path will be deleted. If |url| is empty
+        all cookies for all hosts and domains will be deleted. If |callback| is
+        non-NULL it will be executed asnychronously on the UI thread after the
+        cookies have been deleted. Returns false if a non-empty invalid URL is
+        specified or if cookies cannot be accessed. Cookies can alternately be
+        deleted using the Visit*Cookies() methods.
+        """
+        ...
+    def flush_store(self, callback: CompletionCallback | None) -> bool:
+        """Flush the backing store (if any) to disk. If |callback| is non-NULL it
+        will be executed asnychronously on the UI thread after the flush is
+        complete. Returns false if cookies cannot be accessed.
+        """
+        ...
+    @staticmethod
+    def get_global_manager(callback: CompletionCallback | None) -> CookieManager | None:
+        """Returns the global cookie manager. By default data will be stored at
+        cef_settings_t.cache_path if specified or in memory otherwise. If
+        |callback| is non-NULL it will be executed asnychronously on the UI thread
+        after the manager's storage has been initialized. Using this method is
+        equivalent to calling
+        CefRequestContext::GetGlobalContext()->GetDefaultCookieManager().
+        """
+        ...
+
+
 class DictionaryValue:
     """Class representing a dictionary value. Can be used on any process and
     thread.
@@ -2644,6 +2702,13 @@ class Client:
         ...
 
 
+class CompletionCallback:
+    """Generic callback interface used for asynchronous completion."""
+    def on_complete(self) -> None:
+        """Method that will be called once the task is complete."""
+        ...
+
+
 class ContextMenuHandler:
     """Implement this interface to handle context menu events. The methods of this
     class will be called on the UI thread.
@@ -2699,6 +2764,55 @@ class ContextMenuHandler:
     def on_quick_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
         """Called when the quick menu for a windowless browser is dismissed
         irregardless of whether the menu was canceled or a command was selected.
+        """
+        ...
+
+
+class CookieAccessFilter:
+    """Implement this interface to filter cookies that may be sent or received from
+    resource requests. The methods of this class will be called on the IO thread
+    unless otherwise indicated.
+    """
+    def can_send_cookie(self, browser: Browser | None, frame: Frame | None, request: Request, cookie: Cookie) -> bool:
+        """Called on the IO thread before a resource request is sent. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. |request|
+        cannot be modified in this callback. Return true if the specified cookie
+        can be sent with the request or false otherwise.
+        """
+        ...
+    def can_save_cookie(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, cookie: Cookie) -> bool:
+        """Called on the IO thread after a resource response is received. The
+        |browser| and |frame| values represent the source of the request, and may
+        be NULL for requests originating from service workers or CefURLRequest.
+        |request| cannot be modified in this callback. Return true if the
+        specified cookie returned with the response can be saved or false
+        otherwise.
+        """
+        ...
+
+
+class CookieVisitor:
+    """Interface to implement for visiting cookie values. The methods of this class
+    will always be called on the UI thread.
+    """
+    def visit(self, cookie: Cookie, count: int, total: int) -> tuple[bool, bool]:
+        """Method that will be called once for each cookie. |count| is the 0-based
+        index for the current cookie. |total| is the total number of cookies.
+        Set |deleteCookie| to true to delete the cookie currently being visited.
+        Return false to stop visiting cookies. This method may never be called if
+        no cookies are found.
+        """
+        ...
+
+
+class DeleteCookiesCallback:
+    """Interface to implement to be notified of asynchronous completion via
+    CefCookieManager::DeleteCookies().
+    """
+    def on_complete(self, num_deleted: int) -> None:
+        """Method that will be called upon completion. |num_deleted| will be the
+        number of cookies that were deleted.
         """
         ...
 
@@ -3680,6 +3794,14 @@ class ResourceRequestHandler:
     methods of this class will be called on the IO thread unless otherwise
     indicated.
     """
+    def get_cookie_access_filter(self, browser: Browser | None, frame: Frame | None, request: Request) -> CookieAccessFilter | None:
+        """Called on the IO thread before a resource request is loaded. The |browser|
+        and |frame| values represent the source of the request, and may be NULL
+        for requests originating from service workers or CefURLRequest. To
+        optionally filter cookies for the request return a CefCookieAccessFilter
+        object. The |request| object cannot not be modified in this callback.
+        """
+        ...
     def on_before_resource_load(self, browser: Browser | None, frame: Frame | None, request: Request, callback: Callback) -> ReturnValue | int:
         """Called on the IO thread before a resource request is loaded. The |browser|
         and |frame| values represent the source of the request, and may be NULL
@@ -3779,6 +3901,17 @@ class SchemeHandlerFactory:
         request or NULL if the request did not originate from a browser window
         (for example, if the request came from CefURLRequest). The |request|
         object passed to this method cannot be modified.
+        """
+        ...
+
+
+class SetCookieCallback:
+    """Interface to implement to be notified of asynchronous completion via
+    CefCookieManager::SetCookie().
+    """
+    def on_complete(self, success: bool) -> None:
+        """Method that will be called upon completion. |success| will be true if the
+        cookie was set successfully.
         """
         ...
 

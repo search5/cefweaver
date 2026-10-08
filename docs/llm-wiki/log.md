@@ -184,3 +184,7 @@
 ## [2026-10-08] ingest | 격차 메우기 5: 문자열과 시간이 든 구조체, PDF 인쇄
 
 - 구조체가 `cef_string_t`(`str`), `cef_basetime_t`(`datetime`) 필드를 갖고 `CefStructBase<Traits>` 형태여도 열립니다. 구조체가 15개에서 22개가 되었고 모든 필드에 기본값을 줍니다. `PdfPrintCallback`과 `BrowserHost.print_to_pdf`를 열었습니다. F50. 격차 64개에서 63개.
+
+## [2026-10-08] ingest | 격차 메우기 6: 쿠키
+
+- `CefCookieManager`, `CefCookieVisitor`, `CefSetCookieCallback`, `CefDeleteCookiesCallback`, `CefCompletionCallback`, `CefCookieAccessFilter`를 열었습니다. 구조체의 문자열 필드가 CEF에 닿지 않던 결함(복사본에 쓰고 있었음)을 찾아 고쳤습니다. F51. 격차 63개에서 54개.

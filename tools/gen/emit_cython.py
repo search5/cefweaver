@@ -216,6 +216,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         'cdef extern from "include/internal/cef_string.h":',
         "    ctypedef struct cef_string_t:",
         "        pass",
+        "    int cef_string_from_utf8(const char* src, size_t src_len, cef_string_t* output)",
         "    cdef cppclass CefString:",
         "        CefString()",
         "        CefString(const string&)",
@@ -392,8 +393,10 @@ cdef object _g_string_field(const cef_string_t* value):
 
 
 cdef int _g_set_string_field(cef_string_t* target, object value) except -1:
-    cdef CefString text = CefString(target)
-    text.FromString(_g_std(value))
+    # Written into the struct itself: a CefString made from the pointer and assigned in Cython
+    # would be a copy.
+    cdef string utf8 = _g_std(value)
+    cef_string_from_utf8(utf8.c_str(), utf8.size(), target)
     return 0
 
 
