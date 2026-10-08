@@ -38,4 +38,4 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE SDL_VIDEODRIVER=x11 xvfb-run -a -s "-
 - **복사, 잘라내기, 붙여넣기는 루프가 직접 처리합니다.** SDL이 X 선택 요청에 답하는 것도 이 스레드라서, CEF가 같은 프로세스의 선택을 읽으면 아무도 답할 수 없습니다(Tk에서 확인한 것과 같은 종류). `Ctrl+C`/`Ctrl+X`는 `on_text_selection_changed`의 텍스트를 `SDL_SetClipboardText`로 넣고, `Ctrl+V`는 `SDL_GetClipboardText`를 `ime_commit_text`로 넣습니다. 일반 텍스트만 다룹니다.
 - **드롭**: 다른 프로그램의 텍스트와 파일은 `SDL_DROPTEXT`, `SDL_DROPFILE`로 옵니다. SDL은 놓은 **위치를 주지 않으므로** 그때의 포인터 위치를 씁니다. `BrowserView.drop()`이 `dragover`의 답을 기다린 뒤 놓습니다. 점검 스크립트는 텍스트 드롭을 같은 처리 함수에 직접 넣어 확인하고, 다른 프로그램의 실제 XDND 드래그로는 확인하지 않았습니다.
 - **드래그**: SDL은 드래그를 시작할 수 없으므로 페이지 안의 드래그는 루프가 직접 중계합니다(Tk 예제와 같음). 페이지의 요소를 다른 프로그램으로 끄는 것은 지원하지 않습니다.
-- **그리기**: 소프트웨어 렌더러(`SDL_RENDERER_SOFTWARE`)와 `SDL_UpdateTexture`로 더러운 사각형만 올립니다. HiDPI는 렌더러 출력 크기와 창 크기의 비로 배율을 정하지만 X11에서는 SDL이 배율을 주지 않아 1배만 확인했습니다.
+- **그리기**: 소프트웨어 렌더러(`SDL_RENDERER_SOFTWARE`)와 `SDL_UpdateTexture`로 dirty rect만 올립니다. HiDPI는 렌더러 출력 크기와 창 크기의 비로 배율을 정하지만 X11에서는 SDL이 배율을 주지 않아 1배만 확인했습니다.

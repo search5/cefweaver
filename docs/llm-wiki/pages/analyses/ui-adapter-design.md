@@ -35,7 +35,7 @@ updated: 2026-10-08
 | --- | --- | --- | --- | --- | --- | --- |
 | 깨움(어느 스레드에서나) | `GLib.idle_add` | 시그널 | 파이프, `createfilehandler` | `SDL_PushEvent` | `wx.CallAfter` | `Clock.schedule_once` |
 | 기한 | `timeout_add` | `QTimer` | `after` | `SDL_WaitEventTimeout` | `wx.Timer` | `Clock.schedule_once` |
-| 그리기 | cairo, 더러운 행만 복사 | `QImage` | Pillow, 통째로 | 텍스처 부분 갱신 | `wx.Bitmap` 통째로 | `Texture` 통째로, 상하 반전 |
+| 그리기 | cairo, dirty rect만 복사 | `QImage` | Pillow, 통째로 | 텍스처 부분 갱신 | `wx.Bitmap` 통째로 | `Texture` 통째로, 상하 반전 |
 | 클릭 횟수 | 이벤트 종류 | Qt가 줌 | 직접 셈 | `clicks` | 직접 셈 | `is_double_tap` |
 | 휠 | 부드러운 델타 | `angleDelta` | 버튼 4, 5 | 휠 이벤트 | 회전량 | 버튼(이름이 반대) |
 | 한글 조합 | `IMContext` | `inputMethodEvent` | 확정 글자만 | `TEXTEDITING` | 확정 글자만 | `on_textedit` |

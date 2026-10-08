@@ -20,7 +20,7 @@ updated: 2026-10-08
 **`cefweaver.ui` 위에 있습니다**([UI 어댑터 API](ui-api.md)). 핸들러, 이벤트 조립, 클릭 횟수, 입력기 호출, 드래그 앤 드롭의 순서는 `BrowserView`가 맡고, 이 파일은 GTK가 해야 하는 일만 합니다(663줄에서 555줄). 아래 `Runtime`은 `ui.Session`의 얇은 하위 클래스입니다.
 
 - **`Runtime`**: `CefApp` 하나, `JavascriptBridge`, `MessagePump`를 만들고 GLib 메인 루프에 잇습니다. `MessagePump`의 `wake`(CEF의 어느 스레드에서나 불림)는 `GLib.idle_add`로, 기한은 `GLib.timeout_add`로 받으므로 폴링이 없습니다([F62](verified-findings-handlers.md)).
-- **`CefWidget`**: `on_paint`의 BGRA 버퍼를 더러운 사각형의 행만 `bytearray`에 복사해 cairo `ImageSurface`(ARGB32)로 그립니다. HiDPI는 `set_device_scale`로 맞춥니다. 팝업(`<select>`)은 두 번째 표면으로 그립니다. 마우스, 휠, 키는 GTK 이벤트를 CEF 이벤트로 바꾸고(`windows_key_code` 표, 수정자, `RAWKEYDOWN`/`CHAR`/`KEYUP`), 한글은 `Gtk.IMMulticontext`의 `commit`과 `preedit-changed`를 `ime_commit_text`와 `ime_set_composition`으로 잇습니다. `on_ime_composition_range_changed`의 글자 경계로 입력기의 후보 창 위치를 정합니다.
+- **`CefWidget`**: `on_paint`의 BGRA 버퍼를 dirty rect의 행만 `bytearray`에 복사해 cairo `ImageSurface`(ARGB32)로 그립니다. HiDPI는 `set_device_scale`로 맞춥니다. 팝업(`<select>`)은 두 번째 표면으로 그립니다. 마우스, 휠, 키는 GTK 이벤트를 CEF 이벤트로 바꾸고(`windows_key_code` 표, 수정자, `RAWKEYDOWN`/`CHAR`/`KEYUP`), 한글은 `Gtk.IMMulticontext`의 `commit`과 `preedit-changed`를 `ime_commit_text`와 `ime_set_composition`으로 잇습니다. `on_ime_composition_range_changed`의 글자 경계로 입력기의 후보 창 위치를 정합니다.
 
 ## 확인한 것 (실제 GTK 창, Xvfb, 3번 연속과 HiDPI)
 

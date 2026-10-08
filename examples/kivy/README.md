@@ -37,6 +37,6 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE SDL_VIDEODRIVER=x11 xvfb-run -a -s "-
 - **복사, 잘라내기, 붙여넣기는 위젯이 직접 처리합니다.** `Ctrl+C`/`Ctrl+X`는 `on_text_selection_changed`의 텍스트를 `Clipboard.copy`로 넣고(잘라내기는 `frame.delete()`), `Ctrl+V`는 `Clipboard.paste`의 텍스트를 `ime_commit_text`로 넣습니다. 일반 텍스트만 다룹니다.
 - **드롭**: 다른 프로그램의 텍스트와 파일은 `on_drop_text`, `on_drop_file`로 오고 위치(`x`, `y`, 창 안의 화소, 아래쪽이 +)를 줍니다. `enter`와 `over`를 먼저 보내고 `update_drag_cursor`의 답이 오면 `drop`을 보냅니다(wx 예제에서 한꺼번에 보내면 첫 드롭이 사라진 일이 있어서). 점검 스크립트는 창이 줄 이벤트를 같은 처리 함수에 직접 넣어 확인하고, 다른 프로그램의 실제 XDND 드래그로는 확인하지 않았습니다.
 - **드래그**: Kivy에는 드래그를 시작하는 수단이 없으므로 페이지 안의 드래그는 위젯이 직접 중계합니다(Tk, SDL2 예제와 같음). 페이지의 요소를 다른 프로그램으로 끄는 것은 지원하지 않습니다.
-- **그리기**: 더러운 사각형을 쓰지 않고 한 프레임을 통째로 올립니다(`blit_buffer`). 텍스처는 `flip_vertical()`로 위아래를 맞춥니다.
+- **그리기**: dirty rect를 쓰지 않고 한 프레임을 통째로 올립니다(`blit_buffer`). 텍스처는 `flip_vertical()`로 위아래를 맞춥니다.
 - **HiDPI**: `Metrics.density`를 화면 배율로 전하지만 1배만 확인했습니다.
 - 마우스 설정 `mouse,disable_multitouch`는 오른쪽 클릭이 붉은 점(다중 터치)이 되지 않게 합니다.
