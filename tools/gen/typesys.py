@@ -86,9 +86,14 @@ class Vector(Kind):
 
 @dataclass(frozen=True)
 class Buffer(Kind):
-    """`void* data, <integer> size`: a writable memoryview in Python."""
+    """`void* data, <integer> size`: a writable memoryview in Python. A `const void*` of
+    which the header gives the size in words (OnPaint: width * height pixels) has no size
+    parameter: `size_expr` is the C++ expression of its size in bytes, and the memoryview is
+    read-only."""
 
     size_cpp: str  # type of the size parameter
+    size_expr: str = ""  # C++ size in bytes, when there is no size parameter
+    readonly: bool = False
 
 
 _PRIMITIVES = {
@@ -232,6 +237,16 @@ class MethodPlan:
         return found + [(p.name, p.kind) for p in self.outs]
 
 
+# A `const void*` parameter without a size parameter: the buffer is as large as the header
+# says in its comment. Keyed by (class, method, parameter); the value is the C++ expression
+# of the size in bytes, which may use the other parameters.
+SIZED_BUFFERS = {
+    # "|buffer| ... contains |width|*|height|*4 bytes of BGRA pixel data" (cef_render_handler.h)
+    ("CefRenderHandler", "OnPaint", "buffer"):
+        "static_cast<size_t>(width) * static_cast<size_t>(height) * 4",
+}
+
+
 def plan_method(model, scope, owner, method, *, client_side, static=False):
     """Decide how one method or function is generated (or why it is not)."""
     plan = MethodPlan(
@@ -256,6 +271,13 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
             analysis = argument.get_type()
             name = argument.get_name()
             if analysis.get_type() == "void" and analysis.is_byaddr():
+                expr = SIZED_BUFFERS.get((owner, method.get_name(), name))
+                if client_side and expr:
+                    plan.params.append(ParamPlan(
+                        name, py_param_name(name), "void*",
+                        Buffer("size_t", size_expr=expr, readonly=True), const=True))
+                    i += 1
+                    continue
                 # `void* data, <integer> size` -> Buffer
                 if not client_side or i + 1 >= len(arguments):
                     raise Unsupported("untyped pointer parameter %s" % name)

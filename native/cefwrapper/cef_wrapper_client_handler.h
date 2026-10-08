@@ -28,6 +28,7 @@ class CefWrapperClientHandler : public CefClient,
                       public CwDragHandlerForward,
                       public CwLifeSpanHandlerForward,
                       public CwLoadHandlerForward,
+                      public CwRenderHandlerForward,
                       public CwContextMenuHandlerForward {
 public:
 
@@ -94,6 +95,12 @@ public:
     return this;
   }
 
+  // Nothing in the wrapper needs the paint events: they only go to the user's handler.
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override {
+    forward_render_handler_ = user_client_ ? user_client_->GetRenderHandler() : nullptr;
+    return forward_render_handler_ ? this : nullptr;
+  }
+
   CefRefPtr<CefLoadHandler> GetLoadHandler() override {
     forward_load_handler_ = user_client_ ? user_client_->GetLoadHandler() : nullptr;
     return this;
@@ -106,6 +113,15 @@ public:
   // CefLifeSpanHandler methods:
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
   bool DoClose(CefRefPtr<CefBrowser> browser) override;
+  // An offscreen browser has no window for a popup (java-cef blocks them as well); in a
+  // windowed one the user's handler decides, as before, and CEF opens the popup by default.
+  bool OnBeforePopup(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int popup_id,
+                     const CefString& target_url, const CefString& target_frame_name,
+                     cef_window_open_disposition_t target_disposition, bool user_gesture,
+                     const CefPopupFeatures& popupFeatures, CefWindowInfo& windowInfo,
+                     CefRefPtr<CefClient>& client, CefBrowserSettings& settings,
+                     CefRefPtr<CefDictionaryValue>& extra_info,
+                     bool* no_javascript_access) override;
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 
   // CefLoadHandler methods:

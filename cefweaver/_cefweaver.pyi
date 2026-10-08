@@ -56,6 +56,14 @@ class CefApp:
     def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
+    @property
+    def offscreen(self) -> bool: ...
+    @offscreen.setter
+    def offscreen(self, value: bool) -> None: ...
+    @property
+    def windowless_frame_rate(self) -> int: ...
+    @windowless_frame_rate.setter
+    def windowless_frame_rate(self, value: int) -> None: ...
     def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None: ...
     def initialize(self, start_url: str = "about:blank") -> None: ...
     def do_message_loop_work(self) -> None: ...
@@ -90,6 +98,7 @@ from .types import (
     DuplexMode,
     ErrorCode,
     EventFlags,
+    HorizontalAlignment,
     LogSeverity,
     MenuColorType,
     MenuItemType,
@@ -101,6 +110,7 @@ from .types import (
     ResourceType,
     RuntimeStyle,
     State,
+    TextInputMode,
     TransitionType,
     ValueType,
     WindowOpenDisposition,
@@ -2027,6 +2037,9 @@ class Client:
     def get_load_handler(self) -> LoadHandler | None:
         """Return the handler for browser load status events."""
         ...
+    def get_render_handler(self) -> RenderHandler | None:
+        """Return the handler for off-screen rendering events."""
+        ...
     def on_process_message_received(self, browser: Browser, frame: Frame, source_process: ProcessId, message: ProcessMessage) -> bool:
         """Called when a new message is received from a different process. Return
         true if the message was handled or false otherwise.  It is safe to keep a
@@ -2430,6 +2443,85 @@ class MenuModelDelegate:
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
         """Optionally modify a menu item label. Return true if |label| was modified."""
+        ...
+
+
+class RenderHandler:
+    """Implement this interface to handle events when window rendering is disabled.
+    The methods of this class will be called on the UI thread.
+    """
+    def get_root_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
+        """Called to retrieve the root window rectangle in screen DIP coordinates.
+        Return true if the rectangle was provided. If this method returns false
+        the rectangle from GetViewRect will be used.
+        """
+        ...
+    def get_view_rect(self, browser: Browser) -> Rect | tuple[int, int, int, int]:
+        """Called to retrieve the view rectangle in screen DIP coordinates. This
+        method must always provide a non-empty rectangle.
+        """
+        ...
+    def get_screen_point(self, browser: Browser, view_x: int, view_y: int) -> tuple[bool, int, int]:
+        """Called to retrieve the translation from view DIP coordinates to screen
+        coordinates. Windows/Linux should provide screen device (pixel)
+        coordinates and MacOS should provide screen DIP coordinates. Return true
+        if the requested coordinates were provided.
+        """
+        ...
+    def on_popup_show(self, browser: Browser, show: bool) -> None:
+        """Called when the browser wants to show or hide the popup widget. The popup
+        should be shown if |show| is true and hidden if |show| is false.
+        """
+        ...
+    def on_popup_size(self, browser: Browser, rect: Rect) -> None:
+        """Called when the browser wants to move or resize the popup widget. |rect|
+        contains the new location and size in view coordinates.
+        """
+        ...
+    def on_paint(self, browser: Browser, type: PaintElementType, dirty_rects: list[Rect], buffer: memoryview, width: int, height: int) -> None:
+        """Called when an element should be painted. Pixel values passed to this
+        method are scaled relative to view coordinates based on the value of
+        CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
+        indicates whether the element is the view or the popup widget. |buffer|
+        contains the pixel data for the whole image. |dirtyRects| contains the set
+        of rectangles in pixel coordinates that need to be repainted. |buffer|
+        will be |width|*|height|*4 bytes in size and represents a BGRA image with
+        an upper-left origin. This method is only called when
+        CefWindowInfo::shared_texture_enabled is set to false.
+        """
+        ...
+    def get_touch_handle_size(self, browser: Browser, orientation: HorizontalAlignment) -> Size | tuple[int, int]:
+        """Called to retrieve the size of the touch handle for the specified
+        |orientation|.
+        """
+        ...
+    def update_drag_cursor(self, browser: Browser, operation: DragOperationsMask) -> None:
+        """Called when the web view wants to update the mouse cursor during a
+        drag & drop operation. |operation| describes the allowed operation
+        (none, move, copy, link).
+        """
+        ...
+    def on_scroll_offset_changed(self, browser: Browser, x: float, y: float) -> None:
+        """Called when the scroll offset has changed."""
+        ...
+    def on_ime_composition_range_changed(self, browser: Browser, selected_range: Range, character_bounds: list[Rect]) -> None:
+        """Called when the IME composition range has changed. |selected_range| is the
+        range of characters that have been selected. |character_bounds| is the
+        bounds of each character in view coordinates.
+        """
+        ...
+    def on_text_selection_changed(self, browser: Browser, selected_text: str, selected_range: Range) -> None:
+        """Called when text selection has changed for the specified |browser|.
+        |selected_text| is the currently selected text and |selected_range| is
+        the character range.
+        """
+        ...
+    def on_virtual_keyboard_requested(self, browser: Browser, input_mode: TextInputMode) -> None:
+        """Called when an on-screen keyboard should be shown or hidden for the
+        specified |browser|. |input_mode| specifies what kind of keyboard
+        should be opened. If |input_mode| is CEF_TEXT_INPUT_MODE_NONE, any
+        existing keyboard for this browser should be hidden.
+        """
         ...
 
 

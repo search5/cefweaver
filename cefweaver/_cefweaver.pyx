@@ -391,6 +391,33 @@ cdef class CefApp:
         (<_QueryBridge>bridge).registered = False
         return bool(done)
 
+    @property
+    def offscreen(self):
+        """Whether the browser is rendered offscreen (off by default): it has no window, and CEF
+        draws into the buffer that ``RenderHandler.on_paint()`` of the client receives. The
+        client must have a render handler (``get_view_rect()`` gives the size). Popups are
+        blocked, as in java-cef. It can be changed before ``initialize()`` only."""
+        return bool(self._wrapper.Offscreen())
+
+    @offscreen.setter
+    def offscreen(self, value):
+        self._require_not_initialized()
+        self._wrapper.SetOffscreen(bool(value))
+
+    @property
+    def windowless_frame_rate(self):
+        """Frames per second of an offscreen browser (1 to 60, 30 by default); it is the
+        upper bound of the ``on_paint()`` calls. Before ``initialize()`` only."""
+        return int(self._wrapper.WindowlessFrameRate())
+
+    @windowless_frame_rate.setter
+    def windowless_frame_rate(self, value):
+        self._require_not_initialized()
+        value = int(value)
+        if not 1 <= value <= 60:
+            raise ValueError("the frame rate must be from 1 to 60, not %d" % value)
+        self._wrapper.SetWindowlessFrameRate(value)
+
     def add_javascript_binding(self, name, callback):
         """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
 

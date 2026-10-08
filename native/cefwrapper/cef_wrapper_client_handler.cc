@@ -171,6 +171,17 @@ void CefWrapperClientHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
   CwLifeSpanHandlerForward::OnAfterCreated(browser);
 }
 
+bool CefWrapperClientHandler::OnBeforePopup(
+    CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int popup_id,
+    const CefString& target_url, const CefString& target_frame_name,
+    cef_window_open_disposition_t target_disposition, bool user_gesture,
+    const CefPopupFeatures& popupFeatures, CefWindowInfo& windowInfo,
+    CefRefPtr<CefClient>& client, CefBrowserSettings& settings,
+    CefRefPtr<CefDictionaryValue>& extra_info, bool* no_javascript_access) {
+  CEF_REQUIRE_UI_THREAD();
+  return browser->GetHost()->IsWindowRenderingDisabled();  // true cancels the popup
+}
+
 bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
 
@@ -253,9 +264,11 @@ void CefWrapperClientHandler::CloseAllBrowsers(bool force_close) {
   if (browser_list_.empty())
     return;
 
-  BrowserList::const_iterator it = browser_list_.begin();
-  for (; it != browser_list_.end(); ++it)
-    (*it)->GetHost()->CloseBrowser(force_close);
+  // Closing a browser without a window (offscreen) runs OnBeforeClose right away, which
+  // removes it from browser_list_: walk a copy.
+  const BrowserList browsers = browser_list_;
+  for (const auto& browser : browsers)
+    browser->GetHost()->CloseBrowser(force_close);
 }
 
 

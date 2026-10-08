@@ -94,6 +94,8 @@ def table_param_types(plan):
 def declaration(param):
     """The parameter as it is declared in the CEF header."""
     if isinstance(param.kind, Buffer):
+        if param.kind.size_expr:
+            return "const void* %s" % param.cef_name
         return "void* %s, %s %s" % (param.cef_name, param.kind.size_cpp, param.size_name)
     text = ("const " if param.const else "") + param.spelled + ("&" if param.byref else "")
     return "%s %s" % (text, param.cef_name)
@@ -104,7 +106,7 @@ def call_arguments(plan):
     names = []
     for param in plan.params:
         names.append(param.cef_name)
-        if isinstance(param.kind, Buffer):
+        if isinstance(param.kind, Buffer) and not param.kind.size_expr:
             names.append(param.size_name)
     return names
 
@@ -157,7 +159,9 @@ def _method(model, cls, plan):
         elif isinstance(kind, LibRef):
             args.append("%s.get()" % name)
         elif isinstance(kind, Buffer):
-            args += [name, param.size_name]
+            # The function table takes void*; a read-only view never writes through it.
+            args += ["const_cast<void*>(%s)" % name if param.kind.readonly else name,
+                     param.kind.size_expr or param.size_name]
     call = "cb_.%s(%s)" % (field, ", ".join(args))
 
     ret = plan.ret

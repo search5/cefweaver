@@ -40,6 +40,7 @@ CLIENT_CLASSES = [
     "CefMenuModelDelegate",
     "CefDragHandler",
     "CefContextMenuHandler",
+    "CefRenderHandler",
 ]
 
 # Global functions.

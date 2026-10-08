@@ -48,6 +48,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_event_flags_t:
         pass
+    ctypedef enum cef_horizontal_alignment_t:
+        pass
     ctypedef enum cef_log_severity_t:
         pass
     ctypedef enum cef_menu_color_type_t:
@@ -69,6 +71,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_runtime_style_t:
         pass
     ctypedef enum cef_state_t:
+        pass
+    ctypedef enum cef_text_input_mode_t:
         pass
     ctypedef enum cef_transition_type_t:
         pass
@@ -172,6 +176,8 @@ cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
+cdef extern from "include/cef_render_handler.h":
+    cdef cppclass CefRenderHandler(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted)
 cdef extern from "include/cef_scheme.h":
@@ -632,6 +638,9 @@ cdef extern from "include/cef_load_handler.h":
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_render_handler.h":
+    cdef cppclass CefRenderHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceHandler(CefBaseRefCounted):
         pass
@@ -657,6 +666,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
+        CefRenderHandler* (*fn_get_render_handler)(void*) noexcept
         cpp_bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) noexcept
     cdef cppclass CwClientProxy(CefClient):
         CwClientProxy(const CwClientCallbacks&)
@@ -725,6 +735,23 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_format_label)(void*, CefMenuModel*, CefString*) noexcept
     cdef cppclass CwMenuModelDelegateProxy(CefMenuModelDelegate):
         CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks&)
+    cdef cppclass CwRenderHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_get_root_screen_rect)(void*, CefBrowser*, CefRect*) noexcept
+        void (*fn_get_view_rect)(void*, CefBrowser*, CefRect*) noexcept
+        cpp_bool (*fn_get_screen_point)(void*, CefBrowser*, int, int, int*, int*) noexcept
+        void (*fn_on_popup_show)(void*, CefBrowser*, cpp_bool) noexcept
+        void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) noexcept
+        void (*fn_on_paint)(void*, CefBrowser*, int, const vector[CefRect]*, void*, size_t, int, int) noexcept
+        void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) noexcept
+        void (*fn_update_drag_cursor)(void*, CefBrowser*, int) noexcept
+        void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) noexcept
+        void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const vector[CefRect]*) noexcept
+        void (*fn_on_text_selection_changed)(void*, CefBrowser*, const CefString*, const CefRange*) noexcept
+        void (*fn_on_virtual_keyboard_requested)(void*, CefBrowser*, int) noexcept
+    cdef cppclass CwRenderHandlerProxy(CefRenderHandler):
+        CwRenderHandlerProxy(const CwRenderHandlerCallbacks&)
     cdef cppclass CwResourceHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

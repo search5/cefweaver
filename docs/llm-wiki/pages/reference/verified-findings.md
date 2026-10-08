@@ -107,6 +107,17 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - **결과**: 같은 사이트(`a.test`)의 iframe은 로드되고(`load-end` 200, `iframe-onload`), 다른 사이트(`b.test`)의 iframe은 오류도 로드 완료도 없이 멈춥니다. `site-per-process` 유무와 질의 핸들러 유무와 관계없이 같았고, `b.test`를 메인 프레임으로 여는 것은 정상이었습니다.
 - **미확인**: 원인(두 번째 호스트의 스킴 핸들러, 프로세스 전환, CEF 문제 등)과 cefsimple에서도 같은지는 조사하지 않았습니다. 그래서 사이트 격리로 프로세스가 갈리는 프레임에서 메시지 라우터가 동작하는지는 **확인하지 못했습니다.**
 
+## F38. 오프스크린 렌더링
+
+- **방법**: `offscreen = True`와 `RenderHandler`로 빨간 페이지를 그리고, 크기 변경, 마우스 클릭, 팝업을 시험했습니다.
+- **결과**:
+  - `on_paint`가 `PaintElementType.VIEW`, 200x100, 길이 80000(`200*100*4`)의 **읽기 전용** `memoryview`를 받고 첫 픽셀이 BGRA의 빨강(`00 00 ff ff`)입니다. `dirty_rects`는 `Rect`의 목록이고 화면 안입니다. 호출이 끝난 뒤 뷰를 쓰면 `ValueError`입니다. `get_host().is_window_rendering_disabled()`는 `True`.
+  - `get_view_rect`가 돌려준 `Rect`(핸들러의 **구조체 출력**)가 CEF에 전달됩니다. 크기를 바꾸고 `was_resized()`를 부르면 `320x240` 프레임이 옵니다. 이로써 구조체 출력 경로를 Python 핸들러까지 확인했습니다([알려진 제약과 미검증 항목](known-constraints.md)).
+  - `send_mouse_click_event`가 오프스크린 페이지의 `onclick`에 닿습니다(입력은 준비 전에 버려지므로 다시 보냄, 기존 규칙).
+  - `window.open`은 `null`(막힘)이고 브라우저는 하나뿐입니다.
+- **발견(결함, 수정)**: `shutdown()`이 `SIGSEGV`로 죽었습니다. 창이 없는 브라우저는 `CloseBrowser(true)` 안에서 `OnBeforeClose`가 바로 실행되어 `browser_list_`에서 항목이 지워지는데, `CloseAllBrowsers`가 같은 목록을 순회하고 있어 반복자가 무효가 되었습니다. 복사본을 순회하도록 고쳤습니다(창 있는 브라우저는 닫기가 비동기라 드러나지 않았음).
+- **영향**: 오프스크린 렌더링이 열렸습니다([오프스크린 렌더링](offscreen-rendering.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)

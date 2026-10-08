@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 29개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 454개 가운데 402개가 생성되고 52개가 제외되며, 함수 3개를 더해 405개입니다.
+범위(`scope.py`)는 클래스 30개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 471개 가운데 415개가 생성되고 56개가 제외되며, 함수 3개를 더해 418개입니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |
@@ -90,9 +90,9 @@ updated: 2026-10-08
 
 `CefClient`를 사용자 객체로 위임하는 구조와 `LoadHandler`, `LifeSpanHandler`, `DisplayHandler`는 2026-10-08에 구현했고([설계 결정 기록](design-decisions.md)), 이어서 값 타입 구조체(`Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`), `CefBrowserHost`, 문자열 벡터, 라이브러리 메서드의 출력 인자(`MenuModel`, `Display`), 벡터의 요소 종류 확대(구조체 목록, 객체 목록, 정수 목록, 중첩 구조체)와 `DragHandler`, 컨텍스트 메뉴(`ContextMenuHandler`, `ContextMenuParams`), 프로세스 메시지와 값 컨테이너(`ProcessMessage`, `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`)를 지원했습니다. 남은 선택지는 보고서 기준으로 다음과 같으며 어느 쪽을 먼저 진행할지는 아직 정해지지 않았습니다.
 
-1. 나머지 핸들러 13개를 `CefClient`에 추가합니다(요청, 키보드, 포커스, 다운로드 등). 오프스크린 렌더링의 `CefRenderHandler.on_paint`는 구조체 목록(`dirty_rects`)은 준비되었고 `const void*` 버퍼(읽기 전용 메모리 뷰)가 남았습니다.
+1. 나머지 핸들러 12개를 `CefClient`에 추가합니다(요청, 키보드, 포커스, 다운로드 등). `CefRenderHandler`는 추가했습니다([오프스크린 렌더링](offscreen-rendering.md)).
 2. 구조체 종류를 넓힙니다(`size` 머리가 있는 `CefKeyEvent`, `CefPopupFeatures`, `CefCompositionUnderline` 등). 벡터의 마지막 장애물(9건)도 대부분 여기에 있습니다.
-3. 읽기용 버퍼 종류(`const void*`와 크기: `BinaryValue.create`, 오프스크린 `on_paint`의 `buffer`). 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
+3. 읽기용 버퍼 종류의 나머지: 오프스크린 `on_paint`의 `buffer`는 열렸고(크기 규칙 표 `SIZED_BUFFERS`), `BinaryValue.create`(포인터와 명시적인 크기 쌍을 라이브러리 메서드가 받음)와 `get_data`가 남았습니다. 메시지 라우터는 손으로 쓴 중계로 열렸습니다([메시지 라우터](message-router.md)).
 4. 객체 참조 출력 인자(`CefRefPtr<T>&`, 5건)와 라이브러리 메서드에 주는 객체 목록(4건).
 5. 네이티브 Wayland에서 Alloy 스타일이 죽는 원인 조사(나중에 하기로 함). 지금은 `DISPLAY`가 있으면 X11을 기본으로 써서 피했을 뿐입니다. 순수 Wayland 세션(`DISPLAY` 없음)과 GUI 툴킷 임베딩에 필요합니다. 첫 실험은 래퍼를 `cefsimple`처럼 `CefRunMessageLoop`으로 돌려 비교하는 것입니다([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)).
 

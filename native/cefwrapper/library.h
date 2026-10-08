@@ -38,6 +38,11 @@ public:
   // at any time and applies to the menus built afterwards.
   void SetDevToolsMenuEnabled(bool enabled);
   bool DevToolsMenuEnabled();
+  // Offscreen rendering and its frame rate; read when the browser is created.
+  void SetOffscreen(bool enabled);
+  bool Offscreen();
+  void SetWindowlessFrameRate(int frames_per_second);
+  int WindowlessFrameRate();
   // The message router (window.cefQuery): see query_router.h. The names must be set before
   // InitCefSimple(); a handler can be added before it (and, once CEF runs, at any time) only
   // if it was added before, because the renderer learns about the router at startup.

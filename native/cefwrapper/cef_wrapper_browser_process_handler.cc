@@ -5,6 +5,7 @@
 #include "cef_wrapper_render_process_handler.h"
 #include "custom_protocol_scheme_handler.h"
 #include "javascript_binding.h"
+#include "global_vars.h"
 #include "query_router.h"
 
 CefWrapperBrowserProcessHandler::CefWrapperBrowserProcessHandler() = default;
@@ -71,6 +72,11 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   // Alloy style only, as in java-cef: it adds the client callbacks (DoClose, ...) and
   // supports a client-provided parent window and windowless rendering.
   window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+  if (g_Offscreen.load()) {
+    // No window: CEF draws into the buffer of the user's render handler.
+    window_info.SetAsWindowless(kNullWindowHandle);
+    browser_settings.windowless_frame_rate = g_WindowlessFrameRate.load();
+  }
 
 #if defined(OS_WIN)
   // On Windows we need to specify certain flags that will be passed to

@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, ClientRef, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -91,6 +91,32 @@ class WithHeaders(unittest.TestCase):
         self.assertTrue(plan.supported, plan.reason)
         self.assertEqual([p.name for p in plan.ins], ["data_out", "callback"])
         self.assertEqual(plan.params[0].size_name, "bytes_to_read")
+
+    def test_a_read_only_buffer_whose_size_is_a_rule_of_the_method(self):
+        # OnPaint(browser, type, dirty_rects, const void* buffer, width, height): the header
+        # says the buffer holds width * height 32-bit pixels, and no size is passed.
+        plan = self.plan("CefRenderHandler", "OnPaint")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([p.name for p in plan.ins],
+                         ["browser", "type", "dirty_rects", "buffer", "width", "height"])
+        buffer = plan.params[3]
+        self.assertIsInstance(buffer.kind, Buffer)
+        self.assertTrue(buffer.kind.readonly)
+        self.assertIn("width", buffer.kind.size_expr)
+        self.assertIn("height", buffer.kind.size_expr)
+        self.assertEqual(buffer.size_name, "")
+
+    def test_the_render_handler_is_generated_and_gives_a_read_only_view(self):
+        self.assertTrue(self.scope.is_client("CefRenderHandler"))
+        files = generate_outputs()
+        with open(files["pxi"], encoding="utf-8") as f:
+            self.assertIn("PyBUF_READ", f.read())
+        with open(files["pyi"], encoding="utf-8") as f:
+            stub = f.read()
+        self.assertIn("class RenderHandler:", stub)
+        self.assertIn("def on_paint(self, browser: Browser, type: PaintElementType, "
+                      "dirty_rects: list[Rect], buffer: memoryview, width: int, height: int)",
+                      stub)
 
     def test_enumerations_are_told_apart_from_structs(self):
         plan = self.plan("CefRequest", "GetResourceType")

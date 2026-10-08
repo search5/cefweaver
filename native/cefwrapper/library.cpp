@@ -199,6 +199,12 @@ bool CefWrapper::RemoveQueryHandler(PythonQueryHandler* handler) {
   return QueryRouter::RemoveHandler(handler);
 }
 bool CefWrapper::QueryRouterExists() { return QueryRouter::Exists(); }
+void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
+bool CefWrapper::Offscreen() { return g_Offscreen.load(); }
+void CefWrapper::SetWindowlessFrameRate(int frames_per_second) {
+  g_WindowlessFrameRate.store(frames_per_second);
+}
+int CefWrapper::WindowlessFrameRate() { return g_WindowlessFrameRate.load(); }
 void CefWrapper::SetClient(CefRefPtr<CefClient> client) {
   m_Client = client;
 }

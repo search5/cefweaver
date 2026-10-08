@@ -127,3 +127,8 @@
 ## [2026-10-08] query | 자식 프로세스 스위치를 java-cef는 어떻게 처리하는가
 
 - java-cef 소스와 위키로 확인: 스위치 전달 수단이 브라우저 프로세스 한정이고 `OnBeforeChildProcessLaunch`가 없습니다. 사용자가 java-cef 수준에 머물기로 해서, 자식에게 스위치를 보내는 옵션을 만들지 않는 결정을 기록했습니다.
+
+## [2026-10-08] ingest | 오프스크린 렌더링의 첫 단계 (읽기용 버퍼, RenderHandler)
+
+- 생성기에 읽기용 버퍼 종류(`SIZED_BUFFERS`, `OnPaint`의 `width * height * 4`)를 더하고 `CefRenderHandler`를 범위에 넣었습니다(14개 메서드). 래퍼는 `offscreen`, `windowless_frame_rate`, `GetRenderHandler` 전달, 오프스크린 팝업 차단을 더했습니다. 시험 7개를 먼저 쓰고 이전 wheel에서 실패하는 것을 확인했고 전체 153개가 통과합니다.
+- 새 페이지 [오프스크린 렌더링](pages/reference/offscreen-rendering.md), 확인한 사실 F38(구조체 출력 경로 확인, `shutdown()`의 반복자 무효화 결함 수정). 설계 결정의 표에서 앞서 빈 줄로 떨어져 있던 행 셋을 표에 붙였습니다.

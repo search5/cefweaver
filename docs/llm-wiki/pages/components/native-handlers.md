@@ -69,6 +69,8 @@ updated: 2026-10-08
 | `OnProcessMessageReceived` | **메시지 라우터가 먼저**(라우터의 메시지이면 `true`, [메시지 라우터](../reference/message-router.md)). 이름이 `javascript-python-binding`, `javascript-binding`인 메시지는 풀어서 등록된 핸들러를 부르고 `true`(사용자에게 가지 않음). **그 밖의 이름은 사용자의 클라이언트에 넘기고** 사용자가 없으면 `false`([JavaScript 바인딩](../concepts/javascript-bindings.md)). |
 | 컨텍스트 메뉴 | `OnBeforeContextMenu`: 사용자 먼저, 그 뒤에 래퍼가 DevTools 항목을 더함(켜져 있을 때만, ID는 28498~28500). `OnContextMenuCommand`: 래퍼의 ID는 래퍼가, 그 밖은 사용자에게 넘기고 사용자가 없으면 `false`. 나머지 메서드(`RunContextMenu`, 빠른 메뉴)는 전달 클래스가 사용자에게 곧바로 넘깁니다. |
 
+`GetRenderHandler()`는 사용자의 렌더 핸들러를 전달하고(없으면 `nullptr`), `OnBeforePopup`은 오프스크린 브라우저의 팝업을 막습니다. `CloseAllBrowsers`는 목록의 복사본을 순회합니다([오프스크린 렌더링](../reference/offscreen-rendering.md)).
+
 `GetRequestHandler()`는 메시지 라우터가 있을 때만 래퍼 자신을 돌려줍니다. `OnBeforeBrowse`(허용하고 라우터에 알림)와 `OnRenderProcessTerminated`는 라우터만을 위한 것이고, `OnBeforeClose`도 라우터에 알립니다. 브라우저 프로세스 핸들러의 `OnBeforeChildProcessLaunch`는 라우터의 JavaScript 함수 이름을 렌더러의 명령줄에 붙입니다.
 
 `CloseAllBrowsers(bool force_close)`는 UI 스레드가 아니면 작업을 UI 스레드에 게시합니다. `IsChromeRuntimeEnabled()`는 명령줄 스위치 `enable-chrome-runtime`를 확인합니다. `HasOpenBrowsers()`는 종료 과정에서 브라우저가 다 닫혔는지 확인하는 용도로 추가했습니다.

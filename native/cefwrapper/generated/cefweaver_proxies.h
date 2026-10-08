@@ -17,6 +17,7 @@
 #include "include/cef_menu_model_delegate.h"
 #include "include/cef_print_settings.h"
 #include "include/cef_process_message.h"
+#include "include/cef_render_handler.h"
 #include "include/cef_request.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
@@ -68,6 +69,13 @@ class CwClientForward : public CefClient {
     return forward_client_->GetLoadHandler();
   }
 
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetRenderHandler();
+    }
+    return forward_client_->GetRenderHandler();
+  }
+
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override {
     if (!forward_client_) {
       return CefClient::OnProcessMessageReceived(browser, frame, source_process, message);
@@ -84,6 +92,7 @@ struct CwClientCallbacks {
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
   CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
+  CefRenderHandler* (*fn_get_render_handler)(void*) = nullptr;
   bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) = nullptr;
 };
 
@@ -154,6 +163,19 @@ class CwClientProxy : public CefClient {
     }
     CefLoadHandler* raw = cb_.fn_get_load_handler(cb_.py);
     CefRefPtr<CefLoadHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override {
+    if (!cb_.fn_get_render_handler) {
+      return CefClient::GetRenderHandler();
+    }
+    CefRenderHandler* raw = cb_.fn_get_render_handler(cb_.py);
+    CefRefPtr<CefRenderHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -936,6 +958,243 @@ class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
 
   IMPLEMENT_REFCOUNTING(CwMenuModelDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
+};
+
+// ---- CefRenderHandler ----
+
+class CwRenderHandlerForward : public CefRenderHandler {
+ protected:
+  CefRefPtr<CefRenderHandler> forward_render_handler_;
+
+ public:
+  bool GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!forward_render_handler_) {
+      return CefRenderHandler::GetRootScreenRect(browser, rect);
+    }
+    return forward_render_handler_->GetRootScreenRect(browser, rect);
+  }
+
+  void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!forward_render_handler_) {
+      return;
+    }
+    forward_render_handler_->GetViewRect(browser, rect);
+  }
+
+  bool GetScreenPoint(CefRefPtr<CefBrowser> browser, int viewX, int viewY, int& screenX, int& screenY) override {
+    if (!forward_render_handler_) {
+      return CefRenderHandler::GetScreenPoint(browser, viewX, viewY, screenX, screenY);
+    }
+    return forward_render_handler_->GetScreenPoint(browser, viewX, viewY, screenX, screenY);
+  }
+
+  void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnPopupShow(browser, show);
+      return;
+    }
+    forward_render_handler_->OnPopupShow(browser, show);
+  }
+
+  void OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnPopupSize(browser, rect);
+      return;
+    }
+    forward_render_handler_->OnPopupSize(browser, rect);
+  }
+
+  void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) override {
+    if (!forward_render_handler_) {
+      return;
+    }
+    forward_render_handler_->OnPaint(browser, type, dirtyRects, buffer, width, height);
+  }
+
+  void GetTouchHandleSize(CefRefPtr<CefBrowser> browser, cef_horizontal_alignment_t orientation, CefSize& size) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::GetTouchHandleSize(browser, orientation, size);
+      return;
+    }
+    forward_render_handler_->GetTouchHandleSize(browser, orientation, size);
+  }
+
+  void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::UpdateDragCursor(browser, operation);
+      return;
+    }
+    forward_render_handler_->UpdateDragCursor(browser, operation);
+  }
+
+  void OnScrollOffsetChanged(CefRefPtr<CefBrowser> browser, double x, double y) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnScrollOffsetChanged(browser, x, y);
+      return;
+    }
+    forward_render_handler_->OnScrollOffsetChanged(browser, x, y);
+  }
+
+  void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnImeCompositionRangeChanged(browser, selected_range, character_bounds);
+      return;
+    }
+    forward_render_handler_->OnImeCompositionRangeChanged(browser, selected_range, character_bounds);
+  }
+
+  void OnTextSelectionChanged(CefRefPtr<CefBrowser> browser, const CefString& selected_text, const CefRange& selected_range) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnTextSelectionChanged(browser, selected_text, selected_range);
+      return;
+    }
+    forward_render_handler_->OnTextSelectionChanged(browser, selected_text, selected_range);
+  }
+
+  void OnVirtualKeyboardRequested(CefRefPtr<CefBrowser> browser, TextInputMode input_mode) override {
+    if (!forward_render_handler_) {
+      CefRenderHandler::OnVirtualKeyboardRequested(browser, input_mode);
+      return;
+    }
+    forward_render_handler_->OnVirtualKeyboardRequested(browser, input_mode);
+  }
+};
+
+struct CwRenderHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_get_root_screen_rect)(void*, CefBrowser*, CefRect*) = nullptr;
+  void (*fn_get_view_rect)(void*, CefBrowser*, CefRect*) = nullptr;
+  bool (*fn_get_screen_point)(void*, CefBrowser*, int, int, int*, int*) = nullptr;
+  void (*fn_on_popup_show)(void*, CefBrowser*, bool) = nullptr;
+  void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) = nullptr;
+  void (*fn_on_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, void*, size_t, int, int) = nullptr;
+  void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
+  void (*fn_update_drag_cursor)(void*, CefBrowser*, int) = nullptr;
+  void (*fn_on_scroll_offset_changed)(void*, CefBrowser*, double, double) = nullptr;
+  void (*fn_on_ime_composition_range_changed)(void*, CefBrowser*, const CefRange*, const std::vector<CefRect>*) = nullptr;
+  void (*fn_on_text_selection_changed)(void*, CefBrowser*, const CefString*, const CefRange*) = nullptr;
+  void (*fn_on_virtual_keyboard_requested)(void*, CefBrowser*, int) = nullptr;
+};
+
+class CwRenderHandlerProxy : public CefRenderHandler {
+ public:
+  explicit CwRenderHandlerProxy(const CwRenderHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwRenderHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!cb_.fn_get_root_screen_rect) {
+      return CefRenderHandler::GetRootScreenRect(browser, rect);
+    }
+    CefRect out_rect;
+    bool result = cb_.fn_get_root_screen_rect(cb_.py, browser.get(), &out_rect);
+    rect = out_rect;
+    return result;
+  }
+
+  void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
+    if (!cb_.fn_get_view_rect) {
+      return;
+    }
+    CefRect out_rect;
+    cb_.fn_get_view_rect(cb_.py, browser.get(), &out_rect);
+    rect = out_rect;
+  }
+
+  bool GetScreenPoint(CefRefPtr<CefBrowser> browser, int viewX, int viewY, int& screenX, int& screenY) override {
+    if (!cb_.fn_get_screen_point) {
+      return CefRenderHandler::GetScreenPoint(browser, viewX, viewY, screenX, screenY);
+    }
+    int out_screenX = int();
+    int out_screenY = int();
+    bool result = cb_.fn_get_screen_point(cb_.py, browser.get(), viewX, viewY, &out_screenX, &out_screenY);
+    screenX = out_screenX;
+    screenY = out_screenY;
+    return result;
+  }
+
+  void OnPopupShow(CefRefPtr<CefBrowser> browser, bool show) override {
+    if (!cb_.fn_on_popup_show) {
+      CefRenderHandler::OnPopupShow(browser, show);
+      return;
+    }
+    cb_.fn_on_popup_show(cb_.py, browser.get(), show);
+  }
+
+  void OnPopupSize(CefRefPtr<CefBrowser> browser, const CefRect& rect) override {
+    if (!cb_.fn_on_popup_size) {
+      CefRenderHandler::OnPopupSize(browser, rect);
+      return;
+    }
+    cb_.fn_on_popup_size(cb_.py, browser.get(), &rect);
+  }
+
+  void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height) override {
+    if (!cb_.fn_on_paint) {
+      return;
+    }
+    cb_.fn_on_paint(cb_.py, browser.get(), static_cast<int>(type), &dirtyRects, const_cast<void*>(buffer), static_cast<size_t>(width) * static_cast<size_t>(height) * 4, width, height);
+  }
+
+  void GetTouchHandleSize(CefRefPtr<CefBrowser> browser, cef_horizontal_alignment_t orientation, CefSize& size) override {
+    if (!cb_.fn_get_touch_handle_size) {
+      CefRenderHandler::GetTouchHandleSize(browser, orientation, size);
+      return;
+    }
+    CefSize out_size;
+    cb_.fn_get_touch_handle_size(cb_.py, browser.get(), static_cast<int>(orientation), &out_size);
+    size = out_size;
+  }
+
+  void UpdateDragCursor(CefRefPtr<CefBrowser> browser, DragOperation operation) override {
+    if (!cb_.fn_update_drag_cursor) {
+      CefRenderHandler::UpdateDragCursor(browser, operation);
+      return;
+    }
+    cb_.fn_update_drag_cursor(cb_.py, browser.get(), static_cast<int>(operation));
+  }
+
+  void OnScrollOffsetChanged(CefRefPtr<CefBrowser> browser, double x, double y) override {
+    if (!cb_.fn_on_scroll_offset_changed) {
+      CefRenderHandler::OnScrollOffsetChanged(browser, x, y);
+      return;
+    }
+    cb_.fn_on_scroll_offset_changed(cb_.py, browser.get(), x, y);
+  }
+
+  void OnImeCompositionRangeChanged(CefRefPtr<CefBrowser> browser, const CefRange& selected_range, const RectList& character_bounds) override {
+    if (!cb_.fn_on_ime_composition_range_changed) {
+      CefRenderHandler::OnImeCompositionRangeChanged(browser, selected_range, character_bounds);
+      return;
+    }
+    cb_.fn_on_ime_composition_range_changed(cb_.py, browser.get(), &selected_range, &character_bounds);
+  }
+
+  void OnTextSelectionChanged(CefRefPtr<CefBrowser> browser, const CefString& selected_text, const CefRange& selected_range) override {
+    if (!cb_.fn_on_text_selection_changed) {
+      CefRenderHandler::OnTextSelectionChanged(browser, selected_text, selected_range);
+      return;
+    }
+    cb_.fn_on_text_selection_changed(cb_.py, browser.get(), &selected_text, &selected_range);
+  }
+
+  void OnVirtualKeyboardRequested(CefRefPtr<CefBrowser> browser, TextInputMode input_mode) override {
+    if (!cb_.fn_on_virtual_keyboard_requested) {
+      CefRenderHandler::OnVirtualKeyboardRequested(browser, input_mode);
+      return;
+    }
+    cb_.fn_on_virtual_keyboard_requested(cb_.py, browser.get(), static_cast<int>(input_mode));
+  }
+
+ private:
+  CwRenderHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwRenderHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwRenderHandlerProxy);
 };
 
 // ---- CefResourceHandler ----

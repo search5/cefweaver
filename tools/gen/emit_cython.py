@@ -283,7 +283,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
 # ---------------------------------------------------------------------------------
 
 PRELUDE = '''
-from cpython.buffer cimport PyBUF_WRITE
+from cpython.buffer cimport PyBUF_READ, PyBUF_WRITE
 from cpython.memoryview cimport PyMemoryView_FromMemory
 from cpython.ref cimport Py_DECREF, Py_INCREF
 
@@ -634,7 +634,8 @@ def _trampoline(plan, cls_py):
         elif isinstance(kind, LibRef):
             py_args.append("_wrap_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
         elif isinstance(kind, Buffer):
-            py_args.append("PyMemoryView_FromMemory(<char*>%s, %s_size, PyBUF_WRITE)" % (n, n))
+            py_args.append("PyMemoryView_FromMemory(<char*>%s, %s_size, %s)"
+                           % (n, n, "PyBUF_READ" if kind.readonly else "PyBUF_WRITE"))
         else:
             raise AssertionError(kind)
 
@@ -643,8 +644,9 @@ def _trampoline(plan, cls_py):
         # The buffer belongs to CEF: invalidate the view when the call is over.
         for p in plan.ins:
             if isinstance(p.kind, Buffer):
-                out.append("        _view_%s = PyMemoryView_FromMemory(<char*>%s, %s_size, PyBUF_WRITE)"
-                           % (p.name, p.name, p.name))
+                out.append("        _view_%s = PyMemoryView_FromMemory(<char*>%s, %s_size, %s)"
+                           % (p.name, p.name, p.name,
+                              "PyBUF_READ" if p.kind.readonly else "PyBUF_WRITE"))
         py_args = ["_view_%s" % p.name if isinstance(p.kind, Buffer) else a
                    for p, a in zip(plan.ins, py_args)]
         out.append("        try:")

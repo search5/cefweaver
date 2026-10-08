@@ -55,6 +55,7 @@
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약
+- [오프스크린 렌더링](pages/reference/offscreen-rendering.md): `offscreen`, `RenderHandler.on_paint`의 읽기 전용 버퍼, 제약
 
 ## 요약 (summaries)
 

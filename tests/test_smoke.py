@@ -245,6 +245,20 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertTrue(app.remove_query_handler(handler))
         self.assertFalse(app.remove_query_handler(handler))  # already removed
 
+    def test_the_offscreen_api_is_public_and_checks_its_arguments(self):
+        self.assertIn("RenderHandler", cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.Client, "get_render_handler"))
+        app = cefweaver.CefApp()
+        self.assertIs(app.offscreen, False)
+        app.offscreen = True
+        self.assertIs(app.offscreen, True)
+        self.assertEqual(app.windowless_frame_rate, 30)
+        app.windowless_frame_rate = 60
+        self.assertEqual(app.windowless_frame_rate, 60)
+        for bad in (0, -1, 1000):
+            with self.assertRaises(ValueError):
+                app.windowless_frame_rate = bad
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1670,6 +1684,114 @@ class WithCef(unittest.TestCase):
             assert canceled == [(pending["open"][0], ids["open"])], canceled
             app.execute_javascript("ask('after')")          # the first browser still works
             wait_until(app, lambda: ("ok", "after", "to after") in js, "the first browser again")
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    # -- offscreen rendering: CEF draws into a buffer that on_paint receives ---------------
+
+    OSR_SCRIPT = """
+        from cefweaver import types
+        paints, boxes, js = [], [], []
+        size = [200, 100]
+        app.add_javascript_binding("report", lambda *a: js.append(a))
+        class Render(cefweaver.RenderHandler):
+            def get_view_rect(self, browser):
+                return cefweaver.Rect(0, 0, size[0], size[1])
+            def on_paint(self, browser, type, dirty_rects, buffer, width, height):
+                try:
+                    buffer[0] = 1
+                    writable = True
+                except TypeError:
+                    writable = False
+                paints.append(dict(type=type, rects=list(dirty_rects), writable=writable,
+                                   nbytes=len(buffer), width=width, height=height,
+                                   first=bytes(buffer[:4]), view=buffer))
+        class Life(cefweaver.LifeSpanHandler):
+            def on_after_created(self, browser):
+                boxes.append(browser)
+        class MyClient(cefweaver.Client):
+            def __init__(self):
+                self.render, self.life = Render(), Life()
+            def get_render_handler(self):
+                return self.render
+            def get_life_span_handler(self):
+                return self.life
+        def start(body):
+            app.offscreen = True
+            app.set_client(MyClient())
+            app.initialize(page(body))
+            wait_until(app, lambda: paints, "the first paint")
+        RED = "<style>html, body { margin: 0; background: rgb(255, 0, 0); }</style>"
+    """
+
+    def run_osr_script(self, body):
+        import textwrap
+        result = run_cef(textwrap.dedent(self.OSR_SCRIPT) + textwrap.dedent(body))
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_on_paint_gives_a_read_only_view_of_the_pixels(self):
+        self.run_osr_script("""
+            start(RED)
+            wait_until(app, lambda: any(p["first"] == b"\\x00\\x00\\xff\\xff" for p in paints),
+                       "a red frame")  # BGRA
+            frame = [p for p in paints if p["first"] == b"\\x00\\x00\\xff\\xff"][-1]
+            assert frame["type"] == types.PaintElementType.VIEW, frame["type"]
+            assert (frame["width"], frame["height"], frame["nbytes"]) == (200, 100, 200 * 100 * 4), frame
+            assert frame["writable"] is False
+            assert frame["rects"] and all(isinstance(r, cefweaver.Rect) for r in frame["rects"])
+            r = frame["rects"][0]
+            assert 0 <= r.x and 0 <= r.y and r.x + r.width <= 200 and r.y + r.height <= 100, r
+            try:                       # the buffer belongs to CEF: the view ends with the call
+                len(frame["view"])
+                raise AssertionError("the view is still valid")
+            except ValueError:
+                pass
+            assert boxes[0].get_host().is_window_rendering_disabled() is True
+            try:
+                app.offscreen = False  # only before initialize()
+                raise AssertionError("accepted")
+            except RuntimeError:
+                pass
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_view_size_follows_get_view_rect_after_was_resized(self):
+        self.run_osr_script("""
+            start(RED)
+            size[:] = [320, 240]
+            send_until(app, lambda: boxes[0].get_host().was_resized(),
+                       lambda: any(p["width"] == 320 for p in paints), "a 320x240 frame")
+            frame = [p for p in paints if p["width"] == 320][-1]
+            assert (frame["height"], frame["nbytes"]) == (240, 320 * 240 * 4), frame
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_mouse_events_reach_an_offscreen_page(self):
+        self.run_osr_script("""
+            start('<button style="position:fixed;left:0;top:0;width:200px;height:100px" '
+                  'onclick="report(\\'clicked\\')">go</button>')
+            host = boxes[0].get_host()
+            def click():
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, False, 1)
+                host.send_mouse_click_event((50, 50, 0), types.MouseButtonType.LEFT, True, 1)
+            send_until(app, click, lambda: ("clicked",) in js, "the click")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_offscreen_browser_blocks_popups_as_java_cef_does(self):
+        self.run_osr_script("""
+            app.add_command_line_switch("disable-popup-blocking")
+            start(RED)
+            app.execute_javascript("report('popup', window.open('about:blank') === null)")
+            wait_until(app, lambda: any(r[0] == "popup" for r in js), "the answer")
+            assert ("popup", True) in js, js
+            assert len(boxes) == 1, boxes
             app.shutdown()
             print("OK")
         """)

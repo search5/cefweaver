@@ -26,7 +26,7 @@ updated: 2026-10-08
 | **manylinux** wheel | `auditwheel show`가 `linux_x86_64`만 허용했습니다(F24). manylinux 이미지에서 빌드하고 CEF가 요구하는 시스템 라이브러리(NSS, D-Bus, ALSA, udev 등)를 어떻게 다룰지 정해야 합니다. | manylinux 컨테이너에서 빌드 후 `auditwheel show`/`repair` |
 | macOS | 지원하지 않기로 했고 구성 단계에서 중단합니다. 필요한 작업은 [플랫폼 지원 현황](../concepts/platform-support.md)에 있습니다. | |
 | 서브프로세스 종료 오류의 **원인 메커니즘** | `main`에 `no_stack_protector`를 붙이면 사라지고 순정 `main`에는 검사 자체가 없다는 것만 확인했습니다. "zygote 자식이 스택 보호값이 다른 채 이 프레임으로 돌아온다"는 코드 주석의 설명은 추정입니다. | Chromium의 `ForkWithFlags`/zygote 코드와 TLS의 스택 보호값 처리를 확인 |
-| 핸들러의 **구조체 출력**(`get_root_window_screen_rect`)이 Python에서 | 구조체 입력은 `on_auto_resize`로 Python까지 확인했습니다. 출력은 C++ 프록시를 실행해 확인했고 Cython은 컴파일되지만, CEF가 이 메서드를 오프스크린 렌더링에서만 불러서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링(`CefWindowInfo`의 windowless 설정)으로 브라우저를 만들어 확인 |
+| 핸들러의 **구조체 출력**이 Python에서 | **확인했습니다**(F38): 오프스크린의 `get_view_rect`가 돌려준 `Rect`로 CEF가 200x100, 320x240 프레임을 그렸습니다. `get_root_screen_rect`와 `get_screen_point`는 부르지 않아 따로 시험하지 않았습니다. | |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
 | Chrome 스타일 변형 빌드에서 한 번 난 **세그멘테이션 오류** | `test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread`에서 종료 코드 -11이 한 번 났습니다(그 빌드는 Chrome 스타일 변형이었음). 정상(Alloy) 빌드에서 20번, 전체 시험 3번은 재현되지 않았습니다. | 같은 시험을 변형 빌드에서 반복 실행 |
 | 네이티브 Wayland 크래시의 **원인**과 순수 Wayland 세션(`DISPLAY` 없음)의 방법 | 함수 이름을 보지 못했습니다(심볼 없음, 원본 `libcef`는 `gdb`가 못 읽음). `cefsimple`의 Alloy는 살아 있었으므로 래퍼의 실행 방식(외부 메시지 펌프 등)이 원인일 가능성이 있습니다. | 심볼이 있는 CEF 빌드 또는 래퍼를 `CefRunMessageLoop`으로 바꿔 비교 |
@@ -37,6 +37,8 @@ updated: 2026-10-08
 | 헤더 주석의 한국어 번역 | `cef_origin` 위키에는 1,348개 메서드의 한국어 설명이 있으나 생성 스텁에는 헤더의 영어 주석을 그대로 씁니다. | 생성기가 위키의 `db/ko/*.json`을 읽도록 확장 |
 
 ## 2. 알려진 한계
+
+- **오프스크린 렌더링에는 키보드 입력이 없고**(`CefKeyEvent` 미지원), `get_screen_info`, `start_dragging`, GPU 가속 페인트, 팝업 그리기가 없습니다. 시험하지 않은 것: 렌더 핸들러가 없을 때, `PaintElementType.POPUP`. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 
 - **`add_command_line_switch`의 스위치는 자식 프로세스에 전달되지 않습니다**(F36). 렌더러나 GPU 프로세스가 읽는 스위치(예: 렌더러 쪽 기능을 켜는 것)는 지금 줄 방법이 없습니다. 자식에게도 보내는 옵션은 만들지 않기로 했습니다(java-cef도 같은 한계, F36).
 - **교차 사이트 iframe이 로드되지 않았습니다**(F37). 원인을 조사하지 않았고, 사이트 격리로 프로세스가 갈리는 프레임에서의 메시지 라우터는 확인하지 못했습니다.

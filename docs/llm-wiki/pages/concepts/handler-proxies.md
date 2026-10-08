@@ -50,6 +50,7 @@ CEF 스레드 --> Cw...Proxy::Method() --> 표의 함수 포인터 --> 트램펄
 | CEF 객체(`CefRefPtr<T>` 입력) | `T*` | 생성된 래퍼 객체(`None`이면 널) |
 | 출력 인자 | 포인터(`T*`, `CefString*`) | 메서드의 **반환값** |
 | `void*`와 크기 쌍 | `void*`, 크기 타입 | 쓰기 가능한 `memoryview` |
+| 크기 인자가 없는 `const void*`(`OnPaint`의 `buffer`) | `void*`, `size_t`(프록시가 `width * height * 4`로 계산) | 읽기 전용 `memoryview` |
 | 핸들러 반환(`CefRefPtr<T>` 반환) | `T*` (참조 1개를 넘김) | 핸들러 객체 또는 `None` |
 
 - 반환값은 반환 형식이 `void`가 아니면 그것이 먼저이고 그 뒤에 출력 인자가 순서대로 옵니다. 값이 하나면 그대로, 둘 이상이면 튜플입니다. 개수가 맞지 않으면 예외가 되고 보고됩니다.

@@ -68,10 +68,10 @@ updated: 2026-10-08
 | 프로세스 메시지는 **이름으로 나눔**: 래퍼의 두 이름은 래퍼가, 그 밖은 사용자에게 | 충돌이 없고 결정할 것이 없습니다. 사용자가 없으면 `false`. | 구현 중 판단(사용자의 진행 요청) |
 | 렌더러에 **진단용 ping/pong**(`cefweaver-ping` → `cefweaver-pong`, 같은 인자) | Python은 렌더러에 없어서 사용자 정의 메시지의 보내는 쪽이 필요하고, 렌더러가 응답하는지 알아보는 데도 쓸 수 있습니다. 시험 전용 장치가 아니라 문서화된 동작입니다. | 구현 중 판단 |
 | `set_client()`는 `initialize()` 전에만 | 브라우저를 만들 때 클라이언트가 정해져야 합니다. 이후에는 `RuntimeError`. | 구현 중 판단 |
-
 | JavaScript 통신은 **CEF의 메시지 라우터**를 손으로 감싸서 엽니다(`QueryHandler`, `window.cefQuery`) | 비용 대비 효과가 가장 큽니다: 질의 번호, 취소, 구독, 정리를 CEF가 맡고 java-cef와 같은 모델입니다. cefpython식 값 변환 중계는 더 크고 콜백 수명이 어렵습니다([분석](../analyses/js-python-messaging.md)). `add_javascript_binding`은 가벼운 호출용으로 유지. | 사용자(선택) |
-
 | 사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 **만들지 않음** | java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 래퍼 내부의 메시지 라우터 설정만 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |
+| 오프스크린 브라우저에서는 **팝업을 막음**(래퍼의 `OnBeforePopup`) | java-cef도 `IsWindowRenderingDisabled()`면 막습니다. 팝업을 그릴 창과 렌더 핸들러 처리가 아직 없기 때문입니다. | 사용자(java-cef 수준) |
+| 오프스크린은 `offscreen`과 `windowless_frame_rate` 속성으로 켬(`BrowserSettings`는 열지 않음) | 필요한 설정만 열어 둡니다. 배경색 등은 필요해질 때 엽니다. | 구현 중 판단 |
 
 ## 서브프로세스와 런타임
 
