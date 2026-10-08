@@ -295,3 +295,7 @@
 ## [2026-10-08] ingest | 툴킷 예제 위키 보강
 
 - `toolkit-examples.md`에 각 예제의 위젯, 설치의 특이점, 점검 실행의 고정을 표로 더하고 `sources`에 예제별 `browser.py`, `pyproject.toml`, `README.md`를 올렸습니다.
+
+## [2026-10-08] query | UI 어댑터 설계 (1단계)
+
+- 여섯 예제의 위젯 코드를 비교해 공통인 것(라이브러리가 맡을 것)과 툴킷마다 다른 것(어댑터가 맡을 것)을 표로 정리하고 `ToolkitAdapter`, `BrowserView` 초안을 `analyses/ui-adapter-design.md`에 남겼습니다.

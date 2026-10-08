@@ -85,4 +85,5 @@ updated: 2026-10-08
 ## 관련 페이지
 
 - [GTK 3 예제](gtk3-example.md)와 [오프스크린 렌더링](offscreen-rendering.md)
+- [UI 어댑터 설계](../analyses/ui-adapter-design.md): 이 예제들의 공통 코드를 라이브러리로 올리는 계획
 - [메시지 펌프](verified-findings-handlers.md)(F62)와 [JavascriptBridge](javascript-bridge.md)
