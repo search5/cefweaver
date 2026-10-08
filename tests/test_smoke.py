@@ -4,7 +4,11 @@ Run against the *installed* wheel, on a virtual X server so that no window opens
 on the desktop (Chromium prefers Wayland when WAYLAND_DISPLAY is set)::
 
     uv build --wheel && uv pip install dist/cefweaver-*.whl
-    env -u WAYLAND_DISPLAY xvfb-run -a python -m unittest discover -s tests -v
+    env -u WAYLAND_DISPLAY xvfb-run -a python -P -m unittest discover -s tests -v
+
+`-P` keeps the current directory out of sys.path. Without it, run from the repository
+root, the source tree `cefweaver/` shadows the installed wheel and the CEF tests are
+skipped (the run still ends with OK).
 
 CEF can be initialized only once per process, so each test that starts CEF runs
 its script in a separate Python process.

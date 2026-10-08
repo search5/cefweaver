@@ -1,3 +1,19 @@
+---
+title: 커버리지 보고서 (생성됨)
+type: reference
+generated: true
+sources:
+  - tools/gen/scope.py
+  - tools/gen/report.py
+  - tools/gen/typesys.py
+updated: 2026-10-08
+---
+
+# 커버리지 보고서 (생성됨)
+
+이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
+
+```
 Generated now: 87 methods/functions in 9 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
@@ -206,3 +222,10 @@ Per class (supported/total methods, when every class is generated):
     CefXmlReader                           library  30/30 
     CefZipReader                           library  11/13 
   (* = generated now)
+```
+
+## 관련 페이지
+
+- [생성 범위와 커버리지](generated-api-coverage.md)
+- [바인딩 생성기의 설계](../concepts/binding-generator.md)
+- [새 타입 지원 추가하기](../procedures/add-type-to-generator.md)

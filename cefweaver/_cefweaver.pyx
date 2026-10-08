@@ -237,8 +237,7 @@ cdef class CefApp:
     # -- browser ---------------------------------------------------------------
 
     def load_url(self, url):
-        """Navigate to ``url``. Returns False if the browser does not exist yet
-        (it is created during the first calls of ``do_message_loop_work()``)."""
+        """Navigate to ``url``. Returns False if the browser does not exist yet."""
         cdef string value = _utf8(url)
         cdef bint done
         self._require_running()
