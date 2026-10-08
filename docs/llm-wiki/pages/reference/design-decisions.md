@@ -71,6 +71,8 @@ updated: 2026-10-08
 
 | JavaScript 통신은 **CEF의 메시지 라우터**를 손으로 감싸서 엽니다(`QueryHandler`, `window.cefQuery`) | 비용 대비 효과가 가장 큽니다: 질의 번호, 취소, 구독, 정리를 CEF가 맡고 java-cef와 같은 모델입니다. cefpython식 값 변환 중계는 더 크고 콜백 수명이 어렵습니다([분석](../analyses/js-python-messaging.md)). `add_javascript_binding`은 가벼운 호출용으로 유지. | 사용자(선택) |
 
+| 사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 **만들지 않음** | java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 래퍼 내부의 메시지 라우터 설정만 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |
+
 ## 서브프로세스와 런타임
 
 | 결정 | 이유 |
