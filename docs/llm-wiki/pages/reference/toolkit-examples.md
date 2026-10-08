@@ -66,6 +66,8 @@ updated: 2026-10-08
 | `wx` | `CefPanel`(`cefwx.py`) | wxPython 사이트의 wheel 주소를 직접 지정(PyPI는 소스 빌드) | `GDK_BACKEND=x11` |
 | `kivy` | `CefView`(`cefkivy.py`) | `kivy`(SDL2 포함), 클립보드는 `xsel` | `SDL_VIDEODRIVER=x11` |
 
+`gtk3`와 `tk` 예제는 `cefweaver.ui` 위로 옮겨졌고(위젯은 어댑터와 이벤트 전달만 남음), 나머지는 [UI 어댑터 API](ui-api.md)의 이식 현황을 따릅니다.
+
 ## 툴킷이 가르쳐 준 것 (공통)
 
 1. **복사와 붙여넣기는 위젯이 직접 처리해야 하는 툴킷이 있습니다.** Qt와 Tk는 같은 프로세스의 X 선택을 툴킷이 소유하거나 읽는데, CEF(같은 스레드)가 선택을 읽으면 아무도 답할 수 없어 페이지가 멈추거나 값이 비었습니다(Qt와 Tk에서 확인. SDL2, wx, Kivy는 처음부터 위젯이 처리해서 CEF에 맡겼을 때의 동작은 확인하지 않았습니다). 그래서 `Ctrl+C`/`Ctrl+X`는 `on_text_selection_changed`의 텍스트를 툴킷의 클립보드에 넣고(잘라내기는 `frame.delete()`), `Ctrl+V`는 클립보드의 텍스트를 `ime_commit_text`로 넣습니다. GTK 3 예제는 CEF에 맡겨서 통과했으므로 **툴킷에 따라 다릅니다.**

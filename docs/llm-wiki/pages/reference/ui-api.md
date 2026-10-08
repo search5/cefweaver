@@ -45,7 +45,14 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 
 ## 이식 결과 (3단계)
 
-GTK 3 예제를 이 API 위로 옮겼고([GTK 3 예제](gtk3-example.md)) 기존 점검 27개가 하나도 바뀌지 않고 통과했습니다. 인터페이스에서 고친 것 셋: `BrowserView.commit_text()`(입력기가 확정한 글자는 ASCII 한 글자도 입력기 경로로. `text()`는 한 글자를 키로 만듦), `DragPayload`의 시작 위치 `x`, `y`, 새 드래그가 시작할 때 `drag_operation`을 복사로 되돌리기. 또 `Session`이 툴킷에 요구하는 것은 `post`와 `call_later`뿐이라 위젯(과 그 어댑터)이 생기기 전에 CEF를 만들 수 있습니다(`GlibLoop`).
+예제를 이 API 위로 하나씩 옮기고 있습니다. 점검은 하나도 바꾸지 않고 통과해야 이식이 끝난 것입니다.
+
+| 예제 | 위젯 파일 | 점검 | 확인한 것 |
+| --- | --- | --- | --- |
+| `gtk3` | 663줄에서 555줄 | 27개 통과 | 아래 |
+| `tk` | 464줄에서 326줄 | 24개 통과(2번 연속) | 어댑터 없이 `Session`을 `post`(큐와 파이프)와 `call_later`(`after`)만으로 구동. 클립보드 키와 페이지 안의 드래그를 뷰가 처리(Tk 코드에서 사라짐) |
+
+GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친 것: 인터페이스에서 고친 것 셋: `BrowserView.commit_text()`(입력기가 확정한 글자는 ASCII 한 글자도 입력기 경로로. `text()`는 한 글자를 키로 만듦), `DragPayload`의 시작 위치 `x`, `y`, 새 드래그가 시작할 때 `drag_operation`을 복사로 되돌리기. 또 `Session`이 툴킷에 요구하는 것은 `post`와 `call_later`뿐이라 위젯(과 그 어댑터)이 생기기 전에 CEF를 만들 수 있습니다(`GlibLoop`).
 
 ## 아직 하지 않은 것
 

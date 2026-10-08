@@ -4,7 +4,7 @@
 
 | 파일 | 내용 |
 | --- | --- |
-| `ceftk.py` | `CefCanvas`(그리기, 마우스, 휠, 키, 클립보드, 페이지 안의 드래그), `Runtime`(`MessagePump`을 Tk 루프에 연결) |
+| `ceftk.py` | `cefweaver.ui` 위의 어댑터: `TkAdapter`(그리기, 위치, 커서, 클립보드), `TkLoop`(`post`, `call_later`), `CefCanvas`(Tk 이벤트를 `BrowserView`에 전함), `Runtime`(`ui.Session`) |
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`) |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 
