@@ -10,6 +10,7 @@
 #include "include/cef_origin_whitelist.h"
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
+#include "app_hooks.h"
 
 CefRefPtr<CefBrowser> CefWrapperApp::GetBrowser()
 {
@@ -21,6 +22,11 @@ void CefWrapperApp::OnBeforeCommandLineProcessing(
   //command_line->AppendSwitch("allow-file-access-from-files");
   if (!process_type.empty()) {
     return;  // the switches below are for the browser process only; children get what OnBeforeChildProcessLaunch adds
+  }
+  // java-cef gives its handler the command line of the browser process before the essentials.
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.command_line) {
+    hooks.command_line(hooks.py, command_line);
   }
   for (const auto &entry : m_CommandLineSwitches) {
     if (entry.second.empty()) {
@@ -48,5 +54,15 @@ void CefWrapperApp::LoadUrl(std::string url) {
 }
 void CefWrapperApp::OnRegisterCustomSchemes(
     CefRawPtr<CefSchemeRegistrar> registrar) {
-  //registrar->AddCustomScheme("zen", CEF_SCHEME_OPTION_STANDARD | CEF_SCHEME_OPTION_CORS_ENABLED);
+  CefRefPtr<CefCommandLine> line = CefCommandLine::GetGlobalCommandLine();
+  if (line && line->HasSwitch("type")) {
+    // A child process: the schemes the browser process registered, from its switch.
+    RegisterCustomSchemesFrom(line->GetSwitchValue(kCustomSchemesSwitch), registrar);
+    return;
+  }
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.schemes) {
+    SchemeRegistrarProxy proxy(registrar);
+    hooks.schemes(hooks.py, &proxy);
+  }
 }

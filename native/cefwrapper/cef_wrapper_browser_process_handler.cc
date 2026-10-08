@@ -7,11 +7,16 @@
 #include "javascript_binding.h"
 #include "global_vars.h"
 #include "query_router.h"
+#include "app_hooks.h"
 
 CefWrapperBrowserProcessHandler::CefWrapperBrowserProcessHandler() = default;
 
 void CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch(
     CefRefPtr<CefCommandLine> command_line) {
+  const std::string schemes = CustomSchemesSwitchValue();
+  if (!schemes.empty()) {
+    command_line->AppendSwitchWithValue(kCustomSchemesSwitch, schemes);
+  }
   if (QueryRouter::HasHandlers()) {
     command_line->AppendSwitchWithValue(kQueryFunctionSwitch, QueryRouter::QueryFunction());
     command_line->AppendSwitchWithValue(kCancelFunctionSwitch, QueryRouter::CancelFunction());
@@ -48,9 +53,20 @@ CefRefPtr<CefClient> CefWrapperBrowserProcessHandler::GetDefaultClient()
   return CefWrapperClientHandler::GetInstance();
 }
 
+bool CefWrapperBrowserProcessHandler::OnAlreadyRunningAppRelaunch(
+    CefRefPtr<CefCommandLine> command_line, const CefString& current_directory) {
+  const AppHooks& hooks = GetAppHooks();
+  return hooks.relaunch ? hooks.relaunch(hooks.py, command_line, current_directory.ToString())
+                        : false;
+}
+
 void CefWrapperBrowserProcessHandler::OnContextInitialized()
 {
   CEF_REQUIRE_UI_THREAD();
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.context) {
+    hooks.context(hooks.py);  // before the first browser, so a hook can still prepare things
+  }
 
   CefRefPtr<CefCommandLine> command_line =
       CefCommandLine::GetGlobalCommandLine();

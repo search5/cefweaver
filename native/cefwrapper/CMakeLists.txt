@@ -21,6 +21,8 @@ set(CEFSIMPLE_SRCS
         cef_wrapper_browser_process_handler.h
         cef_wrapper_browser_process_handler.cc
         javascript_python_binding_handler.h
+        app_hooks.cc
+        app_hooks.h
         query_router.cc
         query_router.h
         custom_protocol_scheme_handler.h

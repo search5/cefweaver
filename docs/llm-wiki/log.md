@@ -192,3 +192,7 @@
 ## [2026-10-08] ingest | 격차 메우기 7: 요청 컨텍스트와 URL 요청, 인증과 리다이렉트 확인
 
 - `CefRequestContext`(부모의 환경설정 메서드를 합침), `CefRequestContextHandler`, `CefURLRequest`, `CefURLRequestClient`를 열고, 같은 이름의 오버로드는 첫 번째만 만들도록 했습니다. 로컬 HTTP 서버로 인증, 리다이렉트, 응답 알림을 확인했습니다. `disable-chrome-login-prompt`와 입출력 인자(`new_url`)를 찾았습니다. F52. 격차 54개에서 44개.
+
+## [2026-10-08] ingest | 격차 메우기 8: 명령줄과 앱 핸들러 훅
+
+- `CommandLine`을 생성하고, 직접 쓴 `AppHandler`와 `SchemeRegistrar`로 java-cef의 앱 훅(명령줄 처리, 사용자 스킴 등록, 컨텍스트 초기화, 두 번째 시작)을 열었습니다. 사용자 스킴은 렌더러에 명령줄로 전파합니다. 시험이 `/tmp`를 7GB 채우던 문제를 고쳤습니다. F53. 격차 40개에서 27개.

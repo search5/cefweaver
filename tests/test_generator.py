@@ -349,8 +349,7 @@ class WithHeaders(unittest.TestCase):
     # without changing it fails here. When a gap is closed, delete it from this table.
     EXPECTED_GAPS = {
         "CefBrowserHost": ["DragTargetDragEnter"],
-        "CefCommandLine": None,
-        "CefDragData": None, "CefSchemeRegistrar": None,
+        "CefDragData": None,
         "CefDragHandler": ["OnDragEnter"],
         "CefRenderHandler": ["StartDragging"],
     }
@@ -542,6 +541,18 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual([p.name for p in plan.ins][-1], "new_url")    # the current value comes in
         self.assertEqual([n for n, _ in plan.results], ["new_url"])    # the new one is returned
         self.assertIn("response: Response, new_url: str) -> str:", self.generated("pyi"))
+
+    def test_the_command_line_is_generated_with_java_cefs_methods(self):
+        self.assertTrue(self.scope.is_library("CefCommandLine"))
+        for name in ("AppendArgument", "AppendSwitch", "AppendSwitchWithValue", "GetArguments",
+                     "GetProgram", "GetSwitchValue", "GetSwitches", "HasArguments", "HasSwitch",
+                     "HasSwitches", "Reset", "SetProgram"):
+            plan = self.plan("CefCommandLine", name)
+            self.assertTrue(plan.supported, "%s: %s" % (name, plan.reason))
+        stub = self.generated("pyi")
+        self.assertIn("class CommandLine:", stub)
+        self.assertIn("def get_switches(self) -> dict[str, str]:", stub)
+        self.assertIn("def get_arguments(self) -> list[str]:", stub)
 
     def test_the_request_context_handler_is_generated(self):
         self.assertTrue(self.scope.is_client("CefRequestContextHandler"))

@@ -199,6 +199,15 @@ bool CefWrapper::RemoveQueryHandler(PythonQueryHandler* handler) {
   return QueryRouter::RemoveHandler(handler);
 }
 bool CefWrapper::QueryRouterExists() { return QueryRouter::Exists(); }
+void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
+                             app_context_ptr context, app_relaunch_ptr relaunch) {
+  AppHooks& hooks = GetAppHooks();
+  hooks.py = py;
+  hooks.command_line = command_line;
+  hooks.schemes = schemes;
+  hooks.context = context;
+  hooks.relaunch = relaunch;
+}
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
 bool CefWrapper::Offscreen() { return g_Offscreen.load(); }
 void CefWrapper::SetWindowlessFrameRate(int frames_per_second) {

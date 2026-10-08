@@ -353,6 +353,8 @@ cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowserHost(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
+cdef extern from "include/cef_command_line.h":
+    cdef cppclass CefCommandLine(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuParams(CefBaseRefCounted)
 cdef extern from "include/cef_cookie.h":
@@ -600,6 +602,33 @@ cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted):
         void Continue() nogil
         void Cancel() nogil
+
+cdef extern from "include/cef_command_line.h":
+    cdef cppclass CefCommandLine(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsReadOnly() nogil
+        CefRefPtr[CefCommandLine] Copy() nogil
+        void InitFromString(const CefString&) nogil
+        void Reset() nogil
+        void GetArgv(vector[CefString]&) nogil
+        CefString GetCommandLineString() nogil
+        CefString GetProgram() nogil
+        void SetProgram(const CefString&) nogil
+        cpp_bool HasSwitches() nogil
+        cpp_bool HasSwitch(const CefString&) nogil
+        CefString GetSwitchValue(const CefString&) nogil
+        void GetSwitches(cpp_map[CefString, CefString]&) nogil
+        void AppendSwitch(const CefString&) nogil
+        void AppendSwitchWithValue(const CefString&, const CefString&) nogil
+        void RemoveSwitch(const CefString&) nogil
+        cpp_bool HasArguments() nogil
+        void GetArguments(vector[CefString]&) nogil
+        void AppendArgument(const CefString&) nogil
+        void PrependWrapper(const CefString&) nogil
+        @staticmethod
+        CefRefPtr[CefCommandLine] CreateCommandLine() nogil
+        @staticmethod
+        CefRefPtr[CefCommandLine] GetGlobalCommandLine() nogil
 
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuParams(CefBaseRefCounted):

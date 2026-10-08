@@ -60,6 +60,7 @@
 - [스트림과 ZIP 읽기](pages/reference/streams.md): `fread`/`fwrite` 규약(`ptr, size, n`)을 `read(n, size=1)`, `write(data, size=1)`로 연 규칙과 핸들러
 - [바이트열과 시간](pages/reference/bytes-and-times.md): `void*` 표(복사, 크기가 앞, 의도적 제외)와 `CefBaseTime` → `datetime`
 - [java-cef 동등성 (바닥과 그 위)](pages/reference/java-cef-parity.md): java-cef가 여는 것이 바닥, 격차와 바닥 위 목록
+- [앱 핸들러 (명령줄, 스킴, 시작 훅)](pages/reference/app-handler.md): `AppHandler`와 `SchemeRegistrar`, `CommandLine`, 사용자 스킴의 렌더러 전파
 
 ## 요약 (summaries)
 

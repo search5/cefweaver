@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import textwrap
 import unittest
 
@@ -78,8 +79,12 @@ def run_cef(script, timeout=90, ozone="x11"):
     prelude = PRELUDE.replace('app.add_command_line_switch(%s)' % line, "pass") if ozone is None \
         else PRELUDE.replace(line, '"ozone-platform", "%s"' % ozone)
     code = prelude + textwrap.dedent(script)
-    return subprocess.run([sys.executable, "-I", "-c", code], capture_output=True,
-                          text=True, timeout=timeout)
+    # Everything the run makes (the CEF cache, files of the script) goes into one directory
+    # that is removed afterwards: hundreds of runs would fill /tmp otherwise.
+    with tempfile.TemporaryDirectory(prefix="cefweaver-run-") as scratch:
+        env = dict(os.environ, TMPDIR=scratch)
+        return subprocess.run([sys.executable, "-I", "-c", code], capture_output=True,
+                              text=True, timeout=timeout, env=env)
 
 
 @unittest.skipIf(cefweaver is None, "cefweaver is not installed")
@@ -444,6 +449,33 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertEqual((cookie.name, cookie.expires), ("", None))
         self.assertEqual(cefweaver.Rect(), (0, 0, 0, 0))           # every struct has defaults
         self.assertEqual(cefweaver.types.DraggableRegion().bounds, cefweaver.Rect())
+
+    def test_a_command_line_is_built_and_read(self):
+        self.assertIn("AppHandler", cefweaver.__all__)
+        self.assertIn("SchemeRegistrar", cefweaver.__all__)
+        line = cefweaver.CommandLine.create_command_line()
+        # (init_from_string() parses a Windows command line; on Linux CEF has init_from_argv())
+        line.set_program("prog")
+        line.append_switch_with_value("alpha", "1")
+        line.append_switch("beta")
+        line.append_argument("file1")
+        line.append_argument("file2")
+        self.assertEqual(line.get_program(), "prog")
+        self.assertEqual(line.get_switches(), {"alpha": "1", "beta": ""})
+        self.assertEqual(line.get_arguments(), ["file1", "file2"])
+        self.assertTrue(line.has_switches() and line.has_arguments())
+        line.append_switch("gamma")
+        line.append_switch_with_value("delta", "x y")
+        line.append_argument("tail")
+        self.assertTrue(line.has_switch("gamma"))
+        self.assertEqual(line.get_switch_value("delta"), "x y")
+        self.assertEqual(line.get_switch_value("missing"), "")
+        self.assertEqual(line.get_arguments()[-1], "tail")
+        line.set_program("other")
+        self.assertEqual(line.get_program(), "other")
+        line.reset()
+        self.assertEqual((line.get_switches(), line.get_arguments()), ({}, []))
+        self.assertFalse(line.has_switches() or line.has_arguments())
 
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
@@ -2754,6 +2786,86 @@ class WithCef(unittest.TestCase):
             app.load_url(BASE + "/redirect")
             wait_until(app, lambda: ("hello", 200) in responses, "the redirected page")
             assert redirects and redirects[0][0] == 302 and redirects[0][1].endswith("/hello"), redirects
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_the_app_handler_hooks_the_command_line_the_schemes_and_the_context(self):
+        self.run_osr_script("""
+            log, seen = [], []
+            class Hooks(cefweaver.AppHandler):
+                def on_before_command_line_processing(self, process_type, command_line):
+                    log.append(("command line", process_type))
+                    command_line.append_switch_with_value("cefweaver-hook", "yes")
+                def on_register_custom_schemes(self, registrar):
+                    log.append(("schemes", type(registrar).__name__))
+                    options = types.SchemeOptions.STANDARD | types.SchemeOptions.SECURE
+                    assert registrar.add_custom_scheme("myapp", options) is True
+                def on_context_initialized(self):
+                    log.append(("context",))
+            app.set_app_handler(Hooks())
+            class Page(cefweaver.ResourceHandler):
+                body = b"<script>report('scheme', location.protocol, location.host)</script>"
+                def open(self, request, callback):
+                    return True, True
+                def get_response_headers(self, response):
+                    response.set_mime_type("text/html")
+                    response.set_status(200)
+                    return len(self.body), ""
+                def read(self, data_out, callback):
+                    data_out[:len(self.body)] = self.body
+                    return True, len(self.body)
+                def cancel(self):
+                    pass
+            class Factory(cefweaver.SchemeHandlerFactory):
+                def create(self, browser, frame, scheme_name, request):
+                    return Page()
+            start(RED)
+            assert [entry[0] for entry in log][:3] == ["command line", "schemes", "context"], log
+            assert log[0] == ("command line", ""), log          # the browser process only
+            assert log[1] == ("schemes", "SchemeRegistrar"), log
+            line = cefweaver.CommandLine.get_global_command_line()
+            assert line.get_switch_value("cefweaver-hook") == "yes", line.get_switches()
+            # the scheme is standard in the renderer too: it has a host
+            assert cefweaver.register_scheme_handler_factory("myapp", "test", Factory())
+            app.load_url("myapp://test/page")
+            wait_until(app, lambda: any(r[0] == "scheme" for r in js), "the page of the scheme")
+            assert ("scheme", "myapp:", "test") in js, js
+            app.shutdown()
+            print("OK")
+        """)
+
+
+    def test_a_second_start_of_the_application_reaches_the_first_one(self):
+        self.run_osr_script("""
+            import os, subprocess, sys, tempfile
+            cache = tempfile.mkdtemp()
+            app.set_cache_path(cache)
+            relaunched = []
+            class Hooks(cefweaver.AppHandler):
+                def on_already_running_app_relaunch(self, command_line, current_directory):
+                    relaunched.append((command_line.get_switch_value("cefweaver-second"),
+                                       current_directory))
+                    return True                       # handled: no new window
+            app.set_app_handler(Hooks())
+            start(RED)
+            second = (
+                "import cefweaver\\n"
+                "app = cefweaver.CefApp()\\n"
+                "app.set_cache_path(%r)\\n"
+                "app.add_command_line_switch('cefweaver-second', 'yes')\\n"
+                "try:\\n"
+                "    app.initialize('about:blank')\\n"
+                "    print('SECOND RAN')\\n"
+                "except RuntimeError as error:\\n"
+                "    print('SECOND REFUSED')\\n" % cache)
+            process = subprocess.Popen([sys.executable, "-I", "-c", second], cwd=cache,
+                                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            wait_until(app, lambda: relaunched, "the second start")
+            assert relaunched[0][0] == "yes", relaunched
+            assert os.path.realpath(relaunched[0][1]) == os.path.realpath(cache), relaunched
+            process.wait(timeout=30)
             app.shutdown()
             print("OK")
         """)

@@ -27,6 +27,9 @@ public:
   std::vector<JavascriptPythonBinding> m_JavascriptPythonBindings;
   CefRefPtr<CefClient> GetDefaultClient()  override;
   void OnContextInitialized() override;
+  // A second start of the application (with the same user data) reaches the first one here.
+  bool OnAlreadyRunningAppRelaunch(CefRefPtr<CefCommandLine> command_line,
+                                   const CefString& current_directory) override;
   // Gives the renderer processes the names of the message router functions (only a few
   // switches of the browser process reach a child process by themselves).
   void OnBeforeChildProcessLaunch(CefRefPtr<CefCommandLine> command_line) override;

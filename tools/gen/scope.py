@@ -46,6 +46,7 @@ LIBRARY_CLASSES = [
     "CefCookieManager",
     "CefRequestContext",
     "CefURLRequest",
+    "CefCommandLine",
 ]
 
 # Classes implemented by the application (handlers); CEF calls them.

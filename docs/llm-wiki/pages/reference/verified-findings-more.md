@@ -165,6 +165,17 @@ updated: 2026-10-08
   - **입출력 인자**: `OnResourceRedirect`의 `new_url`은 CEF가 현재 값을 주고 핸들러가 바꾸는 값이라(java-cef의 `StringRef`) 출력으로만 다루면 빈 값으로 덮어써 리다이렉트가 깨집니다. Python 메서드가 `new_url`을 받고 새 값을 돌려줍니다.
 - **영향**: 바닥의 격차 중 `RequestContext`(환경설정 포함), `RequestContextHandler`, `URLRequest`, `URLRequestClient`가 메워졌습니다.
 
+## F53. 명령줄과 앱 핸들러 훅
+
+- **방법**: `AppHandler`를 달고 CEF를 시작해 훅의 순서와 효과를 확인하고, 같은 `cache_path`로 두 번째 프로세스를 띄웠습니다.
+- **결과**:
+  - 훅은 `on_before_command_line_processing`(`process_type == ""`), `on_register_custom_schemes`, `on_context_initialized` 순서로 불립니다. 훅이 붙인 스위치(`cefweaver-hook=yes`)가 `CommandLine.get_global_command_line()`에 있습니다.
+  - 등록한 스킴 `myapp`(표준, 보안)은 렌더러에서도 표준으로 등록되어(`myapp://test/page`의 `location.protocol == "myapp:"`, `location.host == "test"`) 페이지가 `register_scheme_handler_factory`의 팩토리로 뜹니다. 렌더러는 브라우저 프로세스가 명령줄로 준 스킴 목록으로 등록합니다.
+  - 두 번째 프로세스가 같은 사용자 데이터로 시작하면 첫 프로세스의 `on_already_running_app_relaunch(command_line, current_directory)`가 불리고 `command_line.get_switch_value("cefweaver-second") == "yes"`, 디렉터리는 두 번째의 작업 디렉터리입니다.
+  - `CommandLine`: `set_program`, `append_*`, `get_switches()`(`dict`), `get_arguments()`, `reset()`이 CEF 없이 동작합니다. Linux에서 `init_from_string`은 아무것도 하지 못합니다.
+- **발견**: 시험이 `/tmp`에 CEF 캐시를 매번 새로 만들고 지우지 않아 1,225개(약 7GB)가 쌓여 가상 X 서버가 뜨지 못하는 지경이 되었습니다(`디스크 할당량이 초과됨`). 시험 실행 하나의 모든 임시 파일을 한 디렉터리(`TMPDIR`)에 모아 끝나면 지우도록 고쳤습니다.
+- **영향**: 바닥의 격차 13개가 메워졌습니다(`CommandLine` 12, `SchemeRegistrar` 1).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

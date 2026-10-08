@@ -33,6 +33,24 @@ class QueryCallback:
     def success(self, response: str | bytes | bytearray | memoryview) -> bool: ...
     def failure(self, error_code: int, message: str = "") -> bool: ...
 
+class AppHandler:
+    """Hooks into the start of the application, as java-cef's `CefAppHandler`. Subclass it and
+    give an instance to `CefApp.set_app_handler()` before `initialize()`."""
+
+    def on_before_command_line_processing(self, process_type: str, command_line: CommandLine) -> None:
+        """The command line of the browser process (`process_type` is `""`)."""
+    def on_register_custom_schemes(self, registrar: SchemeRegistrar) -> None:
+        """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
+    def on_context_initialized(self) -> None:
+        """CEF is ready for browsers."""
+    def on_already_running_app_relaunch(self, command_line: CommandLine, current_directory: str) -> bool:
+        """A second start of the application with the same user data reached this one."""
+
+class SchemeRegistrar:
+    """Valid only during `AppHandler.on_register_custom_schemes()`."""
+
+    def add_custom_scheme(self, scheme_name: str, options: int) -> bool: ...
+
 class CefApp:
     """An embedded Chromium (CEF) instance.
 
@@ -50,6 +68,7 @@ class CefApp:
     @devtools_menu.setter
     def devtools_menu(self, value: bool) -> None: ...
     def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None: ...
+    def set_app_handler(self, handler: AppHandler | None) -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
     @property

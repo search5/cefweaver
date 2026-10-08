@@ -659,6 +659,7 @@ cdef class BinaryValue
 cdef class Browser
 cdef class BrowserHost
 cdef class Callback
+cdef class CommandLine
 cdef class ContextMenuParams
 cdef class CookieManager
 cdef class DictionaryValue
@@ -2062,6 +2063,255 @@ cdef object _wrap_Callback(CefRefPtr[CefCallback] ref):
     if ref.get() == NULL:
         return None
     obj = Callback.__new__(Callback)
+    obj._ref = ref
+    return obj
+
+
+cdef class CommandLine:
+    """Class used to create and/or parse command line arguments. Arguments with
+    \"--\", \"-\" and, on Windows, \"/\" prefixes are considered switches. Switches
+    will always precede any arguments without switch prefixes. Switches can
+    optionally have a value specified using the \"=\" delimiter (e.g.
+    \"-switch=value\"). An argument of \"--\" will terminate switch parsing with all
+    subsequent tokens, regardless of prefix, being interpreted as non-switch
+    arguments. Switch names should be lowercase ASCII and will be converted to
+    such if necessary. Switch values will retain the original case and UTF8
+    encoding. This class can be used before CefInitialize() is called.
+    """
+    cdef CefRefPtr[CefCommandLine] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("CommandLine objects are created by CEF or by a create() function")
+
+    cdef CefCommandLine* _ptr(self) except NULL:
+        cdef CefCommandLine* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("CommandLine has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        cdef CefCommandLine* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        cdef CefCommandLine* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def copy(self):
+        """Returns a writable copy of this object."""
+        cdef CefCommandLine* _p = self._ptr()
+        cdef CefRefPtr[CefCommandLine] _r
+        with nogil:
+            _r = _p.Copy()
+        return _wrap_CommandLine(_r)
+
+    def init_from_string(self, command_line):
+        """Initialize the command line with the string returned by calling
+        GetCommandLineW(). This method is only supported on Windows.
+        """
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(command_line)
+        with nogil:
+            _p.InitFromString(_a0)
+        return None
+
+    def reset(self):
+        """Reset the command-line switches and arguments but leave the program
+        component unchanged.
+        """
+        cdef CefCommandLine* _p = self._ptr()
+        with nogil:
+            _p.Reset()
+        return None
+
+    def get_argv(self):
+        """Retrieve the original command line string as a vector of strings.
+        The argv array:
+        `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+        """
+        cdef vector[CefString] _a0
+        cdef CefCommandLine* _p = self._ptr()
+        with nogil:
+            _p.GetArgv(_a0)
+        return _g_str_list(&_a0)
+
+    def get_command_line_string(self):
+        """Constructs and returns the represented command line string. Use this
+        method cautiously because quoting behavior is unclear.
+        """
+        cdef CefCommandLine* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetCommandLineString()
+        return _g_str(_r)
+
+    def get_program(self):
+        """Get the program part of the command line string (the first item)."""
+        cdef CefCommandLine* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetProgram()
+        return _g_str(_r)
+
+    def set_program(self, program):
+        """Set the program part of the command line string (the first item)."""
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(program)
+        with nogil:
+            _p.SetProgram(_a0)
+        return None
+
+    def has_switches(self):
+        """Returns true if the command line has switches."""
+        cdef CefCommandLine* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.HasSwitches()
+        return _r
+
+    def has_switch(self, name):
+        """Returns true if the command line contains the given switch."""
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = _p.HasSwitch(_a0)
+        return _r
+
+    def get_switch_value(self, name):
+        """Returns the value associated with the given switch. If the switch has no
+        value or isn't present this method returns the empty string.
+        """
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        cdef CefString _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = _p.GetSwitchValue(_a0)
+        return _g_str(_r)
+
+    def get_switches(self):
+        """Returns the map of switch names and values. If a switch has no value an
+        empty string is returned.
+        """
+        cdef cpp_map[CefString, CefString] _a0
+        cdef CefCommandLine* _p = self._ptr()
+        with nogil:
+            _p.GetSwitches(_a0)
+        return _g_dict_map(&_a0)
+
+    def append_switch(self, name):
+        """Add a switch to the end of the command line."""
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(name)
+        with nogil:
+            _p.AppendSwitch(_a0)
+        return None
+
+    def append_switch_with_value(self, name, value):
+        """Add a switch with the specified value to the end of the command line. If
+        the switch has no value pass an empty value string.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(name)
+        _a1 = _g_cef(value)
+        with nogil:
+            _p.AppendSwitchWithValue(_a0, _a1)
+        return None
+
+    def remove_switch(self, name):
+        """Remove a switch from the command line. If no such switch is present, this
+        has no effect.
+        """
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(name)
+        with nogil:
+            _p.RemoveSwitch(_a0)
+        return None
+
+    def has_arguments(self):
+        """True if there are remaining command line arguments."""
+        cdef CefCommandLine* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.HasArguments()
+        return _r
+
+    def get_arguments(self):
+        """Get the remaining command line arguments."""
+        cdef vector[CefString] _a0
+        cdef CefCommandLine* _p = self._ptr()
+        with nogil:
+            _p.GetArguments(_a0)
+        return _g_str_list(&_a0)
+
+    def append_argument(self, argument):
+        """Add an argument to the end of the command line."""
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(argument)
+        with nogil:
+            _p.AppendArgument(_a0)
+        return None
+
+    def prepend_wrapper(self, wrapper):
+        """Insert a command before the current command.
+        Common for debuggers, like \"valgrind\" or \"gdb --args\".
+        """
+        cdef CefString _a0
+        cdef CefCommandLine* _p = self._ptr()
+        _a0 = _g_cef(wrapper)
+        with nogil:
+            _p.PrependWrapper(_a0)
+        return None
+
+    @staticmethod
+    def create_command_line():
+        """Create a new CefCommandLine instance."""
+        cdef CefRefPtr[CefCommandLine] _r
+        with nogil:
+            _r = CefCommandLine.CreateCommandLine()
+        return _wrap_CommandLine(_r)
+
+    @staticmethod
+    def get_global_command_line():
+        """Returns the singleton global CefCommandLine object. The returned object
+        will be read-only.
+        """
+        cdef CefRefPtr[CefCommandLine] _r
+        with nogil:
+            _r = CefCommandLine.GetGlobalCommandLine()
+        return _wrap_CommandLine(_r)
+
+
+cdef object _wrap_CommandLine(CefRefPtr[CefCommandLine] ref):
+    cdef CommandLine obj
+    if ref.get() == NULL:
+        return None
+    obj = CommandLine.__new__(CommandLine)
     obj._ref = ref
     return obj
 
@@ -11016,4 +11266,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["AudioParameters", "Cookie", "Insets", "KeyEvent", "LinuxWindowProperties", "MediaSinkDeviceInfo", "MouseEvent", "PdfPrintSettings", "Point", "PopupFeatures", "Range", "Rect", "RequestContextSettings", "ScreenInfo", "Size", "TaskInfo", "TouchEvent", "TouchHandleState", "URLParts", "BoxLayoutSettings", "CompositionUnderline", "DraggableRegion", "AuthCallback", "BeforeDownloadCallback", "BinaryValue", "Browser", "BrowserHost", "Callback", "CommandLine", "ContextMenuParams", "CookieManager", "DictionaryValue", "Display", "DownloadItem", "DownloadItemCallback", "FileDialogCallback", "Frame", "JSDialogCallback", "ListValue", "MenuModel", "PostData", "PostDataElement", "PrintDialogCallback", "PrintJobCallback", "PrintSettings", "ProcessMessage", "Registration", "Request", "RequestContext", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "SSLInfo", "StreamReader", "StreamWriter", "TaskManager", "URLRequest", "UnresponsiveProcessCallback", "Value", "ZipReader", "Client", "CompletionCallback", "ContextMenuHandler", "CookieAccessFilter", "CookieVisitor", "DeleteCookiesCallback", "DevToolsMessageObserver", "DialogHandler", "DisplayHandler", "DownloadHandler", "DragHandler", "FocusHandler", "JSDialogHandler", "KeyboardHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "PdfPrintCallback", "PrintHandler", "ReadHandler", "RenderHandler", "RequestContextHandler", "RequestHandler", "ResourceHandler", "ResourceRequestHandler", "RunFileDialogCallback", "SchemeHandlerFactory", "SetCookieCallback", "StringVisitor", "URLRequestClient", "WriteHandler", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

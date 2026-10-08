@@ -38,6 +38,24 @@ class QueryCallback:
     def success(self, response: str | bytes | bytearray | memoryview) -> bool: ...
     def failure(self, error_code: int, message: str = "") -> bool: ...
 
+class AppHandler:
+    """Hooks into the start of the application, as java-cef's `CefAppHandler`. Subclass it and
+    give an instance to `CefApp.set_app_handler()` before `initialize()`."""
+
+    def on_before_command_line_processing(self, process_type: str, command_line: CommandLine) -> None:
+        """The command line of the browser process (`process_type` is `""`)."""
+    def on_register_custom_schemes(self, registrar: SchemeRegistrar) -> None:
+        """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
+    def on_context_initialized(self) -> None:
+        """CEF is ready for browsers."""
+    def on_already_running_app_relaunch(self, command_line: CommandLine, current_directory: str) -> bool:
+        """A second start of the application with the same user data reached this one."""
+
+class SchemeRegistrar:
+    """Valid only during `AppHandler.on_register_custom_schemes()`."""
+
+    def add_custom_scheme(self, scheme_name: str, options: int) -> bool: ...
+
 class CefApp:
     """An embedded Chromium (CEF) instance.
 
@@ -55,6 +73,7 @@ class CefApp:
     @devtools_menu.setter
     def devtools_menu(self, value: bool) -> None: ...
     def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None: ...
+    def set_app_handler(self, handler: AppHandler | None) -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
     @property
@@ -842,6 +861,112 @@ class Callback:
         ...
     def cancel(self) -> None:
         """Cancel processing."""
+        ...
+
+
+class CommandLine:
+    """Class used to create and/or parse command line arguments. Arguments with
+    \"--\", \"-\" and, on Windows, \"/\" prefixes are considered switches. Switches
+    will always precede any arguments without switch prefixes. Switches can
+    optionally have a value specified using the \"=\" delimiter (e.g.
+    \"-switch=value\"). An argument of \"--\" will terminate switch parsing with all
+    subsequent tokens, regardless of prefix, being interpreted as non-switch
+    arguments. Switch names should be lowercase ASCII and will be converted to
+    such if necessary. Switch values will retain the original case and UTF8
+    encoding. This class can be used before CefInitialize() is called.
+    """
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        ...
+    def copy(self) -> CommandLine | None:
+        """Returns a writable copy of this object."""
+        ...
+    def init_from_string(self, command_line: str) -> None:
+        """Initialize the command line with the string returned by calling
+        GetCommandLineW(). This method is only supported on Windows.
+        """
+        ...
+    def reset(self) -> None:
+        """Reset the command-line switches and arguments but leave the program
+        component unchanged.
+        """
+        ...
+    def get_argv(self) -> list[str]:
+        """Retrieve the original command line string as a vector of strings.
+        The argv array:
+        `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+        """
+        ...
+    def get_command_line_string(self) -> str:
+        """Constructs and returns the represented command line string. Use this
+        method cautiously because quoting behavior is unclear.
+        """
+        ...
+    def get_program(self) -> str:
+        """Get the program part of the command line string (the first item)."""
+        ...
+    def set_program(self, program: str) -> None:
+        """Set the program part of the command line string (the first item)."""
+        ...
+    def has_switches(self) -> bool:
+        """Returns true if the command line has switches."""
+        ...
+    def has_switch(self, name: str) -> bool:
+        """Returns true if the command line contains the given switch."""
+        ...
+    def get_switch_value(self, name: str) -> str:
+        """Returns the value associated with the given switch. If the switch has no
+        value or isn't present this method returns the empty string.
+        """
+        ...
+    def get_switches(self) -> dict[str, str]:
+        """Returns the map of switch names and values. If a switch has no value an
+        empty string is returned.
+        """
+        ...
+    def append_switch(self, name: str) -> None:
+        """Add a switch to the end of the command line."""
+        ...
+    def append_switch_with_value(self, name: str, value: str) -> None:
+        """Add a switch with the specified value to the end of the command line. If
+        the switch has no value pass an empty value string.
+        """
+        ...
+    def remove_switch(self, name: str) -> None:
+        """Remove a switch from the command line. If no such switch is present, this
+        has no effect.
+        """
+        ...
+    def has_arguments(self) -> bool:
+        """True if there are remaining command line arguments."""
+        ...
+    def get_arguments(self) -> list[str]:
+        """Get the remaining command line arguments."""
+        ...
+    def append_argument(self, argument: str) -> None:
+        """Add an argument to the end of the command line."""
+        ...
+    def prepend_wrapper(self, wrapper: str) -> None:
+        """Insert a command before the current command.
+        Common for debuggers, like \"valgrind\" or \"gdb --args\".
+        """
+        ...
+    @staticmethod
+    def create_command_line() -> CommandLine | None:
+        """Create a new CefCommandLine instance."""
+        ...
+    @staticmethod
+    def get_global_command_line() -> CommandLine | None:
+        """Returns the singleton global CefCommandLine object. The returned object
+        will be read-only.
+        """
         ...
 
 

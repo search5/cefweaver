@@ -14,16 +14,17 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 638 methods/functions in 70 classes, 3 global functions
+Generated now: 660 methods/functions in 71 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
     22  class
      4  struct
      3  a library method returning a client object
      1  a pointer into memory that CEF owns and can free while Python still holds it (get_data() copies the bytes)
+     1  pointer to
      1  struct-like value type
      1  another overload of CreateContext is generated (Python has one name)
-  ----  32 skipped
+  ----  33 skipped
 
 If every class were generated, the type support alone would cover 2131 of 2255 methods/functions (95%).
 What blocks the rest, by type:
@@ -91,7 +92,7 @@ Per class (supported/total methods, when every class is generated):
   * CefCallback                            library   2/2  
   * CefClient                              client   19/19 
     CefCommandHandler                      client    5/5  
-    CefCommandLine                         library  22/23 
+  * CefCommandLine                         library  22/23 
   * CefCompletionCallback                  client    1/1  
     CefComponent                           library   4/4  
     CefComponentUpdateCallback             client    1/1  
@@ -244,18 +245,17 @@ Per class (supported/total methods, when every class is generated):
 
 Opened by java-cef, not generated yet (the gaps):
   CefBrowserHost                   1/30   type not supported yet
-  CefCommandLine                  12/12   class not generated yet
   CefDragData                     24/24   class not generated yet
   CefDragHandler                   1/1    type not supported yet
   CefRenderHandler                 1/9    type not supported yet
-  CefSchemeRegistrar               1/1    class not generated yet
-  ----  40 methods
+  ----  27 methods
 
 Generated, and not opened by java-cef (beyond the floor):
   CefBinaryValue                   8  the whole class
   CefBrowser                       2  2 methods
   CefBrowserHost                  35  35 methods
   CefClient                        1  1 methods
+  CefCommandLine                  10  10 methods
   CefCompletionCallback            1  the whole class
   CefContextMenuHandler            4  4 methods
   CefContextMenuParams             2  2 methods
@@ -295,7 +295,7 @@ Generated, and not opened by java-cef (beyond the floor):
   CefUnresponsiveProcessCallback   2  the whole class
   CefValue                        23  the whole class
   CefZipReader                    13  the whole class
-  ----  281 methods
+  ----  291 methods
 ```
 
 ## 관련 페이지

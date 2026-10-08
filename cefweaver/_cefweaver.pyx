@@ -25,7 +25,7 @@ from libcpp.string cimport string
 
 from cefweaver.cef_api cimport *
 from cefweaver.cefwrapper cimport (CefValueWrapper, CefWrapper, PythonQueryHandler,
-                                   QueryCallbackHolder)
+                                   QueryCallbackHolder, SchemeRegistrarProxy)
 
 
 cdef bytes _utf8(object value):
@@ -238,6 +238,82 @@ cdef class _QueryBridge:
         self._ptr = NULL
 
 
+class AppHandler:
+    """Hooks into the start of the application, as java-cef's ``CefAppHandler``.
+
+    Subclass it and give an instance to ``CefApp.set_app_handler()`` before ``initialize()``.
+    The methods run on the thread that called ``initialize()``.
+    """
+
+    def on_before_command_line_processing(self, process_type, command_line):
+        """The command line of the browser process (``process_type`` is ``""``, as java-cef
+        calls it for the browser process only) can be changed here, before the switches of
+        ``CefApp.add_command_line_switch()`` are added. ``command_line`` is a ``CommandLine``."""
+
+    def on_register_custom_schemes(self, registrar):
+        """Register custom schemes with ``registrar.add_custom_scheme(name, options)``
+        (``types.SchemeOptions``). The renderer processes get the same schemes."""
+
+    def on_context_initialized(self):
+        """CEF is ready for browsers (the first browser is created right after this)."""
+
+    def on_already_running_app_relaunch(self, command_line, current_directory):
+        """A second start of the application with the same user data (the same ``cache_path``)
+        reached this one; ``command_line`` is the second one's. Return True if it was handled
+        (False: CEF opens a new window)."""
+        return False
+
+
+cdef class SchemeRegistrar:
+    """Registers custom schemes; given to ``AppHandler.on_register_custom_schemes()`` and valid
+    only during that call."""
+
+    cdef SchemeRegistrarProxy* _proxy
+
+    def __init__(self):
+        raise TypeError("SchemeRegistrar objects are created by CEF")
+
+    def add_custom_scheme(self, scheme_name, int options):
+        """Register a scheme. Returns False if CEF refuses it."""
+        if self._proxy == NULL:
+            raise RuntimeError("the registrar is valid only during on_register_custom_schemes()")
+        return bool(self._proxy.Add(_utf8(scheme_name), options))
+
+
+cdef void _app_on_command_line(void* handler, CefRefPtr[CefCommandLine] command_line) noexcept with gil:
+    try:
+        (<object>handler).on_before_command_line_processing("", _wrap_CommandLine(command_line))
+    except BaseException:
+        _g_report()
+
+
+cdef void _app_on_schemes(void* handler, SchemeRegistrarProxy* proxy) noexcept with gil:
+    cdef SchemeRegistrar registrar = SchemeRegistrar.__new__(SchemeRegistrar)
+    registrar._proxy = proxy
+    try:
+        (<object>handler).on_register_custom_schemes(registrar)
+    except BaseException:
+        _g_report()
+    registrar._proxy = NULL  # the registrar of CEF is gone after this call
+
+
+cdef void _app_on_context(void* handler) noexcept with gil:
+    try:
+        (<object>handler).on_context_initialized()
+    except BaseException:
+        _g_report()
+
+
+cdef cpp_bool _app_on_relaunch(void* handler, CefRefPtr[CefCommandLine] command_line,
+                               const string& current_directory) noexcept with gil:
+    try:
+        return bool((<object>handler).on_already_running_app_relaunch(
+            _wrap_CommandLine(command_line), current_directory.decode("utf-8", "replace")))
+    except BaseException:
+        _g_report()
+        return False
+
+
 # CEF can be initialized once per process: a second CefInitialize() after CefShutdown()
 # crashes the process (segmentation fault), so it is refused here. (`_cef_was_shut_down`
 # is declared in cef_api.pxi, where the library objects use it as well.)
@@ -267,6 +343,7 @@ cdef class CefApp:
     cdef set _switch_names  # the names given to add_command_line_switch()
     cdef dict _query_bridges  # QueryHandler -> _QueryBridge
     cdef object _client  # the client of set_client()
+    cdef object _app_handler  # the AppHandler of set_app_handler()
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -278,6 +355,7 @@ cdef class CefApp:
         self._switch_names = set()
         self._query_bridges = {}
         self._client = None
+        self._app_handler = None
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -336,6 +414,20 @@ cdef class CefApp:
         self._require_not_initialized()
         self._client = client
         self._wrapper.SetClient(_g_make_Client(client))
+
+    def set_app_handler(self, handler):
+        """Hooks into the start of the application (an ``AppHandler``), as java-cef's
+        ``CefAppHandler``: the command line, custom schemes, the initialized context and a
+        second start of the application. Before ``initialize()`` only; ``None`` removes it."""
+        self._require_not_initialized()
+        if handler is not None and not isinstance(handler, AppHandler):
+            raise TypeError("handler must be an AppHandler, not %s" % type(handler).__name__)
+        self._app_handler = handler
+        if handler is None:
+            self._wrapper.SetAppHooks(NULL, NULL, NULL, NULL, NULL)
+        else:
+            self._wrapper.SetAppHooks(<void*>handler, _app_on_command_line, _app_on_schemes,
+                                      _app_on_context, _app_on_relaunch)
 
     @property
     def devtools_menu(self):
@@ -541,4 +633,5 @@ cdef class CefApp:
                 and self._wrapper.IsReadyToExecuteJavascript())
 
 
-__all__ = ["CefApp", "QueryHandler", "QueryCallback"] + __generated_all__
+__all__ = ["CefApp", "QueryHandler", "QueryCallback", "AppHandler",
+           "SchemeRegistrar"] + __generated_all__

@@ -9,7 +9,7 @@ from libcpp.string cimport string
 
 from libc.stdint cimport int64_t
 
-from cefweaver.cef_api cimport CefBrowser, CefClient, CefFrame, CefRefPtr
+from cefweaver.cef_api cimport CefBrowser, CefClient, CefCommandLine, CefFrame, CefRefPtr
 
 
 cdef extern from "javascript_binding.h":
@@ -46,6 +46,17 @@ cdef extern from "query_router.h":
                            query_python_on_canceled_ptr on_canceled)
 
 
+cdef extern from "app_hooks.h":
+    cdef cppclass SchemeRegistrarProxy:
+        cpp_bool Add(const string& name, int options)
+
+    ctypedef void (*app_command_line_ptr)(void* py, CefRefPtr[CefCommandLine] command_line) noexcept
+    ctypedef void (*app_schemes_ptr)(void* py, SchemeRegistrarProxy* registrar) noexcept
+    ctypedef void (*app_context_ptr)(void* py) noexcept
+    ctypedef cpp_bool (*app_relaunch_ptr)(void* py, CefRefPtr[CefCommandLine] command_line,
+                                          const string& current_directory) noexcept
+
+
 cdef extern from "library.h":
     cdef cppclass CefWrapper:
         CefWrapper()
@@ -75,3 +86,5 @@ cdef extern from "library.h":
         cpp_bool AddQueryHandler(PythonQueryHandler* handler, cpp_bool first)
         cpp_bool RemoveQueryHandler(PythonQueryHandler* handler)
         cpp_bool QueryRouterExists()
+        void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
+                         app_context_ptr context, app_relaunch_ptr relaunch)

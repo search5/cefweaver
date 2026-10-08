@@ -7,6 +7,7 @@
 #include "include/cef_command_line.h"
 #include "javascript_binding.h"
 #include "query_router.h"
+#include "app_hooks.h"
 
 class CefWrapper {
 public:
@@ -50,6 +51,9 @@ public:
   bool AddQueryHandler(PythonQueryHandler* handler, bool first);
   bool RemoveQueryHandler(PythonQueryHandler* handler);
   bool QueryRouterExists();
+  // java-cef's CefAppHandler hooks (app_hooks.h); before InitCefSimple().
+  void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
+                   app_context_ptr context, app_relaunch_ptr relaunch);
 
 private:
     CefRefPtr<CefWrapperApp> m_App;

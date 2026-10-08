@@ -75,10 +75,15 @@ def build_report(model, current, universe):
     return "\n".join(lines) + "\n"
 
 
+# Written by hand (not generated) in cefweaver/_cefweaver.pyx: CefSchemeRegistrar is not
+# reference counted and valid only during one call, so it has its own small class.
+HANDWRITTEN = {("CefSchemeRegistrar", "AddCustomScheme")}
+
+
 def generated_methods(model, current):
-    """{(class, method)} that are generated."""
+    """{(class, method)} that are generated (or written by hand)."""
     return {(p.owner, p.cef_name) for p in all_plans(model, current)
-            if p.supported and p.owner in (current._library | current._client)}
+            if p.supported and p.owner in (current._library | current._client)} | HANDWRITTEN
 
 
 def java_cef_gaps(model, current):
