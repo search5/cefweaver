@@ -39,8 +39,8 @@ updated: 2026-10-08
 ## 2. 알려진 한계
 
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
-- **Python은 브라우저 프로세스에만 있어서 렌더러 쪽 동작을 정할 수 없습니다.** 프로세스 메시지로 받을 수 있는 것은 렌더러의 C++ 코드가 보내는 메시지뿐이고, 지금은 진단용 `cefweaver-pong`(`cefweaver-ping`에 대한 답)이 전부입니다. JavaScript와의 구조화된 양방향 통신(객체, 반환값)은 `add_javascript_binding`(기본형 인자, 반환값 없음)이 전부이며, 더 필요하면 렌더러 쪽 중계(`window.cefQuery` 같은 메시지 라우터)를 새로 만들어야 합니다.
-- `BinaryValue`의 `create`, `get_data`, `get_raw_data`와 `ProcessMessage.get_shared_memory_region`은 타입 없는 포인터와 범위 밖 클래스 때문에 열리지 않았습니다. 값 컨테이너는 CEF의 메서드를 그대로 중계하며 파이썬 객체(`dict`, `list`)와의 변환 함수는 없습니다.
+- **Python은 브라우저 프로세스에만 있어서 렌더러 쪽 동작을 정할 수 없습니다.** 프로세스 메시지로 받을 수 있는 것은 렌더러의 C++ 코드가 보내는 메시지뿐이고, 지금은 진단용 `cefweaver-pong`(`cefweaver-ping`에 대한 답)이 전부입니다. JavaScript와의 구조화된 양방향 통신(객체, 반환값)은 `add_javascript_binding`(기본형 인자, 반환값 없음)이 전부이며, 더 필요하면 렌더러 쪽 중계를 새로 만들어야 합니다. java-cef는 CEF의 메시지 라우터(`window.cefQuery`), cefpython은 직접 만든 V8 중계로 풉니다([분석](../analyses/js-python-messaging.md)).
+- `BinaryValue`의 `create`, `get_data`, `get_raw_data`와 `ProcessMessage.get_shared_memory_region`은 타입 없는 포인터와 범위 밖 클래스 때문에 열리지 않았습니다. 값 컨테이너는 CEF의 메서드를 그대로 중계하며 파이썬 객체(`dict`, `list`)와의 변환 함수는 없습니다. 열지 못한 항목의 사정과 방법은 [분석](../analyses/js-python-messaging.md)에 있습니다.
 - **네이티브 Wayland에서 Alloy 스타일 브라우저가 죽습니다**(`ozone-platform=wayland`, 크래시 지점은 `libcef` 안, F31). 그래서 `DISPLAY`가 있으면 `x11`(XWayland)이 기본입니다. `DISPLAY`가 없는 순수 Wayland 세션은 해결책이 없고(Chromium이 Wayland를 고르면 죽음), `cefsimple`의 Alloy 스타일은 같은 `libcef`에서 살아 있어서 래퍼 쪽 원인일 수 있으나 찾지 못했습니다. GUI 툴킷에 끼워 넣는 일(`parent_window`)은 X11 핸들이라 Wayland에서 어차피 어렵습니다.
 - **CEF 154.0.34의 문제: `data:`나 `about:blank` 페이지의 `<iframe srcdoc>`가 로드를 끝내지 못합니다**(F27). cefweaver의 문제가 아니며(`cefsimple`도 같음) 고칠 수 없습니다. `add_resource`로 페이지를 제공하거나 `src` iframe을 쓰는 우회가 있고, `expectedFailure` 시험이 CEF의 수정을 알려 줍니다.
 - **준비되기 전의 입력은 버려집니다**(`send_mouse_*`, F18). 대기열에 쌓이지 않고 준비를 알리는 신호도 없습니다(첫 프레임 뒤에도 10번 중 1번은 버려졌음). 호출하는 쪽이 도착할 때까지 다시 보내야 합니다.

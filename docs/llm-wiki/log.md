@@ -106,3 +106,7 @@
 - 사용자의 진행 요청으로 구현했습니다(오프스크린 렌더링은 이 다음). 시험 먼저(생성기 5개와 통합 시험이 이전 wheel에서 실패하는 것을 확인).
 - 범위에 `CefProcessMessage`, `CefValue`, `CefListValue`, `CefDictionaryValue`, `CefBinaryValue`를 더했고, `Frame.send_process_message`와 `Client.on_process_message_received`가 열렸습니다. 래퍼는 자기 메시지 이름 둘만 가져가고 나머지는 사용자에게 넘깁니다.
 - 앞서 "JavaScript와 Python의 양방향 메시지"라고 한 설명은 정확하지 않았습니다. Python은 브라우저 프로세스에만 있어서 사용자 정의 메시지의 보내는 쪽은 렌더러의 C++뿐입니다. 그래서 진단용 ping/pong을 렌더러에 두었습니다(F33).
+
+## [2026-10-08] ingest | JavaScript 통신의 비교 조사 (java-cef, cefpython)
+
+- 사용자의 질문(구조화된 양방향 통신을 java-cef 등은 어떻게 하는가, 열지 못한 부분)에 java-cef와 cefpython의 위키와 CEF 헤더로 답하고 [분석](pages/analyses/js-python-messaging.md)으로 저장했습니다. 구현은 하지 않았습니다. 정정: cefpython도 Python은 브라우저 프로세스에만 있고 렌더러는 C++입니다.

@@ -66,5 +66,6 @@
 - [API 중계 규모와 생성기 선택](pages/analyses/api-relay-scale.md): CEF, java-cef, cefpython의 규모와 생성기를 고른 근거
 - [cefpython의 CEF 패치와 cefweaver](pages/analyses/cefpython-patches.md): cefpython의 CEF 패치가 현재 CEF에 적용되는지, 가져오지 않은 이유
 - [래퍼와 사용자가 핸들러를 나눠 쓰는 방법](pages/analyses/sharing-handlers-with-the-wrapper.md): 핸들러를 분리할 수 없는 이유, 컨텍스트 메뉴의 결정과 구현(순서, ID, 기본 끔), 프로세스 메시지(이름으로 나눔, 진단용 ping/pong)
+- [JavaScript와 호스트 사이의 통신 (java-cef, cefpython과 비교)](pages/analyses/js-python-messaging.md): 세 프로젝트의 중계 방식 비교, 메시지 라우터 도입 선택지, 열지 못한 BinaryValue와 공유 메모리
 - [Chromium의 Wayland와 X11 동작](pages/analyses/chromium-on-wayland.md): 네이티브 Wayland와 XWayland에서 Chromium 동작 실험
 - [java-cef 시험과의 비교](pages/analyses/java-cef-test-comparison.md): java-cef 시험 구조 조사, cefweaver와의 비교, 채택한 것
