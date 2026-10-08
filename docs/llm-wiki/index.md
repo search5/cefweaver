@@ -27,7 +27,7 @@
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
 - [루트 CMake와 CEF 다운로드](pages/components/root-cmake.md): 루트 CMakeLists.txt, DownloadCEF.cmake, 네이티브 타깃의 CMake
-- [시험 (tests/)](pages/components/tests.md): tests/의 시험 387개(통합, 생성기, UI, 위키 점검)와 설계 원칙
+- [시험 (tests/)](pages/components/tests.md): tests/의 시험 392개(통합, 생성기, UI, 위키 점검)와 설계 원칙
 - [tools/build_cef.py](pages/components/tool-build-cef.md): tools/build_cef.py의 소스 빌드 흐름, 명령, GN_DEFINES, 한계
 - [tools/prepare.py](pages/components/tool-prepare.md): tools/prepare.py의 흐름, 옵션, 버전 조회, 스테이징
 

@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import demo  # noqa: E402
 from cefweaver import ui  # noqa: E402
-from cefqt import (BINDING, QApplication, QObject, Qt, QTimer, QtLoop, CefWidget)  # noqa: E402
+from cefweaver.ui.toolkits.qt import (BINDING, QApplication, QObject, Qt, QTimer, QtLoop, CefWidget)  # noqa: E402
 
 if BINDING == "pyqt6":
     from PyQt6.QtGui import QAction

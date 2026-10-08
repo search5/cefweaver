@@ -10,6 +10,9 @@
 wx hands over the dropped data only at the drop, so a drop from another program reaches the view as
 ``drop()``. The drag of the page itself, over its own panel, goes step by step. wx has no input method
 preedit (README); what an input method commits arrives as characters.
+
+Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 27 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3).
+Not checked: wx on Windows or macOS, a real input method, a scale other than 1.
 """
 
 import wx

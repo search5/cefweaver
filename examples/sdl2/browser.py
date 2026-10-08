@@ -14,7 +14,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import demo  # noqa: E402
-from cefsdl import SdlBrowser  # noqa: E402
+from cefweaver.ui.toolkits.sdl2 import SdlBrowser  # noqa: E402
 
 
 def address(text):

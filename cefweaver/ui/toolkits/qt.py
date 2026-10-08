@@ -10,6 +10,9 @@ adapter:
   clipboard of Qt, the candidate window of the input method and the ``QDrag`` that Qt starts for the page;
 * ``CefWidget``: a ``QWidget`` that passes the mouse, wheel, keys, input method and drag and drop events of
   Qt to the view.
+
+Checked: Xvfb with QT_QPA_PLATFORM=xcb and xdotool, PyQt6 and PySide6: the 27 checks of examples/qt/smoke.py at scale 1 and 2.
+Not checked: a real input method (ibus, fcitx), Qt on Wayland, anything but plain text in the clipboard.
 """
 
 import os

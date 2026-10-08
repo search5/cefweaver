@@ -4,7 +4,7 @@ SDL2 창에 cefweaver의 오프스크린 브라우저를 그리는 예제입니�
 
 | 파일 | 내용 |
 | --- | --- |
-| `cefsdl.py` | `cefweaver.ui` 위의 `SdlBrowser`: 어댑터(그리기, 위치, 커서, 클립보드, `post`와 `call_later`)이자 이벤트 루프이고 SDL 이벤트를 `BrowserView`에 전합니다 |
+| `cefweaver.ui.toolkits.sdl2` (패키지) | `cefweaver.ui` 위의 `SdlBrowser`: 어댑터(그리기, 위치, 커서, 클립보드, `post`와 `call_later`)이자 이벤트 루프이고 SDL 이벤트를 `BrowserView`에 전합니다 |
 | `browser.py` | 데모 페이지가 있는 브라우저. `Alt+←`, `Alt+→`는 뒤로와 앞으로, `F5`는 새로 고침 |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 

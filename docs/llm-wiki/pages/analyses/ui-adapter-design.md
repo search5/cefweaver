@@ -2,12 +2,12 @@
 title: UI 어댑터 설계 (여섯 예제의 비교와 인터페이스 초안)
 type: analysis
 sources:
-  - examples/gtk3/cefgtk.py
-  - examples/qt/cefqt.py
-  - examples/tk/ceftk.py
-  - examples/sdl2/cefsdl.py
-  - examples/wx/cefwx.py
-  - examples/kivy/cefkivy.py
+  - cefweaver/ui/toolkits/gtk3.py
+  - cefweaver/ui/toolkits/qt.py
+  - cefweaver/ui/toolkits/tk.py
+  - cefweaver/ui/toolkits/sdl2.py
+  - cefweaver/ui/toolkits/wx.py
+  - cefweaver/ui/toolkits/kivy.py
   - examples/common/checks.py
 updated: 2026-10-08
 ---

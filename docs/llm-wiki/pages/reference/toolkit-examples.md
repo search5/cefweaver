@@ -4,15 +4,15 @@ type: reference
 sources:
   - examples/common/demo.py
   - examples/common/checks.py
-  - examples/qt/cefqt.py
+  - cefweaver/ui/toolkits/qt.py
   - examples/qt/smoke.py
-  - examples/tk/ceftk.py
+  - cefweaver/ui/toolkits/tk.py
   - examples/tk/smoke.py
-  - examples/sdl2/cefsdl.py
+  - cefweaver/ui/toolkits/sdl2.py
   - examples/sdl2/smoke.py
-  - examples/wx/cefwx.py
+  - cefweaver/ui/toolkits/wx.py
   - examples/wx/smoke.py
-  - examples/kivy/cefkivy.py
+  - cefweaver/ui/toolkits/kivy.py
   - examples/kivy/smoke.py
   - examples/qt/browser.py
   - examples/qt/pyproject.toml
@@ -56,15 +56,15 @@ updated: 2026-10-08
 
 ## 각 예제의 구성과 실행
 
-모두 `uv build --wheel`로 만든 wheel을 로컬 의존성으로 쓰고(`pyproject.toml`의 `tool.uv.sources`), `uv sync --python 3.13` 뒤 `uv run python browser.py [주소 | demo]`로 실행합니다. 파일은 위젯(`cef<툴킷>.py`), 데모 브라우저(`browser.py`), 점검(`smoke.py`), `README.md`입니다.
+모두 `uv build --wheel`로 만든 wheel을 로컬 의존성으로 쓰고(`pyproject.toml`의 `tool.uv.sources`), `uv sync --python 3.13` 뒤 `uv run python browser.py [주소 | demo]`로 실행합니다. 위젯은 이제 패키지의 `cefweaver.ui.toolkits.<툴킷>` 모듈에 있고([UI 어댑터 API](ui-api.md)), 예제 디렉터리에는 데모 브라우저(`browser.py`), 점검(`smoke.py`), `README.md`가 남았습니다.
 
 | 예제 | 위젯 | 설치의 특이점 | 점검 실행의 고정 |
 | --- | --- | --- | --- |
-| `qt` | `CefWidget`(`cefqt.py`, 환경 변수 `CEFQT_BINDING`) | extras `pyqt`, `pyside`(PySide는 `UV_PROJECT_ENVIRONMENT=.venv-pyside`) | `QT_QPA_PLATFORM=xcb` |
-| `tk` | `CefCanvas`(`ceftk.py`) | Pillow, uv의 CPython에 Tk 8.6 포함 | 없음(Tk는 `DISPLAY`만 봄) |
-| `sdl2` | `SdlBrowser`(`cefsdl.py`, 뷰이자 이벤트 루프) | `pysdl2`, `pysdl2-dll` | `SDL_VIDEODRIVER=x11` |
-| `wx` | `CefPanel`(`cefwx.py`) | wxPython 사이트의 wheel 주소를 직접 지정(PyPI는 소스 빌드) | `GDK_BACKEND=x11` |
-| `kivy` | `CefView`(`cefkivy.py`) | `kivy`(SDL2 포함), 클립보드는 `xsel` | `SDL_VIDEODRIVER=x11` |
+| `qt` | `CefWidget`(`cefweaver.ui.toolkits.qt`, 환경 변수 `CEFQT_BINDING`) | extras `pyqt`, `pyside`(PySide는 `UV_PROJECT_ENVIRONMENT=.venv-pyside`) | `QT_QPA_PLATFORM=xcb` |
+| `tk` | `CefCanvas`(`cefweaver.ui.toolkits.tk`) | Pillow, uv의 CPython에 Tk 8.6 포함 | 없음(Tk는 `DISPLAY`만 봄) |
+| `sdl2` | `SdlBrowser`(`cefweaver.ui.toolkits.sdl2`, 뷰이자 이벤트 루프) | `pysdl2`, `pysdl2-dll` | `SDL_VIDEODRIVER=x11` |
+| `wx` | `CefPanel`(`cefweaver.ui.toolkits.wx`) | wxPython 사이트의 wheel 주소를 직접 지정(PyPI는 소스 빌드) | `GDK_BACKEND=x11` |
+| `kivy` | `CefView`(`cefweaver.ui.toolkits.kivy`) | `kivy`(SDL2 포함), 클립보드는 `xsel` | `SDL_VIDEODRIVER=x11` |
 
 **여섯 예제 모두 `cefweaver.ui` 위로 옮겨졌습니다**(위젯은 어댑터와 이벤트 전달만 남음). 아래 "공통 구조"의 `Runtime`과 위젯 설명은 옮기기 전 구조이며, 현재 구조와 줄 수의 변화는 [UI 어댑터 API](ui-api.md)의 이식 현황에 있습니다.
 

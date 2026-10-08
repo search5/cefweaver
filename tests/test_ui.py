@@ -891,6 +891,55 @@ class Pictures(unittest.TestCase):
         self.assertEqual((change.kind, store.popup_pixels), (ui.PictureStore.POPUP_HIDDEN, None))
 
 
+TOOLKITS = ("gtk3", "qt", "tk", "sdl2", "wx", "kivy")
+
+
+class ToolkitModules(unittest.TestCase):
+    """The adapters live in the package, one module a toolkit, so that they can be split off later (wiki: ui-api)."""
+
+    def source(self, name):
+        import importlib.util
+        spec = importlib.util.find_spec("cefweaver.ui.toolkits." + name)
+        self.assertIsNotNone(spec, "cefweaver.ui.toolkits.%s does not exist" % name)
+        with open(spec.origin, encoding="utf-8") as f:
+            return f.read()
+
+    def test_there_is_a_module_for_each_toolkit(self):
+        for name in TOOLKITS:
+            self.source(name)
+
+    def test_importing_the_ui_package_imports_no_toolkit(self):
+        code = ("import sys, cefweaver, cefweaver.ui, cefweaver.ui.toolkits\n"
+                "bad = [n for n in ('PyQt6', 'PySide6', 'gi', 'tkinter', 'sdl2', 'wx', 'kivy', 'PIL') if n in sys.modules]\n"
+                "assert not bad, bad\nprint('OK')")
+        result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60)
+        self.assertEqual((result.returncode, result.stdout.strip()), (0, "OK"), result.stderr[-1500:])
+
+    def test_a_module_says_what_it_was_checked_on_and_what_not(self):
+        import ast
+        for name in TOOLKITS:
+            doc = ast.get_docstring(ast.parse(self.source(name))) or ""
+            self.assertIn("Checked:", doc, name)
+            self.assertIn("Not checked:", doc, name)
+
+    def test_the_modules_do_not_import_each_other(self):
+        import ast
+        for name in TOOLKITS:
+            for node in ast.walk(ast.parse(self.source(name))):
+                modules = []
+                if isinstance(node, ast.Import):
+                    modules = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    modules = [("." * node.level) + (node.module or "")]
+                for module in modules:
+                    self.assertNotIn("toolkits", module, "%s imports %s" % (name, module))
+
+    def test_the_modules_use_only_the_public_side_of_the_view(self):
+        import re
+        for name in TOOLKITS:
+            self.assertEqual(re.findall(r"\bview\._\w+", self.source(name)), [], name)
+
+
 class Navigation(unittest.TestCase):
     def test_navigation_goes_to_the_browser(self):
         view, _, calls = make_view()

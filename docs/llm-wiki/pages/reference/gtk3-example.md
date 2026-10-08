@@ -2,7 +2,7 @@
 title: GTK 3 예제 (오프스크린 위젯)
 type: reference
 sources:
-  - examples/gtk3/cefgtk.py
+  - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/view.py
   - examples/gtk3/browser.py
   - examples/gtk3/smoke.py

@@ -327,3 +327,7 @@
 ## [2026-10-08] ingest | Session.start가 위젯을 받음, snapshot을 뷰로 (cefweaver.ui)
 
 - 다섯 파일에 똑같던 `Runtime(ui.Session)` 하위 클래스를 없앴습니다(`Session.start`가 `BrowserWidget`을 받고, 끝에 어댑터의 선택 메서드 `release()`를 부름: Tk의 파이프). 여섯 파일에 있던 `snapshot`도 없앴습니다: 뷰가 모든 프레임을 `PictureStore`에 보관하고 `view.snapshot(path)`가 의존성 없이 PNG로 씁니다(GTK와 Qt는 같은 저장소를 `frame.change`와 함께 씀). 위젯 파일은 GTK 485, Tk 266, SDL2 354, Kivy 282, wx 294, Qt 396줄. 훅 이름을 `close`가 아니라 `release`로 한 이유: SDL2의 `SdlBrowser.close()`가 이미 "CEF를 닫는다"는 뜻이라 종료가 재귀로 두 번 일어날 수 있었습니다.
+
+## [2026-10-08] schema | 툴킷별 어댑터를 패키지로 (cefweaver.ui.toolkits)
+
+- `examples/*/cef*.py` 여섯 개를 `cefweaver/ui/toolkits/{gtk3,qt,tk,sdl2,wx,kivy}.py`로 옮겼습니다(`git mv`). 예제 디렉터리에는 데모 브라우저와 점검만 남습니다. 패키지에 두는 이유(핵심 API가 아직 바뀜, 책임질 사람이 없음)와 나누는 기준(외부 이슈와 PR이 처리 속도를 넘을 때)을 `ui-api.md`에 기록했습니다. 모듈은 서로 임포트하지 않고 지연 임포트이며, `pyproject.toml`에 선택 의존성(qt, gtk3, tk, sdl2, kivy)을 더했습니다. 설치본 기준으로 전체 시험 392개와 여섯 예제의 점검이 통과합니다.

@@ -32,6 +32,16 @@ dependencies = [
     "numpy>=1.26.2",
 ]
 
+# The toolkits of cefweaver.ui.toolkits (each module needs its toolkit and nothing imports them but you).
+[project.optional-dependencies]
+qt = ["PyQt6>=6.6"]                 # PySide6 works too (CEFQT_BINDING=pyside6): install it yourself
+gtk3 = ["PyGObject>=3.42", "pycairo>=1.20"]
+tk = ["Pillow>=10"]
+sdl2 = ["pysdl2>=0.9.16", "pysdl2-dll"]
+kivy = ["kivy>=2.3"]
+# wxPython: PyPI has only the source (a very long build); take a wheel from
+# https://extras.wxpython.org/wxPython4/extras/ for your system, see examples/wx/pyproject.toml
+
 [project.urls]
 Repository = "https://github.com/search5/cefweaver"
 

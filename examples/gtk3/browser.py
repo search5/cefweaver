@@ -20,7 +20,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import GLib, Gtk  # noqa: E402
 
 from cefweaver import ui  # noqa: E402
-from cefgtk import CefWidget, GlibLoop  # noqa: E402
+from cefweaver.ui.toolkits.gtk3 import CefWidget, GlibLoop  # noqa: E402
 
 DEMO_URL = "http://demo.test/"
 DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>cefweaver GTK 3</title>

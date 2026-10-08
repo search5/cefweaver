@@ -11,6 +11,9 @@ SDL tells the text an input method is composing (``SDL_TEXTEDITING``) and what i
 (``SDL_TEXTINPUT``), so Hangul composition is real here. Drops of text and files from other programs
 arrive (``SDL_DROPTEXT``, ``SDL_DROPFILE``); SDL cannot start a drag out of its window, so a drag inside the
 page is carried out by the view.
+
+Checked: Xvfb with SDL_VIDEODRIVER=x11 and xdotool: the 25 checks of examples/sdl2/smoke.py (PySDL2 0.9.17, SDL 2.32).
+Not checked: drops of other programs (the checks feed SDL_DROPTEXT to the handler, no real XDND), a scale other than 1, a real input method.
 """
 
 import collections

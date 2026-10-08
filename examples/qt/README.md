@@ -1,10 +1,10 @@
 # Qt에 붙이는 cefweaver (PyQt6와 PySide6)
 
-`QWidget`에 cefweaver의 오프스크린 브라우저를 그리는 예제입니다. **같은 코드가 PyQt6와 PySide6에서 모두 동작**합니다(`cefqt.py`가 두 바인딩의 import만 가립니다).
+`QWidget`에 cefweaver의 오프스크린 브라우저를 그리는 예제입니다. **같은 코드가 PyQt6와 PySide6에서 모두 동작**합니다(`cefweaver.ui.toolkits.qt`가 두 바인딩의 import만 가립니다).
 
 | 파일 | 내용 |
 | --- | --- |
-| `cefqt.py` | `cefweaver.ui` 위의 어댑터: `QtAdapter`(그리기, 위치, 커서, 클립보드, 후보 창, `QDrag` 시작), `QtLoop`(`post`, `call_later`), `CefWidget`(Qt 이벤트를 `BrowserView`에 전함) |
+| `cefweaver.ui.toolkits.qt` (패키지) | `cefweaver.ui` 위의 어댑터: `QtAdapter`(그리기, 위치, 커서, 클립보드, 후보 창, `QDrag` 시작), `QtLoop`(`post`, `call_later`), `CefWidget`(Qt 이벤트를 `BrowserView`에 전함) |
 | `browser.py` | 툴바와 주소창이 있는 작은 브라우저와 데모 페이지(`../common/demo.py`) |
 | `smoke.py` | 실제 X 이벤트(xdotool)로 구동해 점검하는 스크립트(`../common/checks.py`) |
 

@@ -15,7 +15,7 @@ import wx  # noqa: E402
 
 import demo  # noqa: E402
 from cefweaver import ui  # noqa: E402
-from cefwx import CefPanel, WxLoop  # noqa: E402
+from cefweaver.ui.toolkits.wx import CefPanel, WxLoop  # noqa: E402
 
 
 class BrowserWindow(wx.Frame):

@@ -19,7 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import browser  # noqa: E402
-from cefqt import BINDING, QApplication, QMimeData, QPoint, QTimer, QUrl, Qt  # noqa: E402
+from cefweaver.ui.toolkits.qt import BINDING, QApplication, QMimeData, QPoint, QTimer, QUrl, Qt  # noqa: E402
 import checks  # noqa: E402
 
 if BINDING == "pyqt6":

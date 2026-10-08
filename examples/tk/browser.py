@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "common"))
 
 import demo  # noqa: E402
 from cefweaver import ui  # noqa: E402
-from ceftk import CefCanvas, TkLoop  # noqa: E402
+from cefweaver.ui.toolkits.tk import CefCanvas, TkLoop  # noqa: E402
 
 RootClass = tkinter.Tk
 

@@ -31,7 +31,7 @@ from kivy.uix.textinput import TextInput  # noqa: E402
 
 import demo  # noqa: E402
 from cefweaver import ui  # noqa: E402
-from cefkivy import CefView, KivyLoop  # noqa: E402
+from cefweaver.ui.toolkits.kivy import CefView, KivyLoop  # noqa: E402
 
 
 def address(text):
