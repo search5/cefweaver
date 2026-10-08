@@ -45,9 +45,28 @@ Linux 6.17, Wayland 세션(`XDG_SESSION_TYPE=wayland`, `WAYLAND_DISPLAY=wayland-
 - **눈으로 본 화면**: 확인한 것은 페이지가 스스로 측정해 보고한 값뿐이고 스크린샷 도구가 없었습니다. 창이 실제로 뜨고 배경색과 제목이 보였는지는 사용자가 확인해야 합니다.
 - XWayland에서 나온 `Message 0 rejected by interface blink.mojom.WidgetHost` 오류의 원인(종료 중 일회성으로 보이나 조사하지 않았습니다).
 - `devicePixelRatio`가 1인 것이 이 화면의 실제 배율과 맞는지. 고해상도 배율에서의 Wayland와 XWayland의 선명도 차이.
-- 이 조사는 **Chrome 스타일** 창으로 했습니다. 래퍼는 이후 Alloy 스타일로 바뀌었고(F18), Alloy 스타일에서 네이티브 Wayland가 되는지는 확인하지 않았습니다. 시험은 X11(`ozone-platform=x11`)로만 실행합니다.
+- 위 "실험"은 **Chrome 스타일** 창으로 한 것입니다. Alloy 스타일의 결과는 아래 절에 있습니다.
 - 창 제목은 이 조사 당시 Linux에서 `PlatformTitleChange`가 비어 있었습니다. Alloy 전환과 함께 X11로 설정하도록 구현했습니다.
 - GUI 툴킷 임베딩이 Wayland에서 되는지.
+
+## Alloy 스타일에서의 결과 (2026-10-08, 실제 데스크톱에서 실행)
+
+래퍼가 Alloy 스타일로 바뀐 뒤 같은 환경(GNOME mutter, Wayland 세션 + XWayland)에서 다시 확인했습니다. 사용자가 실제 화면에 창을 여는 것을 허락했습니다.
+
+| `ozone-platform` | 결과 |
+| --- | --- |
+| `x11`(XWayland) | **정상.** 종료 코드 0, 88프레임, WebGL은 NVIDIA RTX 4060, 창 제목이 X11 창에 설정됨, `get_runtime_style() == 2` |
+| `wayland` | **크래시.** 약 1초 뒤 브라우저 프로세스가 `SIGTRAP`(종료 코드 133)으로 끝남 |
+| 지정하지 않음 | 위와 같음(`WAYLAND_DISPLAY`가 있으면 Chromium이 Wayland를 고르므로 크래시) |
+
+크래시를 가른 방법과 결과입니다.
+
+- **페이지와 무관합니다.** 아무 스크립트도 없는 페이지도, 애니메이션 프레임이나 WebGL이 있는 페이지도 같았습니다.
+- **창 제목 코드와 무관합니다.** 제목 처리를 통째로 없앤 변형도 같았습니다.
+- **스타일 때문이 아니라는 단서**: CEF 공식 예제 `cefsimple`은 같은 `libcef`에서 `--use-alloy-style`과 `--use-views`의 모든 조합이 Wayland에서 6초 동안 살아 있었습니다(그림이 나오는지는 확인하지 못했습니다). 우리 래퍼에서만 죽는 이유는 찾지 못했습니다. 외부 메시지 펌프(`CefDoMessageLoopWork`)를 쓰는 점이 `cefsimple`과 다르지만 Chrome 스타일은 같은 펌프로 Wayland에서 동작했습니다.
+- 크래시 지점은 메인 스레드의 `libcef.so` 안입니다. 배포된 `libcef`에 심볼이 없고 심볼이 있는 원본(1.4GB)은 `gdb`가 읽다가 죽어서 함수 이름까지는 보지 못했습니다.
+
+**결정**: 사용자가 `ozone-platform`을 지정하지 않았고 X 디스플레이(`DISPLAY`)가 있으면 `x11`을 기본으로 씁니다([설계 결정 기록](../reference/design-decisions.md)). 아래 "정해야 할 것"의 (나)를 조건부로 채택한 것입니다. 창 관리자가 있는 실제 데스크톱에서 이 기본값으로 창이 뜨고 제목이 보이는 것을 확인했습니다([실험으로 확인한 사실 2](../reference/verified-findings-api.md) F31).
 
 ## 임베딩에 관한 근거
 
@@ -57,7 +76,7 @@ CEF의 `parent_window`는 X11 `Window` 핸들입니다(`cef_origin` 위키 `db/k
 
 | 쟁점 | 선택지 |
 | --- | --- |
-| 기본 동작 | (가) Chromium에 맡김(현재) (나) 항상 X11(XWayland)로 강제 (다) 부모 창을 줄 때만 X11 |
+| 기본 동작 | (가) Chromium에 맡김 (나) 항상 X11(XWayland)로 강제 (다) 부모 창을 줄 때만 X11. **Alloy 스타일에서 (가)는 Wayland 세션에서 크래시하므로 (나)를 조건부(`DISPLAY`가 있을 때)로 채택했습니다.** |
 | 툴킷 임베딩 | XWayland 또는 오프스크린 렌더링 |
 | 시험 | 지금의 Xvfb 유지, 나중에 헤드리스 Wayland 컴파지터 도입 |
 

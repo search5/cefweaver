@@ -23,7 +23,7 @@ updated: 2026-10-08
 | `set_subprocess_path(path)` | `cefsubprocess` 실행 파일 경로. 기본: 모듈 디렉터리의 `cefsubprocess` |
 | `set_cache_path(path)` | 캐시와 프로필 디렉터리. 기본: 현재 디렉터리의 `cache/` |
 | `set_resources_path(path)` | `CefSettings.resources_dir_path`로 전달. Linux에서는 `icudtl.dat` 위치에 영향이 없습니다. |
-| `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")` |
+| `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
 | `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |

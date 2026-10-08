@@ -138,6 +138,13 @@ updated: 2026-10-08
   - 핸들러 입력, 중첩 구조체: CSS `-webkit-app-region: drag` 요소가 있는 페이지에서 `on_draggable_regions_changed`가 `[DraggableRegion(bounds=Rect(10, 20, 300, 40), draggable=1)]`로 불립니다(`bounds`가 `Rect`).
 - **크래시와 수정**: `TaskManager` 객체가 프로세스 종료까지 살아 있으면 인터프리터가 정리하면서 종료된 CEF에 `Release()`를 불러 **SIGTRAP**(종료 코드 133)이 납니다. 메서드를 부르지 않아도 매번 그랬고(4가지 변형 모두), `shutdown()` 앞에 `del`하면 정상입니다. `Browser`, `Display` 등은 괜찮았습니다. 수정: `shutdown()` 뒤에 해제되는 라이브러리 객체는 `Release()`를 부르지 않고 버립니다(`__dealloc__`). 시험(`test_a_library_object_that_outlives_shutdown_does_not_crash_the_process`)을 먼저 쓰고 크래시를 확인한 뒤 고쳤습니다. 여러 객체를 한꺼번에 쥔 첫 시험은 해제 순서가 달라서 크래시하지 않아 시험으로 쓸모가 없었습니다.
 
+## F31. Alloy 스타일과 Wayland, 창 관리자 아래의 창 제목
+
+- **방법**: 실제 Wayland 데스크톱(GNOME mutter + XWayland)에서 `ozone-platform`을 바꿔 실행했습니다(사용자의 허락). 상세와 표는 [Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)에 있습니다.
+- **결과**: XWayland(`x11`)는 정상(88프레임, NVIDIA WebGL, 종료 코드 0)이고, 네이티브 Wayland(`wayland`, 미지정)는 약 1초 뒤 `SIGTRAP`입니다. 페이지와 제목 코드와 무관하며, `cefsimple`의 Alloy는 Wayland에서 살아 있었습니다.
+- **창 제목의 버그**: Alloy로 바꿀 때 구현한 창 제목 설정이 "루트의 자식 창까지 올라가기"를 했는데, 창 관리자가 있는 실제 데스크톱에서는 CEF의 최상위 창(`GetWindowHandle()`, `WM_STATE: Normal`)을 지나 **창 관리자의 프레임 창**(`mutter-x11-frames`)에 제목을 써서 보이지 않았습니다. 창 관리자가 없는 Xvfb에서는 이 오류가 드러나지 않아 시험이 통과했습니다. 핸들에 직접 쓰도록 고쳤습니다(`cefsimple`과 같은 방식). 또 Wayland에서 `cef_get_xdisplay()`를 먼저 부르면 죽을 수 있어서 창 핸들(Wayland에서는 비어 있음)을 먼저 확인합니다.
+- **시험**: 실제 화면에 창을 여는 시험이라 기본 실행에서는 건너뛰고 `CEFWEAVER_TEST_WAYLAND=1`일 때만 실행합니다(`WithCefOnWayland`). 기본값이 X11인지와 창 제목(실제 창 관리자 아래)을 확인하는 시험과, 명시한 `wayland`의 크래시를 기록하는 `expectedFailure` 시험이 있습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

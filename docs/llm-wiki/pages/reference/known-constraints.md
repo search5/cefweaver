@@ -29,8 +29,8 @@ updated: 2026-10-08
 | 핸들러의 **구조체 출력**(`get_root_window_screen_rect`)이 Python에서 | 구조체 입력은 `on_auto_resize`로 Python까지 확인했습니다. 출력은 C++ 프록시를 실행해 확인했고 Cython은 컴파일되지만, CEF가 이 메서드를 오프스크린 렌더링에서만 불러서 Python 핸들러까지의 경로를 실행하지 못했습니다. | 오프스크린 렌더링(`CefWindowInfo`의 windowless 설정)으로 브라우저를 만들어 확인 |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
 | Chrome 스타일 변형 빌드에서 한 번 난 **세그멘테이션 오류** | `test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread`에서 종료 코드 -11이 한 번 났습니다(그 빌드는 Chrome 스타일 변형이었음). 정상(Alloy) 빌드에서 20번, 전체 시험 3번은 재현되지 않았습니다. | 같은 시험을 변형 빌드에서 반복 실행 |
+| 네이티브 Wayland 크래시의 **원인**과 순수 Wayland 세션(`DISPLAY` 없음)의 방법 | 함수 이름을 보지 못했습니다(심볼 없음, 원본 `libcef`는 `gdb`가 못 읽음). `cefsimple`의 Alloy는 살아 있었으므로 래퍼의 실행 방식(외부 메시지 펌프 등)이 원인일 가능성이 있습니다. | 심볼이 있는 CEF 빌드 또는 래퍼를 `CefRunMessageLoop`으로 바꿔 비교 |
 | F27이 **이전 CEF 버전**에서도 나는지 | 152의 `cefsimple`로 확인하려 했으나 원격 디버깅 포트가 열리지 않아 중단했습니다. | 152 표준 배포본으로 `cefsimple` 또는 cefweaver를 빌드해 `data:` + `srcdoc` 페이지 시험 |
-| Alloy 스타일에서 **네이티브 Wayland** | 시험은 X11(`ozone-platform=x11`)로만 실행했고, Wayland 조사([Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md))는 Chrome 스타일 기준입니다. 실제 화면에 창을 여는 일이라 사용자의 허락 없이 실행하지 않았습니다. | Wayland 세션에서 `ozone-platform` 없이 실행해 창이 뜨는지 확인 |
 | **Chrome 스타일 선택 옵션**을 열 때의 위험(옵션은 아직 없고 Alloy만 지원) | (1) 래퍼의 컨텍스트 메뉴 항목("Show DevTools" 등)이 Chrome 스타일에서 동작하는지 시험한 적이 없고, Python에서 메뉴를 열고 항목을 고르는 수단도 없습니다. (2) Chrome 스타일과 외부 메시지 펌프와 부모 창 지정의 조합은 다룬 적이 없습니다. (3) Chrome 스타일은 오프스크린 렌더링을 지원하지 않아서, 오프스크린 옵션을 열 때 조합을 막는 검사가 필요합니다. 수정 범위는 작습니다: 옵션 전달 약 20줄, 스타일 분기 2곳(창 제목과 로드 오류 페이지를 지금은 쓰이지 않는 명령줄 스위치 `enable-chrome-runtime`으로 판단하므로 `GetRuntimeStyle()`로 바꿔야 함), 시험 몇 개. | 선택 옵션을 열 때 두 스타일에서 확인 |
 | **구조체 참조가 입출력이라는 판단**의 일반성 | 헤더는 참조 인자의 방향(출력인지 입출력인지)을 표시하지 않습니다. 구조체는 입출력, 그 밖은 출력 전용으로 정한 근거는 `CefDisplay`와 `CefView`의 좌표 변환(입출력, 시험으로 확인)과 `CefMenuModel`, `CefImage`의 기본형 출력(출력 전용)입니다. 구조체를 순수 출력으로 쓰는 `CefTranslatorTest::GetPointByRef`는 범위 밖이라 확인하지 못했습니다(그런 메서드는 호출할 때 아무 구조체나 넘겨야 함). | 범위에 넣고 호출해 보기 |
 | `shutdown()` 뒤에 해제되는 라이브러리 객체를 **버리는 방식**의 이식성 | 종료 뒤에 해제되는 라이브러리 객체는 `CefRefPtr`의 포인터를 `NULL`로 만들어 `Release()`를 건너뜁니다. `CefRefPtr`가 포인터 하나로 이루어져 있다는 가정에 기댑니다(CEF의 `scoped_refptr`는 그렇습니다). 객체는 새지만 프로세스가 끝나는 중입니다. 원인(`TaskManager`가 종료된 CEF에서 `Release()`되면 SIGTRAP)은 `libcef` 안이라 조사하지 못했습니다. | CEF 버전을 바꾸고 시험 |
@@ -39,6 +39,7 @@ updated: 2026-10-08
 ## 2. 알려진 한계
 
 - **CEF는 프로세스당 하나**이고 사용자 스레드가 UI 스레드입니다([프로세스 모델과 스레드](../concepts/process-model-and-threads.md)). `do_message_loop_work()`를 호출하지 않으면 아무것도 처리되지 않습니다.
+- **네이티브 Wayland에서 Alloy 스타일 브라우저가 죽습니다**(`ozone-platform=wayland`, 크래시 지점은 `libcef` 안, F31). 그래서 `DISPLAY`가 있으면 `x11`(XWayland)이 기본입니다. `DISPLAY`가 없는 순수 Wayland 세션은 해결책이 없고(Chromium이 Wayland를 고르면 죽음), `cefsimple`의 Alloy 스타일은 같은 `libcef`에서 살아 있어서 래퍼 쪽 원인일 수 있으나 찾지 못했습니다. GUI 툴킷에 끼워 넣는 일(`parent_window`)은 X11 핸들이라 Wayland에서 어차피 어렵습니다.
 - **CEF 154.0.34의 문제: `data:`나 `about:blank` 페이지의 `<iframe srcdoc>`가 로드를 끝내지 못합니다**(F27). cefweaver의 문제가 아니며(`cefsimple`도 같음) 고칠 수 없습니다. `add_resource`로 페이지를 제공하거나 `src` iframe을 쓰는 우회가 있고, `expectedFailure` 시험이 CEF의 수정을 알려 줍니다.
 - **준비되기 전의 입력은 버려집니다**(`send_mouse_*`, F18). 대기열에 쌓이지 않고 준비를 알리는 신호도 없습니다(첫 프레임 뒤에도 10번 중 1번은 버려졌음). 호출하는 쪽이 도착할 때까지 다시 보내야 합니다.
 - **Python에 열린 핸들러는 일부**입니다. 표시, 수명 주기, 로드 핸들러는 `set_client()`로 받을 수 있지만, 컨텍스트 메뉴 핸들러와 JavaScript 바인딩 메시지(`OnProcessMessageReceived`)는 `CefWrapperClientHandler`가 고정해서 처리하고 위임하지 않습니다. 나머지 핸들러 15개는 생성 범위 밖입니다([생성 범위와 커버리지](generated-api-coverage.md)).

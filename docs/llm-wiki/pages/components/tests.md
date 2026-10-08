@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 112개(통합 47, 생성기 64, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 114개(통합 49, 생성기 64, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -33,7 +33,9 @@ updated: 2026-10-08
 | | `test_library_methods_return_enumeration_members` | `Request.get_resource_type()`이 `ResourceType` 멤버이고 여전히 `int` |
 | | `test_the_menu_model_and_the_display_are_public` | `MenuModel`, `MenuModelDelegate`, `Display`의 공개 여부 |
 | | `test_print_settings_and_the_drag_handler_are_public`, `test_the_task_manager_is_public` | 새 클래스의 공개 여부 |
-| | `test_set_client_checks_its_argument` | `Client`가 아닌 객체와 핸들러는 `TypeError`, `None`은 허용 |
+| `WithCefOnWayland` (선택 실행) | `test_the_default_on_a_wayland_session_is_x11_and_the_window_gets_its_title` | Wayland 세션에서 기본이 X11이고 실제 창 관리자 아래에서 창에 제목이 설정됨 |
+| | `test_known_cef_issue_alloy_style_crashes_on_native_wayland` | `expectedFailure`. 명시한 `ozone-platform=wayland`의 크래시를 기록하고 CEF가 고치면 알려 줌 |
+| `ApiWithoutCef` | `test_set_client_checks_its_argument` | `Client`가 아닌 객체와 핸들러는 `TypeError`, `None`은 허용 |
 | `WithCef` (실제 CEF) | `test_javascript_to_python_binding_and_shutdown` | 네 가지 값 형식(한글 포함)의 전달, 종료 후 `is_running`이 거짓 |
 | | `test_zero_argument_call_and_exceptions_do_not_crash` | 인자 없는 호출, 콜백 예외가 CEF를 죽이지 않음 |
 | | `test_load_url_and_execute_javascript` | 로딩 중 `False`, 준비 뒤 `True`, `load_url` 후 실행 |

@@ -71,9 +71,13 @@ app.add_command_line_switch("ozone-platform", "x11")
 """
 
 
-def run_cef(script, timeout=90):
+def run_cef(script, timeout=90, ozone="x11"):
     """Run `script` (after PRELUDE) in a new process; return CompletedProcess."""
-    code = PRELUDE + textwrap.dedent(script)
+    # ozone=None leaves the platform to the wrapper (its default).
+    line = '"ozone-platform", "x11"'
+    prelude = PRELUDE.replace('app.add_command_line_switch(%s)' % line, "pass") if ozone is None \
+        else PRELUDE.replace(line, '"ozone-platform", "%s"' % ozone)
+    code = prelude + textwrap.dedent(script)
     return subprocess.run([sys.executable, "-I", "-c", code], capture_output=True,
                           text=True, timeout=timeout)
 
@@ -1119,6 +1123,70 @@ class WithCef(unittest.TestCase):
             app.shutdown()
             print("OK")
         """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+
+WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))
+              and os.environ.get("CEFWEAVER_TEST_WAYLAND") == "1")
+
+
+@unittest.skipUnless(WAYLAND_OK, "opens a window on the Wayland desktop; run it with "
+                     "CEFWEAVER_TEST_WAYLAND=1 in a Wayland session")
+class WithCefOnWayland(unittest.TestCase):
+    """Native Wayland needs a real compositor, so these tests are opt-in (the other tests
+    use a virtual X server and never open a window on the desktop)."""
+
+    assertClean = WithCef.assertClean
+
+    def test_the_default_on_a_wayland_session_is_x11_and_the_window_gets_its_title(self):
+        # Alloy style crashes libcef on native Wayland (see below), so without an explicit
+        # ozone-platform the wrapper uses X11 (XWayland) when there is an X display.
+        result = run_cef("""
+            import re, subprocess
+            got, titles = {}, []
+            app.add_javascript_binding("report", lambda k, v: got.__setitem__(k, v))
+            class Display(cefweaver.DisplayHandler):
+                def on_title_change(self, browser, title):
+                    titles.append(title)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.display = Display()
+                def get_display_handler(self):
+                    return self.display
+            def x11_window():
+                tree = subprocess.run(["xwininfo", "-root", "-tree"], capture_output=True,
+                                      text=True).stdout
+                return re.search(r'"Default Platform Title"', tree) is not None
+            app.set_client(MyClient())
+            app.initialize(page("<title>Default Platform Title</title><script>"
+                                "let n = 0, t0 = performance.now();"
+                                "function f() { n++; if (performance.now() - t0 < 700) "
+                                "requestAnimationFrame(f); else report('frames', n); }"
+                                "requestAnimationFrame(f);</script>"))
+            wait_until(app, lambda: "frames" in got and titles, "the frames and the title")
+            assert got["frames"] > 10, got
+            wait_until(app, x11_window, "an X11 window with the page title")
+            app.shutdown()
+            print("OK")
+        """, ozone=None)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    @unittest.expectedFailure
+    def test_known_cef_issue_alloy_style_crashes_on_native_wayland(self):
+        # With ozone-platform=wayland the browser process of an Alloy style browser ends with
+        # SIGTRAP inside libcef, whatever the page is and with or without the window title
+        # code. Chrome style worked on native Wayland. If this starts to pass, CEF fixed it:
+        # remove expectedFailure and reconsider the X11 default.
+        result = run_cef("""
+            got = {}
+            app.add_javascript_binding("report", lambda k, v: got.__setitem__(k, v))
+            app.initialize(page("<script>setTimeout(() => report('done', 1), 1500)</script>"))
+            wait_until(app, lambda: "done" in got, "the page", timeout=20)
+            app.shutdown()
+            print("OK")
+        """, ozone="wayland")
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 

@@ -146,6 +146,7 @@ cdef class CefApp:
     cdef list _callbacks  # keeps the bound callables alive: C++ holds raw pointers
     cdef object _resources  # _StaticResourceFactory, created by add_resource()
     cdef set _resource_hosts
+    cdef set _switch_names  # the names given to add_command_line_switch()
 
     def __cinit__(self):
         self._wrapper = new CefWrapper()
@@ -154,6 +155,7 @@ cdef class CefApp:
         self._callbacks = []
         self._resources = None
         self._resource_hosts = set()
+        self._switch_names = set()
 
     def __dealloc__(self):
         # While CEF is running, the wrapper's CefApp must outlive CefShutdown().
@@ -196,6 +198,7 @@ cdef class CefApp:
         """Add a Chromium command line switch, e.g. ``"disable-gpu"`` or
         ``("renderer-cmd-prefix", "gdb --args")``. Without a value it is a bare switch."""
         self._require_not_initialized()
+        self._switch_names.add(str(name).lstrip("-"))
         self._wrapper.AddCommandLineSwitch(_utf8(name), _utf8(value))
 
     def set_client(self, client):
@@ -227,11 +230,22 @@ cdef class CefApp:
     # -- lifecycle -------------------------------------------------------------
 
     def initialize(self, start_url="about:blank"):
-        """Start CEF and create the browser window (once per process)."""
+        """Start CEF and create the browser window (once per process).
+
+        On Linux the browser uses X11 (XWayland on a Wayland desktop) unless
+        ``ozone-platform`` (or ``ozone-platform-hint``) was given with
+        ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
+        native Wayland, which Chromium would pick when ``WAYLAND_DISPLAY`` is set. Without an
+        X display (``DISPLAY``) the choice is left to Chromium.
+        """
         cdef string url = _utf8(start_url)
         cdef bint ok
         if self._initialized:
             raise RuntimeError("initialize() was already called")
+        if (sys.platform.startswith("linux") and os.environ.get("DISPLAY")
+                and "ozone-platform" not in self._switch_names
+                and "ozone-platform-hint" not in self._switch_names):
+            self._wrapper.AddCommandLineSwitch(b"ozone-platform", b"x11")
         if _cef_was_shut_down:
             raise RuntimeError("CEF can be initialized only once per process, "
                                "and it was shut down already")

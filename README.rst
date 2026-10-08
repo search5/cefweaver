@@ -90,6 +90,10 @@ classes (``types.MouseButtonType.LEFT``, ``types.EventFlags.SHIFT_DOWN | types.E
 and named tuples (``types.Rect(0, 0, 640, 480)``). Plain integers and tuples are accepted
 wherever they are expected.
 
+On Linux the browser uses X11 (XWayland on a Wayland desktop) unless ``ozone-platform`` is
+given with ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
+native Wayland.
+
 Browsers use the Alloy runtime style (as java-cef does). CEF can be initialized
 only once per process, also after ``shutdown()``.
 
