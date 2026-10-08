@@ -58,6 +58,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_paint_element_type_t:
         pass
+    ctypedef enum cef_process_id_t:
+        pass
     ctypedef enum cef_quick_menu_edit_state_flags_t:
         pass
     ctypedef enum cef_referrer_policy_t:
@@ -69,6 +71,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_state_t:
         pass
     ctypedef enum cef_transition_type_t:
+        pass
+    ctypedef enum cef_value_type_t:
         pass
     ctypedef enum cef_window_open_disposition_t:
         pass
@@ -114,6 +118,8 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         int draggable
 
 # Forward declarations
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefBinaryValue(CefBaseRefCounted)
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted)
 cdef extern from "include/cef_browser.h":
@@ -122,14 +128,20 @@ cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefContextMenuParams(CefBaseRefCounted)
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefDictionaryValue(CefBaseRefCounted)
 cdef extern from "include/views/cef_display.h":
     cdef cppclass CefDisplay(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted)
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefListValue(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
 cdef extern from "include/cef_print_settings.h":
     cdef cppclass CefPrintSettings(CefBaseRefCounted)
+cdef extern from "include/cef_process_message.h":
+    cdef cppclass CefProcessMessage(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted)
 cdef extern from "include/cef_resource_handler.h":
@@ -144,6 +156,8 @@ cdef extern from "include/cef_context_menu_handler.h":
     cdef cppclass CefRunQuickMenuCallback(CefBaseRefCounted)
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted)
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefValue(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_context_menu_handler.h":
@@ -164,6 +178,15 @@ cdef extern from "include/cef_scheme.h":
     cdef cppclass CefSchemeHandlerFactory(CefBaseRefCounted)
 
 # Library classes (implemented by CEF)
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefBinaryValue(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsOwned() nogil
+        cpp_bool IsSame(CefRefPtr[CefBinaryValue]) nogil
+        cpp_bool IsEqual(CefRefPtr[CefBinaryValue]) nogil
+        CefRefPtr[CefBinaryValue] Copy() nogil
+        size_t GetSize() nogil
+
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowser(CefBaseRefCounted):
         cpp_bool IsValid() nogil
@@ -208,6 +231,7 @@ cdef extern from "include/cef_browser.h":
         void StopFinding(cpp_bool) nogil
         void CloseDevTools() nogil
         cpp_bool HasDevTools() nogil
+        int ExecuteDevToolsMethod(int, const CefString&, CefRefPtr[CefDictionaryValue]) nogil
         void ReplaceMisspelling(const CefString&) nogil
         void AddWordToDictionary(const CefString&) nogil
         cpp_bool IsWindowRenderingDisabled() nogil
@@ -273,6 +297,40 @@ cdef extern from "include/cef_context_menu_handler.h":
         cef_context_menu_edit_state_flags_t GetEditStateFlags() nogil
         cpp_bool IsCustomMenu() nogil
 
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefDictionaryValue(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsOwned() nogil
+        cpp_bool IsReadOnly() nogil
+        cpp_bool IsSame(CefRefPtr[CefDictionaryValue]) nogil
+        cpp_bool IsEqual(CefRefPtr[CefDictionaryValue]) nogil
+        CefRefPtr[CefDictionaryValue] Copy(cpp_bool) nogil
+        size_t GetSize() nogil
+        cpp_bool Clear() nogil
+        cpp_bool HasKey(const CefString&) nogil
+        cpp_bool GetKeys(vector[CefString]&) nogil
+        cpp_bool Remove(const CefString&) nogil
+        cef_value_type_t GetType(const CefString&) nogil
+        CefRefPtr[CefValue] GetValue(const CefString&) nogil
+        cpp_bool GetBool(const CefString&) nogil
+        int GetInt(const CefString&) nogil
+        double GetDouble(const CefString&) nogil
+        CefString GetString(const CefString&) nogil
+        CefRefPtr[CefBinaryValue] GetBinary(const CefString&) nogil
+        CefRefPtr[CefDictionaryValue] GetDictionary(const CefString&) nogil
+        CefRefPtr[CefListValue] GetList(const CefString&) nogil
+        cpp_bool SetValue(const CefString&, CefRefPtr[CefValue]) nogil
+        cpp_bool SetNull(const CefString&) nogil
+        cpp_bool SetBool(const CefString&, cpp_bool) nogil
+        cpp_bool SetInt(const CefString&, int) nogil
+        cpp_bool SetDouble(const CefString&, double) nogil
+        cpp_bool SetString(const CefString&, const CefString&) nogil
+        cpp_bool SetBinary(const CefString&, CefRefPtr[CefBinaryValue]) nogil
+        cpp_bool SetDictionary(const CefString&, CefRefPtr[CefDictionaryValue]) nogil
+        cpp_bool SetList(const CefString&, CefRefPtr[CefListValue]) nogil
+        @staticmethod
+        CefRefPtr[CefDictionaryValue] Create() nogil
+
 cdef extern from "include/views/cef_display.h":
     cdef cppclass CefDisplay(CefBaseRefCounted):
         int64_t GetID() nogil
@@ -323,6 +381,40 @@ cdef extern from "include/cef_frame.h":
         CefRefPtr[CefFrame] GetParent() nogil
         CefString GetURL() nogil
         CefRefPtr[CefBrowser] GetBrowser() nogil
+        void SendProcessMessage(cef_process_id_t, CefRefPtr[CefProcessMessage]) nogil
+
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefListValue(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsOwned() nogil
+        cpp_bool IsReadOnly() nogil
+        cpp_bool IsSame(CefRefPtr[CefListValue]) nogil
+        cpp_bool IsEqual(CefRefPtr[CefListValue]) nogil
+        CefRefPtr[CefListValue] Copy() nogil
+        cpp_bool SetSize(size_t) nogil
+        size_t GetSize() nogil
+        cpp_bool Clear() nogil
+        cpp_bool Remove(size_t) nogil
+        cef_value_type_t GetType(size_t) nogil
+        CefRefPtr[CefValue] GetValue(size_t) nogil
+        cpp_bool GetBool(size_t) nogil
+        int GetInt(size_t) nogil
+        double GetDouble(size_t) nogil
+        CefString GetString(size_t) nogil
+        CefRefPtr[CefBinaryValue] GetBinary(size_t) nogil
+        CefRefPtr[CefDictionaryValue] GetDictionary(size_t) nogil
+        CefRefPtr[CefListValue] GetList(size_t) nogil
+        cpp_bool SetValue(size_t, CefRefPtr[CefValue]) nogil
+        cpp_bool SetNull(size_t) nogil
+        cpp_bool SetBool(size_t, cpp_bool) nogil
+        cpp_bool SetInt(size_t, int) nogil
+        cpp_bool SetDouble(size_t, double) nogil
+        cpp_bool SetString(size_t, const CefString&) nogil
+        cpp_bool SetBinary(size_t, CefRefPtr[CefBinaryValue]) nogil
+        cpp_bool SetDictionary(size_t, CefRefPtr[CefDictionaryValue]) nogil
+        cpp_bool SetList(size_t, CefRefPtr[CefListValue]) nogil
+        @staticmethod
+        CefRefPtr[CefListValue] Create() nogil
 
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted):
@@ -412,6 +504,16 @@ cdef extern from "include/cef_print_settings.h":
         @staticmethod
         CefRefPtr[CefPrintSettings] Create() nogil
 
+cdef extern from "include/cef_process_message.h":
+    cdef cppclass CefProcessMessage(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsReadOnly() nogil
+        CefRefPtr[CefProcessMessage] Copy() nogil
+        CefString GetName() nogil
+        CefRefPtr[CefListValue] GetArgumentList() nogil
+        @staticmethod
+        CefRefPtr[CefProcessMessage] Create(const CefString&) nogil
+
 cdef extern from "include/cef_request.h":
     cdef cppclass CefRequest(CefBaseRefCounted):
         cpp_bool IsReadOnly() nogil
@@ -481,6 +583,33 @@ cdef extern from "include/cef_task_manager.h":
         @staticmethod
         CefRefPtr[CefTaskManager] GetTaskManager() nogil
 
+cdef extern from "include/cef_values.h":
+    cdef cppclass CefValue(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsOwned() nogil
+        cpp_bool IsReadOnly() nogil
+        cpp_bool IsSame(CefRefPtr[CefValue]) nogil
+        cpp_bool IsEqual(CefRefPtr[CefValue]) nogil
+        CefRefPtr[CefValue] Copy() nogil
+        cef_value_type_t GetType() nogil
+        cpp_bool GetBool() nogil
+        int GetInt() nogil
+        double GetDouble() nogil
+        CefString GetString() nogil
+        CefRefPtr[CefBinaryValue] GetBinary() nogil
+        CefRefPtr[CefDictionaryValue] GetDictionary() nogil
+        CefRefPtr[CefListValue] GetList() nogil
+        cpp_bool SetNull() nogil
+        cpp_bool SetBool(cpp_bool) nogil
+        cpp_bool SetInt(int) nogil
+        cpp_bool SetDouble(double) nogil
+        cpp_bool SetString(const CefString&) nogil
+        cpp_bool SetBinary(CefRefPtr[CefBinaryValue]) nogil
+        cpp_bool SetDictionary(CefRefPtr[CefDictionaryValue]) nogil
+        cpp_bool SetList(CefRefPtr[CefListValue]) nogil
+        @staticmethod
+        CefRefPtr[CefValue] Create() nogil
+
 # Client classes (implemented by the application; Cython only needs the type)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
@@ -528,6 +657,7 @@ cdef extern from "generated/cefweaver_proxies.h":
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
+        cpp_bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) noexcept
     cdef cppclass CwClientProxy(CefClient):
         CwClientProxy(const CwClientCallbacks&)
     cdef cppclass CwContextMenuHandlerCallbacks:

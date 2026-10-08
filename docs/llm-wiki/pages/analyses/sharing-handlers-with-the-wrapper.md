@@ -11,7 +11,7 @@ updated: 2026-10-08
 
 # 래퍼와 사용자가 핸들러를 나눠 쓰는 방법
 
-컨텍스트 메뉴와 프로세스 메시지 핸들러를 사용자에게 열기 전에 정리한 분석입니다. **컨텍스트 메뉴는 결정하고 구현했습니다**(아래 "결정과 구현"). 프로세스 메시지는 아직 구현하지 않았습니다.
+컨텍스트 메뉴와 프로세스 메시지 핸들러를 사용자에게 열기 전에 정리한 분석입니다. **컨텍스트 메뉴와 프로세스 메시지를 결정하고 구현했습니다**(아래 "결정과 구현"과 "프로세스 메시지").
 
 ## 왜 한 객체가 둘을 모두 맡는가
 
@@ -45,9 +45,11 @@ updated: 2026-10-08
 
 **Python에서 메뉴를 열고 항목을 고르는 수단**: 오른쪽 클릭을 `host.send_mouse_click_event`로 주입하고, 사용자 핸들러의 `run_context_menu`가 `True`를 돌려주어 CEF가 보여 줄 메뉴를 대신하고 `callback.continue_(명령 ID, 0)`으로 항목을 고릅니다. 별도 장치 없이 시험할 수 있습니다.
 
-## 프로세스 메시지 (남은 일)
+## 프로세스 메시지
 
-이름으로 나눕니다: 래퍼의 두 이름은 래퍼가 처리하고 나머지는 사용자에게 넘깁니다. `CefProcessMessage`와 값 클래스(`CefListValue` 등)를 생성 범위에 넣는 것이 먼저입니다.
+이름으로 나눕니다. 래퍼의 두 이름(`javascript-binding`, `javascript-python-binding`)은 래퍼가 처리하고 사용자에게 가지 않으며, 그 밖의 이름은 사용자의 `Client.on_process_message_received(browser, frame, source_process, message)`가 받습니다(사용자가 없으면 `false`).
+
+**Python은 브라우저 프로세스에만 있습니다.** 렌더러는 C++(`cefsubprocess`)이므로, 사용자가 받을 메시지의 보내는 쪽도 렌더러의 C++ 코드뿐입니다. 사용자 정의 메시지를 끝까지 주고받을 수 있도록 렌더러에 **진단용 ping/pong**을 두었습니다: 이름이 `cefweaver-ping`인 메시지를 받으면 같은 인자로 `cefweaver-pong`을 브라우저에 돌려줍니다. 렌더러가 응답하는지(예: [F27](../reference/verified-findings-api.md)처럼 멈춘 경우) 알아보는 데도 쓸 수 있고, `frame.send_process_message(types.ProcessId.RENDERER, message)`로 보냅니다. 렌더러의 다른 동작을 Python이 정의하는 방법은 없습니다(JavaScript에서 Python으로는 `add_javascript_binding`).
 
 ## 관련 페이지
 

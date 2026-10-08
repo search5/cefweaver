@@ -626,6 +626,45 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("def get_context_menu_handler(self) -> ContextMenuHandler | None:", stub)
 
 
+    # -- process messages and the value containers --------------------------------------
+
+    def test_the_value_containers_and_the_process_message_are_generated(self):
+        for name in ("CefProcessMessage", "CefListValue", "CefDictionaryValue", "CefValue",
+                     "CefBinaryValue"):
+            self.assertTrue(self.scope.is_library(name), name)
+
+    def test_a_frame_can_send_a_process_message(self):
+        plan = self.plan("CefFrame", "SendProcessMessage")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([type(p.kind).__name__ for p in plan.params], ["Enum", "LibRef"])
+        self.assertEqual(plan.params[0].kind.py, "ProcessId")
+
+    def test_the_client_receives_process_messages(self):
+        plan = self.plan("CefClient", "OnProcessMessageReceived")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual([type(p.kind).__name__ for p in plan.params],
+                         ["LibRef", "LibRef", "Enum", "LibRef"])
+        self.assertEqual(plan.ret, Prim("bool", "bool"))
+
+    def test_the_binary_value_reports_its_untyped_pointers(self):
+        for name in ("Create", "GetData", "GetRawData"):
+            plan = self.plan("CefBinaryValue", name)
+            self.assertFalse(plan.supported, name)
+            self.assertIn("pointer", plan.reason, name)
+
+    def test_the_value_types_have_a_type_enumeration(self):
+        plan = self.plan("CefListValue", "GetType")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.ret.py, "ValueType")
+
+    def test_the_stub_declares_the_process_message_api(self):
+        stub = self.generated("pyi")
+        self.assertIn("def send_process_message(self, target_process: ProcessId | int, "
+                      "message: ProcessMessage) -> None:", stub)
+        self.assertIn("def on_process_message_received(self, browser: Browser, frame: Frame, "
+                      "source_process: ProcessId, message: ProcessMessage) -> bool:", stub)
+
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

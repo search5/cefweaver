@@ -156,6 +156,16 @@ updated: 2026-10-08
 - **기존 결함 확정**: 예전의 `OnContextMenuCommand`는 모르는 명령에 `true`를 돌려주었습니다. 그 동작을 되살린 변형 빌드에서는 전체 선택 뒤 페이지의 선택이 `''`로 비어 있었습니다. 표준 명령이 컨텍스트 메뉴에서 실행되지 않던 실제 버그입니다.
 - **영향**: 컨텍스트 메뉴를 사용자에게 열었고, 래퍼의 DevTools 항목은 기본 끔으로 바꾸었습니다(이전에는 항상 켜짐).
 
+## F33. 프로세스 메시지와 값 컨테이너
+
+- **방법**: `ProcessMessage`, `ListValue`, `DictionaryValue`를 만들고, `cefweaver-ping`을 렌더러로 보내 `cefweaver-pong`을 `Client.on_process_message_received`로 받았습니다.
+- **결과**:
+  - 값 컨테이너는 CEF를 시작하기 전에도 동작합니다. 한글 문자열, 정수, 불리언, 실수, 중첩 사전과 목록이 왕복하고, `get_keys()`는 `(True, ['k', 'n'])`, `get_type()`은 `ValueType` 멤버입니다.
+  - 렌더러 왕복: 보낸 정수, 한글 문자열, 중첩 사전이 그대로 돌아오고 `source_process`는 `ProcessId.RENDERER` 멤버입니다.
+  - 보낸 메시지는 소유권이 넘어가서 `is_valid()`가 거짓이 됩니다(CEF 문서대로).
+  - 래퍼의 JavaScript 바인딩은 같은 실행에서 계속 동작하고, 래퍼의 메시지(`javascript-python-binding`)는 사용자의 핸들러에 오지 않습니다(사용자가 받은 이름은 `cefweaver-pong` 하나).
+- **영향**: 프로세스 메시지 수신을 이름으로 나누는 방식이 동작합니다. 렌더러가 C++라서 사용자 정의 메시지를 보내는 쪽은 진단용 ping/pong뿐입니다([알려진 제약과 미검증 항목](known-constraints.md)).
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실](verified-findings.md)

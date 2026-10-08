@@ -317,7 +317,10 @@ bool CefWrapperClientHandler::OnProcessMessageReceived(
     delete[] valueWrapper;
     return true;
   }
-  return false;
+  // Not one of the wrapper's messages: it is for the user's client, if there is one. The
+  // wrapper's two names above never reach the user.
+  return user_client_ ? user_client_->OnProcessMessageReceived(browser, frame, source_process, message)
+                      : false;
 }
 void CefWrapperClientHandler::OnLoadingStateChange(
     CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack,

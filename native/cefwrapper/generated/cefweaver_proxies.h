@@ -16,11 +16,13 @@
 #include "include/cef_menu_model.h"
 #include "include/cef_menu_model_delegate.h"
 #include "include/cef_print_settings.h"
+#include "include/cef_process_message.h"
 #include "include/cef_request.h"
 #include "include/cef_resource_handler.h"
 #include "include/cef_response.h"
 #include "include/cef_scheme.h"
 #include "include/cef_task_manager.h"
+#include "include/cef_values.h"
 #include "include/views/cef_display.h"
 #include <vector>
 
@@ -65,6 +67,13 @@ class CwClientForward : public CefClient {
     }
     return forward_client_->GetLoadHandler();
   }
+
+  bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override {
+    if (!forward_client_) {
+      return CefClient::OnProcessMessageReceived(browser, frame, source_process, message);
+    }
+    return forward_client_->OnProcessMessageReceived(browser, frame, source_process, message);
+  }
 };
 
 struct CwClientCallbacks {
@@ -75,6 +84,7 @@ struct CwClientCallbacks {
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
   CefLoadHandler* (*fn_get_load_handler)(void*) = nullptr;
+  bool (*fn_on_process_message_received)(void*, CefBrowser*, CefFrame*, int, CefProcessMessage*) = nullptr;
 };
 
 class CwClientProxy : public CefClient {
@@ -148,6 +158,14 @@ class CwClientProxy : public CefClient {
       result = raw;
       raw->Release();
     }
+    return result;
+  }
+
+  bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override {
+    if (!cb_.fn_on_process_message_received) {
+      return CefClient::OnProcessMessageReceived(browser, frame, source_process, message);
+    }
+    bool result = cb_.fn_on_process_message_received(cb_.py, browser.get(), frame.get(), static_cast<int>(source_process), message.get());
     return result;
   }
 

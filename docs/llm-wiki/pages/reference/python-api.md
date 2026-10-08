@@ -135,6 +135,24 @@ host.send_mouse_click_event(types.MouseEvent(30, 30, 0), types.MouseButtonType.R
 
 사용자의 명령 ID는 `types.MenuId.USER_FIRST`(26500)부터 쓰고, 래퍼는 맨 끝의 3개(28498~28500)를 DevTools 항목에 씁니다. 처리하지 않는 명령(`False`)은 CEF가 표준 명령(전체 선택, 복사 등)으로 실행합니다. 메뉴 항목의 기본 이름은 로케일을 따릅니다(한국어 환경에서 "뒤로", "앞으로").
 
+## 프로세스 메시지와 값 컨테이너
+
+`ProcessMessage.create(name)`의 `get_argument_list()`가 `ListValue`입니다. 값 컨테이너(`Value`, `ListValue`, `DictionaryValue`, `BinaryValue`)는 CEF의 메서드를 그대로 중계하고(`set_int(index, value)`, `get_string(index)`, `get_keys()` 등) CEF를 시작하기 전에도 만들 수 있습니다. 값의 종류는 `types.ValueType`입니다. 파이썬 객체와의 변환 함수는 아직 없습니다.
+
+```python
+message = cefweaver.ProcessMessage.create("cefweaver-ping")
+arguments = message.get_argument_list()
+arguments.set_size(2); arguments.set_int(0, 42); arguments.set_string(1, "안녕")
+frame.send_process_message(types.ProcessId.RENDERER, message)   # the message is handed over (invalid afterwards)
+
+class MyClient(cefweaver.Client):
+    def on_process_message_received(self, browser, frame, source_process, message):
+        print(message.get_name())          # "cefweaver-pong" with the same arguments
+        return True
+```
+
+사용자가 받는 메시지는 이름이 래퍼의 `javascript-binding`, `javascript-python-binding`이 아닌 것뿐입니다. 렌더러는 C++라서 Python에서 렌더러 쪽 동작을 정할 수 없고, 진단용으로 `cefweaver-ping`에 `cefweaver-pong`으로 답합니다([래퍼와 사용자가 핸들러를 나눠 쓰는 방법](../analyses/sharing-handlers-with-the-wrapper.md)).
+
 ## 출력 인자를 돌려주는 메서드
 
 C++에서 값을 참조 인자로 돌려주는 라이브러리 메서드는 파이썬에서 **반환값**입니다. 반환값이 있으면 그것이 먼저이고 출력이 뒤따릅니다.

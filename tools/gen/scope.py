@@ -21,6 +21,11 @@ LIBRARY_CLASSES = [
     "CefContextMenuParams",
     "CefRunContextMenuCallback",
     "CefRunQuickMenuCallback",
+    "CefProcessMessage",
+    "CefValue",
+    "CefListValue",
+    "CefDictionaryValue",
+    "CefBinaryValue",
     "CefTaskManager",
 ]
 

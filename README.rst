@@ -98,6 +98,11 @@ The context menu can be changed and driven from code (``ContextMenuHandler``;
 ``run_context_menu`` can pick an item with ``callback.continue_()``). The wrapper's own
 "Show DevTools" items are off by default: ``app.devtools_menu = True``.
 
+Process messages are available too (``Client.on_process_message_received``,
+``Frame.send_process_message``, ``ProcessMessage``, ``ListValue`` ...). The renderer is C++, so
+the only message it sends is the answer to ``cefweaver-ping`` (``cefweaver-pong``); JavaScript
+calls Python through ``add_javascript_binding``.
+
 Browsers use the Alloy runtime style (as java-cef does). CEF can be initialized
 only once per process, also after ``shutdown()``.
 

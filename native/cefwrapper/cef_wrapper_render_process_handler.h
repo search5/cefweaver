@@ -29,6 +29,13 @@ public:
   void OnBrowserCreated(CefRefPtr<CefBrowser> browser,
                         CefRefPtr<CefDictionaryValue> extra_info) override;
 
+  // "cefweaver-ping": answers with "cefweaver-pong" and the same arguments, so that the browser
+  // process can tell that the renderer of a frame answers (a diagnostic, and the sender that
+  // lets a Python program receive a process message of its own).
+  bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                                CefProcessId source_process,
+                                CefRefPtr<CefProcessMessage> message) override;
+
   std::vector<JavascriptBinding> m_Javascript_Bindings;
   std::vector<JavascriptPythonBinding> m_Javascript_Python_Bindings;
   IMPLEMENT_REFCOUNTING(SimpleRenderProcessHandler);

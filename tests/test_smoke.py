@@ -198,6 +198,37 @@ class ApiWithoutCef(unittest.TestCase):
         app.devtools_menu = False
         self.assertIs(app.devtools_menu, False)
 
+    def test_the_process_message_and_the_value_containers_are_public(self):
+        for name in ("ProcessMessage", "Value", "ListValue", "DictionaryValue", "BinaryValue"):
+            self.assertIn(name, cefweaver.__all__)
+        self.assertTrue(hasattr(cefweaver.Frame, "send_process_message"))
+
+    def test_values_can_be_built_and_read_without_cef(self):
+        from cefweaver import types
+        values = cefweaver.ListValue.create()
+        self.assertEqual(values.get_size(), 0)
+        self.assertTrue(values.set_size(4))
+        self.assertTrue(values.set_int(0, 7))
+        self.assertTrue(values.set_string(1, "é한글"))
+        self.assertTrue(values.set_bool(2, True))
+        self.assertTrue(values.set_double(3, 2.5))
+        self.assertEqual((values.get_int(0), values.get_string(1), values.get_bool(2),
+                          values.get_double(3)), (7, "é한글", True, 2.5))
+        self.assertIs(values.get_type(1), types.ValueType.STRING)  # a member, not a number
+        self.assertIs(values.get_type(0), types.ValueType.INT)
+        record = cefweaver.DictionaryValue.create()
+        self.assertTrue(record.set_string("name", "x"))
+        self.assertTrue(record.set_int("count", 5))
+        self.assertEqual(sorted(record.get_keys()[1]), ["count", "name"])  # (ok, keys)
+        self.assertTrue(record.has_key("name") and not record.has_key("other"))
+        values.set_size(5)
+        self.assertTrue(values.set_dictionary(4, record))  # the dictionary is copied in
+        self.assertEqual(values.get_dictionary(4).get_string("name"), "x")
+        message = cefweaver.ProcessMessage.create("my-message")
+        self.assertEqual(message.get_name(), "my-message")
+        self.assertTrue(message.is_valid())
+        self.assertEqual(message.get_argument_list().get_size(), 0)
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1235,6 +1266,55 @@ class WithCef(unittest.TestCase):
                 "        wait_until(app, lambda: any(g[0] == 'selection' for g in got), 'the selection')\n"
                 "        assert ('selection', 'hello') in got, got"))
             self.assertEqual(rec["commands"], [117])  # 117 is MENU_ID_SELECT_ALL
+
+
+    def test_a_process_message_makes_a_round_trip_through_the_renderer(self):
+        result = run_cef("""
+            from cefweaver import types
+            received, boxes, js = [], [], []
+            class Life(cefweaver.LifeSpanHandler):
+                def on_after_created(self, browser):
+                    boxes.append(browser)
+            class MyClient(cefweaver.Client):
+                def __init__(self):
+                    self.life = Life()
+                def get_life_span_handler(self):
+                    return self.life
+                def on_process_message_received(self, browser, frame, source_process, message):
+                    arguments = message.get_argument_list()
+                    received.append((message.get_name(), source_process, arguments.get_size(),
+                                     arguments.get_int(0), arguments.get_string(1),
+                                     arguments.get_dictionary(2).get_string("k")))
+                    return True
+            app.add_javascript_binding("report", lambda *a: js.append(a))
+            app.set_client(MyClient())
+            app.initialize(page("<script>requestAnimationFrame(() => report('frame'));</script>"))
+            wait_until(app, lambda: ("frame",) in js, "the first frame")
+
+            # The renderer answers cefweaver-ping with cefweaver-pong and the same arguments.
+            message = cefweaver.ProcessMessage.create("cefweaver-ping")
+            arguments = message.get_argument_list()
+            arguments.set_size(3)
+            arguments.set_int(0, 42)
+            arguments.set_string(1, "안녕")
+            record = cefweaver.DictionaryValue.create()
+            record.set_string("k", "v")
+            arguments.set_dictionary(2, record)
+            boxes[0].get_main_frame().send_process_message(types.ProcessId.RENDERER, message)
+            wait_until(app, lambda: received, "the pong")
+            assert received == [("cefweaver-pong", types.ProcessId.RENDERER, 3, 42, "안녕", "v")], received
+            assert received[0][1] is types.ProcessId.RENDERER
+            assert not message.is_valid()  # the message was handed over
+
+            # The wrapper's own messages (JavaScript bindings) still work, and never reach the user.
+            app.execute_javascript("report('after')")
+            wait_until(app, lambda: ("after",) in js, "a JavaScript binding after the message")
+            assert [r[0] for r in received] == ["cefweaver-pong"], received
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
 
 
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))

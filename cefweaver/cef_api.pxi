@@ -244,14 +244,18 @@ cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:
 
 
 # Forward declarations (the classes refer to each other)
+cdef class BinaryValue
 cdef class Browser
 cdef class BrowserHost
 cdef class Callback
 cdef class ContextMenuParams
+cdef class DictionaryValue
 cdef class Display
 cdef class Frame
+cdef class ListValue
 cdef class MenuModel
 cdef class PrintSettings
+cdef class ProcessMessage
 cdef class Request
 cdef class ResourceReadCallback
 cdef class ResourceSkipCallback
@@ -259,6 +263,96 @@ cdef class Response
 cdef class RunContextMenuCallback
 cdef class RunQuickMenuCallback
 cdef class TaskManager
+cdef class Value
+
+cdef class BinaryValue:
+    """Class representing a binary value. Can be used on any process and thread."""
+    cdef CefRefPtr[CefBinaryValue] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("BinaryValue objects are created by CEF or by a create() function")
+
+    cdef CefBinaryValue* _ptr(self) except NULL:
+        cdef CefBinaryValue* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("BinaryValue has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_owned(self):
+        """Returns true if this object is currently owned by another object."""
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsOwned()
+        return _r
+
+    def is_same(self, BinaryValue that not None):
+        """Returns true if this object and |that| object have the same underlying
+        data.
+        """
+        cdef CefRefPtr[CefBinaryValue] _a0
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsSame(_a0)
+        return _r
+
+    def is_equal(self, BinaryValue that not None):
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        cdef CefRefPtr[CefBinaryValue] _a0
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsEqual(_a0)
+        return _r
+
+    def copy(self):
+        """Returns a copy of this object. The data in this object will also be
+        copied.
+        """
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefBinaryValue] _r
+        with nogil:
+            _r = _p.Copy()
+        return _wrap_BinaryValue(_r)
+
+    def get_size(self):
+        """Returns the data size."""
+        cdef CefBinaryValue* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetSize()
+        return _r
+
+
+cdef object _wrap_BinaryValue(CefRefPtr[CefBinaryValue] ref):
+    cdef BinaryValue obj
+    if ref.get() == NULL:
+        return None
+    obj = BinaryValue.__new__(BinaryValue)
+    obj._ref = ref
+    return obj
+
 
 cdef class Browser:
     """Class used to represent a browser. When used in the browser process the
@@ -701,6 +795,29 @@ cdef class BrowserHost:
         cdef cpp_bool _r
         with nogil:
             _r = _p.HasDevTools()
+        return _r
+
+    def execute_dev_tools_method(self, int message_id, method, DictionaryValue params):
+        """Execute a method call over the DevTools protocol. This is a more
+        structured version of SendDevToolsMessage. |message_id| is an incremental
+        number that uniquely identifies the message (pass 0 to have the next
+        number assigned automatically based on previous values). |method| is the
+        method name. |params| are the method parameters, which may be empty. See
+        the DevTools protocol documentation (linked above) for details of
+        supported methods and the expected |params| dictionary contents. This
+        method will return the assigned message ID if called on the UI thread and
+        the message was successfully submitted for validation, otherwise 0. See
+        the SendDevToolsMessage documentation for additional usage information.
+        """
+        cdef CefString _a1
+        cdef CefRefPtr[CefDictionaryValue] _a2
+        cdef CefBrowserHost* _p = self._ptr()
+        cdef int _r
+        _a1 = _g_cef(method)
+        if params is not None:
+            _a2 = params._ref
+        with nogil:
+            _r = _p.ExecuteDevToolsMethod(message_id, _a1, _a2)
         return _r
 
     def replace_misspelling(self, word):
@@ -1421,6 +1538,390 @@ cdef object _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams] ref):
     return obj
 
 
+cdef class DictionaryValue:
+    """Class representing a dictionary value. Can be used on any process and
+    thread.
+    """
+    cdef CefRefPtr[CefDictionaryValue] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("DictionaryValue objects are created by CEF or by a create() function")
+
+    cdef CefDictionaryValue* _ptr(self) except NULL:
+        cdef CefDictionaryValue* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("DictionaryValue has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_owned(self):
+        """Returns true if this object is currently owned by another object."""
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsOwned()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def is_same(self, DictionaryValue that not None):
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        cdef CefRefPtr[CefDictionaryValue] _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsSame(_a0)
+        return _r
+
+    def is_equal(self, DictionaryValue that not None):
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        cdef CefRefPtr[CefDictionaryValue] _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsEqual(_a0)
+        return _r
+
+    def copy(self, bint exclude_empty_children):
+        """Returns a writable copy of this object. If |exclude_empty_children| is
+        true any empty dictionaries or lists will be excluded from the copy.
+        """
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefDictionaryValue] _r
+        with nogil:
+            _r = _p.Copy(exclude_empty_children)
+        return _wrap_DictionaryValue(_r)
+
+    def get_size(self):
+        """Returns the number of values."""
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetSize()
+        return _r
+
+    def clear(self):
+        """Removes all values. Returns true on success."""
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.Clear()
+        return _r
+
+    def has_key(self, key):
+        """Returns true if the current dictionary has a value for the given key."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.HasKey(_a0)
+        return _r
+
+    def get_keys(self):
+        """Reads all keys for this dictionary into the specified vector."""
+        cdef vector[CefString] _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetKeys(_a0)
+        return (_r, _g_str_list(&_a0))
+
+    def remove(self, key):
+        """Removes the value at the specified key. Returns true is the value was
+        removed successfully.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.Remove(_a0)
+        return _r
+
+    def get_type(self, key):
+        """Returns the value type for the specified key."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cef_value_type_t _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetType(_a0)
+        return _g_enum(_types.ValueType, <int>_r)
+
+    def get_value(self, key):
+        """Returns the value at the specified key. For simple types the returned
+        value will copy existing data and modifications to the value will not
+        modify this object. For complex types (binary, dictionary and list) the
+        returned value will reference existing data and modifications to the value
+        will modify this object.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefValue] _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetValue(_a0)
+        return _wrap_Value(_r)
+
+    def get_bool(self, key):
+        """Returns the value at the specified key as type bool."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetBool(_a0)
+        return _r
+
+    def get_int(self, key):
+        """Returns the value at the specified key as type int."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef int _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetInt(_a0)
+        return _r
+
+    def get_double(self, key):
+        """Returns the value at the specified key as type double."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef double _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetDouble(_a0)
+        return _r
+
+    def get_string(self, key):
+        """Returns the value at the specified key as type string."""
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefString _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetString(_a0)
+        return _g_str(_r)
+
+    def get_binary(self, key):
+        """Returns the value at the specified key as type binary. The returned
+        value will reference existing data.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefBinaryValue] _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetBinary(_a0)
+        return _wrap_BinaryValue(_r)
+
+    def get_dictionary(self, key):
+        """Returns the value at the specified key as type dictionary. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefDictionaryValue] _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetDictionary(_a0)
+        return _wrap_DictionaryValue(_r)
+
+    def get_list(self, key):
+        """Returns the value at the specified key as type list. The returned value
+        will reference existing data and modifications to the value will modify
+        this object.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef CefRefPtr[CefListValue] _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.GetList(_a0)
+        return _wrap_ListValue(_r)
+
+    def set_value(self, key, Value value not None):
+        """Sets the value at the specified key. Returns true if the value was set
+        successfully. If |value| represents simple data then the underlying data
+        will be copied and modifications to |value| will not modify this object.
+        If |value| represents complex data (binary, dictionary or list) then the
+        underlying data will be referenced and modifications to |value| will
+        modify this object.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefValue] _a1
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetValue(_a0, _a1)
+        return _r
+
+    def set_null(self, key):
+        """Sets the value at the specified key as type null. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.SetNull(_a0)
+        return _r
+
+    def set_bool(self, key, bint value):
+        """Sets the value at the specified key as type bool. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.SetBool(_a0, value)
+        return _r
+
+    def set_int(self, key, int value):
+        """Sets the value at the specified key as type int. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.SetInt(_a0, value)
+        return _r
+
+    def set_double(self, key, double value):
+        """Sets the value at the specified key as type double. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a0
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        with nogil:
+            _r = _p.SetDouble(_a0, value)
+        return _r
+
+    def set_string(self, key, value):
+        """Sets the value at the specified key as type string. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a0
+        cdef CefString _a1
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        if value is not None:
+            _a1 = _g_cef(value)
+        with nogil:
+            _r = _p.SetString(_a0, _a1)
+        return _r
+
+    def set_binary(self, key, BinaryValue value not None):
+        """Sets the value at the specified key as type binary. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefBinaryValue] _a1
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetBinary(_a0, _a1)
+        return _r
+
+    def set_dictionary(self, key, DictionaryValue value not None):
+        """Sets the value at the specified key as type dict. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefDictionaryValue] _a1
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetDictionary(_a0, _a1)
+        return _r
+
+    def set_list(self, key, ListValue value not None):
+        """Sets the value at the specified key as type list. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefListValue] _a1
+        cdef CefDictionaryValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = _g_cef(key)
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetList(_a0, _a1)
+        return _r
+
+    @staticmethod
+    def create():
+        """Creates a new object that is not owned by any other object."""
+        cdef CefRefPtr[CefDictionaryValue] _r
+        with nogil:
+            _r = CefDictionaryValue.Create()
+        return _wrap_DictionaryValue(_r)
+
+
+cdef object _wrap_DictionaryValue(CefRefPtr[CefDictionaryValue] ref):
+    cdef DictionaryValue obj
+    if ref.get() == NULL:
+        return None
+    obj = DictionaryValue.__new__(DictionaryValue)
+    obj._ref = ref
+    return obj
+
+
 cdef class Display:
     """This class typically, but not always, corresponds to a physical display
     connected to the system. A fake Display may exist on a headless system, or a
@@ -1830,12 +2331,358 @@ cdef class Frame:
             _r = _p.GetBrowser()
         return _wrap_Browser(_r)
 
+    def send_process_message(self, int target_process, ProcessMessage message not None):
+        """Send a message to the specified |target_process|. Ownership of the message
+        contents will be transferred and the |message| reference will be
+        invalidated. Message delivery is not guaranteed in all cases (for example,
+        if the browser is closing, navigating, or if the target process crashes).
+        Send an ACK message back from the target process if confirmation is
+        required.
+        """
+        cdef CefRefPtr[CefProcessMessage] _a1
+        cdef CefFrame* _p = self._ptr()
+        _a1 = message._ref
+        with nogil:
+            _p.SendProcessMessage(<cef_process_id_t>target_process, _a1)
+        return None
+
 
 cdef object _wrap_Frame(CefRefPtr[CefFrame] ref):
     cdef Frame obj
     if ref.get() == NULL:
         return None
     obj = Frame.__new__(Frame)
+    obj._ref = ref
+    return obj
+
+
+cdef class ListValue:
+    """Class representing a list value. Can be used on any process and thread."""
+    cdef CefRefPtr[CefListValue] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("ListValue objects are created by CEF or by a create() function")
+
+    cdef CefListValue* _ptr(self) except NULL:
+        cdef CefListValue* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("ListValue has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_owned(self):
+        """Returns true if this object is currently owned by another object."""
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsOwned()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def is_same(self, ListValue that not None):
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        cdef CefRefPtr[CefListValue] _a0
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsSame(_a0)
+        return _r
+
+    def is_equal(self, ListValue that not None):
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        cdef CefRefPtr[CefListValue] _a0
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsEqual(_a0)
+        return _r
+
+    def copy(self):
+        """Returns a writable copy of this object."""
+        cdef CefListValue* _p = self._ptr()
+        cdef CefRefPtr[CefListValue] _r
+        with nogil:
+            _r = _p.Copy()
+        return _wrap_ListValue(_r)
+
+    def set_size(self, size_t size):
+        """Sets the number of values. If the number of values is expanded all
+        new value slots will default to type null. Returns true on success.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetSize(size)
+        return _r
+
+    def get_size(self):
+        """Returns the number of values."""
+        cdef CefListValue* _p = self._ptr()
+        cdef size_t _r
+        with nogil:
+            _r = _p.GetSize()
+        return _r
+
+    def clear(self):
+        """Removes all values. Returns true on success."""
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.Clear()
+        return _r
+
+    def remove(self, size_t index):
+        """Removes the value at the specified index."""
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.Remove(index)
+        return _r
+
+    def get_type(self, size_t index):
+        """Returns the value type at the specified index."""
+        cdef CefListValue* _p = self._ptr()
+        cdef cef_value_type_t _r
+        with nogil:
+            _r = _p.GetType(index)
+        return _g_enum(_types.ValueType, <int>_r)
+
+    def get_value(self, size_t index):
+        """Returns the value at the specified index. For simple types the returned
+        value will copy existing data and modifications to the value will not
+        modify this object. For complex types (binary, dictionary and list) the
+        returned value will reference existing data and modifications to the value
+        will modify this object.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef CefRefPtr[CefValue] _r
+        with nogil:
+            _r = _p.GetValue(index)
+        return _wrap_Value(_r)
+
+    def get_bool(self, size_t index):
+        """Returns the value at the specified index as type bool."""
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetBool(index)
+        return _r
+
+    def get_int(self, size_t index):
+        """Returns the value at the specified index as type int."""
+        cdef CefListValue* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetInt(index)
+        return _r
+
+    def get_double(self, size_t index):
+        """Returns the value at the specified index as type double."""
+        cdef CefListValue* _p = self._ptr()
+        cdef double _r
+        with nogil:
+            _r = _p.GetDouble(index)
+        return _r
+
+    def get_string(self, size_t index):
+        """Returns the value at the specified index as type string."""
+        cdef CefListValue* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetString(index)
+        return _g_str(_r)
+
+    def get_binary(self, size_t index):
+        """Returns the value at the specified index as type binary. The returned
+        value will reference existing data.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef CefRefPtr[CefBinaryValue] _r
+        with nogil:
+            _r = _p.GetBinary(index)
+        return _wrap_BinaryValue(_r)
+
+    def get_dictionary(self, size_t index):
+        """Returns the value at the specified index as type dictionary. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef CefRefPtr[CefDictionaryValue] _r
+        with nogil:
+            _r = _p.GetDictionary(index)
+        return _wrap_DictionaryValue(_r)
+
+    def get_list(self, size_t index):
+        """Returns the value at the specified index as type list. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef CefRefPtr[CefListValue] _r
+        with nogil:
+            _r = _p.GetList(index)
+        return _wrap_ListValue(_r)
+
+    def set_value(self, size_t index, Value value not None):
+        """Sets the value at the specified index. Returns true if the value was set
+        successfully. If |value| represents simple data then the underlying data
+        will be copied and modifications to |value| will not modify this object.
+        If |value| represents complex data (binary, dictionary or list) then the
+        underlying data will be referenced and modifications to |value| will
+        modify this object.
+        """
+        cdef CefRefPtr[CefValue] _a1
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetValue(index, _a1)
+        return _r
+
+    def set_null(self, size_t index):
+        """Sets the value at the specified index as type null. Returns true if the
+        value was set successfully.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetNull(index)
+        return _r
+
+    def set_bool(self, size_t index, bint value):
+        """Sets the value at the specified index as type bool. Returns true if the
+        value was set successfully.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetBool(index, value)
+        return _r
+
+    def set_int(self, size_t index, int value):
+        """Sets the value at the specified index as type int. Returns true if the
+        value was set successfully.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetInt(index, value)
+        return _r
+
+    def set_double(self, size_t index, double value):
+        """Sets the value at the specified index as type double. Returns true if the
+        value was set successfully.
+        """
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetDouble(index, value)
+        return _r
+
+    def set_string(self, size_t index, value):
+        """Sets the value at the specified index as type string. Returns true if the
+        value was set successfully.
+        """
+        cdef CefString _a1
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        if value is not None:
+            _a1 = _g_cef(value)
+        with nogil:
+            _r = _p.SetString(index, _a1)
+        return _r
+
+    def set_binary(self, size_t index, BinaryValue value not None):
+        """Sets the value at the specified index as type binary. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefRefPtr[CefBinaryValue] _a1
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetBinary(index, _a1)
+        return _r
+
+    def set_dictionary(self, size_t index, DictionaryValue value not None):
+        """Sets the value at the specified index as type dict. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefRefPtr[CefDictionaryValue] _a1
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetDictionary(index, _a1)
+        return _r
+
+    def set_list(self, size_t index, ListValue value not None):
+        """Sets the value at the specified index as type list. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        cdef CefRefPtr[CefListValue] _a1
+        cdef CefListValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a1 = value._ref
+        with nogil:
+            _r = _p.SetList(index, _a1)
+        return _r
+
+    @staticmethod
+    def create():
+        """Creates a new object that is not owned by any other object."""
+        cdef CefRefPtr[CefListValue] _r
+        with nogil:
+            _r = CefListValue.Create()
+        return _wrap_ListValue(_r)
+
+
+cdef object _wrap_ListValue(CefRefPtr[CefListValue] ref):
+    cdef ListValue obj
+    if ref.get() == NULL:
+        return None
+    obj = ListValue.__new__(ListValue)
     obj._ref = ref
     return obj
 
@@ -2680,6 +3527,91 @@ cdef object _wrap_PrintSettings(CefRefPtr[CefPrintSettings] ref):
     return obj
 
 
+cdef class ProcessMessage:
+    """Class representing a message. Can be used on any process and thread."""
+    cdef CefRefPtr[CefProcessMessage] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("ProcessMessage objects are created by CEF or by a create() function")
+
+    cdef CefProcessMessage* _ptr(self) except NULL:
+        cdef CefProcessMessage* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("ProcessMessage has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def copy(self):
+        """Returns a writable copy of this object.
+        Returns nullptr when message contains a shared memory region.
+        """
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef CefRefPtr[CefProcessMessage] _r
+        with nogil:
+            _r = _p.Copy()
+        return _wrap_ProcessMessage(_r)
+
+    def get_name(self):
+        """Returns the message name."""
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetName()
+        return _g_str(_r)
+
+    def get_argument_list(self):
+        """Returns the list of arguments.
+        Returns nullptr when message contains a shared memory region.
+        """
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef CefRefPtr[CefListValue] _r
+        with nogil:
+            _r = _p.GetArgumentList()
+        return _wrap_ListValue(_r)
+
+    @staticmethod
+    def create(name):
+        """Create a new CefProcessMessage object with the specified name."""
+        cdef CefString _a0
+        cdef CefRefPtr[CefProcessMessage] _r
+        _a0 = _g_cef(name)
+        with nogil:
+            _r = CefProcessMessage.Create(_a0)
+        return _wrap_ProcessMessage(_r)
+
+
+cdef object _wrap_ProcessMessage(CefRefPtr[CefProcessMessage] ref):
+    cdef ProcessMessage obj
+    if ref.get() == NULL:
+        return None
+    obj = ProcessMessage.__new__(ProcessMessage)
+    obj._ref = ref
+    return obj
+
+
 cdef class Request:
     """Class used to represent a web request. The methods of this class may be
     called on any thread.
@@ -3319,6 +4251,283 @@ cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
     return obj
 
 
+cdef class Value:
+    """Class that wraps other data value types. Complex types (binary, dictionary
+    and list) will be referenced but not owned by this object. Can be used on
+    any process and thread.
+    """
+    cdef CefRefPtr[CefValue] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("Value objects are created by CEF or by a create() function")
+
+    cdef CefValue* _ptr(self) except NULL:
+        cdef CefValue* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("Value has no CEF object")
+        return p
+
+    def is_valid(self):
+        """Returns true if the underlying data is valid. This will always be true for
+        simple types. For complex types (binary, dictionary and list) the
+        underlying data may become invalid if owned by another object (e.g. list
+        or dictionary) and that other object is then modified or destroyed. This
+        value object can be re-used by calling Set*() even if the underlying data
+        is invalid.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsValid()
+        return _r
+
+    def is_owned(self):
+        """Returns true if the underlying data is owned by another object."""
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsOwned()
+        return _r
+
+    def is_read_only(self):
+        """Returns true if the underlying data is read-only. Some APIs may expose
+        read-only objects.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsReadOnly()
+        return _r
+
+    def is_same(self, Value that not None):
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        cdef CefRefPtr[CefValue] _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsSame(_a0)
+        return _r
+
+    def is_equal(self, Value that not None):
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        cdef CefRefPtr[CefValue] _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = that._ref
+        with nogil:
+            _r = _p.IsEqual(_a0)
+        return _r
+
+    def copy(self):
+        """Returns a copy of this object. The underlying data will also be copied."""
+        cdef CefValue* _p = self._ptr()
+        cdef CefRefPtr[CefValue] _r
+        with nogil:
+            _r = _p.Copy()
+        return _wrap_Value(_r)
+
+    def get_type(self):
+        """Returns the underlying value type."""
+        cdef CefValue* _p = self._ptr()
+        cdef cef_value_type_t _r
+        with nogil:
+            _r = _p.GetType()
+        return _g_enum(_types.ValueType, <int>_r)
+
+    def get_bool(self):
+        """Returns the underlying value as type bool."""
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetBool()
+        return _r
+
+    def get_int(self):
+        """Returns the underlying value as type int."""
+        cdef CefValue* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetInt()
+        return _r
+
+    def get_double(self):
+        """Returns the underlying value as type double."""
+        cdef CefValue* _p = self._ptr()
+        cdef double _r
+        with nogil:
+            _r = _p.GetDouble()
+        return _r
+
+    def get_string(self):
+        """Returns the underlying value as type string."""
+        cdef CefValue* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetString()
+        return _g_str(_r)
+
+    def get_binary(self):
+        """Returns the underlying value as type binary. The returned reference may
+        become invalid if the value is owned by another object or if ownership is
+        transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetBinary().
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef CefRefPtr[CefBinaryValue] _r
+        with nogil:
+            _r = _p.GetBinary()
+        return _wrap_BinaryValue(_r)
+
+    def get_dictionary(self):
+        """Returns the underlying value as type dictionary. The returned reference
+        may become invalid if the value is owned by another object or if ownership
+        is transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetDictionary().
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef CefRefPtr[CefDictionaryValue] _r
+        with nogil:
+            _r = _p.GetDictionary()
+        return _wrap_DictionaryValue(_r)
+
+    def get_list(self):
+        """Returns the underlying value as type list. The returned reference may
+        become invalid if the value is owned by another object or if ownership is
+        transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetList().
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef CefRefPtr[CefListValue] _r
+        with nogil:
+            _r = _p.GetList()
+        return _wrap_ListValue(_r)
+
+    def set_null(self):
+        """Sets the underlying value as type null. Returns true if the value was set
+        successfully.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetNull()
+        return _r
+
+    def set_bool(self, bint value):
+        """Sets the underlying value as type bool. Returns true if the value was set
+        successfully.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetBool(value)
+        return _r
+
+    def set_int(self, int value):
+        """Sets the underlying value as type int. Returns true if the value was set
+        successfully.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetInt(value)
+        return _r
+
+    def set_double(self, double value):
+        """Sets the underlying value as type double. Returns true if the value was
+        set successfully.
+        """
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.SetDouble(value)
+        return _r
+
+    def set_string(self, value):
+        """Sets the underlying value as type string. Returns true if the value was
+        set successfully.
+        """
+        cdef CefString _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        if value is not None:
+            _a0 = _g_cef(value)
+        with nogil:
+            _r = _p.SetString(_a0)
+        return _r
+
+    def set_binary(self, BinaryValue value not None):
+        """Sets the underlying value as type binary. Returns true if the value was
+        set successfully. This object keeps a reference to |value| and ownership
+        of the underlying data remains unchanged.
+        """
+        cdef CefRefPtr[CefBinaryValue] _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = value._ref
+        with nogil:
+            _r = _p.SetBinary(_a0)
+        return _r
+
+    def set_dictionary(self, DictionaryValue value not None):
+        """Sets the underlying value as type dict. Returns true if the value was set
+        successfully. This object keeps a reference to |value| and ownership of
+        the underlying data remains unchanged.
+        """
+        cdef CefRefPtr[CefDictionaryValue] _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = value._ref
+        with nogil:
+            _r = _p.SetDictionary(_a0)
+        return _r
+
+    def set_list(self, ListValue value not None):
+        """Sets the underlying value as type list. Returns true if the value was set
+        successfully. This object keeps a reference to |value| and ownership of
+        the underlying data remains unchanged.
+        """
+        cdef CefRefPtr[CefListValue] _a0
+        cdef CefValue* _p = self._ptr()
+        cdef cpp_bool _r
+        _a0 = value._ref
+        with nogil:
+            _r = _p.SetList(_a0)
+        return _r
+
+    @staticmethod
+    def create():
+        """Creates a new object."""
+        cdef CefRefPtr[CefValue] _r
+        with nogil:
+            _r = CefValue.Create()
+        return _wrap_Value(_r)
+
+
+cdef object _wrap_Value(CefRefPtr[CefValue] ref):
+    cdef Value obj
+    if ref.get() == NULL:
+        return None
+    obj = Value.__new__(Value)
+    obj._ref = ref
+    return obj
+
+
 class Client:
     """Implement this interface to provide handler implementations."""
 
@@ -3343,6 +4552,13 @@ class Client:
     def get_load_handler(self):
         """Return the handler for browser load status events."""
         return None
+
+    def on_process_message_received(self, browser, frame, source_process, message):
+        """Called when a new message is received from a different process. Return
+        true if the message was handled or false otherwise.  It is safe to keep a
+        reference to |message| outside of this callback.
+        """
+        return False
 
 
 cdef CefContextMenuHandler* _Client_get_context_menu_handler(void* py) noexcept with gil:
@@ -3390,6 +4606,15 @@ cdef CefLoadHandler* _Client_get_load_handler(void* py) noexcept with gil:
         _g_report()
         return NULL
 
+cdef cpp_bool _Client_on_process_message_received(void* py, CefBrowser* browser, CefFrame* frame, int source_process, CefProcessMessage* message) noexcept with gil:
+    try:
+        _r = (<object>py).on_process_message_received(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_enum(_types.ProcessId, source_process), _wrap_ProcessMessage(CefRefPtr[CefProcessMessage](message)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
 
 cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     cdef CefRefPtr[CefClient] ref
@@ -3413,6 +4638,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
         cb.fn_get_life_span_handler = _Client_get_life_span_handler
     if getattr(cls, "get_load_handler", None) is not Client.get_load_handler:
         cb.fn_get_load_handler = _Client_get_load_handler
+    if getattr(cls, "on_process_message_received", None) is not Client.on_process_message_received:
+        cb.fn_on_process_message_received = _Client_on_process_message_received
     ref = CefRefPtr[CefClient](<CefClient*>new CwClientProxy(cb))
     return ref
 
@@ -4640,4 +5867,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "Display", "Frame", "MenuModel", "PrintSettings", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "BinaryValue", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "DictionaryValue", "Display", "Frame", "ListValue", "MenuModel", "PrintSettings", "ProcessMessage", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Value", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

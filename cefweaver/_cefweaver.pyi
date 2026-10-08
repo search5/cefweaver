@@ -62,12 +62,14 @@ from .types import (
     MenuItemType,
     MouseButtonType,
     PaintElementType,
+    ProcessId,
     QuickMenuEditStateFlags,
     ReferrerPolicy,
     ResourceType,
     RuntimeStyle,
     State,
     TransitionType,
+    ValueType,
     WindowOpenDisposition,
     ZoomCommand,
 )
@@ -80,6 +82,38 @@ from .types import (
     Size as Size,
     DraggableRegion as DraggableRegion,
 )
+
+
+class BinaryValue:
+    """Class representing a binary value. Can be used on any process and thread."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        ...
+    def is_owned(self) -> bool:
+        """Returns true if this object is currently owned by another object."""
+        ...
+    def is_same(self, that: BinaryValue) -> bool:
+        """Returns true if this object and |that| object have the same underlying
+        data.
+        """
+        ...
+    def is_equal(self, that: BinaryValue) -> bool:
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        ...
+    def copy(self) -> BinaryValue | None:
+        """Returns a copy of this object. The data in this object will also be
+        copied.
+        """
+        ...
+    def get_size(self) -> int:
+        """Returns the data size."""
+        ...
 
 
 class Browser:
@@ -293,6 +327,19 @@ class BrowserHost:
     def has_dev_tools(self) -> bool:
         """Returns true if this browser currently has an associated DevTools browser.
         Must be called on the browser process UI thread.
+        """
+        ...
+    def execute_dev_tools_method(self, message_id: int, method: str, params: DictionaryValue | None) -> int:
+        """Execute a method call over the DevTools protocol. This is a more
+        structured version of SendDevToolsMessage. |message_id| is an incremental
+        number that uniquely identifies the message (pass 0 to have the next
+        number assigned automatically based on previous values). |method| is the
+        method name. |params| are the method parameters, which may be empty. See
+        the DevTools protocol documentation (linked above) for details of
+        supported methods and the expected |params| dictionary contents. This
+        method will return the assigned message ID if called on the UI thread and
+        the message was successfully submitted for validation, otherwise 0. See
+        the SendDevToolsMessage documentation for additional usage information.
         """
         ...
     def replace_misspelling(self, word: str) -> None:
@@ -680,6 +727,162 @@ class ContextMenuParams:
         ...
 
 
+class DictionaryValue:
+    """Class representing a dictionary value. Can be used on any process and
+    thread.
+    """
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        ...
+    def is_owned(self) -> bool:
+        """Returns true if this object is currently owned by another object."""
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        ...
+    def is_same(self, that: DictionaryValue) -> bool:
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        ...
+    def is_equal(self, that: DictionaryValue) -> bool:
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        ...
+    def copy(self, exclude_empty_children: bool) -> DictionaryValue | None:
+        """Returns a writable copy of this object. If |exclude_empty_children| is
+        true any empty dictionaries or lists will be excluded from the copy.
+        """
+        ...
+    def get_size(self) -> int:
+        """Returns the number of values."""
+        ...
+    def clear(self) -> bool:
+        """Removes all values. Returns true on success."""
+        ...
+    def has_key(self, key: str) -> bool:
+        """Returns true if the current dictionary has a value for the given key."""
+        ...
+    def get_keys(self) -> tuple[bool, list[str]]:
+        """Reads all keys for this dictionary into the specified vector."""
+        ...
+    def remove(self, key: str) -> bool:
+        """Removes the value at the specified key. Returns true is the value was
+        removed successfully.
+        """
+        ...
+    def get_type(self, key: str) -> ValueType:
+        """Returns the value type for the specified key."""
+        ...
+    def get_value(self, key: str) -> Value | None:
+        """Returns the value at the specified key. For simple types the returned
+        value will copy existing data and modifications to the value will not
+        modify this object. For complex types (binary, dictionary and list) the
+        returned value will reference existing data and modifications to the value
+        will modify this object.
+        """
+        ...
+    def get_bool(self, key: str) -> bool:
+        """Returns the value at the specified key as type bool."""
+        ...
+    def get_int(self, key: str) -> int:
+        """Returns the value at the specified key as type int."""
+        ...
+    def get_double(self, key: str) -> float:
+        """Returns the value at the specified key as type double."""
+        ...
+    def get_string(self, key: str) -> str:
+        """Returns the value at the specified key as type string."""
+        ...
+    def get_binary(self, key: str) -> BinaryValue | None:
+        """Returns the value at the specified key as type binary. The returned
+        value will reference existing data.
+        """
+        ...
+    def get_dictionary(self, key: str) -> DictionaryValue | None:
+        """Returns the value at the specified key as type dictionary. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        ...
+    def get_list(self, key: str) -> ListValue | None:
+        """Returns the value at the specified key as type list. The returned value
+        will reference existing data and modifications to the value will modify
+        this object.
+        """
+        ...
+    def set_value(self, key: str, value: Value) -> bool:
+        """Sets the value at the specified key. Returns true if the value was set
+        successfully. If |value| represents simple data then the underlying data
+        will be copied and modifications to |value| will not modify this object.
+        If |value| represents complex data (binary, dictionary or list) then the
+        underlying data will be referenced and modifications to |value| will
+        modify this object.
+        """
+        ...
+    def set_null(self, key: str) -> bool:
+        """Sets the value at the specified key as type null. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_bool(self, key: str, value: bool) -> bool:
+        """Sets the value at the specified key as type bool. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_int(self, key: str, value: int) -> bool:
+        """Sets the value at the specified key as type int. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_double(self, key: str, value: float) -> bool:
+        """Sets the value at the specified key as type double. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_string(self, key: str, value: str | None) -> bool:
+        """Sets the value at the specified key as type string. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_binary(self, key: str, value: BinaryValue) -> bool:
+        """Sets the value at the specified key as type binary. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    def set_dictionary(self, key: str, value: DictionaryValue) -> bool:
+        """Sets the value at the specified key as type dict. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    def set_list(self, key: str, value: ListValue) -> bool:
+        """Sets the value at the specified key as type list. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    @staticmethod
+    def create() -> DictionaryValue:
+        """Creates a new object that is not owned by any other object."""
+        ...
+
+
 class Display:
     """This class typically, but not always, corresponds to a physical display
     connected to the system. A fake Display may exist on a headless system, or a
@@ -868,6 +1071,164 @@ class Frame:
         ...
     def get_browser(self) -> Browser | None:
         """Returns the browser that this frame belongs to."""
+        ...
+    def send_process_message(self, target_process: ProcessId | int, message: ProcessMessage) -> None:
+        """Send a message to the specified |target_process|. Ownership of the message
+        contents will be transferred and the |message| reference will be
+        invalidated. Message delivery is not guaranteed in all cases (for example,
+        if the browser is closing, navigating, or if the target process crashes).
+        Send an ACK message back from the target process if confirmation is
+        required.
+        """
+        ...
+
+
+class ListValue:
+    """Class representing a list value. Can be used on any process and thread."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. This object may become invalid if
+        the underlying data is owned by another object (e.g. list or dictionary)
+        and that other object is then modified or destroyed. Do not call any other
+        methods if this method returns false.
+        """
+        ...
+    def is_owned(self) -> bool:
+        """Returns true if this object is currently owned by another object."""
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        ...
+    def is_same(self, that: ListValue) -> bool:
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        ...
+    def is_equal(self, that: ListValue) -> bool:
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        ...
+    def copy(self) -> ListValue | None:
+        """Returns a writable copy of this object."""
+        ...
+    def set_size(self, size: int) -> bool:
+        """Sets the number of values. If the number of values is expanded all
+        new value slots will default to type null. Returns true on success.
+        """
+        ...
+    def get_size(self) -> int:
+        """Returns the number of values."""
+        ...
+    def clear(self) -> bool:
+        """Removes all values. Returns true on success."""
+        ...
+    def remove(self, index: int) -> bool:
+        """Removes the value at the specified index."""
+        ...
+    def get_type(self, index: int) -> ValueType:
+        """Returns the value type at the specified index."""
+        ...
+    def get_value(self, index: int) -> Value | None:
+        """Returns the value at the specified index. For simple types the returned
+        value will copy existing data and modifications to the value will not
+        modify this object. For complex types (binary, dictionary and list) the
+        returned value will reference existing data and modifications to the value
+        will modify this object.
+        """
+        ...
+    def get_bool(self, index: int) -> bool:
+        """Returns the value at the specified index as type bool."""
+        ...
+    def get_int(self, index: int) -> int:
+        """Returns the value at the specified index as type int."""
+        ...
+    def get_double(self, index: int) -> float:
+        """Returns the value at the specified index as type double."""
+        ...
+    def get_string(self, index: int) -> str:
+        """Returns the value at the specified index as type string."""
+        ...
+    def get_binary(self, index: int) -> BinaryValue | None:
+        """Returns the value at the specified index as type binary. The returned
+        value will reference existing data.
+        """
+        ...
+    def get_dictionary(self, index: int) -> DictionaryValue | None:
+        """Returns the value at the specified index as type dictionary. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        ...
+    def get_list(self, index: int) -> ListValue | None:
+        """Returns the value at the specified index as type list. The returned
+        value will reference existing data and modifications to the value will
+        modify this object.
+        """
+        ...
+    def set_value(self, index: int, value: Value) -> bool:
+        """Sets the value at the specified index. Returns true if the value was set
+        successfully. If |value| represents simple data then the underlying data
+        will be copied and modifications to |value| will not modify this object.
+        If |value| represents complex data (binary, dictionary or list) then the
+        underlying data will be referenced and modifications to |value| will
+        modify this object.
+        """
+        ...
+    def set_null(self, index: int) -> bool:
+        """Sets the value at the specified index as type null. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_bool(self, index: int, value: bool) -> bool:
+        """Sets the value at the specified index as type bool. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_int(self, index: int, value: int) -> bool:
+        """Sets the value at the specified index as type int. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_double(self, index: int, value: float) -> bool:
+        """Sets the value at the specified index as type double. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_string(self, index: int, value: str | None) -> bool:
+        """Sets the value at the specified index as type string. Returns true if the
+        value was set successfully.
+        """
+        ...
+    def set_binary(self, index: int, value: BinaryValue) -> bool:
+        """Sets the value at the specified index as type binary. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    def set_dictionary(self, index: int, value: DictionaryValue) -> bool:
+        """Sets the value at the specified index as type dict. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    def set_list(self, index: int, value: ListValue) -> bool:
+        """Sets the value at the specified index as type list. Returns true if the
+        value was set successfully. If |value| is currently owned by another
+        object then the value will be copied and the |value| reference will not
+        change. Otherwise, ownership will be transferred to this object and the
+        |value| reference will be invalidated.
+        """
+        ...
+    @staticmethod
+    def create() -> ListValue:
+        """Creates a new object that is not owned by any other object."""
         ...
 
 
@@ -1218,6 +1579,37 @@ class PrintSettings:
         ...
 
 
+class ProcessMessage:
+    """Class representing a message. Can be used on any process and thread."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the values of this object are read-only. Some APIs may
+        expose read-only objects.
+        """
+        ...
+    def copy(self) -> ProcessMessage | None:
+        """Returns a writable copy of this object.
+        Returns nullptr when message contains a shared memory region.
+        """
+        ...
+    def get_name(self) -> str:
+        """Returns the message name."""
+        ...
+    def get_argument_list(self) -> ListValue | None:
+        """Returns the list of arguments.
+        Returns nullptr when message contains a shared memory region.
+        """
+        ...
+    @staticmethod
+    def create(name: str) -> ProcessMessage:
+        """Create a new CefProcessMessage object with the specified name."""
+        ...
+
+
 class Request:
     """Class used to represent a web request. The methods of this class may be
     called on any thread.
@@ -1456,6 +1848,133 @@ class TaskManager:
         ...
 
 
+class Value:
+    """Class that wraps other data value types. Complex types (binary, dictionary
+    and list) will be referenced but not owned by this object. Can be used on
+    any process and thread.
+    """
+    def is_valid(self) -> bool:
+        """Returns true if the underlying data is valid. This will always be true for
+        simple types. For complex types (binary, dictionary and list) the
+        underlying data may become invalid if owned by another object (e.g. list
+        or dictionary) and that other object is then modified or destroyed. This
+        value object can be re-used by calling Set*() even if the underlying data
+        is invalid.
+        """
+        ...
+    def is_owned(self) -> bool:
+        """Returns true if the underlying data is owned by another object."""
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the underlying data is read-only. Some APIs may expose
+        read-only objects.
+        """
+        ...
+    def is_same(self, that: Value) -> bool:
+        """Returns true if this object and |that| object have the same underlying
+        data. If true modifications to this object will also affect |that| object
+        and vice-versa.
+        """
+        ...
+    def is_equal(self, that: Value) -> bool:
+        """Returns true if this object and |that| object have an equivalent
+        underlying value but are not necessarily the same object.
+        """
+        ...
+    def copy(self) -> Value | None:
+        """Returns a copy of this object. The underlying data will also be copied."""
+        ...
+    def get_type(self) -> ValueType:
+        """Returns the underlying value type."""
+        ...
+    def get_bool(self) -> bool:
+        """Returns the underlying value as type bool."""
+        ...
+    def get_int(self) -> int:
+        """Returns the underlying value as type int."""
+        ...
+    def get_double(self) -> float:
+        """Returns the underlying value as type double."""
+        ...
+    def get_string(self) -> str:
+        """Returns the underlying value as type string."""
+        ...
+    def get_binary(self) -> BinaryValue | None:
+        """Returns the underlying value as type binary. The returned reference may
+        become invalid if the value is owned by another object or if ownership is
+        transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetBinary().
+        """
+        ...
+    def get_dictionary(self) -> DictionaryValue | None:
+        """Returns the underlying value as type dictionary. The returned reference
+        may become invalid if the value is owned by another object or if ownership
+        is transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetDictionary().
+        """
+        ...
+    def get_list(self) -> ListValue | None:
+        """Returns the underlying value as type list. The returned reference may
+        become invalid if the value is owned by another object or if ownership is
+        transferred to another object in the future. To maintain a reference to
+        the value after assigning ownership to a dictionary or list pass this
+        object to the SetValue() method instead of passing the returned reference
+        to SetList().
+        """
+        ...
+    def set_null(self) -> bool:
+        """Sets the underlying value as type null. Returns true if the value was set
+        successfully.
+        """
+        ...
+    def set_bool(self, value: bool) -> bool:
+        """Sets the underlying value as type bool. Returns true if the value was set
+        successfully.
+        """
+        ...
+    def set_int(self, value: int) -> bool:
+        """Sets the underlying value as type int. Returns true if the value was set
+        successfully.
+        """
+        ...
+    def set_double(self, value: float) -> bool:
+        """Sets the underlying value as type double. Returns true if the value was
+        set successfully.
+        """
+        ...
+    def set_string(self, value: str | None) -> bool:
+        """Sets the underlying value as type string. Returns true if the value was
+        set successfully.
+        """
+        ...
+    def set_binary(self, value: BinaryValue) -> bool:
+        """Sets the underlying value as type binary. Returns true if the value was
+        set successfully. This object keeps a reference to |value| and ownership
+        of the underlying data remains unchanged.
+        """
+        ...
+    def set_dictionary(self, value: DictionaryValue) -> bool:
+        """Sets the underlying value as type dict. Returns true if the value was set
+        successfully. This object keeps a reference to |value| and ownership of
+        the underlying data remains unchanged.
+        """
+        ...
+    def set_list(self, value: ListValue) -> bool:
+        """Sets the underlying value as type list. Returns true if the value was set
+        successfully. This object keeps a reference to |value| and ownership of
+        the underlying data remains unchanged.
+        """
+        ...
+    @staticmethod
+    def create() -> Value:
+        """Creates a new object."""
+        ...
+
+
 class Client:
     """Implement this interface to provide handler implementations."""
     def get_context_menu_handler(self) -> ContextMenuHandler | None:
@@ -1474,6 +1993,12 @@ class Client:
         ...
     def get_load_handler(self) -> LoadHandler | None:
         """Return the handler for browser load status events."""
+        ...
+    def on_process_message_received(self, browser: Browser, frame: Frame, source_process: ProcessId, message: ProcessMessage) -> bool:
+        """Called when a new message is received from a different process. Return
+        true if the message was handled or false otherwise.  It is safe to keep a
+        reference to |message| outside of this callback.
+        """
         ...
 
 

@@ -14,17 +14,18 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 308 methods/functions in 24 classes, 3 global functions
+Generated now: 405 methods/functions in 29 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    32  class
+    30  class
      6  struct-like value type
      6  struct
      4  multimap of values
+     3  untyped pointer
+     1  pointer to
      1  a library method returning a client object
-     1  untyped pointer
      1  vector of values
-  ----  51 skipped
+  ----  52 skipped
 
 If every class were generated, the type support alone would cover 1422 of 1598 methods/functions (89%).
 What blocks the rest, by type:
@@ -68,7 +69,7 @@ Per class (supported/total methods, when every class is generated):
     CefAudioHandler                        client    2/5  
     CefAuthCallback                        library   2/2  
     CefBeforeDownloadCallback              library   1/1  
-    CefBinaryValue                         library   6/9  
+  * CefBinaryValue                         library   6/9  
     CefBoxLayout                           library   2/2  
   * CefBrowser                             library  21/21 
   * CefBrowserHost                         library  61/72 
@@ -96,7 +97,7 @@ Per class (supported/total methods, when every class is generated):
     CefDeleteCookiesCallback               client    1/1  
     CefDevToolsMessageObserver             client    5/5  
     CefDialogHandler                       client    1/1  
-    CefDictionaryValue                     library  30/30 
+  * CefDictionaryValue                     library  30/30 
   * CefDisplay                             library  16/16 
   * CefDisplayHandler                      client   12/13 
     CefDownloadHandler                     client    3/3  
@@ -118,7 +119,7 @@ Per class (supported/total methods, when every class is generated):
     CefLabelButton                         library  12/12 
     CefLayout                              library   3/3  
   * CefLifeSpanHandler                     client    4/6  
-    CefListValue                           library  29/29 
+  * CefListValue                           library  29/29 
   * CefLoadHandler                         client    4/4  
     CefMediaAccessCallback                 library   2/2  
     CefMediaObserver                       client    4/4  
@@ -148,7 +149,7 @@ Per class (supported/total methods, when every class is generated):
     CefPrintHandler                        client    5/6  
     CefPrintJobCallback                    library   1/1  
   * CefPrintSettings                       library  23/23 
-    CefProcessMessage                      library   7/7  
+  * CefProcessMessage                      library   7/7  
     CefReadHandler                         client    5/5  
     CefRenderHandler                       client   14/17 
     CefRenderProcessHandler                client    9/9  
@@ -216,7 +217,7 @@ Per class (supported/total methods, when every class is generated):
     CefV8StackFrame                        library   8/8  
     CefV8StackTrace                        library   4/4  
     CefV8Value                             library  56/67 
-    CefValue                               library  23/23 
+  * CefValue                               library  23/23 
     CefView                                library  51/52 
     CefViewDelegate                        client    8/11 
     CefWaitableEvent                       library   6/6  

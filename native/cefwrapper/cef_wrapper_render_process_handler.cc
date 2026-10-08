@@ -38,6 +38,23 @@ void SimpleRenderProcessHandler::OnBrowserCreated(
       }
     }
 }
+bool SimpleRenderProcessHandler::OnProcessMessageReceived(
+    CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+    CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
+  if (message->GetName() != "cefweaver-ping" || !frame) {
+    return false;
+  }
+  CefRefPtr<CefProcessMessage> pong = CefProcessMessage::Create("cefweaver-pong");
+  CefRefPtr<CefListValue> in = message->GetArgumentList();
+  CefRefPtr<CefListValue> out = pong->GetArgumentList();
+  out->SetSize(in->GetSize());
+  for (size_t i = 0; i < in->GetSize(); ++i) {
+    out->SetValue(i, in->GetValue(i));  // copies the value
+  }
+  frame->SendProcessMessage(PID_BROWSER, pong);
+  return true;
+}
+
 /* Null, because instance will be initialized on demand. */
 CefRefPtr<SimpleRenderProcessHandler> SimpleRenderProcessHandler::instance = nullptr;
 

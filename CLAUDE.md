@@ -39,7 +39,7 @@ uv build --wheel                 # Cython 확장 빌드 (인자 없는 `uv build
 env -u WAYLAND_DISPLAY xvfb-run -a python -P -m unittest discover -s tests -v
 ```
 
-- 시험은 설치된 wheel을 대상으로 하며, 가상 X 서버에서 실행해야 합니다. `-P`는 필수입니다: 저장소 루트에서 `-P` 없이 실행하면 소스 트리의 `cefweaver/`가 설치된 wheel을 가려서 CEF 시험(54개)이 조용히 건너뛰어지고도 `OK`로 끝납니다. Wayland 환경에서는 Chromium이 실제 화면에 창을 열 수 있습니다.
+- 시험은 설치된 wheel을 대상으로 하며, 가상 X 서버에서 실행해야 합니다. `-P`는 필수입니다: 저장소 루트에서 `-P` 없이 실행하면 소스 트리의 `cefweaver/`가 설치된 wheel을 가려서 CEF 시험(57개)이 조용히 건너뛰어지고도 `OK`로 끝납니다. Wayland 환경에서는 Chromium이 실제 화면에 창을 열 수 있습니다.
 - 실제 Wayland 화면에 창을 여는 시험(`WithCefOnWayland`)은 기본에서 건너뜁니다. 허락을 받은 뒤에만 `CEFWEAVER_TEST_WAYLAND=1`로 실행합니다.
 - 지원 플랫폼은 Linux x86_64입니다. Windows는 미검증이고 macOS는 지원하지 않습니다.
 

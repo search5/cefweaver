@@ -10,7 +10,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 세 파일에 125개(통합 54, 생성기 70, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 세 파일에 134개(통합 57, 생성기 76, 위키 점검 1) 있습니다. 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고, 2개는 실제 Wayland 데스크톱에 창을 여는 선택 실행입니다(`CEFWEAVER_TEST_WAYLAND=1`). 그 가운데 1개는 CEF의 알려진 문제를 지키는 `expectedFailure`입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -34,7 +34,9 @@ updated: 2026-10-08
 | | `test_the_menu_model_and_the_display_are_public` | `MenuModel`, `MenuModelDelegate`, `Display`의 공개 여부 |
 | | `test_print_settings_and_the_drag_handler_are_public`, `test_the_task_manager_is_public` | 새 클래스의 공개 여부 |
 | `ApiWithoutCef` | `test_the_context_menu_classes_and_the_devtools_switch_are_public` | 컨텍스트 메뉴 클래스의 공개 여부, `devtools_menu`의 기본값(`False`)과 설정 |
-| `WithCef` | `test_a_program_can_open_the_context_menu_and_pick_an_item` | 오른쪽 클릭 주입, 메뉴의 좌표, 사용자 항목의 ID(`USER_FIRST`), 고른 명령이 사용자 핸들러로 옴, 기본은 DevTools 항목 없음 |
+| `ApiWithoutCef` | `test_the_process_message_and_the_value_containers_are_public`, `test_values_can_be_built_and_read_without_cef` | 클래스의 공개 여부, CEF 없이 값 컨테이너의 왕복(한글, 중첩, `ValueType` 멤버, `get_keys`) |
+| `WithCef` | `test_a_process_message_makes_a_round_trip_through_the_renderer` | `cefweaver-ping`이 같은 인자로 `cefweaver-pong`이 되어 돌아옴(`ProcessId.RENDERER`), 보낸 메시지가 무효가 됨, 래퍼의 바인딩이 계속 동작하고 래퍼의 메시지가 사용자에게 가지 않음 |
+| | `test_a_program_can_open_the_context_menu_and_pick_an_item` | 오른쪽 클릭 주입, 메뉴의 좌표, 사용자 항목의 ID(`USER_FIRST`), 고른 명령이 사용자 핸들러로 옴, 기본은 DevTools 항목 없음 |
 | | `test_the_devtools_items_come_after_the_users_and_change_nothing_else` | 켠 메뉴 = 끈 메뉴 + DevTools 항목, 사용자가 본 항목 수와 받은 명령이 같음, ID 28498~28500 |
 | | `test_choosing_show_devtools_opens_devtools_without_asking_the_users_handler` | 래퍼의 항목은 래퍼가 처리해 DevTools가 열림(`has_dev_tools`) |
 | | `test_a_standard_command_the_user_does_not_handle_runs_as_usual` | 사용자가 `False`를 돌려준 표준 명령(전체 선택)을 CEF가 실행(켠 채와 끈 채). 예전 `return true` 결함을 잡음 |
@@ -82,6 +84,7 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 - 모든 핸들러에 전달 클래스가 생성되는지, 그리고 **실제 C++ 컴파일러**로 클라이언트와 세 핸들러의 전달 클래스를 한 참조 계수 클래스에 합칠 수 있는지(`c++ -fsyntax-only`, 컴파일러가 없으면 건너뜀)
 - 값 타입 구조체: 필드를 C 헤더에서 읽는지, 예약어 필드 이름, 평범한 데이터가 아닌 구조체의 제외, 핸들러의 구조체 입력과 출력, 라이브러리 메서드의 구조체 입력과 반환, 핸들러의 구조체 반환이 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `NamedTuple`
 - **생성된 C++ 프록시를 컴파일해서 실행**: 입력 구조체가 포인터로 전달되고 출력 구조체가 참조 인자에 복사되는지(`libcef.so`가 없으면 건너뜀)
+- 프로세스 메시지: 클래스가 범위에 있는지, `Frame.send_process_message`와 `Client.on_process_message_received`의 분류, `BinaryValue`의 타입 없는 포인터 보고, 스텁
 - 컨텍스트 메뉴: 클래스가 범위에 있는지, 핸들러의 7개 메서드가 모두 생성되는지, `run_context_menu`가 콜백을 받는지(코드에서 항목을 고르는 수단), 전달 클래스, 스텁
 - 벡터: 구조체, 객체, 정수 목록의 분류와 방향별 허용, 중첩 구조체, 스텁의 `Sequence[...]`와 `list[...]`, 정적 메서드, 표의 요소 타입. 생성된 C++ 프록시 실행 시험에 `CefDraggableRegion` 벡터가 들어 있습니다.
 - 라이브러리 메서드의 출력 인자: 출력 전용(가속키의 여러 출력, typedef 출력, 문자열)과 구조체 입출력의 분류, 핸들러의 출력 인자는 출력 전용인지, 새 클래스가 범위에 있는지, 스텁의 튜플 반환과 `Point | tuple[int, int]`
