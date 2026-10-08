@@ -582,6 +582,50 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(types["DraggableRegion"]._fields, ("bounds", "draggable"))
 
 
+    # -- the context menu ----------------------------------------------------------------
+
+    def test_the_context_menu_classes_are_generated(self):
+        self.assertTrue(self.scope.is_client("CefContextMenuHandler"))
+        for name in ("CefContextMenuParams", "CefRunContextMenuCallback", "CefRunQuickMenuCallback"):
+            self.assertTrue(self.scope.is_library(name), name)
+        plan = self.plan("CefClient", "GetContextMenuHandler")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.ret, ClientRef("CefContextMenuHandler"))
+
+    def test_every_context_menu_handler_method_is_generated(self):
+        cls = self.model.classes["CefContextMenuHandler"]
+        for method in cls.get_virtual_funcs():
+            plan = self.plan("CefContextMenuHandler", method.get_name())
+            self.assertTrue(plan.supported, "%s: %s" % (method.get_name(), plan.reason))
+
+    def test_a_menu_handler_can_replace_the_menu_and_choose_an_item(self):
+        # RunContextMenu gets the callback that picks an item: this is how a program opens a
+        # menu and chooses from it without any user interface.
+        plan = self.plan("CefContextMenuHandler", "RunContextMenu")
+        self.assertEqual([k.cls for k in (p.kind for p in plan.params)],
+                         ["CefBrowser", "CefFrame", "CefContextMenuParams", "CefMenuModel",
+                          "CefRunContextMenuCallback"])
+        self.assertEqual(plan.ret, Prim("bool", "bool"))
+        plan = self.plan_in(self.scope, "CefRunContextMenuCallback", "Continue")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.name, "continue_")
+
+    def test_the_menu_parameters_include_a_list_of_suggestions(self):
+        plan = self.plan_in(self.scope, "CefContextMenuParams", "GetDictionarySuggestions")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertEqual(plan.outs[0].kind, Vector(Str()))
+
+    def test_the_context_menu_handler_can_be_forwarded_by_the_wrapper(self):
+        self.assertIn("class CwContextMenuHandlerForward : public CefContextMenuHandler {",
+                      self.generated("proxies"))
+
+    def test_the_stub_declares_the_context_menu_handler(self):
+        stub = self.generated("pyi")
+        self.assertIn("def on_before_context_menu(self, browser: Browser, frame: Frame, "
+                      "params: ContextMenuParams, model: MenuModel) -> None:", stub)
+        self.assertIn("def get_context_menu_handler(self) -> ContextMenuHandler | None:", stub)
+
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

@@ -7,6 +7,7 @@
 #include "include/cef_browser.h"
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
+#include "include/cef_context_menu_handler.h"
 #include "include/cef_display_handler.h"
 #include "include/cef_drag_handler.h"
 #include "include/cef_frame.h"
@@ -30,6 +31,13 @@ class CwClientForward : public CefClient {
   CefRefPtr<CefClient> forward_client_;
 
  public:
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetContextMenuHandler();
+    }
+    return forward_client_->GetContextMenuHandler();
+  }
+
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
     if (!forward_client_) {
       return CefClient::GetDisplayHandler();
@@ -62,6 +70,7 @@ class CwClientForward : public CefClient {
 struct CwClientCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) = nullptr;
   CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
   CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) = nullptr;
@@ -75,6 +84,19 @@ class CwClientProxy : public CefClient {
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
+    if (!cb_.fn_get_context_menu_handler) {
+      return CefClient::GetContextMenuHandler();
+    }
+    CefContextMenuHandler* raw = cb_.fn_get_context_menu_handler(cb_.py);
+    CefRefPtr<CefContextMenuHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
   }
 
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
@@ -134,6 +156,150 @@ class CwClientProxy : public CefClient {
 
   IMPLEMENT_REFCOUNTING(CwClientProxy);
   DISALLOW_COPY_AND_ASSIGN(CwClientProxy);
+};
+
+// ---- CefContextMenuHandler ----
+
+class CwContextMenuHandlerForward : public CefContextMenuHandler {
+ protected:
+  CefRefPtr<CefContextMenuHandler> forward_context_menu_handler_;
+
+ public:
+  void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model) override {
+    if (!forward_context_menu_handler_) {
+      CefContextMenuHandler::OnBeforeContextMenu(browser, frame, params, model);
+      return;
+    }
+    forward_context_menu_handler_->OnBeforeContextMenu(browser, frame, params, model);
+  }
+
+  bool RunContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model, CefRefPtr<CefRunContextMenuCallback> callback) override {
+    if (!forward_context_menu_handler_) {
+      return CefContextMenuHandler::RunContextMenu(browser, frame, params, model, callback);
+    }
+    return forward_context_menu_handler_->RunContextMenu(browser, frame, params, model, callback);
+  }
+
+  bool OnContextMenuCommand(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, int command_id, EventFlags event_flags) override {
+    if (!forward_context_menu_handler_) {
+      return CefContextMenuHandler::OnContextMenuCommand(browser, frame, params, command_id, event_flags);
+    }
+    return forward_context_menu_handler_->OnContextMenuCommand(browser, frame, params, command_id, event_flags);
+  }
+
+  void OnContextMenuDismissed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!forward_context_menu_handler_) {
+      CefContextMenuHandler::OnContextMenuDismissed(browser, frame);
+      return;
+    }
+    forward_context_menu_handler_->OnContextMenuDismissed(browser, frame);
+  }
+
+  bool RunQuickMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefPoint& location, const CefSize& size, QuickMenuEditStateFlags edit_state_flags, CefRefPtr<CefRunQuickMenuCallback> callback) override {
+    if (!forward_context_menu_handler_) {
+      return CefContextMenuHandler::RunQuickMenu(browser, frame, location, size, edit_state_flags, callback);
+    }
+    return forward_context_menu_handler_->RunQuickMenu(browser, frame, location, size, edit_state_flags, callback);
+  }
+
+  bool OnQuickMenuCommand(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int command_id, EventFlags event_flags) override {
+    if (!forward_context_menu_handler_) {
+      return CefContextMenuHandler::OnQuickMenuCommand(browser, frame, command_id, event_flags);
+    }
+    return forward_context_menu_handler_->OnQuickMenuCommand(browser, frame, command_id, event_flags);
+  }
+
+  void OnQuickMenuDismissed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!forward_context_menu_handler_) {
+      CefContextMenuHandler::OnQuickMenuDismissed(browser, frame);
+      return;
+    }
+    forward_context_menu_handler_->OnQuickMenuDismissed(browser, frame);
+  }
+};
+
+struct CwContextMenuHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_before_context_menu)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, CefMenuModel*) = nullptr;
+  bool (*fn_run_context_menu)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, CefMenuModel*, CefRunContextMenuCallback*) = nullptr;
+  bool (*fn_on_context_menu_command)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, int, int) = nullptr;
+  void (*fn_on_context_menu_dismissed)(void*, CefBrowser*, CefFrame*) = nullptr;
+  bool (*fn_run_quick_menu)(void*, CefBrowser*, CefFrame*, const CefPoint*, const CefSize*, int, CefRunQuickMenuCallback*) = nullptr;
+  bool (*fn_on_quick_menu_command)(void*, CefBrowser*, CefFrame*, int, int) = nullptr;
+  void (*fn_on_quick_menu_dismissed)(void*, CefBrowser*, CefFrame*) = nullptr;
+};
+
+class CwContextMenuHandlerProxy : public CefContextMenuHandler {
+ public:
+  explicit CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwContextMenuHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model) override {
+    if (!cb_.fn_on_before_context_menu) {
+      CefContextMenuHandler::OnBeforeContextMenu(browser, frame, params, model);
+      return;
+    }
+    cb_.fn_on_before_context_menu(cb_.py, browser.get(), frame.get(), params.get(), model.get());
+  }
+
+  bool RunContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model, CefRefPtr<CefRunContextMenuCallback> callback) override {
+    if (!cb_.fn_run_context_menu) {
+      return CefContextMenuHandler::RunContextMenu(browser, frame, params, model, callback);
+    }
+    bool result = cb_.fn_run_context_menu(cb_.py, browser.get(), frame.get(), params.get(), model.get(), callback.get());
+    return result;
+  }
+
+  bool OnContextMenuCommand(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefContextMenuParams> params, int command_id, EventFlags event_flags) override {
+    if (!cb_.fn_on_context_menu_command) {
+      return CefContextMenuHandler::OnContextMenuCommand(browser, frame, params, command_id, event_flags);
+    }
+    bool result = cb_.fn_on_context_menu_command(cb_.py, browser.get(), frame.get(), params.get(), command_id, static_cast<int>(event_flags));
+    return result;
+  }
+
+  void OnContextMenuDismissed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!cb_.fn_on_context_menu_dismissed) {
+      CefContextMenuHandler::OnContextMenuDismissed(browser, frame);
+      return;
+    }
+    cb_.fn_on_context_menu_dismissed(cb_.py, browser.get(), frame.get());
+  }
+
+  bool RunQuickMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefPoint& location, const CefSize& size, QuickMenuEditStateFlags edit_state_flags, CefRefPtr<CefRunQuickMenuCallback> callback) override {
+    if (!cb_.fn_run_quick_menu) {
+      return CefContextMenuHandler::RunQuickMenu(browser, frame, location, size, edit_state_flags, callback);
+    }
+    bool result = cb_.fn_run_quick_menu(cb_.py, browser.get(), frame.get(), &location, &size, static_cast<int>(edit_state_flags), callback.get());
+    return result;
+  }
+
+  bool OnQuickMenuCommand(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int command_id, EventFlags event_flags) override {
+    if (!cb_.fn_on_quick_menu_command) {
+      return CefContextMenuHandler::OnQuickMenuCommand(browser, frame, command_id, event_flags);
+    }
+    bool result = cb_.fn_on_quick_menu_command(cb_.py, browser.get(), frame.get(), command_id, static_cast<int>(event_flags));
+    return result;
+  }
+
+  void OnQuickMenuDismissed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!cb_.fn_on_quick_menu_dismissed) {
+      CefContextMenuHandler::OnQuickMenuDismissed(browser, frame);
+      return;
+    }
+    cb_.fn_on_quick_menu_dismissed(cb_.py, browser.get(), frame.get());
+  }
+
+ private:
+  CwContextMenuHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwContextMenuHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwContextMenuHandlerProxy);
 };
 
 // ---- CefDisplayHandler ----

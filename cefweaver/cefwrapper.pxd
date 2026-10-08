@@ -42,3 +42,5 @@ cdef extern from "library.h":
         void AddCommandLineSwitch(string name, string value)
         cpp_bool LoadUrl(string url) nogil
         void SetClient(CefRefPtr[CefClient] client)
+        void SetDevToolsMenuEnabled(cpp_bool enabled)
+        cpp_bool DevToolsMenuEnabled()

@@ -247,6 +247,7 @@ cdef inline int _g_str_vector(object seq, vector[CefString]& out) except -1:
 cdef class Browser
 cdef class BrowserHost
 cdef class Callback
+cdef class ContextMenuParams
 cdef class Display
 cdef class Frame
 cdef class MenuModel
@@ -255,6 +256,8 @@ cdef class Request
 cdef class ResourceReadCallback
 cdef class ResourceSkipCallback
 cdef class Response
+cdef class RunContextMenuCallback
+cdef class RunQuickMenuCallback
 cdef class TaskManager
 
 cdef class Browser:
@@ -1189,6 +1192,231 @@ cdef object _wrap_Callback(CefRefPtr[CefCallback] ref):
     if ref.get() == NULL:
         return None
     obj = Callback.__new__(Callback)
+    obj._ref = ref
+    return obj
+
+
+cdef class ContextMenuParams:
+    """Provides information about the context menu state. The methods of this class
+    can only be accessed on browser process the UI thread.
+    """
+    cdef CefRefPtr[CefContextMenuParams] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("ContextMenuParams objects are created by CEF or by a create() function")
+
+    cdef CefContextMenuParams* _ptr(self) except NULL:
+        cdef CefContextMenuParams* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("ContextMenuParams has no CEF object")
+        return p
+
+    def get_x_coord(self):
+        """Returns the X coordinate of the mouse where the context menu was invoked.
+        Coords are relative to the associated RenderView's origin.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetXCoord()
+        return _r
+
+    def get_y_coord(self):
+        """Returns the Y coordinate of the mouse where the context menu was invoked.
+        Coords are relative to the associated RenderView's origin.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef int _r
+        with nogil:
+            _r = _p.GetYCoord()
+        return _r
+
+    def get_type_flags(self):
+        """Returns flags representing the type of node that the context menu was
+        invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cef_context_menu_type_flags_t _r
+        with nogil:
+            _r = _p.GetTypeFlags()
+        return _g_enum(_types.ContextMenuTypeFlags, <int>_r)
+
+    def get_link_url(self):
+        """Returns the URL of the link, if any, that encloses the node that the
+        context menu was invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetLinkUrl()
+        return _g_str(_r)
+
+    def get_unfiltered_link_url(self):
+        """Returns the link URL, if any, to be used ONLY for \"copy link address\". We
+        don't validate this field in the frontend process.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetUnfilteredLinkUrl()
+        return _g_str(_r)
+
+    def get_source_url(self):
+        """Returns the source URL, if any, for the element that the context menu was
+        invoked on. Example of elements with source URLs are img, audio, and
+        video.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetSourceUrl()
+        return _g_str(_r)
+
+    def has_image_contents(self):
+        """Returns true if the context menu was invoked on an image which has
+        non-empty contents.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.HasImageContents()
+        return _r
+
+    def get_title_text(self):
+        """Returns the title text or the alt text if the context menu was invoked on
+        an image.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetTitleText()
+        return _g_str(_r)
+
+    def get_page_url(self):
+        """Returns the URL of the top level page that the context menu was invoked
+        on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetPageUrl()
+        return _g_str(_r)
+
+    def get_frame_url(self):
+        """Returns the URL of the subframe that the context menu was invoked on."""
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFrameUrl()
+        return _g_str(_r)
+
+    def get_frame_charset(self):
+        """Returns the character encoding of the subframe that the context menu was
+        invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetFrameCharset()
+        return _g_str(_r)
+
+    def get_media_type(self):
+        """Returns the type of context node that the context menu was invoked on."""
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cef_context_menu_media_type_t _r
+        with nogil:
+            _r = _p.GetMediaType()
+        return _g_enum(_types.ContextMenuMediaType, <int>_r)
+
+    def get_media_state_flags(self):
+        """Returns flags representing the actions supported by the media element, if
+        any, that the context menu was invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cef_context_menu_media_state_flags_t _r
+        with nogil:
+            _r = _p.GetMediaStateFlags()
+        return _g_enum(_types.ContextMenuMediaStateFlags, <int>_r)
+
+    def get_selection_text(self):
+        """Returns the text of the selection, if any, that the context menu was
+        invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetSelectionText()
+        return _g_str(_r)
+
+    def get_misspelled_word(self):
+        """Returns the text of the misspelled word, if any, that the context menu was
+        invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef CefString _r
+        with nogil:
+            _r = _p.GetMisspelledWord()
+        return _g_str(_r)
+
+    def get_dictionary_suggestions(self):
+        """Returns true if suggestions exist, false otherwise. Fills in |suggestions|
+        from the spell check service for the misspelled word if there is one.
+        """
+        cdef vector[CefString] _a0
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.GetDictionarySuggestions(_a0)
+        return (_r, _g_str_list(&_a0))
+
+    def is_editable(self):
+        """Returns true if the context menu was invoked on an editable node."""
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsEditable()
+        return _r
+
+    def is_spell_check_enabled(self):
+        """Returns true if the context menu was invoked on an editable node where
+        spell-check is enabled.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsSpellCheckEnabled()
+        return _r
+
+    def get_edit_state_flags(self):
+        """Returns flags representing the actions supported by the editable node, if
+        any, that the context menu was invoked on.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cef_context_menu_edit_state_flags_t _r
+        with nogil:
+            _r = _p.GetEditStateFlags()
+        return _g_enum(_types.ContextMenuEditStateFlags, <int>_r)
+
+    def is_custom_menu(self):
+        """Returns true if the context menu contains items specified by the renderer
+        process.
+        """
+        cdef CefContextMenuParams* _p = self._ptr()
+        cdef cpp_bool _r
+        with nogil:
+            _r = _p.IsCustomMenu()
+        return _r
+
+
+cdef object _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams] ref):
+    cdef ContextMenuParams obj
+    if ref.get() == NULL:
+        return None
+    obj = ContextMenuParams.__new__(ContextMenuParams)
     obj._ref = ref
     return obj
 
@@ -2916,6 +3144,92 @@ cdef object _wrap_Response(CefRefPtr[CefResponse] ref):
     return obj
 
 
+cdef class RunContextMenuCallback:
+    """Callback interface used for continuation of custom context menu display."""
+    cdef CefRefPtr[CefRunContextMenuCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("RunContextMenuCallback objects are created by CEF or by a create() function")
+
+    cdef CefRunContextMenuCallback* _ptr(self) except NULL:
+        cdef CefRunContextMenuCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("RunContextMenuCallback has no CEF object")
+        return p
+
+    def continue_(self, int command_id, int event_flags):
+        """Complete context menu display by selecting the specified |command_id| and
+        |event_flags|.
+        """
+        cdef CefRunContextMenuCallback* _p = self._ptr()
+        with nogil:
+            _p.Continue(command_id, <cef_event_flags_t>event_flags)
+        return None
+
+    def cancel(self):
+        """Cancel context menu display."""
+        cdef CefRunContextMenuCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+
+cdef object _wrap_RunContextMenuCallback(CefRefPtr[CefRunContextMenuCallback] ref):
+    cdef RunContextMenuCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = RunContextMenuCallback.__new__(RunContextMenuCallback)
+    obj._ref = ref
+    return obj
+
+
+cdef class RunQuickMenuCallback:
+    """Callback interface used for continuation of custom quick menu display."""
+    cdef CefRefPtr[CefRunQuickMenuCallback] _ref
+
+    def __dealloc__(self):
+        if _cef_was_shut_down:
+            _g_forget(<void*>&self._ref)
+
+    def __init__(self):
+        raise TypeError("RunQuickMenuCallback objects are created by CEF or by a create() function")
+
+    cdef CefRunQuickMenuCallback* _ptr(self) except NULL:
+        cdef CefRunQuickMenuCallback* p = self._ref.get()
+        if p == NULL:
+            raise RuntimeError("RunQuickMenuCallback has no CEF object")
+        return p
+
+    def continue_(self, int command_id, int event_flags):
+        """Complete quick menu display by selecting the specified |command_id| and
+        |event_flags|.
+        """
+        cdef CefRunQuickMenuCallback* _p = self._ptr()
+        with nogil:
+            _p.Continue(command_id, <cef_event_flags_t>event_flags)
+        return None
+
+    def cancel(self):
+        """Cancel quick menu display."""
+        cdef CefRunQuickMenuCallback* _p = self._ptr()
+        with nogil:
+            _p.Cancel()
+        return None
+
+
+cdef object _wrap_RunQuickMenuCallback(CefRefPtr[CefRunQuickMenuCallback] ref):
+    cdef RunQuickMenuCallback obj
+    if ref.get() == NULL:
+        return None
+    obj = RunQuickMenuCallback.__new__(RunQuickMenuCallback)
+    obj._ref = ref
+    return obj
+
+
 cdef class TaskManager:
     """Class that facilitates managing the browser-related tasks.
     The methods of this class may only be called on the UI thread.
@@ -3008,6 +3322,12 @@ cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
 class Client:
     """Implement this interface to provide handler implementations."""
 
+    def get_context_menu_handler(self):
+        """Return the handler for context menus. If no handler is provided the
+        default implementation will be used.
+        """
+        return None
+
     def get_display_handler(self):
         """Return the handler for browser display state events."""
         return None
@@ -3024,6 +3344,15 @@ class Client:
         """Return the handler for browser load status events."""
         return None
 
+
+cdef CefContextMenuHandler* _Client_get_context_menu_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_context_menu_handler()
+        _r0 = _r
+        return _g_export_ContextMenuHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
 
 cdef CefDisplayHandler* _Client_get_display_handler(void* py) noexcept with gil:
     try:
@@ -3074,6 +3403,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "get_context_menu_handler", None) is not Client.get_context_menu_handler:
+        cb.fn_get_context_menu_handler = _Client_get_context_menu_handler
     if getattr(cls, "get_display_handler", None) is not Client.get_display_handler:
         cb.fn_get_display_handler = _Client_get_display_handler
     if getattr(cls, "get_drag_handler", None) is not Client.get_drag_handler:
@@ -3090,6 +3421,166 @@ cdef inline CefClient* _g_export_Client(object obj) except? NULL:
     """A reference for CEF to keep (the proxy calls Release() on it)."""
     cdef CefRefPtr[CefClient] ref = _g_make_Client(obj)
     cdef CefClient* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class ContextMenuHandler:
+    """Implement this interface to handle context menu events. The methods of this
+    class will be called on the UI thread.
+    """
+
+    def on_before_context_menu(self, browser, frame, params, model):
+        """Called before a context menu is displayed. |params| provides information
+        about the context menu state. |model| initially contains the default
+        context menu. The |model| can be cleared to show no context menu or
+        modified to show a custom menu. Do not keep references to |params| or
+        |model| outside of this callback.
+        """
+        return None
+
+    def run_context_menu(self, browser, frame, params, model, callback):
+        """Called to allow custom display of the context menu. |params| provides
+        information about the context menu state. |model| contains the context
+        menu model resulting from OnBeforeContextMenu. For custom display return
+        true and execute |callback| either synchronously or asynchronously with
+        the selected command ID. For default display return false. Do not keep
+        references to |params| or |model| outside of this callback.
+        """
+        return False
+
+    def on_context_menu_command(self, browser, frame, params, command_id, event_flags):
+        """Called to execute a command selected from the context menu. Return true if
+        the command was handled or false for the default implementation. See
+        cef_menu_id_t for the command ids that have default implementations. All
+        user-defined command ids should be between MENU_ID_USER_FIRST and
+        MENU_ID_USER_LAST. |params| will have the same values as what was passed
+        to OnBeforeContextMenu(). Do not keep a reference to |params| outside of
+        this callback.
+        """
+        return False
+
+    def on_context_menu_dismissed(self, browser, frame):
+        """Called when the context menu is dismissed irregardless of whether the menu
+        was canceled or a command was selected.
+        """
+        return None
+
+    def run_quick_menu(self, browser, frame, location, size, edit_state_flags, callback):
+        """Called to allow custom display of the quick menu for a windowless browser.
+        |location| is the top left corner of the selected region. |size| is the
+        size of the selected region. |edit_state_flags| is a combination of flags
+        that represent the state of the quick menu. Return true if the menu will
+        be handled and execute |callback| either synchronously or asynchronously
+        with the selected command ID. Return false to cancel the menu.
+        """
+        return False
+
+    def on_quick_menu_command(self, browser, frame, command_id, event_flags):
+        """Called to execute a command selected from the quick menu for a windowless
+        browser. Return true if the command was handled or false for the default
+        implementation. See cef_menu_id_t for command IDs that have default
+        implementations.
+        """
+        return False
+
+    def on_quick_menu_dismissed(self, browser, frame):
+        """Called when the quick menu for a windowless browser is dismissed
+        irregardless of whether the menu was canceled or a command was selected.
+        """
+        return None
+
+
+cdef void _ContextMenuHandler_on_before_context_menu(void* py, CefBrowser* browser, CefFrame* frame, CefContextMenuParams* params, CefMenuModel* model) noexcept with gil:
+    try:
+        _r = (<object>py).on_before_context_menu(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams](params)), _wrap_MenuModel(CefRefPtr[CefMenuModel](model)))
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _ContextMenuHandler_run_context_menu(void* py, CefBrowser* browser, CefFrame* frame, CefContextMenuParams* params, CefMenuModel* model, CefRunContextMenuCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).run_context_menu(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams](params)), _wrap_MenuModel(CefRefPtr[CefMenuModel](model)), _wrap_RunContextMenuCallback(CefRefPtr[CefRunContextMenuCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _ContextMenuHandler_on_context_menu_command(void* py, CefBrowser* browser, CefFrame* frame, CefContextMenuParams* params, int command_id, int event_flags) noexcept with gil:
+    try:
+        _r = (<object>py).on_context_menu_command(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams](params)), command_id, _g_enum(_types.EventFlags, event_flags))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _ContextMenuHandler_on_context_menu_dismissed(void* py, CefBrowser* browser, CefFrame* frame) noexcept with gil:
+    try:
+        _r = (<object>py).on_context_menu_dismissed(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)))
+    except BaseException:
+        _g_report()
+
+cdef cpp_bool _ContextMenuHandler_run_quick_menu(void* py, CefBrowser* browser, CefFrame* frame, const CefPoint* location, const CefSize* size, int edit_state_flags, CefRunQuickMenuCallback* callback) noexcept with gil:
+    try:
+        _r = (<object>py).run_quick_menu(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _g_from_Point(location), _g_from_Size(size), _g_enum(_types.QuickMenuEditStateFlags, edit_state_flags), _wrap_RunQuickMenuCallback(CefRefPtr[CefRunQuickMenuCallback](callback)))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef cpp_bool _ContextMenuHandler_on_quick_menu_command(void* py, CefBrowser* browser, CefFrame* frame, int command_id, int event_flags) noexcept with gil:
+    try:
+        _r = (<object>py).on_quick_menu_command(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), command_id, _g_enum(_types.EventFlags, event_flags))
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+cdef void _ContextMenuHandler_on_quick_menu_dismissed(void* py, CefBrowser* browser, CefFrame* frame) noexcept with gil:
+    try:
+        _r = (<object>py).on_quick_menu_dismissed(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefContextMenuHandler] _g_make_ContextMenuHandler(object obj) except *:
+    cdef CefRefPtr[CefContextMenuHandler] ref
+    cdef CwContextMenuHandlerCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, ContextMenuHandler):
+        raise TypeError("expected a ContextMenuHandler or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_before_context_menu", None) is not ContextMenuHandler.on_before_context_menu:
+        cb.fn_on_before_context_menu = _ContextMenuHandler_on_before_context_menu
+    if getattr(cls, "run_context_menu", None) is not ContextMenuHandler.run_context_menu:
+        cb.fn_run_context_menu = _ContextMenuHandler_run_context_menu
+    if getattr(cls, "on_context_menu_command", None) is not ContextMenuHandler.on_context_menu_command:
+        cb.fn_on_context_menu_command = _ContextMenuHandler_on_context_menu_command
+    if getattr(cls, "on_context_menu_dismissed", None) is not ContextMenuHandler.on_context_menu_dismissed:
+        cb.fn_on_context_menu_dismissed = _ContextMenuHandler_on_context_menu_dismissed
+    if getattr(cls, "run_quick_menu", None) is not ContextMenuHandler.run_quick_menu:
+        cb.fn_run_quick_menu = _ContextMenuHandler_run_quick_menu
+    if getattr(cls, "on_quick_menu_command", None) is not ContextMenuHandler.on_quick_menu_command:
+        cb.fn_on_quick_menu_command = _ContextMenuHandler_on_quick_menu_command
+    if getattr(cls, "on_quick_menu_dismissed", None) is not ContextMenuHandler.on_quick_menu_dismissed:
+        cb.fn_on_quick_menu_dismissed = _ContextMenuHandler_on_quick_menu_dismissed
+    ref = CefRefPtr[CefContextMenuHandler](<CefContextMenuHandler*>new CwContextMenuHandlerProxy(cb))
+    return ref
+
+
+cdef inline CefContextMenuHandler* _g_export_ContextMenuHandler(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefContextMenuHandler] ref = _g_make_ContextMenuHandler(obj)
+    cdef CefContextMenuHandler* raw = ref.get()
     if raw != NULL:
         raw.AddRef()
     return raw
@@ -4149,4 +4640,4 @@ def get_mime_type(extension):
     return _g_str(_r)
 
 
-__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "Browser", "BrowserHost", "Callback", "Display", "Frame", "MenuModel", "PrintSettings", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "TaskManager", "Client", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]
+__generated_all__ = ["Insets", "MouseEvent", "Point", "Range", "Rect", "Size", "DraggableRegion", "Browser", "BrowserHost", "Callback", "ContextMenuParams", "Display", "Frame", "MenuModel", "PrintSettings", "Request", "ResourceReadCallback", "ResourceSkipCallback", "Response", "RunContextMenuCallback", "RunQuickMenuCallback", "TaskManager", "Client", "ContextMenuHandler", "DisplayHandler", "DragHandler", "LifeSpanHandler", "LoadHandler", "MenuModelDelegate", "ResourceHandler", "SchemeHandlerFactory", "register_scheme_handler_factory", "clear_scheme_handler_factories", "get_mime_type"]

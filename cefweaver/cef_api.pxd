@@ -32,6 +32,14 @@ ctypedef uint32_t cef_color_t
 cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_color_model_t:
         pass
+    ctypedef enum cef_context_menu_edit_state_flags_t:
+        pass
+    ctypedef enum cef_context_menu_media_state_flags_t:
+        pass
+    ctypedef enum cef_context_menu_media_type_t:
+        pass
+    ctypedef enum cef_context_menu_type_flags_t:
+        pass
     ctypedef enum cef_drag_operations_mask_t:
         pass
     ctypedef enum cef_duplex_mode_t:
@@ -49,6 +57,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_mouse_button_type_t:
         pass
     ctypedef enum cef_paint_element_type_t:
+        pass
+    ctypedef enum cef_quick_menu_edit_state_flags_t:
         pass
     ctypedef enum cef_referrer_policy_t:
         pass
@@ -110,6 +120,8 @@ cdef extern from "include/cef_browser.h":
     cdef cppclass CefBrowserHost(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted)
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefContextMenuParams(CefBaseRefCounted)
 cdef extern from "include/views/cef_display.h":
     cdef cppclass CefDisplay(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
@@ -126,10 +138,16 @@ cdef extern from "include/cef_resource_handler.h":
     cdef cppclass CefResourceSkipCallback(CefBaseRefCounted)
 cdef extern from "include/cef_response.h":
     cdef cppclass CefResponse(CefBaseRefCounted)
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefRunContextMenuCallback(CefBaseRefCounted)
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefRunQuickMenuCallback(CefBaseRefCounted)
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefContextMenuHandler(CefBaseRefCounted)
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted)
 cdef extern from "include/cef_drag_handler.h":
@@ -231,6 +249,29 @@ cdef extern from "include/cef_callback.h":
     cdef cppclass CefCallback(CefBaseRefCounted):
         void Continue() nogil
         void Cancel() nogil
+
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefContextMenuParams(CefBaseRefCounted):
+        int GetXCoord() nogil
+        int GetYCoord() nogil
+        cef_context_menu_type_flags_t GetTypeFlags() nogil
+        CefString GetLinkUrl() nogil
+        CefString GetUnfilteredLinkUrl() nogil
+        CefString GetSourceUrl() nogil
+        cpp_bool HasImageContents() nogil
+        CefString GetTitleText() nogil
+        CefString GetPageUrl() nogil
+        CefString GetFrameUrl() nogil
+        CefString GetFrameCharset() nogil
+        cef_context_menu_media_type_t GetMediaType() nogil
+        cef_context_menu_media_state_flags_t GetMediaStateFlags() nogil
+        CefString GetSelectionText() nogil
+        CefString GetMisspelledWord() nogil
+        cpp_bool GetDictionarySuggestions(vector[CefString]&) nogil
+        cpp_bool IsEditable() nogil
+        cpp_bool IsSpellCheckEnabled() nogil
+        cef_context_menu_edit_state_flags_t GetEditStateFlags() nogil
+        cpp_bool IsCustomMenu() nogil
 
 cdef extern from "include/views/cef_display.h":
     cdef cppclass CefDisplay(CefBaseRefCounted):
@@ -421,6 +462,16 @@ cdef extern from "include/cef_response.h":
         @staticmethod
         CefRefPtr[CefResponse] Create() nogil
 
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefRunContextMenuCallback(CefBaseRefCounted):
+        void Continue(int, cef_event_flags_t) nogil
+        void Cancel() nogil
+
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefRunQuickMenuCallback(CefBaseRefCounted):
+        void Continue(int, cef_event_flags_t) nogil
+        void Cancel() nogil
+
 cdef extern from "include/cef_task_manager.h":
     cdef cppclass CefTaskManager(CefBaseRefCounted):
         size_t GetTasksCount() nogil
@@ -433,6 +484,9 @@ cdef extern from "include/cef_task_manager.h":
 # Client classes (implemented by the application; Cython only needs the type)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
+        pass
+cdef extern from "include/cef_context_menu_handler.h":
+    cdef cppclass CefContextMenuHandler(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted):
@@ -469,12 +523,25 @@ cdef extern from "generated/cefweaver_proxies.h":
     cdef cppclass CwClientCallbacks:
         void* py
         void (*release)(void*) noexcept
+        CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) noexcept
         CefDisplayHandler* (*fn_get_display_handler)(void*) noexcept
         CefDragHandler* (*fn_get_drag_handler)(void*) noexcept
         CefLifeSpanHandler* (*fn_get_life_span_handler)(void*) noexcept
         CefLoadHandler* (*fn_get_load_handler)(void*) noexcept
     cdef cppclass CwClientProxy(CefClient):
         CwClientProxy(const CwClientCallbacks&)
+    cdef cppclass CwContextMenuHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_before_context_menu)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, CefMenuModel*) noexcept
+        cpp_bool (*fn_run_context_menu)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, CefMenuModel*, CefRunContextMenuCallback*) noexcept
+        cpp_bool (*fn_on_context_menu_command)(void*, CefBrowser*, CefFrame*, CefContextMenuParams*, int, int) noexcept
+        void (*fn_on_context_menu_dismissed)(void*, CefBrowser*, CefFrame*) noexcept
+        cpp_bool (*fn_run_quick_menu)(void*, CefBrowser*, CefFrame*, const CefPoint*, const CefSize*, int, CefRunQuickMenuCallback*) noexcept
+        cpp_bool (*fn_on_quick_menu_command)(void*, CefBrowser*, CefFrame*, int, int) noexcept
+        void (*fn_on_quick_menu_dismissed)(void*, CefBrowser*, CefFrame*) noexcept
+    cdef cppclass CwContextMenuHandlerProxy(CefContextMenuHandler):
+        CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks&)
     cdef cppclass CwDisplayHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

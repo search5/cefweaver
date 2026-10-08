@@ -6,6 +6,7 @@
 #include <list>
 
 #include "generated/cefweaver_proxies.h"
+#include "global_vars.h"
 #include "include/wrapper/cef_helpers.h"
 #include "javascript_binding.h"
 #include "javascript_bindings_handler.h"
@@ -24,7 +25,7 @@ class CefWrapperClientHandler : public CefClient,
                       public CwDragHandlerForward,
                       public CwLifeSpanHandlerForward,
                       public CwLoadHandlerForward,
-                      public CefContextMenuHandler {
+                      public CwContextMenuHandlerForward {
 public:
 
   explicit CefWrapperClientHandler(bool use_views,
@@ -47,6 +48,15 @@ public:
                             CefRefPtr<CefFrame> frame,
                             CefRefPtr<CefContextMenuParams> params,
                             int command_id, EventFlags event_flags) override;
+
+  // The context menu handler is the wrapper's only if the user has one or the DevTools items
+  // are on; otherwise CEF keeps its default menu. Turning the items on or off changes nothing
+  // else: the user's handler sees the same events either way.
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
+    forward_context_menu_handler_ =
+        user_client_ ? user_client_->GetContextMenuHandler() : nullptr;
+    return (forward_context_menu_handler_ || g_DevToolsMenuEnabled.load()) ? this : nullptr;
+  }
 
   // Show a new DevTools popup window.
   void ShowDevTools(CefRefPtr<CefBrowser> browser,
@@ -99,22 +109,6 @@ public:
 
   // Returns true if the Chrome runtime is enabled.
   static bool IsChromeRuntimeEnabled();
-  bool RunContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-                      CefRefPtr<CefContextMenuParams> params,
-                      CefRefPtr<CefMenuModel> model,
-                      CefRefPtr<CefRunContextMenuCallback> callback) override;
-  void OnContextMenuDismissed(CefRefPtr<CefBrowser> browser,
-                              CefRefPtr<CefFrame> frame) override;
-  bool RunQuickMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-                    const CefPoint &location, const CefSize &size,
-                    QuickMenuEditStateFlags edit_state_flags,
-                    CefRefPtr<CefRunQuickMenuCallback> callback) override;
-  bool OnQuickMenuCommand(CefRefPtr<CefBrowser> browser,
-                          CefRefPtr<CefFrame> frame, int command_id,
-                          EventFlags event_flags) override;
-  void OnQuickMenuDismissed(CefRefPtr<CefBrowser> browser,
-                            CefRefPtr<CefFrame> frame) override;
-  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override;
   void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                  int httpStatusCode) override;
 

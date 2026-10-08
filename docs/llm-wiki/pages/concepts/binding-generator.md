@@ -92,7 +92,7 @@ report.py       커버리지 보고서
 
 ## 범위와 커버리지
 
-생성할 클래스는 `tools/gen/scope.py`의 목록(라이브러리 12개, 핸들러 8개, 함수 3개)입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드도 함께 열립니다. 범위 안인데 생성하지 못한 메서드는 조용히 빠지지 않고 [커버리지 보고서](../reference/coverage-report.md)에 이유와 함께 남습니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)).
+생성할 클래스는 `tools/gen/scope.py`의 목록(라이브러리 15개, 핸들러 9개, 함수 3개)입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드도 함께 열립니다. 범위 안인데 생성하지 못한 메서드는 조용히 빠지지 않고 [커버리지 보고서](../reference/coverage-report.md)에 이유와 함께 남습니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)).
 
 ## 아직 없는 것
 

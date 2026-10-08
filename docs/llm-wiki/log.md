@@ -93,3 +93,10 @@
 
 - 사용자의 질문(핸들러를 통합한 것이 문제인가, 분리하면 되는가)에 답하며 코드를 다시 읽었습니다: CEF가 종류마다 핸들러 하나만 받으므로 분리는 불가능하고, 프로세스 메시지는 이름으로 나누면 결정이 필요 없으며, 컨텍스트 메뉴만 선택이 필요합니다. 이전에 두 가지를 모두 설계 결정이 필요하다고 한 것을 바로잡았습니다([분석](pages/analyses/sharing-handlers-with-the-wrapper.md)). `OnContextMenuCommand`의 `default: return true` 결함 의심을 알려진 제약에 적었습니다.
 - Wayland 크래시의 원인 조사를 다음 단계 목록에 올렸습니다.
+
+## [2026-10-08] ingest | 컨텍스트 메뉴와 DevTools 항목의 켜고 끔
+
+- 사용자의 결정(DevTools 항목은 코드에서 켜고 끄고 기본은 끔, 켜고 끔이 다른 동작을 바꾸면 안 됨, 메뉴를 열고 고르는 수단 만들기)을 구현했습니다. 시험 먼저(생성기 5개와 통합 시험 5개가 이전 wheel에서 실패하는 것을 확인).
+- 코드에서 메뉴를 열고 고르는 수단은 오른쪽 클릭 주입 + `run_context_menu`의 `callback.continue_()`입니다. 범위에 `CefContextMenuHandler`, `CefContextMenuParams`, `CefRunContextMenuCallback`, `CefRunQuickMenuCallback`을 더했습니다.
+- 기존 결함 확정(F32): `OnContextMenuCommand`가 모르는 명령에 `true`를 돌려주어 표준 명령이 실행되지 않았습니다(옛 동작의 변형 빌드로 확인). 고쳤습니다.
+- 래퍼의 DevTools 항목은 이전에 항상 켜져 있었고 지금은 기본이 꺼짐입니다(동작 변경).

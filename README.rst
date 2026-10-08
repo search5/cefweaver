@@ -94,6 +94,10 @@ On Linux the browser uses X11 (XWayland on a Wayland desktop) unless ``ozone-pla
 given with ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
 native Wayland.
 
+The context menu can be changed and driven from code (``ContextMenuHandler``;
+``run_context_menu`` can pick an item with ``callback.continue_()``). The wrapper's own
+"Show DevTools" items are off by default: ``app.devtools_menu = True``.
+
 Browsers use the Alloy runtime style (as java-cef does). CEF can be initialized
 only once per process, also after ``shutdown()``.
 

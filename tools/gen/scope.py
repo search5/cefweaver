@@ -18,6 +18,9 @@ LIBRARY_CLASSES = [
     "CefDisplay",
     "CefMenuModel",
     "CefPrintSettings",
+    "CefContextMenuParams",
+    "CefRunContextMenuCallback",
+    "CefRunQuickMenuCallback",
     "CefTaskManager",
 ]
 
@@ -31,6 +34,7 @@ CLIENT_CLASSES = [
     "CefDisplayHandler",
     "CefMenuModelDelegate",
     "CefDragHandler",
+    "CefContextMenuHandler",
 ]
 
 # Global functions.

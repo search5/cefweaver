@@ -14,17 +14,17 @@ updated: 2026-10-08
 이 페이지는 `python tools/gen/generate.py`가 CEF 154.0.34+g14c5a08+chromium-154.0.8037.98 헤더로 생성합니다. 직접 고치지 않습니다. 같은 내용을 `python tools/gen/generate.py --report`로 출력할 수 있고, 해석과 다음 단계는 [생성 범위와 커버리지](generated-api-coverage.md)에 있습니다.
 
 ```
-Generated now: 276 methods/functions in 20 classes, 3 global functions
+Generated now: 308 methods/functions in 24 classes, 3 global functions
 
 Skipped inside the generated classes (type not supported yet):
-    33  class
+    32  class
      6  struct-like value type
      6  struct
      4  multimap of values
      1  a library method returning a client object
      1  untyped pointer
      1  vector of values
-  ----  52 skipped
+  ----  51 skipped
 
 If every class were generated, the type support alone would cover 1422 of 1598 methods/functions (89%).
 What blocks the rest, by type:
@@ -85,8 +85,8 @@ Per class (supported/total methods, when every class is generated):
     CefComponent                           library   4/4  
     CefComponentUpdateCallback             client    1/1  
     CefComponentUpdater                    library   5/5  
-    CefContextMenuHandler                  client    7/7  
-    CefContextMenuParams                   library  20/20 
+  * CefContextMenuHandler                  client    7/7  
+  * CefContextMenuParams                   library  20/20 
     CefCookieAccessFilter                  client    0/2  
     CefCookieManager                       library   5/6  
     CefCookieVisitor                       client    0/1  
@@ -165,9 +165,9 @@ Per class (supported/total methods, when every class is generated):
   * CefResourceSkipCallback                library   1/1  
   * CefResponse                            library  16/18 
     CefResponseFilter                      client    2/2  
-    CefRunContextMenuCallback              library   2/2  
+  * CefRunContextMenuCallback              library   2/2  
     CefRunFileDialogCallback               client    1/1  
-    CefRunQuickMenuCallback                library   2/2  
+  * CefRunQuickMenuCallback                library   2/2  
     CefSSLInfo                             library   2/2  
     CefSSLStatus                           library   5/5  
   * CefSchemeHandlerFactory                client    1/1  

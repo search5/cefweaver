@@ -185,6 +185,8 @@ void CefWrapper::SetCustomCefCachePath(std::string cef_cache_path) {
   m_UseCustomCefCachePath = true;
   m_CustomCefCachePath = cef_cache_path;
 }
+void CefWrapper::SetDevToolsMenuEnabled(bool enabled) { g_DevToolsMenuEnabled.store(enabled); }
+bool CefWrapper::DevToolsMenuEnabled() { return g_DevToolsMenuEnabled.load(); }
 void CefWrapper::SetClient(CefRefPtr<CefClient> client) {
   m_Client = client;
 }

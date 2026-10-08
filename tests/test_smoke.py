@@ -187,6 +187,17 @@ class ApiWithoutCef(unittest.TestCase):
         self.assertIn("TaskManager", cefweaver.__all__)
         self.assertTrue(hasattr(cefweaver.TaskManager, "get_task_ids_list"))
 
+    def test_the_context_menu_classes_and_the_devtools_switch_are_public(self):
+        for name in ("ContextMenuHandler", "ContextMenuParams", "RunContextMenuCallback",
+                     "RunQuickMenuCallback"):
+            self.assertIn(name, cefweaver.__all__)
+        app = cefweaver.CefApp()
+        self.assertIs(app.devtools_menu, False)  # off by default
+        app.devtools_menu = 1
+        self.assertIs(app.devtools_menu, True)
+        app.devtools_menu = False
+        self.assertIs(app.devtools_menu, False)
+
     def test_add_resource_needs_a_running_cef(self):
         with self.assertRaises(RuntimeError):
             cefweaver.CefApp().add_resource("http://a.test/", "x")
@@ -1125,6 +1136,105 @@ class WithCef(unittest.TestCase):
         """)
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
+
+
+    # A script that right-clicks a page and answers the context menu like a program would:
+    # run_context_menu() takes the place of the menu that CEF would show and picks an item.
+    MENU_SCRIPT = """
+        import json
+        from cefweaver import types
+        devtools = %(devtools)s
+        pick = %(pick)r              # a label ("Show DevTools"), or a command id
+        handled_by_user = %(handled)s   # does the user's handler claim the commands it gets?
+        app.devtools_menu = devtools
+        rec = {"labels": [], "ids": [], "commands": [], "before_count": None}
+        boxes, got = [], []
+        class Menu(cefweaver.ContextMenuHandler):
+            def on_before_context_menu(self, browser, frame, params, model):
+                rec["before_count"] = model.get_count()
+                rec["position"] = [params.get_x_coord(), params.get_y_coord()]
+                model.add_item(types.MenuId.USER_FIRST, "My item")
+            def run_context_menu(self, browser, frame, params, model, callback):
+                rec["labels"] = [model.get_label_at(i) for i in range(model.get_count())]
+                rec["ids"] = [model.get_command_id_at(i) for i in range(model.get_count())]
+                chosen = pick
+                if isinstance(pick, str):
+                    chosen = next(model.get_command_id_at(i) for i in range(model.get_count())
+                                  if model.get_label_at(i).replace("&", "") == pick)
+                callback.continue_(chosen, 0)
+                return True
+            def on_context_menu_command(self, browser, frame, params, command_id, event_flags):
+                rec["commands"].append(command_id)
+                return handled_by_user
+        class Life(cefweaver.LifeSpanHandler):
+            def on_after_created(self, browser):
+                boxes.append(browser)
+        class MyClient(cefweaver.Client):
+            def __init__(self):
+                self.menu, self.life = Menu(), Life()
+            def get_context_menu_handler(self):
+                return self.menu
+            def get_life_span_handler(self):
+                return self.life
+        app.add_javascript_binding("report", lambda *a: got.append(a))
+        app.set_client(MyClient())
+        app.initialize(page("<script>requestAnimationFrame(() => report('frame'));</script>"
+                            "<p>hello</p>"))
+        wait_until(app, lambda: ("frame",) in got, "the first frame")
+        host = boxes[0].get_host()
+        def right_click():
+            event = types.MouseEvent(30, 30, 0)
+            host.send_mouse_click_event(event, types.MouseButtonType.RIGHT, False, 1)
+            host.send_mouse_click_event(event, types.MouseButtonType.RIGHT, True, 1)
+        send_until(app, right_click, lambda: rec["labels"], "the context menu")
+        wait_until(app, lambda: rec["commands"] or %(command_is_ours)s, "the command")
+        %(after)s
+        print("RESULT " + json.dumps(rec))
+        app.shutdown()
+    """
+
+    def run_menu(self, devtools=False, pick="My item", handled=True, after="", ours=False):
+        import json
+        result = run_cef(self.MENU_SCRIPT % {
+            "devtools": devtools, "pick": pick, "handled": handled, "after": after,
+            "command_is_ours": ours})
+        self.assertClean(result)
+        line = next(l for l in result.stdout.splitlines() if l.startswith("RESULT "))
+        return json.loads(line[len("RESULT "):])
+
+    def test_a_program_can_open_the_context_menu_and_pick_an_item(self):
+        rec = self.run_menu()
+        self.assertEqual(rec["position"], [30, 30])
+        self.assertIn("My item", rec["labels"])  # the user's item is in the menu
+        self.assertEqual(rec["ids"][rec["labels"].index("My item")], 26500)  # USER_FIRST
+        self.assertEqual(rec["commands"], [26500])  # and the pick reaches the user's handler
+        self.assertFalse([l for l in rec["labels"] if "DevTools" in l])  # off by default
+
+    def test_the_devtools_items_come_after_the_users_and_change_nothing_else(self):
+        off, on = self.run_menu(devtools=False), self.run_menu(devtools=True)
+        extra = ["", "&Show DevTools", "Close DevTools", "", "Inspect Element"]
+        self.assertEqual(on["labels"], off["labels"] + extra)
+        self.assertEqual(on["ids"][:len(off["ids"])], off["ids"])
+        self.assertEqual(on["before_count"], off["before_count"])  # what the user's handler saw
+        self.assertEqual(on["commands"], off["commands"])
+        # The wrapper's ids are the last ones of the range CEF leaves to applications.
+        added = [i for i in on["ids"][len(off["ids"]):] if i != -1]  # without the separators
+        self.assertEqual(added, [28498, 28499, 28500])
+
+    def test_choosing_show_devtools_opens_devtools_without_asking_the_users_handler(self):
+        rec = self.run_menu(devtools=True, pick="Show DevTools", ours=True, after=(
+            "wait_until(app, host.has_dev_tools, 'the DevTools window')"))
+        self.assertEqual(rec["commands"], [])  # the command was the wrapper's own
+
+    def test_a_standard_command_the_user_does_not_handle_runs_as_usual(self):
+        # The wrapper used to claim every command it did not know, so CEF skipped its own
+        # handling (Select All, Copy, ...). The user's handler answers False here.
+        for devtools in (False, True):
+            rec = self.run_menu(devtools=devtools, pick=117, handled=False, after=(
+                "app.execute_javascript(\"report('selection', window.getSelection().toString())\")\n"
+                "        wait_until(app, lambda: any(g[0] == 'selection' for g in got), 'the selection')\n"
+                "        assert ('selection', 'hello') in got, got"))
+            self.assertEqual(rec["commands"], [117])  # 117 is MENU_ID_SELECT_ALL
 
 
 WAYLAND_OK = (RUNTIME_OK and bool(os.environ.get("WAYLAND_DISPLAY"))

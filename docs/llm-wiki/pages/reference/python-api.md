@@ -25,6 +25,7 @@ updated: 2026-10-08
 | `set_resources_path(path)` | `CefSettings.resources_dir_path`로 전달. Linux에서는 `icudtl.dat` 위치에 영향이 없습니다. |
 | `add_command_line_switch(name, value="")` | Chromium 스위치. 예: `"disable-gpu"`, `("ozone-platform", "x11")`. Linux에서 `ozone-platform`을 주지 않고 `DISPLAY`가 있으면 `initialize()`가 `x11`을 씁니다(네이티브 Wayland는 Alloy 스타일에서 죽음, F31) |
 | `set_client(client)` | 표시, 수명 주기, 로드 이벤트를 받을 `Client`(또는 `None`). `initialize()` 전에만. `Client`가 아니면 `TypeError` |
+| `devtools_menu` (속성, 읽고 쓰기) | 컨텍스트 메뉴의 "Show DevTools", "Close DevTools", "Inspect Element" 항목. 기본 `False`. 언제든 바꿀 수 있고 이후에 만들어지는 메뉴에 적용됩니다. 켜고 꺼도 사용자 핸들러가 받는 이벤트와 메뉴는 같고 항목만 뒤에 붙습니다 |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
 | `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
@@ -112,6 +113,27 @@ host.set_zoom_level(1.0)
 host.send_mouse_click_event(cefweaver.MouseEvent(50, 60, 0), 0, False, 1)  # 0: 왼쪽 버튼
 host.close_browser(False)
 ```
+
+## 컨텍스트 메뉴
+
+`Client.get_context_menu_handler()`가 `ContextMenuHandler`를 돌려주면 메뉴를 고칠 수 있습니다(`on_before_context_menu(browser, frame, params, model)`의 `model`은 `MenuModel`). 메뉴를 코드로 열고 항목을 고르려면 `run_context_menu`가 `True`를 돌려주어 CEF의 메뉴를 대신하고 콜백으로 고릅니다.
+
+```python
+class Menu(cefweaver.ContextMenuHandler):
+    def on_before_context_menu(self, browser, frame, params, model):
+        model.add_item(types.MenuId.USER_FIRST, "My item")        # ids from USER_FIRST on
+    def run_context_menu(self, browser, frame, params, model, callback):
+        callback.continue_(types.MenuId.USER_FIRST, 0)             # pick it, no window needed
+        return True
+    def on_context_menu_command(self, browser, frame, params, command_id, event_flags):
+        print("chosen:", command_id)
+        return True                                                # False: CEF runs a standard command
+
+host.send_mouse_click_event(types.MouseEvent(30, 30, 0), types.MouseButtonType.RIGHT, False, 1)
+host.send_mouse_click_event(types.MouseEvent(30, 30, 0), types.MouseButtonType.RIGHT, True, 1)
+```
+
+사용자의 명령 ID는 `types.MenuId.USER_FIRST`(26500)부터 쓰고, 래퍼는 맨 끝의 3개(28498~28500)를 DevTools 항목에 씁니다. 처리하지 않는 명령(`False`)은 CEF가 표준 명령(전체 선택, 복사 등)으로 실행합니다. 메뉴 항목의 기본 이름은 로케일을 따릅니다(한국어 환경에서 "뒤로", "앞으로").
 
 ## 출력 인자를 돌려주는 메서드
 

@@ -15,19 +15,12 @@
 #include "javascript_bindings_handler.h"
 
 namespace {
+// The ids of the wrapper's own menu items are the last ones of the range CEF leaves to
+// applications, so that the ids a user picks from the start of the range never collide.
 enum client_menu_ids {
-  CLIENT_ID_SHOW_DEVTOOLS = MENU_ID_USER_FIRST,
-  CLIENT_ID_CLOSE_DEVTOOLS,
-  CLIENT_ID_INSPECT_ELEMENT,
-  CLIENT_ID_SHOW_SSL_INFO,
-  CLIENT_ID_CURSOR_CHANGE_DISABLED,
-  CLIENT_ID_MEDIA_HANDLING_DISABLED,
-  CLIENT_ID_OFFLINE,
-  CLIENT_ID_TESTMENU_SUBMENU,
-  CLIENT_ID_TESTMENU_CHECKITEM,
-  CLIENT_ID_TESTMENU_RADIOITEM1,
-  CLIENT_ID_TESTMENU_RADIOITEM2,
-  CLIENT_ID_TESTMENU_RADIOITEM3,
+  CLIENT_ID_SHOW_DEVTOOLS = MENU_ID_USER_LAST - 2,
+  CLIENT_ID_CLOSE_DEVTOOLS = MENU_ID_USER_LAST - 1,
+  CLIENT_ID_INSPECT_ELEMENT = MENU_ID_USER_LAST,
 };
 CefWrapperClientHandler *g_instance = nullptr;
 
@@ -60,8 +53,13 @@ void CefWrapperClientHandler::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
                                         CefRefPtr<CefMenuModel> model) {
   CEF_REQUIRE_UI_THREAD();
 
-  //model->Clear();
+  // The user's handler changes the menu first (it may clear it), then the wrapper adds its
+  // own items, so the user sees the same menu with the items on and off.
+  CwContextMenuHandlerForward::OnBeforeContextMenu(browser, frame, params, model);
 
+  if (!g_DevToolsMenuEnabled.load()) {
+    return;
+  }
   if (model->GetCount() > 0)
     model->AddSeparator();
 
@@ -69,8 +67,6 @@ void CefWrapperClientHandler::OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
   model->AddItem(CLIENT_ID_CLOSE_DEVTOOLS, "Close DevTools");
   model->AddSeparator();
   model->AddItem(CLIENT_ID_INSPECT_ELEMENT, "Inspect Element");
-
-
 }
 
 bool CefWrapperClientHandler::OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
@@ -80,6 +76,9 @@ bool CefWrapperClientHandler::OnContextMenuCommand(CefRefPtr<CefBrowser> browser
                                          EventFlags event_flags) {
   CEF_REQUIRE_UI_THREAD();
 
+  // The wrapper's own items are handled whether or not the items are on now (a menu built
+  // before they were turned off may still be showing them). Every other command goes to the
+  // user's handler, and when it does not handle it CEF runs its standard command.
   switch (command_id) {
   case CLIENT_ID_SHOW_DEVTOOLS:
     ShowDevTools(browser, CefPoint());
@@ -90,8 +89,9 @@ bool CefWrapperClientHandler::OnContextMenuCommand(CefRefPtr<CefBrowser> browser
   case CLIENT_ID_INSPECT_ELEMENT:
     ShowDevTools(browser, CefPoint(params->GetXCoord(), params->GetYCoord()));
     return true;
-  default: // Allow default handling, if any.
-    return true;
+  default:
+    return CwContextMenuHandlerForward::OnContextMenuCommand(browser, frame, params,
+                                                             command_id, event_flags);
   }
 }
 void CefWrapperClientHandler::ShowDevTools(CefRefPtr<CefBrowser> browser,
@@ -236,39 +236,6 @@ bool CefWrapperClientHandler::IsChromeRuntimeEnabled() {
     value = command_line->HasSwitch("enable-chrome-runtime") ? 1 : 0;
   }
   return value == 1;
-}
-bool CefWrapperClientHandler::RunContextMenu(
-    CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-    CefRefPtr<CefContextMenuParams> params, CefRefPtr<CefMenuModel> model,
-    CefRefPtr<CefRunContextMenuCallback> callback) {
-  return CefContextMenuHandler::RunContextMenu(browser, frame, params, model,
-                                               callback);
-}
-void CefWrapperClientHandler::OnContextMenuDismissed(CefRefPtr<CefBrowser> browser,
-                                           CefRefPtr<CefFrame> frame) {
-  CefContextMenuHandler::OnContextMenuDismissed(browser, frame);
-}
-bool CefWrapperClientHandler::RunQuickMenu(
-    CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-    const CefPoint &location, const CefSize &size,
-    CefContextMenuHandler::QuickMenuEditStateFlags edit_state_flags,
-    CefRefPtr<CefRunQuickMenuCallback> callback) {
-  return CefContextMenuHandler::RunQuickMenu(browser, frame, location, size,
-                                             edit_state_flags, callback);
-}
-bool CefWrapperClientHandler::OnQuickMenuCommand(
-    CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int command_id,
-    CefContextMenuHandler::EventFlags event_flags) {
-  return CefContextMenuHandler::OnQuickMenuCommand(browser, frame, command_id,
-                                                   event_flags);
-}
-void CefWrapperClientHandler::OnQuickMenuDismissed(CefRefPtr<CefBrowser> browser,
-                                         CefRefPtr<CefFrame> frame) {
-  CefContextMenuHandler::OnQuickMenuDismissed(browser, frame);
-}
-CefRefPtr<CefContextMenuHandler>
-CefWrapperClientHandler::GetContextMenuHandler() {
-  return this;
 }
 void CefWrapperClientHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser,
                               CefRefPtr<CefFrame> frame, int httpStatusCode)

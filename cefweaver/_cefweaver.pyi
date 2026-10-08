@@ -19,6 +19,10 @@ class CefApp:
     def set_resources_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
     def add_command_line_switch(self, name: str, value: str = "") -> None: ...
     def set_client(self, client: Client | None) -> None: ...
+    @property
+    def devtools_menu(self) -> bool: ...
+    @devtools_menu.setter
+    def devtools_menu(self, value: bool) -> None: ...
     def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None: ...
     def initialize(self, start_url: str = "about:blank") -> None: ...
     def do_message_loop_work(self) -> None: ...
@@ -45,6 +49,10 @@ class CefApp:
 
 from .types import (
     ColorModel,
+    ContextMenuEditStateFlags,
+    ContextMenuMediaStateFlags,
+    ContextMenuMediaType,
+    ContextMenuTypeFlags,
     DragOperationsMask,
     DuplexMode,
     ErrorCode,
@@ -54,6 +62,7 @@ from .types import (
     MenuItemType,
     MouseButtonType,
     PaintElementType,
+    QuickMenuEditStateFlags,
     ReferrerPolicy,
     ResourceType,
     RuntimeStyle,
@@ -567,6 +576,107 @@ class Callback:
         ...
     def cancel(self) -> None:
         """Cancel processing."""
+        ...
+
+
+class ContextMenuParams:
+    """Provides information about the context menu state. The methods of this class
+    can only be accessed on browser process the UI thread.
+    """
+    def get_x_coord(self) -> int:
+        """Returns the X coordinate of the mouse where the context menu was invoked.
+        Coords are relative to the associated RenderView's origin.
+        """
+        ...
+    def get_y_coord(self) -> int:
+        """Returns the Y coordinate of the mouse where the context menu was invoked.
+        Coords are relative to the associated RenderView's origin.
+        """
+        ...
+    def get_type_flags(self) -> ContextMenuTypeFlags:
+        """Returns flags representing the type of node that the context menu was
+        invoked on.
+        """
+        ...
+    def get_link_url(self) -> str:
+        """Returns the URL of the link, if any, that encloses the node that the
+        context menu was invoked on.
+        """
+        ...
+    def get_unfiltered_link_url(self) -> str:
+        """Returns the link URL, if any, to be used ONLY for \"copy link address\". We
+        don't validate this field in the frontend process.
+        """
+        ...
+    def get_source_url(self) -> str:
+        """Returns the source URL, if any, for the element that the context menu was
+        invoked on. Example of elements with source URLs are img, audio, and
+        video.
+        """
+        ...
+    def has_image_contents(self) -> bool:
+        """Returns true if the context menu was invoked on an image which has
+        non-empty contents.
+        """
+        ...
+    def get_title_text(self) -> str:
+        """Returns the title text or the alt text if the context menu was invoked on
+        an image.
+        """
+        ...
+    def get_page_url(self) -> str:
+        """Returns the URL of the top level page that the context menu was invoked
+        on.
+        """
+        ...
+    def get_frame_url(self) -> str:
+        """Returns the URL of the subframe that the context menu was invoked on."""
+        ...
+    def get_frame_charset(self) -> str:
+        """Returns the character encoding of the subframe that the context menu was
+        invoked on.
+        """
+        ...
+    def get_media_type(self) -> ContextMenuMediaType:
+        """Returns the type of context node that the context menu was invoked on."""
+        ...
+    def get_media_state_flags(self) -> ContextMenuMediaStateFlags:
+        """Returns flags representing the actions supported by the media element, if
+        any, that the context menu was invoked on.
+        """
+        ...
+    def get_selection_text(self) -> str:
+        """Returns the text of the selection, if any, that the context menu was
+        invoked on.
+        """
+        ...
+    def get_misspelled_word(self) -> str:
+        """Returns the text of the misspelled word, if any, that the context menu was
+        invoked on.
+        """
+        ...
+    def get_dictionary_suggestions(self) -> tuple[bool, list[str]]:
+        """Returns true if suggestions exist, false otherwise. Fills in |suggestions|
+        from the spell check service for the misspelled word if there is one.
+        """
+        ...
+    def is_editable(self) -> bool:
+        """Returns true if the context menu was invoked on an editable node."""
+        ...
+    def is_spell_check_enabled(self) -> bool:
+        """Returns true if the context menu was invoked on an editable node where
+        spell-check is enabled.
+        """
+        ...
+    def get_edit_state_flags(self) -> ContextMenuEditStateFlags:
+        """Returns flags representing the actions supported by the editable node, if
+        any, that the context menu was invoked on.
+        """
+        ...
+    def is_custom_menu(self) -> bool:
+        """Returns true if the context menu contains items specified by the renderer
+        process.
+        """
         ...
 
 
@@ -1281,6 +1391,30 @@ class Response:
         ...
 
 
+class RunContextMenuCallback:
+    """Callback interface used for continuation of custom context menu display."""
+    def continue_(self, command_id: int, event_flags: EventFlags | int) -> None:
+        """Complete context menu display by selecting the specified |command_id| and
+        |event_flags|.
+        """
+        ...
+    def cancel(self) -> None:
+        """Cancel context menu display."""
+        ...
+
+
+class RunQuickMenuCallback:
+    """Callback interface used for continuation of custom quick menu display."""
+    def continue_(self, command_id: int, event_flags: EventFlags | int) -> None:
+        """Complete quick menu display by selecting the specified |command_id| and
+        |event_flags|.
+        """
+        ...
+    def cancel(self) -> None:
+        """Cancel quick menu display."""
+        ...
+
+
 class TaskManager:
     """Class that facilitates managing the browser-related tasks.
     The methods of this class may only be called on the UI thread.
@@ -1324,6 +1458,11 @@ class TaskManager:
 
 class Client:
     """Implement this interface to provide handler implementations."""
+    def get_context_menu_handler(self) -> ContextMenuHandler | None:
+        """Return the handler for context menus. If no handler is provided the
+        default implementation will be used.
+        """
+        ...
     def get_display_handler(self) -> DisplayHandler | None:
         """Return the handler for browser display state events."""
         ...
@@ -1335,6 +1474,65 @@ class Client:
         ...
     def get_load_handler(self) -> LoadHandler | None:
         """Return the handler for browser load status events."""
+        ...
+
+
+class ContextMenuHandler:
+    """Implement this interface to handle context menu events. The methods of this
+    class will be called on the UI thread.
+    """
+    def on_before_context_menu(self, browser: Browser, frame: Frame, params: ContextMenuParams, model: MenuModel) -> None:
+        """Called before a context menu is displayed. |params| provides information
+        about the context menu state. |model| initially contains the default
+        context menu. The |model| can be cleared to show no context menu or
+        modified to show a custom menu. Do not keep references to |params| or
+        |model| outside of this callback.
+        """
+        ...
+    def run_context_menu(self, browser: Browser, frame: Frame, params: ContextMenuParams, model: MenuModel, callback: RunContextMenuCallback) -> bool:
+        """Called to allow custom display of the context menu. |params| provides
+        information about the context menu state. |model| contains the context
+        menu model resulting from OnBeforeContextMenu. For custom display return
+        true and execute |callback| either synchronously or asynchronously with
+        the selected command ID. For default display return false. Do not keep
+        references to |params| or |model| outside of this callback.
+        """
+        ...
+    def on_context_menu_command(self, browser: Browser, frame: Frame, params: ContextMenuParams, command_id: int, event_flags: EventFlags) -> bool:
+        """Called to execute a command selected from the context menu. Return true if
+        the command was handled or false for the default implementation. See
+        cef_menu_id_t for the command ids that have default implementations. All
+        user-defined command ids should be between MENU_ID_USER_FIRST and
+        MENU_ID_USER_LAST. |params| will have the same values as what was passed
+        to OnBeforeContextMenu(). Do not keep a reference to |params| outside of
+        this callback.
+        """
+        ...
+    def on_context_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
+        """Called when the context menu is dismissed irregardless of whether the menu
+        was canceled or a command was selected.
+        """
+        ...
+    def run_quick_menu(self, browser: Browser, frame: Frame, location: Point, size: Size, edit_state_flags: QuickMenuEditStateFlags, callback: RunQuickMenuCallback) -> bool:
+        """Called to allow custom display of the quick menu for a windowless browser.
+        |location| is the top left corner of the selected region. |size| is the
+        size of the selected region. |edit_state_flags| is a combination of flags
+        that represent the state of the quick menu. Return true if the menu will
+        be handled and execute |callback| either synchronously or asynchronously
+        with the selected command ID. Return false to cancel the menu.
+        """
+        ...
+    def on_quick_menu_command(self, browser: Browser, frame: Frame, command_id: int, event_flags: EventFlags) -> bool:
+        """Called to execute a command selected from the quick menu for a windowless
+        browser. Return true if the command was handled or false for the default
+        implementation. See cef_menu_id_t for command IDs that have default
+        implementations.
+        """
+        ...
+    def on_quick_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
+        """Called when the quick menu for a windowless browser is dismissed
+        irregardless of whether the menu was canceled or a command was selected.
+        """
         ...
 
 

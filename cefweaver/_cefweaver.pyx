@@ -214,6 +214,19 @@ cdef class CefApp:
         self._require_not_initialized()
         self._wrapper.SetClient(_g_make_Client(client))
 
+    @property
+    def devtools_menu(self):
+        """Whether the context menu has the items "Show DevTools", "Close DevTools" and
+        "Inspect Element" (off by default). It can be changed at any time and applies to
+        the menus that are built afterwards. Turning it on or off changes nothing else: the
+        handler of ``set_client()`` gets the same events and menu either way, and the
+        items only come after what it put in the menu."""
+        return bool(self._wrapper.DevToolsMenuEnabled())
+
+    @devtools_menu.setter
+    def devtools_menu(self, value):
+        self._wrapper.SetDevToolsMenuEnabled(bool(value))
+
     def add_javascript_binding(self, name, callback):
         """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
 

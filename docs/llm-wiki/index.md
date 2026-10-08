@@ -44,7 +44,7 @@
 ## 참조 (reference)
 
 - [설계 결정 기록](pages/reference/design-decisions.md): 빌드, 바인딩, 런타임, 시험, 저장소 운영의 결정과 이유
-- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 273+3개와 제외 52개, 전체 89% 중 남은 장애물, 생성기의 한계와 다음 단계
+- [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 305+3개와 제외 51개, 전체 89% 중 남은 장애물, 생성기의 한계와 다음 단계
 - [커버리지 보고서 (생성됨)](pages/reference/coverage-report.md): 생성기가 쓰는 보고서 전문(제외된 메서드의 사유, 클래스별 지원 비율)
 - [용어집](pages/reference/glossary.md): CEF, 프로세스, 생성기, 위키 용어 정의
 - [알려진 제약과 미검증 항목](pages/reference/known-constraints.md): 미검증 항목, 한계, 문서와 메타데이터의 불일치, 환경 제약
@@ -53,7 +53,7 @@
 - [관련 프로젝트와 그 위키](pages/reference/related-projects.md): cefpython, java-cef, CEF와 그 위키, 참고한 것
 - [소스 트리 지도](pages/reference/source-tree-map.md): 저장소 트리와 파일 종류별 편집 방법
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
-- [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F30. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
+- [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F32. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 
 ## 요약 (summaries)
 
@@ -65,6 +65,6 @@
 
 - [API 중계 규모와 생성기 선택](pages/analyses/api-relay-scale.md): CEF, java-cef, cefpython의 규모와 생성기를 고른 근거
 - [cefpython의 CEF 패치와 cefweaver](pages/analyses/cefpython-patches.md): cefpython의 CEF 패치가 현재 CEF에 적용되는지, 가져오지 않은 이유
-- [래퍼와 사용자가 핸들러를 나눠 쓰는 방법](pages/analyses/sharing-handlers-with-the-wrapper.md): 핸들러를 분리할 수 없는 이유, 프로세스 메시지(이름으로 나눔)와 컨텍스트 메뉴(순서, ID 충돌, 기존 결함 의심)의 선택지
+- [래퍼와 사용자가 핸들러를 나눠 쓰는 방법](pages/analyses/sharing-handlers-with-the-wrapper.md): 핸들러를 분리할 수 없는 이유, 컨텍스트 메뉴의 결정과 구현(순서, ID, 기본 끔), 프로세스 메시지(이름으로 나눔)
 - [Chromium의 Wayland와 X11 동작](pages/analyses/chromium-on-wayland.md): 네이티브 Wayland와 XWayland에서 Chromium 동작 실험
 - [java-cef 시험과의 비교](pages/analyses/java-cef-test-comparison.md): java-cef 시험 구조 조사, cefweaver와의 비교, 채택한 것

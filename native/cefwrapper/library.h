@@ -33,6 +33,10 @@ public:
   // The client whose display, life span and load handlers get the browser events. Must
   // be called before InitCefSimple(); an empty reference removes it.
   void SetClient(CefRefPtr<CefClient> client);
+  // The wrapper's "Show DevTools" items in the context menu (off by default); can be changed
+  // at any time and applies to the menus built afterwards.
+  void SetDevToolsMenuEnabled(bool enabled);
+  bool DevToolsMenuEnabled();
 
 private:
     CefRefPtr<CefWrapperApp> m_App;
