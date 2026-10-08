@@ -83,7 +83,7 @@ class ToolkitAdapter(Protocol):
 
 `cefweaver.ui`로 구현했습니다([UI 어댑터 API](../reference/ui-api.md)). 초안에서 바뀐 것: 키 입력은 `key()`가 클립보드 키를 처리하면 True를 돌려줍니다. 놓는 순간만 아는 툴킷을 위해 `drop()`(한꺼번에)을 따로 두었고, 단계별 `drag_enter` 등과 나눴습니다. 나가는 드래그는 `begin_drag`가 능력(`drag_out`)에 따라 갈립니다. 툴킷 없이 시험하고 스크립트에 쓰도록 `HeadlessAdapter`를 더했습니다.
 
-GTK 3 이식(3단계 첫 예제)에서 점검이 그대로 통과했습니다. 상세는 [UI 어댑터 API](../reference/ui-api.md)에 있습니다.
+여섯 예제를 모두 이식했고(GTK 3, Tk, SDL2, Kivy, wx, Qt) 점검이 하나도 바뀌지 않고 통과했습니다. 상세는 [UI 어댑터 API](../reference/ui-api.md)에 있습니다.
 
 ## 관련 페이지
 

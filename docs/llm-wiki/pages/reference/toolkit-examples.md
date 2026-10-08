@@ -66,7 +66,7 @@ updated: 2026-10-08
 | `wx` | `CefPanel`(`cefwx.py`) | wxPython 사이트의 wheel 주소를 직접 지정(PyPI는 소스 빌드) | `GDK_BACKEND=x11` |
 | `kivy` | `CefView`(`cefkivy.py`) | `kivy`(SDL2 포함), 클립보드는 `xsel` | `SDL_VIDEODRIVER=x11` |
 
-`gtk3`, `tk`, `sdl2`, `kivy`, `wx` 예제는 `cefweaver.ui` 위로 옮겨졌고(위젯은 어댑터와 이벤트 전달만 남음), 나머지는 [UI 어댑터 API](ui-api.md)의 이식 현황을 따릅니다.
+**여섯 예제 모두 `cefweaver.ui` 위로 옮겨졌습니다**(위젯은 어댑터와 이벤트 전달만 남음). 아래 "공통 구조"의 `Runtime`과 위젯 설명은 옮기기 전 구조이며, 현재 구조와 줄 수의 변화는 [UI 어댑터 API](ui-api.md)의 이식 현황에 있습니다.
 
 ## 툴킷이 가르쳐 준 것 (공통)
 

@@ -307,3 +307,7 @@
 ## [2026-10-08] ingest | GTK 3 예제를 cefweaver.ui로 이식 (3단계)
 
 - `examples/gtk3/cefgtk.py`를 `GtkAdapter`, `GlibLoop`, `CefWidget`(이벤트 전달)으로 바꿔 663줄에서 555줄로 줄였고, 점검 27개가 바뀌지 않고 통과했습니다(1배 3번, 배율 2). 라이브러리에는 `commit_text()`, `DragPayload.x/y`, 드래그 시작 시 `drag_operation` 초기화를 더했습니다. 배율 2의 드래그 점검은 화면이 작으면 실패하며(이식 전도 같음) 2560x2048 화면에서 통과합니다.
+
+## [2026-10-08] ingest | 여섯 예제를 cefweaver.ui로 이식 완료
+
+- GTK 3(663줄에서 555), Tk(464에서 326), SDL2(547에서 405), Kivy(530에서 333), wx(547에서 369), Qt(573에서 458)로 위젯 파일이 줄었고, 각 예제의 점검은 바꾸지 않고 통과했습니다(Qt는 PyQt6, PySide6, 배율 1과 2). 이식 중 라이브러리에 더한 것: `commit_text()`, `DragPayload.x/y`, 드래그 시작 시 `drag_operation` 초기화. Qt의 붙여넣기는 이제 일반 텍스트만 다룹니다.
