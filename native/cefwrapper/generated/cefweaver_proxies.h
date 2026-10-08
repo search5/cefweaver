@@ -4,6 +4,7 @@
 #ifndef CEFWEAVER_GENERATED_PROXIES_H_
 #define CEFWEAVER_GENERATED_PROXIES_H_
 
+#include "include/cef_audio_handler.h"
 #include "include/cef_auth_callback.h"
 #include "include/cef_browser.h"
 #include "include/cef_callback.h"
@@ -50,7 +51,117 @@
 #include "include/cef_values.h"
 #include "include/cef_zip_reader.h"
 #include "include/views/cef_display.h"
+#include <atomic>
 #include <vector>
+
+// ---- CefAudioHandler ----
+
+class CwAudioHandlerForward : public CefAudioHandler {
+ protected:
+  CefRefPtr<CefAudioHandler> forward_audio_handler_;
+
+ public:
+  bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters& params) override {
+    if (!forward_audio_handler_) {
+      return CefAudioHandler::GetAudioParameters(browser, params);
+    }
+    return forward_audio_handler_->GetAudioParameters(browser, params);
+  }
+
+  void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters& params, int channels) override {
+    if (!forward_audio_handler_) {
+      return;
+    }
+    forward_audio_handler_->OnAudioStreamStarted(browser, params, channels);
+  }
+
+  void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float** data, int frames, int64_t pts) override {
+    if (!forward_audio_handler_) {
+      return;
+    }
+    forward_audio_handler_->OnAudioStreamPacket(browser, data, frames, pts);
+  }
+
+  void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override {
+    if (!forward_audio_handler_) {
+      return;
+    }
+    forward_audio_handler_->OnAudioStreamStopped(browser);
+  }
+
+  void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString& message) override {
+    if (!forward_audio_handler_) {
+      return;
+    }
+    forward_audio_handler_->OnAudioStreamError(browser, message);
+  }
+};
+
+struct CwAudioHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_get_audio_parameters)(void*, CefBrowser*, CefAudioParameters*) = nullptr;
+  void (*fn_on_audio_stream_started)(void*, CefBrowser*, const CefAudioParameters*, int) = nullptr;
+  void (*fn_on_audio_stream_packet)(void*, CefBrowser*, const float**, int, int, int64_t) = nullptr;
+  void (*fn_on_audio_stream_stopped)(void*, CefBrowser*) = nullptr;
+  void (*fn_on_audio_stream_error)(void*, CefBrowser*, const CefString*) = nullptr;
+};
+
+class CwAudioHandlerProxy : public CefAudioHandler {
+ public:
+  explicit CwAudioHandlerProxy(const CwAudioHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwAudioHandlerProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters& params) override {
+    if (!cb_.fn_get_audio_parameters) {
+      return CefAudioHandler::GetAudioParameters(browser, params);
+    }
+    CefAudioParameters out_params;
+    bool result = cb_.fn_get_audio_parameters(cb_.py, browser.get(), &out_params);
+    params = out_params;
+    return result;
+  }
+
+  void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters& params, int channels) override {
+    if (!cb_.fn_on_audio_stream_started) {
+      return;
+    }
+    audio_channels_ = channels;
+    cb_.fn_on_audio_stream_started(cb_.py, browser.get(), &params, channels);
+  }
+
+  void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float** data, int frames, int64_t pts) override {
+    if (!cb_.fn_on_audio_stream_packet) {
+      return;
+    }
+    cb_.fn_on_audio_stream_packet(cb_.py, browser.get(), data, frames, audio_channels_, pts);
+  }
+
+  void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_audio_stream_stopped) {
+      return;
+    }
+    cb_.fn_on_audio_stream_stopped(cb_.py, browser.get());
+  }
+
+  void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString& message) override {
+    if (!cb_.fn_on_audio_stream_error) {
+      return;
+    }
+    cb_.fn_on_audio_stream_error(cb_.py, browser.get(), &message);
+  }
+
+ private:
+  std::atomic<int> audio_channels_{0};  // from an earlier call, for a later one
+  CwAudioHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwAudioHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwAudioHandlerProxy);
+};
 
 // ---- CefClient ----
 
@@ -59,6 +170,13 @@ class CwClientForward : public CefClient {
   CefRefPtr<CefClient> forward_client_;
 
  public:
+  CefRefPtr<CefAudioHandler> GetAudioHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetAudioHandler();
+    }
+    return forward_client_->GetAudioHandler();
+  }
+
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
     if (!forward_client_) {
       return CefClient::GetContextMenuHandler();
@@ -168,6 +286,7 @@ class CwClientForward : public CefClient {
 struct CwClientCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  CefAudioHandler* (*fn_get_audio_handler)(void*) = nullptr;
   CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) = nullptr;
   CefDialogHandler* (*fn_get_dialog_handler)(void*) = nullptr;
   CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
@@ -192,6 +311,19 @@ class CwClientProxy : public CefClient {
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  CefRefPtr<CefAudioHandler> GetAudioHandler() override {
+    if (!cb_.fn_get_audio_handler) {
+      return CefClient::GetAudioHandler();
+    }
+    CefAudioHandler* raw = cb_.fn_get_audio_handler(cb_.py);
+    CefRefPtr<CefAudioHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
   }
 
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {

@@ -4779,6 +4779,112 @@ class WithCef(unittest.TestCase):
 
 
 
+    # -- media: the audio handler (the sound of a page, for the application) -------------------------
+
+    AUDIO_SCRIPT = """
+        import array
+        from cefweaver import types
+        # a page that plays a 440 Hz tone; the policy lets it start without a click
+        app.add_command_line_switch("autoplay-policy", "no-user-gesture-required")
+        # nobody hears the tone, whatever happens: the fake sink (mute-audio would stop the stream, and the handler
+        # would not even be asked)
+        app.add_command_line_switch("disable-audio-output", "")
+        started, packets, stopped, errors, kept = [], [], [], [], []
+
+        class Audio(cefweaver.AudioHandler):
+            # PARAMS
+            def on_audio_stream_started(self, browser, params, channels):
+                started.append((params, channels))
+            def on_audio_stream_packet(self, browser, data, pts):
+                first = array.array("f", bytes(data[0]))        # copy: the views end with the call
+                packets.append((len(data), len(data[0]), pts, max(abs(x) for x in first)))
+                kept.append(data[0])
+            def on_audio_stream_stopped(self, browser):
+                stopped.append(True)
+            def on_audio_stream_error(self, browser, message):
+                errors.append(message)
+
+        class MyClient(cefweaver.Client):
+            def __init__(self):
+                self.audio = Audio()
+            def get_audio_handler(self):
+                return self.audio
+
+        app.set_client(MyClient())
+        app.initialize(page("<script>var c = new AudioContext(), o = c.createOscillator(); o.frequency.value = 440;"
+                            " o.connect(c.destination); o.start();</script>"))
+        wait_until(app, lambda: len(packets) >= 5 or errors, "the packets of the tone")
+        assert not errors, errors
+    """
+
+    def test_the_audio_handler_gets_the_sound_of_the_page_as_one_view_a_channel(self):
+        result = run_cef(self.AUDIO_SCRIPT + """
+        assert len(started) == 1, started
+        params, channels = started[0]
+        assert channels >= 1, channels
+        assert params.sample_rate > 0 and params.frames_per_buffer > 0, params
+        for count, frames, pts, peak in packets:
+            assert count == channels, (count, channels)           # one view for every channel
+            assert frames > 0, frames
+        assert all(isinstance(p[2], int) for p in packets), packets
+        assert [p[2] for p in packets] == sorted(p[2] for p in packets), "the times go on"
+        assert max(p[3] for p in packets) > 0.1, [p[3] for p in packets]       # a tone, not silence
+        try:                                 # the samples belong to CEF: the view ends with the call
+            len(kept[0])
+            raise AssertionError("the view is still valid")
+        except ValueError:
+            pass
+        app.shutdown()
+        print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_the_audio_handler_chooses_the_parameters_of_the_stream(self):
+        params = """def get_audio_parameters(self, browser):
+                return True, types.AudioParameters(types.ChannelLayout.LAYOUT_STEREO, 48000, 480)
+            """
+        result = run_cef(self.AUDIO_SCRIPT.replace("# PARAMS", params) + """
+        got, channels = started[0]
+        assert (got.sample_rate, got.frames_per_buffer) == (48000, 480), got
+        assert {p[1] for p in packets} == {480}, {p[1] for p in packets}       # the packets have the size that was asked
+        app.shutdown()
+        print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_the_audio_handler_can_refuse_to_capture(self):
+        refuse = """def get_audio_parameters(self, browser):
+                refused.append(True)
+                return False, types.AudioParameters(types.ChannelLayout.LAYOUT_STEREO, 44100, 1024)
+            """
+        script = self.AUDIO_SCRIPT.replace("# PARAMS", refuse).replace(
+            "wait_until(app, lambda: len(packets) >= 5 or errors, \"the packets of the tone\")",
+            "wait_until(app, lambda: refused, \"the question about the parameters\")\n"
+            "        until = time.time() + 1.5\n"
+            "        while time.time() < until:\n"
+            "            app.do_message_loop_work(); time.sleep(0.005)").replace(
+            "started, packets, stopped,", "refused = []\n        started, packets, stopped,", 1)
+        result = run_cef(script + """
+        assert refused and not started and not packets, (refused, started, len(packets))    # no capture
+        app.shutdown()
+        print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_the_audio_handler_hears_when_the_stream_stops(self):
+        result = run_cef(self.AUDIO_SCRIPT + """
+        # leaving the page ends the stream
+        app.execute_javascript("location.href = 'about:blank'")
+        wait_until(app, lambda: stopped, "the end of the stream")
+        app.shutdown()
+        print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
     def test_the_popup_of_a_select_is_drawn_as_a_second_element(self):
         self.run_osr_script("""
             start('<select id="s" style="position:fixed;left:10px;top:10px;width:120px;height:30px">'

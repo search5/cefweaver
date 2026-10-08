@@ -3,7 +3,7 @@
 from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
                          struct_tuple_annotation)
 from model import py_class_name, py_param_name
-from typesys import Buffer, Bytes, ClientRef, ItemBytes, Enum, LibRef, Struct, Vector, Void
+from typesys import Buffer, Bytes, Planes, ClientRef, ItemBytes, Enum, LibRef, Struct, Vector, Void
 
 
 def _value_annotation(kind):
@@ -15,6 +15,8 @@ def _value_annotation(kind):
 
 
 def _param_annotation(param, client_side):
+    if isinstance(param.kind, Planes):
+        return "list[memoryview]"
     if isinstance(param.kind, Buffer):
         return "memoryview"
     if isinstance(param.kind, (Bytes, ItemBytes)):

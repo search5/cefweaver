@@ -18,7 +18,7 @@ virtual methods).
 """
 
 from model import py_class_name, snake_case
-from typesys import (Buffer, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Time,
+from typesys import (Buffer, Planes, REMEMBER, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Time,
                      Vector, Void)
 
 
@@ -58,6 +58,8 @@ def table_in_types(param):
         return [kind.cls + "*"]
     if isinstance(kind, Buffer):
         return ["void*", kind.size_cpp]
+    if isinstance(kind, Planes):
+        return ["const float**", "int", "int"]       # the data, the frames, the channels
     raise AssertionError(kind)
 
 
@@ -98,6 +100,8 @@ def table_param_types(plan):
 
 def declaration(param):
     """The parameter as it is declared in the CEF header."""
+    if isinstance(param.kind, Planes):
+        return "const float** %s, int %s" % (param.cef_name, param.size_name)
     if isinstance(param.kind, Buffer):
         if param.kind.size_expr:
             return "%svoid* %s" % ("const " if param.kind.readonly else "", param.cef_name)
@@ -115,7 +119,7 @@ def call_arguments(plan):
         if param.is_return:
             continue
         names.append(param.cef_name)
-        if isinstance(param.kind, Buffer) and not param.kind.size_expr:
+        if isinstance(param.kind, Planes) or (isinstance(param.kind, Buffer) and not param.kind.size_expr):
             names.append(param.size_name)
     return names
 
@@ -147,6 +151,9 @@ def _method(model, cls, plan):
             out.append("      return;")
     out.append("    }")
 
+    for remembered, member in [REMEMBER.get((cls.get_name(), plan.cef_name), (None, None))][:1]:
+        if remembered:
+            out.append("    %s = %s;" % (member, remembered))    # what a later call needs (the channels)
     args = ["cb_.py"]
     for param in plan.params:
         name = param.cef_name
@@ -177,6 +184,8 @@ def _method(model, cls, plan):
             # The function table takes void*; a read-only view never writes through it.
             args += ["const_cast<void*>(%s)" % name if param.kind.readonly else name,
                      param.kind.size_expr or param.size_name]
+        elif isinstance(kind, Planes):
+            args += [name, param.size_name, kind.count_member]
     call = "cb_.%s(%s)" % (field, ", ".join(args))
 
     ret = plan.ret
@@ -261,6 +270,7 @@ def emit(model, scope, plans_by_class, banner):
     headers = sorted({model.header_path(c) for c in scope.client_classes} |
                      {model.header_path(c) for c in scope.library_classes})
     lines += ['#include "%s"' % h for h in headers]
+    lines.append("#include <atomic>")
     lines.append("#include <vector>")
     lines.append("")
 
@@ -291,6 +301,8 @@ def emit(model, scope, plans_by_class, banner):
             lines += _method(model, cls, plan)
             lines.append("")
         lines.append(" private:")
+        for member in sorted({m for (c, _), (_, m) in REMEMBER.items() if c == cls.get_name()}):
+            lines.append("  std::atomic<int> %s{0};  // from an earlier call, for a later one" % member)
         lines.append("  Cw%sCallbacks cb_;" % name)
         lines.append("")
         lines.append("  IMPLEMENT_REFCOUNTING(Cw%sProxy);" % name)

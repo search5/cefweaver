@@ -99,6 +99,15 @@ class Buffer(Kind):
 
 
 @dataclass(frozen=True)
+class Planes(Kind):
+    """`const float** data, int frames`: a list of read-only float32 memoryviews in Python, one of `frames`
+    samples for every channel. The number of channels is no argument of the call: an earlier call told it
+    (OnAudioStreamStarted) and the proxy remembers it in the member `count_member`."""
+
+    count_member: str
+
+
+@dataclass(frozen=True)
 class StrMap(Kind):
     """`std::multimap<CefString, CefString>` (a header map) or `std::map<CefString, CefString>`
     (the switches of a command line): a dict of str in Python, as a Map in java-cef. A key that
@@ -318,6 +327,11 @@ SIZED_BUFFERS = {
     ("CefWriteHandler", "Write", "ptr"):
         ("static_cast<size_t>(size) * static_cast<size_t>(n)", True),
 }
+# A `const float** data, int frames` (one array of samples for every channel): keyed like the
+# buffers; the value is the member of the proxy that holds the number of channels.
+PLANES = {("CefAudioHandler", "OnAudioStreamPacket", "data"): "audio_channels_"}
+# What a proxy remembers of a call for a later one: (class, method) -> (parameter, member).
+REMEMBER = {("CefAudioHandler", "OnAudioStreamStarted"): ("channels", "audio_channels_")}
 # The item count of the methods above is the length of the buffer: not given to Python.
 IGNORED_PARAMS = {("CefReadHandler", "Read", "n"), ("CefWriteHandler", "Write", "n")}
 # Parameters java-cef does not pass to Java (the floor of the API is java-cef's, and java-cef
@@ -409,6 +423,15 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                     "void*", Bytes("size_t", size_first=True), out=direction == "out",
                     const=direction == "in"))
                 plan.params[-1].size_name = name
+                i += 2
+                continue
+            if (client_side and analysis.get_type() == "float*" and analysis.is_byaddr()
+                    and (owner, method.get_name(), name) in PLANES and i + 1 < len(arguments)):
+                # `const float** data, int frames` -> one view a channel; the frames are the length of the views
+                plan.params.append(ParamPlan(
+                    name, py_param_name(name), "float*",
+                    Planes(PLANES[(owner, method.get_name(), name)]), const=True, byaddr=True))
+                plan.params[-1].size_name = arguments[i + 1].get_name()
                 i += 2
                 continue
             if analysis.get_type() == "void" and analysis.is_byaddr():

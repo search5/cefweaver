@@ -3219,8 +3219,54 @@ class ZipReader:
         ...
 
 
+class AudioHandler:
+    """Implement this interface to handle audio events."""
+    def get_audio_parameters(self, browser: Browser) -> tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]:
+        """Called on the UI thread to allow configuration of audio stream parameters.
+        Return true to proceed with audio stream capture, or false to cancel it.
+        All members of |params| can optionally be configured here, but they are
+        also pre-filled with some sensible defaults.
+        """
+        ...
+    def on_audio_stream_started(self, browser: Browser, params: AudioParameters, channels: int) -> None:
+        """Called on a browser audio capture thread when the browser starts
+        streaming audio. OnAudioStreamStopped will always be called after
+        OnAudioStreamStarted; both methods may be called multiple times
+        for the same browser. |params| contains the audio parameters like
+        sample rate and channel layout. |channels| is the number of channels.
+        """
+        ...
+    def on_audio_stream_packet(self, browser: Browser, data: list[memoryview], pts: int) -> None:
+        """Called on the audio stream thread when a PCM packet is received for the
+        stream. |data| is an array representing the raw PCM data as a floating
+        point type, i.e. 4-byte value(s). |frames| is the number of frames in the
+        PCM packet. |pts| is the presentation timestamp (in milliseconds since the
+        Unix Epoch) and represents the time at which the decompressed packet
+        should be presented to the user. Based on |frames| and the
+        |channel_layout| value passed to OnAudioStreamStarted you can calculate
+        the size of the |data| array in bytes.
+        """
+        ...
+    def on_audio_stream_stopped(self, browser: Browser) -> None:
+        """Called on the UI thread when the stream has stopped. OnAudioSteamStopped
+        will always be called after OnAudioStreamStarted; both methods may be
+        called multiple times for the same stream.
+        """
+        ...
+    def on_audio_stream_error(self, browser: Browser, message: str) -> None:
+        """Called on the UI or audio stream thread when an error occurred. During the
+        stream creation phase this callback will be called on the UI thread while
+        in the capturing phase it will be called on the audio stream thread. The
+        stream will be stopped immediately.
+        """
+        ...
+
+
 class Client:
     """Implement this interface to provide handler implementations."""
+    def get_audio_handler(self) -> AudioHandler | None:
+        """Return the handler for audio rendering events."""
+        ...
     def get_context_menu_handler(self) -> ContextMenuHandler | None:
         """Return the handler for context menus. If no handler is provided the
         default implementation will be used.

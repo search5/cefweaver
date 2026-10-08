@@ -11,7 +11,7 @@ updated: 2026-10-08
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 네 파일에 402개(통합 187, 생성기 120, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 네 파일에 407개(통합 191, 생성기 121, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 
@@ -129,6 +129,8 @@ updated: 2026-10-08
 | | `test_resource_handler_callbacks_run_on_threads_other_than_the_ui_thread` | 리소스 핸들러 콜백이 메인 스레드가 아님 |
 
 권한 핸들러 시험 4개(`WithCef`, 가짜 장치로 `getUserMedia`, [F71](../reference/verified-findings-handlers.md)): 허용하면 `granted:1`과 핸들러가 받은 출처, 권한, 메인 프레임 여부, 취소하면 `denied:NotAllowedError`, `False`(기본 처리)도 거부, `enable-media-stream` 스위치를 주면 핸들러가 거부하도록 되어 있어도 허용되고 핸들러는 불리지 않음.
+
+오디오 핸들러 시험 4개(`WithCef`, 440Hz 사인파와 `disable-audio-output`, [F72](../reference/verified-findings-handlers.md)): 채널마다 `memoryview`로 오는 패킷(채널 수, 프레임 수, 커지는 `pts`, 소리가 있음, 호출이 끝나면 무효), 페이지를 떠나면 정지, 앱이 정한 매개변수(48000Hz, 480프레임)를 따름, `False`로 캡처를 거절. 생성기 시험에는 `Planes`(`list[memoryview]`, `audio_channels_`) 1개가 늘었습니다.
 
 ## tests/test_generator.py: 생성기 시험
 

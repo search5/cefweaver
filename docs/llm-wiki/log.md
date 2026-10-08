@@ -343,3 +343,7 @@
 ## [2026-10-08] ingest | 권한 핸들러를 연다 (F71)
 
 - `PermissionHandler`, `MediaAccessCallback`, `PermissionPromptCallback`을 범위에 넣었습니다. 래퍼의 `CefWrapperClientHandler`에 `GetPermissionHandler()`를 더하지 않으면 핸들러가 불리지 않는 것을 시험이 드러냈습니다. 가짜 장치로 허용, 거부, 기본 처리(거부), `enable-media-stream` 스위치(핸들러를 건너뜀)를 확인했습니다. cefpython의 `cefpython147` 브랜치(CEF 123, 리눅스와 맥 버전 헤더는 옛 값 그대로)도 조사했고 오디오와 권한 핸들러를 감싸지 않았습니다.
+
+## [2026-10-08] ingest | 오디오 핸들러를 연다 (F72)
+
+- `AudioHandler`를 범위에 넣고 생성기에 새 종류 `Planes`(`const float**`: 채널마다 읽기 전용 `float32` `memoryview`의 `list`, 채널 수는 `OnAudioStreamStarted`에서 프록시가 기억)를 더했습니다. 래퍼에 `GetAudioHandler()`를 더하지 않은 첫 시도에서 시험 페이지의 440Hz 음이 실제 스피커로 나온 사고가 있었고(선생님이 알려 주심), 이후 소리를 내는 시험은 `disable-audio-output`과 함께 돌립니다. `mute-audio`는 스트림 자체를 막아 핸들러가 불리지 않습니다. `get_audio_parameters`가 기본값을 Python에 주지 않는 한계는 알려진 제약에 적었습니다.

@@ -4,6 +4,10 @@
 class Client:
     """Implement this interface to provide handler implementations."""
 
+    def get_audio_handler(self):
+        """Return the handler for audio rendering events."""
+        return None
+
     def get_context_menu_handler(self):
         """Return the handler for context menus. If no handler is provided the
         default implementation will be used.
@@ -78,6 +82,15 @@ class Client:
         """
         return False
 
+
+cdef CefAudioHandler* _Client_get_audio_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_audio_handler()
+        _r0 = _r
+        return _g_export_AudioHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
 
 cdef CefContextMenuHandler* _Client_get_context_menu_handler(void* py) noexcept with gil:
     try:
@@ -227,6 +240,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "get_audio_handler", None) is not Client.get_audio_handler:
+        cb.fn_get_audio_handler = _Client_get_audio_handler
     if getattr(cls, "get_context_menu_handler", None) is not Client.get_context_menu_handler:
         cb.fn_get_context_menu_handler = _Client_get_context_menu_handler
     if getattr(cls, "get_dialog_handler", None) is not Client.get_dialog_handler:

@@ -81,6 +81,7 @@ CLIENT_CLASSES = [
     "CefCompletionCallback",
     "CefCookieAccessFilter",
     "CefPermissionHandler",
+    "CefAudioHandler",
     "CefStringVisitor",
     "CefRunFileDialogCallback",
     "CefDevToolsMessageObserver",

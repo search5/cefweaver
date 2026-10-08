@@ -18,7 +18,7 @@ from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
+from typesys import Buffer, Bytes, Planes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
 _BUILTIN_CY = {
     "int", "unsigned long", "long", "long long", "double", "float", "size_t",
@@ -424,6 +424,33 @@ cdef int64_t _g_to_basetime(object when) except? -1:
     if when.tzinfo is None:  # a naive datetime is taken as UTC
         when = when.replace(tzinfo=_timezone.utc)
     return (when - _EPOCH_1601) // _timedelta(microseconds=1)
+
+
+cdef tuple _g_planes(const float** data, int frames, int planes):
+    """One read-only memoryview of float32 a channel, valid for the call of the handler: (views, bases)."""
+    cdef list views = []
+    cdef list bases = []
+    cdef int i
+    if data != NULL and frames > 0:
+        for i in range(planes):
+            base = PyMemoryView_FromMemory(<char*>data[i], <Py_ssize_t>frames * 4, PyBUF_READ)
+            bases.append(base)
+            views.append(base.cast("f"))
+    return views, bases
+
+
+cdef void _g_release_planes(tuple planes) noexcept:
+    """The samples belong to CEF: the views end with the call."""
+    for view in planes[0]:
+        try:
+            view.release()
+        except BaseException:
+            pass
+    for base in planes[1]:
+        try:
+            base.release()
+        except BaseException:
+            pass
 
 
 cdef object _g_str(const CefString& value):
@@ -832,7 +859,9 @@ def _trampoline(plan, cls_py):
             args.append("%s %s" % (cy_c(table_out_type(param)), param.name))
         else:
             kinds = table_in_types(param)
-            if isinstance(param.kind, Buffer):
+            if isinstance(param.kind, Planes):
+                args += ["const float** %s" % param.name, "int %s_frames" % param.name, "int %s_planes" % param.name]
+            elif isinstance(param.kind, Buffer):
                 args += ["void* %s" % param.name, "%s %s_size" % (cy_c(kinds[1]), param.name)]
             else:
                 args.append("%s %s" % (cy_c(kinds[0]), param.name))
@@ -861,11 +890,23 @@ def _trampoline(plan, cls_py):
         elif isinstance(kind, Buffer):
             py_args.append("PyMemoryView_FromMemory(<char*>%s, %s_size, %s)"
                            % (n, n, "PyBUF_READ" if kind.readonly else "PyBUF_WRITE"))
+        elif isinstance(kind, Planes):
+            py_args.append("_planes_%s[0]" % n)
         else:
             raise AssertionError(kind)
 
+    planes = [p for p in plan.ins if isinstance(p.kind, Planes)]
     views = [p for p in plan.ins if isinstance(p.kind, Buffer)]
-    if views:
+    for p in planes:
+        # one read-only view of float32 for every channel; they belong to CEF and end with the call
+        out.append("        _planes_%s = _g_planes(%s, %s_frames, %s_planes)" % (p.name, p.name, p.name, p.name))
+    if planes and not views:
+        out.append("        try:")
+        out.append("            _r = (<object>py).%s(%s)" % (plan.name, ", ".join(py_args)))
+        out.append("        finally:")
+        for p in planes:
+            out.append("            _g_release_planes(_planes_%s)" % p.name)
+    elif views:
         # The buffer belongs to CEF: invalidate the view when the call is over.
         for p in plan.ins:
             if isinstance(p.kind, Buffer):

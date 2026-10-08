@@ -60,6 +60,7 @@ report.py       커버리지 보고서
 | `Ignored` | 핸들러의 `CefEventHandle os_event`(Linux에서 `XEvent*`)처럼 Python에 넘기지 않는 인자(java-cef도 넘기지 않음) | 서명에서 빠짐 |
 | `Bytes` | 라이브러리 메서드의 `const void*`와 `size_t` 쌍(뒤에 크기가 또 있으면 제외), 또는 `BYTES_OUT` 표의 `void*`와 `size_t`(`BinaryValue.GetData`) | `bytes` 같은 바이트열 입력, 출력은 `get_data(size, offset) -> bytes` |
 | `Buffer` | `void*`와 뒤따르는 정수 크기 쌍, 또는 크기 인자가 없는 `const void*`(`SIZED_BUFFERS` 표의 크기 식) | 쓰기 가능한 `memoryview`, 후자는 읽기 전용 |
+| `Planes` | `const float** data`와 뒤따르는 `int frames`(`PLANES` 표): 채널마다 샘플 배열 하나. 채널 수는 인자가 아니라 앞선 호출(`OnAudioStreamStarted`의 `channels`)이 알려 주고 프록시가 `REMEMBER` 표에 따라 멤버(`audio_channels_`, `std::atomic<int>`)에 기억합니다 | 채널마다 읽기 전용 `float32` `memoryview`의 `list`(길이가 `frames`). 호출이 끝나면 무효이고 `frames`는 Python에 주지 않음 |
 
 파서의 `result_type`을 기준으로 삼되 두 가지는 따로 처리합니다. 첫째, 파서의 `is_result_struct_enum()`은 "참조나 포인터가 아니다"라는 어림짐작일 뿐이라서 쓰지 않고, 열거형은 헤더에서 `typedef enum`을 직접 찾아 구분합니다. 둘째, 파서의 `get_result_ptr_type_root()`는 C++ 클래스명이 아니라 C API 이름(`cef_request_t`)을 돌려주므로 선언된 타입 문자열(`CefRefPtr<CefRequest>`)에서 이름을 뽑습니다(이 오류로 초기 보고서의 수치가 틀렸다가 고쳤습니다).
 

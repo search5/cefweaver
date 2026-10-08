@@ -492,6 +492,8 @@ cdef extern from "include/cef_values.h":
     cdef cppclass CefValue(CefBaseRefCounted)
 cdef extern from "include/cef_zip_reader.h":
     cdef cppclass CefZipReader(CefBaseRefCounted)
+cdef extern from "include/cef_audio_handler.h":
+    cdef cppclass CefAudioHandler(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
@@ -1274,6 +1276,9 @@ cdef extern from "include/cef_zip_reader.h":
         CefRefPtr[CefZipReader] Create(CefRefPtr[CefStreamReader]) nogil
 
 # Client classes (implemented by the application; Cython only needs the type)
+cdef extern from "include/cef_audio_handler.h":
+    cdef cppclass CefAudioHandler(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
         pass
@@ -1390,9 +1395,20 @@ cdef extern from "include/cef_task.h":
 
 # Proxies for the client classes (native/cefwrapper/generated/cefweaver_proxies.h)
 cdef extern from "generated/cefweaver_proxies.h":
+    cdef cppclass CwAudioHandlerCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        cpp_bool (*fn_get_audio_parameters)(void*, CefBrowser*, CefAudioParameters*) noexcept
+        void (*fn_on_audio_stream_started)(void*, CefBrowser*, const CefAudioParameters*, int) noexcept
+        void (*fn_on_audio_stream_packet)(void*, CefBrowser*, const float**, int, int, int64_t) noexcept
+        void (*fn_on_audio_stream_stopped)(void*, CefBrowser*) noexcept
+        void (*fn_on_audio_stream_error)(void*, CefBrowser*, const CefString*) noexcept
+    cdef cppclass CwAudioHandlerProxy(CefAudioHandler):
+        CwAudioHandlerProxy(const CwAudioHandlerCallbacks&)
     cdef cppclass CwClientCallbacks:
         void* py
         void (*release)(void*) noexcept
+        CefAudioHandler* (*fn_get_audio_handler)(void*) noexcept
         CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) noexcept
         CefDialogHandler* (*fn_get_dialog_handler)(void*) noexcept
         CefDisplayHandler* (*fn_get_display_handler)(void*) noexcept

@@ -16,7 +16,7 @@ CEF_ROOT = os.path.join(ROOT, "build", "native", "cef")
 sys.path.insert(0, os.path.join(ROOT, "tools", "gen"))
 
 import model  # noqa: E402
-from typesys import Buffer, Bytes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
+from typesys import Buffer, Bytes, Planes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void  # noqa: E402
 
 def generate_outputs():
     import generate
@@ -628,9 +628,9 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(plan.ret, ClientRef("CefLoadHandler"))
 
     def test_handlers_that_are_not_generated_yet_are_reported(self):
-        plan = self.plan("CefClient", "GetAudioHandler")
+        plan = self.plan("CefClient", "GetFindHandler")
         self.assertFalse(plan.supported)
-        self.assertIn("CefAudioHandler is not generated yet", plan.reason)
+        self.assertIn("CefFindHandler is not generated yet", plan.reason)
 
     def test_enumerations_reach_the_load_handler(self):
         plan = self.plan("CefLoadHandler", "OnLoadError")
@@ -1297,6 +1297,17 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("def on_process_message_received(self, browser: Browser, frame: Frame, "
                       "source_process: ProcessId, message: ProcessMessage) -> bool:", stub)
 
+
+    def test_the_audio_handler_gets_one_view_a_channel(self):
+        plan = self.plan("CefAudioHandler", "OnAudioStreamPacket")
+        self.assertTrue(plan.supported, plan.reason)
+        self.assertIsInstance(plan.params[1].kind, Planes)
+        self.assertEqual([p.name for p in plan.ins], ["browser", "data", "pts"])         # the frames are the length of the views
+        stub = self.generated("pyi")
+        self.assertIn("def on_audio_stream_packet(self, browser: Browser, data: list[memoryview], pts: int) -> None:", stub)
+        proxies = self.generated("proxies")
+        self.assertIn("audio_channels_", proxies)                                  # what OnAudioStreamStarted said
+        self.assertIn("void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float** data, int frames, int64_t pts)", proxies)
 
     def test_generated_files_are_up_to_date(self):
         import generate

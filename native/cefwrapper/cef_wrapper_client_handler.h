@@ -36,7 +36,8 @@ class CefWrapperClientHandler : public CefClient,
                       public CwKeyboardHandlerForward,
                       public CwPrintHandlerForward,
                       public CwContextMenuHandlerForward,
-                      public CwPermissionHandlerForward {
+                      public CwPermissionHandlerForward,
+                      public CwAudioHandlerForward {
 public:
 
   explicit CefWrapperClientHandler(bool use_views,
@@ -96,6 +97,13 @@ public:
   CefRefPtr<CefDragHandler> GetDragHandler() override {
     forward_drag_handler_ = user_client_ ? user_client_->GetDragHandler() : nullptr;
     return forward_drag_handler_ ? this : nullptr;
+  }
+
+  // Nothing in the wrapper needs the audio of the page: it goes to the user's handler only. With a
+  // handler the sound is captured instead of played; without one CEF plays it.
+  CefRefPtr<CefAudioHandler> GetAudioHandler() override {
+    forward_audio_handler_ = user_client_ ? user_client_->GetAudioHandler() : nullptr;
+    return forward_audio_handler_ ? this : nullptr;
   }
 
   // Nothing in the wrapper needs the permission requests (microphone, camera): they only go to

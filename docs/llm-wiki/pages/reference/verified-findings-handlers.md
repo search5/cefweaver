@@ -175,6 +175,16 @@ updated: 2026-10-08
 - **발견한 결함(수정함)**: 범위에 `PermissionHandler`를 넣고 생성만 해서는 핸들러가 한 번도 불리지 않았습니다. 래퍼의 손으로 쓴 `CefWrapperClientHandler`는 핸들러마다 `Get...Handler()`를 직접 나열하므로 `CwPermissionHandlerForward`를 상속하고 `GetPermissionHandler()`를 더해야 했습니다(이런 핸들러를 더할 때마다 필요한 단계).
 - 확인하지 못한 것: 화면 캡처(`DESKTOP_*`), 비디오(`DEVICE_VIDEO_CAPTURE`), `on_show_permission_prompt`(카메라 PTZ, 클립보드 등의 권한 프롬프트), Chrome 스타일의 기본 처리(권한 UI), 실제 마이크.
 
+## F72. 오디오 핸들러
+
+방법: 440Hz 사인파를 WebAudio로 재생하는 페이지(`autoplay-policy=no-user-gesture-required`)를 열고 `AudioHandler`가 받는 것을 읽었습니다(`WithCef`의 시험 4개).
+
+- **확인함**: 스트림은 스테레오(`ChannelLayout.LAYOUT_STEREO`), 44100Hz, `frames_per_buffer` 1024, 채널 2개로 시작하고 6초 동안 패킷 253개가 왔습니다. `on_audio_stream_packet(browser, data, pts)`의 `data`는 채널마다 하나, 길이 1024인 읽기 전용 `float32` `memoryview`의 `list`이고 샘플의 최댓값은 1.0(첫 패킷은 0.0)입니다. `pts`는 정수이고 커지며, 호출이 끝난 뒤 뷰를 쓰면 `ValueError`입니다(소유는 CEF). 페이지를 떠나면(`about:blank`) `on_audio_stream_stopped`가 불립니다.
+- **확인함**: `get_audio_parameters`가 `(True, AudioParameters(LAYOUT_STEREO, 48000, 480))`를 돌려주면 시작 매개변수가 그대로이고 패킷이 480프레임씩 옵니다. `(False, ...)`를 돌려주면 캡처가 일어나지 않아 시작도 패킷도 없습니다.
+- **확인함(스위치)**: `mute-audio`를 주면 오디오 스트림이 만들어지지 않아 **핸들러가 불리지 않습니다**(`get_audio_handler`도 불리지 않음). 시험에서 소리를 내지 않으려면 `disable-audio-output`(가짜 출력 장치)을 씁니다: 스트림과 패킷은 그대로 오고 소리는 나지 않습니다.
+- **사고와 교훈**: 처음에는 래퍼의 `CefWrapperClientHandler`에 `GetAudioHandler()`를 더하지 않아 핸들러가 CEF에 전달되지 않았고, 시험 페이지의 440Hz 음이 **실제 스피커로 재생**되었습니다(선생님이 "삐 소리가 들려"라고 알려 주셨습니다). 핸들러를 더할 때마다 이 getter가 필요합니다(권한 핸들러 때와 같은 단계, [F71](verified-findings-handlers.md)). 소리를 내는 시험은 처음부터 `disable-audio-output`과 함께 돌려야 합니다.
+- 확인하지 못한 것: 핸들러가 있을 때 기본 출력 장치로도 소리가 나가는지(`disable-audio-output` 없이 켜 보면 소리가 날 수 있어 시험하지 않음), 모노와 5.1 같은 다른 채널 배치, `on_audio_stream_error`가 불리는 경우, 한 브라우저에서 스트림이 여러 번 시작되는 경우(헤더는 가능하다고 함). 채널 수는 프록시가 `on_audio_stream_started`의 `channels`를 기억하므로 스트림이 새로 시작되면 갱신되지만, 여러 스트림이 겹치는 경우는 확인하지 않았습니다.
+
 ## 관련 페이지
 
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)

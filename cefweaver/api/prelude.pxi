@@ -99,6 +99,33 @@ cdef int64_t _g_to_basetime(object when) except? -1:
     return (when - _EPOCH_1601) // _timedelta(microseconds=1)
 
 
+cdef tuple _g_planes(const float** data, int frames, int planes):
+    """One read-only memoryview of float32 a channel, valid for the call of the handler: (views, bases)."""
+    cdef list views = []
+    cdef list bases = []
+    cdef int i
+    if data != NULL and frames > 0:
+        for i in range(planes):
+            base = PyMemoryView_FromMemory(<char*>data[i], <Py_ssize_t>frames * 4, PyBUF_READ)
+            bases.append(base)
+            views.append(base.cast("f"))
+    return views, bases
+
+
+cdef void _g_release_planes(tuple planes) noexcept:
+    """The samples belong to CEF: the views end with the call."""
+    for view in planes[0]:
+        try:
+            view.release()
+        except BaseException:
+            pass
+    for base in planes[1]:
+        try:
+            base.release()
+        except BaseException:
+            pass
+
+
 cdef object _g_str(const CefString& value):
     return value.ToString().decode("utf-8", "replace")
 

@@ -43,7 +43,7 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다(사용자 결정). 총 298개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
+닫지 않고 둡니다(사용자 결정). 총 304개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
 
 | 묶음 | 항목 | 메서드 |
 | --- | --- | --- |
@@ -54,6 +54,7 @@ updated: 2026-10-08
 | 핸들러의 추가 메서드 | `DisplayHandler` 6, `RenderHandler` 6(스크롤, IME, 텍스트 선택, 터치, 가상 키보드), `RequestHandler` 4, `DevToolsMessageObserver` 3, `LifeSpanHandler`, `DownloadHandler`, `DragHandler`, `Client`(프로세스 메시지), `RequestContextHandler` 각 1 | 24 |
 | 라이브러리 클래스의 추가 메서드 | `BrowserHost` 35(IME, 터치, 줌, 탐색 항목 등), `RequestContext` 18(웹사이트 설정, 색상 등), `CommandLine` 10, `Frame` 5, `DownloadItem` 4, `Response` 4, `DragData` 3, `Browser` 2, `URLRequest` 2, `PostData` 1 | 84 |
 | 쿠키 콜백 | `SetCookieCallback`, `DeleteCookiesCallback`(java-cef는 완료 콜백만) | 2 |
+| 오디오 | `AudioHandler` 5(스트림 시작, 패킷, 정지, 오류, 매개변수), `Client.get_audio_handler` 1 ([F72](verified-findings-handlers.md)) | 6 |
 | 권한(마이크, 카메라) | `PermissionHandler` 3, `MediaAccessCallback` 2, `PermissionPromptCallback` 1, `Client.get_permission_handler` 1 ([F71](verified-findings-handlers.md)) | 7 |
 | 그 밖 | `SSLInfo`, `UnresponsiveProcessCallback` | 3 |
 
@@ -101,7 +102,7 @@ java-cef 소스(`java/org/cef/handler/`의 핸들러 목록과 `native/client_ha
 - **있는 것은 둘뿐입니다**: (1) `CefBrowser_N.cpp`의 리눅스 키 변환이 `XF86XK_Audio*` 키(음량, 재생, 다음 곡)를 `VKEY_MEDIA_*`로 바꿔 줍니다. 오디오 처리가 아니라 키보드 입력입니다. (2) 컨텍스트 메뉴의 `CefContextMenuParams.MediaType`에 `CM_MEDIATYPE_AUDIO`가 있습니다.
 - **CEF에는 있음**: 이 저장소가 쓰는 CEF 154 헤더에 `cef_audio_handler.h`(`GetAudioParameters`, `OnAudioStreamStarted`, `OnAudioStreamPacket`, `OnAudioStreamStopped`, `OnAudioStreamError`)와 `cef_permission_handler.h`(`CefPermissionHandler`의 세 메서드, `CefMediaAccessCallback`, `CefPermissionPromptCallback`)가 있습니다. java-cef가 쓰는 CEF 152에 있는지는 `third_party/cef`가 내려받아져 있지 않아 확인하지 못했습니다.
 - **핸들러를 두지 않으면 어떻게 되는가**(CEF 154 헤더 주석): 마이크나 카메라 요청은 Chrome 스타일이면 권한 UI를 띄우고 **Alloy 스타일이면 거부**합니다. `--enable-media-stream` 스위치를 주면 모든 권한을 허용하고 이 메서드는 불리지 않습니다. 이 기본 동작을 실제로 실행해서 확인하지는 않았습니다.
-- **cefweaver**: `PermissionHandler`는 열었습니다(2026-10-08, [F71](verified-findings-handlers.md)). `AudioHandler`는 아직 범위(`tools/gen/scope.py`)에 없습니다(4/5: `on_audio_stream_packet`의 `float**`만 현재 타입 체계 밖). 둘 다 java-cef가 열지 않았으므로 우리 방침상 "바닥 위(더 여는 것)"에 해당합니다. cefpython은 `cefpython147` 브랜치(CEF 123)에서도 `enable-media-stream` 스위치 문서뿐이고 두 핸들러를 감싸지 않았습니다(헤더 `cef_audio_handler.h`, `cef_permission_handler.h`는 CEF 123 헤더 모음에 있으나 `src/*.pyx`와 `src/handlers/`에는 없음).
+- **cefweaver**: `PermissionHandler`는 열었습니다(2026-10-08, [F71](verified-findings-handlers.md)). `AudioHandler`도 열었습니다(2026-10-08, [F72](verified-findings-handlers.md)): 패킷의 `const float**`는 새 종류 `Planes`로 채널마다 `memoryview`를 줍니다. 둘 다 java-cef가 열지 않았으므로 우리 방침상 "바닥 위(더 여는 것)"에 해당합니다. cefpython은 `cefpython147` 브랜치(CEF 123)에서도 `enable-media-stream` 스위치 문서뿐이고 두 핸들러를 감싸지 않았습니다(헤더 `cef_audio_handler.h`, `cef_permission_handler.h`는 CEF 123 헤더 모음에 있으나 `src/*.pyx`와 `src/handlers/`에는 없음).
 
 ## 관련 페이지
 
