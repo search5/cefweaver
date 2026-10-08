@@ -1,0 +1,13 @@
+[project]
+name = "cefweaver-sdl2-example"
+version = "0.1.0"
+description = "An offscreen cefweaver browser in an SDL2 window (PySDL2)"
+requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
+dependencies = ["cefweaver", "pysdl2>=0.9.16", "pysdl2-dll"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+# The wheel of this repository: `uv build --wheel` in the repository root first.
+cefweaver = { path = "../../dist/cefweaver-0.1.0-cp313-cp313-linux_x86_64.whl" }
