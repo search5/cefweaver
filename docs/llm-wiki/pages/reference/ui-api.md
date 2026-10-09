@@ -14,6 +14,7 @@ sources:
   - cefweaver/ui/toolkits/qt.py
   - cefweaver/ui/audio.py
   - cefweaver/ui/permissions.py
+  - cefweaver/ui/menu.py
   - cefweaver/ui/toolkits/tk.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/wx.py
@@ -94,6 +95,10 @@ GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친
 ## 마이크와 카메라 (권한 정책)
 
 `BrowserView(adapter, media_permissions=정책)`(또는 세션을 시작하기 전에 `view.media_permissions = 정책`). 페이지가 `getUserMedia`를 부르면 `정책(요청)`이 불리고, 요청은 `origin`, `permissions`(`types.MediaAccessPermissionTypes`), `is_main_frame`을 가지며 `allow(권한=None)`(요청한 것보다 많이는 주지 않음)이나 `deny()`로 답합니다. 지금 답해도 되고 나중에(사용자에게 물은 뒤) 답해도 되며, 한 번만 답할 수 있습니다. 정책이 예외를 내면 거부하고 `sys.excepthook`으로 보고합니다. 정책이 없으면(기본) CEF의 기본 처리(거부)입니다. 도우미 `ui.permissions.allow_origins("https://meet.example.org", ...)`는 그 출처에만 마이크와 카메라를 주고 화면 캡처는 주지 않습니다. 소리는 Chromium이 시스템 마이크에서 직접 받습니다([F77](verified-findings-media.md)).
+
+## 컨텍스트 메뉴 (우클릭)
+
+오프스크린에서는 CEF가 메뉴를 그려 주지 않아서 어댑터가 `show_menu(items, x, y, done)`을 가지면(선택) 뷰가 CEF의 메뉴 모델을 `ui.menu.MenuItem` 목록(`kind`: command, check, radio, separator, submenu. `label`은 단축키 표시 `&`를 뗀 것, `enabled`, `checked`, `children`)으로 바꿔 넘깁니다. 어댑터는 툴킷의 메뉴 위젯으로 `(x, y)`(뷰 좌표)에 보여 주고 고른 항목의 `command_id`로 `done(command_id)`를, 그냥 닫으면 `done(None)`을 부릅니다(한 번만 유효). 표준 명령(뒤로, 복사, 전체 선택 등)은 CEF가 실행합니다. `show_menu`가 없는 어댑터는 메뉴가 안 뜨는 지금까지와 같습니다. 앱은 `view.on_context_menu = 훅`으로 메뉴를 고칩니다: `훅(info, items)`가 보여 줄 목록을 돌려주고(`None`이면 메뉴 없음), `info`는 `x`, `y`, `link_url`, `source_url`, `page_url`, `selection_text`, `is_editable`을 가지며, `MenuItem("라벨", action=함수)`는 앱의 항목으로 골랐을 때 함수만 실행합니다(CEF에는 알리지 않음). 훅이나 `show_menu`가 예외를 내면 메뉴를 취소하고 `sys.excepthook`으로 보고합니다.
 
 ## 아직 하지 않은 것
 

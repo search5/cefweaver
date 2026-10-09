@@ -16,6 +16,7 @@ import cefweaver
 from cefweaver import types
 
 from . import audio as _audio
+from . import menu as _menu
 from . import permissions as _permissions
 from . import keys
 from .adapter import DragPayload, Frame
@@ -40,6 +41,7 @@ class BrowserView:
     def __init__(self, adapter, audio=None, pygame_sink=None, media_permissions=None):
         self.adapter = adapter
         self.media_permissions = media_permissions      # a policy (see ``permissions``), set before the session starts
+        self.on_context_menu = None                     # hook(info, items) -> items or None (see ``menu``)
         self.audio_sink = self._choose_sink(adapter, audio, pygame_sink)
         self.audio_muted = False
         self.on_audio_error = lambda message: None
@@ -65,6 +67,40 @@ class BrowserView:
         self._entered = False                           # CEF was told that a drag entered
         self._leaving = False
         self._over_answered = False
+
+    def _run_context_menu(self, params, model, callback):
+        """Show the menu with the toolkit and answer CEF with what the user picks (once)."""
+        answered = []
+
+        def answer(pick):
+            if answered:
+                return
+            answered.append(True)
+            if pick is None:
+                callback.cancel()
+            elif pick in actions:
+                callback.cancel()                       # a command of the application, CEF does not know it
+                try:
+                    actions[pick]()
+                except Exception:
+                    _menu.report()
+            else:
+                callback.continue_(pick, 0)
+        actions = {}
+        try:
+            items = _menu.items_from_model(model)
+            if self.on_context_menu is not None:
+                items = self.on_context_menu(_menu.ContextMenuInfo(params), items)
+            if items is None:
+                answer(None)
+                return True
+            items = _menu.tidy(items)
+            actions.update(_menu.give_ids(items))
+            self.adapter.show_menu(items, params.get_x_coord(), params.get_y_coord(), answer)
+        except Exception:
+            answer(None)
+            _menu.report()
+        return True
 
     @staticmethod
     def _choose_sink(adapter, audio, pygame_sink):
@@ -429,12 +465,16 @@ class _Handlers(cefweaver.Client):
         self.display, self.load = _Display(view), _Load(view)
         self.audio, self.view = _Audio(view), view
         self.permission = _Permission(view)
+        self.context_menu = _ContextMenu(view)
 
     def get_render_handler(self):
         return self.render
 
     def get_audio_handler(self):
         return self.audio if self.view.audio_sink is not None else None     # without a sink CEF plays the sound
+
+    def get_context_menu_handler(self):
+        return self.context_menu if hasattr(self.view.adapter, "show_menu") else None    # else CEF shows no menu
 
     def get_permission_handler(self):
         return self.permission if self.view.media_permissions is not None else None   # without a policy CEF refuses
@@ -447,6 +487,14 @@ class _Handlers(cefweaver.Client):
 
     def get_load_handler(self):
         return self.load
+
+
+class _ContextMenu(cefweaver.ContextMenuHandler):
+    def __init__(self, view):
+        self.v = view
+
+    def run_context_menu(self, browser, frame, params, model, callback):
+        return self.v._run_context_menu(params, model, callback)
 
 
 class _Permission(cefweaver.PermissionHandler):

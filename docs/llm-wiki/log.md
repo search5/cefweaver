@@ -407,3 +407,7 @@
 ## [2026-10-09] query | 창 모드의 Wayland 크래시는 CEF의 한계 (F31 보강)
 
 - 창 모드는 Wayland에서 정상으로 뜨고 코드로 닫을 때만 문제입니다(`close_browser`가 끝나지 않고 `CefShutdown()` 안에서 SIGSEGV). 래퍼 없는 `cefsimple --use-native`에 닫기 호출을 더해 같은 현상을 확인했습니다. 앞서 쓴 "래퍼 쪽 원인일 가능성"은 틀렸습니다. 제약과 F75, F31, 검증 절차를 고쳤습니다.
+
+## [2026-10-09] ingest | 컨텍스트 메뉴의 핵심 (`ui.menu`)
+
+- 어댑터의 선택 메서드 `show_menu(items, x, y, done)`, 뷰의 `run_context_menu`, 앱 훅 `view.on_context_menu`, `MenuItem`/`items_from_model`을 더했습니다. 단위 시험 13개와 실제 CEF 종단간 시험 1개(우클릭 → 어댑터가 메뉴를 받음 → 고른 표준 명령을 CEF가 실행)입니다. 툴킷 어댑터(GTK 3, Qt, Tk, wx)는 다음 단계입니다.

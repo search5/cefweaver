@@ -878,6 +878,208 @@ class MediaPermissions(unittest.TestCase):
         self.assertEqual(self.ask(policy, SCREEN, "https://meet.test/")[1], [("deny",)])
 
 
+class FakeMenuModel:
+    """The reading side of CEF's ``MenuModel``: rows of (type, id, label, enabled, checked, visible, submenu)."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    def get_count(self):
+        return len(self.rows)
+
+    def get_type_at(self, i):
+        return self.rows[i][0]
+
+    def get_command_id_at(self, i):
+        return self.rows[i][1]
+
+    def get_label_at(self, i):
+        return self.rows[i][2]
+
+    def is_enabled_at(self, i):
+        return self.rows[i][3]
+
+    def is_checked_at(self, i):
+        return self.rows[i][4]
+
+    def is_visible_at(self, i):
+        return self.rows[i][5]
+
+    def get_sub_menu_at(self, i):
+        return self.rows[i][6]
+
+
+COMMAND, CHECK, RADIO, SEPARATOR, SUBMENU = (types.MenuItemType.COMMAND, types.MenuItemType.CHECK, types.MenuItemType.RADIO,
+                                             types.MenuItemType.SEPARATOR, types.MenuItemType.SUBMENU)
+
+
+def row(kind, command_id, label="", enabled=True, checked=False, visible=True, sub=None):
+    return (kind, command_id, label, enabled, checked, visible, sub)
+
+
+class FakeMenuParams:
+    def __init__(self, x=30, y=40, link="", selection="", editable=False):
+        self.values = dict(x=x, y=y, link=link, selection=selection, editable=editable)
+
+    def get_x_coord(self):
+        return self.values["x"]
+
+    def get_y_coord(self):
+        return self.values["y"]
+
+    def get_link_url(self):
+        return self.values["link"]
+
+    def get_source_url(self):
+        return ""
+
+    def get_page_url(self):
+        return "https://example.org/"
+
+    def get_selection_text(self):
+        return self.values["selection"]
+
+    def is_editable(self):
+        return self.values["editable"]
+
+
+class MenuAnswer:
+    def __init__(self):
+        self.calls = []
+
+    def continue_(self, command_id, flags):
+        self.calls.append(("pick", command_id, flags))
+
+    def cancel(self):
+        self.calls.append(("cancel",))
+
+
+class ContextMenuItems(unittest.TestCase):
+    def test_the_model_becomes_a_list_of_items(self):
+        sub = FakeMenuModel([row(COMMAND, 300, "Inner")])
+        model = FakeMenuModel([row(COMMAND, 100, "&Back"), row(COMMAND, 101, "Forward", enabled=False), row(SEPARATOR, -1),
+                               row(CHECK, 200, "Spell check", checked=True), row(RADIO, 201, "Left"), row(SUBMENU, 400, "More", sub=sub)])
+        items = ui.menu.items_from_model(model)
+        self.assertEqual([(i.kind, i.command_id, i.label, i.enabled, i.checked) for i in items],
+                         [("command", 100, "Back", True, False), ("command", 101, "Forward", False, False), ("separator", None, "", False, False),
+                          ("check", 200, "Spell check", True, True), ("radio", 201, "Left", True, False), ("submenu", 400, "More", True, False)])
+        self.assertEqual([(i.kind, i.command_id, i.label) for i in items[-1].children], [("command", 300, "Inner")])
+
+    def test_a_mnemonic_mark_is_dropped_and_a_double_one_is_an_ampersand(self):
+        items = ui.menu.items_from_model(FakeMenuModel([row(COMMAND, 1, "&Save && close")]))
+        self.assertEqual(items[0].label, "Save & close")
+
+    def test_hidden_items_are_left_out_and_the_separators_are_tidied(self):
+        model = FakeMenuModel([row(SEPARATOR, -1), row(COMMAND, 1, "A"), row(SEPARATOR, -1), row(COMMAND, 2, "Hidden", visible=False),
+                               row(SEPARATOR, -1), row(COMMAND, 3, "B"), row(SEPARATOR, -1)])
+        self.assertEqual([(i.kind, i.label) for i in ui.menu.items_from_model(model)], [("command", "A"), ("separator", ""), ("command", "B")])
+
+
+class MenuAdapter(FakeAdapter):
+    """An adapter that can show a menu: it records the request and the test answers through ``done``."""
+
+    def __init__(self):
+        super().__init__()
+        self.menus = []
+
+    def show_menu(self, items, x, y, done):
+        self.menus.append((items, x, y, done))
+
+
+class ContextMenuHandling(unittest.TestCase):
+    MODEL = [row(COMMAND, 113, "&Copy"), row(SEPARATOR, -1), row(COMMAND, 117, "Select &all")]
+
+    def setUp(self):
+        self.adapter = MenuAdapter()
+        self.view = ui.BrowserView(self.adapter)
+        self.answer = MenuAnswer()
+
+    def open(self, params=None, rows=None):
+        handler = self.view.client.get_context_menu_handler()
+        return handler.run_context_menu(FakeBrowser([]), None, params or FakeMenuParams(), FakeMenuModel(rows or self.MODEL), self.answer)
+
+    def test_without_a_menu_in_the_toolkit_cef_keeps_its_own_way(self):
+        self.assertIsNone(ui.BrowserView(FakeAdapter()).client.get_context_menu_handler())
+
+    def test_the_toolkit_is_asked_to_show_the_menu_where_the_page_was_clicked(self):
+        self.assertTrue(self.open(FakeMenuParams(x=12, y=34)))
+        items, x, y, _ = self.adapter.menus[0]
+        self.assertEqual((x, y), (12, 34))
+        self.assertEqual([i.label for i in items if i.kind == "command"], ["Copy", "Select all"])
+        self.assertEqual(self.answer.calls, [])                       # nothing is answered until the user picks
+
+    def test_a_pick_goes_to_cef_as_a_command(self):
+        self.open()
+        self.adapter.menus[0][3](117)
+        self.assertEqual(self.answer.calls, [("pick", 117, 0)])
+
+    def test_leaving_the_menu_cancels_it(self):
+        self.open()
+        self.adapter.menus[0][3](None)
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_the_menu_is_answered_once(self):
+        self.open()
+        done = self.adapter.menus[0][3]
+        done(113)
+        done(None)
+        done(117)
+        self.assertEqual(self.answer.calls, [("pick", 113, 0)])
+
+    def test_a_hook_sees_where_and_on_what_the_page_was_clicked(self):
+        seen = []
+        self.view.on_context_menu = lambda info, items: seen.append((info.x, info.y, info.link_url, info.selection_text, info.is_editable)) or items
+        self.open(FakeMenuParams(link="https://a.test/", selection="chosen", editable=True))
+        self.assertEqual(seen, [(30, 40, "https://a.test/", "chosen", True)])
+
+    def test_a_hook_can_change_the_items(self):
+        mine = []
+        self.view.on_context_menu = lambda info, items: [i for i in items if i.command_id != 117] + [ui.menu.MenuItem("Mine", action=lambda: mine.append(1))]
+        self.open()
+        items = self.adapter.menus[0][0]
+        self.assertEqual([i.label for i in items if i.kind == "command"], ["Copy", "Mine"])
+
+    def test_a_hook_that_returns_none_shows_no_menu(self):
+        self.view.on_context_menu = lambda info, items: None
+        self.assertTrue(self.open())
+        self.assertEqual(self.adapter.menus, [])
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_an_item_of_the_application_runs_its_action_and_cef_is_not_told_the_pick(self):
+        mine = []
+        item = ui.menu.MenuItem("Mine", action=lambda: mine.append("run"))
+        self.view.on_context_menu = lambda info, items: items + [item]
+        self.open()
+        shown = self.adapter.menus[0][0][-1]
+        self.adapter.menus[0][3](shown.command_id)
+        self.assertEqual(mine, ["run"])
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_a_hook_that_fails_cancels_and_the_error_is_reported(self):
+        reported = []
+        original, sys.excepthook = sys.excepthook, lambda *info: reported.append(info[1])
+        try:
+            def hook(info, items):
+                raise ValueError("no")
+            self.view.on_context_menu = hook
+            self.assertTrue(self.open())
+        finally:
+            sys.excepthook = original
+        self.assertEqual(self.answer.calls, [("cancel",)])
+        self.assertEqual([str(e) for e in reported], ["no"])
+
+    def test_a_toolkit_that_fails_to_show_the_menu_cancels_and_the_error_is_reported(self):
+        reported = []
+        original, sys.excepthook = sys.excepthook, lambda *info: reported.append(info[1])
+        self.adapter.show_menu = lambda *args: (_ for _ in ()).throw(RuntimeError("no menu"))
+        try:
+            self.assertTrue(self.open())
+        finally:
+            sys.excepthook = original
+        self.assertEqual(self.answer.calls, [("cancel",)])
+        self.assertEqual([str(e) for e in reported], ["no menu"])
+
+
 class OzonePlatform(unittest.TestCase):
     """An offscreen session lets CEF use Wayland when there is a Wayland compositor: on X11 (XWayland) the GPU process of
     CEF dies on some machines and the video does not play (the same Chrome plays), and offscreen Wayland works."""
@@ -1447,6 +1649,80 @@ session.shutdown(lambda: done.append(True))
 adapter.run_until(lambda: done, "CEF to shut down", 20)
 print("OK")
 """
+
+
+MENU_SCRIPT = """
+import sys, tempfile
+from cefweaver import types, ui
+from cefweaver.ui import keys
+from cefweaver.ui.headless import HeadlessAdapter
+
+class Menus(HeadlessAdapter):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.menus = []
+    def show_menu(self, items, x, y, done):
+        self.menus.append((items, x, y, done))
+
+PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>start</title><body style="margin:0;font:20px sans-serif">
+<p id=t style="margin:0;padding:20px">hello menu</p>
+<script>document.addEventListener("selectionchange", function () { var s = String(getSelection());
+  if (s) document.title = "selected:" + s; });</script>\"\"\"
+adapter = Menus(size=(300, 200))
+session = ui.Session(adapter, switches=[("ozone-platform", "x11")], cache_path=tempfile.mkdtemp(prefix="cefweaver-ui-"))
+class Widget(ui.BrowserWidget):
+    pass
+widget = Widget()
+view = widget.attach_view(adapter)
+titles = []
+view.on_title = titles.append
+hooked = []
+view.on_context_menu = lambda info, items: hooked.append((info.x, info.y)) or items
+def ready():
+    session.app.add_resource("http://ui.test/", PAGE)
+    view.load_url("http://ui.test/")
+view.on_ready = ready
+session.start(widget)
+adapter.run_until(lambda: adapter.picture and "start" in titles, "the page")
+adapter.run_for(0.3)
+view.focus(True)
+def right_click():
+    view.mouse_move(40, 30, 0)
+    view.mouse_button(40, 30, "right", True, keys.RIGHT_BUTTON)
+    view.mouse_button(40, 30, "right", False, 0)
+for _ in range(10):                                   # the page may need a moment to take the click
+    right_click()
+    adapter.run_for(0.3)
+    if adapter.menus:
+        break
+assert adapter.menus, "the toolkit was not asked to show the menu"
+items, x, y, done = adapter.menus[0]
+ids = [i.command_id for i in items if i.kind != "separator"]
+assert (x, y) == (40, 30), (x, y)
+assert hooked and hooked[0] == (40, 30), hooked
+assert int(types.MenuId.BACK) in ids and int(types.MenuId.FORWARD) in ids, ids       # the standard items, by the ids CEF knows
+assert all(i.label for i in items if i.kind != "separator"), items
+# Select all is not in the menu of a plain click, but CEF runs any standard command it is given (F32)
+done(int(types.MenuId.SELECT_ALL))
+adapter.run_until(lambda: any(t == "selected:hello menu" for t in titles), "the selection made by the menu (titles %r)" % titles[-4:])
+print("ITEMS", len(items), "OK-PICK")
+done_shutdown = []
+session.shutdown(lambda: done_shutdown.append(True))
+adapter.run_until(lambda: done_shutdown, "CEF to shut down", 20)
+print("OK")
+"""
+
+
+class WithCefContextMenu(unittest.TestCase):
+    def test_a_right_click_asks_the_toolkit_for_a_menu_and_a_pick_is_run_by_cef(self):
+        env = dict(os.environ)
+        env.pop("WAYLAND_DISPLAY", None)
+        result = subprocess.run([sys.executable, "-I", "-c", textwrap.dedent(MENU_SCRIPT)], capture_output=True, text=True,
+                                timeout=120, env=env)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
+        self.assertNotIn("stack smashing", result.stderr)
+        self.assertIn("OK-PICK", result.stdout)
+        self.assertIn("OK", result.stdout.splitlines()[-1])
 
 
 class WithCefPermissions(unittest.TestCase):
