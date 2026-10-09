@@ -11,7 +11,7 @@ wx hands over the dropped data only at the drop, so a drop from another program 
 ``drop()``. The drag of the page itself, over its own panel, goes step by step. wx has no input method
 preedit (README); what an input method commits arrives as characters.
 
-Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 28 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3).
+Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 32 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3), also with CEF on Wayland.
 Not checked: wx on Windows or macOS, a real input method, a scale other than 1.
 """
 
@@ -96,6 +96,51 @@ class WxAdapter(WxLoop):
 
     def set_cursor(self, cursor):
         self.p.SetCursor(wx.Cursor(_CURSOR_SHAPES.get(cursor)))
+
+    def show_menu(self, items, x, y, done):
+        """The context menu of the page as a ``wx.Menu`` at (x, y) of the panel. ``done`` gets the command id of the
+        picked item, or None when the menu is left. ``PopupMenu`` runs an event loop until the menu closes, so it is
+        opened after CEF's callback has returned (``menu_open`` and ``last_menu`` are for tests)."""
+        picked = []
+
+        def pick(command_id):
+            if not picked:
+                picked.append(command_id)
+                done(command_id)
+
+        def fill(menu, entries):
+            for entry in entries:
+                if entry.kind == "separator":
+                    menu.AppendSeparator()
+                    continue
+                label = entry.label.replace("&", "&&")             # & marks a mnemonic in wx
+                if entry.kind == "submenu":
+                    sub = wx.Menu()
+                    fill(sub, entry.children)
+                    item = menu.AppendSubMenu(sub, label)
+                elif entry.kind == "check":
+                    item = menu.AppendCheckItem(wx.ID_ANY, label)
+                    item.Check(entry.checked)
+                elif entry.kind == "radio":
+                    item = menu.AppendRadioItem(wx.ID_ANY, label)
+                    item.Check(entry.checked)
+                else:
+                    item = menu.Append(wx.ID_ANY, label)
+                item.Enable(entry.enabled)
+                if entry.kind != "submenu":
+                    menu.Bind(wx.EVT_MENU, lambda event, command_id=entry.command_id: pick(command_id), item)
+
+        def show():
+            menu = wx.Menu()
+            fill(menu, items)
+            self.last_menu, self.menu_open = menu, True
+            try:
+                self.p.PopupMenu(menu, wx.Point(int(x), int(y)))      # returns when the menu is closed
+            finally:
+                self.menu_open = False
+            pick(None)                                                # nothing was picked
+            menu.Destroy()
+        wx.CallAfter(show)
 
     def clipboard_get(self):
         data = wx.TextDataObject()

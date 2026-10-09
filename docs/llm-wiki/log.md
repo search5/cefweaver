@@ -423,3 +423,7 @@
 ## [2026-10-09] ingest | Tk의 컨텍스트 메뉴
 
 - `TkAdapter.show_menu`(`tkinter.Menu`, `tk_popup`)를 더하고 점검 5개를 더했습니다(29개: X11 2번 연속, Wayland(CEF)에서 통과). 실제 오른쪽 클릭, 앱의 항목 클릭, Escape로 닫기를 지킵니다.
+
+## [2026-10-09] ingest | wx의 컨텍스트 메뉴
+
+- `WxAdapter.show_menu`(`wx.Menu`)를 더하고 점검 4개를 더했습니다(32개: X11 2번 연속, Wayland(CEF)에서 통과). `PopupMenu`가 중첩 이벤트 루프를 돌아서 CEF의 콜백이 끝난 뒤에 열고(`wx.CallAfter`), 점검은 포인터와 키를 다른 스레드에서 보냅니다. 메뉴의 항목은 키(Up과 Return)로 고르고 Escape로 닫습니다. Qt와 wx는 `&`가 단축키 표시라 라벨의 `&`를 이스케이프합니다.

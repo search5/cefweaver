@@ -306,10 +306,10 @@ class QtAdapter:
                 if entry.kind == "separator":
                     menu.addSeparator()
                 elif entry.kind == "submenu":
-                    fill(menu.addMenu(entry.label), entry.children)
+                    fill(menu.addMenu(entry.label.replace("&", "&&")), entry.children)      # & marks a mnemonic in Qt
                     menu.actions()[-1].setEnabled(entry.enabled)
                 else:
-                    action = QAction(entry.label, menu)
+                    action = QAction(entry.label.replace("&", "&&"), menu)
                     action.setEnabled(entry.enabled)
                     if entry.kind in ("check", "radio"):
                         action.setCheckable(True)

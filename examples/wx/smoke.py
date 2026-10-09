@@ -220,6 +220,75 @@ class Adapter:
         check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the panel is source and target)", drops)
         core.snapshot("10-dragged")
         os.unlink(temporary.name)
+        self.menu_checks(core)
+
+    def menu_checks(self, core):
+        """The context menu: a real right click, a real pick with the keys, and leaving the menu. ``PopupMenu`` runs its own
+        event loop, so the pointer and the keys are driven from another thread while the loop of wx runs."""
+        import threading
+        from cefweaver import ui
+        check = core.check
+        mine, shown = [], []
+        adapter = self.view.view.adapter
+        original = adapter.show_menu
+        adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original(items, x, y, done))[1]
+        self.view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
+        x, y = core.rect_of("#para")
+        at = core.point(x, y)
+
+        def driven(steps):
+            done, errors = [], []
+
+            def run():
+                try:
+                    steps()
+                except BaseException as error:
+                    errors.append(error)
+                done.append(True)
+            threading.Thread(target=run, daemon=True).start()
+            self.spin(lambda: done, "the keys and the pointer", 30)
+            if errors:
+                raise errors[0]
+
+        def wait_for(condition, what, timeout=10):
+            end = time.time() + timeout
+            while not condition():
+                if time.time() > end:
+                    raise TimeoutError("timed out waiting for " + what)
+                time.sleep(0.02)
+
+        def open_menu(count):
+            core.xdo("mousemove", *at)
+            time.sleep(0.2)
+            core.xdo("click", 3)
+            wait_for(lambda: len(shown) == count and adapter.menu_open, "the context menu")
+            time.sleep(0.3)
+
+        def pick_with_keys():
+            open_menu(1)
+            core.xdo("key", "Up")                             # from nothing chosen, Up is the last item: the one of the application
+            time.sleep(0.2)
+            core.xdo("key", "Return")
+            wait_for(lambda: not adapter.menu_open, "the menu to close")
+        driven(pick_with_keys)
+        check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
+        check(mine == ["run"], "choosing the item of the application runs its action", mine)
+
+        def leave_with_escape():
+            open_menu(2)
+            core.xdo("key", "Escape")
+            wait_for(lambda: not adapter.menu_open, "the menu to close with Escape")
+        driven(leave_with_escape)
+        self.settle(0.3)
+        check(mine == ["run"], "leaving the menu with Escape picks nothing", mine)
+
+        def open_again():
+            open_menu(3)
+            core.xdo("key", "Escape")
+            wait_for(lambda: not adapter.menu_open, "the menu to close")
+        driven(open_again)
+        check(core.js("1 + 1") == 2, "the page still answers after a menu was left")
+        self.view.view.on_context_menu = None
 
 
 def main():
