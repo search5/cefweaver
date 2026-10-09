@@ -12,7 +12,7 @@ What Tk cannot do is in the README: no input method preedit, no drag out of the 
 A drag inside the page is carried out by the view itself (the adapter has no drag source). Drops from other
 programs are not supported: tkinterdnd2 (the tkdnd extension) ends the process when CEF starts in it (README).
 
-Checked: Xvfb and xdotool: the 24 checks of examples/tk/smoke.py (Tk 8.6 of uv's CPython, Pillow).
+Checked: Xvfb and xdotool: the 29 checks of examples/tk/smoke.py (Tk 8.6 of uv's CPython, Pillow), also with CEF on Wayland.
 Not checked: a scale other than 1 (Tk gives none), the preedit of an input method (Tk gives none), drops from other programs (tkinterdnd2 ends the process when CEF starts: cause unknown).
 """
 
@@ -137,6 +137,42 @@ class TkAdapter:
 
     def set_cursor(self, cursor):
         self.w.configure(cursor=_CURSOR_NAMES.get(cursor))
+
+    def show_menu(self, items, x, y, done):
+        """The context menu of the page as a ``tkinter.Menu`` at (x, y) of the widget. ``done`` gets the command id of
+        the picked item, or None when the menu is left (the last menu is ``last_menu``, for tests)."""
+        picked, variables = [], []
+
+        def pick(command_id):
+            if not picked:
+                picked.append(command_id)
+                done(command_id)
+
+        def fill(menu, entries):
+            for entry in entries:
+                state = "normal" if entry.enabled else "disabled"
+                if entry.kind == "separator":
+                    menu.add_separator()
+                elif entry.kind == "submenu":
+                    sub = tkinter.Menu(menu, tearoff=False)
+                    fill(sub, entry.children)
+                    menu.add_cascade(label=entry.label, menu=sub, state=state)
+                elif entry.kind in ("check", "radio"):
+                    variables.append(tkinter.BooleanVar(value=entry.checked))
+                    menu.add_checkbutton(label=entry.label, variable=variables[-1], state=state,
+                                         command=lambda command_id=entry.command_id: pick(command_id))
+                else:
+                    menu.add_command(label=entry.label, state=state, command=lambda command_id=entry.command_id: pick(command_id))
+        menu = tkinter.Menu(self.w, tearoff=False)
+        menu.variables = variables                       # Tk keeps no reference of the variables
+        fill(menu, items)
+        # the command of an item runs after the menu was unmapped: leaving the menu is told only when nothing was picked
+        menu.bind("<Unmap>", lambda event: event.widget is menu and menu.after(50, lambda: pick(None)))
+        self.last_menu = menu
+        try:
+            menu.tk_popup(self.w.winfo_rootx() + int(x), self.w.winfo_rooty() + int(y))
+        finally:
+            menu.grab_release()
 
     def clipboard_get(self):
         try:

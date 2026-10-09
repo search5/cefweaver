@@ -112,6 +112,48 @@ class Adapter:
         drops = core.js("window.drops")
         core.check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget carries the drag out)", drops)
         core.snapshot("10-dragged")
+        self.menu_checks(core)
+
+    def menu_checks(self, core):
+        """The context menu: a real right click, a real click on an item of the application, and leaving the menu."""
+        from cefweaver import ui
+        check = core.check
+        mine, shown = [], []
+        adapter = self.view.view.adapter
+        original = adapter.show_menu
+        adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original(items, x, y, done))[1]
+        self.view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
+        x, y = core.rect_of("#para")
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: shown and adapter.last_menu.winfo_ismapped(), "the context menu")
+        check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
+        menu = adapter.last_menu
+        index = menu.index("Smoke item")
+        core.xdo("mousemove", menu.winfo_rootx() + 12, menu.winfo_rooty() + menu.yposition(index) + 6)
+        self.settle(0.2)
+        core.xdo("click", 1)
+        self.spin(lambda: mine, "the action of the menu item")
+        check(mine == ["run"], "clicking an item of the application runs its action", mine)
+        self.settle(0.3)
+        check(not menu.winfo_ismapped(), "the menu closes after the pick")
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: len(shown) == 2 and adapter.last_menu.winfo_ismapped(), "the context menu again")
+        core.xdo("key", "Escape")
+        self.spin(lambda: not adapter.last_menu.winfo_ismapped(), "the menu to close with Escape")
+        self.settle(0.3)
+        check(mine == ["run"], "leaving the menu with Escape picks nothing", mine)
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: len(shown) == 3 and adapter.last_menu.winfo_ismapped(), "the menu after it was left")
+        check(core.js("1 + 1") == 2, "the page still answers after a menu was left")
+        core.xdo("key", "Escape")
+        self.settle(0.3)
+        self.view.view.on_context_menu = None
 
 
 def main():
