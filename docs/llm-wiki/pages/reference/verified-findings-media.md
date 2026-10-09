@@ -119,6 +119,13 @@ updated: 2026-10-09
 - **API**: 마이크와 카메라 권한은 앱이 정책으로 정합니다([UI API](ui-api.md)). `PermissionHandler`는 이미 열려 있었고(F71), `cefweaver.ui`에 정책, `MediaRequest`, `allow_origins`를 더했습니다. 실제 CEF 시험: 허용한 출처(`http://localhost`)는 `granted:1`, 그 밖(`http://127.0.0.1`)은 `denied:NotAllowedError`.
 - **하지 않은 것**: 앱이 소리를 직접 대는 방식(페이지에 shim을 넣어 `getUserMedia`를 가로채고 툴킷의 입력이나 pygame을 흘려보내기). 시스템 마이크를 그대로 쓰는 경우에는 필요 없어서 미뤘습니다.
 
+## F78: 카메라 (2026-10-09)
+
+- **Chromium이 시스템 카메라를 직접 엽니다 (검증)**: 권한 핸들러가 허용하면(요청 권한 `2`, `DEVICE_VIDEO_CAPTURE`) 오프스크린 CEF에서 `getUserMedia({video: true})`가 성공했습니다. 장치 `ASUS FHD webcam`(USB 웹캠), 트랙 `live`, `muted: false`, 640x480, 설정상 30 fps이고, 3.5초 동안 `requestVideoFrameCallback`이 103번 불렸습니다(약 30 fps). 화면의 평균 밝기가 144/255라서 검정이 아닌 실제 영상이 들어옵니다.
+- **개인정보**: 영상은 저장하지 않았고 내용도 보지 않았습니다. 읽은 것은 트랙 정보, 프레임 수, 평균 밝기 숫자 하나입니다(선생님의 허락, 시험 중 카메라가 약 4초 켜짐을 알림).
+- 정책은 마이크와 같습니다([UI API](ui-api.md)): `allow_origins`는 `DEVICE_VIDEO_CAPTURE`도 줍니다. 시험은 `DEVICE_VIDEO_CAPTURE`가 요청에 들어 있는 정책 단위 시험(`AUDIO | VIDEO`)과 위의 실제 장치입니다.
+- **하지 않은 것**: 해상도와 프레임 속도 제약(`width`, `frameRate`), 여러 카메라 선택, 앱이 영상을 직접 대는 방식(마이크와 같이 미룸).
+
 ## 관련 페이지
 
 - [실행해서 확인한 핸들러 (F55부터)](verified-findings-handlers.md)
