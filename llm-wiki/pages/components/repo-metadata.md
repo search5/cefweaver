@@ -23,7 +23,7 @@ updated: 2026-10-09
 | `CLAUDE.md` | LLM을 위한 작업 지침([README와 CLAUDE.md 요약](../summaries/readme-and-claude-md.md)) |
 | `CHANGELOG.rst` | 비어 있습니다(0바이트). |
 | `LICENSE` | BSD 3-Clause, 2023, Jiho Persy Lee. `pyproject.toml`은 `license = "BSD-3-Clause"`입니다. |
-| `docs/` | (2026-10-09) 내용이 없던 Sphinx 골격(`conf.py`, `index.rst`, `Makefile`, `make.bat`)을 제거했습니다. 사람이 읽는 **Jekyll 사이트**(한국어, GitHub Pages, 테마 `jekyll-theme-minimal`, 플러그인 `jekyll-relative-links`)로 바꿨습니다. 쪽: `index`, `installation`, `quickstart`, `ui`, `toolkits`, `media`, `context-menu`, `wayland-gpu`, `limitations`, `development`. 위키는 게시 대상이 아니라서 `llm-wiki/`(저장소 루트)에 있습니다. |
+| `docs/` | (2026-10-09) 내용이 없던 Sphinx 골격(`conf.py`, `index.rst`, `Makefile`, `make.bat`)을 제거했습니다. 사람이 읽는 **Jekyll 사이트**(한국어, GitHub Pages, 테마 `jekyll-theme-minimal`, 플러그인 `jekyll-relative-links`)로 바꿨습니다. 쪽: `index`, `installation`, `quickstart`, `ui`, `toolkits`, `media`, `context-menu`, `wayland-gpu`, `limitations`, `development`. 사이드바 이동 메뉴는 `_layouts/default.html`(테마의 레이아웃을 복사해 목록을 더함)과 `_data/navigation.yml`이 만들고, `assets/css/style.scss`는 java-cef의 것(같은 테마, 다크 모드와 모바일 포함)을 가져와 폭만 고친 것입니다. 위키는 게시 대상이 아니라서 `llm-wiki/`(저장소 루트)에 있습니다. |
 | `uv.lock` | uv의 잠금 파일(약 780줄) |
 | `third_party/cef/` | `README.txt`(CEF 배포본이 CMake 구성 중에 이곳에 내려받아진다는 설명)만 커밋됩니다. 내려받은 `cef_binary_*` 디렉터리와 `.tar.bz2`는 `.gitignore`의 `cef_binary*`로 제외됩니다. |
 | `tools/buildtools/` | CEF 템플릿에서 가져온 clang-format 내려받기 도구(`download_from_google_storage.py`, `gsutil.py`, `subprocess2.py`, 플랫폼별 `clang-format.sha1`). 옵션 `CEFWEAVER_FETCH_CLANG_FORMAT`를 켰을 때만 쓰입니다. `external_bin/`과 `clang-format` 실행 파일은 무시됩니다. |

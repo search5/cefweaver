@@ -1,0 +1,20 @@
+- title: CEFWeaver
+  url: /
+- title: 설치와 빌드
+  url: /installation.html
+- title: 시작하기
+  url: /quickstart.html
+- title: GUI 툴킷에 넣기
+  url: /ui.html
+- title: 툴킷별 상태
+  url: /toolkits.html
+- title: 소리, 마이크, 카메라
+  url: /media.html
+- title: 컨텍스트 메뉴
+  url: /context-menu.html
+- title: Wayland와 GPU
+  url: /wayland-gpu.html
+- title: 한계와 알려진 제약
+  url: /limitations.html
+- title: 개발하기
+  url: /development.html

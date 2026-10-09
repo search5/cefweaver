@@ -61,6 +61,29 @@ class Site(unittest.TestCase):
         self.assertTrue(text.startswith("---\n---\n"), "without front matter Jekyll copies the file instead of building it")
         self.assertIn('@import "{{ site.theme }}";', text)
 
+    def test_the_menu_lists_every_page_with_its_own_title(self):
+        # java-cef has no menu: the pages are reached from the list in README.md. Here the sidebar of every page has one
+        entries = re.findall(r"- title: (.+)\n  url: (\S+)", read(DOCS / "_data" / "navigation.yml"))
+        by_url = {url: title.strip() for title, url in entries}
+        self.assertEqual(len(entries), len(by_url), "a page is listed twice")
+        expected = {}
+        for page in PAGES:
+            url = "/" if page.name == "index.md" else "/%s.html" % page.stem
+            expected[url] = front_matter(read(page))["title"].strip()
+        self.assertEqual(by_url, expected)
+
+    def test_the_layout_shows_the_menu_and_the_page(self):
+        layout = read(DOCS / "_layouts" / "default.html")
+        self.assertIn("site.data.navigation", layout)
+        self.assertIn("{{ content }}", layout)
+        self.assertIn("{% seo %}", layout)                     # what the theme's own layout has in its head
+
+    def test_the_style_sheet_keeps_the_tables_whole_and_has_dark_mode_and_a_phone_layout(self):
+        text = read(DOCS / "assets" / "css" / "style.scss")
+        self.assertIn("overflow-x: auto", text)
+        self.assertIn("prefers-color-scheme: dark", text)
+        self.assertIn("max-width: 720px", text)
+
     def test_there_are_pages(self):
         self.assertGreaterEqual(len(PAGES), 8, [p.name for p in PAGES])
         self.assertTrue((DOCS / "index.md").is_file())
