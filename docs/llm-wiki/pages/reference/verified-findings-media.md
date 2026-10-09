@@ -11,6 +11,7 @@ sources:
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/qt.py
   - tests/test_ui.py
+  - examples/gtk3/browser.py
 updated: 2026-10-09
 ---
 
@@ -101,6 +102,14 @@ updated: 2026-10-09
   따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다. cefweaver의 **오프스크린은 네이티브 Wayland에서 GPU를 켠 채 영상과 소리가 정상**입니다. Wayland에서 죽는 것(F31)은 **창 모드**뿐이고(`playback_check.py windowed`로 재현, 종료 코드 -5), 래퍼 없는 `cefsimple`은 창 모드도 Wayland에서 되므로 그 크래시는 래퍼 쪽 원인일 가능성이 큽니다(미조사).
 - **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
 - **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.
+
+## F76: 예제의 자동 점검을 Wayland로 (2026-10-09)
+
+- **방법**: 창은 가상 화면(xvfb)에 두고 CEF만 사용자의 Wayland 컴포지터에 연결했습니다. 점검 코드가 지우는 `WAYLAND_DISPLAY`를 `Session` 생성 직전에 되돌리고, 예제의 환경 변수(`CEFGTK_SWITCHES` 등)로 `ozone-platform=wayland`를 줬습니다(스크래치 실행기). 점검 중 각 예제 자신의 캐시 폴더를 쓰는 GPU 프로세스의 명령줄이 `--ozone-platform=wayland`인 것을 읽어서 확인했습니다(다른 앱의 프로세스가 섞이지 않게 캐시 폴더로 구분).
+- **결과**: X11과 같은 점검 개수가 모두 통과합니다: SDL2 27, Qt(PyQt6, PySide6) 각 29, Tk 24, wx 27, Kivy 26. **GTK 3은 27개 중 23개**이고 실패 4개는 모두 클립보드(복사, 잘라내기, 붙여넣기)입니다. 같은 실행 방식에서 X11로 돌린 대조군은 27개 모두 통과했습니다.
+- **GTK 3의 클립보드 실패 (원인 미확정)**: GTK 어댑터는 복사와 붙여넣기를 CEF에 맡깁니다(`native_clipboard`). Wayland의 CEF는 컴포지터의 클립보드를 쓰고 이 점검의 GTK는 가상 화면의 X11 클립보드를 읽어서 서로 다른 클립보드를 보는 시험 방식의 한계일 수 있습니다. 실제 화면(XWayland)에서는 이어질 가능성이 있습니다. 확인하지 않았습니다.
+- **수동 확인 (GTK 3 `browser.py`, 실제 화면, CEF만 Wayland)**: 한글 입력이 잘 되고 그 밖에 시험한 입력도 정상이었습니다. 우클릭은 동작하지 않았는데, `cefweaver.ui`에 컨텍스트 메뉴를 보여 주는 코드가 없기 때문으로 보입니다(X11에서도 같을 것으로 추정, 미확인).
+- **부작용**: 점검의 CEF가 컴포지터의 실제 클립보드에 시험용 문자열을 썼을 수 있습니다.
 
 ## 관련 페이지
 
