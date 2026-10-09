@@ -1080,6 +1080,70 @@ class ContextMenuHandling(unittest.TestCase):
         self.assertEqual([str(e) for e in reported], ["no menu"])
 
 
+class ContextMenuClipboard(unittest.TestCase):
+    """Copy, Cut and Paste of the context menu go through the clipboard of the toolkit, as the keys do (the clipboard of
+    CEF is another one where CEF runs on Wayland), and the other commands are CEF's."""
+    ROWS = [row(COMMAND, 112, "Cut"), row(COMMAND, 113, "Copy"), row(COMMAND, 114, "Paste"), row(COMMAND, 115, "Paste as text"),
+            row(COMMAND, 117, "Select all")]
+
+    def start(self, native=False, clipboard=True):
+        adapter = MenuAdapter()
+        adapter.stored = {"text": "from clipboard"}
+        if clipboard:
+            adapter.clipboard_get = lambda: adapter.stored["text"]
+            adapter.clipboard_set = lambda text: adapter.stored.update(text=text)
+        adapter.capabilities = frozenset({"native_clipboard"} if native else ())
+        self.view, self.adapter, self.calls = make_view(adapter)
+        self.answer = MenuAnswer()
+
+    def choose(self, command_id, selection="chosen"):
+        handler = self.view.client.get_context_menu_handler()
+        handler.run_context_menu(FakeBrowser([]), None, FakeMenuParams(selection=selection), FakeMenuModel(self.ROWS), self.answer)
+        self.adapter.menus[0][3](command_id)
+
+    def test_copy_puts_the_selection_into_the_clipboard_of_the_toolkit(self):
+        self.start()
+        self.choose(int(types.MenuId.COPY))
+        self.assertEqual(self.adapter.stored["text"], "chosen")
+        self.assertEqual(self.answer.calls, [("cancel",)])                 # CEF does not copy into its own clipboard
+
+    def test_copy_without_a_selection_leaves_the_clipboard_alone(self):
+        self.start()
+        self.choose(int(types.MenuId.COPY), selection="")
+        self.assertEqual(self.adapter.stored["text"], "from clipboard")
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_cut_copies_and_deletes_the_selection(self):
+        self.start()
+        self.choose(int(types.MenuId.CUT))
+        self.assertEqual(self.adapter.stored["text"], "chosen")
+        self.assertEqual(named(self.calls, "frame.delete"), [()])
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_paste_types_the_clipboard_of_the_toolkit(self):
+        for command in (types.MenuId.PASTE, types.MenuId.PASTE_MATCH_STYLE):
+            self.start()
+            self.choose(int(command))
+            self.assertEqual(named(self.calls, "ime_commit_text")[0][0], "from clipboard", command)
+            self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_the_other_commands_are_cefs(self):
+        self.start()
+        self.choose(int(types.MenuId.SELECT_ALL))
+        self.assertEqual(self.answer.calls, [("pick", 117, 0)])
+        self.assertEqual(self.adapter.stored["text"], "from clipboard")
+
+    def test_with_a_native_clipboard_cef_does_them(self):
+        self.start(native=True)
+        self.choose(int(types.MenuId.COPY))
+        self.assertEqual(self.answer.calls, [("pick", 113, 0)])
+
+    def test_without_clipboard_methods_cef_does_them(self):
+        self.start(clipboard=False)
+        self.choose(int(types.MenuId.PASTE))
+        self.assertEqual(self.answer.calls, [("pick", 114, 0)])
+
+
 class OzonePlatform(unittest.TestCase):
     """An offscreen session lets CEF use Wayland when there is a Wayland compositor: on X11 (XWayland) the GPU process of
     CEF dies on some machines and the video does not play (the same Chrome plays), and offscreen Wayland works."""

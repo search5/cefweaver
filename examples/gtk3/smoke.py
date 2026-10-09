@@ -343,7 +343,8 @@ snapshot("10-dragged")
 mine, shown = [], []
 adapter = view.view.adapter
 original_show = adapter.show_menu
-adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original_show(items, x, y, done))[1]
+ids_shown = []
+adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), ids_shown.append([i.command_id for i in items]), original_show(items, x, y, done))[1]
 view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
 x, y = rect_of("#para")
 xdo("mousemove", *point(x, y))
@@ -351,6 +352,11 @@ settle(0.2)
 xdo("click", 3)
 spin(lambda: shown and adapter.last_menu.get_visible(), "the context menu")
 check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
+# the menu comes up where the pointer was clicked (the top left corner of the menu, in the pixels of the X server)
+menu_x, menu_y = adapter.last_menu.get_window().get_origin()[1:]
+want_x, want_y = point(x, y)
+check(abs(menu_x * scale - want_x) <= 30 and abs(menu_y * scale - want_y) <= 30, "the menu comes up where the page was clicked",
+      ((menu_x * scale, menu_y * scale), (want_x, want_y)))
 item = next(c for c in adapter.last_menu.get_children() if isinstance(c, Gtk.MenuItem) and c.get_label() == "Smoke item")
 xdo("mousemove", *center_of(item))
 settle(0.2)
@@ -375,6 +381,21 @@ spin(lambda: len(shown) == 3 and adapter.last_menu.get_visible(), "the menu afte
 check(js("1 + 1") == 2, "the page still answers after a menu was left")
 xdo("key", "Escape")
 settle(0.3)
+# the Copy of the menu puts the selected text into the clipboard of GTK (the clipboard of CEF is another one on Wayland)
+js("(function () { getSelection().selectAllChildren(document.getElementById('para')); })()")
+settle(0.5)
+xdo("mousemove", *point(x, y))
+settle(0.2)
+xdo("click", 3)
+spin(lambda: len(shown) == 4 and adapter.last_menu.get_visible(), "the menu of the selected text")
+copy_item = adapter.last_menu.get_children()[ids_shown[-1].index(113)]       # 113: the command id of Copy
+clipboard.set_text("before", -1)
+xdo("mousemove", *center_of(copy_item))
+settle(0.2)
+xdo("click", 1)
+settle(0.5)
+check(clipboard_text("Selectable paragraph text"), "Copy of the menu puts the selected text into the clipboard of GTK",
+      clipboard.wait_for_text())
 view.view.on_context_menu = None
 os.unlink(temporary.name)
 

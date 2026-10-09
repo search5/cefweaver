@@ -12,9 +12,9 @@ drag and drop) and ``Session`` (CEF in the main loop). This file is what GTK add
 The widget is for one browser (the one ``initialize()`` makes). More browsers would use
 ``CefApp.create_browser()`` and one widget each.
 
-Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 33 checks of examples/gtk3/smoke.py at scale 1 and 2
+Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 35 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
-At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 33 checks.
+At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 35 checks.
 Not checked: a real input method (ibus, fcitx), GTK on Wayland, rich text and images in the clipboard.
 """
 
@@ -172,15 +172,20 @@ class GtkAdapter(GlibLoop):
         menu.connect("selection-done", lambda m: GLib.timeout_add(50, lambda: (pick(None), False)[1]))
         menu.show_all()
         self.last_menu = menu
-        # CEF answers after the event handler of the click has returned: GTK has no event to pop the menu up for, so it
-        # gets one that stands for the right click (else it warns "no trigger event for menu popup")
-        event = Gdk.Event.new(Gdk.EventType.BUTTON_PRESS)
-        event.button.window = self.w.get_window()
-        event.button.button = 3
-        event.button.time = Gdk.CURRENT_TIME
-        event.set_device(Gdk.Display.get_default().get_default_seat().get_pointer())
-        menu.popup_at_rect(self.w.get_window(), Gdk.Rectangle(int(x), int(y), 1, 1), Gdk.Gravity.NORTH_WEST,
-                           Gdk.Gravity.NORTH_WEST, event)
+        # CEF answers after the event handler of the click has returned, so GTK has no current event to pop the menu up
+        # for. The right button press that the widget got is given instead: with its time and device the menu gets
+        # the grab, the release that follows at once does not close it, and it comes up where the pointer is.
+        press = getattr(self.w, "last_press", None)
+        if press is not None:
+            menu.popup_at_pointer(press)
+        else:                                                  # no click of the widget (the program asked for a menu)
+            event = Gdk.Event.new(Gdk.EventType.BUTTON_PRESS)
+            event.button.window = self.w.get_window()
+            event.button.button = 3
+            event.button.time = Gdk.CURRENT_TIME
+            event.set_device(Gdk.Display.get_default().get_default_seat().get_pointer())
+            menu.popup_at_rect(self.w.get_window(), Gdk.Rectangle(int(x), int(y), 1, 1), Gdk.Gravity.NORTH_WEST,
+                               Gdk.Gravity.NORTH_WEST, event)
 
     def clipboard_get(self):
         return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text()
@@ -247,6 +252,7 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         self.im.connect("preedit-changed", self._on_preedit_changed)
         self.im.connect("preedit-end", self._on_preedit_end)
         self._click_count = 1
+        self.last_press = None                         # the last right button press (the context menu is popped up for it)
         # drag and drop: this widget is a drop target of text, links and files, and the source of
         # what the page starts to drag
         self._drop_state = None                         # None, "asking" (GTK is fetching the data), "entered"
@@ -334,6 +340,8 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
 
     def do_button_press_event(self, event):
         self.grab_focus()
+        if event.button == 3:
+            self.last_press = event.copy()            # the event that the context menu is popped up for (CEF answers later)
         if event.type == Gdk.EventType.BUTTON_PRESS:
             self._click_count = 1
         elif event.type == Gdk.EventType._2BUTTON_PRESS:

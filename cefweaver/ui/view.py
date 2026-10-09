@@ -84,13 +84,20 @@ class BrowserView:
                     actions[pick]()
                 except Exception:
                     _menu.report()
+            elif pick in _menu.CLIPBOARD_COMMANDS and self._does_clipboard():
+                callback.cancel()                       # the clipboard of CEF is not the one of the toolkit
+                try:
+                    self._clipboard_command(_menu.CLIPBOARD_COMMANDS[pick], info.selection_text)
+                except Exception:
+                    _menu.report()
             else:
                 callback.continue_(pick, 0)
         actions = {}
         try:
+            info = _menu.ContextMenuInfo(params)
             items = _menu.items_from_model(model)
             if self.on_context_menu is not None:
-                items = self.on_context_menu(_menu.ContextMenuInfo(params), items)
+                items = self.on_context_menu(info, items)
             if items is None:
                 answer(None)
                 return True
@@ -310,19 +317,28 @@ class BrowserView:
         (Qt and Tk; GTK 3 could, hence the capability ``native_clipboard``)."""
         if code not in (ord("C"), ord("X"), ord("V")) or not mods & keys.CONTROL or mods & keys.ALT:
             return False
-        if "native_clipboard" in self.capabilities or not (
-                hasattr(self.adapter, "clipboard_get") and hasattr(self.adapter, "clipboard_set")):
+        if not self._does_clipboard():
             return False
-        if not down:
-            return True
-        if code == ord("V"):
-            self.text(self.adapter.clipboard_get() or "")
-            return True
-        if self.selected_text:
-            self.adapter.clipboard_set(self.selected_text)
-        if code == ord("X") and self.browser is not None:
-            self.browser.get_main_frame().delete()
+        if down:
+            self._clipboard_command({ord("C"): "copy", ord("X"): "cut", ord("V"): "paste"}[code])
         return True
+
+    def _does_clipboard(self):
+        """Does the view do the clipboard commands with the clipboard of the toolkit (else CEF does them)?"""
+        return "native_clipboard" not in self.capabilities and hasattr(self.adapter, "clipboard_get") and hasattr(
+            self.adapter, "clipboard_set")
+
+    def _clipboard_command(self, command, selection=None):
+        """``"copy"``, ``"cut"`` or ``"paste"`` with the clipboard of the toolkit (the keys and the context menu).
+        ``selection``: the text to copy, else the selection that CEF told."""
+        if command == "paste":
+            self.text(self.adapter.clipboard_get() or "")
+            return
+        text = self.selected_text if selection is None else selection
+        if text:
+            self.adapter.clipboard_set(text)
+        if command == "cut" and self.browser is not None:
+            self.browser.get_main_frame().delete()
 
     # -- drag and drop: into the view ------------------------------------------------------------------
 

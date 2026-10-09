@@ -15,6 +15,9 @@ from cefweaver import types
 
 _KINDS = {types.MenuItemType.COMMAND: "command", types.MenuItemType.CHECK: "check", types.MenuItemType.RADIO: "radio",
           types.MenuItemType.SEPARATOR: "separator", types.MenuItemType.SUBMENU: "submenu"}
+# the commands of the menu that the view does with the clipboard of the toolkit (the clipboard of CEF is another one)
+CLIPBOARD_COMMANDS = {int(types.MenuId.CUT): "cut", int(types.MenuId.COPY): "copy", int(types.MenuId.PASTE): "paste",
+                      int(types.MenuId.PASTE_MATCH_STYLE): "paste"}
 APP_FIRST = 1_000_000                       # command ids of the items of the application (CEF's are far below)
 
 
