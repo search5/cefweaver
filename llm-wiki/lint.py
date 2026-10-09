@@ -1,7 +1,7 @@
 """Mechanical checks of the wiki (see SCHEMA.md, "lint").
 
-    python docs/llm-wiki/lint.py            # print findings, exit code 1 on errors
-    python docs/llm-wiki/lint.py --quiet    # print only the findings
+    python llm-wiki/lint.py                 # print findings, exit code 1 on errors
+    python llm-wiki/lint.py --quiet         # print only the findings
 
 Checks: front matter, `type` matching the folder, `sources` that exist, relative
 links that resolve, pages missing from index.md, pages that no other page links to
@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 WIKI = Path(__file__).resolve().parent
-ROOT = WIKI.parent.parent
+ROOT = WIKI.parent
 PAGES = WIKI / "pages"
 
 FOLDER_TYPES = {

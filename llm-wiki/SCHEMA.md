@@ -17,7 +17,7 @@
 | 층 | 이 저장소에서 | 소유 |
 | --- | --- | --- |
 | 원본 자료 | 저장소의 코드와 문서(`native/`, `cefweaver/`, `tools/`, `tests/`, `cmake/`, `CMakeLists.txt`, `pyproject.toml`, `README.rst`, `CLAUDE.md` 등). 조사 대상인 다른 프로젝트(cefpython, java-cef, CEF)의 소스와 위키, 사용 중인 CEF 배포본의 헤더(`build/native/cef/include`)도 읽기 전용 자료입니다. | 사람과 개발 작업 |
-| 위키 | `docs/llm-wiki/` | LLM |
+| 위키 | `llm-wiki/` | LLM |
 | 스키마 | 이 문서와 저장소 루트의 `CLAUDE.md` | 사람과 LLM이 함께 |
 
 저장소 밖의 자료를 근거로 쓸 때는 본문에 경로와 버전(또는 커밋)을 적습니다. frontmatter의 `sources`에는 저장소 안의 실제 파일만 적을 수 있습니다.
@@ -25,7 +25,7 @@
 ## 3. 디렉터리 구조
 
 ```
-docs/llm-wiki/
+llm-wiki/
   README.md      목적과 사용법
   SCHEMA.md      이 문서
   index.md       모든 페이지의 분류별 목록 (질문에 답할 때 가장 먼저 읽습니다)
@@ -94,7 +94,7 @@ updated: YYYY-MM-DD
 코드를 바꾸는 개발 작업은 끝나기 전에 이 절차로 위키를 맞춥니다. 어떤 페이지가 영향받는지는 `sources`에 그 파일이 적힌 페이지를 찾아서 정합니다.
 
 ```sh
-grep -rl "native/cefwrapper/library.cpp" docs/llm-wiki/pages
+grep -rl "native/cefwrapper/library.cpp" llm-wiki/pages
 ```
 
 ### query (질문 답변)
@@ -106,7 +106,7 @@ grep -rl "native/cefwrapper/library.cpp" docs/llm-wiki/pages
 
 ### lint (점검)
 
-주기적으로, 그리고 큰 변경 뒤에 점검합니다. 먼저 `python docs/llm-wiki/lint.py`로 기계적으로 확인할 수 있는 항목을 점검하고, 나머지는 읽어서 확인합니다.
+주기적으로, 그리고 큰 변경 뒤에 점검합니다. 먼저 `python llm-wiki/lint.py`로 기계적으로 확인할 수 있는 항목을 점검하고, 나머지는 읽어서 확인합니다.
 
 기계적 점검(`lint.py`):
 
@@ -142,7 +142,7 @@ grep -rl "native/cefwrapper/library.cpp" docs/llm-wiki/pages
 ```
 
 ```sh
-grep "^## \[" docs/llm-wiki/log.md | tail -5   # 최근 다섯 항목
+grep "^## \[" llm-wiki/log.md | tail -5   # 최근 다섯 항목
 ```
 
 제목 아래에 변경한 페이지, 근거, 특이사항을 목록으로 적습니다.

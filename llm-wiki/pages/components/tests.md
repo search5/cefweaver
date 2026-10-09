@@ -161,7 +161,7 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 
 ## tests/test_wiki.py: 위키 점검
 
-`docs/llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(1개). 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
+`llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(1개). 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
 
 ## 설계 원칙
 

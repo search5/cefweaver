@@ -34,9 +34,9 @@ OUTPUTS = {
     "pxi": os.path.join(ROOT, "cefweaver", "cef_api.pxi"),  # the index; the parts are in SPLIT["pxi"]
     "pyi": os.path.join(ROOT, "cefweaver", "_cefweaver.pyi"),
     "types": os.path.join(ROOT, "cefweaver", "types", "__init__.py"),  # the index; see SPLIT["types"]
-    # A page of the wiki (docs/llm-wiki); the front matter field `generated: true` exempts it
+    # A page of the wiki (llm-wiki/); the front matter field `generated: true` exempts it
     # from the page length check of the wiki lint.
-    "coverage": os.path.join(ROOT, "docs", "llm-wiki", "pages", "reference", "coverage-report.md"),
+    "coverage": os.path.join(ROOT, "llm-wiki", "pages", "reference", "coverage-report.md"),
 }
 # Outputs made of several files: the directory of the parts and their extension. `build_all` has the index
 # under the key ("pxi") and every part under "pxi:<file name>"; a file in the directory that is no part

@@ -471,3 +471,7 @@
 ## [2026-10-09] query | SDL2와 Kivy의 메뉴 보류를 공식 문서와 실행으로 확인
 
 - 두 예제를 가상 화면에서 실제로 띄워 오른쪽 클릭해 `show_menu`와 CEF 핸들러가 없고 메뉴가 안 뜨며 훅도 불리지 않는 것을 확인했습니다. 공식 문서(SDL2 함수 목록과 `SDL_WindowFlags`, Kivy `DropDown`과 `Bubble`)에서 네이티브 메뉴 위젯이 없음을 확인해 근거를 적었습니다. 처음 조회가 SDL2의 `SDL_WINDOW_POPUP_MENU` 플래그를 함수 목록만 보고 없다고 한 것은 잘못이라 플래그 페이지를 직접 확인해 바로잡았습니다.
+
+## [2026-10-09] schema | 위키를 docs/llm-wiki에서 저장소 루트의 llm-wiki로 옮김
+
+- `docs/`를 사람이 읽는 Jekyll 사이트로 쓰려고(java-cef처럼) 위키를 저장소 루트의 `llm-wiki/`로 옮겼습니다. 위키는 LLM의 작업 기록과 검증 기록을 담아 게시 대상이 아니라서, java-cef 위키 README가 경고한 "위키가 `docs/` 아래라 게시될 수 있다"를 피합니다. 이 저장소의 위키를 가리키는 경로(`CLAUDE.md`, `README.rst`, 위키 본문과 `sources`, `lint.py`의 루트 계산, `tools/gen/generate.py`의 보고서 경로, `tests/test_wiki.py`)를 고쳤습니다. 다른 프로젝트의 위키(java-cef, cefpython, cef_origin의 `docs/llm-wiki`)를 가리키는 경로와 과거 로그의 옛 경로는 그대로 두었습니다. 시험에는 체크아웃에서 위키가 루트에 있어야 한다는 검사를 더했습니다(위키가 없으면 건너뛰는 기존 시험이 경로가 틀려도 조용히 통과하는 것을 막음).

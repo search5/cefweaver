@@ -8,7 +8,7 @@ sources:
   - tools/gen/scope.py
   - tools/gen/report.py
   - tools/gen/vendor/README.txt
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
 updated: 2026-10-08
 ---
 

@@ -100,7 +100,7 @@ updated: 2026-10-09
 | 논리 묶음이 같은 파일을 건드리면 **커밋 하나로**, 겹치지 않을 때만 나눠서 | 중간 커밋이 빌드되지 않는 일을 피합니다. | 사용자 |
 | 커밋 메시지에 `Co-Authored-By`와 `Claude-Session` 줄을 넣지 않음 | | 사용자 |
 | 다른 프로젝트의 코드를 조사할 때 그 프로젝트의 `docs/llm-wiki/`를 먼저 참조(`CLAUDE.md`) | | 사용자 |
-| 이 프로젝트의 위키를 `docs/llm-wiki/`에 카파시의 패턴대로 구성 | [llm-wiki 패턴 요약](../summaries/karpathy-llm-wiki.md) | 사용자 |
+| 이 프로젝트의 위키를 `llm-wiki/`에 카파시의 패턴대로 구성 | [llm-wiki 패턴 요약](../summaries/karpathy-llm-wiki.md) | 사용자 |
 
 ## 관련 페이지
 

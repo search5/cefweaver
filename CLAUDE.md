@@ -21,15 +21,15 @@
 
 이 저장소(cefweaver)에는 아직 llm-wiki가 없습니다.
 
-## 이 저장소의 위키 (`docs/llm-wiki/`)
+## 이 저장소의 위키 (`llm-wiki/`)
 
-이 프로젝트 자신의 위키이며 카파시(Andrej Karpathy)의 llm-wiki 패턴을 따릅니다. 구조와 작업 절차(ingest, query, lint)는 `docs/llm-wiki/SCHEMA.md`가 정하고, 이 문서와 함께 스키마 층을 이룹니다. 위키는 LLM이 작성하고 유지하며, 사람은 자료를 고르고 질문합니다.
+이 프로젝트 자신의 위키이며 카파시(Andrej Karpathy)의 llm-wiki 패턴을 따릅니다. 구조와 작업 절차(ingest, query, lint)는 `llm-wiki/SCHEMA.md`가 정하고, 이 문서와 함께 스키마 층을 이룹니다. 위키는 LLM이 작성하고 유지하며, 사람은 자료를 고르고 질문합니다.
 
-- **질문에 답하거나 코드를 조사할 때** `docs/llm-wiki/index.md`를 먼저 읽고 관련 페이지의 `sources`로 원본을 확인합니다. 위키와 원본이 다르면 원본이 맞고 위키를 고칩니다.
-- **코드를 바꾸면 같은 작업 안에서 위키를 맞춥니다.** 바꾼 파일이 `sources`에 적힌 페이지를 찾아 고치고(`grep -rl "바꾼/파일/경로" docs/llm-wiki/pages`), `updated`를 갱신하고, 새 페이지는 `index.md`에 등재하고, `log.md`에 `## [YYYY-MM-DD] ingest | 제목` 항목을 덧붙입니다.
+- **질문에 답하거나 코드를 조사할 때** `llm-wiki/index.md`를 먼저 읽고 관련 페이지의 `sources`로 원본을 확인합니다. 위키와 원본이 다르면 원본이 맞고 위키를 고칩니다.
+- **코드를 바꾸면 같은 작업 안에서 위키를 맞춥니다.** 바꾼 파일이 `sources`에 적힌 페이지를 찾아 고치고(`grep -rl "바꾼/파일/경로" llm-wiki/pages`), `updated`를 갱신하고, 새 페이지는 `index.md`에 등재하고, `log.md`에 `## [YYYY-MM-DD] ingest | 제목` 항목을 덧붙입니다.
 - **가치 있는 답변(비교, 분석, 새로 알게 된 연결)은 `pages/analyses/`에 저장합니다.** 대화 속에 사라지게 두지 않습니다.
 - **실행해서 확인한 사실**은 `pages/reference/verified-findings.md`에, 확인하지 못한 것과 문서의 불일치는 `pages/reference/known-constraints.md`에 기록합니다. 추측은 쓰지 않습니다.
-- **점검**: `python docs/llm-wiki/lint.py`(링크, `sources`, 색인 등재, 고아 페이지, 형식). 시험(`tests/test_wiki.py`)에도 포함되어 있습니다.
+- **점검**: `python llm-wiki/lint.py`(링크, `sources`, 색인 등재, 고아 페이지, 형식). 시험(`tests/test_wiki.py`)에도 포함되어 있습니다.
 
 ## 빌드와 시험
 
@@ -53,7 +53,7 @@ python tools/gen/generate.py --check    # 생성 파일이 최신인지 확인 (
 python tools/gen/generate.py --report   # 커버리지 보고서 출력 (같은 내용이 위키의 pages/reference/coverage-report.md로 생성됨)
 ```
 
-생성되는 파일은 모두 저장소에 커밋하며 **직접 고치지 않습니다**: `native/cefwrapper/generated/cefweaver_proxies.h`(핸들러를 Python 객체로 위임하는 C++ 프록시), `cefweaver/cef_api.pxd`, `cefweaver/cef_api.pxi`(Cython 색인)와 `cefweaver/api/*.pxi`(헤더별 부분), `cefweaver/types/`(열거형과 값 타입 패키지), `cefweaver/_cefweaver.pyi`(타입 스텁, `tools/gen/handwritten.pyi`의 `CefApp` 부분 포함), 위키의 `docs/llm-wiki/pages/reference/coverage-report.md`(커버리지 보고서). CEF 버전을 바꾸면 `prepare.py` 다음에 `generate.py`를 실행합니다.
+생성되는 파일은 모두 저장소에 커밋하며 **직접 고치지 않습니다**: `native/cefwrapper/generated/cefweaver_proxies.h`(핸들러를 Python 객체로 위임하는 C++ 프록시), `cefweaver/cef_api.pxd`, `cefweaver/cef_api.pxi`(Cython 색인)와 `cefweaver/api/*.pxi`(헤더별 부분), `cefweaver/types/`(열거형과 값 타입 패키지), `cefweaver/_cefweaver.pyi`(타입 스텁, `tools/gen/handwritten.pyi`의 `CefApp` 부분 포함), 위키의 `llm-wiki/pages/reference/coverage-report.md`(커버리지 보고서). CEF 버전을 바꾸면 `prepare.py` 다음에 `generate.py`를 실행합니다.
 
 - **범위**: `tools/gen/scope.py`의 클래스와 함수 목록입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드(보고서의 "class ... is not generated yet")도 함께 열립니다.
 - **타입**: `tools/gen/typesys.py`가 모든 C++ 타입을 분류합니다. 지원하지 못하는 타입은 건너뛰지 않고 **이유와 함께** 보고서에 남습니다. 새 타입을 지원하려면 `typesys.py`에 종류를 추가하고 세 방출기(`emit_cpp.py`, `emit_cython.py`, `emit_pyi.py`)에 변환을 추가합니다. 현재 보고서 기준으로 남은 장애물은 값 타입 구조체, 벡터, 소유 포인터, 맵 순입니다.

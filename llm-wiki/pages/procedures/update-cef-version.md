@@ -5,7 +5,7 @@ sources:
   - CMakeLists.txt
   - tools/prepare.py
   - tools/gen/generate.py
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
   - tests/test_generator.py
 updated: 2026-10-08
 ---
@@ -24,7 +24,7 @@ updated: 2026-10-08
 6. **문서 갱신**: `CMakeLists.txt`와 `README.rst`의 버전 예시, 그리고 위키에서 옛 버전 문자열을 찾아 고칩니다.
 
    ```sh
-   grep -rn "154.0.34" README.rst CLAUDE.md docs/llm-wiki tools --include=* | grep -v COVERAGE
+   grep -rn "154.0.34" README.rst CLAUDE.md llm-wiki tools --include=* | grep -v COVERAGE
    ```
 
 7. 커밋. 생성 파일과 `CMakeLists.txt`의 변경은 같은 커밋에 넣습니다.

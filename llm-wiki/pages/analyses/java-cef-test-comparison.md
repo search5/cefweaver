@@ -4,7 +4,7 @@ type: analysis
 sources:
   - tests/test_smoke.py
   - CLAUDE.md
-  - docs/llm-wiki/pages/components/tests.md
+  - llm-wiki/pages/components/tests.md
 updated: 2026-10-08
 ---
 

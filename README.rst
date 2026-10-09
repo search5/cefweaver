@@ -112,7 +112,7 @@ The CEF classes are available as generated, PEP 8 style wrappers
 ``cefweaver.SchemeHandlerFactory``, ``cefweaver.register_scheme_handler_factory()``,
 ...). They are generated from the CEF headers by ``tools/gen``; the part of the CEF
 API covered so far is listed in the generated wiki page
-``docs/llm-wiki/pages/reference/coverage-report.md``.
+``llm-wiki/pages/reference/coverage-report.md``.
 
 The CEF enumerations and value types are in ``cefweaver.types``: ``IntEnum``/``IntFlag``
 classes (``types.MouseButtonType.LEFT``, ``types.EventFlags.SHIFT_DOWN | types.EventFlags.CONTROL_DOWN``)

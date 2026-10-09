@@ -2,7 +2,7 @@
 title: 생성 범위와 커버리지
 type: reference
 sources:
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
   - tools/gen/scope.py
   - tools/gen/report.py
 updated: 2026-10-08

@@ -6,7 +6,7 @@ sources:
   - tools/gen/emit_cpp.py
   - tools/gen/emit_cython.py
   - tools/gen/emit_pyi.py
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
   - tests/test_generator.py
 updated: 2026-10-08
 ---

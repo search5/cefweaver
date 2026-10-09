@@ -2,8 +2,8 @@
 title: llm-wiki 패턴 요약 (카파시)
 type: summary
 sources:
-  - docs/llm-wiki/SCHEMA.md
-  - docs/llm-wiki/README.md
+  - llm-wiki/SCHEMA.md
+  - llm-wiki/README.md
 updated: 2026-10-08
 ---
 
@@ -78,9 +78,9 @@ updated: 2026-10-08
 | 원문의 개념 | 이 위키 |
 | --- | --- |
 | 원본 자료 | 저장소의 코드와 문서, 그리고 참고하는 다른 프로젝트의 위키와 소스([관련 프로젝트](../reference/related-projects.md)) |
-| 위키 | `docs/llm-wiki/` ([README](../../README.md)) |
+| 위키 | `llm-wiki/` ([README](../../README.md)) |
 | 스키마 | [SCHEMA.md](../../SCHEMA.md)와 저장소 루트의 `CLAUDE.md` |
-| ingest, query, lint | SCHEMA.md의 "작업 절차" 절. lint의 기계적 점검은 `docs/llm-wiki/lint.py` |
+| ingest, query, lint | SCHEMA.md의 "작업 절차" 절. lint의 기계적 점검은 `llm-wiki/lint.py` |
 | 질문 답변을 페이지로 환원 | `pages/analyses/`의 페이지들([java-cef 시험과의 비교](../analyses/java-cef-test-comparison.md) 등) |
 | index.md, log.md | [index.md](../../index.md), [log.md](../../log.md). 항목 접두사는 `## [YYYY-MM-DD] 작업종류 | 제목` |
 | 선택 도구 | `lint.py`. 검색 엔진은 아직 필요하지 않아 도입하지 않았습니다. |

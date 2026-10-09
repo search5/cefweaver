@@ -8,7 +8,7 @@ sources:
   - cefweaver/cef_api.pxi
   - cefweaver/types/__init__.py
   - cefweaver/_cefweaver.pyi
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
   - .gitignore
 updated: 2026-10-08
 ---
@@ -25,7 +25,7 @@ updated: 2026-10-08
 | `cefweaver/api/*.pxi` | 합계 약 11,900 | 부분들. `prelude`(공통 도우미, API 해시 검사), `structs`(값 타입 변환), `vectors`(목록 변환), `forward`(클래스 선행 선언), **CEF 헤더마다 하나**(`cef_browser.pxi` 등 45개: 그 헤더가 선언한 라이브러리 클래스의 `cdef class` 래퍼와 `_wrap_*`, 핸들러의 Python 기반 클래스와 트램펄린, `_g_make_*`, `_g_export_*`), `functions`(전역 함수). 가장 큰 것은 `cef_browser.pxi`와 `cef_values.pxi`(1,100~1,200줄) |
 | `cefweaver/types/` | 합계 약 2,150 | 패키지: `enums.py`(열거형 `IntEnum`, `IntFlag`, 약 1,800줄, 이름순), `structs.py`(값 타입 `NamedTuple`), `__init__.py`(둘을 내보냄). 순수 파이썬이고 `cefweaver.types`로 불러옵니다([types 모듈](../reference/types-module.md)). 열거형은 대부분 `cef_types.h`에서 와서 헤더 단위로 나누지 않았습니다. |
 | `cefweaver/_cefweaver.pyi` | 약 1,800 | 타입 스텁. `tools/gen/handwritten.pyi`(손으로 쓴 `CefApp` 부분)를 앞에 붙입니다. |
-| `docs/llm-wiki/pages/reference/coverage-report.md` | 약 230 | 커버리지 보고서. 위키 페이지로 쓰이며(`generated: true`) 내용이 같으면 `updated`를 유지합니다. |
+| `llm-wiki/pages/reference/coverage-report.md` | 약 230 | 커버리지 보고서. 위키 페이지로 쓰이며(`generated: true`) 내용이 같으면 `updated`를 유지합니다. |
 
 (줄 수는 154 배포본에서 생성한 시점의 값입니다.)
 

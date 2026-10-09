@@ -27,7 +27,7 @@ updated: 2026-10-08
 2. **빌드와 시험 명령**: `prepare.py`, `uv build --wheel`, `env -u WAYLAND_DISPLAY xvfb-run -a python -P -m unittest discover -s tests -v`. `-P`가 필수인 이유, 가상 X 서버가 필요한 이유, 지원 플랫폼.
 3. **바인딩 생성기**: 명령 세 가지, 생성 파일 목록(직접 고치지 않음), 범위, 타입, 이름 규칙, 시그니처 규칙, 핸들러, GIL, 초기화 전 호출 안전성([바인딩 생성기의 설계](../concepts/binding-generator.md)).
 4. **시험 작성 원칙**: 조건 기다리기, CEF 시험은 프로세스 분리, 외부 네트워크 금지(`add_resource`), 정상 종료까지 확인.
-5. **이 저장소의 위키**: `docs/llm-wiki/`를 유지하는 규칙(질문 전에 `index.md`, 코드를 바꾸면 같은 작업에서 위키 갱신, 가치 있는 답변은 `analyses/`에 저장, `lint.py` 점검). 상세는 SCHEMA.md에 있습니다.
+5. **이 저장소의 위키**: `llm-wiki/`를 유지하는 규칙(질문 전에 `index.md`, 코드를 바꾸면 같은 작업에서 위키 갱신, 가치 있는 답변은 `analyses/`에 저장, `lint.py` 점검). 상세는 SCHEMA.md에 있습니다.
 
 ## 관련 페이지
 

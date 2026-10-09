@@ -2,7 +2,7 @@
 title: API 중계 규모와 생성기 선택
 type: analysis
 sources:
-  - docs/llm-wiki/pages/reference/coverage-report.md
+  - llm-wiki/pages/reference/coverage-report.md
   - tools/gen/model.py
   - tools/gen/vendor/README.txt
 updated: 2026-10-08

@@ -64,7 +64,7 @@ cefweaver/
 | --- | --- | --- |
 | 손으로 쓴 C++ | `native/cefwrapper/`(생성 폴더 제외), `native/cefsubprocess/` | 직접 |
 | 손으로 쓴 Cython | `cefweaver/_cefweaver.pyx`, `cefwrapper.pxd` | 직접 |
-| 생성된 파일 | `native/cefwrapper/generated/`, `cefweaver/cef_api.*`, `cefweaver/_cefweaver.pyi`, `docs/llm-wiki/pages/reference/coverage-report.md` | **생성기로만** |
+| 생성된 파일 | `native/cefwrapper/generated/`, `cefweaver/cef_api.*`, `cefweaver/_cefweaver.pyi`, `llm-wiki/pages/reference/coverage-report.md` | **생성기로만** |
 | 생성기 | `tools/gen/*.py` | 직접 |
 | 빌드와 도구 | `CMakeLists.txt`, `cmake/`, `tools/prepare.py`, `tools/build_cef.py`, `pyproject.toml` | 직접 |
 
