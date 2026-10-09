@@ -76,7 +76,7 @@ class ToolkitAdapter(Protocol):
 ## 이식으로 검증할 것
 
 - GTK 3를 먼저 이식해서 기존 점검(27개)이 그대로 통과하고 위젯 파일이 얼마나 줄어드는지 봅니다. 통과하지 못하는 부분이 인터페이스의 결함입니다.
-- 클립보드는 GTK 3만 CEF에 맡겨도 통과했습니다. 나머지는 같은 스레드의 교착 때문에 위젯이 처리해야 했으므로 `native_clipboard` 능력이 갈립니다([툴킷 예제](../reference/toolkit-examples.md)).
+- 클립보드는 (X11에서) GTK 3만 CEF에 맡겨도 통과했습니다. 그러나 CEF가 Wayland로 돌면 CEF의 클립보드는 컴포지터의 것이라 GTK 3도 어긋나서(F76), 지금은 여섯 툴킷 모두 어댑터가 처리합니다. 나머지는 같은 스레드의 교착 때문에 위젯이 처리해야 했으므로 `native_clipboard` 능력이 갈립니다([툴킷 예제](../reference/toolkit-examples.md)).
 - 확인하지 못한 것은 이식으로도 달라지지 않습니다: 실제 입력기, HiDPI(Qt 외), Wayland 네이티브.
 
 ## 구현 상태 (2단계)

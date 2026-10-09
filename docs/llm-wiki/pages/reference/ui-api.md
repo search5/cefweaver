@@ -32,7 +32,7 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 | `BrowserView(adapter)` | 브라우저 하나와 CEF 쪽 규칙 전부: 핸들러 5종(`view.client`), 입력 이벤트의 조립, 클릭 횟수, 입력기, 클립보드 키, 드래그 앤 드롭의 순서 |
 | `ToolkitAdapter` | 툴킷이 구현할 필수 7개: `view_size`, `scale`, `screen_origin`, `screen_size`, `present(frame)`, `post(fn)`, `call_later(seconds, fn)` |
 | 선택 메서드 | `set_cursor`, `clipboard_get`과 `clipboard_set`, `set_ime_rect`, `start_drag_out`, `drag_operation_changed`. 있으면 그 기능이 켜집니다 |
-| `capabilities` | 어댑터의 속성(집합). `"native_clipboard"`는 CEF가 클립보드 키를 직접 처리해도 된다는 뜻(GTK 3), `"drag_out"`은 `start_drag_out`으로 툴킷의 드래그를 시작할 수 있다는 뜻 |
+| `capabilities` | 어댑터의 속성(집합). `"native_clipboard"`는 CEF가 클립보드 키를 직접 처리해도 된다는 뜻(지금은 쓰는 툴킷이 없음: CEF의 클립보드는 Wayland에서 컴포지터의 것이라 GTK 3도 어댑터가 처리하게 바꿈, F76), `"drag_out"`은 `start_drag_out`으로 툴킷의 드래그를 시작할 수 있다는 뜻 |
 | `Session(adapter, switches, cache_path)` | `CefApp`, `JavascriptBridge`, `MessagePump`. CEF의 깨움을 `adapter.post`로, 기한을 `adapter.call_later`로 받아 폴링 없이 돌립니다. `start(target, url)`(`BrowserView`이나 `BrowserWidget`을 받음), `shutdown(done)`(끝나면 어댑터의 선택 메서드 `release()`를 부름: 루프가 놓을 것이 있을 때, 예를 들어 파이프). 툴킷마다 `Session` 하위 클래스를 둘 필요가 없고 `ui.Session(툴킷의 루프, ...)`로 충분합니다 |
 | `Frame` | `present()`가 받는 그림: `kind`(`VIEW`, `POPUP`, `POPUP_HIDDEN`), `width`, `height`, `buffer`(BGRA, 호출 동안만 유효), `dirty_rects`, 팝업은 `rect`, 뷰의 `PictureStore`가 이 프레임으로 한 일 `change` |
 | `keys` | CEF 이벤트 플래그(`SHIFT`, `CONTROL`, `ALT`, 단추)와 가상 키 코드(`VK_*`), `vk_for_char`, `vk_for_function` |

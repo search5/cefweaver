@@ -379,3 +379,7 @@
 ## [2026-10-09] query | 예제의 자동 점검을 Wayland로 (F76)
 
 - 여섯 예제의 `smoke.py`를 CEF만 Wayland로 돌려 GTK 3을 뺀 모두 X11과 같은 개수로 통과하고, GTK 3은 클립보드 4개가 실패했습니다(시험 방식의 한계로 추정, 미확정). 수동 확인에서 GTK 3 한글 입력과 그 밖의 입력은 정상이었고 우클릭은 UI 계층에 메뉴 코드가 없어 동작하지 않습니다.
+
+## [2026-10-09] ingest | GTK 3 클립보드를 어댑터가 처리하게 고침 (F76)
+
+- CEF를 Wayland로 돌리면 GTK 3에서 복사와 붙여넣기가 안 되는 결함(실제 화면에서 확인)을 고쳤습니다. GTK 어댑터가 `clipboard_get`/`clipboard_set`을 갖고 `native_clipboard`를 뺐습니다. 시험(`test_every_toolkit_does_the_clipboard_itself`)을 더했고, GTK 3 점검은 Wayland와 X11 모두 27개 통과합니다.

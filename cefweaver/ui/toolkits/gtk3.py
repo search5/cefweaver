@@ -14,6 +14,7 @@ The widget is for one browser (the one ``initialize()`` makes). More browsers wo
 
 Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 27 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
+At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 27 checks.
 Not checked: a real input method (ibus, fcitx), GTK on Wayland, rich text and images in the clipboard.
 """
 
@@ -128,12 +129,19 @@ class GlibLoop:
 
 
 class GtkAdapter(GlibLoop):
-    """``ui.ToolkitAdapter`` for a ``CefWidget``. GTK 3 lets CEF do the clipboard keys itself."""
+    """``ui.ToolkitAdapter`` for a ``CefWidget``. The clipboard keys are the view's, with the clipboard of GTK (the
+    clipboard of CEF is the compositor's on Wayland, and the widget may be an X11 one)."""
 
-    capabilities = frozenset({"native_clipboard", "drag_out"})
+    capabilities = frozenset({"drag_out"})
 
     def __init__(self, widget):
         self.w = widget
+
+    def clipboard_get(self):
+        return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text()
+
+    def clipboard_set(self, text):
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
 
     def view_size(self):
         return self.w.view_width, self.w.view_height

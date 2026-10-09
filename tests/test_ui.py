@@ -947,6 +947,14 @@ class ToolkitModules(unittest.TestCase):
             found = re.findall(r"(?<![\w.])(SHIFT|CONTROL|ALT|LEFT_BUTTON|MIDDLE_BUTTON|RIGHT_BUTTON)\b", self.source(name))
             self.assertEqual(found, [], "%s keeps aliases (write keys.SHIFT and so on)" % name)
 
+    def test_every_toolkit_does_the_clipboard_itself(self):
+        # CEF's own clipboard is the compositor's on Wayland and the X server's on X11: the toolkit's may be another one
+        for name in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+            source = self.source(name)
+            self.assertNotRegex(source, r"capabilities\s*=[^\n]*native_clipboard", name)
+            self.assertIn("def clipboard_get", source, name)
+            self.assertIn("def clipboard_set", source, name)
+
     def test_the_modules_have_no_bare_virtual_key_numbers(self):
         import re
         for name in TOOLKITS:
