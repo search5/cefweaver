@@ -391,3 +391,7 @@
 ## [2026-10-09] ingest | 마이크 권한 정책 (F77)
 
 - Chromium이 shim 없이 시스템 마이크를 직접 여는 것을 확인했고(CEF와 Chrome 동일, 소리 크기는 시스템 마이크가 음소거라 0), 앱이 권한을 정하는 `BrowserView(media_permissions=정책)`와 `ui.permissions`(`MediaRequest`, `allow_origins`)를 더했습니다. 로드맵 2단계 중 앱이 소리를 직접 대는 방식은 미뤘습니다.
+
+## [2026-10-09] query | 마이크로 소리가 들어오는 것을 확인 (F77)
+
+- 선생님의 허락으로 시스템 마이크의 음소거를 잠깐 풀고 3초간 크기만 쟀습니다. 트랙이 `muted: false`이고 `peak 1`, `rms 0.51`이었습니다(저장 없음). 시험 뒤 음소거로 되돌렸습니다.

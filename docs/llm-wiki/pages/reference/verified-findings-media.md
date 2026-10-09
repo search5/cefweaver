@@ -115,7 +115,7 @@ updated: 2026-10-09
 ## F77: 마이크 (2026-10-09)
 
 - **Chromium은 shim 없이 시스템 마이크를 직접 엽니다 (검증)**: 권한 핸들러가 허용하면 오프스크린 CEF에서 `getUserMedia({audio: true})`가 성공합니다(트랙 1개, 장치 `기본값`, 상태 `live`, 48 kHz, 에코 제거와 잡음 억제 켜짐). 설치된 Chrome 155도 같은 결과입니다.
-- **소리 크기는 0이었습니다 (원인 확인)**: CEF와 Chrome 모두 트랙이 `muted: true`, `peak 0`, `rms 0`이었는데, 시스템의 기본 마이크(`alsa_input.pci-0000_65_00.6.analog-stereo`)가 **음소거**(`pactl get-source-mute`가 예)였기 때문입니다. 장치는 열리지만 데이터가 오지 않습니다. 소리가 실제로 들어오는 것은 음소거를 풀지 않아 확인하지 못했습니다.
+- **소리 크기는 0이었습니다 (원인 확인)**: CEF와 Chrome 모두 트랙이 `muted: true`, `peak 0`, `rms 0`이었는데, 시스템의 기본 마이크(`alsa_input.pci-0000_65_00.6.analog-stereo`)가 **음소거**(`pactl get-source-mute`가 예)였기 때문입니다. 장치는 열리지만 데이터가 오지 않습니다. 음소거를 잠깐 풀고(선생님의 허락, 시험 뒤 바로 음소거로 되돌림) 다시 재면 **트랙이 `muted: false`이고 소리가 들어옵니다**(3초 동안 `peak 1`, `rms 0.51`, 크기만 재고 저장하지 않음). 크기가 이례적으로 커서(클리핑에 가까움) 입력 음량이나 마이크 이득이 높은 것으로 보이지만 원인은 조사하지 않았습니다.
 - **API**: 마이크와 카메라 권한은 앱이 정책으로 정합니다([UI API](ui-api.md)). `PermissionHandler`는 이미 열려 있었고(F71), `cefweaver.ui`에 정책, `MediaRequest`, `allow_origins`를 더했습니다. 실제 CEF 시험: 허용한 출처(`http://localhost`)는 `granted:1`, 그 밖(`http://127.0.0.1`)은 `denied:NotAllowedError`.
 - **하지 않은 것**: 앱이 소리를 직접 대는 방식(페이지에 shim을 넣어 `getUserMedia`를 가로채고 툴킷의 입력이나 pygame을 흘려보내기). 시스템 마이크를 그대로 쓰는 경우에는 필요 없어서 미뤘습니다.
 
