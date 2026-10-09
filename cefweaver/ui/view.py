@@ -90,6 +90,12 @@ class BrowserView:
                     self._clipboard_command(_menu.CLIPBOARD_COMMANDS[pick], info.selection_text, refocus=True)
                 except Exception:
                     _menu.report()
+            elif (pick in _menu.SPELLING_SUGGESTIONS or pick == _menu.ADD_TO_DICTIONARY) and self.browser is not None:
+                callback.cancel()                       # CEF would do it as the page was when the menu opened
+                try:
+                    self._spelling_command(pick, info)
+                except Exception:
+                    _menu.report()
             elif pick in _menu.FRAME_COMMANDS and (frame or self.browser) is not None:
                 callback.cancel()                       # CEF would do it as the page was when the menu opened
                 try:
@@ -328,6 +334,16 @@ class BrowserView:
         if down:
             self._clipboard_command({ord("C"): "copy", ord("X"): "cut", ord("V"): "paste"}[code])
         return True
+
+    def _spelling_command(self, command_id, info):
+        """A suggestion of the spell checker replaces the misspelled word; Add to dictionary adds it."""
+        if command_id == _menu.ADD_TO_DICTIONARY:
+            if info.misspelled_word:
+                self.host(lambda h: h.add_word_to_dictionary(info.misspelled_word))
+            return
+        index = command_id - _menu.SPELLING_SUGGESTIONS.start
+        if index < len(info.dictionary_suggestions):
+            self.host(lambda h: h.replace_misspelling(info.dictionary_suggestions[index]))
 
     def _does_clipboard(self):
         """Does the view do the clipboard commands with the clipboard of the toolkit (else CEF does them)?"""

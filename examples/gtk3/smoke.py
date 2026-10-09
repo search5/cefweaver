@@ -414,6 +414,7 @@ def menu_item_click(selector, command_id, what):
     settle(0.2)
     xdo("click", 1)
     settle(0.6)
+    view.view.focus(True)                                          # the widget gets the focus back when the menu is gone
 
 
 # Paste and Cut of the menu work on a page that lost the focus to the menu
@@ -448,6 +449,7 @@ undone = js("document.getElementById('area').value")
 # one Undo takes back one step: Chromium keeps the keys that are typed one after the other as steps of their own
 check(typed == "xyz" and len(undone) < len(typed) and typed.startswith(undone), "Undo of the menu takes back typed text",
       (typed, undone))
+
 view.view.on_context_menu = None
 os.unlink(temporary.name)
 

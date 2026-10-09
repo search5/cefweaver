@@ -22,6 +22,10 @@ CLIPBOARD_COMMANDS = {int(types.MenuId.CUT): "cut", int(types.MenuId.COPY): "cop
 # the menu of the toolkit took the focus they do nothing); the methods of the frame
 FRAME_COMMANDS = {int(types.MenuId.UNDO): "undo", int(types.MenuId.REDO): "redo", int(types.MenuId.DELETE): "delete",
                   int(types.MenuId.SELECT_ALL): "select_all"}
+# the spelling commands (suggestions of the checker and Add to dictionary): the view runs them through the browser host for
+# the same reason, and CEF gives the word and the suggestions in the parameters of the menu
+SPELLING_SUGGESTIONS = range(int(types.MenuId.SPELLCHECK_SUGGESTION_0), int(types.MenuId.SPELLCHECK_SUGGESTION_LAST) + 1)
+ADD_TO_DICTIONARY = int(types.MenuId.ADD_TO_DICTIONARY)
 APP_FIRST = 1_000_000                       # command ids of the items of the application (CEF's are far below)
 
 
@@ -51,6 +55,9 @@ class ContextMenuInfo:
         self.page_url = params.get_page_url()
         self.selection_text = params.get_selection_text()
         self.is_editable = params.is_editable()
+        self.misspelled_word = params.get_misspelled_word()                      # "" if the word is spelled right
+        found, suggestions = params.get_dictionary_suggestions()
+        self.dictionary_suggestions = list(suggestions) if found else []
 
 
 def _clean(label):

@@ -927,8 +927,8 @@ def row(kind, command_id, label="", enabled=True, checked=False, visible=True, s
 
 
 class FakeMenuParams:
-    def __init__(self, x=30, y=40, link="", selection="", editable=False):
-        self.values = dict(x=x, y=y, link=link, selection=selection, editable=editable)
+    def __init__(self, x=30, y=40, link="", selection="", editable=False, word="", suggestions=()):
+        self.values = dict(x=x, y=y, link=link, selection=selection, editable=editable, word=word, suggestions=suggestions)
 
     def get_x_coord(self):
         return self.values["x"]
@@ -947,6 +947,13 @@ class FakeMenuParams:
 
     def get_selection_text(self):
         return self.values["selection"]
+
+    def get_misspelled_word(self):
+        return self.values.get("word", "")
+
+    def get_dictionary_suggestions(self):
+        suggestions = self.values.get("suggestions", [])
+        return (bool(suggestions), list(suggestions))
 
     def is_editable(self):
         return self.values["editable"]
@@ -1164,6 +1171,29 @@ class ContextMenuClipboard(unittest.TestCase):
         clicked.calls = []
         self.adapter.menus[0][3](int(types.MenuId.SELECT_ALL))
         self.assertEqual(named(clicked.calls, "frame.select_all"), [()])
+
+    def spelling(self, command_id):
+        self.start()
+        handler = self.view.client.get_context_menu_handler()
+        params = FakeMenuParams(word="teh", suggestions=["the", "eh", "tech"])
+        handler.run_context_menu(FakeBrowser([]), None, params, FakeMenuModel(self.ROWS), self.answer)
+        self.adapter.menus[0][3](command_id)
+
+    def test_a_suggestion_replaces_the_misspelled_word_through_the_host(self):
+        # CEF would do it as the page was when the menu opened: after the menu of the toolkit took the focus, nothing
+        for index, word in enumerate(["the", "eh", "tech"]):
+            self.spelling(int(types.MenuId.SPELLCHECK_SUGGESTION_0) + index)
+            self.assertEqual(named(self.calls, "replace_misspelling"), [(word,)])
+            self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_add_to_dictionary_adds_the_misspelled_word_through_the_host(self):
+        self.spelling(int(types.MenuId.ADD_TO_DICTIONARY))
+        self.assertEqual(named(self.calls, "add_word_to_dictionary"), [("teh",)])
+        self.assertEqual(self.answer.calls, [("cancel",)])
+
+    def test_a_suggestion_that_is_not_there_does_nothing(self):
+        self.spelling(int(types.MenuId.SPELLCHECK_SUGGESTION_4))
+        self.assertEqual(named(self.calls, "replace_misspelling"), [])
 
     def test_copy_does_not_need_the_focus(self):
         self.start()
@@ -1829,6 +1859,93 @@ class WithCefContextMenu(unittest.TestCase):
         self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertNotIn("stack smashing", result.stderr)
         self.assertIn("OK-PICK", result.stdout)
+        self.assertIn("OK", result.stdout.splitlines()[-1])
+
+
+SPELL_SCRIPT = """
+import tempfile
+from cefweaver import types, ui
+from cefweaver.ui import keys
+from cefweaver.ui.headless import HeadlessAdapter
+
+class Menus(HeadlessAdapter):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.menus = []
+    def show_menu(self, items, x, y, done):
+        self.menus.append((items, x, y, done))
+
+PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>start</title><body style="margin:0">
+<textarea id=a rows=3 cols=30 spellcheck=true style="font:20px sans-serif"></textarea>\"\"\"
+adapter = Menus(size=(500, 200))
+session = ui.Session(adapter, switches=[("ozone-platform", "x11")], cache_path=tempfile.mkdtemp(prefix="cefweaver-ui-"))
+class Widget(ui.BrowserWidget):
+    pass
+widget = Widget()
+view = widget.attach_view(adapter)
+titles, seen = [], []
+view.on_title = titles.append
+view.on_context_menu = lambda info, items: seen.append((info.misspelled_word, info.dictionary_suggestions)) or items
+def ready():
+    session.app.add_resource("http://ui.test/", PAGE)
+    view.load_url("http://ui.test/")
+view.on_ready = ready
+session.start(widget)
+adapter.run_until(lambda: adapter.picture and "start" in titles, "the page")
+adapter.run_for(0.3)
+
+def js(code):
+    box = []
+    session.bridge.evaluate(view.browser.get_main_frame(), code, lambda v, e: box.append((v, e)))
+    adapter.run_until(lambda: box, "the value of " + code)
+    return box[0][0]
+
+view.focus(True)
+view.mouse_move(100, 30, 0)
+view.mouse_button(100, 30, "left", True, keys.LEFT_BUTTON)
+view.mouse_button(100, 30, "left", False, 0)
+adapter.run_for(0.4)
+for letter in "teh wrold ":                           # typed, so that the checker looks at the words
+    view.text(letter)
+    adapter.run_for(0.05)
+adapter.run_for(1.5)
+for attempt in range(20):                              # the checker is asynchronous: try until it knows the word
+    before = len(adapter.menus)
+    view.mouse_move(12, 14, 0)
+    view.mouse_button(12, 14, "right", True, keys.RIGHT_BUTTON)
+    view.mouse_button(12, 14, "right", False, 0)
+    adapter.run_for(0.5)
+    if len(adapter.menus) > before:
+        if seen and seen[-1][0] == "teh" and seen[-1][1]:
+            break
+        adapter.menus[-1][3](None)
+        adapter.run_for(0.5)
+items, x, y, done = adapter.menus[-1]
+assert seen[-1][0] == "teh" and seen[-1][1], seen[-1:]
+ids = [i.command_id for i in items if i.kind != "separator"]
+assert int(types.MenuId.SPELLCHECK_SUGGESTION_0) in ids and int(types.MenuId.ADD_TO_DICTIONARY) in ids, ids
+view.focus(False)                                      # the menu of the toolkit took the focus
+adapter.run_for(0.3)
+done(int(types.MenuId.SPELLCHECK_SUGGESTION_0))        # the user picks the first suggestion
+adapter.run_for(0.8)
+value = js("document.getElementById('a').value")
+print("VALUE", repr(value), "SUGGESTION", seen[-1][1][0])
+assert value == seen[-1][1][0] + " wrold ", value
+d = []
+session.shutdown(lambda: d.append(True))
+adapter.run_until(lambda: d, "CEF to shut down", 20)
+print("OK")
+"""
+
+
+class WithCefSpelling(unittest.TestCase):
+    def test_a_suggestion_of_the_menu_replaces_the_misspelled_word_on_a_page_that_lost_the_focus(self):
+        env = dict(os.environ)
+        env.pop("WAYLAND_DISPLAY", None)
+        result = subprocess.run([sys.executable, "-I", "-c", textwrap.dedent(SPELL_SCRIPT)], capture_output=True, text=True,
+                                timeout=120, env=env)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
+        self.assertNotIn("stack smashing", result.stderr)
         self.assertIn("OK", result.stdout.splitlines()[-1])
 
 
