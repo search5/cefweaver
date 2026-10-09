@@ -12,9 +12,9 @@ drag and drop) and ``Session`` (CEF in the main loop). This file is what GTK add
 The widget is for one browser (the one ``initialize()`` makes). More browsers would use
 ``CefApp.create_browser()`` and one widget each.
 
-Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 28 checks of examples/gtk3/smoke.py at scale 1 and 2
+Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 33 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
-At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 28 checks.
+At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 33 checks.
 Not checked: a real input method (ibus, fcitx), GTK on Wayland, rich text and images in the clipboard.
 """
 
@@ -136,6 +136,51 @@ class GtkAdapter(GlibLoop):
 
     def __init__(self, widget):
         self.w = widget
+
+    def show_menu(self, items, x, y, done):
+        """The context menu of the page as a ``Gtk.Menu`` at (x, y) of the widget. ``done`` gets the command id of the
+        picked item, or None when the menu is left (the last menu is ``last_menu``, for tests)."""
+        picked = []
+
+        def pick(command_id):
+            if not picked:
+                picked.append(command_id)
+                done(command_id)
+
+        def fill(shell, entries):
+            for entry in entries:
+                if entry.kind == "separator":
+                    shell.append(Gtk.SeparatorMenuItem())
+                    continue
+                if entry.kind in ("check", "radio"):
+                    widget = Gtk.CheckMenuItem.new_with_label(entry.label)
+                    widget.set_active(entry.checked)
+                    widget.set_draw_as_radio(entry.kind == "radio")
+                else:
+                    widget = Gtk.MenuItem.new_with_label(entry.label)
+                widget.set_sensitive(entry.enabled)
+                if entry.kind == "submenu":
+                    sub = Gtk.Menu()
+                    fill(sub, entry.children)
+                    widget.set_submenu(sub)
+                else:
+                    widget.connect("activate", lambda w, command_id=entry.command_id: pick(command_id))
+                shell.append(widget)
+        menu = Gtk.Menu()
+        fill(menu, items)
+        # "activate" of the picked item comes after "selection-done": leaving the menu is told only when nothing was picked
+        menu.connect("selection-done", lambda m: GLib.timeout_add(50, lambda: (pick(None), False)[1]))
+        menu.show_all()
+        self.last_menu = menu
+        # CEF answers after the event handler of the click has returned: GTK has no event to pop the menu up for, so it
+        # gets one that stands for the right click (else it warns "no trigger event for menu popup")
+        event = Gdk.Event.new(Gdk.EventType.BUTTON_PRESS)
+        event.button.window = self.w.get_window()
+        event.button.button = 3
+        event.button.time = Gdk.CURRENT_TIME
+        event.set_device(Gdk.Display.get_default().get_default_seat().get_pointer())
+        menu.popup_at_rect(self.w.get_window(), Gdk.Rectangle(int(x), int(y), 1, 1), Gdk.Gravity.NORTH_WEST,
+                           Gdk.Gravity.NORTH_WEST, event)
 
     def clipboard_get(self):
         return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text()

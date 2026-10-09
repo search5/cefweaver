@@ -27,6 +27,7 @@ gi.require_version("GdkX11", "3.0")
 from gi.repository import Gdk, GdkX11, GLib, Gtk  # noqa: E402,F401
 
 import browser  # noqa: E402
+from cefweaver import ui  # noqa: E402
 
 failures = []
 shots = sys.argv[1] if len(sys.argv) > 1 else None
@@ -337,6 +338,44 @@ drag(point(x, y), zone_point())
 drops = js("window.drops")
 check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget is source and target)", drops)
 snapshot("10-dragged")
+
+# 11. the context menu of the page: a real right click, a real click on an item of the application, and leaving the menu
+mine, shown = [], []
+adapter = view.view.adapter
+original_show = adapter.show_menu
+adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original_show(items, x, y, done))[1]
+view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
+x, y = rect_of("#para")
+xdo("mousemove", *point(x, y))
+settle(0.2)
+xdo("click", 3)
+spin(lambda: shown and adapter.last_menu.get_visible(), "the context menu")
+check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
+item = next(c for c in adapter.last_menu.get_children() if isinstance(c, Gtk.MenuItem) and c.get_label() == "Smoke item")
+xdo("mousemove", *center_of(item))
+settle(0.2)
+xdo("click", 1)
+spin(lambda: mine, "the action of the menu item")
+check(mine == ["run"], "clicking an item of the application runs its action", mine)
+settle(0.3)
+check(not adapter.last_menu.get_visible(), "the menu closes after the pick")
+snapshot("11-menu")
+xdo("mousemove", *point(x, y))
+settle(0.2)
+xdo("click", 3)
+spin(lambda: len(shown) == 2 and adapter.last_menu.get_visible(), "the context menu again")
+xdo("key", "Escape")
+spin(lambda: not adapter.last_menu.get_visible(), "the menu to close with Escape")
+settle(0.3)
+check(mine == ["run"], "leaving the menu with Escape picks nothing", mine)
+xdo("mousemove", *point(x, y))
+settle(0.2)
+xdo("click", 3)
+spin(lambda: len(shown) == 3 and adapter.last_menu.get_visible(), "the menu after it was left")
+check(js("1 + 1") == 2, "the page still answers after a menu was left")
+xdo("key", "Escape")
+settle(0.3)
+view.view.on_context_menu = None
 os.unlink(temporary.name)
 
 # 9. shutdown
