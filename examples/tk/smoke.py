@@ -124,10 +124,22 @@ class Adapter:
         adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original(items, x, y, done))[1]
         self.view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
         x, y = core.rect_of("#para")
+
+        def press_and_release():
+            """As a person clicks: CEF asks for the menu when the button goes down, and the button goes up while the menu
+            is being shown (a menu that is closed by that release is not a menu)."""
+            core.xdo("mousedown", 3)
+            self.spin(lambda: len(shown) > asked[0], "CEF to ask for the context menu")
+            asked[0] = len(shown)
+            self.settle(0.3)
+            core.xdo("mouseup", 3)
+        asked = [0]
         core.xdo("mousemove", *core.point(x, y))
         self.settle(0.2)
-        core.xdo("click", 3)
+        press_and_release()
         self.spin(lambda: shown and adapter.last_menu.winfo_ismapped(), "the context menu")
+        self.settle(0.5)
+        check(adapter.last_menu.winfo_ismapped(), "the menu stays open after the button was released")
         check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
         menu = adapter.last_menu
         index = menu.index("Smoke item")
@@ -140,7 +152,7 @@ class Adapter:
         check(not menu.winfo_ismapped(), "the menu closes after the pick")
         core.xdo("mousemove", *core.point(x, y))
         self.settle(0.2)
-        core.xdo("click", 3)
+        press_and_release()
         self.spin(lambda: len(shown) == 2 and adapter.last_menu.winfo_ismapped(), "the context menu again")
         core.xdo("key", "Escape")
         self.spin(lambda: not adapter.last_menu.winfo_ismapped(), "the menu to close with Escape")
@@ -148,7 +160,7 @@ class Adapter:
         check(mine == ["run"], "leaving the menu with Escape picks nothing", mine)
         core.xdo("mousemove", *core.point(x, y))
         self.settle(0.2)
-        core.xdo("click", 3)
+        press_and_release()
         self.spin(lambda: len(shown) == 3 and adapter.last_menu.winfo_ismapped(), "the menu after it was left")
         check(core.js("1 + 1") == 2, "the page still answers after a menu was left")
         core.xdo("key", "Escape")

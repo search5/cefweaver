@@ -12,7 +12,7 @@ What Tk cannot do is in the README: no input method preedit, no drag out of the 
 A drag inside the page is carried out by the view itself (the adapter has no drag source). Drops from other
 programs are not supported: tkinterdnd2 (the tkdnd extension) ends the process when CEF starts in it (README).
 
-Checked: Xvfb and xdotool: the 29 checks of examples/tk/smoke.py (Tk 8.6 of uv's CPython, Pillow), also with CEF on Wayland.
+Checked: Xvfb and xdotool: the 30 checks of examples/tk/smoke.py (Tk 8.6 of uv's CPython, Pillow), also with CEF on Wayland.
 Not checked: a scale other than 1 (Tk gives none), the preedit of an input method (Tk gives none), drops from other programs (tkinterdnd2 ends the process when CEF starts: cause unknown).
 """
 
