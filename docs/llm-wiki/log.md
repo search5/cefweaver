@@ -367,3 +367,7 @@
 ## [2026-10-09] query | Chrome과 cefsimple의 X11 대 Wayland 대조 (F75)
 
 - 같은 기계에서 Chrome 155는 X11과 Wayland 모두 영상이 재생되고, `cefsimple`(Chrome, Alloy 스타일)은 Wayland에서만 재생됩니다. 영상 실패는 CEF의 X11 경로 문제이고, cefweaver가 Wayland에서 죽는 것(F31)은 래퍼 쪽 원인일 가능성이 큽니다. 다음 조사: 래퍼 없는 `cefsimple`과 cefweaver의 차이를 Wayland에서 하나씩 가르기.
+
+## [2026-10-09] lint | F75 정정: 오프스크린 스위치 시험은 무효였고, 오프스크린은 Wayland에서 정상
+
+- 점검 도구의 오프스크린 경로에서 `--switch`가 적용되지 않던 버그를 찾아 고쳤습니다. 그 때문에 앞서 기록한 "오프스크린에서 스위치 약 20개가 모두 실패, `disable-gpu`뿐"은 틀렸습니다. 고친 뒤 오프스크린 GTK 3은 `ozone-platform=wayland`에서 3/3 재생 정상(소리 포함, 청취 확인), `disable-accelerated-video-decode`는 X11에서 2/3입니다. F31의 Wayland 크래시는 창 모드 한정입니다(오프스크린은 정상).

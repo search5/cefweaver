@@ -66,7 +66,7 @@ updated: 2026-10-09
 - **스피커로 들은 것 (2026-10-09, 선생님이 확인)**: 440 Hz 시험음은 `PygameSink`와 `SdlSink` 모두 들렸고, 실제 YouTube 소리는 sdl2, qt(PyQt6, PySide6), gtk3, wx, kivy, tk 일곱 환경 모두 들렸습니다(`--loud --no-gpu`, 시스템 출력 음량 34%). 수치도 맞았습니다: 싱크에 들어간 샘플의 peak 약 0.5, 시스템 출력 monitor(`parec`)의 peak 16716/32768.
 - **확인하지 못한 것**: 소리와 화면의 어긋남 정도.
 
-## F75: 실제 화면에서의 GPU 오류와 점검 도구의 함정 (2026-10-09)
+## F75: 실제 화면에서의 GPU 오류, Wayland, 점검 도구의 함정 (2026-10-09)
 
 - **실제 화면(XWayland)에서만** GPU 프로세스가 `gbm_bo_import ... nullptr`, `CreateSharedImage: could not create backing`으로 반복해서 죽고 영상 디코드가 실패합니다(`<video>.error.code` 3). xvfb에서는 나지 않습니다.
 - **래퍼와 무관함 (검증)**: 기본 CEF 앱(창 모드)과 래퍼 없는 `cefsimple`(Chrome 스타일과 `--use-alloy-style` 모두, `--no-sandbox --ozone-platform=x11`)에서도 같은 오류가 3번씩 나옵니다.
@@ -80,11 +80,11 @@ updated: 2026-10-09
 | 창 모드 | `disable-gpu-memory-buffer-video-frames` | 0/3 |
 | 창 모드 | `disable-features=VaapiVideoDecoder,AcceleratedVideoDecodeLinux` | 0/1 |
 | 오프스크린(gtk3, sdl2) | 없음 | 0/6 |
-| 오프스크린 | `disable-accelerated-video-decode` | 0/6 (gtk3, sdl2) |
-| 오프스크린 | `disable-gpu-compositing`, `use-gl=angle`+`use-angle=swiftshader`, `disable-gpu-memory-buffer-compositor-resources`+`disable-gpu-memory-buffer-video-frames`, `in-process-gpu`, `disable-gpu-sandbox`, `render-node-override=renderD128`/`renderD129`, `use-gl=egl`, `use-angle=gl`, `use-gl=angle`+`use-angle=gl` | 각 0/2 또는 0/3 |
-| 오프스크린 | `disable-accelerated-video-decode`+`disable-gpu-memory-buffer-video-frames`(+`disable-gpu-memory-buffer-compositor-resources`, 또는 `disable-features=AcceleratedVideoDecodeLinux,...`) | 각 0/3 |
+| 오프스크린(gtk3) | **`ozone-platform=wayland`** | **3/3** (`gbm` 0, 크래시 없음). 20초 재생과 소리도 정상(선생님이 들음) |
+| 오프스크린(gtk3) | `disable-accelerated-video-decode` | 2/3 (`gbm` 0, 1번은 4.5초만 재생, 원인 미조사) |
 | 오프스크린 | **`disable-gpu`** | **통과** (일곱 환경) |
 
+- **정정 (2026-10-09)**: 이 표의 이전 판은 오프스크린에서 스위치 약 20개(`in-process-gpu`, `disable-gpu-sandbox`, `render-node-override`, `use-gl=egl`, `use-angle=gl`, `disable-gpu-compositing` 등)가 모두 실패했다고 적었는데 **틀렸습니다.** 점검 도구(`playback_check.py`)의 오프스크린 경로에서 `--switch`가 적용되지 않는 버그(안쪽 함수의 인자 이름이 바깥 인자를 가림) 때문에 그 시험은 스위치 없는 실행을 반복한 것이었습니다(GPU 프로세스의 명령줄이 계속 `--ozone-platform=x11`이었음). 고친 뒤 `wayland`와 `disable-accelerated-video-decode`만 다시 시험했고, 나머지는 다시 시험하지 않았습니다(필요가 없어졌습니다). 창 모드의 스위치 시험과 `cefsimple`, Chrome, WebGL 시험은 영향을 받지 않았습니다.
 - **사운드 모듈과 무관함 (검증)**: 싱크와 pygame을 전혀 쓰지 않는 GTK 3(`--audio` 없음)도 2번 모두 같은 오류로 실패했습니다. 기본 CEF 앱과 `cefsimple`에는 애초에 사운드 모듈이 없습니다.
 - **GPU를 켜면 WebGL은 됩니다 (검증)**: 오프스크린 GTK 3에서 GPU를 켜면 WebGL이 NVIDIA GeForce RTX 4060(ANGLE, OpenGL 4.5)으로 동작하고(3초에 93~94 frame, 픽셀 값 맞음, 컨텍스트 손실과 GPU 프로세스 종료 없음), `disable-gpu`를 켜면 `getContext('webgl')`이 null이라 **WebGL이 없습니다**(소프트웨어 대체 없음). 즉 영상 재생만 GPU 켠 상태에서 실패하고, `disable-gpu`는 WebGL을 잃는 대가가 있습니다.
 - **Chrome과 Wayland 대조 (검증, 2026-10-09)**: 같은 기계, 같은 영상, GPU 켠 상태, 소리 없음, DevTools로 `<video>`를 읽었습니다(스크래치 프로브).
@@ -94,11 +94,10 @@ updated: 2026-10-09
 | Chrome 155 (설치본, 임시 프로필) | 재생 정상 2/2, `gbm_bo_import` 0 | 재생 정상 |
 | `cefsimple` Chrome 스타일 (CEF 154) | **실패**, `gbm_bo_import` 3, GPU 종료 3 | 재생 정상 |
 | `cefsimple` Alloy 스타일 (CEF 154) | **실패**, `gbm_bo_import` 3, GPU 종료 3 | 재생 정상 |
-| cefweaver (Alloy, 오프스크린) | **실패** (위 표) | 약 1초 뒤 `SIGTRAP` ([F31](verified-findings-api.md)) |
+| cefweaver 오프스크린 (Alloy) | **실패** (위 표) | **재생 정상 3/3** |
+| cefweaver 창 모드 (Alloy) | **실패** | 약 1초 뒤 `SIGTRAP` ([F31](verified-findings-api.md)) |
 
-  따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). 그리고 래퍼 없는 `cefsimple`은 Alloy 스타일도 Wayland에서 영상까지 재생하므로, cefweaver가 Wayland에서 죽는 것은 **래퍼 쪽 원인**일 가능성이 큽니다(F31의 "그림이 나오는지는 확인하지 못했다"를 메움). Wayland를 쓸 수 있다면 GPU를 켠 채 영상이 됩니다.
-  Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다.
-- **추정(미확인)**: 창 모드는 영상 디코드를 끄면 되지만 오프스크린은 안 되는 것으로 보아, 오프스크린에서 합성된 영상 프레임을 읽어 오는 경로에 별도의 버퍼 import가 있고 그것이 실패하는 것으로 보입니다. 그 경로를 끄는 스위치는 찾지 못했습니다. 상세 로그(`--log-file`)에는 `gbm_bo_import` 줄이 없어 포맷과 modifier는 알 수 없었습니다.
+  따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다. cefweaver의 **오프스크린은 네이티브 Wayland에서 GPU를 켠 채 영상과 소리가 정상**입니다. Wayland에서 죽는 것(F31)은 **창 모드**뿐이고(`playback_check.py windowed`로 재현, 종료 코드 -5), 래퍼 없는 `cefsimple`은 창 모드도 Wayland에서 되므로 그 크래시는 래퍼 쪽 원인일 가능성이 큽니다(미조사).
 - **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
 - **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.
 

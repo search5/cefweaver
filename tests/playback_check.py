@@ -65,8 +65,10 @@ def inside_toolkit(quickstart, url, seconds, audio, loud=False, no_gpu=False, sw
                 sink.write, sink.peak = measured_write, peak
         ui.BrowserView.__init__ = browser_view_init
 
+    given = list(switches)                                  # session_init has a parameter of the same name
+
     def session_init(self, adapter, switches=(), cache_path=None):
-        extra = ([("disable-gpu", "")] if no_gpu else []) + list(switches)
+        extra = ([("disable-gpu", "")] if no_gpu else []) + given
         init(self, adapter, list(switches) + SWITCHES + extra, cache_path)
         if log_file:
             self.app.settings.log_severity = cefweaver.types.LogSeverity.VERBOSE

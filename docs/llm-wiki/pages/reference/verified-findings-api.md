@@ -142,6 +142,7 @@ updated: 2026-10-08
 
 - **방법**: 실제 Wayland 데스크톱(GNOME mutter + XWayland)에서 `ozone-platform`을 바꿔 실행했습니다(사용자의 허락). 상세와 표는 [Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)에 있습니다.
 - **결과**: XWayland(`x11`)는 정상(88프레임, NVIDIA WebGL, 종료 코드 0)이고, 네이티브 Wayland(`wayland`, 미지정)는 약 1초 뒤 `SIGTRAP`입니다. 페이지와 제목 코드와 무관하며, `cefsimple`의 Alloy는 Wayland에서 살아 있었습니다.
+- **정정 (2026-10-09)**: 이 크래시는 **창 모드**의 것입니다. 오프스크린(`Session`, GTK 3)은 `ozone-platform=wayland`에서 크래시 없이 GPU를 켠 채 영상과 소리가 정상입니다([F75](verified-findings-media.md)).
 - **창 제목의 버그**: Alloy로 바꿀 때 구현한 창 제목 설정이 "루트의 자식 창까지 올라가기"를 했는데, 창 관리자가 있는 실제 데스크톱에서는 CEF의 최상위 창(`GetWindowHandle()`, `WM_STATE: Normal`)을 지나 **창 관리자의 프레임 창**(`mutter-x11-frames`)에 제목을 써서 보이지 않았습니다. 창 관리자가 없는 Xvfb에서는 이 오류가 드러나지 않아 시험이 통과했습니다. 핸들에 직접 쓰도록 고쳤습니다(`cefsimple`과 같은 방식). 또 Wayland에서 `cef_get_xdisplay()`를 먼저 부르면 죽을 수 있어서 창 핸들(Wayland에서는 비어 있음)을 먼저 확인합니다.
 - **시험**: 실제 화면에 창을 여는 시험이라 기본 실행에서는 건너뛰고 `CEFWEAVER_TEST_WAYLAND=1`일 때만 실행합니다(`WithCefOnWayland`). 기본값이 X11인지와 창 제목(실제 창 관리자 아래)을 확인하는 시험과, 명시한 `wayland`의 크래시를 기록하는 `expectedFailure` 시험이 있습니다.
 

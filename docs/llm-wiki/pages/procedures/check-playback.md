@@ -25,7 +25,7 @@ xvfb-run -a python tests/playback_check.py qt --venv .venv-pyside QT_QPA_PLATFOR
 
 - `--audio`: 뷰가 소리를 싱크(`audio="auto"`)로 재생하고 음량 0으로 확인합니다. 기록한 frame 수, 장치가 가져간 수, 끊김, 샘플의 peak를 봅니다.
 - `--loud`: `--audio`의 음량을 그대로 둬서 **실제로 들립니다**. 실제 화면에서 하면 창도 열립니다. 허락을 받고 하십시오.
-- `--no-gpu`: `disable-gpu`를 더합니다. 실제 화면에서는 이것이 없으면 GPU 프로세스가 죽습니다([F75](../reference/verified-findings-media.md)).
+- `--no-gpu`: `disable-gpu`를 더합니다(WebGL이 없어집니다). 실제 화면(XWayland)에서 오프스크린은 이것 없이도 `--switch ozone-platform=wayland`로 GPU를 켠 채 재생됩니다([F75](../reference/verified-findings-media.md)).
 - `--switch NAME[=VALUE]`: Chromium 스위치를 더합니다(여러 번 가능).
 - `--log-file PATH`: Chromium의 상세 로그(모든 프로세스, `v=1`)를 파일에 받습니다. `--stderr-file PATH`는 프로그램이 stderr에 쓴 것 전부입니다(`gbm_bo_import` 같은 줄은 stderr에만 나옵니다).
 - 실제 화면에서 Tk는 창을 클래스(`Tk`)로 찾습니다. 점검이 끝나면 임시 폴더(CEF의 `cache/`, 수십 MB)를 지웁니다.
