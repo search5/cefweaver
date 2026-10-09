@@ -13,6 +13,7 @@ sources:
   - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/toolkits/qt.py
   - cefweaver/ui/audio.py
+  - cefweaver/ui/permissions.py
   - cefweaver/ui/toolkits/tk.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/wx.py
@@ -89,6 +90,10 @@ GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친
 ## 소리 출력 (audio)
 
 `BrowserView(adapter, audio=...)`: `"auto"`(기본 없음: `None`이면 소리를 받지 않음), 싱크 객체, 또는 `None`. 싱크는 `start(sample_rate, channels)`, `write(samples, frames)`(frames x channels개의 little-endian float32, 인터리브), `stop()`을 가집니다(CEF의 오디오 스레드에서 불리므로 막으면 안 됨). `"auto"`는 어댑터의 `audio_sink()`(SDL2 `SdlSink`, Qt `QtSink`), 없으면 `cefweaver.ui.audio.PygameSink`(`pip install cefweaver[pygame]`), 그것도 없으면 소리 없음입니다. 싱크가 예외를 내면 떼어내고 `on_audio_error`로 한 번 알립니다. `BrowserWidget.attach_view(adapter, audio=...)`가 그대로 넘깁니다. 확인한 내용은 [F74](verified-findings-media.md)입니다.
+
+## 마이크와 카메라 (권한 정책)
+
+`BrowserView(adapter, media_permissions=정책)`(또는 세션을 시작하기 전에 `view.media_permissions = 정책`). 페이지가 `getUserMedia`를 부르면 `정책(요청)`이 불리고, 요청은 `origin`, `permissions`(`types.MediaAccessPermissionTypes`), `is_main_frame`을 가지며 `allow(권한=None)`(요청한 것보다 많이는 주지 않음)이나 `deny()`로 답합니다. 지금 답해도 되고 나중에(사용자에게 물은 뒤) 답해도 되며, 한 번만 답할 수 있습니다. 정책이 예외를 내면 거부하고 `sys.excepthook`으로 보고합니다. 정책이 없으면(기본) CEF의 기본 처리(거부)입니다. 도우미 `ui.permissions.allow_origins("https://meet.example.org", ...)`는 그 출처에만 마이크와 카메라를 주고 화면 캡처는 주지 않습니다. 소리는 Chromium이 시스템 마이크에서 직접 받습니다([F77](verified-findings-media.md)).
 
 ## 아직 하지 않은 것
 

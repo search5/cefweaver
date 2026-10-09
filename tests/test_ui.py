@@ -778,6 +778,106 @@ class SessionTargets(unittest.TestCase):
             ui.session.view_of(object())
 
 
+class AskingFrame:
+    def __init__(self, main=True):
+        self.main = main
+
+    def is_main(self):
+        return self.main
+
+
+class FakeAnswer:
+    """What CEF gives for a media access request: ``continue_(permissions)`` or ``cancel()``."""
+
+    def __init__(self):
+        self.calls = []
+
+    def continue_(self, permissions):
+        self.calls.append(("allow", int(permissions)))
+
+    def cancel(self):
+        self.calls.append(("deny",))
+
+
+AUDIO = types.MediaAccessPermissionTypes.DEVICE_AUDIO_CAPTURE
+VIDEO = types.MediaAccessPermissionTypes.DEVICE_VIDEO_CAPTURE
+SCREEN = types.MediaAccessPermissionTypes.DESKTOP_VIDEO_CAPTURE
+
+
+class MediaPermissions(unittest.TestCase):
+    """The microphone and the camera: the application decides (``BrowserView(media_permissions=policy)``)."""
+
+    def ask(self, policy, permissions=AUDIO, origin="https://example.org/", main=True):
+        view = ui.BrowserView(FakeAdapter(), media_permissions=policy)
+        handler = view.client.get_permission_handler()
+        answer = FakeAnswer()
+        handled = handler.on_request_media_access_permission(FakeBrowser([]), AskingFrame(main), origin, permissions, answer)
+        return handled, answer.calls
+
+    def test_without_a_policy_cef_keeps_its_own_answer(self):
+        self.assertIsNone(ui.BrowserView(FakeAdapter()).client.get_permission_handler())
+
+    def test_a_policy_is_told_who_asks_for_what(self):
+        seen = []
+        self.ask(lambda request: seen.append((request.origin, request.permissions, request.is_main_frame)),
+                 AUDIO | VIDEO, "https://meet.test/", main=False)
+        self.assertEqual(seen, [("https://meet.test/", AUDIO | VIDEO, False)])
+
+    def test_allow_gives_what_was_asked(self):
+        handled, calls = self.ask(lambda request: request.allow(), AUDIO | VIDEO)
+        self.assertTrue(handled)
+        self.assertEqual(calls, [("allow", int(AUDIO | VIDEO))])
+
+    def test_allow_can_give_less_than_was_asked(self):
+        _, calls = self.ask(lambda request: request.allow(AUDIO), AUDIO | VIDEO)
+        self.assertEqual(calls, [("allow", int(AUDIO))])
+
+    def test_allow_never_gives_more_than_was_asked(self):
+        _, calls = self.ask(lambda request: request.allow(AUDIO | SCREEN), AUDIO)
+        self.assertEqual(calls, [("allow", int(AUDIO))])
+
+    def test_deny_refuses(self):
+        handled, calls = self.ask(lambda request: request.deny())
+        self.assertTrue(handled)
+        self.assertEqual(calls, [("deny",)])
+
+    def test_the_answer_may_come_later_for_instance_after_asking_the_user(self):
+        held = []
+        view = ui.BrowserView(FakeAdapter(), media_permissions=held.append)
+        answer = FakeAnswer()
+        view.client.get_permission_handler().on_request_media_access_permission(FakeBrowser([]), AskingFrame(), "https://a.test/", AUDIO, answer)
+        self.assertEqual(answer.calls, [])                            # nothing yet: the page waits
+        held[0].allow()
+        held[0].deny()                                                # a second answer is ignored
+        held[0].allow()
+        self.assertEqual(answer.calls, [("allow", int(AUDIO))])
+
+    def test_a_policy_that_fails_denies_and_the_error_is_reported(self):
+        reported = []
+        original, sys.excepthook = sys.excepthook, lambda *info: reported.append(info[1])
+        try:
+            def policy(request):
+                raise ValueError("no")
+            handled, calls = self.ask(policy)
+        finally:
+            sys.excepthook = original
+        self.assertTrue(handled)
+        self.assertEqual(calls, [("deny",)])
+        self.assertEqual([str(error) for error in reported], ["no"])
+
+    def test_allow_origins_gives_the_devices_to_the_listed_origins_only(self):
+        policy = ui.permissions.allow_origins("https://meet.test", "http://localhost")
+        self.assertEqual(self.ask(policy, AUDIO | VIDEO, "https://meet.test/")[1], [("allow", int(AUDIO | VIDEO))])
+        self.assertEqual(self.ask(policy, AUDIO, "http://localhost/")[1], [("allow", int(AUDIO))])
+        self.assertEqual(self.ask(policy, AUDIO, "https://evil.test/")[1], [("deny",)])
+        self.assertEqual(self.ask(policy, AUDIO, "https://meet.test.evil.test/")[1], [("deny",)])
+
+    def test_allow_origins_does_not_give_the_screen(self):
+        policy = ui.permissions.allow_origins("https://meet.test")
+        self.assertEqual(self.ask(policy, AUDIO | SCREEN, "https://meet.test/")[1], [("allow", int(AUDIO))])
+        self.assertEqual(self.ask(policy, SCREEN, "https://meet.test/")[1], [("deny",)])
+
+
 class OzonePlatform(unittest.TestCase):
     """An offscreen session lets CEF use Wayland when there is a Wayland compositor: on X11 (XWayland) the GPU process of
     CEF dies on some machines and the video does not play (the same Chrome plays), and offscreen Wayland works."""
@@ -1303,6 +1403,63 @@ class WithCef(unittest.TestCase):
         self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertNotIn("stack smashing", result.stderr)
         self.assertIn("OK", result.stdout)
+
+
+PERMISSION_SCRIPT = """
+import sys, tempfile
+from cefweaver import ui
+from cefweaver.ui.headless import HeadlessAdapter
+
+PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>asking</title><script>
+navigator.mediaDevices.getUserMedia({audio: true}).then(
+  function (s) { document.title = "granted:" + s.getAudioTracks().length; },
+  function (e) { document.title = "denied:" + e.name; });
+</script>\"\"\"
+adapter = HeadlessAdapter(size=(200, 100))
+# fake devices: the answer of the page is what is checked, not a real microphone
+session = ui.Session(adapter, switches=[("ozone-platform", "x11"), ("use-fake-device-for-media-stream", "")],
+                     cache_path=tempfile.mkdtemp(prefix="cefweaver-ui-"))
+asked = []
+def policy(request):
+    asked.append(request.origin)
+    ui.permissions.allow_origins("http://localhost")(request)
+class Widget(ui.BrowserWidget):
+    pass
+widget = Widget()
+view = widget.attach_view(adapter, media_permissions=policy)
+titles = []
+view.on_title = titles.append
+def ready():
+    session.app.add_resource("http://localhost/", PAGE)
+    session.app.add_resource("http://127.0.0.1/", PAGE)             # a secure context too, but not in the policy
+    view.load_url("http://localhost/")
+view.on_ready = ready
+session.start(widget)
+adapter.run_until(lambda: any(t.startswith(("granted", "denied")) for t in titles), "the answer for localhost (titles %r)" % titles)
+first = [t for t in titles if t.startswith(("granted", "denied"))][-1]
+del titles[:]
+view.load_url("http://127.0.0.1/")
+adapter.run_until(lambda: any(t.startswith(("granted", "denied")) for t in titles), "the answer for 127.0.0.1 (titles %r)" % titles)
+second = [t for t in titles if t.startswith(("granted", "denied"))][-1]
+print("ANSWERS", first, second, asked)
+done = []
+session.shutdown(lambda: done.append(True))
+adapter.run_until(lambda: done, "CEF to shut down", 20)
+print("OK")
+"""
+
+
+class WithCefPermissions(unittest.TestCase):
+    def test_a_policy_decides_what_a_real_page_gets_for_the_microphone(self):
+        env = dict(os.environ)
+        env.pop("WAYLAND_DISPLAY", None)
+        result = subprocess.run([sys.executable, "-I", "-c", textwrap.dedent(PERMISSION_SCRIPT)], capture_output=True, text=True,
+                                timeout=120, env=env)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
+        self.assertNotIn("stack smashing", result.stderr)
+        self.assertIn("OK", result.stdout)
+        line = [l for l in result.stdout.splitlines() if l.startswith("ANSWERS")][0]
+        self.assertEqual(line, "ANSWERS granted:1 denied:NotAllowedError ['http://localhost/', 'http://127.0.0.1/']")
 
 
 # -- the quickstarts of the examples run for real -----------------------------------------------------------------

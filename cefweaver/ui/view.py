@@ -16,6 +16,7 @@ import cefweaver
 from cefweaver import types
 
 from . import audio as _audio
+from . import permissions as _permissions
 from . import keys
 from .adapter import DragPayload, Frame
 from .picture import PictureStore
@@ -36,8 +37,9 @@ class BrowserView:
     to CEF.
     """
 
-    def __init__(self, adapter, audio=None, pygame_sink=None):
+    def __init__(self, adapter, audio=None, pygame_sink=None, media_permissions=None):
         self.adapter = adapter
+        self.media_permissions = media_permissions      # a policy (see ``permissions``), set before the session starts
         self.audio_sink = self._choose_sink(adapter, audio, pygame_sink)
         self.audio_muted = False
         self.on_audio_error = lambda message: None
@@ -426,12 +428,16 @@ class _Handlers(cefweaver.Client):
         self.render, self.life = _Render(view), _Life(view)
         self.display, self.load = _Display(view), _Load(view)
         self.audio, self.view = _Audio(view), view
+        self.permission = _Permission(view)
 
     def get_render_handler(self):
         return self.render
 
     def get_audio_handler(self):
         return self.audio if self.view.audio_sink is not None else None     # without a sink CEF plays the sound
+
+    def get_permission_handler(self):
+        return self.permission if self.view.media_permissions is not None else None   # without a policy CEF refuses
 
     def get_life_span_handler(self):
         return self.life
@@ -441,6 +447,19 @@ class _Handlers(cefweaver.Client):
 
     def get_load_handler(self):
         return self.load
+
+
+class _Permission(cefweaver.PermissionHandler):
+    def __init__(self, view):
+        self.v = view
+
+    def on_request_media_access_permission(self, browser, frame, requesting_origin, requested_permissions, callback):
+        policy = self.v.media_permissions
+        if policy is None:
+            return False
+        request = _permissions.MediaRequest(requesting_origin, requested_permissions, frame.is_main(), callback)
+        _permissions.ask(policy, request)
+        return True
 
 
 class _Audio(cefweaver.AudioHandler):

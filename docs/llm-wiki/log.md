@@ -387,3 +387,7 @@
 ## [2026-10-09] ingest | 오프스크린 Session의 기본을 Wayland로
 
 - 사용자 결정에 따라 `ui.Session`이 Wayland 컴포지터가 있고 `ozone-platform`을 받지 못했으면 `wayland`를 더합니다(`default_ozone_platform()`, `Session.switches`). 창 모드(`CefApp`)는 X11 기본을 유지합니다. 시험 6개를 더했고(UI 117개), 실제 세션에서 GTK 3 `quickstart.py`의 GPU 프로세스가 기본으로 `wayland`인 것을 확인했습니다.
+
+## [2026-10-09] ingest | 마이크 권한 정책 (F77)
+
+- Chromium이 shim 없이 시스템 마이크를 직접 여는 것을 확인했고(CEF와 Chrome 동일, 소리 크기는 시스템 마이크가 음소거라 0), 앱이 권한을 정하는 `BrowserView(media_permissions=정책)`와 `ui.permissions`(`MediaRequest`, `allow_origins`)를 더했습니다. 로드맵 2단계 중 앱이 소리를 직접 대는 방식은 미뤘습니다.

@@ -8,6 +8,7 @@ sources:
   - tools/gen/typesys.py
   - cefweaver/bridge.py
   - cefweaver/ui/audio.py
+  - cefweaver/ui/permissions.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/qt.py
   - tests/test_ui.py
@@ -110,6 +111,13 @@ updated: 2026-10-09
 - **GTK 3의 클립보드 실패 (실제 결함, 고침)**: GTK 어댑터는 복사와 붙여넣기를 CEF에 맡겼는데(`native_clipboard`), Wayland의 CEF는 컴포지터의 클립보드를 쓰고 GTK는 X11 클립보드를 읽어서 서로 달랐습니다. 처음에는 시험 방식의 한계로 추정했지만 선생님이 실제 화면에서 복사와 붙여넣기가 안 되는 것을 확인했습니다. GTK 어댑터에 `clipboard_get`/`clipboard_set`(Gtk.Clipboard)을 더하고 `native_clipboard`를 뺐습니다(다른 다섯 툴킷은 원래 그랬음). 같은 점검이 Wayland와 X11 모두 27개 통과합니다.
 - **수동 확인 (GTK 3 `browser.py`, 실제 화면, CEF만 Wayland)**: 한글 입력이 잘 되고 그 밖에 시험한 입력도 정상이었습니다. 우클릭은 동작하지 않았는데, `cefweaver.ui`에 컨텍스트 메뉴를 보여 주는 코드가 없기 때문으로 보입니다(X11에서도 같을 것으로 추정, 미확인).
 - **부작용**: 점검의 CEF가 컴포지터의 실제 클립보드에 시험용 문자열을 썼을 수 있습니다.
+
+## F77: 마이크 (2026-10-09)
+
+- **Chromium은 shim 없이 시스템 마이크를 직접 엽니다 (검증)**: 권한 핸들러가 허용하면 오프스크린 CEF에서 `getUserMedia({audio: true})`가 성공합니다(트랙 1개, 장치 `기본값`, 상태 `live`, 48 kHz, 에코 제거와 잡음 억제 켜짐). 설치된 Chrome 155도 같은 결과입니다.
+- **소리 크기는 0이었습니다 (원인 확인)**: CEF와 Chrome 모두 트랙이 `muted: true`, `peak 0`, `rms 0`이었는데, 시스템의 기본 마이크(`alsa_input.pci-0000_65_00.6.analog-stereo`)가 **음소거**(`pactl get-source-mute`가 예)였기 때문입니다. 장치는 열리지만 데이터가 오지 않습니다. 소리가 실제로 들어오는 것은 음소거를 풀지 않아 확인하지 못했습니다.
+- **API**: 마이크와 카메라 권한은 앱이 정책으로 정합니다([UI API](ui-api.md)). `PermissionHandler`는 이미 열려 있었고(F71), `cefweaver.ui`에 정책, `MediaRequest`, `allow_origins`를 더했습니다. 실제 CEF 시험: 허용한 출처(`http://localhost`)는 `granted:1`, 그 밖(`http://127.0.0.1`)은 `denied:NotAllowedError`.
+- **하지 않은 것**: 앱이 소리를 직접 대는 방식(페이지에 shim을 넣어 `getUserMedia`를 가로채고 툴킷의 입력이나 pygame을 흘려보내기). 시스템 마이크를 그대로 쓰는 경우에는 필요 없어서 미뤘습니다.
 
 ## 관련 페이지
 
