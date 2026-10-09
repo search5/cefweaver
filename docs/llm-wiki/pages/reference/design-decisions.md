@@ -2,11 +2,12 @@
 title: 설계 결정 기록
 type: reference
 sources:
+  - cefweaver/ui/session.py
   - CLAUDE.md
   - pyproject.toml
   - tools/prepare.py
   - tools/gen/scope.py
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # 설계 결정 기록
@@ -62,7 +63,8 @@ updated: 2026-10-08
 | 벡터의 요소는 문자열, 숫자(`bool` 제외), 값 타입 구조체, 라이브러리 객체. 방향마다 허용이 다름(라이브러리에 주는 객체 목록과 핸들러의 벡터 출력은 지원 안 함) | 범위 안에서 실행으로 검증한 조합만 지원합니다. `std::vector<bool>`은 컨테이너가 아닙니다. | 구현 중 판단 |
 | `shutdown()` 뒤에 해제되는 라이브러리 객체는 `Release()` 없이 버림 | 종료된 CEF에 `Release()`를 부르면 죽는 객체(`TaskManager`)가 있고, 종료 뒤에는 아무도 그 객체를 쓰지 않습니다. | 구현 중 판단 |
 | `GetDragHandler()`는 사용자 핸들러가 있을 때만 자신을 돌려줌 | 래퍼가 드래그 이벤트로 할 일이 없어서 CEF의 기본 동작을 건드리지 않습니다. | 구현 중 판단 |
-| `ozone-platform`을 지정하지 않으면 **`x11`을 기본**으로 씀(`DISPLAY`가 있을 때만) | Alloy 스타일은 네이티브 Wayland에서 `libcef` 안에서 죽는데, Chromium은 `WAYLAND_DISPLAY`가 있으면 Wayland를 고릅니다. 지정하거나 `ozone-platform-hint`를 주면 존중합니다. | 구현 중 판단(위키의 미뤄 둔 결정 (나)를 조건부로 채택), 실제 화면 확인은 사용자의 허락 |
+| `ozone-platform`을 지정하지 않으면 **`x11`을 기본**으로 씀(`DISPLAY`가 있을 때만) | Alloy 스타일은 네이티브 Wayland에서 `libcef` 안에서 죽는데, Chromium은 `WAYLAND_DISPLAY`가 있으면 Wayland를 고릅니다. 지정하거나 `ozone-platform-hint`를 주면 존중합니다. 이것은 **창 모드(`CefApp`)**의 결정입니다. 오프스크린은 아래 줄입니다. | 구현 중 판단(위키의 미뤄 둔 결정 (나)를 조건부로 채택), 실제 화면 확인은 사용자의 허락 |
+| `ui.Session`(오프스크린)은 Wayland 컴포지터가 있으면(`WAYLAND_DISPLAY`가 가리키는 소켓이 있음) **`ozone-platform=wayland`를 기본**으로 씀. 사용자가 `ozone-platform`이나 `ozone-platform-hint`를 주면 존중 | 오프스크린은 Wayland에서 정상이고(여섯 툴킷의 점검 통과, 영상과 소리, [F76](verified-findings-media.md)), X11(XWayland)에서는 이 기계에서 GPU 프로세스가 죽어 영상이 재생되지 않습니다(Chrome은 X11에서도 됨, [F75](verified-findings-media.md)). 다른 GPU와 컴포지터에서는 시험하지 못했으므로 문제가 나면 `ozone-platform=x11` 스위치로 되돌립니다. | 2026-10-09 사용자 결정(제안: 오프스크린만 Wayland 기본). 점검 코드는 `WAYLAND_DISPLAY`를 지우므로 X11을 유지합니다 |
 | 래퍼의 DevTools 컨텍스트 메뉴 항목은 **기본 끔**, `app.devtools_menu`로 언제든 켜고 끌 수 있고 켜고 꺼도 다른 동작은 같아야 함 | 라이브러리가 사용자 몰래 메뉴를 바꾸지 않게 하고, 켜고 끔이 사용자 핸들러의 동작에 영향을 주지 않게 합니다. 사용자 핸들러가 먼저 메뉴를 고치고 래퍼가 그 뒤에 항목을 더하며, 래퍼의 명령 ID는 허용 범위의 맨 끝(28498~28500)입니다. | 사용자(요구), 순서와 ID는 구현 중 판단 |
 | 컨텍스트 메뉴는 `run_context_menu` + `callback.continue_()`로 코드에서 열고 고름 | CEF가 제공하는 사용자 정의 메뉴 방법이라 별도 장치 없이 시험할 수 있습니다. | 사용자(제안), 구현 중 판단 |
 | 프로세스 메시지는 **이름으로 나눔**: 래퍼의 두 이름은 래퍼가, 그 밖은 사용자에게 | 충돌이 없고 결정할 것이 없습니다. 사용자가 없으면 `false`. | 구현 중 판단(사용자의 진행 요청) |

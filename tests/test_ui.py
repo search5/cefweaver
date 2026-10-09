@@ -778,6 +778,46 @@ class SessionTargets(unittest.TestCase):
             ui.session.view_of(object())
 
 
+class OzonePlatform(unittest.TestCase):
+    """An offscreen session lets CEF use Wayland when there is a Wayland compositor: on X11 (XWayland) the GPU process of
+    CEF dies on some machines and the video does not play (the same Chrome plays), and offscreen Wayland works."""
+
+    SOCKET = "/run/user/1000/wayland-0"
+
+    def env(self, **given):
+        return dict({"WAYLAND_DISPLAY": "wayland-0", "XDG_RUNTIME_DIR": "/run/user/1000"}, **given)
+
+    def test_wayland_is_the_default_where_there_is_a_compositor(self):
+        self.assertEqual(ui.session.default_ozone_platform(self.env(), "linux", lambda path: path == self.SOCKET), "wayland")
+
+    def test_a_socket_given_by_its_full_path_counts_too(self):
+        env = self.env(WAYLAND_DISPLAY="/tmp/compositor.sock")
+        self.assertEqual(ui.session.default_ozone_platform(env, "linux", lambda path: path == "/tmp/compositor.sock"), "wayland")
+
+    def test_there_is_no_default_without_a_compositor(self):
+        for env in ({}, {"WAYLAND_DISPLAY": ""}, {"WAYLAND_DISPLAY": "wayland-0"}):      # none, empty, no runtime directory
+            self.assertIsNone(ui.session.default_ozone_platform(env, "linux", lambda path: True), env)
+        self.assertIsNone(ui.session.default_ozone_platform(self.env(), "linux", lambda path: False))   # a stale variable
+        self.assertIsNone(ui.session.default_ozone_platform(self.env(), "win32", lambda path: True))
+
+    def session(self, switches, platform="wayland"):
+        original, ui.session.default_ozone_platform = ui.session.default_ozone_platform, lambda *a, **k: platform
+        try:
+            return ui.Session(FakeAdapter(), switches=switches)
+        finally:
+            ui.session.default_ozone_platform = original
+
+    def test_the_session_adds_the_platform_when_the_application_gave_none(self):
+        self.assertEqual(self.session([("disable-gpu", "")]).switches, [("disable-gpu", ""), ("ozone-platform", "wayland")])
+
+    def test_the_session_follows_what_the_application_gave(self):
+        for given in ([("ozone-platform", "x11")], [("--ozone-platform", "x11")], [("ozone-platform-hint", "auto")]):
+            self.assertEqual(self.session(given).switches, given)
+
+    def test_the_session_adds_nothing_where_there_is_no_default(self):
+        self.assertEqual(self.session([("disable-gpu", "")], platform=None).switches, [("disable-gpu", "")])
+
+
 def read_png(path):
     """(width, height, RGBA bytes) of a PNG written by cefweaver.ui (8 bit RGBA, no interlace)."""
     import struct

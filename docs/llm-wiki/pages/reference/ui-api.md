@@ -18,7 +18,7 @@ sources:
   - cefweaver/ui/toolkits/wx.py
   - cefweaver/ui/toolkits/kivy.py
   - tests/test_ui.py
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # UI 어댑터 API (cefweaver.ui)
@@ -33,7 +33,7 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 | `ToolkitAdapter` | 툴킷이 구현할 필수 7개: `view_size`, `scale`, `screen_origin`, `screen_size`, `present(frame)`, `post(fn)`, `call_later(seconds, fn)` |
 | 선택 메서드 | `set_cursor`, `clipboard_get`과 `clipboard_set`, `set_ime_rect`, `start_drag_out`, `drag_operation_changed`. 있으면 그 기능이 켜집니다 |
 | `capabilities` | 어댑터의 속성(집합). `"native_clipboard"`는 CEF가 클립보드 키를 직접 처리해도 된다는 뜻(지금은 쓰는 툴킷이 없음: CEF의 클립보드는 Wayland에서 컴포지터의 것이라 GTK 3도 어댑터가 처리하게 바꿈, F76), `"drag_out"`은 `start_drag_out`으로 툴킷의 드래그를 시작할 수 있다는 뜻 |
-| `Session(adapter, switches, cache_path)` | `CefApp`, `JavascriptBridge`, `MessagePump`. CEF의 깨움을 `adapter.post`로, 기한을 `adapter.call_later`로 받아 폴링 없이 돌립니다. `start(target, url)`(`BrowserView`이나 `BrowserWidget`을 받음), `shutdown(done)`(끝나면 어댑터의 선택 메서드 `release()`를 부름: 루프가 놓을 것이 있을 때, 예를 들어 파이프). 툴킷마다 `Session` 하위 클래스를 둘 필요가 없고 `ui.Session(툴킷의 루프, ...)`로 충분합니다 |
+| `Session(adapter, switches, cache_path)` | `CefApp`, `JavascriptBridge`, `MessagePump`. `ozone-platform`을 주지 않으면 Wayland 컴포지터가 있을 때 `wayland`를 더합니다(`session.default_ozone_platform()`, 시험하지 못한 환경에서 문제가 나면 `("ozone-platform", "x11")`를 주세요). 실제로 CEF에 준 스위치는 `session.switches`입니다. CEF의 깨움을 `adapter.post`로, 기한을 `adapter.call_later`로 받아 폴링 없이 돌립니다. `start(target, url)`(`BrowserView`이나 `BrowserWidget`을 받음), `shutdown(done)`(끝나면 어댑터의 선택 메서드 `release()`를 부름: 루프가 놓을 것이 있을 때, 예를 들어 파이프). 툴킷마다 `Session` 하위 클래스를 둘 필요가 없고 `ui.Session(툴킷의 루프, ...)`로 충분합니다 |
 | `Frame` | `present()`가 받는 그림: `kind`(`VIEW`, `POPUP`, `POPUP_HIDDEN`), `width`, `height`, `buffer`(BGRA, 호출 동안만 유효), `dirty_rects`, 팝업은 `rect`, 뷰의 `PictureStore`가 이 프레임으로 한 일 `change` |
 | `keys` | CEF 이벤트 플래그(`SHIFT`, `CONTROL`, `ALT`, 단추)와 가상 키 코드(`VK_*`), `vk_for_char`, `vk_for_function` |
 | `PictureStore`, `write_png` | 뷰가 모든 프레임을 보관하는 저장소(`view.store`)와 의존성 없는 PNG 쓰기(`view.snapshot(path)`, `BrowserWidget.snapshot`): 툴킷마다 snapshot을 구현할 필요가 없습니다. 그림의 픽셀을 프레임 사이에 보관: CEF의 버퍼는 `present()` 동안만 유효하므로 복사본(`pixels`, 팝업은 `popup_pixels`와 `popup_rect`)을 두고, 같은 크기의 프레임은 dirty rect의 행만 제자리에서 고칩니다. `apply(frame)`이 `NEW`(새 표면을 만들 것), `DIRTY`(바뀐 사각형, 그림 안으로 잘림), `POPUP`, `POPUP_HIDDEN`을 돌려줌. cairo나 `QImage`처럼 픽셀을 복사 없이 감싸는 툴킷용(GTK 3, Qt) |

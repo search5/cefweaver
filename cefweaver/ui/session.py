@@ -1,5 +1,8 @@
 """``Session``: CEF for a toolkit application, driven from the toolkit's event loop."""
 
+import os
+import sys
+
 import cefweaver
 
 from .view import BrowserView
@@ -13,6 +16,28 @@ def view_of(target):
     if isinstance(target, BrowserWidget):
         return target.view
     raise TypeError("expected a BrowserView or a BrowserWidget, not %s" % type(target).__name__)
+
+
+def default_ozone_platform(environ=None, platform=None, exists=os.path.exists):
+    """``"wayland"`` where an offscreen browser should use it, else None (Chromium or ``CefApp`` decides).
+
+    There has to be a Wayland compositor: ``WAYLAND_DISPLAY`` names a socket that exists. Offscreen CEF works on Wayland,
+    and on X11 (XWayland) the GPU process of CEF dies on some machines and the video does not play, while Chrome plays
+    it there. (A browser window of ``CefApp`` ends the process on Wayland: it stays on X11.)
+    """
+    environ = os.environ if environ is None else environ
+    if (sys.platform if platform is None else platform) != "linux":
+        return None
+    display = environ.get("WAYLAND_DISPLAY")
+    if not display:
+        return None
+    if os.path.isabs(display):
+        path = display
+    elif environ.get("XDG_RUNTIME_DIR"):
+        path = os.path.join(environ["XDG_RUNTIME_DIR"], display)
+    else:
+        return None
+    return "wayland" if exists(path) else None
 
 
 class Session:
@@ -31,13 +56,22 @@ class Session:
     """
 
     def __init__(self, adapter, switches=(), cache_path=None):
+        """``switches``: Chromium command line switches, ``(name, value)``. Where ``default_ozone_platform()`` says
+        ``wayland`` and the application gave no ``ozone-platform`` (or ``ozone-platform-hint``), the session adds it;
+        ``switches`` (a list, after this) tells what CEF was given."""
         self.adapter = adapter
+        self.switches = list(switches)
+        names = {str(name).lstrip("-") for name, _ in self.switches}
+        if "ozone-platform" not in names and "ozone-platform-hint" not in names:
+            platform = default_ozone_platform()
+            if platform:
+                self.switches.append(("ozone-platform", platform))
         self.app = cefweaver.CefApp()
         self.app.offscreen = True
         self.app.transparent = False
         if cache_path:
             self.app.set_cache_path(cache_path)
-        for name, value in switches:
+        for name, value in self.switches:
             self.app.add_command_line_switch(name, value)
         self.bridge = cefweaver.JavascriptBridge(self.app)
         self.pump = cefweaver.MessagePump(self.app, wake=self._wake)

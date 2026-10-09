@@ -383,3 +383,7 @@
 ## [2026-10-09] ingest | GTK 3 클립보드를 어댑터가 처리하게 고침 (F76)
 
 - CEF를 Wayland로 돌리면 GTK 3에서 복사와 붙여넣기가 안 되는 결함(실제 화면에서 확인)을 고쳤습니다. GTK 어댑터가 `clipboard_get`/`clipboard_set`을 갖고 `native_clipboard`를 뺐습니다. 시험(`test_every_toolkit_does_the_clipboard_itself`)을 더했고, GTK 3 점검은 Wayland와 X11 모두 27개 통과합니다.
+
+## [2026-10-09] ingest | 오프스크린 Session의 기본을 Wayland로
+
+- 사용자 결정에 따라 `ui.Session`이 Wayland 컴포지터가 있고 `ozone-platform`을 받지 못했으면 `wayland`를 더합니다(`default_ozone_platform()`, `Session.switches`). 창 모드(`CefApp`)는 X11 기본을 유지합니다. 시험 6개를 더했고(UI 117개), 실제 세션에서 GTK 3 `quickstart.py`의 GPU 프로세스가 기본으로 `wayland`인 것을 확인했습니다.
