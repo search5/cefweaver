@@ -54,7 +54,9 @@ DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title
  ["dragenter", "dragover"].forEach(function (name) { zone.addEventListener(name, function (e) { e.preventDefault(); }); });
  zone.addEventListener("drop", function (e) {
    e.preventDefault();
-   window.drops.push({text: e.dataTransfer.getData("text/plain"), files: Array.prototype.map.call(e.dataTransfer.files, function (f) { return f.name; })});
+   var drop = {text: e.dataTransfer.getData("text/plain"), files: Array.prototype.map.call(e.dataTransfer.files, function (f) { return f.name; })};
+   window.drops.push(drop);
+   log("dropped " + (drop.files.length ? "files " + drop.files.join(", ") : "text " + JSON.stringify(drop.text)));   // so that it is seen
  });
  window.compositions = [];
  ["compositionstart", "compositionupdate", "compositionend"].forEach(function (name) {

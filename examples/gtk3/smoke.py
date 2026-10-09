@@ -318,6 +318,8 @@ js("window.drops = []")
 drag(center_of(source), zone_point())
 drops = js("window.drops")
 check(drops == [{"text": "from-gtk", "files": []}], "text dragged from GTK is dropped on the page", drops)
+log = js("document.getElementById('log').textContent")
+check('dropped text "from-gtk"' in log, "the page shows what was dropped (so that the drop zone can be tried by hand)", log[-80:])
 # 10b. a file from GTK into the page
 js("window.drops = []")
 drag(center_of(file_source), zone_point())
