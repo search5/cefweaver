@@ -396,6 +396,40 @@ xdo("click", 1)
 settle(0.5)
 check(clipboard_text("Selectable paragraph text"), "Copy of the menu puts the selected text into the clipboard of GTK",
       clipboard.wait_for_text())
+
+
+def menu_item_click(selector, command_id, what):
+    """Right click on an element, take the focus from the page as the menu of a real desktop does (the widget tells CEF
+    when it loses the focus), and click the item of the menu with this command id."""
+    shown_before = len(shown)
+    x0, y0 = rect_of(selector)
+    xdo("mousemove", *point(x0, y0))
+    settle(0.2)
+    xdo("click", 3)
+    spin(lambda: len(shown) == shown_before + 1 and adapter.last_menu.get_visible(), "the menu for " + what)
+    view.view.focus(False)
+    settle(0.2)
+    item = adapter.last_menu.get_children()[ids_shown[-1].index(command_id)]
+    xdo("mousemove", *center_of(item))
+    settle(0.2)
+    xdo("click", 1)
+    settle(0.6)
+
+
+# Paste and Cut of the menu work on a page that lost the focus to the menu
+js("(function () { var a = document.getElementById('area'); a.value = ''; a.focus(); })()")
+settle(0.3)
+clipboard.set_text("from the clipboard", -1)
+menu_item_click("#area", 114, "Paste")                                                    # 114: Paste
+check(js("document.getElementById('area').value") == "from the clipboard", "Paste of the menu types the clipboard of GTK into the field",
+      js("document.getElementById('area').value"))
+js("(function () { var a = document.getElementById('area'); a.value = 'cut me'; a.focus(); a.select(); })()")
+settle(0.3)
+clipboard.set_text("before", -1)
+menu_item_click("#area", 112, "Cut")                                                      # 112: Cut
+check(js("document.getElementById('area').value") == "" and clipboard_text("cut me"),
+      "Cut of the menu removes the selection and puts it into the clipboard of GTK",
+      (js("document.getElementById('area').value"), clipboard.wait_for_text()))
 view.view.on_context_menu = None
 os.unlink(temporary.name)
 

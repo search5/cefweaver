@@ -79,7 +79,7 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 
 | 예제 | 위젯 파일(표와 전략과 기반 클래스까지 뺀 지금) | 점검 | 확인한 것 |
 | --- | --- | --- | --- |
-| `gtk3` | 663줄에서 485줄 | 35개 통과 | 아래 |
+| `gtk3` | 663줄에서 485줄 | 37개 통과 | 아래 |
 | `tk` | 464줄에서 266줄 | 29개 통과(2번 연속) | 어댑터 없이 `Session`을 `post`(큐와 파이프)와 `call_later`(`after`)만으로 구동. 클립보드 키와 페이지 안의 드래그를 뷰가 처리(Tk 코드에서 사라짐) |
 | `sdl2` | 547줄에서 354줄 | 28개 통과 | 뷰이자 루프인 클래스가 `post`(큐와 `SDL_PushEvent`)와 `call_later`(시간 순 목록과 `SDL_WaitEventTimeout`)를 직접 구현. 드롭은 `drop()`으로 통일되어 `dragover`의 답을 기다림 |
 | `kivy` | 530줄에서 282줄 | 27개 통과, 실제 앱의 창 닫기도 종료 코드 0 | `Clock.schedule_once`가 `post`와 `call_later`를 겸함(`ClockEvent`가 `cancel()`을 가짐). 드롭 이벤트가 위치를 주므로 `drop(x, y, ...)`에 그대로 대응 |
@@ -98,7 +98,7 @@ GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친
 
 ## 컨텍스트 메뉴 (우클릭)
 
-오프스크린에서는 CEF가 메뉴를 그려 주지 않아서 어댑터가 `show_menu(items, x, y, done)`을 가지면(선택) 뷰가 CEF의 메뉴 모델을 `ui.menu.MenuItem` 목록(`kind`: command, check, radio, separator, submenu. `label`은 단축키 표시 `&`를 뗀 것, `enabled`, `checked`, `children`)으로 바꿔 넘깁니다. 어댑터는 툴킷의 메뉴 위젯으로 `(x, y)`(뷰 좌표)에 보여 주고 고른 항목의 `command_id`로 `done(command_id)`를, 그냥 닫으면 `done(None)`을 부릅니다(한 번만 유효). 표준 명령(뒤로, 인쇄, 전체 선택 등)은 CEF가 실행합니다. **복사, 잘라내기, 붙여넣기는 뷰가** 키(Ctrl+C 등)와 같은 경로로 툴킷의 클립보드로 처리하고 CEF에는 취소로 답합니다(CEF의 클립보드는 Wayland에서 컴포지터의 것이라 툴킷에 닿지 않음. `native_clipboard`나 클립보드 메서드가 없는 어댑터는 CEF가 실행). `show_menu`가 없는 어댑터는 메뉴가 안 뜨는 지금까지와 같습니다. 앱은 `view.on_context_menu = 훅`으로 메뉴를 고칩니다: `훅(info, items)`가 보여 줄 목록을 돌려주고(`None`이면 메뉴 없음), `info`는 `x`, `y`, `link_url`, `source_url`, `page_url`, `selection_text`, `is_editable`을 가지며, `MenuItem("라벨", action=함수)`는 앱의 항목으로 골랐을 때 함수만 실행합니다(CEF에는 알리지 않음). 훅이나 `show_menu`가 예외를 내면 메뉴를 취소하고 `sys.excepthook`으로 보고합니다.
+오프스크린에서는 CEF가 메뉴를 그려 주지 않아서 어댑터가 `show_menu(items, x, y, done)`을 가지면(선택) 뷰가 CEF의 메뉴 모델을 `ui.menu.MenuItem` 목록(`kind`: command, check, radio, separator, submenu. `label`은 단축키 표시 `&`를 뗀 것, `enabled`, `checked`, `children`)으로 바꿔 넘깁니다. 어댑터는 툴킷의 메뉴 위젯으로 `(x, y)`(뷰 좌표)에 보여 주고 고른 항목의 `command_id`로 `done(command_id)`를, 그냥 닫으면 `done(None)`을 부릅니다(한 번만 유효). 표준 명령(뒤로, 인쇄, 전체 선택 등)은 CEF가 실행합니다. **복사, 잘라내기, 붙여넣기는 뷰가** 키(Ctrl+C 등)와 같은 경로로 툴킷의 클립보드로 처리하고 CEF에는 취소로 답합니다(CEF의 클립보드는 Wayland에서 컴포지터의 것이라 툴킷에 닿지 않음. 잘라내기와 붙여넣기는 메뉴가 포커스를 가져간 뒤라 페이지에 포커스를 먼저 줍니다: CEF는 포커스 없는 페이지에 글자 입력을 무시합니다. `native_clipboard`나 클립보드 메서드가 없는 어댑터는 CEF가 실행). `show_menu`가 없는 어댑터는 메뉴가 안 뜨는 지금까지와 같습니다. 앱은 `view.on_context_menu = 훅`으로 메뉴를 고칩니다: `훅(info, items)`가 보여 줄 목록을 돌려주고(`None`이면 메뉴 없음), `info`는 `x`, `y`, `link_url`, `source_url`, `page_url`, `selection_text`, `is_editable`을 가지며, `MenuItem("라벨", action=함수)`는 앱의 항목으로 골랐을 때 함수만 실행합니다(CEF에는 알리지 않음). 훅이나 `show_menu`가 예외를 내면 메뉴를 취소하고 `sys.excepthook`으로 보고합니다.
 
 ## 아직 하지 않은 것
 

@@ -87,7 +87,7 @@ class BrowserView:
             elif pick in _menu.CLIPBOARD_COMMANDS and self._does_clipboard():
                 callback.cancel()                       # the clipboard of CEF is not the one of the toolkit
                 try:
-                    self._clipboard_command(_menu.CLIPBOARD_COMMANDS[pick], info.selection_text)
+                    self._clipboard_command(_menu.CLIPBOARD_COMMANDS[pick], info.selection_text, refocus=True)
                 except Exception:
                     _menu.report()
             else:
@@ -328,9 +328,12 @@ class BrowserView:
         return "native_clipboard" not in self.capabilities and hasattr(self.adapter, "clipboard_get") and hasattr(
             self.adapter, "clipboard_set")
 
-    def _clipboard_command(self, command, selection=None):
+    def _clipboard_command(self, command, selection=None, refocus=False):
         """``"copy"``, ``"cut"`` or ``"paste"`` with the clipboard of the toolkit (the keys and the context menu).
-        ``selection``: the text to copy, else the selection that CEF told."""
+        ``selection``: the text to copy, else the selection that CEF told. ``refocus``: give the page the focus first
+        (a menu of the toolkit took it, and CEF does not edit a page that has none: cut and paste)."""
+        if refocus and command != "copy":
+            self.focus(True)
         if command == "paste":
             self.text(self.adapter.clipboard_get() or "")
             return

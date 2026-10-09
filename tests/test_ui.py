@@ -1127,6 +1127,22 @@ class ContextMenuClipboard(unittest.TestCase):
             self.assertEqual(named(self.calls, "ime_commit_text")[0][0], "from clipboard", command)
             self.assertEqual(self.answer.calls, [("cancel",)])
 
+    def test_cut_and_paste_give_the_page_the_focus_first(self):
+        # the menu of the toolkit took the focus; CEF does not edit a page that has none
+        for command, then in ((types.MenuId.CUT, "frame.delete"), (types.MenuId.PASTE, "ime_commit_text"),
+                              (types.MenuId.PASTE_MATCH_STYLE, "ime_commit_text")):
+            self.start()
+            self.choose(int(command))
+            names = [call[0] for call in self.calls]
+            self.assertIn(then, names, command)
+            self.assertLess(names.index("set_focus"), names.index(then), command)
+            self.assertEqual(named(self.calls, "set_focus")[0], (True,), command)
+
+    def test_copy_does_not_need_the_focus(self):
+        self.start()
+        self.choose(int(types.MenuId.COPY))
+        self.assertEqual(named(self.calls, "set_focus"), [])
+
     def test_the_other_commands_are_cefs(self):
         self.start()
         self.choose(int(types.MenuId.SELECT_ALL))
