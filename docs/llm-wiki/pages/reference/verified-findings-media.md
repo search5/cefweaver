@@ -70,7 +70,24 @@ updated: 2026-10-09
 
 - **실제 화면(XWayland)에서만** GPU 프로세스가 `gbm_bo_import ... nullptr`, `CreateSharedImage: could not create backing`으로 반복해서 죽고 영상 디코드가 실패합니다(`<video>.error.code` 3). xvfb에서는 나지 않습니다.
 - **래퍼와 무관함 (검증)**: 기본 CEF 앱(창 모드)과 래퍼 없는 `cefsimple`(Chrome 스타일과 `--use-alloy-style` 모두, `--no-sandbox --ozone-platform=x11`)에서도 같은 오류가 3번씩 나옵니다.
-- **우회 시험** (YouTube, 실제 화면, 3번씩): 창 모드에서 `disable-accelerated-video-decode`는 3/3 통과, 스위치 없음 0/3, `disable-gpu-memory-buffer-video-frames` 0/3. 오프스크린(gtk3, sdl2)에서는 `disable-accelerated-video-decode`가 0/3, `disable-gpu-compositing`, `use-gl=angle`+`use-angle=swiftshader`, `disable-gpu-memory-buffer-compositor-resources`+`disable-gpu-memory-buffer-video-frames`도 0/3(gtk3)입니다. **통과한 것은 `disable-gpu`뿐**입니다. 원인(드라이버, 포맷 수정자 등)은 조사하지 않았습니다.
+- **환경**: 하이브리드 GPU 노트북(AMD HawkPoint `renderD128`, NVIDIA RTX 4060 `renderD129`), XWayland. xvfb에는 GPU가 없어서 이 오류가 나지 않습니다.
+- **우회 시험** (YouTube, 실제 화면, 같은 조건으로 반복). 합격은 영상이 시계대로 재생되는 것입니다.
+
+| 모드 | 스위치 | 결과 |
+| --- | --- | --- |
+| 창 모드 | 없음 | 0/3 |
+| 창 모드 | `disable-accelerated-video-decode` | **3/3** (`gbm` 오류 없음) |
+| 창 모드 | `disable-gpu-memory-buffer-video-frames` | 0/3 |
+| 창 모드 | `disable-features=VaapiVideoDecoder,AcceleratedVideoDecodeLinux` | 0/1 |
+| 오프스크린(gtk3, sdl2) | 없음 | 0/6 |
+| 오프스크린 | `disable-accelerated-video-decode` | 0/6 (gtk3, sdl2) |
+| 오프스크린 | `disable-gpu-compositing`, `use-gl=angle`+`use-angle=swiftshader`, `disable-gpu-memory-buffer-compositor-resources`+`disable-gpu-memory-buffer-video-frames`, `in-process-gpu`, `disable-gpu-sandbox`, `render-node-override=renderD128`/`renderD129`, `use-gl=egl`, `use-angle=gl`, `use-gl=angle`+`use-angle=gl` | 각 0/2 또는 0/3 |
+| 오프스크린 | `disable-accelerated-video-decode`+`disable-gpu-memory-buffer-video-frames`(+`disable-gpu-memory-buffer-compositor-resources`, 또는 `disable-features=AcceleratedVideoDecodeLinux,...`) | 각 0/3 |
+| 오프스크린 | **`disable-gpu`** | **통과** (일곱 환경) |
+
+- **사운드 모듈과 무관함 (검증)**: 싱크와 pygame을 전혀 쓰지 않는 GTK 3(`--audio` 없음)도 2번 모두 같은 오류로 실패했습니다. 기본 CEF 앱과 `cefsimple`에는 애초에 사운드 모듈이 없습니다.
+- **GPU를 켜면 WebGL은 됩니다 (검증)**: 오프스크린 GTK 3에서 GPU를 켜면 WebGL이 NVIDIA GeForce RTX 4060(ANGLE, OpenGL 4.5)으로 동작하고(3초에 93~94 frame, 픽셀 값 맞음, 컨텍스트 손실과 GPU 프로세스 종료 없음), `disable-gpu`를 켜면 `getContext('webgl')`이 null이라 **WebGL이 없습니다**(소프트웨어 대체 없음). 즉 영상 재생만 GPU 켠 상태에서 실패하고, `disable-gpu`는 WebGL을 잃는 대가가 있습니다.
+- **추정(미확인)**: 창 모드는 영상 디코드를 끄면 되지만 오프스크린은 안 되는 것으로 보아, 오프스크린에서 합성된 영상 프레임을 읽어 오는 경로에 별도의 버퍼 import가 있고 그것이 실패하는 것으로 보입니다. 그 경로를 끄는 스위치는 찾지 못했습니다. 상세 로그(`--log-file`)에는 `gbm_bo_import` 줄이 없어 포맷과 modifier는 알 수 없었습니다.
 - **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
 - **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.
 

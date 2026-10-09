@@ -19,7 +19,7 @@ updated: 2026-10-09
 
 | 항목 | 이유 | 확인 방법 |
 | --- | --- | --- |
-| 실제 화면(XWayland)에서 GPU 프로세스가 죽는 **원인** (`gbm_bo_import`) | `cefsimple`에서도 재현되어 래퍼 문제는 아닙니다([F75](verified-findings-media.md)). 시험한 스위치 중 오프스크린에서 통하는 것은 `disable-gpu`뿐이었습니다. | 드라이버와 포맷 수정자 조사, 나머지 스위치 후보(`in-process-gpu` 등) 시험 |
+| 실제 화면(XWayland)에서 GPU 프로세스가 죽는 **원인** (`gbm_bo_import`) | `cefsimple`에서도 재현되어 래퍼 문제는 아닙니다([F75](verified-findings-media.md)). 오프스크린에서 영상이 되는 것은 `disable-gpu`뿐(그러면 WebGL이 없어짐)이고, 시험한 스위치 약 20개는 모두 실패했습니다. 사운드 모듈과도 무관합니다. | 드라이버와 포맷 수정자 조사, 다른 GPU 구성의 기계에서 같은지 확인, 상세 로그(`playback_check.py --log-file`)로 실패한 경로 찾기 |
 | Kivy 예제가 `--no-gpu`에서 한 번 실패한 이유 | 같은 조건 12번에서 다시 나지 않았습니다(영상 요소가 없었음). | 실패하면 그때 로그를 받습니다 |
 | **Windows**에서의 빌드와 동작 | 개발 환경이 Linux입니다. `OS_WIN` 분기, `cef_wrapper_client_handler_win.cc`, Windows용 CMake, `os.add_dll_directory`, `custom_protocol_scheme_handler.cc`의 수정이 양쪽에 영향을 줍니다. `pyproject.toml`의 `ext-modules`는 Linux 전용입니다. | Windows에서 `python tools/prepare.py`와 `uv build --wheel` 후 시험 실행. 설정 방식(정적 `ext-modules`로 충분한지)도 그때 정합니다. |
 | `--build-cef`의 **실제 소스 빌드** | 이 환경의 디스크 여유가 약 69GB이고 요구량은 약 120GB입니다. `--dry-run`, 옵션 존재, 브랜치와 커밋 검증, 안전장치, 기존 배포본 재사용(가짜 디렉터리)까지만 확인했습니다. | 디스크 150GB 이상의 환경에서 `python tools/prepare.py --build-cef`. 결과 경로 탐색(`find_distribution`)과 `GN_DEFINES`를 그때 보정합니다. |
