@@ -87,6 +87,17 @@ updated: 2026-10-09
 
 - **사운드 모듈과 무관함 (검증)**: 싱크와 pygame을 전혀 쓰지 않는 GTK 3(`--audio` 없음)도 2번 모두 같은 오류로 실패했습니다. 기본 CEF 앱과 `cefsimple`에는 애초에 사운드 모듈이 없습니다.
 - **GPU를 켜면 WebGL은 됩니다 (검증)**: 오프스크린 GTK 3에서 GPU를 켜면 WebGL이 NVIDIA GeForce RTX 4060(ANGLE, OpenGL 4.5)으로 동작하고(3초에 93~94 frame, 픽셀 값 맞음, 컨텍스트 손실과 GPU 프로세스 종료 없음), `disable-gpu`를 켜면 `getContext('webgl')`이 null이라 **WebGL이 없습니다**(소프트웨어 대체 없음). 즉 영상 재생만 GPU 켠 상태에서 실패하고, `disable-gpu`는 WebGL을 잃는 대가가 있습니다.
+- **Chrome과 Wayland 대조 (검증, 2026-10-09)**: 같은 기계, 같은 영상, GPU 켠 상태, 소리 없음, DevTools로 `<video>`를 읽었습니다(스크래치 프로브).
+
+| 프로그램 | X11 | 네이티브 Wayland |
+| --- | --- | --- |
+| Chrome 155 (설치본, 임시 프로필) | 재생 정상 2/2, `gbm_bo_import` 0 | 재생 정상 |
+| `cefsimple` Chrome 스타일 (CEF 154) | **실패**, `gbm_bo_import` 3, GPU 종료 3 | 재생 정상 |
+| `cefsimple` Alloy 스타일 (CEF 154) | **실패**, `gbm_bo_import` 3, GPU 종료 3 | 재생 정상 |
+| cefweaver (Alloy, 오프스크린) | **실패** (위 표) | 약 1초 뒤 `SIGTRAP` ([F31](verified-findings-api.md)) |
+
+  따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). 그리고 래퍼 없는 `cefsimple`은 Alloy 스타일도 Wayland에서 영상까지 재생하므로, cefweaver가 Wayland에서 죽는 것은 **래퍼 쪽 원인**일 가능성이 큽니다(F31의 "그림이 나오는지는 확인하지 못했다"를 메움). Wayland를 쓸 수 있다면 GPU를 켠 채 영상이 됩니다.
+  Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다.
 - **추정(미확인)**: 창 모드는 영상 디코드를 끄면 되지만 오프스크린은 안 되는 것으로 보아, 오프스크린에서 합성된 영상 프레임을 읽어 오는 경로에 별도의 버퍼 import가 있고 그것이 실패하는 것으로 보입니다. 그 경로를 끄는 스위치는 찾지 못했습니다. 상세 로그(`--log-file`)에는 `gbm_bo_import` 줄이 없어 포맷과 modifier는 알 수 없었습니다.
 - **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
 - **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.

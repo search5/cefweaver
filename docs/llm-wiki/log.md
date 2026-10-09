@@ -363,3 +363,7 @@
 ## [2026-10-09] query | 실제 화면의 GPU 오류 조사 정리 (F75)
 
 - 오프스크린에서 영상이 되는 것은 `disable-gpu`뿐임을 약 20개 스위치 조합으로 확인했고(표는 F75), 사운드 모듈과 무관함(싱크 없이도 재현)과 GPU를 켜면 WebGL이 NVIDIA로 동작하고 `disable-gpu`면 WebGL이 없어짐을 확인했습니다. 원인은 확정하지 못했습니다(미확인 추정은 F75). `playback_check.py`에 `--log-file`, `--stderr-file`을 더했습니다.
+
+## [2026-10-09] query | Chrome과 cefsimple의 X11 대 Wayland 대조 (F75)
+
+- 같은 기계에서 Chrome 155는 X11과 Wayland 모두 영상이 재생되고, `cefsimple`(Chrome, Alloy 스타일)은 Wayland에서만 재생됩니다. 영상 실패는 CEF의 X11 경로 문제이고, cefweaver가 Wayland에서 죽는 것(F31)은 래퍼 쪽 원인일 가능성이 큽니다. 다음 조사: 래퍼 없는 `cefsimple`과 cefweaver의 차이를 Wayland에서 하나씩 가르기.
