@@ -483,3 +483,8 @@
 ## [2026-10-09] query | 싱크를 주면 Chromium이 직접 재생하는지 확인 (F74 보강)
 
 - 사이트 문서에 "싱크를 주면 CEF가 재생하지 않는다"고 쓰기 전에 검증했습니다. 점검 도구가 항상 `disable-audio-output`을 줘서 확인된 적이 없던 부분입니다. `--native-audio`를 더해 재생 중 시스템의 재생 스트림을 비교했고, 싱크가 있으면 `Chromium` 스트림이 없음을 확인했습니다(겹치지 않음).
+
+## [2026-10-09] ingest | docs/를 사람이 읽는 Jekyll 사이트로 만듦
+
+- java-cef처럼 `docs/`를 Jekyll(`jekyll-theme-minimal`)로 게시하는 사이트로 만들고 한국어로 열 쪽(`index`, `installation`, `quickstart`, `ui`, `toolkits`, `media`, `context-menu`, `wayland-gpu`, `limitations`, `development`)을 새로 썼습니다. 위키에서 옮기지 않고 확인한 범위에서만 썼습니다. 쓰면서 근거를 다시 확인해 바로잡은 것: 내려받는 CEF의 크기(압축 약 660 MB), GTK 시스템 패키지 이름(`libgirepository-2.0-dev`), `HeadlessAdapter`의 메서드(`save_png`), `bridge.expose`의 호출 시점, Qt와 wx의 한글 입력은 실제 입력기로 확인하지 않았다는 점. 또 싱크를 주면 Chromium이 직접 재생하지 않는다는 것을 새로 검증했습니다(F74). `tests/test_docs.py`를 더했고 `.gitignore`, `README.rst`(Windows는 미검증, Wayland 설명), `CLAUDE.md`(문서 두 종류)를 맞췄습니다.
+- **Jekyll 빌드는 확인하지 못했습니다**: gem의 네이티브 확장 빌드에 Ruby 개발 헤더(`ruby.h`)가 필요한데 없고, 설치하려면 시스템 패키지가 필요합니다. 설정과 머리말의 YAML, 링크, 목차는 시험이 지킵니다.

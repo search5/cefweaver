@@ -1,0 +1,18 @@
+title: CEFWeaver 문서
+description: Chromium Embedded Framework(CEF)의 Python 바인딩과 GUI 툴킷 통합
+lang: ko
+theme: jekyll-theme-minimal
+
+# GitHub Pages: 저장소 설정의 Pages에서 main 브랜치의 /docs 폴더를 게시 원본으로 고릅니다.
+# .md 사이의 링크(quickstart.md)가 게시된 쪽(quickstart.html)에서도 이어지게 합니다.
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: false
+
+# 위키(llm-wiki/)는 저장소 루트에 있고 게시하지 않습니다. 아래는 사이트에 필요 없는 파일입니다.
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor

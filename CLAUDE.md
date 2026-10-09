@@ -31,6 +31,11 @@
 - **실행해서 확인한 사실**은 `pages/reference/verified-findings.md`에, 확인하지 못한 것과 문서의 불일치는 `pages/reference/known-constraints.md`에 기록합니다. 추측은 쓰지 않습니다.
 - **점검**: `python llm-wiki/lint.py`(링크, `sources`, 색인 등재, 고아 페이지, 형식). 시험(`tests/test_wiki.py`)에도 포함되어 있습니다.
 
+## 문서는 두 종류입니다
+
+- **`llm-wiki/`** (저장소 루트): LLM과 함께 쓰는 작업 위키입니다. 게시하지 않는 내부 기록(구조, 설계 결정, 실험으로 확인한 사실과 확인하지 못한 것)이고, 위의 규칙을 따릅니다.
+- **`docs/`**: 사람이 읽는 Jekyll 사이트입니다(GitHub Pages, 테마 `jekyll-theme-minimal`, 한국어). 기능을 바꾸면 해당 쪽도 같은 작업에서 맞춥니다. 위키의 내부 기록을 그대로 옮기지 않고, 확인한 범위를 넘는 주장을 쓰지 않습니다. `tests/test_docs.py`가 링크, 제목, 빠른 시작 코드, 설치 쪽의 extras, 툴킷 쪽의 모듈을 지킵니다.
+
 ## 빌드와 시험
 
 ```sh

@@ -11,7 +11,7 @@ Supported platforms
 ===================
 
 - Linux (x86_64): supported (under development)
-- Windows: supported (under development)
+- Windows: not verified yet
 - macOS: not supported yet. The build stops with an explicit error.
 
 Showing a page in a GUI toolkit
@@ -40,8 +40,9 @@ Tk, SDL2, wxPython and Kivy are in ``cefweaver.ui.toolkits``; install the toolki
     root.mainloop()
 
 Each ``examples/<toolkit>/quickstart.py`` is the same for its toolkit. This is experimental: the adapters have been
-checked on a virtual X server with synthetic events, not yet with a real input method or on Wayland (each module
-says what it was checked on).
+checked on a virtual X server with real X events, and the menus, clipboard and sound on a real desktop for most of
+them; a real input method (Korean) only with GTK 3 (each module says what it was checked on). The documentation for
+people is in ``docs/`` (a Jekyll site for GitHub Pages).
 
 Building from source
 ====================
@@ -119,9 +120,10 @@ classes (``types.MouseButtonType.LEFT``, ``types.EventFlags.SHIFT_DOWN | types.E
 and named tuples (``types.Rect(0, 0, 640, 480)``). Plain integers and tuples are accepted
 wherever they are expected.
 
-On Linux the browser uses X11 (XWayland on a Wayland desktop) unless ``ozone-platform`` is
-given with ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
-native Wayland.
+On Linux the browser window of ``CefApp`` uses X11 (XWayland on a Wayland desktop) unless ``ozone-platform`` is
+given with ``add_command_line_switch()``: on native Wayland such a window cannot be closed from code and
+``shutdown()`` ends the process inside CEF (a limit of CEF). The offscreen ``cefweaver.ui.Session`` uses Wayland by
+default where there is a Wayland compositor, and X11 otherwise.
 
 The context menu can be changed and driven from code (``ContextMenuHandler``;
 ``run_context_menu`` can pick an item with ``callback.continue_()``). The wrapper's own

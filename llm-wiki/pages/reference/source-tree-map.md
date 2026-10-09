@@ -7,7 +7,7 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/gen/generate.py
   - .gitignore
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # 소스 트리 지도
@@ -52,7 +52,7 @@ cefweaver/
   tests/
     test_smoke.py, test_generator.py                                   [tests]
   llm-wiki/                   이 위키 (저장소 루트. 게시하지 않음)
-  docs/                       사람이 읽는 Jekyll 사이트 (만드는 중)
+  docs/                       사람이 읽는 Jekyll 사이트 (_config.yml, index.md 등 10쪽)
   third_party/cef/            CEF 배포본 내려받는 곳(README.txt만 커밋)
   build/                      빌드 산출물(git 제외)
     native/                   CMake 빌드, build/native/cef 링크, cef_index.json, prepare.json
