@@ -51,9 +51,8 @@ cefweaver/
     buildtools/               clang-format 내려받기(옵션)              [repo-metadata]
   tests/
     test_smoke.py, test_generator.py                                   [tests]
-  docs/
-    conf.py, index.rst, Makefile, make.bat   Sphinx 골격
-    llm-wiki/                 이 위키
+  llm-wiki/                   이 위키 (저장소 루트. 게시하지 않음)
+  docs/                       사람이 읽는 Jekyll 사이트 (만드는 중)
   third_party/cef/            CEF 배포본 내려받는 곳(README.txt만 커밋)
   build/                      빌드 산출물(git 제외)
     native/                   CMake 빌드, build/native/cef 링크, cef_index.json, prepare.json

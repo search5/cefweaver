@@ -475,3 +475,7 @@
 ## [2026-10-09] schema | 위키를 docs/llm-wiki에서 저장소 루트의 llm-wiki로 옮김
 
 - `docs/`를 사람이 읽는 Jekyll 사이트로 쓰려고(java-cef처럼) 위키를 저장소 루트의 `llm-wiki/`로 옮겼습니다. 위키는 LLM의 작업 기록과 검증 기록을 담아 게시 대상이 아니라서, java-cef 위키 README가 경고한 "위키가 `docs/` 아래라 게시될 수 있다"를 피합니다. 이 저장소의 위키를 가리키는 경로(`CLAUDE.md`, `README.rst`, 위키 본문과 `sources`, `lint.py`의 루트 계산, `tools/gen/generate.py`의 보고서 경로, `tests/test_wiki.py`)를 고쳤습니다. 다른 프로젝트의 위키(java-cef, cefpython, cef_origin의 `docs/llm-wiki`)를 가리키는 경로와 과거 로그의 옛 경로는 그대로 두었습니다. 시험에는 체크아웃에서 위키가 루트에 있어야 한다는 검사를 더했습니다(위키가 없으면 건너뛰는 기존 시험이 경로가 틀려도 조용히 통과하는 것을 막음).
+
+## [2026-10-09] ingest | 비어 있던 Sphinx 골격을 제거
+
+- `docs/`의 `conf.py`, `index.rst`, `Makefile`, `make.bat`(`sphinx-quickstart`가 만든, 내용 없는 목차)와 `pyproject.toml`의 `docs` 선택 의존성(`sphinx`)을 제거했습니다. `uv lock`으로 `uv.lock`을 다시 만들었는데 Sphinx 관련 19개 패키지가 빠졌고, 오늘 더한 extras(qt, gtk3, tk, sdl2, kivy, pygame)의 의존성도 잠금 파일에 처음 담겼습니다(그동안 잠금 파일이 `pyproject.toml`과 어긋나 있었음). `uv lock --check`로 일치를 확인했습니다.

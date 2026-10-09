@@ -51,9 +51,6 @@ dev = [
     "cmake>=3.28.1",
     "Cython>=3.0",
 ]
-docs = [
-    "sphinx>=7.2.6",
-]
 
 [tool.setuptools.packages.find]
 include = ["cefweaver*"]

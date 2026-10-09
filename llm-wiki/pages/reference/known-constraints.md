@@ -85,7 +85,7 @@ updated: 2026-10-09
 | --- | --- | --- |
 | `README.rst` 소개 문단 | wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL, PyWin32의 예제가 있다고 씁니다. `examples/`에는 이제 wxPython, PyQt, PySide, Kivy, PyGObject(GTK 3)와 Tkinter, SDL2가 있고([툴킷 예제](toolkit-examples.md)), PyGame/PyOpenGL, PyWin32의 예제는 없습니다. cefpython의 README 문장을 바탕으로 한 것으로 보입니다. | 그대로 둠. 문장을 맞출지는 사람의 결정이 필요합니다. |
 | `pyproject.toml` | `numpy>=1.26.2`가 의존성에 있으나 코드에서 쓰지 않습니다. classifier에 macOS와 Windows가 있으나 지원하지 않거나 검증하지 못했습니다. classifier는 Python 3.11과 3.12만 적고 시험은 3.11~3.14에서 했습니다. | 그대로 둠 |
-| `docs/` | Sphinx 골격만 있고 본문이 없습니다. `CHANGELOG.rst`는 비어 있습니다. | 그대로 둠 |
+| `docs/` | (2026-10-09) 비어 있던 Sphinx 골격을 제거했습니다. `CHANGELOG.rst`는 비어 있습니다. | 그대로 둠 |
 | `README.rst`의 `cefsubprocess/` 디렉터리 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 옮긴 뒤에도 "디렉터리"라고 적혀 있었습니다. | 2026-10-08에 고침 |
 | `_cefweaver.pyx`의 `load_url` docstring | "브라우저는 첫 `do_message_loop_work()` 호출들에서 만들어진다"고 했으나 `initialize()` 직후에 이미 `True`였습니다. | 2026-10-08에 고침 |
 | `CLAUDE.md`와 `tests/test_smoke.py`의 시험 명령 | `-P` 없이 저장소 루트에서 실행하면 CEF 시험(당시 11개)이 조용히 건너뛰어졌습니다. | 2026-10-08에 고침 |
