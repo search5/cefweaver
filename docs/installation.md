@@ -20,8 +20,8 @@ title: 설치와 빌드
 저장소 루트에서 차례로 실행합니다.
 
 ```sh
-python tools/prepare.py          # 미리 빌드된 CEF를 내려받고 네이티브 라이브러리를 빌드한 뒤 실행 파일들을 배치
-uv build --wheel                 # Cython 확장을 빌드해 dist/에 wheel을 만듭니다
+python tools/prepare.py          # CEF 준비, 네이티브 빌드, 배치
+uv build --wheel                 # dist/에 wheel을 만듭니다
 ```
 
 `uv build`를 인자 없이 실행하면 sdist 단계에서 실패하므로 `--wheel`을 붙입니다.
@@ -29,10 +29,10 @@ uv build --wheel                 # Cython 확장을 빌드해 dist/에 wheel을 
 `prepare.py`의 선택지:
 
 ```sh
-python tools/prepare.py --list-versions [FILTER]                       # 내려받을 수 있는 CEF 버전
+python tools/prepare.py --list-versions [FILTER]       # 받을 수 있는 CEF 버전
 python tools/prepare.py --cef-version "154.0.34+g14c5a08+chromium-154.0.8037.98"
-python tools/prepare.py --cef-root /path/cef                           # 직접 빌드했거나 풀어 둔 CEF를 씁니다
-python tools/prepare.py --build-cef --dry-run                          # CEF를 소스에서 빌드하는 계획만 봅니다
+python tools/prepare.py --cef-root /path/cef           # 직접 빌드한 CEF 사용
+python tools/prepare.py --build-cef --dry-run          # 소스 빌드 계획만 보기
 ```
 
 CEF를 소스에서 빌드(`--build-cef`)하려면 디스크 여유 약 120 GB, RAM 16 GB 이상, 몇 시간이 필요하고 Linux x86_64에서만 됩니다. 일반적으로는 미리 빌드된 CEF로 충분합니다.
@@ -58,7 +58,7 @@ CEF를 소스에서 빌드(`--build-cef`)하려면 디스크 여유 약 120 GB, 
 ```sh
 cd examples/tk
 uv sync
-uv run python quickstart.py            # 주소를 인자로 줄 수 있습니다
+uv run python quickstart.py            # 주소를 인자로 줄 수 있음
 ```
 
 예제는 `examples/gtk3`, `examples/qt`, `examples/tk`, `examples/sdl2`, `examples/wx`, `examples/kivy`에 있고, 각 폴더의 `README.md`에 그 툴킷에 필요한 준비가 있습니다.

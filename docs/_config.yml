@@ -4,9 +4,17 @@ lang: ko
 theme: jekyll-theme-minimal
 
 # GitHub Pages: 저장소 설정의 Pages에서 main 브랜치의 /docs 폴더를 게시 원본으로 고릅니다.
-# .md 사이의 링크(quickstart.md)가 게시된 쪽(quickstart.html)에서도 이어지게 합니다.
+# 모든 쪽에 테마의 레이아웃을 씁니다. GitHub Pages는 기본으로 채워 주지만 일반 Jekyll은 그렇지 않아서 명시합니다.
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# .md 사이의 링크(quickstart.md)가 게시된 쪽(quickstart.html)에서도 이어지게 합니다. jekyll-seo-tag는 테마가 씁니다.
 plugins:
   - jekyll-relative-links
+  - jekyll-seo-tag
 relative_links:
   enabled: true
   collections: false

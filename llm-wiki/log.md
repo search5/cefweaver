@@ -488,3 +488,8 @@
 
 - java-cef처럼 `docs/`를 Jekyll(`jekyll-theme-minimal`)로 게시하는 사이트로 만들고 한국어로 열 쪽(`index`, `installation`, `quickstart`, `ui`, `toolkits`, `media`, `context-menu`, `wayland-gpu`, `limitations`, `development`)을 새로 썼습니다. 위키에서 옮기지 않고 확인한 범위에서만 썼습니다. 쓰면서 근거를 다시 확인해 바로잡은 것: 내려받는 CEF의 크기(압축 약 660 MB), GTK 시스템 패키지 이름(`libgirepository-2.0-dev`), `HeadlessAdapter`의 메서드(`save_png`), `bridge.expose`의 호출 시점, Qt와 wx의 한글 입력은 실제 입력기로 확인하지 않았다는 점. 또 싱크를 주면 Chromium이 직접 재생하지 않는다는 것을 새로 검증했습니다(F74). `tests/test_docs.py`를 더했고 `.gitignore`, `README.rst`(Windows는 미검증, Wayland 설명), `CLAUDE.md`(문서 두 종류)를 맞췄습니다.
 - **Jekyll 빌드는 확인하지 못했습니다**: gem의 네이티브 확장 빌드에 Ruby 개발 헤더(`ruby.h`)가 필요한데 없고, 설치하려면 시스템 패키지가 필요합니다. 설정과 머리말의 YAML, 링크, 목차는 시험이 지킵니다.
+
+## [2026-10-09] ingest | Jekyll 사이트를 실제로 빌드해 확인
+
+- 사용자 허락으로 `ruby-dev`를 설치하고(시스템 패키지, `sudo apt-get install ruby-dev`) 임시 gem 폴더에 Jekyll 3.10.0과 테마, 플러그인을 설치해 `docs/`를 빌드했습니다. 앞서 "빌드를 확인하지 못했다"고 적은 것을 해소합니다. 빌드와 헤드리스 Chrome 스크린샷으로 두 문제를 찾아 고쳤습니다. (1) 레이아웃이 안 입혀져 `<title>`과 스타일시트가 없음: `_config.yml`에 `defaults`로 레이아웃을 명시하고 `jekyll-seo-tag`를 플러그인에 더했습니다. (2) 툴킷 쪽의 넓은 표가 본문 폭을 넘어 잘림: 표를 짧게 줄이고 `assets/css/style.scss`로 본문을 넓히고 표를 가로 스크롤되게 했습니다. 기본 예제가 `disable-gpu`를 권하는 것도 무해한 스위치로 바꿨습니다. 점검: 링크 `.md` 0건, 깨진 내부 링크 0건, 제목 없는 쪽 0건.
+- 아직 GitHub Pages는 켜지 않았습니다(저장소 설정). 게시된 URL의 기준 경로(`/cefweaver/`)에서 스타일시트 경로가 맞는지는 게시 뒤에 봐야 합니다.

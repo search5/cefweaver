@@ -20,7 +20,7 @@ title: GUI 툴킷에 넣기
 ```python
 from cefweaver import ui
 
-session = ui.Session(loop, switches=[("disable-gpu", "")], cache_path="/tmp/my-cache")
+session = ui.Session(loop, switches=[("autoplay-policy", "no-user-gesture-required")], cache_path="/tmp/my-cache")
 widget = 툴킷의_위젯(...)                       # 툴킷 모듈의 위젯 (예: CefCanvas)
 widget.on_ready = lambda: widget.load_url("https://example.org/")
 session.start(widget)                           # 위젯이나 BrowserView

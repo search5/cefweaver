@@ -47,12 +47,19 @@ class Site(unittest.TestCase):
             self.skipTest("PyYAML is not installed")
         config = yaml.safe_load(read(DOCS / "_config.yml"))
         self.assertEqual(config["theme"], "jekyll-theme-minimal")
-        self.assertEqual(config["plugins"], ["jekyll-relative-links"])
+        # the theme draws the pages only with a layout: GitHub Pages fills it in by default, a plain Jekyll does not
+        self.assertEqual(config["defaults"], [{"scope": {"path": ""}, "values": {"layout": "default"}}])
+        self.assertEqual(sorted(config["plugins"]), ["jekyll-relative-links", "jekyll-seo-tag"])
         self.assertTrue(config["relative_links"]["enabled"])
         for page in PAGES:
             block = re.match(r"---\n(.*?)\n---\n", read(page), re.S).group(1)
             data = yaml.safe_load(block)
             self.assertIsInstance(data.get("title"), str, page.name)
+
+    def test_the_style_sheet_has_the_front_matter_that_makes_jekyll_process_it(self):
+        text = read(DOCS / "assets" / "css" / "style.scss")
+        self.assertTrue(text.startswith("---\n---\n"), "without front matter Jekyll copies the file instead of building it")
+        self.assertIn('@import "{{ site.theme }}";', text)
 
     def test_there_are_pages(self):
         self.assertGreaterEqual(len(PAGES), 8, [p.name for p in PAGES])
