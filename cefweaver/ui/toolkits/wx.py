@@ -11,7 +11,7 @@ wx hands over the dropped data only at the drop, so a drop from another program 
 ``drop()``. The drag of the page itself, over its own panel, goes step by step. wx has no input method
 preedit (README); what an input method commits arrives as characters.
 
-Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 32 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3), also with CEF on Wayland.
+Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 33 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3), also with CEF on Wayland.
 Not checked: wx on Windows or macOS, a real input method, a scale other than 1.
 """
 
@@ -77,6 +77,8 @@ class WxAdapter(WxLoop):
 
     def __init__(self, panel):
         self.p = panel
+        self.menu_open = False                                   # a context menu is up (for tests)
+        self.last_menu = self._waiting = None
 
     def view_size(self):
         return tuple(self.p.GetClientSize())
@@ -100,7 +102,8 @@ class WxAdapter(WxLoop):
     def show_menu(self, items, x, y, done):
         """The context menu of the page as a ``wx.Menu`` at (x, y) of the panel. ``done`` gets the command id of the
         picked item, or None when the menu is left. ``PopupMenu`` runs an event loop until the menu closes, so it is
-        opened after CEF's callback has returned (``menu_open`` and ``last_menu`` are for tests)."""
+        opened after CEF's callback has returned, and after the right button went up (``menu_open`` and ``last_menu`` are for
+        tests)."""
         picked = []
 
         def pick(command_id):
@@ -140,7 +143,15 @@ class WxAdapter(WxLoop):
                 self.menu_open = False
             pick(None)                                                # nothing was picked
             menu.Destroy()
-        wx.CallAfter(show)
+        def when_released(attempt=0):
+            # CEF asks for the menu when the right button goes down. A menu that comes up while the button is still down is
+            # closed by the release that follows, so it waits for the button (at most a second)
+            if wx.GetMouseState().RightIsDown() and attempt < 100:
+                self._waiting = wx.CallLater(10, when_released, attempt + 1)      # wx drops a timer that nobody holds
+            else:
+                self._waiting = None
+                show()
+        wx.CallAfter(when_released)
 
     def clipboard_get(self):
         data = wx.TextDataObject()

@@ -228,7 +228,7 @@ class Adapter:
         import threading
         from cefweaver import ui
         check = core.check
-        mine, shown = [], []
+        mine, shown, stayed = [], [], []
         adapter = self.view.view.adapter
         original = adapter.show_menu
         adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original(items, x, y, done))[1]
@@ -258,11 +258,17 @@ class Adapter:
                 time.sleep(0.02)
 
         def open_menu(count):
+            # as a person clicks: CEF asks for the menu when the button goes down, and the button goes up while
+            # the menu is being shown (a menu that is closed by that release is not a menu)
             core.xdo("mousemove", *at)
             time.sleep(0.2)
-            core.xdo("click", 3)
-            wait_for(lambda: len(shown) == count and adapter.menu_open, "the context menu")
+            core.xdo("mousedown", 3)
+            wait_for(lambda: len(shown) == count, "CEF to ask for the context menu")
             time.sleep(0.3)
+            core.xdo("mouseup", 3)
+            wait_for(lambda: adapter.menu_open, "the context menu")
+            time.sleep(0.6)
+            stayed.append(adapter.menu_open)                    # still there after the button was released
 
         def pick_with_keys():
             open_menu(1)
@@ -287,6 +293,7 @@ class Adapter:
             core.xdo("key", "Escape")
             wait_for(lambda: not adapter.menu_open, "the menu to close")
         driven(open_again)
+        check(stayed and all(stayed), "the menu stays open after the button was released", stayed)
         check(core.js("1 + 1") == 2, "the page still answers after a menu was left")
         self.view.view.on_context_menu = None
 
