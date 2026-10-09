@@ -499,3 +499,7 @@
 - 사용자 제안("java-cef의 테마와 이동 메뉴를 가져오면 되지 않나")을 확인했습니다. java-cef(`java-cef/docs`)는 **같은 테마**(`jekyll-theme-minimal`)를 쓰고 **이동 메뉴는 없습니다**(`_layouts`, `_includes`, `_data`가 없고 `README.md`의 링크 목록과 쪽 안의 목차가 전부). 그쪽에 있는 것은 `assets/css/style.scss`(좁은 사이드바, 줄바꿈과 호버 수정, 모바일 레이아웃, 구문 강조를 포함한 다크 모드)였습니다.
 - 그 스타일시트를 가져와 본문 폭만 우리의 넓은 표에 맞게 키웠습니다(`.wrapper` 1100px). 이동 메뉴는 직접 만들었습니다: 테마의 `default.html`을 `docs/_layouts/`에 복사해 사이드바에 `_data/navigation.yml`의 목록을 더했습니다. 시험(`tests/test_docs.py`)이 모든 쪽이 메뉴에 있고 메뉴의 제목이 각 쪽의 제목과 같음을 지킵니다.
 - 빌드(Jekyll 3.10.0)와 헤드리스 Chrome 화면으로 확인한 것: 메뉴 10항목과 현재 쪽 표시, 밝은 화면, 모바일 폭(사이드바가 위로 올라옴, 넓은 표는 가로 스크롤). **다크 모드는 브라우저의 다크 설정으로 켜 보지 못했고**(헤드리스에 준 설정이 안 먹음) 규칙을 항상 켠 사본으로 모양만 확인했습니다.
+
+## [2026-10-09] ingest | GitHub Pages 게시
+
+- 사용자 요청으로 `gh api -X POST repos/search5/cefweaver/pages`(source: main, `/docs`)로 Pages를 켰습니다. 빌드는 1분 안에 `built`로 끝났고 https://search5.github.io/cefweaver/ 의 `/`, `installation`, `ui`, `toolkits`가 200, 제목과 스타일시트와 메뉴 링크가 `/cefweaver/` 기준으로 나옵니다. 앞서 남겨 둔 "게시된 기준 경로에서 스타일시트가 맞는지는 게시 뒤에 봐야 한다"는 점을 해소합니다.
