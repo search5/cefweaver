@@ -66,6 +66,7 @@ updated: 2026-10-09
 - **지연 상한**: 응용이 따라가지 못하면 0.5초를 넘는 오래된 소리를 버립니다(`dropped`).
 - **PySide6**: `QAudioSink.stateChanged`에 슬롯을 연결하면 `QAudio::State` 변환 오류가 납니다. 신호 대신 `state()`를 주기적으로 읽습니다.
 - **스피커로 들은 것 (2026-10-09, 선생님이 확인)**: 440 Hz 시험음은 `PygameSink`와 `SdlSink` 모두 들렸고, 실제 YouTube 소리는 sdl2, qt(PyQt6, PySide6), gtk3, wx, kivy, tk 일곱 환경 모두 들렸습니다(`--loud --no-gpu`, 시스템 출력 음량 34%). 수치도 맞았습니다: 싱크에 들어간 샘플의 peak 약 0.5, 시스템 출력 monitor(`parec`)의 peak 16716/32768.
+- **싱크를 주면 Chromium은 직접 재생하지 않습니다 (검증, 2026-10-09)**: `disable-audio-output` 없이(`playback_check.py --native-audio`) 재생 중에 PipeWire의 재생 스트림을 세었습니다. 싱크 없음: 스트림 하나, 이름 `Chromium`, `Playback`, float32 48000 Hz. 싱크(pygame) 있음: 스트림 둘, 모두 우리 프로세스(`quickstart.py`)이고 s16le 44100 Hz(pygame 믹서, 비어 있음)와 float32le 44100 Hz(`AudioDevice`)이며 `Chromium` 스트림은 없습니다. 그래서 `audio="auto"`를 써도 소리가 겹치지 않습니다. (그동안의 재생 시험은 점검 도구가 항상 `disable-audio-output`을 줘서 이 점이 검증된 적이 없었습니다.)
 - **확인하지 못한 것**: 소리와 화면의 어긋남 정도.
 
 ## F75: 실제 화면에서의 GPU 오류, Wayland, 점검 도구의 함정 (2026-10-09)

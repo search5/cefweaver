@@ -37,7 +37,7 @@ SWITCHES = [("disable-audio-output", ""), ("autoplay-policy", "no-user-gesture-r
 
 # -- inside: the program that plays ------------------------------------------------------------------------
 
-def inside_toolkit(quickstart, url, seconds, audio, loud=False, no_gpu=False, switches=(), log_file=None):
+def inside_toolkit(quickstart, url, seconds, audio, loud=False, no_gpu=False, switches=(), log_file=None, native_audio=False):
     """Run the quickstart of an example with the probe; print the states and PROBE DONE. With ``audio`` the view
     plays the sound through a sink (``audio="auto"``: the sink of the toolkit, else pygame) at volume 0."""
     import cefweaver
@@ -69,7 +69,8 @@ def inside_toolkit(quickstart, url, seconds, audio, loud=False, no_gpu=False, sw
 
     def session_init(self, adapter, switches=(), cache_path=None):
         extra = ([("disable-gpu", "")] if no_gpu else []) + given
-        init(self, adapter, list(switches) + SWITCHES + extra, cache_path)
+        base = [s for s in SWITCHES if not (native_audio and s[0] == "disable-audio-output")]
+        init(self, adapter, list(switches) + base + extra, cache_path)
         if log_file:
             self.app.settings.log_severity = cefweaver.types.LogSeverity.VERBOSE
             self.app.settings.log_file = log_file
@@ -190,6 +191,8 @@ def main():
     parser.add_argument("--switch", action="append", default=[], metavar="NAME[=VALUE]", help="a Chromium switch (repeatable)")
     parser.add_argument("--stderr-file", metavar="PATH", help="write all that the program printed to stderr (for a log: --switch enable-logging=stderr --switch v=1)")
     parser.add_argument("--log-file", metavar="PATH", help="the verbose log of Chromium (all processes) goes to this file")
+    parser.add_argument("--native-audio", action="store_true",
+                        help="do not give disable-audio-output: Chromium plays the sound itself too (it can be heard)")
     parser.add_argument("--inside", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.inside:
@@ -197,7 +200,7 @@ def main():
             inside_windowed(args.url, args.seconds, [tuple(w.split('=', 1)) if '=' in w else (w, '') for w in args.switch])
         else:
             inside_toolkit(os.path.join(ROOT, "examples", args.target, "quickstart.py"), args.url, args.seconds, args.audio, args.loud, args.no_gpu,
-                           [tuple(w.split('=', 1)) if '=' in w else (w, '') for w in args.switch], args.log_file)
+                           [tuple(w.split('=', 1)) if '=' in w else (w, '') for w in args.switch], args.log_file, args.native_audio)
         return 0
 
     windowed = args.target == "windowed"
@@ -207,7 +210,7 @@ def main():
     scratch = tempfile.mkdtemp(prefix="cefweaver-playback-")        # CEF makes its cache in the working directory
     atexit.register(shutil.rmtree, scratch, True)                    # the cache of a run is big (tens of MB)
     process = subprocess.Popen([python, os.path.abspath(__file__), args.target, "--inside", "--seconds", str(args.seconds),
-                                "--url", args.url] + (["--audio"] if args.audio else []) + (["--loud"] if args.loud else []) + (["--no-gpu"] if args.no_gpu else []) + [a for w in args.switch for a in ("--switch", w)] + (["--log-file", args.log_file] if args.log_file else []), cwd=scratch, env=env,
+                                "--url", args.url] + (["--audio"] if args.audio else []) + (["--loud"] if args.loud else []) + (["--no-gpu"] if args.no_gpu else []) + [a for w in args.switch for a in ("--switch", w)] + (["--log-file", args.log_file] if args.log_file else []) + (["--native-audio"] if args.native_audio else []), cwd=scratch, env=env,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     lines, errors = [], []
     threading.Thread(target=lambda: [lines.append(l) for l in iter(process.stdout.readline, "")], daemon=True).start()

@@ -479,3 +479,7 @@
 ## [2026-10-09] ingest | 비어 있던 Sphinx 골격을 제거
 
 - `docs/`의 `conf.py`, `index.rst`, `Makefile`, `make.bat`(`sphinx-quickstart`가 만든, 내용 없는 목차)와 `pyproject.toml`의 `docs` 선택 의존성(`sphinx`)을 제거했습니다. `uv lock`으로 `uv.lock`을 다시 만들었는데 Sphinx 관련 19개 패키지가 빠졌고, 오늘 더한 extras(qt, gtk3, tk, sdl2, kivy, pygame)의 의존성도 잠금 파일에 처음 담겼습니다(그동안 잠금 파일이 `pyproject.toml`과 어긋나 있었음). `uv lock --check`로 일치를 확인했습니다.
+
+## [2026-10-09] query | 싱크를 주면 Chromium이 직접 재생하는지 확인 (F74 보강)
+
+- 사이트 문서에 "싱크를 주면 CEF가 재생하지 않는다"고 쓰기 전에 검증했습니다. 점검 도구가 항상 `disable-audio-output`을 줘서 확인된 적이 없던 부분입니다. `--native-audio`를 더해 재생 중 시스템의 재생 스트림을 비교했고, 싱크가 있으면 `Chromium` 스트림이 없음을 확인했습니다(겹치지 않음).
