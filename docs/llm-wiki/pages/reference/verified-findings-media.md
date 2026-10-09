@@ -100,7 +100,7 @@ updated: 2026-10-09
 | cefweaver 오프스크린 (Alloy) | **실패** (위 표) | **재생 정상 3/3** |
 | cefweaver 창 모드 (Alloy) | **실패** | 약 1초 뒤 `SIGTRAP` ([F31](verified-findings-api.md)) |
 
-  따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다. cefweaver의 **오프스크린은 네이티브 Wayland에서 GPU를 켠 채 영상과 소리가 정상**입니다. Wayland에서 죽는 것(F31)은 **창 모드**뿐이고(`playback_check.py windowed`로 재현, 종료 코드 -5), 래퍼 없는 `cefsimple`은 창 모드도 Wayland에서 되므로 그 크래시는 래퍼 쪽 원인일 가능성이 큽니다(미조사).
+  따라서 문제는 XWayland 자체도 CEF 자체도 아니고 **CEF의 X11 경로**입니다(같은 X11에서 Chrome은 됩니다). Chrome이 X11에서 되고 CEF가 안 되는 이유는 모릅니다. cefweaver의 **오프스크린은 네이티브 Wayland에서 GPU를 켠 채 영상과 소리가 정상**입니다. Wayland에서 죽는 것(F31)은 **창 모드**뿐이고(`playback_check.py windowed`로 재현, 종료 코드 -5), 그 크래시는 **CEF의 한계**입니다(코드에서 닫는 `CloseBrowser`가 네이티브 창에서 완료되지 않음, 래퍼 없는 `cefsimple`로 검증: [F31](verified-findings-api.md), [제약](known-constraints.md)).
 - **Tk 창을 닫아도 끝나지 않던 것은 점검 도구의 문제였습니다.** Tk는 창에 프로세스 번호를 달지 않아 대체 검색이 "화면의 유일한 창"을 골랐는데, 실제 화면에서는 `mutter guard window`가 걸려 닫기 신호가 Tk에 닿지 않았습니다. `--class Tk`로 한정한 뒤 닫는 신호에서 종료까지 0.18초(xvfb 0.12초), 종료 코드 0입니다.
 - **Kivy**는 `--no-gpu`에서 처음 한 번 실패했고(영상 요소가 없음) 같은 조건 12번에서 다시 나지 않았습니다. 원인 미조사입니다.
 

@@ -5,7 +5,7 @@ sources:
   - tests/test_smoke.py
   - CLAUDE.md
   - native/cefwrapper/cef_wrapper_client_handler_linux.cc
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # Chromium의 Wayland와 X11 동작
@@ -63,7 +63,7 @@ Linux 6.17, Wayland 세션(`XDG_SESSION_TYPE=wayland`, `WAYLAND_DISPLAY=wayland-
 
 - **페이지와 무관합니다.** 아무 스크립트도 없는 페이지도, 애니메이션 프레임이나 WebGL이 있는 페이지도 같았습니다.
 - **창 제목 코드와 무관합니다.** 제목 처리를 통째로 없앤 변형도 같았습니다.
-- **스타일 때문이 아니라는 단서**: CEF 공식 예제 `cefsimple`은 같은 `libcef`에서 `--use-alloy-style`과 `--use-views`의 모든 조합이 Wayland에서 6초 동안 살아 있었습니다(그림이 나오는지는 확인하지 못했습니다). **영상 재생도 확인했습니다**(2026-10-09, GPU 켠 채 YouTube가 15초 정상 재생, `cefsimple` Chrome 스타일과 Alloy 스타일 모두, [F75](../reference/verified-findings-media.md)). 우리 래퍼에서만 죽는 이유는 찾지 못했습니다. 외부 메시지 펌프(`CefDoMessageLoopWork`)를 쓰는 점이 `cefsimple`과 다르지만 Chrome 스타일은 같은 펌프로 Wayland에서 동작했습니다.
+- **스타일 때문이 아니라는 단서**: CEF 공식 예제 `cefsimple`은 같은 `libcef`에서 `--use-alloy-style`과 `--use-views`의 모든 조합이 Wayland에서 6초 동안 살아 있었습니다(그림이 나오는지는 확인하지 못했습니다). **영상 재생도 확인했습니다**(2026-10-09, GPU 켠 채 YouTube가 15초 정상 재생, `cefsimple` Chrome 스타일과 Alloy 스타일 모두, [F75](../reference/verified-findings-media.md)). 우리 래퍼에서 죽는 것은 시작이 아니라 **코드로 닫을 때**이고, 래퍼 없는 `cefsimple`도 같은 코드로 닫으면 Wayland에서 끝나지 않아서 CEF의 한계입니다([F31](../reference/verified-findings-api.md)). 외부 메시지 펌프(`CefDoMessageLoopWork`)를 쓰는 점이 `cefsimple`과 다르지만 Chrome 스타일은 같은 펌프로 Wayland에서 동작했습니다.
 - 크래시 지점은 메인 스레드의 `libcef.so` 안입니다. 배포된 `libcef`에 심볼이 없고 심볼이 있는 원본(1.4GB)은 `gdb`가 읽다가 죽어서 함수 이름까지는 보지 못했습니다.
 
 **결정**: 사용자가 `ozone-platform`을 지정하지 않았고 X 디스플레이(`DISPLAY`)가 있으면 `x11`을 기본으로 씁니다([설계 결정 기록](../reference/design-decisions.md)). 아래 "정해야 할 것"의 (나)를 조건부로 채택한 것입니다. 창 관리자가 있는 실제 데스크톱에서 이 기본값으로 창이 뜨고 제목이 보이는 것을 확인했습니다([실험으로 확인한 사실 2](../reference/verified-findings-api.md) F31).

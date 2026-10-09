@@ -4,7 +4,7 @@ type: procedure
 sources:
   - tests/test_smoke.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # CEF의 한계를 CEF 예제로 검증하기
@@ -40,6 +40,7 @@ CEF 소스(`/home/jiho/cef_framework/cef_origin`)에서 값이 어디서 쓰이�
 | `DragData.get_file_name()`이 프로세스를 죽임 | CEF 소스 `libcef/common/drag_data_impl.cc` 113~117줄 | CEF가 확인 없이 Chromium의 `DropData::GetSafeFilenameForImageFileContents()`를 부름. `CHECK`는 Chromium 안(소스 없음) |
 | 밑줄 색이 화면에 없음 | CEF 소스 `libcef/browser/osr/render_widget_host_view_osr.cc` 853~860줄 | CEF는 색을 `ImeTextSpan`의 `underline_color`로 **전달함**. 그리지 않는 쪽은 Chromium 렌더러이고 소스가 없어 확인하지 못함 |
 | 허용한 인증서 오류가 다시 묻지 않음 | 래퍼로 `/first` 허용 뒤 `/second`, `/third`를 거부하도록 해도 `on_certificate_error`가 다시 불리지 않고 페이지가 로드됨 | **Chromium의 호스트별 예외 기억**. CEF는 `Continue()`를 Chromium으로 넘기기만 함(`libcef/browser/certificate_query.cc`) |
+| 창 모드가 Wayland에서 코드로 닫히지 않고 종료 때 죽음 | `cefsimple --use-native --use-alloy-style`에 `CLOSE_AFTER_MS`(시작 후 몇 ms 뒤 `CloseAllBrowsers(true)`)를 더해 빌드하고 종료 시각을 잼. 뒤에 원본으로 되돌려 다시 빌드 | **CEF**: X11은 4.3초에 종료, Wayland는 40초 안에 끝나지 않음. 래퍼와 무관 |
 
 ## 관련 페이지
 
