@@ -21,13 +21,22 @@ from urllib.parse import urlsplit
 
 from cefweaver.settings import Settings as _Settings
 
-from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t
+from libc.stdint cimport int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, uintptr_t
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
 from cefweaver.cef_api cimport *
-from cefweaver.cefwrapper cimport (cef_version_info, CefValueWrapper, CefWrapper, PythonQueryHandler,
+from cefweaver.cefwrapper cimport (CefWeaverLoadRuntime, cef_version_info, CefValueWrapper, CefWrapper, PythonQueryHandler,
                                    QueryCallbackHolder, SchemeRegistrarProxy)
+
+
+cdef int64_t _check_parent_view(object value) except -1:
+    """A parent view: the address of an NSView, an int (macOS only)."""
+    if sys.platform != "darwin":
+        raise NotImplementedError("parent_view is implemented on macOS only")
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise TypeError("parent_view must be the address of an NSView (a non-negative int)")
+    return <int64_t>value
 
 
 cdef bytes _utf8(object value):
@@ -71,6 +80,11 @@ cdef void _dispatch(void* callback, int args_size, CefValueWrapper* args) noexce
         except BaseException:
             pass
 
+
+# On macOS libcef is loaded here, before the first CEF call (the generated code below makes
+# one while it is imported).
+if not CefWeaverLoadRuntime():
+    raise ImportError("the CEF runtime could not be loaded (see the message above)")
 
 # The wrappers generated from the CEF headers by tools/gen/generate.py: Request, Response,
 # ResourceHandler, SchemeHandlerFactory, register_scheme_handler_factory(), ...
@@ -402,7 +416,7 @@ cdef class CefApp:
     # -- configuration (before initialize) ------------------------------------
 
     def create_browser(self, url="about:blank", offscreen=None, transparent=None,
-                       request_context=None, settings=None, shared_texture=None):
+                       request_context=None, settings=None, shared_texture=None, parent_view=None):
         """Create a further browser (java-cef's ``CefClient.createBrowser()``) and return it as a
         ``Browser``. It uses the app's client, JavaScript bindings and message router.
 
@@ -412,7 +426,10 @@ cdef class CefApp:
         are the ones of this browser (``None``: ``CefApp.browser_settings``). Call it on the thread that called
         ``initialize()``, after the first browser exists. A windowed browser gets a window of its
         own. ``load_url()`` and ``execute_javascript()`` address the first browser only; use the
-        returned ``Browser``'s frames for the others. Closing the browsers ends ``is_running``."""
+        returned ``Browser``'s frames for the others. Closing the browsers ends ``is_running``.
+
+        ``parent_view`` (macOS): the ``NSView`` this windowed browser becomes a child of, as an
+        integer address (``None``: ``CefApp.parent_view``; ``0``: a window of its own)."""
         cdef string value
         cdef int osr = -1
         cdef int clear = -1
@@ -421,6 +438,9 @@ cdef class CefApp:
         cdef CefRefPtr[CefBrowser] ref
         cdef CefBrowserSettings cpp_settings
         cdef const CefBrowserSettings* settings_ptr = NULL
+        cdef int64_t parent = -1
+        if parent_view is not None:
+            parent = _check_parent_view(parent_view)
         if not isinstance(url, str):
             raise TypeError("url must be a str")
         if offscreen is not None:
@@ -446,7 +466,7 @@ cdef class CefApp:
             settings_ptr = &cpp_settings
         self._require_running()
         value = _utf8(url)
-        ref = self._wrapper.CreateBrowser(value, osr, clear, context, settings_ptr, shared)
+        ref = self._wrapper.CreateBrowser(value, osr, clear, context, settings_ptr, shared, parent)
         if not ref.get():
             raise RuntimeError("a browser can be created on the thread of initialize() once the "
                                "first browser exists")
@@ -603,6 +623,21 @@ cdef class CefApp:
         return bool(done)
 
     @property
+    def parent_view(self):
+        """macOS: the ``NSView`` the windowed browser is made a child of, as the integer address of
+        the object (``0``, the default: CEF makes a window of its own). It fills the view and
+        follows its size. The view is the content view of a window of Cocoa, of SwiftUI's
+        ``NSViewRepresentable`` or of a toolkit (Qt's ``winId()`` is one). Before ``initialize()``
+        only; the first browser is made inside it, so the view must exist, on the main thread.
+        Not used for an offscreen browser."""
+        return int(self._wrapper.ParentView())
+
+    @parent_view.setter
+    def parent_view(self, value):
+        self._require_not_initialized()
+        self._wrapper.SetParentView(<uintptr_t>_check_parent_view(value))
+
+    @property
     def offscreen(self):
         """Whether the browser is rendered offscreen (off by default): it has no window, and CEF
         draws into the buffer that ``RenderHandler.on_paint()`` of the client receives. The
@@ -741,10 +776,17 @@ cdef class CefApp:
             raise RuntimeError("CefInitialize() failed")
 
     def do_message_loop_work(self):
-        """Run one iteration of the CEF message loop; call it regularly."""
+        """Run one iteration of the CEF message loop; call it regularly.
+
+        On macOS, when the application polls (no ``settings.external_message_pump``), this also
+        handles the pending events of the application: the windows CEF made need them for their
+        input, title and closing. An application with an event loop of its own (Cocoa, a toolkit)
+        uses ``MessagePump`` and keeps its loop; nothing else is done then."""
         self._require_running()
         with nogil:
             self._wrapper.DoCefMessageLoopWork()
+        if sys.platform == "darwin" and not self._wrapper.ExternalMessagePump():
+            self._wrapper.PumpApplicationEvents()
 
     def shutdown(self):
         """Shut CEF down. Does nothing if CEF is not running."""

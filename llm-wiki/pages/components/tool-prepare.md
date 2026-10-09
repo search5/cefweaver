@@ -5,7 +5,8 @@ sources:
   - tools/prepare.py
   - tools/build_cef.py
   - CMakeLists.txt
-updated: 2026-10-08
+  - native/cefsubprocess/mac/Info.plist
+updated: 2026-10-09
 ---
 
 # tools/prepare.py
@@ -22,7 +23,7 @@ updated: 2026-10-08
 6. `cmake --build`.
 7. `CMakeCache.txt`에서 `CEFWEAVER_CEF_ROOT`를 읽어 확정 경로를 얻습니다.
 8. `build/native/cef`에 링크를 만듭니다(`link_cef`; Windows는 `mklink /J` junction).
-9. `--no-stage`가 아니면 런타임을 `cefweaver/`에 스테이징합니다(`stage_runtime`, Linux만).
+9. `--no-stage`가 아니면 런타임을 `cefweaver/`에 스테이징합니다(`stage_runtime`, Linux와 macOS).
 10. `build/native/prepare.json`에 `cef_root`, `cef_link`, `staged`, `build_dir`, `config`를 기록합니다.
 
 ## 옵션
@@ -39,7 +40,7 @@ updated: 2026-10-08
 
 ## 버전 조회
 
-- `detect_cef_platform()`이 플랫폼 키(`linux64` 등)를 정합니다. ARM이면 `linuxarm64`처럼 키는 만들지만 이 프로젝트는 ARM을 지원하지 않습니다.
+- `detect_cef_platform()`이 플랫폼 키(`linux64`, `macosarm64` 등)를 정합니다. Linux ARM이면 `linuxarm64`처럼 키는 만들지만 이 프로젝트는 Linux ARM을 지원하지 않습니다. 버전 조회는 Python의 `urllib`을 쓰므로, 인증서 번들이 없는 Python(python.org의 macOS 설치본)에서는 `CERTIFICATE_VERIFY_FAILED`로 실패합니다. 그 경우 `--cef-root`를 주면 이 조회를 건너뜁니다. `curl`로는 조회되었습니다(F79).
 - `load_index()`가 `https://cef-builds.spotifycdn.com/index.json`을 받아 `build/native/cef_index.json`에 24시간 캐시합니다. 실패하면 만료된 캐시를 경고와 함께 쓰고, 캐시도 없으면 오류입니다.
 - `standard_builds()`가 `standard` 배포본이 있는 버전을 **버전 번호 기준 최신순**으로 돌려줍니다. 인덱스 자체의 순서는 빌드 날짜순이라 쓰지 않습니다. 옛 형식 이름(`3.3683.1920.g9f41a27`)도 정렬할 수 있도록 앞쪽 숫자 부분만 키로 씁니다.
 - 기본 버전 표시는 `CMakeLists.txt`의 `set(CEF_VERSION "...")`를 정규식으로 읽습니다.
@@ -47,6 +48,10 @@ updated: 2026-10-08
 ## 런타임 스테이징
 
 `stage_runtime()`은 이전에 스테이징한 항목(`build/native/staged_runtime.json`)을 지우고, CEF 배포본의 `Release/`와 `Resources/` 아래 모든 항목(`chrome-sandbox` 제외)과 `cefsubprocess`를 `cefweaver/`로 복사합니다. `libcef.so`의 **복사본**만 `strip --strip-unneeded`합니다. CEF 배포본 자체는 건드리지 않습니다. 결과 배치는 [런타임 파일 배치](../concepts/runtime-layout.md)에 있습니다.
+
+## macOS 스테이징
+
+`stage_macos()`가 `cefweaver/cefsubprocess.app`을 조립합니다: `Contents/Info.plist`(`native/cefsubprocess/mac/Info.plist`), `Contents/Frameworks/Chromium Embedded Framework.framework`(CEF 배포본의 것을 심볼릭 링크를 보존해 복사), `Contents/Frameworks/cefsubprocess Helper*.app` 5개(CMake가 만든 것). 프레임워크는 배포본이 이미 ad hoc 서명한 대로 복사하고 strip하지 않습니다. 이전 실행의 항목은 Linux와 같은 매니페스트로 지웁니다. 스테이징 크기는 약 325 MB입니다([F79](../reference/verified-findings-macos.md)).
 
 ## 관련 페이지
 

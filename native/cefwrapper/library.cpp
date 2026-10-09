@@ -3,6 +3,7 @@
 #include "global_vars.h"
 #include "bridge.h"
 #include "javascript_binding.h"
+#include "runtime.h"
 #include <filesystem>
 #include <chrono>
 #include <iostream>
@@ -36,6 +37,8 @@ std::string ModuleDir() {
 std::string ExePath() {
 #if defined(OS_LINUX)
   std::filesystem::path cwd = std::filesystem::path(ModuleDir()) / "cefsubprocess";
+#elif defined(OS_MAC)
+  std::filesystem::path cwd = CefWeaverHelperPath();
 #else
   std::filesystem::path cwd = std::filesystem::current_path() /"cefsubprocess" / "cefsubprocess.exe";   //"C:\\Dev\\cef-binaries\\cef_binary_106.0.27+g20ed841+chromium-106.0.5249.103_windows64\\cmake-build-debug-visual-studio\\src\\cefsubprocess\\Debug\\cefsubprocess.exe";
 #endif
@@ -54,8 +57,10 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
 
   void *sandbox_info = nullptr;
 
-#if defined(OS_LINUX)
-  // On Linux CefMainArgs needs argc/argv, but an embedded interpreter has no
+  CefWeaverPrepareApplication();  // macOS only: NSApp for CEF's message loop
+
+#if defined(OS_LINUX) || defined(OS_MAC)
+  // On Linux and macOS CefMainArgs needs argc/argv, but an embedded interpreter has no
   // meaningful ones; the real executable path is resolved by CEF itself.
   static char arg0[] = "cefweaver";
   static char *argv[] = {arg0, nullptr};
@@ -94,6 +99,13 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
 
   // settings.multi_threaded_message_loop = true;
   settings.no_sandbox = true;
+
+#if defined(OS_MAC)
+  // A Python process has no app bundle: cefsubprocess.app next to the extension module stands
+  // in for it (CEF looks for the helper apps in its Contents/Frameworks).
+  CefString(&settings.main_bundle_path) = CefWeaverMainBundlePath();
+  CefString(&settings.framework_dir_path) = CefWeaverFrameworkDir();
+#endif
 
   // Optional. On Linux CEF 154 looks for icudtl.dat next to libcef.so whatever
   // is set here (checked with libcef.so and the resources in different
@@ -194,7 +206,10 @@ void CefWrapper::ShutdownCefSimple() {
   if (handler) {
     handler->CloseAllBrowsers(true);
     for (int i = 0; i < 500 && handler->HasOpenBrowsers(); ++i) {
-      CefDoMessageLoopWork();
+      CefWeaverDoMessageLoopWork();
+      // macOS: the view of a child-view browser leaves its parent once CEF has gone on from the
+      // close (not inside it), here or when the application's loop turns.
+      CefWeaverFlushClosedViews();
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
@@ -209,7 +224,12 @@ void CefWrapper::ShutdownCefSimple() {
 
 bool CefWrapper::IsRunning() { return g_IsRunning; }
 
-void CefWrapper::DoCefMessageLoopWork() { CefDoMessageLoopWork(); }
+void CefWrapper::DoCefMessageLoopWork() { CefWeaverDoMessageLoopWork(); }
+void CefWrapper::PumpApplicationEvents() { CefWeaverPumpApplicationEvents(); }
+bool CefWrapper::ExternalMessagePump() {
+  const auto setting = m_IntSettings.find("external_message_pump");
+  return setting != m_IntSettings.end() && setting->second != 0;
+}
 bool CefWrapper::IsReadyToExecuteJavascript() {
   return CefWrapperClientHandler::GetInstance()->IsReadyToExecuteJs();
 }
@@ -280,15 +300,18 @@ void CefWrapper::SetBrowserSettings(const CefBrowserSettings& settings) {
 CefRefPtr<CefBrowser> CefWrapper::CreateBrowser(std::string url, int offscreen, int transparent,
                                                 CefRefPtr<CefRequestContext> request_context,
                                                 const CefBrowserSettings* settings,
-                                                int shared_texture) {
+                                                int shared_texture, int64_t parent_view) {
   if (!m_App || !g_IsRunning || !m_App->GetBrowser() || !CefCurrentlyOn(TID_UI)) {
     return nullptr;
   }
   return CefWrapperBrowserProcessHandler::CreateBrowser(
       url, offscreen < 0 ? g_Offscreen.load() : offscreen != 0,
       transparent < 0 ? g_Transparent.load() : transparent != 0, request_context, settings,
-      shared_texture < 0 ? g_SharedTexture.load() : shared_texture != 0);
+      shared_texture < 0 ? g_SharedTexture.load() : shared_texture != 0,
+      parent_view < 0 ? g_ParentView.load() : static_cast<uintptr_t>(parent_view));
 }
+void CefWrapper::SetParentView(uintptr_t view) { g_ParentView.store(view); }
+uintptr_t CefWrapper::ParentView() { return g_ParentView.load(); }
 void CefWrapper::SetSharedTexture(bool enabled) { g_SharedTexture.store(enabled); }
 bool CefWrapper::SharedTexture() { return g_SharedTexture.load(); }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }

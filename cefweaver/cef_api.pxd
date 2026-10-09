@@ -39,7 +39,8 @@ cdef extern from "include/internal/cef_time.h":
         int64_t val
 
 ctypedef uint32_t cef_color_t
-ctypedef unsigned long cef_window_handle_t
+cdef extern from "include/internal/cef_types.h":
+    ctypedef unsigned long cef_window_handle_t
 cdef extern from *:
     ctypedef unsigned short char16_t
 
@@ -155,6 +156,8 @@ cdef extern from "include/internal/cef_time_wrappers.h":
         CefBaseTime()
 
 # Value type structs (plain data, copied to and from Python named tuples)
+cdef extern from "platform_structs.h":
+    pass
 cdef extern from "include/internal/cef_types_wrappers.h":
     ctypedef struct cef_accelerated_paint_info_common_t:  # a field that is another struct
         pass
@@ -170,7 +173,7 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         pass
     ctypedef struct cef_size_t:  # a field that is another struct
         pass
-    cdef cppclass CefAcceleratedPaintNativePixmapPlane "cef_accelerated_paint_native_pixmap_plane_t":
+    cdef cppclass CefAcceleratedPaintNativePixmapPlane "CwAcceleratedPaintNativePixmapPlane":
         uint32_t stride
         uint64_t offset
         uint64_t size
@@ -397,8 +400,7 @@ cdef extern from "include/internal/cef_types_wrappers.h":
         CefDraggableRegion()
         cef_rect_t bounds
         int draggable
-    cdef cppclass CefAcceleratedPaintInfo:
-        CefAcceleratedPaintInfo()
+    cdef cppclass CefAcceleratedPaintInfo "CwAcceleratedPaintInfo":
         cef_accelerated_paint_native_pixmap_plane_t planes[4]
         int plane_count
         uint64_t modifier

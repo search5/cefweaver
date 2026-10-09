@@ -11,8 +11,9 @@ Supported platforms
 ===================
 
 - Linux (x86_64): supported (under development)
+- macOS (arm64, Apple Silicon): supported (under development). It builds and runs offscreen and with a native window,
+  and works in Tk; other toolkits and the differences from Linux are in ``docs/limitations.md``. macOS x86_64 is not built yet.
 - Windows: not verified yet
-- macOS: not supported yet. The build stops with an explicit error.
 
 Showing a page in a GUI toolkit
 ===============================

@@ -7,7 +7,9 @@ sources:
   - tools/prepare.py
   - native/cefsubprocess/CMakeLists.txt
   - pyproject.toml
-updated: 2026-10-08
+  - native/cefwrapper/mac_runtime.mm
+  - setup.py
+updated: 2026-10-09
 ---
 
 # 런타임 파일 배치
@@ -39,6 +41,23 @@ CEF 배포본의 `Release/`와 `Resources/` 아래 항목을 모두 복사하되
 - 확장 모듈과 `cefsubprocess`는 모두 `$ORIGIN`을 RPATH로 가져서 같은 디렉터리의 `libcef.so`를 찾습니다(`pyproject.toml`의 `extra-link-args`, `native/cefsubprocess/CMakeLists.txt`의 `INSTALL_RPATH`).
 
 서브프로세스 실행 파일도 같은 디렉터리에 두면 `libcef.so`를 두 곳에 복사하지 않아도 됩니다. 기본 서브프로세스 경로가 `<모듈 디렉터리>/cefsubprocess`인 이유입니다. 모듈 디렉터리는 `dladdr()`로 알아냅니다(`library.cpp`의 `ModuleDir()`).
+
+## macOS
+
+macOS는 `libcef.so` 대신 `Chromium Embedded Framework.framework`이고, 도우미가 5개이며, 모두 가짜 메인 번들 안에 둡니다.
+
+```
+cefweaver/_cefweaver.cpython-3xx-darwin.so
+cefweaver/cefsubprocess.app/Contents/Info.plist
+cefweaver/cefsubprocess.app/Contents/Frameworks/Chromium Embedded Framework.framework/
+cefweaver/cefsubprocess.app/Contents/Frameworks/cefsubprocess Helper.app
+                                               .../cefsubprocess Helper (Alerts|GPU|Plugin|Renderer).app
+```
+
+- 도우미는 자기 위치에서 `../../..`(자기 `.app`이 든 디렉터리)에 프레임워크가 있기를 기대합니다(`CefScopedLibraryLoader::LoadInHelper()`가 그렇게 찾음). 그래서 도우미 앱과 프레임워크가 같은 `Contents/Frameworks/` 안에 나란히 있어야 합니다.
+- 브라우저 프로세스(Python)는 `CefSettings.main_bundle_path`(`cefsubprocess.app`)와 `framework_dir_path`로 이 배치를 CEF에 알립니다. `browser_subprocess_path`는 도우미(`cefsubprocess Helper`)의 실행 파일입니다.
+- 프레임워크는 확장 모듈을 가져올 때 `cef_load_library()`로 올립니다(`__init__.py`에서 미리 올릴 것은 없음). 아이콘이나 리소스는 프레임워크 안의 `Resources/`에 있어 따로 복사하지 않습니다.
+- CEF 154의 프레임워크는 `Versions/` 없는 평평한 구조라 wheel(zip)에 담아도 구조가 깨지지 않습니다. 서명은 배포본과 CMake가 만든 ad hoc 서명 그대로입니다(F79).
 
 ## 개발 트리와 wheel
 

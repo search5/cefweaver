@@ -5,7 +5,8 @@ sources:
   - CLAUDE.md
   - tests/test_smoke.py
   - tests/test_generator.py
-updated: 2026-10-08
+  - tests/test_ui.py
+updated: 2026-10-09
 ---
 
 # 시험 실행하기
@@ -28,6 +29,21 @@ env -u WAYLAND_DISPLAY xvfb-run -a .venv-test/bin/python -P -m unittest discover
 1. **`-P`가 필수입니다.** 저장소 루트에서 `-P` 없이 실행하면 소스 트리의 `cefweaver/`(확장 모듈이 없음)가 설치된 wheel을 가려서 `import cefweaver`가 실패하고, CEF 시험 57개가 **건너뛰어진 채 `OK (skipped=11)`로 끝납니다.** 성공처럼 보이므로 `Ran 24 tests` 뒤에 `skipped`가 있는지 반드시 봅니다. 이 오류가 `CLAUDE.md`와 시험 파일의 안내에 있었고 고쳤습니다.
 2. **가상 X 서버(`xvfb-run`)와 `env -u WAYLAND_DISPLAY`**: 시험이 실제 화면에 창을 열지 않게 합니다. Wayland 세션에서는 Chromium이 `WAYLAND_DISPLAY`를 보고 실제 화면에 창을 엽니다. 시험은 `DISPLAY`가 없거나 `WAYLAND_DISPLAY`가 있으면 CEF 시험을 건너뛰도록 되어 있어서, 건너뛴 시험이 있다면 환경부터 확인합니다.
 3. **설치된 wheel을 대상으로 합니다.** wheel을 새로 만들었다면 `--reinstall`로 다시 설치합니다.
+
+## macOS
+
+macOS에는 가상 디스플레이가 없어서 `xvfb-run`과 `env -u WAYLAND_DISPLAY` 없이 그대로 실행합니다.
+
+```sh
+uv build --wheel -o dist
+uv venv .venv-test && uv pip install --python .venv-test/bin/python dist/cefweaver-*.whl
+.venv-test/bin/python -P -m unittest discover -s tests -v
+```
+
+- **창을 여는 시험(약 41개)은 사용자 화면에 창이 열립니다.** 오프스크린 시험은 열지 않습니다. 창이 거슬리면 `-k`로 이름을 골라 실행하세요. 전체(`test_smoke.py` 194개)가 약 3분에 끝납니다([F81](../reference/verified-findings-macos.md)).
+- 건너뛰는 시험이 있습니다(libX11, `xwininfo`, 인쇄, 호스트에 직접 키 이벤트를 보내는 시험, Wayland, GPU). 이유는 시험의 `skipIf` 문구와 [F82](../reference/verified-findings-macos.md)에 있습니다.
+- **Cocoa 창 시험은 선택 실행입니다**(`WithCefInACocoaView`, 창이 잠깐 뜸). PyObjC가 설치된 환경에서 `CEFWEAVER_TEST_COCOA=1`을 주면 실행합니다.
+- `test_wiki.py`가 다른 컴퓨터의 경로(`/home/jiho/...`) 링크 때문에 실패할 수 있습니다.
 
 ## 일부만 실행
 

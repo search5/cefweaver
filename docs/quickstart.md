@@ -42,6 +42,23 @@ root.mainloop()
 
 어떤 툴킷이든 세 가지는 같습니다. 세션을 만들고, 위젯을 만들고, `session.start(위젯)`을 부릅니다. 자세한 구조는 [GUI 툴킷에 넣기](ui.md)에 있습니다.
 
+## Cocoa 창(NSView)에 붙이기 (macOS)
+
+macOS에서 앱이 Cocoa나 SwiftUI(`NSViewRepresentable`)로 창을 만든다면, 브라우저를 그 `NSView`의 자식 뷰로 붙일 수 있습니다. CEF가 뷰를 그리므로 GPU 합성과 입력, 입력기가 네이티브입니다. 뷰의 주소를 `parent_view`에 줍니다.
+
+```python
+import objc
+import cefweaver
+
+app = cefweaver.CefApp()
+pump = cefweaver.MessagePump(app)               # CEF가 필요할 때 루프를 요청합니다
+app.parent_view = objc.pyobjc_id(window.contentView())   # 브라우저가 이 뷰를 채웁니다
+app.initialize("https://example.org/")          # 메인 스레드에서, 뷰가 만들어진 뒤에
+# Cocoa 루프(NSApp.run())가 돌고, NSTimer가 pump.run()을 부릅니다
+```
+
+뷰가 커지고 작아지면 브라우저가 따라갑니다. 전체 예는 `examples/cocoa/quickstart.py`(PyObjC 필요)에 있습니다. 창을 닫을 때는 `windowShouldClose_`에서 `False`를 돌려주고 타이머로 `app.shutdown()`을 부르세요(래퍼가 브라우저의 뷰를 창에서 떼고 닫기를 끝냅니다. `shutdown()`은 0.1초 안에 끝납니다). `NSTimer` 블록은 `None`을 돌려줘야 합니다. 이 방식은 macOS에서만 되고 오프스크린이 아닌 브라우저에 쓰입니다. Swift 앱에 Python을 임베드하는 예는 `examples/swiftui/`에 있고, Python의 GIL을 호출 때만 잡아야 합니다(같은 폴더의 README).
+
 ## CEF의 창을 그대로 쓰기
 
 ```python

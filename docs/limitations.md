@@ -12,9 +12,31 @@ title: 한계와 알려진 제약
 | --- | --- |
 | Linux x86_64 | 개발하고 시험하는 플랫폼입니다 |
 | Windows | 검증하지 못했습니다 |
-| macOS | 지원하지 않습니다. 빌드가 명확한 오류로 멈춥니다 |
+| macOS arm64 | 빌드하고 시험했습니다. 아래 "macOS" 절의 차이가 있습니다 |
+| macOS x86_64 | Rosetta에서 빌드하고 구동했습니다. 실제 Intel Mac은 아닙니다 |
 | 창 모드 + Wayland | 코드로 닫을 수 없고 종료할 때 죽습니다. CEF의 한계로 확인했습니다([Wayland와 GPU](wayland-gpu.md)) |
 | X11 + GPU | 일부 기계에서 영상이 안 나옵니다. 원인은 찾지 못했습니다(같은 쪽) |
+
+## macOS
+
+Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 창, Cocoa 창 안의 `NSView`(`parent_view`), JavaScript 바인딩, 종료, Tk 위젯, 헤드리스 어댑터와 메뉴, 편집 키가 동작합니다.
+
+| 항목 | 상태 |
+| --- | --- |
+| 편집 키(Backspace, 화살표, Delete) | 호스트 API(`send_key_event`)로 직접 보낼 때는 mac 가상 키코드(`native_key_code`)를 주어야 하고, KEYUP에는 `character`(Cocoa 문자)가 있어야 합니다. 없으면 편집 키가 무시되거나 두 번 편집됩니다. `cefweaver.ui`의 `BrowserView.key()`는 이를 채웁니다 |
+| Command 조합 | 오프스크린에서 Command+A/Z/Shift+Z는 `Frame` 명령으로, Command+C/X/V는 툴킷 클립보드로 처리합니다(CEF에 Edit 메뉴가 없어 키로는 안 됩니다). 네이티브 뷰(`parent_view`)는 CEF가 처리합니다 |
+| 새 탭 요청 | Ctrl+클릭은 오른쪽 클릭이 됩니다. Command+클릭을 쓰세요 |
+| 공유 텍스처 | 없습니다. `on_accelerated_paint`의 평면은 비어 있습니다 |
+| 인쇄 | `print()`가 끝나지 않았습니다(원인 미조사) |
+| 맞춤법 추천 | 추천 단어가 오지 않았습니다. macOS의 `NSSpellChecker`로 검사합니다(원인 미조사) |
+| 컨텍스트 메뉴 | 기본 메뉴에 뒤로와 앞으로가 없었습니다 |
+| 툴킷 | Tk, Qt, wx, SDL2는 확인했습니다. GTK 3(시스템에 없음)와 Kivy(Python 3.14용 창 제공자가 없음)는 확인하지 못했습니다. Cocoa나 SwiftUI에 붙일 때는 `parent_view`를 쓰세요([시작하기](quickstart.md)) |
+| `parent_view` | PyObjC로 만든 Cocoa 창, Swift의 `NSViewRepresentable`, Qt(`winId()`), wx(`GetHandle()`)에서 확인했습니다. Tk의 `winfo_id()`는 `NSView`가 아니어서 죽습니다(창의 content view는 됨, 창 전체를 채움) |
+| 한 창에 브라우저 여러 개 | 각자의 뷰에 붙고 크기를 따라갑니다. 그중 하나만 닫으면 `on_before_close`가 `shutdown()` 때에야 옵니다 |
+| 종료 감시 | 네이티브 arm64 Python에서는 `shutdown()`이 0.1초 안에 끝납니다. Rosetta(x86_64)와 Swift 실행 파일에 임베드한 Python에서는 `CefShutdown()`이 끝나지 않아 Chromium의 감시가 10초 뒤 종료 코드 2로 프로세스를 죽였습니다(원인 미확인) |
+| macOS x86_64 | Rosetta에서 빌드하고 구동했습니다(위 종료 문제 포함). 실제 Intel Mac은 아닙니다 |
+| 창 제목 | 확인하지 못했습니다 |
+| 서명 | CEF 프레임워크와 도우미 앱은 ad hoc 서명입니다. 배포하려면 직접 서명과 공증이 필요합니다 |
 
 ## 기능
 
@@ -40,6 +62,7 @@ title: 한계와 알려진 제약
 
 ## 시험의 범위
 
+- macOS의 시험은 창 모드를 포함해 모두 돌렸습니다(`test_smoke.py` 194개가 약 3분, 창이 열립니다). 한 번은 전체 실행 중 시험 하나가 일시적으로 실패했는데 원인을 확인하지 못했습니다.
 - 툴킷의 점검은 가상 X 서버에서 실제 X 이벤트로 합니다. 실제 입력기(ibus, fcitx)로 한글을 입력해 본 것은 GTK 3뿐입니다.
 - 툴킷 자체를 네이티브 Wayland로 쓰는 경우(GTK나 Qt의 Wayland 백엔드)는 시험하지 못했습니다. 시험은 툴킷 창은 X11, CEF는 Wayland였습니다.
 - 데스크톱 환경은 GNOME(mutter) 한 곳, GPU 구성은 한 기계에서만 확인했습니다.

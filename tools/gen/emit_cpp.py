@@ -17,7 +17,9 @@ behaves exactly like the CEF base class (or returns the default for pure
 virtual methods).
 """
 
-from model import py_class_name, snake_case
+import re
+
+from model import PLATFORM_STRUCTS, cpp_struct_name, py_class_name, snake_case
 from typesys import (Buffer, Planes, REMEMBER, ClientRef, Enum, Ignored, LibRef, Prim, Str, Struct, Time,
                      Vector, Void)
 
@@ -87,6 +89,14 @@ def table_ret_type(plan):
     if isinstance(kind, ClientRef):
         return kind.cls + "*"  # one reference is passed to the proxy
     raise AssertionError(kind)
+
+
+def neutral_type(text):
+    """A function table type with the platform neutral C++ types in place of CEF's structs
+    (Cython keeps the class names: they are its own, with the neutral type as the C name)."""
+    for cls, name in PLATFORM_STRUCTS.items():
+        text = re.sub(r"\b%s\b" % cls, name, text)
+    return text
 
 
 def table_param_types(plan):
@@ -176,6 +186,10 @@ def _method(model, cls, plan):
             args.append("%s.val" % name)
         elif isinstance(kind, Enum):
             args.append("static_cast<int>(%s)" % name)
+        elif isinstance(kind, Struct) and kind.cls in PLATFORM_STRUCTS:
+            # CEF's struct differs by platform: the function table gets the neutral form.
+            out.append("    const auto& cw_%s = %sFromCef(%s);" % (name, cpp_struct_name(kind.cls), name))
+            args.append("&cw_%s" % name)
         elif isinstance(kind, (Str, Struct, Vector)):
             args.append("&%s" % name)
         elif isinstance(kind, LibRef):
@@ -270,6 +284,7 @@ def emit(model, scope, plans_by_class, banner):
     headers = sorted({model.header_path(c) for c in scope.client_classes} |
                      {model.header_path(c) for c in scope.library_classes})
     lines += ['#include "%s"' % h for h in headers]
+    lines.append('#include "../platform_structs.h"')
     lines.append("#include <atomic>")
     lines.append("#include <vector>")
     lines.append("")
@@ -285,7 +300,8 @@ def emit(model, scope, plans_by_class, banner):
         lines.append("  void (*release)(void* py) = nullptr;")
         for plan in plans:
             lines.append("  %s (*%s)(%s) = nullptr;" % (
-                table_ret_type(plan), field_name(plan), ", ".join(table_param_types(plan))))
+                table_ret_type(plan), field_name(plan),
+                neutral_type(", ".join(table_param_types(plan)))))
         lines.append("};")
         lines.append("")
         lines.append("class Cw%sProxy : public %s {" % (name, cls.get_name()))

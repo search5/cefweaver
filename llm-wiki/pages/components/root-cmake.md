@@ -7,7 +7,8 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - native/cefsubprocess/CMakeLists.txt
   - third_party/cef/README.txt
-updated: 2026-10-08
+  - native/cefwrapper/mac_runtime.mm
+updated: 2026-10-09
 ---
 
 # 루트 CMake와 CEF 다운로드
@@ -18,8 +19,8 @@ updated: 2026-10-08
 
 1. `cmake_minimum_required(VERSION 3.19)`, 구성 유형은 `Debug`와 `Release`, 프로젝트 이름 `cefweaver`.
 2. **CEF 버전**: `CEF_VERSION`이 정의되지 않았으면 `154.0.34+g14c5a08+chromium-154.0.8037.98`을 씁니다(`-DCEF_VERSION=...`으로 덮어씁니다).
-3. **macOS 중단**: `CMAKE_SYSTEM_NAME`이 `Darwin`이면 "cefweaver does not support macOS yet"로 `FATAL_ERROR`를 냅니다. 바로 다음의 `Darwin` 플랫폼 판별 분기는 도달하지 않는 코드로 남아 있습니다.
-4. **플랫폼 판별**: `linux64`, `linux32`, `windows64`, `windows32`(포인터 크기로 구분).
+3. (이전에 있던 macOS 중단은 제거했습니다.)
+4. **플랫폼 판별**: `linux64`, `linux32`, `windows64`, `windows32`(포인터 크기로 구분), `macosarm64`, `macosx64`(`PROJECT_ARCH`나 호스트 프로세서로 구분).
 5. **CEF 확보**: `-DCEF_ROOT`, 환경변수 `CEF_ROOT`, 자동 다운로드(`DownloadCEF`) 순입니다. 지정한 경로에 `cmake/FindCEF.cmake`가 없으면 `FATAL_ERROR`입니다.
 6. 확정한 경로를 캐시 변수 `CEFWEAVER_CEF_ROOT`에 기록하고(`tools/prepare.py`가 읽습니다), `include/cef_version.h`에서 실제 쓰는 CEF 버전을 읽어 로그로 남깁니다. `CEF_ROOT` 자체는 캐시하지 않습니다([CEF 확보 방식](../concepts/cef-acquisition.md)).
 7. `find_package(CEF REQUIRED)`로 CEF 배포본의 `cmake/FindCEF.cmake`를 읽습니다. 이후의 `ADD_LOGICAL_TARGET`, `SET_CEF_TARGET_OUT_DIR`, `COPY_FILES` 같은 매크로와 `OS_LINUX` 같은 변수는 모두 CEF가 제공합니다.
@@ -46,7 +47,7 @@ updated: 2026-10-08
 | `native/cefwrapper/CMakeLists.txt` | `libcefwrapper.a`(정적, `POSITION_INDEPENDENT_CODE ON`, `libcef_lib`와 `libcef_dll_wrapper`와 `${CMAKE_DL_LIBS}` 링크). 소스에 `cef_wrapper_client_handler_linux.cc`가 추가됩니다. | 정적 라이브러리(원래 구성). 소스에 `cef_wrapper_client_handler_win.cc`. |
 | `native/cefsubprocess/CMakeLists.txt` | 실행 파일 `cefsubprocess`(RPATH `$ORIGIN`, CEF 바이너리와 리소스를 출력 디렉터리에 복사, `libminigbm.so`가 있으면 추가 복사) | `WIN32` 실행 파일, 매니페스트, 여러 대상 디렉터리로 복사 |
 
-macOS 분기는 두 파일 모두 원래 구성이 남아 있으나 상위에서 중단되어 쓰이지 않습니다. Windows 분기에는 이 저장소에 없는 `src/PyCef_Dev`, `cefwrappertest` 디렉터리로 복사하는 줄이 남아 있습니다([사용하지 않는 코드와 유산](legacy-code.md)).
+macOS: `native/cefwrapper/CMakeLists.txt`는 Linux처럼 PIC 정적 라이브러리를 만들되 `libcef`는 링크하지 않고(`libcef_lib`는 mac에 없음), `.mm` 두 개(`mac_runtime.mm`, `cef_wrapper_client_handler_mac.mm`)를 ARC로 컴파일합니다. `native/cefsubprocess/CMakeLists.txt`는 CEF가 정한 접미사(`(Alerts)`, `(GPU)`, `(Plugin)`, `(Renderer)`)마다 도우미 앱 타깃을 만들고 `native/cefsubprocess/mac/`의 plist를 씁니다. 도우미 앱을 모아 `cefsubprocess.app`으로 조립하는 일은 CMake가 아니라 `tools/prepare.py`가 합니다. Windows 분기에는 이 저장소에 없는 `src/PyCef_Dev`, `cefwrappertest` 디렉터리로 복사하는 줄이 남아 있습니다([사용하지 않는 코드와 유산](legacy-code.md)).
 
 ## 관련 페이지
 

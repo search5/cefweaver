@@ -15,7 +15,7 @@ updated: 2026-10-08
 
 - 상태: 개발 중이며 프로덕션용이 아니라고 밝힙니다.
 - 소개: 2023년 Lee Ji-Ho가 시작한 CEF의 Python 바인딩. GUI 툴킷 임베딩 예제가 있다고 쓰는 문단이 있으나 실제로 예제는 없습니다([알려진 제약과 미검증 항목](../reference/known-constraints.md)).
-- 지원 플랫폼: Linux x86_64(개발 중), Windows(개발 중), macOS(미지원이며 빌드가 오류로 중단).
+- 지원 플랫폼: Linux x86_64(개발 중), macOS arm64(개발 중), Windows(미검증).
 - 빌드: `python tools/prepare.py`(prebuilt, `--cef-root`, `--build-cef`), 다음에 `uv build --wheel`. `--list-versions`와 `--cef-version`, 소스 빌드의 요구 자원과 `--dry-run`.
 - Python API 예: `CefApp`, `add_javascript_binding`, `add_resource`, 생성된 PEP 8 래퍼, 메시지 펌프 설명, 런타임 파일 배치.
 

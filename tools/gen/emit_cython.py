@@ -16,7 +16,7 @@ import re
 
 from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
-from model import py_class_name, py_method_name, py_param_name
+from model import PLATFORM_STRUCTS, py_class_name, py_method_name, py_param_name
 from model import py_class_name as _py_class_name  # noqa: F401
 from typesys import Buffer, Bytes, Planes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
@@ -118,6 +118,11 @@ def all_structs(model):
 
 # C typedefs of CEF that Cython needs to know as integers: name -> the C type.
 _TYPEDEFS = {"cef_color_t": "uint32_t", "cef_window_handle_t": "unsigned long"}
+
+# The ones whose C type differs by platform (a window handle is an X11 Window, an unsigned long,
+# on Linux and a pointer elsewhere). They are declared as the C type of CEF itself, so that the
+# generated C++ uses the real type and Cython only converts it to an integer.
+_EXTERN_TYPEDEFS = {"cef_window_handle_t"}
 
 
 def _used_typedefs(plans):
@@ -231,7 +236,11 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
         "",
     ]
     for name in _used_typedefs(all_plans):
-        out.append("ctypedef %s %s" % (_TYPEDEFS[name], name))
+        if name in _EXTERN_TYPEDEFS:
+            out += ['cdef extern from "include/internal/cef_types.h":',
+                    "    ctypedef %s %s" % (_TYPEDEFS[name], name)]
+        else:
+            out.append("ctypedef %s %s" % (_TYPEDEFS[name], name))
     if any(f.cpp == "char16_t" for st in all_structs(model).values() for f in st.fields):
         # C++ has char16_t built in; Cython only needs to know it is an integer.
         out += ['cdef extern from *:', '    ctypedef unsigned short char16_t', '']
@@ -247,12 +256,18 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
             "    cdef cppclass CefBaseTime:", "        int64_t val", "        CefBaseTime()", ""]
     if structs:
         out.append("# Value type structs (plain data, copied to and from Python named tuples)")
+        if any(st.cls in PLATFORM_STRUCTS for st in structs.values()):
+            # the platform neutral form of the structs CEF defines differently per platform
+            out.append('cdef extern from "platform_structs.h":')
+            out.append("    pass")
         out.append('cdef extern from "include/internal/cef_types_wrappers.h":')
         for ctype in sorted({f.cpp for s in structs.values() for f in s.fields if f.struct}):
             out.append("    ctypedef struct %s:  # a field that is another struct" % ctype)
             out.append("        pass")
         for struct in structs.values():
-            if struct.raw:  # a C struct: Cython reads it under the name of its Python class
+            if struct.cls in PLATFORM_STRUCTS:
+                out.append('    cdef cppclass %s "%s":' % (struct.cls, PLATFORM_STRUCTS[struct.cls]))
+            elif struct.raw:  # a C struct: Cython reads it under the name of its Python class
                 out.append('    cdef cppclass %s "%s":' % (struct.cls, struct.cname))
             else:
                 out.append("    cdef cppclass %s:" % struct.cls)

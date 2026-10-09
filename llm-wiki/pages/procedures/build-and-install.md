@@ -6,7 +6,8 @@ sources:
   - CLAUDE.md
   - tools/prepare.py
   - pyproject.toml
-updated: 2026-10-08
+  - setup.py
+updated: 2026-10-09
 ---
 
 # 빌드와 설치
@@ -19,6 +20,10 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 - Python 3.11 이상(`requires-python`)
 - CEF를 내려받을 네트워크(prebuilt 사용 시)와 디스크 여유. 154 배포본은 압축본이 약 690MB(689,351,019바이트)이고 푼 디렉터리는 약 3.2GB입니다. `build/`는 약 3GB까지 커집니다.
 - 시험하려면 `xvfb`(가상 X 서버)
+
+## macOS (Apple Silicon)
+
+같은 절차입니다(`python tools/prepare.py`, `uv build --wheel`). 준비물은 Xcode(또는 Command Line Tools)의 clang, CMake, uv입니다. Ninja는 필요 없습니다(Unix Makefiles). CEF는 `macosarm64` 배포본(압축 약 307 MB, 푼 것 약 791 MB)을 받습니다. 결과는 `cefweaver/cefsubprocess.app`(약 325 MB)과 `macosx_..._arm64` wheel(약 147 MB)입니다. `python.org`의 Python으로 `--list-versions`가 실패하면 [tools/prepare.py](../components/tool-prepare.md)를 보세요. 확인한 환경은 [F79](../reference/verified-findings-macos.md)에 있습니다.
 
 ## 절차
 

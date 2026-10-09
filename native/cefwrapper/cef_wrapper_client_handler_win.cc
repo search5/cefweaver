@@ -5,6 +5,9 @@
 
 #include "include/cef_browser.h"
 
+bool CefWrapperClientHandler::PlatformCloseView(CefRefPtr<CefBrowser>) { return false; }
+bool CefWrapperClientHandler::PlatformCloseFinishing(CefRefPtr<CefBrowser>) { return false; }
+
 void CefWrapperClientHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
                                         const CefString& title) {
   CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();

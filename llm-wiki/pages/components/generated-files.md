@@ -10,7 +10,8 @@ sources:
   - cefweaver/_cefweaver.pyi
   - llm-wiki/pages/reference/coverage-report.md
   - .gitignore
-updated: 2026-10-08
+  - tools/gen/model.py
+updated: 2026-10-09
 ---
 
 # 생성되는 파일
@@ -47,6 +48,10 @@ python tools/gen/generate.py --report   # 보고서만 출력
 - 생성된 공개 이름은 `__generated_all__`에 모이고 `_cefweaver.pyx`의 `__all__`에 합쳐집니다.
 
 생성기가 쓰는 입력은 `build/native/cef/include`(사용 중인 배포본의 헤더)입니다. 그러므로 CEF 버전을 바꾸면 반드시 다시 생성해야 합니다([CEF 버전 올리기](../procedures/update-cef-version.md)).
+
+## 어느 플랫폼에서 생성해도 같다
+
+배포본의 플랫폼에 따라 결과가 달라지지 않게 했습니다. macOS 배포본과 Linux x86_64 배포본(`minimal`, 헤더만 사용) 양쪽에서 `python tools/gen/generate.py --check`가 통과합니다([F83](../reference/verified-findings-macos.md), [바인딩 생성기의 설계](../concepts/binding-generator.md)).
 
 ## 관련 페이지
 

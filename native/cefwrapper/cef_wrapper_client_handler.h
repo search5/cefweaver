@@ -205,6 +205,13 @@ private:
   // Platform-specific implementation.
   void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
                            const CefString &title);
+  // macOS: a browser that is a child view of the application's NSView (CefApp.parent_view)
+  // leaves it when the browser closes; CEF finishes the close (OnBeforeClose) only then.
+  // Returns true if the browser is such a child, and then the close is finished here.
+  bool PlatformCloseView(CefRefPtr<CefBrowser> browser);
+  // True for the second DoClose() of such a browser, the one the wrapper itself causes to finish
+  // the close (its view has left already): the user's handler does not see it.
+  bool PlatformCloseFinishing(CefRefPtr<CefBrowser> browser);
 
   // True if the application is using the Views framework.
   const bool use_views_;

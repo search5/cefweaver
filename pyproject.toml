@@ -56,46 +56,12 @@ dev = [
 include = ["cefweaver*"]
 
 [tool.setuptools.package-data]
-# The CEF runtime is copied into cefweaver/ by tools/prepare.py (Linux).
+# The CEF runtime is copied into cefweaver/ by tools/prepare.py (Linux, macOS).
+# The extension module is declared in setup.py (its libraries depend on the platform).
 cefweaver = [
     "*.so", "*.so.*", "*.pyd", "*.dylib",
+    "cefsubprocess.app/**/*",
     "*.pak", "*.dat", "*.bin", "*.json",
     "locales/*", "cefsubprocess",
     "*.pyi", "py.typed",
 ]
-
-# The native libraries must be prepared first with `python tools/prepare.py`,
-# which also links the CEF distribution at build/native/cef.
-# Linux only for now: the library names and directories below differ on Windows.
-[[tool.setuptools.ext-modules]]
-name = "cefweaver._cefweaver"
-sources = ["cefweaver/_cefweaver.pyx"]
-language = "c++"
-include-dirs = ["build/native/cef", "native/cefwrapper"]
-library-dirs = [
-    "build/native/native/cefwrapper",
-    "build/native/libcef_dll_wrapper",
-    "build/native/cef/Release",
-]
-# Relink when the native libraries or headers change; without this setuptools only
-# compares the .pyx/.cpp timestamps and silently reuses a stale build.
-depends = [
-    "cefweaver/cefwrapper.pxd",
-    "cefweaver/cef_api.pxd",
-    "cefweaver/cef_api.pxi",
-    "native/cefwrapper/generated/cefweaver_proxies.h",
-    "native/cefwrapper/library.h",
-    "native/cefwrapper/javascript_binding.h",
-    "native/cefwrapper/query_router.h",
-    "native/cefwrapper/bridge.h",
-    "native/cefwrapper/app_hooks.h",
-    "build/native/native/cefwrapper/libcefwrapper.a",
-    "build/native/libcef_dll_wrapper/libcef_dll_wrapper.a",
-    "build/native/cef/Release/libcef.so",
-]
-# Order matters for the static libraries: cefwrapper uses cef_dll_wrapper.
-libraries = ["cefwrapper", "cef_dll_wrapper", "cef", "X11", "dl", "pthread"]
-# Must match how the CEF wrapper libraries were compiled (see flags.make).
-define-macros = [["NDEBUG", "1"], ["_FILE_OFFSET_BITS", "64"]]
-extra-compile-args = ["-std=c++20"]
-extra-link-args = ["-Wl,-rpath,$ORIGIN"]

@@ -28,12 +28,17 @@ set(CEFSIMPLE_SRCS
         bridge.h
         custom_protocol_scheme_handler.h
         custom_protocol_scheme_handler.cc
-        file_util.h)
+        file_util.h
+        runtime.h)
 set(CEFSIMPLE_SRCS_WINDOWS
         cef_wrapper_client_handler_win.cc
   )
 set(CEFSIMPLE_SRCS_LINUX
         cef_wrapper_client_handler_linux.cc
+  )
+set(CEFSIMPLE_SRCS_MAC
+        cef_wrapper_client_handler_mac.mm
+        mac_runtime.mm
   )
 APPEND_PLATFORM_SOURCES(CEFSIMPLE_SRCS)
 source_group(cefsimple FILES ${CEFSIMPLE_SRCS})
@@ -45,11 +50,9 @@ source_group(cefsimple FILES ${CEFSIMPLE_SRCS})
 # Target executable names.
 set(CEF_TARGET "cefwrapper")
 
-if(OS_MAC)
-  set(CEF_HELPER_TARGET "cefsimple_Helper")
-  set(CEF_HELPER_OUTPUT_NAME "cefsimple Helper")
-else()
-  # Logical target used to link the libcef library.
+if(NOT OS_MAC)
+  # Logical target used to link the libcef library. (macOS does not link libcef: the
+  # framework is loaded at run time, see runtime.h.)
   ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
 endif()
 
@@ -60,11 +63,15 @@ SET_CEF_TARGET_OUT_DIR()
 add_compile_definitions(_ITERATOR_DEBUG_LEVEL=0)
 
 if(OS_MAC)
+  # Static library linked into the Python extension module (a shared object), like on Linux.
   add_library(${CEF_TARGET} STATIC ${CEFSIMPLE_SRCS})
   SET_LIBRARY_TARGET_PROPERTIES(${CEF_TARGET})
+  set_target_properties(${CEF_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  set_source_files_properties(cef_wrapper_client_handler_mac.mm mac_runtime.mm
+                              PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
   add_dependencies(${CEF_TARGET} libcef_dll_wrapper)
   target_include_directories(${CEF_TARGET} PUBLIC ${CEF_INCLUDE_PATH})
-  target_link_libraries(${CEF_TARGET} libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS})
+  target_link_libraries(${CEF_TARGET} libcef_dll_wrapper ${CEF_STANDARD_LIBS} ${CMAKE_DL_LIBS})
 endif()
 
 #

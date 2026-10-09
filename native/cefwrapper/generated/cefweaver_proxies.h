@@ -51,6 +51,7 @@
 #include "include/cef_values.h"
 #include "include/cef_zip_reader.h"
 #include "include/views/cef_display.h"
+#include "../platform_structs.h"
 #include <atomic>
 #include <vector>
 
@@ -2499,7 +2500,7 @@ struct CwRenderHandlerCallbacks {
   void (*fn_on_popup_show)(void*, CefBrowser*, bool) = nullptr;
   void (*fn_on_popup_size)(void*, CefBrowser*, const CefRect*) = nullptr;
   void (*fn_on_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, void*, size_t, int, int) = nullptr;
-  void (*fn_on_accelerated_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, const CefAcceleratedPaintInfo*) = nullptr;
+  void (*fn_on_accelerated_paint)(void*, CefBrowser*, int, const std::vector<CefRect>*, const CwAcceleratedPaintInfo*) = nullptr;
   void (*fn_get_touch_handle_size)(void*, CefBrowser*, int, CefSize*) = nullptr;
   void (*fn_on_touch_handle_state_changed)(void*, CefBrowser*, const CefTouchHandleState*) = nullptr;
   bool (*fn_start_dragging)(void*, CefBrowser*, CefDragData*, int, int, int) = nullptr;
@@ -2588,7 +2589,8 @@ class CwRenderHandlerProxy : public CefRenderHandler {
       CefRenderHandler::OnAcceleratedPaint(browser, type, dirtyRects, info);
       return;
     }
-    cb_.fn_on_accelerated_paint(cb_.py, browser.get(), static_cast<int>(type), &dirtyRects, &info);
+    const auto& cw_info = CwAcceleratedPaintInfoFromCef(info);
+    cb_.fn_on_accelerated_paint(cb_.py, browser.get(), static_cast<int>(type), &dirtyRects, &cw_info);
   }
 
   void GetTouchHandleSize(CefRefPtr<CefBrowser> browser, cef_horizontal_alignment_t orientation, CefSize& size) override {

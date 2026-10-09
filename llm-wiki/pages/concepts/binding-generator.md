@@ -9,7 +9,8 @@ sources:
   - tools/gen/report.py
   - tools/gen/vendor/README.txt
   - llm-wiki/pages/reference/coverage-report.md
-updated: 2026-10-08
+  - native/cefwrapper/platform_structs.h
+updated: 2026-10-09
 ---
 
 # 바인딩 생성기의 설계
@@ -109,6 +110,10 @@ report.py       커버리지 보고서
 - 헤더 주석의 한국어 번역(`cef_origin` 위키의 설명)을 스텁에 쓰는 일
 
 남은 일과 순서는 [생성기의 한계와 다음 단계](../reference/generated-api-coverage.md)에 있습니다.
+
+## 플랫폼마다 다른 구조체
+
+CEF는 몇몇 구조체(`cef_accelerated_paint_info_t`)를 `cef_types_linux.h`, `_mac.h`, `_win.h`에 따로 정의하고, 배포본에는 자기 플랫폼의 헤더만 있습니다. 생성기는 어느 배포본으로 돌려도 같은 파일을 만들어야 하므로(커밋된 생성 파일을 모든 플랫폼이 컴파일) 이런 구조체는 Linux 형식을 `tools/gen/model.py`에 내장해 읽습니다(`LINUX_STRUCT_BODIES`, Linux 헤더가 없을 때만 씀). 생성된 코드는 CEF의 이름이 아니라 `PLATFORM_STRUCTS`가 정한 중립 이름(`CwAcceleratedPaintInfo`)을 쓰고, 중립 형식은 `native/cefwrapper/platform_structs.h`에 있습니다. Linux에서는 CEF의 형식 자체이고 그 밖에서는 같은 필드를 가진 사본입니다(공유 텍스처의 평면은 비어 있음). 창 핸들(`cef_window_handle_t`)은 Linux에서 정수, macOS에서 포인터라서 Cython에는 CEF의 C 형식 그대로(`extern`)로 선언합니다. 확인은 [F83](../reference/verified-findings-macos.md)에 있습니다.
 
 ## 관련 페이지
 

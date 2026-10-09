@@ -7,9 +7,14 @@
 from libcpp cimport bool as cpp_bool
 from libcpp.string cimport string
 
-from libc.stdint cimport int64_t
+from libc.stdint cimport int64_t, uintptr_t
 
 from cefweaver.cef_api cimport CefBrowser, CefBrowserSettings, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr
+
+
+cdef extern from "runtime.h":
+    # macOS: loads the CEF framework (libcef is not linked there); elsewhere it does nothing.
+    cpp_bool CefWeaverLoadRuntime()
 
 
 cdef extern from "javascript_binding.h":
@@ -69,6 +74,8 @@ cdef extern from "library.h":
         cpp_bool ExecuteJavascript(string code) nogil
         void ShutdownCefSimple() nogil
         cpp_bool IsRunning()
+        void PumpApplicationEvents()
+        cpp_bool ExternalMessagePump()
         cpp_bool IsReadyToExecuteJavascript()
         void DoCefMessageLoopWork() nogil
         void AddJavascriptPythonBinding(
@@ -87,7 +94,10 @@ cdef extern from "library.h":
         void SetIntSetting(string name, long long value)
         CefRefPtr[CefBrowser] CreateBrowser(string url, int offscreen, int transparent,
                                             CefRefPtr[CefRequestContext] request_context,
-                                            const CefBrowserSettings* settings, int shared_texture)
+                                            const CefBrowserSettings* settings, int shared_texture,
+                                            int64_t parent_view)
+        void SetParentView(uintptr_t view)
+        uintptr_t ParentView()
         void SetBrowserSettings(const CefBrowserSettings& settings)
         void SetSharedTexture(cpp_bool enabled)
         cpp_bool SharedTexture()

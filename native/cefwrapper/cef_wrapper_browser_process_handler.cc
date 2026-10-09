@@ -1,5 +1,6 @@
 
 
+#include "runtime.h"
 #include "cef_wrapper_browser_process_handler.h"
 #include "cef_wrapper_client_handler.h"
 #include "cef_wrapper_render_process_handler.h"
@@ -67,7 +68,7 @@ bool CefWrapperBrowserProcessHandler::OnAlreadyRunningAppRelaunch(
 CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
     const std::string& url, bool offscreen, bool transparent,
     CefRefPtr<CefRequestContext> request_context, const CefBrowserSettings* settings,
-    bool shared_texture) {
+    bool shared_texture, uintptr_t parent_view) {
   CEF_REQUIRE_UI_THREAD();
   CefRefPtr<CefWrapperBrowserProcessHandler> self = GetInstance();
   CefBrowserSettings browser_settings = settings ? *settings : self->m_BrowserSettings;
@@ -92,6 +93,16 @@ CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
       browser_settings.background_color = (color >> 24) == 0xFF ? color : 0xFFFFFFFF;
     }
   }
+
+#if defined(OS_MAC)
+  if (!offscreen && parent_view != 0) {
+    // A child of the application's NSView, filling it (CEF resizes it with its parent).
+    int width = 0, height = 0;
+    CefWeaverViewSize(parent_view, &width, &height);
+    window_info.SetAsChild(reinterpret_cast<cef_window_handle_t>(parent_view),
+                           CefRect(0, 0, width, height));
+  }
+#endif
 
 #if defined(OS_WIN)
   // On Windows we need to specify certain flags that will be passed to
@@ -118,8 +129,19 @@ CefRefPtr<CefBrowser> CefWrapperBrowserProcessHandler::CreateBrowser(
     extra->SetList("JSNativePythonApiNames", names);
   }
 
-  return CefBrowserHost::CreateBrowserSync(window_info, CefWrapperClientHandler::GetInstance(),
-                                           url, browser_settings, extra, request_context);
+  CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(
+      window_info, CefWrapperClientHandler::GetInstance(), url, browser_settings, extra,
+      request_context);
+#if defined(OS_MAC)
+  if (browser && !offscreen) {
+    std::lock_guard<std::mutex> lock(g_ChildViewBrowsersMutex);
+    g_ChildViewBrowsers[browser->GetIdentifier()] = 0;
+    if (parent_view == 0) {
+      g_OwnWindowBrowsers.insert(browser->GetIdentifier());
+    }
+  }
+#endif
+  return browser;
 }
 
 void CefWrapperBrowserProcessHandler::OnScheduleMessagePumpWork(int64_t delay_ms) {
@@ -149,7 +171,7 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
       m_JavascriptBindings, m_JavascriptPythonBindings);
 
   Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext,
-                          nullptr, g_SharedTexture.load());
+                          nullptr, g_SharedTexture.load(), g_ParentView.load());
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
 }

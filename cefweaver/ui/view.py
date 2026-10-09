@@ -60,6 +60,7 @@ class BrowserView:
         self._clicks = (float("-inf"), 0, 0, 0)         # time, x, y, count of the last press
         self._position = (0, 0)
         self._last_key = None
+        self._down_chars = {}                      # macOS: the key up repeats the character of the key down
         self._emulated = None                           # the DragData of a drag the view carries itself
         self._emulated_ops = types.DragOperationsMask.COPY
         self._outgoing = None                           # the DragData of a drag the toolkit carries
@@ -283,12 +284,21 @@ class BrowserView:
             return True
         base = dict(modifiers=mods, windows_key_code=windows_key_code, native_key_code=native_code)
         if not down:
-            self.host(lambda h: h.send_key_event(types.KeyEvent(types.KeyEventType.KEYUP, **base)))
+            character = 0
+            if keys.IS_MAC:                        # a key up without its character is taken for a key down
+                base["native_key_code"] = keys.native_code_for_key_down(windows_key_code, native_code)
+                character = (keys.MAC_KEY_CHARS.get(windows_key_code, 0)
+                             or self._down_chars.pop(windows_key_code, 0))
+            self.host(lambda h: h.send_key_event(types.KeyEvent(
+                types.KeyEventType.KEYUP, character=character, unmodified_character=character, **base)))
             return False
+        base["native_key_code"] = keys.native_code_for_key_down(windows_key_code, native_code)
         self._last_key = base
         self.host(lambda h: h.send_key_event(types.KeyEvent(types.KeyEventType.RAWKEYDOWN, **base)))
         character = _CHAR_OF_KEY.get(windows_key_code) or (ord(char) if char else 0)
-        if character and not mods & (keys.CONTROL | keys.ALT):
+        if character:
+            self._down_chars[windows_key_code] = character
+        if character and not mods & (keys.CONTROL | keys.ALT | (keys.COMMAND if keys.IS_MAC else 0)):
             self._char(character, base)
         return False
 
@@ -324,16 +334,30 @@ class BrowserView:
                                                   cefweaver.Range(cursor, cursor)))
 
     def _clipboard_key(self, down, code, mods):
-        """Ctrl+C, Ctrl+X and Ctrl+V with the toolkit's clipboard. CEF doing them would read the selection of
+        """Ctrl+C, Ctrl+X and Ctrl+V (Command on macOS) with the toolkit's clipboard. CEF doing them would read the selection of
         this very process while the toolkit, in this thread, has to answer it: it hangs or comes back empty
         (Qt and Tk; GTK 3 could, hence the capability ``native_clipboard``)."""
-        if code not in (ord("C"), ord("X"), ord("V")) or not mods & keys.CONTROL or mods & keys.ALT:
+        if not mods & keys.shortcut_modifier() or mods & keys.ALT:
+            return False
+        if keys.IS_MAC and code in (ord("A"), ord("Z")):
+            # No Edit menu in this process, so CEF has no key equivalent for them: run the command.
+            if down:
+                self._edit_command("select_all" if code == ord("A") else "redo" if mods & keys.SHIFT else "undo")
+            return True
+        if code not in (ord("C"), ord("X"), ord("V")):
             return False
         if not self._does_clipboard():
             return False
         if down:
             self._clipboard_command({ord("C"): "copy", ord("X"): "cut", ord("V"): "paste"}[code])
         return True
+
+    def _edit_command(self, name):
+        """A command of the focused frame (``select_all``, ``undo``, ``redo``)."""
+        if self.browser is None:
+            return
+        frame = self.browser.get_focused_frame() or self.browser.get_main_frame()
+        getattr(frame, name)()
 
     def _spelling_command(self, command_id, info):
         """A suggestion of the spell checker replaces the misspelled word; Add to dictionary adds it."""

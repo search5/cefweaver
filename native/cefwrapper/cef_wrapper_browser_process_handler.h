@@ -31,7 +31,8 @@ public:
                                              bool transparent,
                                              CefRefPtr<CefRequestContext> request_context,
                                              const CefBrowserSettings* settings = nullptr,
-                                             bool shared_texture = false);
+                                             bool shared_texture = false,
+                                             uintptr_t parent_view = 0);
   static void SetBrowserSettings(const CefBrowserSettings& settings);
   CefRefPtr<CefBrowser>Browser;
   CefRefPtr<CefClient> m_UserClient;

@@ -9,6 +9,9 @@
 
 
 
+bool CefWrapperClientHandler::PlatformCloseView(CefRefPtr<CefBrowser>) { return false; }
+bool CefWrapperClientHandler::PlatformCloseFinishing(CefRefPtr<CefBrowser>) { return false; }
+
 void CefWrapperClientHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
                                         const CefString& title) {
   // An Alloy style window has no title of its own (a Chrome style one sets it from the

@@ -6,12 +6,14 @@ sources:
   - tests/test_generator.py
   - tests/test_ui.py
   - CLAUDE.md
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # 시험 (tests/)
 
 `unittest`로 작성한 시험이 네 파일에 408개(통합 192, 생성기 121, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+
+macOS에서는 `test_smoke.py`가 `cefsubprocess.app`이 있으면 CEF 시험을 실행하고(`RUNTIME_OK`), Linux 전용인 `ozone-platform` 스위치를 주지 않으며, 일부는 `skipIf`로 건너뜁니다. `test_generator.py`에는 플랫폼마다 다른 구조체를 중립 형식으로 읽는지 보는 시험이 하나 있습니다. 결과는 [F81~F82](../reference/verified-findings-macos.md)에 있습니다.
 
 ## tests/test_smoke.py: 설치된 wheel의 통합 시험
 

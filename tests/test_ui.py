@@ -61,6 +61,9 @@ class FakeBrowser:
     def get_main_frame(self):
         return self.frame
 
+    def get_focused_frame(self):
+        return self.frame
+
     def go_back(self):
         self.calls.append(("go_back",))
 
@@ -187,6 +190,46 @@ class Keyboard(unittest.TestCase):
         view.key(False, keys.vk_for_char("a"), 38, 0)
         self.assertEqual(self.events(calls), [(types.KeyEventType.RAWKEYDOWN, 65, 0), (types.KeyEventType.KEYUP, 65, 0)])
 
+    def test_on_macos_an_editing_key_goes_with_its_native_code_and_its_key_up_with_its_character(self):
+        saved = keys.IS_MAC
+        keys.IS_MAC = True
+        try:
+            view, _, calls = make_view()
+            view.key(True, keys.VK_BACK, 0, 0)
+            view.key(False, keys.VK_BACK, 0, 0)
+            events = [e for (e,) in named(calls, "send_key_event")]
+            # (Backspace also has a char event, as everywhere)
+            self.assertEqual([(e.type, e.native_key_code) for e in events],
+                             [(types.KeyEventType.RAWKEYDOWN, 51), (types.KeyEventType.CHAR, 51),
+                              (types.KeyEventType.KEYUP, 51)])
+            self.assertEqual(events[-1].character, 127)           # a key up without it is taken for a key down
+            self.assertEqual(events[-1].unmodified_character, 127)
+            view, _, calls = make_view()
+            view.key(True, keys.VK_LEFT, 77, 0)                   # the toolkit's own code wins
+            view.key(False, keys.VK_LEFT, 77, 0)
+            events = [e for (e,) in named(calls, "send_key_event")]
+            self.assertEqual([e.native_key_code for e in events], [77, 77])
+            self.assertEqual(events[1].character, 0xF702)
+            view, _, calls = make_view()
+            view.key(True, 66, 11, 0, char="b")                   # a letter: the character of the key down
+            view.key(False, 66, 11, 0)
+            self.assertEqual(named(calls, "send_key_event")[-1][0].character, ord("b"))
+        finally:
+            keys.IS_MAC = saved
+
+    def test_elsewhere_the_key_events_are_the_toolkits(self):
+        saved = keys.IS_MAC
+        keys.IS_MAC = False
+        try:
+            view, _, calls = make_view()
+            view.key(True, keys.VK_BACK, 22, 0)
+            view.key(False, keys.VK_BACK, 22, 0)
+            events = [e for (e,) in named(calls, "send_key_event")]
+            self.assertEqual([e.native_key_code for e in events], [22, 22, 22])
+            self.assertEqual(events[-1].character, 0)
+        finally:
+            keys.IS_MAC = saved
+
     def test_the_character_of_a_key_follows_as_a_char_event(self):
         view, _, calls = make_view()
         view.key(True, 65, 38, 0, char="a")
@@ -245,6 +288,14 @@ class Keyboard(unittest.TestCase):
 
 
 class Clipboard(unittest.TestCase):
+    def setUp(self):
+        # These are the Control shortcuts; Command ones are tested below
+        self._is_mac = keys.IS_MAC
+        keys.IS_MAC = False
+
+    def tearDown(self):
+        keys.IS_MAC = self._is_mac
+
     def adapter(self, native=False):
         adapter = FakeAdapter()
         adapter.stored = {"text": "from clipboard"}
@@ -252,6 +303,35 @@ class Clipboard(unittest.TestCase):
         adapter.clipboard_set = lambda text: adapter.stored.update(text=text)
         adapter.capabilities = frozenset({"native_clipboard"} if native else ())
         return adapter
+
+    def test_on_macos_command_c_x_v_use_the_toolkits_clipboard_and_control_does_not(self):
+        keys.IS_MAC = True
+        adapter = self.adapter()
+        view, _, calls = make_view(adapter)
+        view.selected_text = "cut me"
+        self.assertTrue(view.key(True, ord("C"), 0, keys.COMMAND))
+        self.assertEqual(adapter.stored["text"], "cut me")
+        self.assertTrue(view.key(False, ord("C"), 0, keys.COMMAND))          # the key up is swallowed too
+        self.assertFalse(view.key(True, ord("C"), 0, keys.CONTROL))          # Control+C is a plain key there
+        self.assertEqual(named(calls, "send_key_event")[0][0].modifiers, keys.CONTROL)
+
+    def test_on_macos_command_a_and_z_run_the_frame_commands(self):
+        keys.IS_MAC = True
+        view, _, calls = make_view()
+        self.assertTrue(view.key(True, ord("A"), 0, keys.COMMAND))
+        self.assertTrue(view.key(True, ord("Z"), 0, keys.COMMAND))
+        self.assertTrue(view.key(True, ord("Z"), 0, keys.COMMAND | keys.SHIFT))
+        self.assertEqual([c[0] for c in calls], ["frame.select_all", "frame.undo", "frame.redo"])
+        self.assertEqual(named(calls, "send_key_event"), [])                  # not sent as keys
+        keys.IS_MAC = False
+        view, _, calls = make_view()
+        self.assertFalse(view.key(True, ord("A"), 0, keys.CONTROL))           # elsewhere CEF has them
+
+    def test_on_macos_command_does_not_type_the_letter(self):
+        keys.IS_MAC = True
+        view, _, calls = make_view()
+        view.key(True, ord("F"), 0, keys.COMMAND, char="f")
+        self.assertEqual([e.type for (e,) in named(calls, "send_key_event")], [types.KeyEventType.RAWKEYDOWN])
 
     def test_control_c_copies_the_selection_into_the_toolkits_clipboard(self):
         view, adapter, calls = make_view(self.adapter())
@@ -1837,7 +1917,9 @@ items, x, y, done = adapter.menus[0]
 ids = [i.command_id for i in items if i.kind != "separator"]
 assert (x, y) == (40, 30), (x, y)
 assert hooked and hooked[0] == (40, 30), hooked
-assert int(types.MenuId.BACK) in ids and int(types.MenuId.FORWARD) in ids, ids       # the standard items, by the ids CEF knows
+if sys.platform != "darwin":      # the menu of CEF on macOS has no Back and Forward (only 113, view source, here)
+    assert int(types.MenuId.BACK) in ids and int(types.MenuId.FORWARD) in ids, ids   # the standard items, by the ids CEF knows
+assert ids, ids
 assert all(i.label for i in items if i.kind != "separator"), items
 # Select all is not in the menu of a plain click, but CEF runs any standard command it is given (F32)
 done(int(types.MenuId.SELECT_ALL))
@@ -1859,6 +1941,83 @@ class WithCefContextMenu(unittest.TestCase):
         self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertNotIn("stack smashing", result.stderr)
         self.assertIn("OK-PICK", result.stdout)
+        self.assertIn("OK", result.stdout.splitlines()[-1])
+
+
+KEYS_SCRIPT = """
+import tempfile
+from cefweaver import types, ui
+from cefweaver.ui import keys
+from cefweaver.ui.headless import HeadlessAdapter
+
+PAGE = \"\"\"<!doctype html><meta charset=utf-8><title>start</title><body style="margin:0">
+<input id=i autofocus style="width:200px"><script>var i = document.getElementById("i");
+["keyup", "input", "compositionupdate"].forEach(function (n) { i.addEventListener(n, function () { document.title = "v:" + i.value + ":" + i.selectionStart; }); });</script>\"\"\"
+adapter = HeadlessAdapter(size=(300, 100))
+session = ui.Session(adapter, cache_path=tempfile.mkdtemp(prefix="cefweaver-ui-"))
+class Widget(ui.BrowserWidget):
+    pass
+widget = Widget()
+view = widget.attach_view(adapter)
+titles = []
+view.on_title = titles.append
+def ready():
+    session.app.add_resource("http://ui.test/", PAGE)
+    view.load_url("http://ui.test/")
+view.on_ready = ready
+session.start(widget)
+adapter.run_until(lambda: adapter.picture and "start" in titles, "the page")
+adapter.run_for(0.3)
+view.focus(True)
+def press(code, char=None):
+    view.key(True, code, 0, 0, char=char)           # the toolkit gives no native code
+    view.key(False, code, 0, 0)
+def value(expected):
+    adapter.run_until(lambda: titles and titles[-1] == "v:" + expected, "the value " + expected + " (titles %r)" % titles[-3:], 20)
+for _ in range(10):                                 # the page may need a moment to take the focus
+    view.mouse_button(20, 10, "left", True, keys.LEFT_BUTTON)       # into the field
+    view.mouse_button(20, 10, "left", False, 0)
+    press(88, "x")
+    adapter.run_for(0.3)
+    if "v:x:1" in titles:
+        break
+view.key(True, keys.VK_BACK, 0, 0); view.key(False, keys.VK_BACK, 0, 0)    # clear the x
+value(":0")
+for code, char in ((65, "a"), (66, "b"), (67, "c")):
+    press(code, char)
+value("abc:3")
+press(keys.VK_BACK)
+value("ab:2")
+press(keys.VK_LEFT)
+value("ab:1")
+press(keys.VK_DELETE)
+value("a:1")
+# An input method: the composition of Hangul shows in the field, the commit makes it text
+view.preedit("\ud55c", 1)
+adapter.run_until(lambda: titles[-1].startswith("v:a\ud55c"), "the composition (titles %r)" % titles[-2:], 20)
+view.commit_text("\ud55c\uae00")
+adapter.run_until(lambda: titles and titles[-1].startswith("v:a\ud55c\uae00") or any(t.startswith("v:a\ud55c\uae00") for t in titles), "the committed text (titles %r)" % titles[-3:], 20)
+view.preedit("", 0)
+if keys.IS_MAC:                                     # Command+A selects all (a frame command: no Edit menu), then a letter replaces it
+    view.key(True, 65, 0, keys.COMMAND); view.key(False, 65, 0, keys.COMMAND)
+    press(81, "q")
+    value("q:1")
+done = []
+session.shutdown(lambda: done.append(True))
+adapter.run_until(lambda: done, "CEF to shut down", 20)
+print("OK")
+"""
+
+
+class WithCefKeys(unittest.TestCase):
+    """The keys of a toolkit that gives no native key code edit a field (macOS needs the code)."""
+
+    def test_editing_keys_edit_a_field_without_native_codes_from_the_toolkit(self):
+        env = dict(os.environ)
+        env.pop("WAYLAND_DISPLAY", None)
+        result = subprocess.run([sys.executable, "-I", "-c", textwrap.dedent(KEYS_SCRIPT)], capture_output=True,
+                                text=True, timeout=120, env=env)
+        self.assertEqual(result.returncode, 0, (result.stdout + result.stderr)[-3000:])
         self.assertIn("OK", result.stdout.splitlines()[-1])
 
 
@@ -1939,6 +2098,7 @@ print("OK")
 
 
 class WithCefSpelling(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "darwin", "macOS checks the spelling with NSSpellChecker: no suggestions came here; not examined")
     def test_a_suggestion_of_the_menu_replaces_the_misspelled_word_on_a_page_that_lost_the_focus(self):
         env = dict(os.environ)
         env.pop("WAYLAND_DISPLAY", None)

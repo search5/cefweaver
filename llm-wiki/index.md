@@ -10,10 +10,10 @@
 - [핸들러 프록시 구조](pages/concepts/handler-proxies.md): 핸들러를 Python 객체로 위임하는 함수 포인터 표와 프록시, 래퍼의 핸들러가 이벤트를 넘기는 전달 클래스, 값 전달 규칙
 - [JavaScript 바인딩](pages/concepts/javascript-bindings.md): JS에서 Python 콜백까지의 여섯 단계, 값 변환, 이름만 보내는 이유
 - [수명 주기와 메시지 루프](pages/concepts/lifecycle-and-message-loop.md): initialize, 외부 메시지 펌프, 창 닫기, shutdown의 순서와 상태
-- [플랫폼 지원 현황](pages/concepts/platform-support.md): Linux, Windows, macOS, ARM의 지원 상태와 근거
+- [플랫폼 지원 현황](pages/concepts/platform-support.md): Linux, Windows, macOS(arm64 지원)의 지원 상태와 근거, macOS의 구현 방식
 - [프로세스 모델과 스레드](pages/concepts/process-model-and-threads.md): 브라우저 프로세스는 Python 프로세스, 서브프로세스, UI 스레드와 GIL 규칙
 - [리소스 제공 (스킴 핸들러와 add_resource)](pages/concepts/resource-serving.md): 스킴 핸들러와 add_resource로 네트워크 없이 페이지 제공
-- [런타임 파일 배치](pages/concepts/runtime-layout.md): libcef.so와 리소스를 같은 디렉터리에 두는 이유와 배치
+- [런타임 파일 배치](pages/concepts/runtime-layout.md): libcef.so와 리소스를 같은 디렉터리에 두는 이유와 배치, macOS의 cefsubprocess.app
 
 ## 구성요소 (components)
 
@@ -57,6 +57,7 @@
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 - [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57), 툴킷 예제(F69)
+- [실행해서 확인한 macOS (F79부터)](pages/reference/verified-findings-macos.md): macOS arm64 빌드와 구동, 시험 결과, Linux와 다른 동작(Ctrl+클릭, 편집 키, 인쇄 등), 생성기를 플랫폼과 무관하게 만든 일
 - [실행해서 확인한 미디어 (F71부터)](pages/reference/verified-findings-media.md): 마이크와 카메라의 권한 핸들러, 오디오 핸들러(`Planes`), 소리를 내지 않는 시험 스위치, 유튜브 영상의 재생과 코덱
 - [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [GTK 3 예제 (오프스크린 위젯)](pages/reference/gtk3-example.md): `examples/gtk3/`의 위젯과 uv 환경, 실제로 돌려 확인한 것(27개 점검: 입력, 한글, 복사와 붙여넣기, 드래그 앤 드롭, HiDPI), 발견한 결함과 우회

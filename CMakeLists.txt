@@ -28,13 +28,6 @@ if(NOT DEFINED CEF_VERSION)
   set(CEF_VERSION "154.0.34+g14c5a08+chromium-154.0.8037.98")
 endif()
 
-# macOS needs the CEF framework loader, helper app bundles and a Cocoa message
-# loop integration, none of which are implemented yet.
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-  message(FATAL_ERROR "cefweaver does not support macOS yet. "
-                      "Supported platforms: Linux, Windows.")
-endif()
-
 # Determine the platform.
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
   if("${PROJECT_ARCH}" STREQUAL "arm64")

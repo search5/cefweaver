@@ -86,7 +86,11 @@ class KivyAdapter(KivyLoop):
 
     def screen_origin(self):
         """The top-left corner of the widget on the screen (Kivy's y runs upwards: the window's height turns it)."""
-        return int(Window.left + self.w.x), int(Window.top + Window.height - self.w.top)
+        try:
+            left, top = Window.left, Window.top
+        except TypeError:                   # macOS: Kivy's SDL2 window cannot tell where it is
+            left, top = 0, 0
+        return int(left + self.w.x), int(top + Window.height - self.w.top)
 
     def screen_size(self):
         return int(Window.system_size[0]), int(Window.system_size[1])

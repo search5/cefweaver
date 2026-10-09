@@ -157,3 +157,9 @@ examples/*/.venv-*/
 
 # The cache CEF makes in the working directory when no cache path is set
 cache/
+
+# macOS: the main app bundle stand-in with the CEF framework and the helper apps
+cefweaver/cefsubprocess.app/
+
+# SwiftUI example binary
+examples/swiftui/CefSwiftUI

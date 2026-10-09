@@ -7,14 +7,15 @@ sources:
   - .gitignore
   - tools/prepare.py
   - cefweaver/__init__.py
-updated: 2026-10-08
+  - setup.py
+updated: 2026-10-09
 ---
 
 # 패키징
 
-빌드 백엔드는 setuptools이고(`requires = ["setuptools>=77", "Cython>=3.0", "cmake>=3.28.1"]`) 도구는 uv입니다. `setup.py`는 없습니다. Cython 확장을 `pyproject.toml`의 정적 선언 `[[tool.setuptools.ext-modules]]`로 적어서 필요가 없어졌습니다.
+빌드 백엔드는 setuptools이고(`requires = ["setuptools>=77", "Cython>=3.0", "cmake>=3.28.1"]`) 도구는 uv입니다. Cython 확장은 처음에 `pyproject.toml`의 정적 선언 `[[tool.setuptools.ext-modules]]`로 적었으나, macOS를 더하며 `setup.py`로 옮겼습니다. 정적 선언은 플랫폼마다 다른 라이브러리 목록을 쓸 수 없기 때문입니다. `setup.py`는 `Extension` 하나만 선언하고 나머지 메타데이터는 `pyproject.toml`에 있습니다.
 
-## ext-modules 설정
+## 확장 모듈 설정 (`setup.py`)
 
 | 항목 | 값 | 이유 |
 | --- | --- | --- |
@@ -22,13 +23,13 @@ updated: 2026-10-08
 | `language` | `c++` | |
 | `include-dirs` | `build/native/cef`, `native/cefwrapper` | CEF 헤더(`prepare.py`가 만든 링크)와 래퍼 헤더 |
 | `library-dirs` | `build/native/native/cefwrapper`, `build/native/libcef_dll_wrapper`, `build/native/cef/Release` | 세 라이브러리가 흩어져 있습니다. |
-| `libraries` | `cefwrapper`, `cef_dll_wrapper`, `cef`, `X11`(창 제목 설정), `dl`, `pthread` | 정적 라이브러리는 순서가 중요합니다(`cefwrapper`가 `cef_dll_wrapper`를 씀). |
-| `define-macros` | `NDEBUG=1`, `_FILE_OFFSET_BITS=64` | 래퍼 라이브러리를 컴파일한 정의(`flags.make`)와 맞춰야 합니다. |
+| `libraries` | Linux: `cefwrapper`, `cef_dll_wrapper`, `cef`, `X11`(창 제목 설정), `dl`, `pthread`. macOS: `cefwrapper`, `cef_dll_wrapper` | 정적 라이브러리는 순서가 중요합니다(`cefwrapper`가 `cef_dll_wrapper`를 씀). macOS는 `libcef`를 링크하지 않고 프레임워크를 실행 중에 올립니다. |
+| `define-macros` | Linux: `NDEBUG=1`, `_FILE_OFFSET_BITS=64`. macOS: `NDEBUG=1` | 래퍼 라이브러리를 컴파일한 정의(`flags.make`)와 맞춰야 합니다. |
 | `extra-compile-args` | `-std=c++20` | CEF 154가 C++20으로 컴파일됩니다. |
-| `extra-link-args` | `-Wl,-rpath,$ORIGIN` | 같은 디렉터리의 `libcef.so`를 찾습니다. |
+| `extra-link-args` | Linux: `-Wl,-rpath,$ORIGIN`. macOS: `-framework Cocoa -framework AppKit -framework IOSurface -Wl,-ObjC` | Linux는 같은 디렉터리의 `libcef.so`를 찾습니다. macOS는 래퍼의 Objective-C++이 쓰는 프레임워크입니다. |
 | `depends` | 생성 파일, 래퍼 헤더 두 개, 정적 라이브러리 두 개, `libcef.so` | 아래 참조 |
 
-경로는 모두 저장소 루트 기준 상대 경로이며, **Linux 전용**입니다. 정적 설정 파일에는 플랫폼 조건을 쓸 수 없고 Windows의 라이브러리 이름과 디렉터리가 다르기 때문에, Windows를 지원하려면 설정 방식을 다시 정해야 합니다.
+경로는 모두 저장소 루트 기준 상대 경로입니다. `sys.platform`이 `darwin`이면 macOS 설정을, 아니면 Linux 설정을 씁니다(Windows는 라이브러리 이름과 디렉터리가 달라 아직 없음). macOS에서는 `MACOSX_DEPLOYMENT_TARGET`을 12.0으로 기본 설정합니다(래퍼 라이브러리를 그 값으로 컴파일하기 때문). Linux 분기는 옮기기 전과 같은 값이지만 macOS 컴퓨터에서 돌려 보지 못했습니다.
 
 ## depends가 필요한 이유
 
@@ -36,7 +37,7 @@ setuptools(distutils)는 `.pyx`와 `.cpp`의 수정 시각만 비교하고 **정
 
 ## package-data
 
-`cefweaver = ["*.so", "*.so.*", "*.pyd", "*.dylib", "*.pak", "*.dat", "*.bin", "*.json", "locales/*", "cefsubprocess", "*.pyi", "py.typed"]`: `prepare.py`가 `cefweaver/`에 복사한 CEF 런타임과 타입 스텁을 wheel에 넣습니다. `.so` 패턴은 확장 모듈과 `libcef.so`에 모두 해당합니다.
+`cefweaver = ["*.so", "*.so.*", "*.pyd", "*.dylib", "cefsubprocess.app/**/*", "*.pak", "*.dat", "*.bin", "*.json", "locales/*", "cefsubprocess", "*.pyi", "py.typed"]`: `prepare.py`가 `cefweaver/`에 복사한 CEF 런타임과 타입 스텁을 wheel에 넣습니다. `.so` 패턴은 확장 모듈과 `libcef.so`에 모두 해당합니다.
 
 ## sdist와 `uv build`
 

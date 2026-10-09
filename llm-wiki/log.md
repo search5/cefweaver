@@ -503,3 +503,26 @@
 ## [2026-10-09] ingest | GitHub Pages 게시
 
 - 사용자 요청으로 `gh api -X POST repos/search5/cefweaver/pages`(source: main, `/docs`)로 Pages를 켰습니다. 빌드는 1분 안에 `built`로 끝났고 https://search5.github.io/cefweaver/ 의 `/`, `installation`, `ui`, `toolkits`가 200, 제목과 스타일시트와 메뉴 링크가 `/cefweaver/` 기준으로 나옵니다. 앞서 남겨 둔 "게시된 기준 경로에서 스타일시트가 맞는지는 게시 뒤에 봐야 한다"는 점을 해소합니다.
+
+## [2026-10-09] ingest | macOS arm64(Apple Silicon) 지원 추가
+
+- 사용자 요청("현재 macos m1 환경이에요. macos aarch64 지원을 추가해주세요")으로 macOS arm64를 지원했습니다. 이전에는 구성 단계에서 `FATAL_ERROR`로 중단하고 "검증할 환경이 없다"는 이유로 지원하지 않기로 했었습니다([설계 결정 기록](pages/reference/design-decisions.md)). 이제 Apple Silicon 컴퓨터에서 만들고 시험했습니다.
+- **구현**: 프레임워크를 링크하지 않고 `cef_load_library()`로 올림(`native/cefwrapper/mac_runtime.mm`), 가짜 메인 번들 `cefsubprocess.app`(프레임워크와 도우미 앱 5개, `tools/prepare.py`의 `stage_macos`), 런타임에 `NSApp`에 `CefAppProtocol` 메서드를 붙임, 창 제목(`cef_wrapper_client_handler_mac.mm`), 도우미 앱 CMake, 확장 모듈 설정을 `pyproject.toml`의 정적 표에서 `setup.py`로 옮김.
+- **생성기**: macOS 배포본으로 돌리면 공유 텍스처 구조체가 사라지고 생성 코드가 macOS에서 컴파일되지 않았습니다. Linux 형식을 내장하고 중립 형식(`platform_structs.h`)을 거치게 했습니다. macOS와 Linux x86_64 `minimal` 배포본 양쪽에서 `--check`가 통과합니다([F83](pages/reference/verified-findings-macos.md)).
+- **확인**: wheel 빌드와 설치, 오프스크린과 창 모드 구동, Tk 위젯, 시험(생성기 121, UI 158, 통합 중 창을 열지 않는 106개와 창 모드 4개). Linux와 다른 동작 7가지(Ctrl+클릭, 편집 키의 `native_key_code`, 메뉴, 맞춤법, 인쇄, 캐시 경로, libX11 시험)는 시험을 고치거나 건너뛰고 [F82](pages/reference/verified-findings-macos.md)에 적었습니다.
+- **확인하지 못한 것**: macOS x86_64, 다른 툴킷, 창 모드 시험 37개, 공유 텍스처, Linux 분기의 컴파일([알려진 제약](pages/reference/known-constraints.md)). `test_wiki.py`는 다른 컴퓨터의 경로 링크(`offscreen-rendering.md`) 때문에 이 컴퓨터에서 실패합니다(이번 변경과 무관).
+
+## [2026-10-09] ingest | macOS: 네이티브 NSView에 붙이기(parent_view)와 오프스크린 키 규칙
+
+- 사용자 판단("맥에서는 cocoa나 swift ui에 붙이고 다른 툴킷을 쓸 것 같진 않다")에 따라 계획의 순서를 바꿔 네이티브 뷰를 먼저 했습니다. cefpython의 `SetAsChild(NSView)` 방식을 확인하고(`src/window_info.pyx`, 툴킷마다 `NSView` 핸들을 얻는 데 막힌 이슈들), cefweaver에는 `CefApp.parent_view`(NSView 주소)와 `create_browser(parent_view=)`를 더했습니다. 첫 브라우저는 `OnContextInitialized`에서 `g_ParentView`를, 추가 브라우저는 인자를 씁니다.
+- **확인**: PyObjC `NSWindow`의 content view를 채우고 크기를 따라가고 종료합니다([F84](pages/reference/verified-findings-macos.md)). `examples/cocoa/`와 선택 실행 시험 `WithCefInACocoaView`를 더했습니다. 예제에서 `NSTimer` 블록이 값을 돌려주면(SIGTRAP), 창이 닫히는 중에 `shutdown()`을 부르면 죽는 것을 찾아 고쳤습니다.
+- **정정**: 앞서 "KEYUP이 편집을 한 번 더 한다"고 기록했으나 틀렸습니다. KEYUP에 `character`가 없으면 Cocoa가 그 이벤트를 key down으로 취급해서 생긴 현상입니다. 깨끗한 행렬 실험으로 `native_key_code`와 문자를 모두 주는 규칙을 확정하고 `cefweaver.ui`에 넣었습니다([F85](pages/reference/verified-findings-macos.md), F82의 두 행 수정). 실제 CEF에서 `BrowserView.key()`로 Backspace, 왼쪽, Delete가 한 번씩 동작함을 `WithCefKeys`로 확인했습니다.
+- 생성기의 손글씨 스텁(`tools/gen/handwritten.pyi`)에 `parent_view`를 더하고 `generate.py --check`가 통과합니다.
+
+## [2026-10-10] ingest | macOS: 확인하지 못했던 항목 전부 시도
+
+- 사용자 요청("아직 확인하지 못한 것 전부 다 해줘")으로 남은 항목을 하나씩 시도했습니다. 결과는 [F86~F92](pages/reference/verified-findings-macos.md)에 있습니다. 요약: Swift/SwiftUI 임베딩, Qt와 wx의 `parent_view`, 여러 브라우저, Command 조합과 IME, 창 모드 시험 41개, x86_64(Rosetta), Linux 컴파일, Qt와 wx와 SDL2 어댑터, 창 제목을 확인했습니다. GTK 3, Kivy, 실제 Intel Mac, 실제 입력기, 서명과 공증은 확인하지 못했습니다.
+- **고친 결함**: 창을 닫을 때 `DoClose`가 `false`면 앱의 창 전체가 닫히고 CEF가 만든 창은 `on_before_close`가 오지 않던 것(래퍼가 뷰를 떼고 `CloseBrowser(true)`로 완료, `shutdown()` 5.7초 → 0.06초), 폴링 루프가 AppKit 이벤트를 처리하지 않던 것, Swift 임베딩의 GIL 교착, SDL2 어댑터가 macOS에서 시작도 못 하던 것(`SDL_VIDEODRIVER=x11`), Kivy 어댑터의 `Window.left` None, `prepare.py`가 끊긴 스테이징을 이어받지 못하던 것, 오프스크린 Command 단축키.
+- **정정**: 이전 기록의 "KEYUP이 편집을 한 번 더 한다"가 틀렸음을 F85에 적었고 이번에 Command 조합도 확인했습니다.
+- **미해결로 남긴 것**: Rosetta와 Swift 임베딩의 종료 감시(원인 미확인), 여러 브라우저 중 하나만 닫을 때의 지연. 두 번 길게 시도했으나 원인을 찾지 못해 사실만 적었습니다.
+- 한 번의 전체 실행에서 시험 하나가 일시적으로 실패했습니다(단독 3/3, 전체 2/2 통과). 원인 미확인.

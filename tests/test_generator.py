@@ -340,12 +340,15 @@ class WithHeaders(unittest.TestCase):
         text = emit_cpp.emit(self.model, wide, plans, "test")
         self.assertIn("const void* message", text)  # OnDevToolsMessage keeps its const
         with tempfile.TemporaryDirectory() as tmp:
-            header = os.path.join(tmp, "wide_proxies.h")
+            # like native/cefwrapper/generated/: the header includes ../platform_structs.h
+            os.mkdir(os.path.join(tmp, "generated"))
+            shutil.copy(os.path.join(ROOT, "native", "cefwrapper", "platform_structs.h"), tmp)
+            header = os.path.join(tmp, "generated", "wide_proxies.h")
             with open(header, "w", encoding="utf-8") as f:
                 f.write(text)
             path = os.path.join(tmp, "wide.cc")
             with open(path, "w", encoding="utf-8") as f:
-                f.write('#include "wide_proxies.h"\n')
+                f.write('#include "generated/wide_proxies.h"\n')
             result = subprocess.run(
                 ["c++", "-std=c++20", "-fsyntax-only", "-I" + CEF_ROOT, "-I" + tmp, path],
                 capture_output=True, text=True)
@@ -715,6 +718,31 @@ class WithHeaders(unittest.TestCase):
                          "capture_counter", "has_capture_update_rect"):
             self.assertIn(expected, names)
         self.assertNotIn("size", names)                              # the version header
+
+    def test_the_structs_that_differ_by_platform_are_read_in_their_linux_form_through_neutral_types(self):
+        # CEF defines cef_accelerated_paint_info_t differently on Linux, macOS and Windows and a
+        # distribution has the header of its own platform only. The generated files must not
+        # depend on that (they are the same wherever they are generated), so the Linux form is
+        # built in and the C++ side reaches the struct through the types of platform_structs.h.
+        self.assertEqual(model.PLATFORM_STRUCTS["CefAcceleratedPaintInfo"], "CwAcceleratedPaintInfo")
+        for text in (open(os.path.join(ROOT, "cefweaver", "cef_api.pxd"), encoding="utf-8").read(),
+                     open(os.path.join(ROOT, "native", "cefwrapper", "generated", "cefweaver_proxies.h"),
+                          encoding="utf-8").read()):
+            self.assertIn("CwAcceleratedPaintInfo", text)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "structs.cc")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write('#include "platform_structs.h"\n'
+                        "CwAcceleratedPaintInfo Make(const CefAcceleratedPaintInfo& info) {\n"
+                        "  return CwAcceleratedPaintInfoFromCef(info);\n}\n"
+                        "int Planes(const CwAcceleratedPaintInfo& info) { return info.plane_count; }\n"
+                        "uint64_t Modifier(const CwAcceleratedPaintInfo& info) { return info.modifier; }\n"
+                        "uint32_t Stride(const CwAcceleratedPaintNativePixmapPlane& plane) { return plane.stride; }\n")
+            result = subprocess.run(
+                ["c++", "-std=c++20", "-fsyntax-only", "-I" + CEF_ROOT,
+                 "-I" + os.path.join(ROOT, "native", "cefwrapper"), path],
+                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr[-3000:])
 
     def test_the_accelerated_paint_callback_is_generated_with_the_info_struct(self):
         plan = self.plan("CefRenderHandler", "OnAcceleratedPaint")

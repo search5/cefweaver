@@ -21,6 +21,10 @@ public:
   bool IsRunning();
   bool IsReadyToExecuteJavascript();
   void DoCefMessageLoopWork();
+  // macOS: the application's events too (see CefWeaverPumpApplicationEvents()); other platforms:
+  // nothing. Holds no lock: call it with the GIL.
+  void PumpApplicationEvents();
+  bool ExternalMessagePump();
   void AddJavascriptBinding(std::string name,
                                 js_binding_function_ptr jsNativeApiFunctionPtr);
   void AddJavascriptPythonBinding(std::string name,
@@ -50,7 +54,11 @@ public:
   // is not the UI thread.
   CefRefPtr<CefBrowser> CreateBrowser(std::string url, int offscreen, int transparent,
                                       CefRefPtr<CefRequestContext> request_context,
-                                      const CefBrowserSettings* settings, int shared_texture);
+                                      const CefBrowserSettings* settings, int shared_texture,
+                                      int64_t parent_view);
+  // macOS: the NSView (its address) a windowed browser becomes a child of; 0: none.
+  void SetParentView(uintptr_t view);
+  uintptr_t ParentView();
   // The settings of the first browser and of the ones made without settings.
   void SetBrowserSettings(const CefBrowserSettings& settings);
   void SetTransparent(bool transparent);

@@ -8,6 +8,9 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/build_cef.py
   - CLAUDE.md
+  - setup.py
+  - native/cefwrapper/platform_structs.h
+  - tests/test_smoke.py
 updated: 2026-10-09
 ---
 
@@ -26,7 +29,7 @@ updated: 2026-10-09
 | 다른 CEF 버전의 **실행** | 생성기와 컴파일은 147, 152, 154 헤더에서 확인했습니다(F23). 147과 152의 `libcef`로 실제 실행해 시험을 돌리지는 않았습니다. | 해당 버전의 배포본으로 `prepare.py`, `uv build --wheel`, 시험 |
 | `GN_DEFINES`의 **`use_allocator=none`** 필요 여부 | cefpython이 같은 설정을 썼다는 근거만 있고 CEF 154에서 필요한지는 확인하지 않았습니다. | 소스 빌드 후 설정을 빼고 Python에서 CEF를 로드해 문제가 없는지 비교 |
 | **manylinux** wheel | `auditwheel show`가 `linux_x86_64`만 허용했습니다(F24). manylinux 이미지에서 빌드하고 CEF가 요구하는 시스템 라이브러리(NSS, D-Bus, ALSA, udev 등)를 어떻게 다룰지 정해야 합니다. | manylinux 컨테이너에서 빌드 후 `auditwheel show`/`repair` |
-| macOS | 지원하지 않기로 했고 구성 단계에서 중단합니다. 필요한 작업은 [플랫폼 지원 현황](../concepts/platform-support.md)에 있습니다. | |
+| **macOS**에서 확인하지 못한 것 ([F79~F92](verified-findings-macos.md)) | (1) **실제 Intel Mac**(Rosetta에서만 빌드하고 구동). (2) GTK 3(시스템에 없음, Homebrew로 깔지 않음)과 Kivy(2.3.1에 Python 3.14용 창 제공자가 없음)의 본 경로. (3) **종료 감시**: Rosetta(x86_64)와 Swift 실행 파일에 임베드한 Python에서 `CefShutdown()`이 끝나지 않아 `MacShutdownWatchdog`이 10초 뒤 종료 코드 2로 프로세스를 죽이는 **원인**(네이티브 arm64 Python은 0.1초). (4) 한 창의 여러 브라우저 중 **하나만** 닫을 때 `on_before_close`가 `shutdown()`까지 지연되는 **원인**(브라우저가 하나일 때는 즉시). (5) 공유 텍스처(macOS 평면은 비어 있고 IOSurface는 Python에 주지 않음). (6) Linux 쪽: 컴파일(구문 검사)만 했고 **링크와 실행은 하지 못함**. (7) `host.print()`가 끝나지 않는 것, 맞춤법 추천 단어가 오지 않는 것, `root_cache_path` 아래에 `cache_path` 폴더가 만들어지지 않는 것, 기본 메뉴에 뒤로와 앞으로가 없는 것의 **원인**. (8) 실제 입력기(한글, 일본어)로의 입력과 네이티브 뷰 안의 IME(호스트 API로 조합과 확정을 보내는 것만 확인). (9) 키체인 대화상자가 뜨는 조건. (10) **서명, hardened runtime, 공증**(도우미 앱은 ad hoc 서명뿐이고 번들이 봉인되지 않음). (11) `test_the_request_context_handler_is_asked_about_the_requests_of_its_browser`가 전체 실행 5번 중 1번 실패한 원인. | (1) Intel Mac에서 `prepare.py`와 `uv build --wheel`, 시험. (2) GTK 3: `brew install gtk+3 pygobject3`, Kivy: Python 3.13 환경. (3) 같은 코드를 실제 터미널 세션(도구 환경이 아닌)에서 돌려 비교, `sample`로 팀 시간 분포, Chromium 심볼이 있는 CEF. (4) CEF 소스로 `CefBrowserHostView`를 붙잡는 곳 추적. (5) IOSurface를 평면으로 주는 설계. (6) Linux 머신에서 전체 빌드와 시험. (7) 각각 `cefsimple`로 재현해 CEF의 한계인지 가름([검증 방법](../procedures/verify-cef-limits.md)). (8) 실제 입력 소스로 손으로 시험. (10) Developer ID 서명과 공증 절차 시험. (11) 같은 시험을 부하 상태에서 반복. |
 | 서브프로세스 종료 오류의 **원인 메커니즘** | `main`에 `no_stack_protector`를 붙이면 사라지고 순정 `main`에는 검사 자체가 없다는 것만 확인했습니다. "zygote 자식이 스택 보호값이 다른 채 이 프레임으로 돌아온다"는 코드 주석의 설명은 추정입니다. | Chromium의 `ForkWithFlags`/zygote 코드와 TLS의 스택 보호값 처리를 확인 |
 | 핸들러의 **구조체 출력**이 Python에서 | **확인했습니다**(F38): 오프스크린의 `get_view_rect`가 돌려준 `Rect`로 CEF가 200x100, 320x240 프레임을 그렸습니다. `get_root_screen_rect`와 `get_screen_point`는 부르지 않아 따로 시험하지 않았습니다. | |
 | 클라이언트 핸들러 변경의 **Windows** 컴파일 | 생성된 전달 클래스와 `CefWrapperClientHandler` 변경은 Linux에서만 컴파일했습니다. | Windows에서 빌드 |
@@ -84,7 +87,7 @@ updated: 2026-10-09
 | 위치 | 불일치 | 상태 |
 | --- | --- | --- |
 | `README.rst` 소개 문단 | wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL, PyWin32의 예제가 있다고 씁니다. `examples/`에는 이제 wxPython, PyQt, PySide, Kivy, PyGObject(GTK 3)와 Tkinter, SDL2가 있고([툴킷 예제](toolkit-examples.md)), PyGame/PyOpenGL, PyWin32의 예제는 없습니다. cefpython의 README 문장을 바탕으로 한 것으로 보입니다. | 그대로 둠. 문장을 맞출지는 사람의 결정이 필요합니다. |
-| `pyproject.toml` | `numpy>=1.26.2`가 의존성에 있으나 코드에서 쓰지 않습니다. classifier에 macOS와 Windows가 있으나 지원하지 않거나 검증하지 못했습니다. classifier는 Python 3.11과 3.12만 적고 시험은 3.11~3.14에서 했습니다. | 그대로 둠 |
+| `pyproject.toml` | `numpy>=1.26.2`가 의존성에 있으나 코드에서 쓰지 않습니다. classifier의 Windows는 검증하지 못했습니다(macOS는 arm64를 지원). classifier는 Python 3.11과 3.12만 적고 시험은 3.11~3.14에서 했습니다. | 그대로 둠 |
 | `docs/` | (2026-10-09) 비어 있던 Sphinx 골격을 제거하고 Jekyll 사이트를 만들었습니다. **Jekyll 3.10.0(GitHub Pages와 같은 버전)으로 로컬 빌드를 확인했습니다**(임시 gem 폴더, `ruby-dev` 설치는 사용자 허락): 10쪽이 `.html`로 나오고 `.md` 링크가 모두 바뀌고 깨진 링크가 없으며 헤드리스 Chrome 화면으로 모양을 봤습니다. 빌드가 찾은 것: 레이아웃이 없는 맨 HTML(GitHub Pages의 `jekyll-default-layout` 없이는 테마가 안 입혀짐 → `defaults`로 명시), 폭이 넓은 표가 잘림(→ `assets/css/style.scss`). 머리말과 설정의 YAML, 링크, 목차는 시험이 지킵니다. GitHub Pages는 `gh api`로 켰고(main 브랜치의 `/docs`) https://search5.github.io/cefweaver/ 에서 4쪽이 200으로 응답하고 스타일시트 경로(`/cefweaver/assets/css/style.css`)와 메뉴 링크가 기준 경로에 맞게 나옴을 확인했습니다. 모든 쪽을 훑은 것은 아니고, 실제 다크 설정에서의 모양은 보지 못했습니다. `CHANGELOG.rst`는 비어 있습니다. | GitHub Pages를 켜서 빌드 결과 보기 |
 | `README.rst`의 `cefsubprocess/` 디렉터리 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 옮긴 뒤에도 "디렉터리"라고 적혀 있었습니다. | 2026-10-08에 고침 |
 | `_cefweaver.pyx`의 `load_url` docstring | "브라우저는 첫 `do_message_loop_work()` 호출들에서 만들어진다"고 했으나 `initialize()` 직후에 이미 `True`였습니다. | 2026-10-08에 고침 |

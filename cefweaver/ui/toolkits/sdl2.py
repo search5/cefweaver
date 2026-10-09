@@ -21,11 +21,13 @@ import ctypes
 import heapq
 import itertools
 import os
+import sys
 import time
 import warnings
 
 warnings.filterwarnings("ignore", message="Using SDL2 binaries from pysdl2-dll")
-os.environ.setdefault("SDL_VIDEODRIVER", "x11")                 # never the real Wayland session
+if sys.platform.startswith("linux"):                             # (macOS has its own driver: cocoa)
+    os.environ.setdefault("SDL_VIDEODRIVER", "x11")             # never the real Wayland session
 os.environ.setdefault("SDL_HINT_RENDER_DRIVER", "software")
 
 import sdl2                                                      # noqa: E402

@@ -204,6 +204,10 @@ bool CefWrapperClientHandler::OnBeforePopup(
 bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
 
+  if (PlatformCloseFinishing(browser)) {
+    return false;
+  }
+
   // The user's handler can keep the browser open by returning true.
   if (CwLifeSpanHandlerForward::DoClose(browser)) {
     return true;
@@ -217,6 +221,13 @@ bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
     is_closing_ = true;
   }
 
+  // A browser that is a child view of the application's own view: returning false would send
+  // performClose: to the application's window and close all of it (and, with the window not
+  // closable, the close would never finish). The view is taken out instead.
+  if (PlatformCloseView(browser)) {
+    return true;
+  }
+
   // Allow the close. For windowed browsers this will result in the OS close
   // event being sent.
   return false;
@@ -224,6 +235,7 @@ bool CefWrapperClientHandler::DoClose(CefRefPtr<CefBrowser> browser) {
 
 void CefWrapperClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
+  ForgetChildViewBrowser(browser->GetIdentifier());
 
   if (CefRefPtr<CefMessageRouterBrowserSide> router = QueryRouter::Get()) {
     router->OnBeforeClose(browser);

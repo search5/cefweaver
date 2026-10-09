@@ -96,6 +96,42 @@ RAW_STRUCTS = {
 }
 
 
+# Structs that CEF defines differently on each platform (include/internal/cef_types_linux.h,
+# _mac.h, _win.h; a CEF distribution holds the header of its own platform only). The binding is
+# the same everywhere, so these are read in their Linux form whatever the distribution is, and
+# the C++ code reaches them through the platform neutral type of native/cefwrapper/
+# platform_structs.h (Cython and the proxies use PLATFORM_STRUCTS' names, not CEF's).
+LINUX_STRUCT_BODIES = {
+    "cef_accelerated_paint_native_pixmap_plane_t": """
+  uint32_t stride;
+  uint64_t offset;
+  uint64_t size;
+  int fd;
+""",
+    "cef_accelerated_paint_info_t": """
+  size_t size;
+  cef_accelerated_paint_native_pixmap_plane_t
+      planes[kAcceleratedPaintMaxPlanes];
+  int plane_count;
+  uint64_t modifier;
+  cef_color_type_t format;
+  cef_accelerated_paint_info_common_t extra;
+""",
+}
+LINUX_STRUCT_CONSTANTS = {"kAcceleratedPaintMaxPlanes": 4}
+
+# CEF class -> the platform neutral C++ type the bindings use for it.
+PLATFORM_STRUCTS = {
+    "CefAcceleratedPaintInfo": "CwAcceleratedPaintInfo",
+    "CefAcceleratedPaintNativePixmapPlane": "CwAcceleratedPaintNativePixmapPlane",
+}
+
+
+def cpp_struct_name(cls):
+    """The C++ type of the struct class `cls` in the generated code."""
+    return PLATFORM_STRUCTS.get(cls, cls)
+
+
 def _drop_conditionals(body):
     """The body without the `#if ... #else ... #endif` blocks (and their directives). Such members
     depend on the API version the code is compiled for, so they are not fields."""
@@ -431,11 +467,15 @@ class Model:
         # wins and Linux, the platform of this binding, comes last.
         filenames = sorted(f for f in os.listdir(internal) if f.endswith(".h"))
         filenames.sort(key=lambda f: f.endswith("_linux.h"))
+        has_linux = any(f.endswith("_linux.h") for f in filenames)
         for filename in filenames:
             text = self._read(os.path.join(internal, filename))
             for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
                 bodies[match.group(2)] = match.group(1)
             constants.update((n, int(v)) for n, v in re.findall(r"^#define\s+(k\w+)\s+(\d+)\s*$", text, re.M))
+        if not has_linux:  # a distribution of another platform: the Linux form is built in
+            bodies.update(LINUX_STRUCT_BODIES)
+            constants.update(LINUX_STRUCT_CONSTANTS)
         # `class CefRect : public cef_rect_t {`, and the ones with a size header:
         # `class CefScreenInfo : public CefStructBaseSimple<cef_screen_info_t> {` and
         # `using CefKeyEvent = CefStructBaseSimple<cef_key_event_t>;`

@@ -7,6 +7,7 @@ sources:
   - pyproject.toml
   - tools/prepare.py
   - tools/gen/scope.py
+  - setup.py
 updated: 2026-10-09
 ---
 
@@ -18,13 +19,15 @@ updated: 2026-10-09
 
 | 결정 | 이유 | 결정자 |
 | --- | --- | --- |
-| `setup.py` 없이 `pyproject.toml`의 `ext-modules`로 Cython 확장을 선언 | Poetry에서 setuptools 백엔드와 uv로 바꾼 이유가 정적 선언만으로 Cython을 빌드하기 위해서였습니다. | 사용자 |
+| ~~`setup.py` 없이 `pyproject.toml`의 `ext-modules`로 Cython 확장을 선언~~ (macOS를 더하며 `setup.py`로 옮김) | 정적 선언만으로 Cython을 빌드하려던 결정이었으나, 플랫폼마다 링크할 라이브러리가 달라 정적 표로는 macOS를 더할 수 없었습니다. `setup.py`는 `Extension` 하나만 선언합니다. | 사용자(macOS 지원 요청) |
 | 사전 준비(CEF 확보, 네이티브 빌드)와 `uv build`를 분리 | 확장을 빌드할 때 CEF 헤더와 컴파일된 라이브러리가 이미 있어야 합니다. 앞 두 단계는 사전, Cython과 패키징은 `uv build` 시점입니다. | 사용자 |
 | 확정된 CEF를 `build/native/cef`에 고정 경로로 연결 | 정적 설정은 환경변수를 경로에 쓸 수 없습니다. 고정 경로가 있으면 소스 빌드와 prebuilt의 차이가 이후 단계에 드러나지 않습니다. 대안(컴파일러 환경변수)은 사용자 부담이 큽니다. | 사용자(선택지 1) |
 | 기본 CEF 버전을 154.0.34로 상향 | "최신 버전으로 가자". 래퍼 코드는 수정 없이 빌드되었습니다. | 사용자 |
 | `--cef-version`은 전체 이름만, 접두사 해석 없음. `--list-versions`는 전체 이름 출력 | 접두사는 어떤 빌드가 선택될지 모호합니다(120 하나에 빌드 15개). 필터는 목록을 걸러 보는 용도에만 씁니다. 인덱스는 하루 캐시합니다. | 사용자 |
 | CEF 확보에 소스 빌드를 포함(`--build-cef`) | cefpython의 `--build-cef`와 같은 기능이 필요합니다. 코드는 `libcef.so`를 컴파일하지 않으므로 소스 빌드는 `automate-git.py`를 감쌉니다. | 사용자 |
-| macOS는 지원하지 않고 구성 단계에서 명확한 오류 | 프레임워크 로딩, helper 번들, Cocoa 메시지 루프 결합이 필요한데 검증할 환경이 없습니다. 검증 없이 쓰면 동작하지 않는 코드가 남습니다. | 사용자(선택지 1) |
+| ~~macOS는 지원하지 않고 구성 단계에서 명확한 오류~~ (2026-10-09에 macOS arm64를 지원) | 당시에는 검증할 환경이 없었습니다. 이제 Apple Silicon 컴퓨터에서 만들고 시험했습니다([F79~F83](verified-findings-macos.md)). | 사용자(macOS 지원 요청) |
+| macOS는 프레임워크를 링크하지 않고 올리며, 앱 번들 대신 `cefsubprocess.app`을 둠 | CEF의 mac 방식입니다(샌드박스와 도우미 앱). Python 프로세스에는 번들이 없어 `main_bundle_path`와 `framework_dir_path`로 가짜 번들을 가리킵니다. `NSApp`은 서브클래스가 아니라 런타임에 프로토콜 메서드를 붙입니다(Qt와 Tk가 자체 클래스를 쓰기 때문). | 구현 중 판단 |
+| 플랫폼마다 다른 CEF 구조체는 생성기에 Linux 형식을 내장하고 중립 형식(`Cw...`)으로 접근 | 배포본에는 자기 플랫폼의 헤더만 있어 생성 결과가 플랫폼마다 달라졌습니다. 어디서 돌려도 같은 파일이 나와야 커밋된 생성 파일을 모든 플랫폼이 씁니다([F83](verified-findings-macos.md)). | 구현 중 판단 |
 | clang-format 내려받기를 옵션(기본 꺼짐)으로 | 빌드에 필요하지 않고 Python 3.14에서 gsutil이 오류로 구성을 중단시켰습니다. | 구현 중 판단 |
 | `CEF_ROOT`를 CMake 캐시에 저장하지 않음 | 옛 버전이 조용히 고정되는 결함([실험으로 확인한 사실](verified-findings.md)). | 구현 중 판단 |
 | 런타임을 `cefweaver/`에 복사(스테이징)하고 `libcef.so` 복사본만 strip | 1.45GB를 272MB로 줄입니다. 원본 배포본은 건드리지 않습니다. | 구현 중 판단 |

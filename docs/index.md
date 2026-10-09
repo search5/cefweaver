@@ -32,6 +32,6 @@ CEFWeaver는 [Chromium Embedded Framework](https://bitbucket.org/chromiumembedde
 
 ## 지원 환경
 
-Linux x86_64에서 개발하고 시험합니다. Windows는 검증하지 못했고 macOS는 지원하지 않습니다(빌드가 명확한 오류로 멈춥니다).
+Linux x86_64와 macOS arm64(Apple Silicon)에서 빌드하고 시험합니다. macOS는 Linux와 다른 점이 있습니다([한계와 알려진 제약](limitations.md)). Windows는 검증하지 못했고 macOS x86_64는 빌드해 보지 못했습니다.
 
 프로젝트 저장소: [github.com/search5/cefweaver](https://github.com/search5/cefweaver)
