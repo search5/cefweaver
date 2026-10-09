@@ -203,6 +203,8 @@ class Adapter:
         core.drag(center_of(text_source), zone_point(), threaded=True)
         drops = core.js("window.drops")
         check(drops == [{"text": "from-wx", "files": []}], "text dragged from a wx widget is dropped on the page", drops)
+        info = core.js("document.getElementById('dropinfo').textContent")
+        check(info == 'dropped text "from-wx"', "the page shows what was dropped", info)
         core.js("window.drops = []")
         core.drag(center_of(file_source), zone_point(), threaded=True)
         drops = core.js("window.drops")

@@ -23,6 +23,7 @@ DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title
 <p><textarea id="area" rows="2" cols="28" placeholder="paste here"></textarea>
  <span id="src" draggable="true" style="display:inline-block;padding:6px;background:#fe9;border:1px solid #cb5">drag me</span>
  <span id="zone" style="display:inline-block;padding:6px 20px;background:#9fe;border:1px solid #5cb">drop zone</span></p>
+<div id="dropinfo" style="height:1.4em;color:#063"></div>
 <div class="tall">scroll me (device pixel ratio: <b id="dpr"></b>)</div>
 <script>
  function log(text) { document.getElementById("log").textContent += text + "\\n"; }
@@ -38,7 +39,10 @@ DEMO_PAGE = """<!doctype html><html lang="ko"><head><meta charset="utf-8"><title
  ["dragenter", "dragover"].forEach(function (name) { zone.addEventListener(name, function (e) { e.preventDefault(); }); });
  zone.addEventListener("drop", function (e) {
    e.preventDefault();
-   window.drops.push({text: e.dataTransfer.getData("text/plain"), files: Array.prototype.map.call(e.dataTransfer.files, function (f) { return f.name; })});
+   var drop = {text: e.dataTransfer.getData("text/plain"), files: Array.prototype.map.call(e.dataTransfer.files, function (f) { return f.name; })};
+   window.drops.push(drop);
+   // shown in a line of fixed height (not in the log: a line more would move the page and the drop zone with it)
+   document.getElementById("dropinfo").textContent = "dropped " + (drop.files.length ? "files " + drop.files.join(", ") : "text " + JSON.stringify(drop.text));
  });
  window.compositions = [];
  ["compositionstart", "compositionupdate", "compositionend"].forEach(function (name) {

@@ -124,6 +124,8 @@ class Adapter:
         self.settle(0.8)
         drops = core.js("window.drops")
         core.check(drops == [{"text": "from-another-program", "files": []}], "a text drop (on_drop_text) reaches the page", drops)
+        info = core.js("document.getElementById('dropinfo').textContent")
+        core.check(info == 'dropped text "from-another-program"', "the page shows what was dropped", info)
         temporary = tempfile.NamedTemporaryFile(suffix=".txt", prefix="dropped-", delete=False)
         temporary.close()
         core.js("window.drops = []")

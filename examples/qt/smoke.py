@@ -162,6 +162,8 @@ class Adapter:
         core.drag(center_of(text_source), zone_point(), threaded=True)
         drops = core.js("window.drops")
         check(drops == [{"text": "from-qt", "files": []}], "text dragged from a Qt widget is dropped on the page", drops)
+        info = core.js("document.getElementById('dropinfo').textContent")
+        check(info == 'dropped text "from-qt"', "the page shows what was dropped (so that the drop zone can be tried by hand)", info)
         core.js("window.drops = []")
         core.drag(center_of(file_source), zone_point(), threaded=True)
         drops = core.js("window.drops")
@@ -177,7 +179,51 @@ class Adapter:
         check(drops == [{"text": "dragged-from-page", "files": []}], "dragging inside the page works (the widget is source and target)", drops)
         core.snapshot("10-dragged")
         os.unlink(temporary.name)
+        self.menu_checks(core)
         self.sink_checks(core)
+
+    def menu_checks(self, core):
+        """The context menu: a real right click, a real click on an item of the application, and leaving the menu."""
+        from cefweaver import ui
+        check = core.check
+        mine, shown = [], []
+        adapter = self.view.view.adapter
+        original = adapter.show_menu
+        adapter.show_menu = lambda items, x, y, done: (shown.append((x, y, [i.label for i in items])), original(items, x, y, done))[1]
+        self.view.view.on_context_menu = lambda info, items: items + [ui.menu.MenuItem("Smoke item", action=lambda: mine.append("run"))]
+        x, y = core.rect_of("#para")
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: shown and adapter.last_menu.isVisible(), "the context menu")
+        check(len(shown) == 1 and "Smoke item" in shown[0][2], "a right click shows the menu of the page with the item of the application", shown)
+        menu = adapter.last_menu
+        action = next(a for a in menu.actions() if a.text() == "Smoke item")
+        rect = menu.actionGeometry(action)
+        target = menu.mapToGlobal(rect.center())
+        core.xdo("mousemove", int(target.x() * self.scale), int(target.y() * self.scale))
+        self.settle(0.2)
+        core.xdo("click", 1)
+        self.spin(lambda: mine, "the action of the menu item")
+        check(mine == ["run"], "clicking an item of the application runs its action", mine)
+        self.settle(0.3)
+        check(not menu.isVisible(), "the menu closes after the pick")
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: len(shown) == 2 and adapter.last_menu.isVisible(), "the context menu again")
+        core.xdo("key", "Escape")
+        self.spin(lambda: not adapter.last_menu.isVisible(), "the menu to close with Escape")
+        self.settle(0.3)
+        check(mine == ["run"], "leaving the menu with Escape picks nothing", mine)
+        core.xdo("mousemove", *core.point(x, y))
+        self.settle(0.2)
+        core.xdo("click", 3)
+        self.spin(lambda: len(shown) == 3 and adapter.last_menu.isVisible(), "the menu after it was left")
+        check(core.js("1 + 1") == 2, "the page still answers after a menu was left")
+        core.xdo("key", "Escape")
+        self.settle(0.3)
+        self.view.view.on_context_menu = None
 
     def sink_checks(self, core):
         """The audio sink of Qt on the real device, with silence (volume 0): what is written is played, in time."""

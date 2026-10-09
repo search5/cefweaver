@@ -11,7 +11,7 @@ adapter:
 * ``CefWidget``: a ``QWidget`` that passes the mouse, wheel, keys, input method and drag and drop events of
   Qt to the view.
 
-Checked: Xvfb with QT_QPA_PLATFORM=xcb and xdotool, PyQt6 and PySide6: the 27 checks of examples/qt/smoke.py at scale 1 and 2.
+Checked: Xvfb with QT_QPA_PLATFORM=xcb and xdotool, PyQt6 and PySide6: the 35 checks of examples/qt/smoke.py at scale 1 and 2; PyQt6 also with CEF on Wayland.
 Not checked: a real input method (ibus, fcitx), Qt on Wayland, anything but plain text in the clipboard.
 """
 
@@ -28,13 +28,13 @@ if BINDING not in ("pyqt6", "pyside6"):
 if BINDING == "pyqt6":
     from PyQt6.QtCore import QEvent, QMimeData, QObject, QPoint, QRect, Qt, QTimer, QUrl
     from PyQt6.QtCore import pyqtSignal as Signal
-    from PyQt6.QtGui import QCursor, QDrag, QGuiApplication, QImage, QInputMethodEvent, QPainter
-    from PyQt6.QtWidgets import QApplication, QWidget
+    from PyQt6.QtGui import QAction, QCursor, QDrag, QGuiApplication, QImage, QInputMethodEvent, QPainter
+    from PyQt6.QtWidgets import QApplication, QMenu, QWidget
 else:
     from PySide6.QtCore import QEvent, QMimeData, QObject, QPoint, QRect, Qt, QTimer, QUrl
     from PySide6.QtCore import Signal
-    from PySide6.QtGui import QCursor, QDrag, QGuiApplication, QImage, QInputMethodEvent, QPainter
-    from PySide6.QtWidgets import QApplication, QWidget
+    from PySide6.QtGui import QAction, QCursor, QDrag, QGuiApplication, QImage, QInputMethodEvent, QPainter
+    from PySide6.QtWidgets import QApplication, QMenu, QWidget
 
 from cefweaver import types, ui
 from cefweaver.ui import keys
@@ -290,6 +290,38 @@ class QtAdapter:
     def set_ime_rect(self, x, y, width, height):         # where the candidate window goes
         self.w.cursor_rect = QRect(x, y, width, height)
         QGuiApplication.inputMethod().update(Qt.InputMethodQuery.ImCursorRectangle)
+
+    def show_menu(self, items, x, y, done):
+        """The context menu of the page as a ``QMenu`` at (x, y) of the widget. ``done`` gets the command id of the
+        picked item, or None when the menu is left (the last menu is ``last_menu``, for tests)."""
+        picked = []
+
+        def pick(command_id):
+            if not picked:
+                picked.append(command_id)
+                done(command_id)
+
+        def fill(menu, entries):
+            for entry in entries:
+                if entry.kind == "separator":
+                    menu.addSeparator()
+                elif entry.kind == "submenu":
+                    fill(menu.addMenu(entry.label), entry.children)
+                    menu.actions()[-1].setEnabled(entry.enabled)
+                else:
+                    action = QAction(entry.label, menu)
+                    action.setEnabled(entry.enabled)
+                    if entry.kind in ("check", "radio"):
+                        action.setCheckable(True)
+                        action.setChecked(entry.checked)
+                    action.triggered.connect(lambda checked=False, command_id=entry.command_id: pick(command_id))
+                    menu.addAction(action)
+        menu = QMenu(self.w)
+        fill(menu, items)
+        # an action is triggered after the menu hid: leaving the menu is told only when nothing was picked
+        menu.aboutToHide.connect(lambda: QTimer.singleShot(50, lambda: pick(None)))
+        self.last_menu = menu
+        menu.popup(self.w.mapToGlobal(QPoint(int(x), int(y))))
 
     def clipboard_get(self):
         return QApplication.clipboard().text() or None

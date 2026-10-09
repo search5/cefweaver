@@ -120,6 +120,8 @@ class Adapter:
         self.settle(0.6)
         drops = core.js("window.drops")
         core.check(drops == [{"text": "from-another-program", "files": []}], "a text drop (SDL_DROPTEXT) reaches the page", drops)
+        info = core.js("document.getElementById('dropinfo').textContent")
+        core.check(info == 'dropped text "from-another-program"', "the page shows what was dropped", info)
         core.snapshot("10-dragged")
         self.sink_checks(core)
 

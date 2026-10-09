@@ -13,7 +13,7 @@ Kivy's window tells the text an input method is composing (``on_textedit``) and 
 (``on_textinput``), and where files and text are dropped (``on_drop_*``). It cannot start a drag, so a drag
 inside the page is carried out by the view.
 
-Checked: Xvfb with SDL_VIDEODRIVER=x11 and xdotool: the 26 checks of examples/kivy/smoke.py, and closing the window of the app (Kivy 2.3.1).
+Checked: Xvfb with SDL_VIDEODRIVER=x11 and xdotool: the 27 checks of examples/kivy/smoke.py, and closing the window of the app (Kivy 2.3.1).
 Not checked: drops of other programs (the checks hand the events of the window to the handlers), a scale other than 1, a real input method.
 """
 
