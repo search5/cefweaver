@@ -68,7 +68,7 @@ class BrowserView:
         self._leaving = False
         self._over_answered = False
 
-    def _run_context_menu(self, params, model, callback):
+    def _run_context_menu(self, params, model, callback, frame=None):
         """Show the menu with the toolkit and answer CEF with what the user picks (once)."""
         answered = []
 
@@ -88,6 +88,12 @@ class BrowserView:
                 callback.cancel()                       # the clipboard of CEF is not the one of the toolkit
                 try:
                     self._clipboard_command(_menu.CLIPBOARD_COMMANDS[pick], info.selection_text, refocus=True)
+                except Exception:
+                    _menu.report()
+            elif pick in _menu.FRAME_COMMANDS and (frame or self.browser) is not None:
+                callback.cancel()                       # CEF would do it as the page was when the menu opened
+                try:
+                    getattr(frame or self.browser.get_main_frame(), _menu.FRAME_COMMANDS[pick])()
                 except Exception:
                     _menu.report()
             else:
@@ -513,7 +519,7 @@ class _ContextMenu(cefweaver.ContextMenuHandler):
         self.v = view
 
     def run_context_menu(self, browser, frame, params, model, callback):
-        return self.v._run_context_menu(params, model, callback)
+        return self.v._run_context_menu(params, model, callback, frame)
 
 
 class _Permission(cefweaver.PermissionHandler):

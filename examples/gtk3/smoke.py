@@ -430,6 +430,24 @@ menu_item_click("#area", 112, "Cut")                                            
 check(js("document.getElementById('area').value") == "" and clipboard_text("cut me"),
       "Cut of the menu removes the selection and puts it into the clipboard of GTK",
       (js("document.getElementById('area').value"), clipboard.wait_for_text()))
+
+# Select all and Undo of the menu work on a page that lost the focus to the menu, too
+js("(function () { var a = document.getElementById('area'); a.value = 'abc def'; a.focus(); a.setSelectionRange(3, 3); })()")
+settle(0.3)
+menu_item_click("#area", 117, "Select all")                                               # 117: Select all
+check(js("(function () { var a = document.getElementById('area'); return [a.selectionStart, a.selectionEnd]; })()") == [0, 7],
+      "Select all of the menu selects the text of the field",
+      js("(function () { var a = document.getElementById('area'); return [a.selectionStart, a.selectionEnd]; })()"))
+js("(function () { var a = document.getElementById('area'); a.value = ''; a.focus(); })()")
+settle(0.3)
+xdo("type", "xyz")                                                                        # typed text can be undone
+settle(0.5)
+typed = js("document.getElementById('area').value")
+menu_item_click("#area", 110, "Undo")                                                     # 110: Undo
+undone = js("document.getElementById('area').value")
+# one Undo takes back one step: Chromium keeps the keys that are typed one after the other as steps of their own
+check(typed == "xyz" and len(undone) < len(typed) and typed.startswith(undone), "Undo of the menu takes back typed text",
+      (typed, undone))
 view.view.on_context_menu = None
 os.unlink(temporary.name)
 

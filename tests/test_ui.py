@@ -23,6 +23,15 @@ class FakeFrame:
     def delete(self):
         self.calls.append(("frame.delete",))
 
+    def undo(self):
+        self.calls.append(("frame.undo",))
+
+    def redo(self):
+        self.calls.append(("frame.redo",))
+
+    def select_all(self):
+        self.calls.append(("frame.select_all",))
+
     def is_main(self):
         return True
 
@@ -1138,6 +1147,24 @@ class ContextMenuClipboard(unittest.TestCase):
             self.assertLess(names.index("set_focus"), names.index(then), command)
             self.assertEqual(named(self.calls, "set_focus")[0], (True,), command)
 
+    def test_the_edit_commands_run_in_the_frame_not_through_cef(self):
+        # CEF runs them as the page was when the menu opened: after the menu of the toolkit took the focus they do nothing
+        for command, method in ((types.MenuId.UNDO, "frame.undo"), (types.MenuId.REDO, "frame.redo"),
+                                (types.MenuId.DELETE, "frame.delete"), (types.MenuId.SELECT_ALL, "frame.select_all")):
+            self.start()
+            self.choose(int(command))
+            self.assertEqual(named(self.calls, method), [()], command)
+            self.assertEqual(self.answer.calls, [("cancel",)], command)
+
+    def test_the_edit_commands_run_in_the_frame_that_was_clicked(self):
+        self.start()
+        clicked = FakeFrame(self.calls)
+        handler = self.view.client.get_context_menu_handler()
+        handler.run_context_menu(FakeBrowser([]), clicked, FakeMenuParams(), FakeMenuModel(self.ROWS), self.answer)
+        clicked.calls = []
+        self.adapter.menus[0][3](int(types.MenuId.SELECT_ALL))
+        self.assertEqual(named(clicked.calls, "frame.select_all"), [()])
+
     def test_copy_does_not_need_the_focus(self):
         self.start()
         self.choose(int(types.MenuId.COPY))
@@ -1145,8 +1172,8 @@ class ContextMenuClipboard(unittest.TestCase):
 
     def test_the_other_commands_are_cefs(self):
         self.start()
-        self.choose(int(types.MenuId.SELECT_ALL))
-        self.assertEqual(self.answer.calls, [("pick", 117, 0)])
+        self.choose(int(types.MenuId.RELOAD))
+        self.assertEqual(self.answer.calls, [("pick", 102, 0)])
         self.assertEqual(self.adapter.stored["text"], "from clipboard")
 
     def test_with_a_native_clipboard_cef_does_them(self):

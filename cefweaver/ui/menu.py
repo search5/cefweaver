@@ -18,6 +18,10 @@ _KINDS = {types.MenuItemType.COMMAND: "command", types.MenuItemType.CHECK: "chec
 # the commands of the menu that the view does with the clipboard of the toolkit (the clipboard of CEF is another one)
 CLIPBOARD_COMMANDS = {int(types.MenuId.CUT): "cut", int(types.MenuId.COPY): "copy", int(types.MenuId.PASTE): "paste",
                       int(types.MenuId.PASTE_MATCH_STYLE): "paste"}
+# the edit commands that the view runs in the frame (CEF would run them as the page was when the menu opened, and after
+# the menu of the toolkit took the focus they do nothing); the methods of the frame
+FRAME_COMMANDS = {int(types.MenuId.UNDO): "undo", int(types.MenuId.REDO): "redo", int(types.MenuId.DELETE): "delete",
+                  int(types.MenuId.SELECT_ALL): "select_all"}
 APP_FIRST = 1_000_000                       # command ids of the items of the application (CEF's are far below)
 
 

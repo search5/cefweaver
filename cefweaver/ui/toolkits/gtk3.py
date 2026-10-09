@@ -12,9 +12,9 @@ drag and drop) and ``Session`` (CEF in the main loop). This file is what GTK add
 The widget is for one browser (the one ``initialize()`` makes). More browsers would use
 ``CefApp.create_browser()`` and one widget each.
 
-Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 37 checks of examples/gtk3/smoke.py at scale 1 and 2
+Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 39 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
-At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 37 checks.
+At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 39 checks.
 Not checked: a real input method (ibus, fcitx), GTK on Wayland, rich text and images in the clipboard.
 """
 
