@@ -81,6 +81,7 @@ updated: 2026-10-09
 | 창 모드 | `disable-features=VaapiVideoDecoder,AcceleratedVideoDecodeLinux` | 0/1 |
 | 오프스크린(gtk3, sdl2) | 없음 | 0/6 |
 | 오프스크린(gtk3) | **`ozone-platform=wayland`** | **3/3** (`gbm` 0, 크래시 없음). 20초 재생과 소리도 정상(선생님이 들음) |
+| 오프스크린 (sdl2, qt: PyQt6와 PySide6, wx, kivy, tk) | `ozone-platform=wayland`, GPU 켠 채 20초, `--audio --loud` | **모두 재생 정상**, `gbm` 0, 끊김 0, 종료 코드 0, 소리 청취 확인(툴킷은 X11 창이고 CEF만 Wayland). tk는 처음 한 번 페이지가 뜨는 데 15초 걸려 판정이 실패했고(원인 미조사) 다시 2번은 3초에 시작해 합격 |
 | 오프스크린(gtk3) | `disable-accelerated-video-decode` | 2/3 (`gbm` 0, 1번은 4.5초만 재생, 원인 미조사) |
 | 오프스크린 | **`disable-gpu`** | **통과** (일곱 환경) |
 

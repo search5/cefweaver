@@ -371,3 +371,7 @@
 ## [2026-10-09] lint | F75 정정: 오프스크린 스위치 시험은 무효였고, 오프스크린은 Wayland에서 정상
 
 - 점검 도구의 오프스크린 경로에서 `--switch`가 적용되지 않던 버그를 찾아 고쳤습니다. 그 때문에 앞서 기록한 "오프스크린에서 스위치 약 20개가 모두 실패, `disable-gpu`뿐"은 틀렸습니다. 고친 뒤 오프스크린 GTK 3은 `ozone-platform=wayland`에서 3/3 재생 정상(소리 포함, 청취 확인), `disable-accelerated-video-decode`는 X11에서 2/3입니다. F31의 Wayland 크래시는 창 모드 한정입니다(오프스크린은 정상).
+
+## [2026-10-09] query | 일곱 환경에서 Wayland로 영상과 소리 확인 (F75)
+
+- GTK 3, SDL2, Qt(PyQt6, PySide6), wx, Kivy, Tk 오프스크린을 `ozone-platform=wayland`로 GPU를 켠 채 20초 재생해 영상과 소리(청취)를 확인했습니다. 점검 도구의 요약 줄이 첫 상태의 시간이 `None`일 때 예외를 내던 것도 고쳤습니다.

@@ -255,7 +255,7 @@ def main():
         print("".join(errors)[-1200:])
         return 1
     print("PLAYBACK OK (%s): the video went %.1f s in %.1f s, the program ended with 0" % (
-        args.target, states[-1]["t"] - states[0]["t"], states[-1]["clock"] - states[0]["clock"]))
+        args.target, (states[-1]["t"] or 0) - (states[0]["t"] or 0), states[-1]["clock"] - states[0]["clock"]))
     return 0
 
 
