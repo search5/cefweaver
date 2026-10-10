@@ -2133,6 +2133,7 @@ QUICKSTARTS = (          # (example, its uv environment, what keeps the toolkit 
     ("sdl2", ".venv", {"SDL_VIDEODRIVER": "x11"}),
     ("wx", ".venv", {"GDK_BACKEND": "x11"}),
     ("kivy", ".venv", {"SDL_VIDEODRIVER": "x11", "KIVY_NO_CONSOLELOG": "1"}),
+    ("views", ".venv", {}),
 )
 
 
@@ -2173,7 +2174,7 @@ class QuickstartDocs(unittest.TestCase):
     """The documentation shows the code of the quickstart files, not a copy that can drift away from them."""
 
     def test_each_example_readme_shows_the_code_of_its_quickstart(self):
-        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views"):
             code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
             with open(os.path.join(ROOT, "examples", example, "README.md"), encoding="utf-8") as f:
                 self.assertIn(code, f.read(), "examples/%s/README.md does not show quickstart.py" % example)
@@ -2185,7 +2186,7 @@ class QuickstartDocs(unittest.TestCase):
             self.assertIn(indented, f.read())
 
     def test_a_quickstart_is_short(self):
-        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views"):
             code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
             self.assertLessEqual(len(code.splitlines()), 40, example)     # it is what a user reads first
 

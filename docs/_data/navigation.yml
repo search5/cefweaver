@@ -6,6 +6,8 @@
   url: /quickstart.html
 - title: GUI 툴킷에 넣기
   url: /ui.html
+- title: Views (툴킷 없이)
+  url: /views.html
 - title: 툴킷별 상태
   url: /toolkits.html
 - title: 소리, 마이크, 카메라

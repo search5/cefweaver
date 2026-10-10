@@ -1,0 +1,13 @@
+[project]
+name = "cefweaver-views-example"
+version = "0.1.0"
+description = "A browser window made only with CEF's Views (no GUI toolkit)"
+requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
+dependencies = ["cefweaver"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+# The wheel of this repository: `uv build --wheel` in the repository root first.
+cefweaver = { path = "../../dist/cefweaver-0.1.0-cp313-cp313-linux_x86_64.whl" }

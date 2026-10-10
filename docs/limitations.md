@@ -42,7 +42,7 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 
 | 항목 | 상태 |
 | --- | --- |
-| 인쇄 | 쓸 수 있는 상태가 아닙니다. 메뉴에 `인쇄`가 보이지만 동작하지 않습니다. 원인은 조사하지 않았습니다(오프스크린에는 인쇄 대화상자를 그릴 곳이 없어 앱이 `PrintHandler`로 처리해야 할 가능성이 있으나 시험하지 않았습니다) |
+| 인쇄 | **Linux에서는 앱이 직접 처리하면 됩니다.** CEF에는 인쇄 대화상자도 프린터 목록도 없어서 `PrintHandler`에서 설정을 채우고(`on_print_settings`) 자체 대화상자를 띄우고(`on_print_dialog`) 받은 PDF를 CUPS로 보냅니다. `disable-features=EnableOopPrintDrivers`가 필요합니다. 전체 예는 `examples/print/`에 있습니다. `cefweaver.ui`의 어댑터에는 들어 있지 않아 메뉴의 `인쇄`는 동작하지 않습니다. macOS는 `print()`가 끝나지 않았습니다 |
 | SDL2, Kivy의 오른쪽 클릭 메뉴 | 없습니다. 두 툴킷에 네이티브 메뉴 위젯이 없습니다(공식 문서로 확인). 이 두 툴킷에서는 `view.on_context_menu`도 불리지 않습니다 |
 | Tk의 한영 전환 | 되지 않습니다. 원인은 확인하지 못했습니다 |
 | 앱이 소리와 영상을 직접 대는 방식 | 없습니다. 마이크와 카메라는 Chromium이 시스템 장치에서 직접 받습니다 |
@@ -58,6 +58,8 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 
 - **`bridge.evaluate`**: 엄격한 CSP나 Trusted Types가 있는 페이지(YouTube, GitHub 등)에서는 `EvalError`로 실패합니다. `expose`로 내놓은 함수를 쓰세요.
 - **`DragData.get_file_name()`**: 파일 내용이 있는 드래그에서만 부르세요. 없을 때 부르면 프로세스가 죽습니다. CEF가 확인 없이 Chromium의 함수를 부르고 그 안의 `CHECK`가 실패합니다(CEF의 한계로 확인했습니다).
+- **Views**: **`MessagePump`(외부 메시지 펌프)로는 CEF 창의 마우스와 키 입력이 오지 않으므로** `do_message_loop_work()`를 자주 부르는 폴링 루프를 쓰세요. 창이 열린 채로 `shutdown()`을 부르면 프로세스가 죽으므로 창이 닫힌 뒤에 부르세요. 팝업 창을 위한 `get_delegate_for_popup_browser_view`, `get_parent_window`, `get_delegate()`는 아직 없습니다. Linux X11에서만 확인했습니다([Views](views.md)).
+- **`Image`**: CEF를 초기화한 뒤에만 만들 수 있습니다(`Image.create_image()`가 `RuntimeError`). 초기화 전에 만들면 객체가 사라질 때 프로세스가 죽는 것을 확인했습니다.
 - **캐시 폴더**: 캐시 경로를 주지 않으면 CEF가 작업 폴더에 `cache/`를 만듭니다.
 
 ## 시험의 범위
