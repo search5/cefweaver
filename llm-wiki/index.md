@@ -53,6 +53,7 @@
 - [알려진 제약과 미검증 항목](pages/reference/known-constraints.md): 미검증 항목, 한계, 문서와 메타데이터의 불일치, 환경 제약
 - [types 모듈 (열거형과 값 타입)](pages/reference/types-module.md): 헤더에서 만든 IntEnum, IntFlag, NamedTuple, 이름과 값을 읽는 규칙, 정수와 튜플과의 호환
 - [Python API 참조](pages/reference/python-api.md): CefApp의 메서드 표(set_client 포함)와 생성된 이름, 규칙, 브라우저 이벤트 받기 예
+- [출력 인자와 목록](pages/reference/python-api-values.md): 출력 인자를 반환값으로 돌려주는 규칙, 목록을 주고받는 메서드
 - [관련 프로젝트와 그 위키](pages/reference/related-projects.md): cefpython, java-cef, CEF와 그 위키, 참고한 것
 - [소스 트리 지도](pages/reference/source-tree-map.md): 저장소 트리와 파일 종류별 편집 방법
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)

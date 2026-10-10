@@ -47,18 +47,22 @@ updated: 2026-10-10
 
 | 묶음 | 항목 | 메서드 |
 | --- | --- | --- |
-| 값 컨테이너와 프로세스 메시지 | `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage` | 96 |
+| 값 컨테이너와 프로세스 메시지 | `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `ProcessMessage` | 97 |
 | 스트림 | `StreamReader`, `StreamWriter`, `ZipReader`, `ReadHandler` (java-cef는 드래그 파일 내용용 `WriteHandler`만 안에서 씀) | 33 |
 | 화면과 작업 | `Display`, `TaskManager` | 22 |
-| 메뉴 | `MenuModelDelegate`, `RunContextMenuCallback`, `RunQuickMenuCallback`, `ContextMenuHandler`의 4개, `MenuModel`의 8개, `ContextMenuParams`의 2개 | 25 |
-| 핸들러의 추가 메서드 | `DisplayHandler` 6, `RenderHandler` 6(스크롤, IME, 텍스트 선택, 터치, 가상 키보드), `RequestHandler` 4, `DevToolsMessageObserver` 3, `LifeSpanHandler`, `DownloadHandler`, `DragHandler`, `Client`(프로세스 메시지), `RequestContextHandler` 각 1 | 24 |
-| 라이브러리 클래스의 추가 메서드 | `BrowserHost` 35(IME, 터치, 줌, 탐색 항목 등), `RequestContext` 18(웹사이트 설정, 색상 등), `CommandLine` 10, `Frame` 5, `DownloadItem` 4, `Response` 4, `DragData` 3, `Browser` 2, `URLRequest` 2, `PostData` 1 | 84 |
+| 메뉴 | `MenuModelDelegate`, `RunContextMenuCallback`, `RunQuickMenuCallback`, `ContextMenuHandler`, `MenuModel`, `ContextMenuParams`의 추가분 | 25 |
+| 핸들러의 추가 메서드 | `DisplayHandler`, `RenderHandler`, `RequestHandler`, `DevToolsMessageObserver`, `LifeSpanHandler`, `DownloadHandler`, `DragHandler`, `Client`, `RequestContextHandler`의 추가분 | 32 |
+| 라이브러리 클래스의 추가 메서드 | `BrowserHost` 39, `RequestContext` 23, `CommandLine` 10, `Frame` 5, `DownloadItem` 4, `Response` 4, `DragData` 4, `Browser` 2, `URLRequest` 3, `PostData` 1 | 95 |
 | 쿠키 콜백 | `SetCookieCallback`, `DeleteCookiesCallback`(java-cef는 완료 콜백만) | 2 |
-| 오디오 | (UI: 싱크로 재생, [F74](verified-findings-media.md)) `AudioHandler` 5(스트림 시작, 패킷, 정지, 오류, 매개변수), `Client.get_audio_handler` 1 ([F72](verified-findings-media.md)) | 6 |
-| 권한(마이크, 카메라) | `PermissionHandler` 3, `MediaAccessCallback` 2, `PermissionPromptCallback` 1, `Client.get_permission_handler` 1 ([F71](verified-findings-media.md)) | 7 |
-| 그 밖 | `SSLInfo`, `UnresponsiveProcessCallback` | 3 |
-| 이미지 (2026-10-10, [F95](verified-findings-handlers.md)) | `Image` 14, `DownloadImageCallback` 1, `BrowserHost.download_image`와 `DragData.get_image` 2 | 17 |
-| Views 프레임워크 (2026-10-10, [F96](verified-findings-views.md)) | `View`, `Panel`, `Window`, `BrowserView`, `Button`, `LabelButton`, `MenuButton`, `Textfield`, `ScrollView`, 레이아웃, 델리게이트 7개 등 21개 클래스(상속한 클래스는 자기 메서드만) | 306 |
+| 오디오 | `AudioHandler` ([F72](verified-findings-media.md), [F74](verified-findings-media.md)) | 5 |
+| 권한(마이크, 카메라) | `PermissionHandler`, `MediaAccessCallback`, `PermissionPromptCallback` ([F71](verified-findings-media.md)) | 6 |
+| 이미지 ([F95](verified-findings-handlers.md)) | `Image`, `DownloadImageCallback` | 15 |
+| Views 프레임워크 ([F96](verified-findings-views.md)) | `View`, `Panel`, `Window`, `BrowserView`, 단추와 텍스트 필드, 레이아웃, 오버레이, 델리게이트 7개 등 | 309 |
+| 미디어 라우터(캐스트) | `MediaRouter`, `MediaRoute`, `MediaSink`, `MediaSource`, `MediaObserver`와 콜백 | 27 |
+| 서버, 인증서, 구성요소, 탐색 항목 등 | `Server`와 `ServerHandler` 21, `X509Certificate`와 `X509CertPrincipal` 17, `NavigationEntry`와 `SSLStatus`와 방문자 16, `Component`와 `ComponentUpdater` 10, `FrameHandler` 5, `CommandHandler` 5, `FindHandler` 1, `SharedMemoryRegion`과 `SharedProcessMessageBuilder` 6, `AccessibilityHandler` 2, `ResponseFilter` 2, 그 밖의 콜백과 관찰자 7 | 92 |
+| 그 밖 | `SSLInfo` 2, `UnresponsiveProcessCallback` 2 | 4 |
+
+위 합계는 764개이고(분류를 바꾸어 이전 표의 값과는 조금 다릅니다), 원본은 `coverage-report.md`입니다.
 
 메서드 수에 잡히지 않는 것도 있습니다.
 
