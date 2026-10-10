@@ -70,3 +70,4 @@ Windows의 배치는 다릅니다. 서브프로세스 기본 경로가 현재 �
 - [CEF 확보 방식](cef-acquisition.md)
 - [tools/prepare.py](../components/tool-prepare.md)
 - [프로세스 모델과 스레드](process-model-and-threads.md)
+- [앱을 PyInstaller와 cx_Freeze로 묶기](../procedures/freeze-app.md)

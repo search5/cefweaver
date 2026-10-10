@@ -24,6 +24,9 @@ updated: 2026-10-09
 | --- | --- | --- |
 | 실제 화면(XWayland)에서 GPU 프로세스가 죽는 **원인** (`gbm_bo_import`) | `cefsimple`에서도 재현되어 래퍼 문제는 아닙니다([F75](verified-findings-media.md)). X11에서만 납니다(Chrome은 X11에서도 됨). 오프스크린은 `ozone-platform=wayland`로 해결됩니다(3/3). X11을 쓰려면 `disable-gpu`(WebGL이 없어짐)나 `disable-accelerated-video-decode`(2/3)입니다. 사운드 모듈과는 무관합니다. | 드라이버와 포맷 수정자 조사, 다른 GPU 구성의 기계에서 같은지 확인, 상세 로그(`playback_check.py --log-file`)로 실패한 경로 찾기 |
 | Kivy 예제가 `--no-gpu`에서 한 번 실패한 이유 | 같은 조건 12번에서 다시 나지 않았습니다(영상 요소가 없었음). | 실패하면 그때 로그를 받습니다 |
+| **py2exe**와 Windows에서의 동결 | py2exe는 Windows 전용이고 이 프로젝트의 Windows 동작을 검증하지 못했습니다. PyInstaller와 cx_Freeze는 Linux에서만 실험했습니다([F93](verified-findings-handlers.md)). | Windows에서 [동결 절차](../procedures/freeze-app.md)를 따라 해 보기 |
+| 동결본을 **Python이 없는 기계와 다른 배포판**에서 실행하는 것 | 실험은 빌드한 기계에서만 했습니다. cx_Freeze는 시스템 라이브러리를 묶지 않고(GTK 3, wxPython은 시스템의 GTK 3를 씀) PyInstaller는 묶습니다. |
+| 동결본의 **간헐적 점검 실패 두 건**: wxPython + PyInstaller의 메뉴(8회 중 2회), PySide6 + cx_Freeze의 소리 지연(6회 중 1회) | 동결하지 않은 실행은 각각 8회, 6회 모두 통과했습니다([F93](verified-findings-handlers.md)). 표본이 작아 동결이 원인인지 가를 수 없습니다. | 같은 점검을 20회 이상 반복해 동결 여부별 실패율을 비교하고, 실패할 때의 상세 로그를 받기 |
 | **Windows**에서의 빌드와 동작 | 개발 환경이 Linux입니다. `OS_WIN` 분기, `cef_wrapper_client_handler_win.cc`, Windows용 CMake, `os.add_dll_directory`, `custom_protocol_scheme_handler.cc`의 수정이 양쪽에 영향을 줍니다. `pyproject.toml`의 `ext-modules`는 Linux 전용입니다. | Windows에서 `python tools/prepare.py`와 `uv build --wheel` 후 시험 실행. 설정 방식(정적 `ext-modules`로 충분한지)도 그때 정합니다. |
 | `--build-cef`의 **실제 소스 빌드** | 이 환경의 디스크 여유가 약 69GB이고 요구량은 약 120GB입니다. `--dry-run`, 옵션 존재, 브랜치와 커밋 검증, 안전장치, 기존 배포본 재사용(가짜 디렉터리)까지만 확인했습니다. | 디스크 150GB 이상의 환경에서 `python tools/prepare.py --build-cef`. 결과 경로 탐색(`find_distribution`)과 `GN_DEFINES`를 그때 보정합니다. |
 | 다른 CEF 버전의 **실행** | 생성기와 컴파일은 147, 152, 154 헤더에서 확인했습니다(F23). 147과 152의 `libcef`로 실제 실행해 시험을 돌리지는 않았습니다. | 해당 버전의 배포본으로 `prepare.py`, `uv build --wheel`, 시험 |
@@ -53,7 +56,7 @@ updated: 2026-10-09
 
 - **요청 핸들러의 `on_certificate_error`, `on_render_process_terminated`, `on_open_url_from_tab`와 리소스 요청 핸들러의 `on_protocol_execution`은 실행해서 확인했습니다**([F55](verified-findings-handlers.md)). 응답 필터(`CefResponseFilter`)는 생성하지 않았습니다(java-cef도 구현하지 않음, 열면 java-cef 수준을 넘음).
 
-- **인쇄 핸들러의 `on_print_dialog`, `on_print_job`, `get_pdf_paper_size`는 실행해 보지 못했습니다**(프린터가 없는 환경, F42). 생성과 컴파일만 확인했습니다.
+- **인쇄는 앱이 모두 채워야 하고 `disable-features=EnableOopPrintDrivers`가 필요합니다**([F94](verified-findings-printing.md)). 라이브러리의 기본값은 이 스위치를 주지 않아서 `host.print()`를 그대로 쓰면 실패합니다. `cefweaver.ui`의 `BrowserView`에는 인쇄 핸들러가 없고(붙이려면 `client`의 서브클래스가 필요), CEF는 프린터 목록과 인쇄 대화상자를 제공하지 않으며(앱이 `pycups`와 자체 UI로 처리), **취소와 실패(`kFailed`)를 앱에 구분해서 알리지 않고**, `copies`는 PDF에 반영되지 않습니다. `get_pdf_paper_size`는 PDF 저장이나 기업용 콘텐츠 분석에서만 닿는 것으로 소스에서 읽었으나(요약 모델을 거친 인용) 불리는 경로를 만들지는 못했습니다. 종이가 나온 내용은 사용자가 확인해야 합니다.
 
 - **공유 텍스처(GPU 가속 페인트)의 픽셀 내용은 확인하지 못했습니다.** 콜백, 평면 메타데이터, 디스크립터는 확인했지만(실제 GPU에서) 텍스처가 모두 0으로 읽혔고 원인은 찾지 못했습니다([F66](verified-findings-handlers.md), [공유 텍스처](shared-textures.md)). 팝업 영역 그리기, 영문 한 글자 밖의 키 입력, 터치와 IME의 결과, 한글 조합의 글자 경계와 밑줄 모양은 확인했습니다([F55](verified-findings-handlers.md), F56). `CompositionUnderline.color`는 화면에 반영되지 않았습니다(F56). 시험하지 않은 것: 렌더 핸들러가 없을 때. 자세한 것은 [오프스크린 렌더링](offscreen-rendering.md).
 

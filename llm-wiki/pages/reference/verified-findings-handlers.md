@@ -3,6 +3,7 @@ title: 실행해서 확인한 핸들러 (F55부터)
 type: reference
 sources:
   - tests/test_smoke.py
+  - cefweaver/__init__.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
   - cefweaver/settings.py
@@ -10,7 +11,7 @@ sources:
   - native/cefwrapper/library.cpp
   - native/cefwrapper/javascript_bindings_handler.h
   - native/cefwrapper/javascript_python_binding_handler.h
-updated: 2026-10-08
+updated: 2026-10-09
 ---
 
 # 실행해서 확인한 핸들러 (F55부터)
@@ -165,8 +166,21 @@ updated: 2026-10-08
 - **확인함**: `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림(페이지의 색), 클릭(제목이 바뀜), 키와 한글 확정(입력란), 외부 드롭, 크기 변경, 정상 종료가 `BrowserView`와 `Session`만으로 동작합니다(5번 연속 통과). 단위 시험 47개는 가짜 브라우저로 이벤트 변환을 확인합니다([UI 어댑터 API](ui-api.md)).
 - **확인함**: `DragData.get_file_name()`은 CEF를 초기화하기 전에 부르면 프로세스를 중단시키고(`Trace/breakpoint trap`, 종료 코드 133), 초기화한 뒤에는 `add_file`로 파일을 넣은 데이터에서도 빈 문자열을 돌려줍니다. 같은 데이터의 `get_file_names()`와 `get_file_paths()`는 초기화 전에도 값을 줍니다. **초기화 전에 중단하는 원인은 조사하지 않았습니다.** 파일 이름은 `get_file_paths()`로 얻습니다.
 
+## F93. PyInstaller와 cx_Freeze로 묶기 (2026-10-09)
+
+- **환경**: Linux x86_64, Python 3.13.11, CEF 154, PyInstaller 6.22.3, cx_Freeze 8.7.1. `add_resource`로 페이지를 주고 로드 이벤트와 JavaScript 바인딩을 받는 최소 앱과 `cefweaver.ui`의 Tk 앱을 `xvfb-run`에서 실행했습니다.
+- **결과**: 일반 `python`으로 실행한 것과 같은 값(`loaded 200`, `js ('hello', 3)`)이 나왔고 종료 코드 0, `stack smashing` 없음. PyInstaller onedir와 onefile, cx_Freeze 모두 5회 중 5회 통과했고 `/`에서 실행해도, 빌드 결과를 다른 경로로 복사해도 통과했습니다.
+- **PyInstaller는 설정 없이는 죽습니다.** `libcef.so`만 수집해서 `Invalid file descriptor to ICU data received` 뒤 종료 코드 133으로 끝납니다. `--collect-all cefweaver`로 해결합니다. Tk 어댑터에는 `--hidden-import PIL._tkinter_finder`가 더 필요합니다.
+- **cx_Freeze는 설정 없이 통과합니다.** 패키지 안의 데이터 파일과 `cefsubprocess`를 모두 가져옵니다.
+- **오프스크린, `MessagePump`, `JavascriptBridge`를 쓰는 툴킷 없는 앱도 묶입니다.** 픽셀, 브리지 호출, `evaluate`의 결과가 일반 `python`과 같았고 세 방식 모두 5회 중 5회 통과했습니다.
+- **툴킷 어댑터도 묶입니다.** GTK 3, Qt(PyQt6, PySide6), SDL2, wxPython, Tk를 두 도구로 묶은 10개 조합이 모두 3회 중 3회 통과했습니다(PyInstaller는 `--collect-all cefweaver`만). cx_Freeze는 GTK 3와 wxPython에서 시스템의 GTK 3를 쓰고 PyInstaller는 묶습니다. 예제의 `smoke.py`(실제 X 이벤트로 입력, 클립보드, 드래그, 메뉴, 소리를 점검, 28~39개)도 묶어서 돌렸고 다섯 툴킷(Qt는 두 바인딩) 모두 통과했습니다. 단 wxPython + PyInstaller의 메뉴 점검이 8회 중 2회, PySide6 + cx_Freeze의 소리 점검이 6회 중 1회 실패했습니다(동결하지 않은 실행은 각각 8회, 6회 모두 통과, 원인 미조사).
+- 크기는 PyInstaller onedir 451MB, onefile 188MB, cx_Freeze 402MB입니다. 자세한 것은 [앱을 PyInstaller와 cx_Freeze로 묶기](../procedures/freeze-app.md).
+- **새 빌드(`setup.py` 기반, macOS 지원 병합 뒤)에서도 같습니다 (2026-10-10).** 툴킷 없는 두 앱은 5회 중 5회, 툴킷 여섯 개(Tk 포함)는 3회 중 3회 통과했고 PyInstaller의 `--collect-all`과 Tk의 `--hidden-import` 필요도 그대로입니다. `smoke.py`는 다시 돌리지 않았습니다.
+- **관찰한 일회성 오류**: 첫 PyInstaller 실행에서 stderr에 `command_buffer_proxy_impl.cc:285 ... CreateCommandBuffer` 한 줄이 나왔지만 결과는 통과였고, 이후 세 방식을 5회씩 반복했을 때는 나오지 않았습니다. 원인은 조사하지 않았습니다.
+
 ## 관련 페이지
 
+- [실행해서 확인한 인쇄 (F94)](verified-findings-printing.md): Linux 인쇄 흐름, 설정, 프로세스 밖 인쇄 스위치, 취소와 실패, 프린터 목록
 - [실행해서 확인한 미디어 (F71부터)](verified-findings-media.md): 권한, 오디오, 유튜브 재생
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)
 - [알려진 제약과 미검증 항목](known-constraints.md)

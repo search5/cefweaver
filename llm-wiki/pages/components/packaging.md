@@ -63,3 +63,4 @@ setuptools(distutils)는 `.pyx`와 `.cpp`의 수정 시각만 비교하고 **정
 - [런타임 파일 배치](../concepts/runtime-layout.md)
 - [tools/prepare.py](tool-prepare.md)
 - [빌드와 설치](../procedures/build-and-install.md)
+- [앱을 PyInstaller와 cx_Freeze로 묶기](../procedures/freeze-app.md)

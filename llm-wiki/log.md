@@ -526,3 +526,43 @@
 - **정정**: 이전 기록의 "KEYUP이 편집을 한 번 더 한다"가 틀렸음을 F85에 적었고 이번에 Command 조합도 확인했습니다.
 - **미해결로 남긴 것**: Rosetta와 Swift 임베딩의 종료 감시(원인 미확인), 여러 브라우저 중 하나만 닫을 때의 지연. 두 번 길게 시도했으나 원인을 찾지 못해 사실만 적었습니다.
 - 한 번의 전체 실행에서 시험 하나가 일시적으로 실패했습니다(단독 3/3, 전체 2/2 통과). 원인 미확인.
+
+## [2026-10-09] ingest | PyInstaller와 cx_Freeze로 묶기
+
+- 사용자 질문("패키지해서 배포하는 것이 가능한가")에 답하려고 두 도구로 최소 앱과 Tk 앱을 실제로 묶어 실행했습니다(F93). PyInstaller는 `--collect-all cefweaver` 없이는 ICU 오류로 죽고, cx_Freeze는 설정 없이 통과했습니다. 새 페이지 `pages/procedures/freeze-app.md`를 만들고 색인에 올렸으며, py2exe와 Windows, 다른 배포판에서의 실행은 known-constraints에 미검증으로 남겼습니다.
+
+## [2026-10-09] ingest | 툴킷 어댑터를 PyInstaller와 cx_Freeze로 묶기
+
+- 사용자 요청으로 GTK 3, Qt(PyQt6와 PySide6), SDL2, wxPython을 두 도구로 묶어 실행했습니다(Tk는 앞서 함). 10개 조합이 모두 3회 중 3회 통과했고, PyInstaller는 `--collect-all cefweaver`만 필요했으며 cx_Freeze는 옵션이 없었습니다. cx_Freeze는 GTK 3와 wxPython에서 시스템 GTK 3를 씁니다. `freeze-app.md`에 툴킷별 표를 더하고 F93와 known-constraints를 갱신했습니다. 묶은 뒤의 입력과 클립보드 동작은 점검하지 않았습니다.
+
+## [2026-10-09] ingest | 툴킷 없는 CEF(오프스크린, MessagePump, JavascriptBridge)를 묶기
+
+- 사용자 요청으로 `offscreen`, `MessagePump`, `JavascriptBridge`를 쓰는 앱을 PyInstaller(onedir, onefile)와 cx_Freeze로 묶어 5회씩 실행했고 모두 통과했습니다. 도중에 임시 디렉터리의 용량 한도가 차서 cx_Freeze가 오류를 남기고도 종료 코드 0으로 끝난 불완전한 결과물을 만든 일이 있어 `freeze-app.md`의 한계에 적었습니다.
+
+## [2026-10-09] ingest | 동결본에서 예제의 smoke.py 돌리기
+
+- 사용자 요청으로 `examples/<툴킷>/smoke.py`(xdotool의 실제 X 이벤트 점검 28~39개)를 PyInstaller와 cx_Freeze로 묶어 실행했습니다. Tk, SDL2, GTK 3, PyQt6는 두 도구 모두 통과했고, PySide6 + PyInstaller와 wxPython + cx_Freeze도 통과했습니다. wxPython + PyInstaller의 메뉴 점검이 8회 중 2회, PySide6 + cx_Freeze의 소리 점검이 6회 중 1회 실패했고 동결하지 않은 실행은 모두 통과해서 known-constraints에 남겼습니다. `freeze-app.md`에 방법과 표를 더했습니다.
+
+## [2026-10-10] ingest | 새 빌드(setup.py 기반)에서 동결 실험 다시 확인
+
+- 사용자 요청으로 macOS 지원을 병합한 뒤의 새 코드(`2a2f4d2`)로 `prepare.py`와 `uv build --wheel`을 다시 하고, 그 wheel로 동결 실험을 반복했습니다. 툴킷 없는 두 앱(5회)과 툴킷 여섯 개(3회)가 PyInstaller와 cx_Freeze 모두 이전과 같은 결과였고, 필요한 옵션도 같았습니다. `freeze-app.md`에 절을 더하고 F93에 한 줄을 더했습니다. `smoke.py`와 macOS는 다시 하지 않았습니다. (같은 날 병합 중 제 동결 기록의 번호를 macOS 기록과 겹치지 않게 F79에서 F93으로 옮겼습니다.)
+
+## [2026-10-10] ingest | 리눅스 인쇄: CUPS 프린터가 있어도 찾지 못하는 이유
+
+- 사용자 질문("CUPS 프린터가 있는데 왜 바인딩에서 프린터를 못 찾는가")을 시험으로 확인했습니다(F94). CEF는 CUPS 목록을 쓰지 않고, `PrintHandler.on_print_settings(get_defaults=True)`에서 앱이 `set_device_name` 등을 채워야 `on_print_dialog`까지 진행합니다. 실제 인쇄는 나가지 않도록 취소하며 확인했고, 그 뒤의 `on_print_job`과 CUPS 전송은 확인하지 못했습니다.
+
+## [2026-10-10] ingest | 리눅스 인쇄 끝까지 확인 (CUPS로 1회 실제 인쇄)
+
+- 사용자 허락으로 `on_print_dialog`의 `continue_`, `on_print_job`, CUPS 전송까지 확인했습니다(F94). `continue_` 뒤의 `kFailed`는 프로세스 밖 인쇄 때문이며 `disable-features=EnableOopPrintDrivers`로 해결됩니다. `on_print_job`의 PDF(A4 1페이지)를 `lp`로 보내 CUPS 쪽에서 완료됐고, `print_to_pdf`도 성공했습니다. 종이가 실제로 나왔는지는 확인하지 못했습니다.
+
+## [2026-10-10] ingest | 리눅스 인쇄의 남은 항목 확인
+
+- 사용자 요청으로 F94의 확인하지 못한 항목을 시험했습니다(용지는 쓰지 않고 PDF만 확인). 방향, 페이지 범위(0부터), 선택 영역은 PDF에 반영되고 부수는 반영되지 않음, 취소와 `kFailed`는 앱이 구분할 수 없음, 겹친 작업은 막지 않음, `get_pdf_paper_size`는 어떤 경로에서도 불리지 않음, 프린터 목록은 `lpstat`나 `pycups`로 얻음을 기록했습니다.
+
+## [2026-10-10] ingest | 인쇄: 겹친 작업, get_pdf_paper_size의 호출 조건, 앱이 만드는 대화상자
+
+- 사용자 요청으로 남은 항목을 확인했습니다(F94). `libcups2-dev`를 설치해(`sudo apt`, 의존 패키지 포함) `pycups`를 빌드했고, 프린터 목록과 PPD의 용지 이름을 읽었습니다. 겹친 작업은 CEF 소스와 실험으로 독립임을 확인했고, `get_pdf_paper_size`의 호출 조건은 Chromium 154.0.8037.98 소스(GitHub 미러, WebFetch)에서 찾았습니다(PDF 저장이나 기업용 콘텐츠 분석에서만 닿음, 요약 모델을 거친 인용). Tk로 용지와 방향을 고르는 대화상자를 만들어 `Xvfb` 화면 캡처로 확인하고 사용자에게 보냈습니다(모의 실행). `BrowserView.client`에 인쇄 핸들러를 붙이려면 인스턴스 속성이 아니라 서브클래스가 필요했습니다. `ui-api.md`의 "인쇄는 쓸 수 있는 상태가 아닙니다"를 원인과 함께 고쳤습니다.
+
+## [2026-10-10] ingest | 인쇄 예제(examples/print) 추가
+
+- 사용자 요청으로 앱이 직접 만드는 인쇄 대화상자를 예제로 저장소에 추가했습니다(`examples/print/`: `printing.py`, `quickstart.py`, `smoke.py`, `README.md`, `pyproject.toml`). `smoke.py` 11개 점검이 연속 3회 통과했고(프린터로는 보내지 않음), `docs/installation.md`에 예제를 한 문장으로 안내했습니다. F94와 색인에 반영했습니다.
