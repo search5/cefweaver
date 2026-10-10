@@ -4584,6 +4584,7 @@ class WithCef(unittest.TestCase):
             CSP = {"Content-Security-Policy": "script-src 'self' 'unsafe-inline'; require-trusted-types-for 'script'"}
             app.add_resource("http://csp.test/a.html", "<script>window.which = 'A'; ready('A')</script>", headers=CSP)
             app.add_resource("http://csp.test/b.html", "<script>window.which = 'B'; ready('B')</script>", headers=CSP)
+            app.add_resource("http://csp.test/x.js", "export const value = 42;", mime_type="text/javascript", headers=CSP)
             app.load_url("http://csp.test/a.html")
             def ask(source):
                 out = []
@@ -4603,6 +4604,9 @@ class WithCef(unittest.TestCase):
             assert value is None and error.startswith("SyntaxError"), (value, error)
             value, error = ask("eval('1')")                                                     # the source itself may not eval
             assert value is None and error.startswith("EvalError"), (value, error)
+            assert ask("import('/x.js').then(m => m.value)") == (42, None)                      # a dynamic import works
+            value, error = ask("import x from '/x.js'; x")                                      # a static one is not a script
+            assert value is None and error == "SyntaxError: Cannot use import statement outside a module", (value, error)
             value, error = ask("10n")                                                           # CEF's value cannot carry it
             assert value is None and error.startswith("TypeError"), (value, error)
             app.load_url("http://csp.test/b.html")

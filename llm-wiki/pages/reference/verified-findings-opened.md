@@ -84,7 +84,8 @@ updated: 2026-10-10
 - **페이지 이동**: 엄격한 CSP 페이지 A에서 B로 `load_url`한 뒤 `window.which`가 `'A'` 다음 `'B'`로 바뀌었고, 새 컨텍스트로 찾아갔습니다. 이동 직후에는 옛 문서가 답하기도 했습니다.
 - **알려진 한계**: 컨텍스트가 만들어지기 전에 보낸 요청(시험이 처음에 간헐적으로 시간 초과가 난 원인이었고, 페이지의 `ready()` 신호를 기다리게 고쳐 6회 모두 통과)과, 답하기 전에 페이지를 떠난 요청(느린 `Promise` 400ms, 중간에 이동)은 callback이 오지 않습니다. `_pending`의 항목도 남습니다. 옛 경로에서 이 두 경우가 어땠는지는 비교하지 않았습니다.
 - **`Eval`이 던진 예외**: 렌더러 이벤트의 `on_uncaught_exception`을 일으키지 않았습니다([F104](verified-findings-opened.md)).
-- 확인하지 못한 것: 블록으로 감싼 `import()`, 동적 `import` 같은 모듈 문법, 함수 선언의 Annex B 외의 세부, 시간 제한(`timeout`)은 구현하지 않았습니다.
+- **모듈 문법**: 동적 `import()`는 옛 경로와 새 경로의 결과가 같았고(`import('/x.js').then(m => m.value)` → 42, 모듈 객체 전체 → `{'default': 'dflt', 'value': 42}`, 없는 파일은 `TypeError`, `(async () => (await import(...)).value)()`도 같음), 엄격한 CSP 페이지에서는 새 경로만 됩니다(같은 출처의 `script-src 'self'`). 정적 `import x from ...`, `import.meta`, 최상위 `await`는 두 경로 모두 `SyntaxError: Cannot use import statement outside a module` 등 같은 오류입니다(식은 모듈이 아니라 스크립트로 실행됨).
+- 확인하지 못한 것: 다른 출처의 모듈을 `import()`할 때의 CORS와 CSP 동작, 시간 제한(`timeout`)은 구현하지 않았습니다.
 
 ## 관련 페이지
 
