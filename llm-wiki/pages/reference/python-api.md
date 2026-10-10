@@ -6,7 +6,7 @@ sources:
   - cefweaver/_cefweaver.pyi
   - tools/gen/handwritten.pyi
   - cefweaver/__init__.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # Python API 참조
@@ -32,7 +32,8 @@ updated: 2026-10-08
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
 | `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. **`None`이면 첫 브라우저 없이 시작**(Views의 `BrowserView`나 `create_browser()`용, `is_running`은 `shutdown()`까지 `True`, [F98](verified-findings-views.md)). 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
-| `shutdown()` | CEF 종료. 시작하지 않았거나 이미 종료했으면 아무것도 하지 않습니다. |
+| `shutdown()` | CEF 종료. 시작하지 않았거나 이미 종료했으면 아무것도 하지 않습니다. 남은 브라우저(열린 Views 창 포함)는 먼저 닫고 종료합니다([F99](verified-findings-views.md)). |
+| `enable_renderer_events(stack_size=10)` | 렌더러 프로세스의 사건(잡히지 않은 JavaScript 오류, 초점이 간 노드, V8 컨텍스트 생성과 해제)을 프로세스 메시지로 받습니다. `cefweaver.RendererEvents`가 `Client.on_process_message_received`에서 풀어 줍니다(`cefweaver/renderer_events.py`). 렌더러에는 Python이 없는 구조는 그대로입니다. |
 | `load_url(url) -> bool` | 브라우저가 없으면 `False` |
 | `execute_javascript(code) -> bool` | 브라우저가 없거나 로딩 중이면 `False`. `create_browser(url, offscreen, transparent, request_context)`로 만든 브라우저는 다루지 않고(`Browser`의 프레임을 씀), 그 메서드는 첫 브라우저 뒤의 브라우저를 `Browser`로 돌려줍니다([F60](verified-findings-handlers.md)) |
 | `add_resource(url, content, mime_type="text/html", headers=None, status=200)` | 메모리의 내용을 http(s) URL로 제공. 비 http(s) URL은 `ValueError` |

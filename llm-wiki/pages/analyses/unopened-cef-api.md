@@ -11,7 +11,7 @@ updated: 2026-10-10
 
 # 열지 않은 CEF 메서드와 cefpython의 비교
 
-CEF 154 헤더의 메서드와 함수 2,255개 가운데 cefweaver가 연 것은 708개이고, **열지 않은 것은 약 1,530개**입니다(2026-10-10 `Image` 등 17개를 연 뒤. 본문의 묶음별 수는 연 것을 빼기 전 값)(`coverage-report.md`). 그것이 무엇인지 묶고, cefpython(`cefpython147` 브랜치, CEF 123 계열)이 그 가운데 무엇을 여는지 대조했습니다. 집계는 일회성 스크립트로 했으며 아래의 묶음별 수는 집계 방식(전역 함수, 손으로 쓴 `AppHandler` 보정)에 따라 **±10개 안팎의 오차**가 있습니다.
+CEF 154 헤더의 메서드와 함수 2,255개 가운데 cefweaver가 연 것은 708개이고, **열지 않은 것은 약 1,530개**였습니다(2026-10-10에 `Image`, Views, 남은 핸들러, 미디어 라우터를 열어 지금은 줄었고, 현재 값은 `coverage-report.md`가 원본입니다. 본문의 묶음별 수는 연 것을 빼기 전 값)(`coverage-report.md`). 그것이 무엇인지 묶고, cefpython(`cefpython147` 브랜치, CEF 123 계열)이 그 가운데 무엇을 여는지 대조했습니다. 집계는 일회성 스크립트로 했으며 아래의 묶음별 수는 집계 방식(전역 함수, 손으로 쓴 `AppHandler` 보정)에 따라 **±10개 안팎의 오차**가 있습니다.
 
 ## cefpython의 열린 범위를 구한 방법 (한계 포함)
 
@@ -119,7 +119,7 @@ cefpython에는 CEF 클래스별 목록이 없어서 두 곳에서 뽑았습니�
 ### 열 수 있지만 실익이 낮거나 동작이 불확실한 것
 
 - **Chrome 스타일 전용**: `CommandHandler`(5, `OnChromeCommand` 등), `ComponentUpdater`와 `Component`(10). 우리는 Alloy 스타일을 써서 불리지 않을 가능성이 큼(미확인).
-- **미디어 라우터(캐스트)**(`MediaRouter`, `MediaRoute`, `MediaSink`, `MediaSource`, `MediaObserver`, 콜백 약 27개): 타입은 막힘 없음, 실제 장치와 동작은 미확인.
+- ~~**미디어 라우터(캐스트)**~~ **열었음**(2026-10-10, 실제 장치와 동작은 미확인)(`MediaRouter`, `MediaRoute`, `MediaSink`, `MediaSource`, `MediaObserver`, 콜백 약 27개): 타입은 막힘 없음, 실제 장치와 동작은 미확인.
 - **파이썬이 이미 대신하는 것**: `TaskRunner`(7), `WaitableEvent`(6), `Thread`(5)는 `threading`, 파일과 경로 함수는 `os`와 `pathlib`, `CefBase64*`와 `CefURI*`는 `base64`와 `urllib`, `CefParseJSON`과 `CefWriteJSON`은 `json`, `CefParseURL`, `CefCreateURL`, `CefResolveURL`은 `urllib.parse`, `CefZipDirectory`는 `zipfile`, `XmlReader`는 `xml`.
 
 ### 열지 않는 것 (구조상 불가능이거나 의도적)

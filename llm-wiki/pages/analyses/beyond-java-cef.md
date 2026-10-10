@@ -24,7 +24,7 @@ updated: 2026-10-10
 
 | 항목 | java-cef | cefweaver |
 | --- | --- | --- |
-| 생성되는 메서드와 함수 | 약 389개를 엶(JNI로 일일이 감쌈) | **1,031개**(클래스 100개, 전역 함수 6개). 그 가운데 java-cef가 열지 않은 것이 **627개**(클래스 66개)입니다. CEF 전체 2,255개 중 약 46%이고, 타입 지원만으로는 95%까지 열 수 있습니다 |
+| 생성되는 메서드와 함수 | 약 389개를 엶(JNI로 일일이 감쌈) | **1,182개**(클래스 129개, 전역 함수 20개). 그 가운데 java-cef가 열지 않은 것이 **764개**(클래스 96개)입니다. CEF 전체 2,255개 중 약 46%이고, 타입 지원만으로는 95%까지 열 수 있습니다 |
 | 값 컨테이너, 스트림, ZIP, 프로세스 메시지 | 없음(문자열 중심) | `Value`, `ListValue`, `DictionaryValue`, `BinaryValue`, `StreamReader/Writer`, `ZipReader`, `ProcessMessage` |
 | 오디오, 마이크와 카메라 권한 | `AudioHandler`, `PermissionHandler` 없음 | 둘 다 있음(F71, F72, F74, F77, F78) |
 | GPU 가속 페인트 | OSR은 CPU 버퍼만 | Linux의 공유 텍스처(DMA-BUF, F66). macOS는 없음 |

@@ -7,7 +7,7 @@ sources:
   - tools/gen/typesys.py
   - llm-wiki/pages/reference/coverage-report.md
   - tests/test_generator.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 새 클래스를 생성 범위에 추가하기
@@ -31,6 +31,14 @@ CEF 클래스를 Python에서 쓰게 하는 가장 흔한 작업입니다. 타�
 - 별도의 등록 함수가 있는 경우: `ResourceHandler`는 `SchemeHandlerFactory`가 반환하고, 그 팩토리는 `register_scheme_handler_factory()`에 넘깁니다. 생성만으로 충분합니다.
 - `CefClient`가 돌려주는 핸들러(로드, 수명 주기, 표시 등): `Client`의 `get_..._handler()`가 반환하며, 사용자는 `CefApp.set_client()`로 클라이언트를 넘깁니다. 새 핸들러를 추가하려면 생성(`scope.py`)에 더해 **손으로 쓴 `CefWrapperClientHandler`도 고쳐야 합니다**: 해당 `Cw<이름>Forward`를 상속에 추가하고, `Get<이름>()`이 사용자의 클라이언트에서 전달 대상을 채우게 하고, 래퍼가 스스로 하던 일이 있는 메서드에는 그 일과 전달 호출(`Cw<이름>Forward::메서드(...)`)을 함께 둡니다. 순서의 기준은 [C++ 핸들러](../components/native-handlers.md)에 있습니다.
 - 래퍼가 이미 스스로 구현하는 핸들러(컨텍스트 메뉴와 JavaScript 바인딩용 프로세스 메시지): 사용자에게 열려면 래퍼의 처리와 사용자의 처리를 합치는 방법을 먼저 정해야 합니다.
+
+## 손으로 쓴 메서드를 더하기 (extras)
+
+생성할 수 없는 메서드(창 정보 구조체를 받는 `BrowserHost.ShowDevTools`, 메모리를 가리키는 `SharedMemoryRegion.Memory` 등)는 `tools/gen/extras/<이름>.pxi`(Cython)와 `.pyi`(스텁)에 손으로 쓰고, `scope.py`의 `EXTRA_METHODS`에 `CefXxx -> 이름`을 적습니다. 생성기가 그 파일을 해당 클래스의 끝에 붙이므로 `cefweaver/api/*.pxi`를 직접 고치지 않습니다. 네이티브 보조 함수는 `native/cefwrapper`와 `cefwrapper.pxd`에 둡니다.
+
+## CEF에 준 객체를 되찾는 메서드
+
+`View.GetDelegate()`처럼 CEF가 프로그램이 준 핸들러를 돌려주는 메서드는 생성기가 프록시 등록부(`CwProxyRegistry`)로 Python 객체를 찾습니다(`dynamic_cast`는 래퍼가 RTTI 없이 빌드되어 쓰지 못함). 핸들러가 라이브러리 객체를 돌려주는 메서드는 `_g_ref_<클래스>`가 참조 하나를 CEF에 넘깁니다([F100](../reference/verified-findings-views.md)).
 
 ## 버전에 따라 없는 메서드
 
