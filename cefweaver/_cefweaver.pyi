@@ -9,6 +9,7 @@ from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 
 from .settings import Settings
+from .types import PreferencesType
 from .version import Version
 
 def _cef_version_info(entry: int) -> int: ...
@@ -51,6 +52,10 @@ class AppHandler:
         """The command line of the browser process (`process_type` is `""`)."""
     def on_register_custom_schemes(self, registrar: SchemeRegistrar) -> None:
         """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
+    def on_before_child_process_launch(self, command_line: CommandLine) -> None:
+        """The command line of a child process (renderer, GPU, utility) before it starts."""
+    def on_register_custom_preferences(self, type: PreferencesType, registrar: PreferenceRegistrar) -> None:
+        """Register preferences with `registrar.add_preference(name, default_value)`."""
     def on_context_initialized(self) -> None:
         """CEF is ready for browsers."""
     def on_schedule_message_pump_work(self, delay_ms: int) -> None: ...
@@ -61,6 +66,11 @@ class SchemeRegistrar:
     """Valid only during `AppHandler.on_register_custom_schemes()`."""
 
     def add_custom_scheme(self, scheme_name: str, options: int) -> bool: ...
+
+class PreferenceRegistrar:
+    """Valid only during `AppHandler.on_register_custom_preferences()`."""
+
+    def add_preference(self, name: str, default_value: Value) -> bool: ...
 
 class CefApp:
     """An embedded Chromium (CEF) instance.
@@ -105,6 +115,7 @@ class CefApp:
     def settings(self, value: Settings) -> None: ...
     def set_request_context(self, context: RequestContext | None) -> None: ...
     def set_app_handler(self, handler: AppHandler | None) -> None: ...
+    def enable_renderer_events(self, stack_size: int = 10) -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
     def cancel_pending_queries(self, browser: Browser | None = None, handler: QueryHandler | None = None) -> None: ...
@@ -148,10 +159,15 @@ from .types import (
     AlphaType,
     ButtonState,
     CertStatus,
+    ChromePageActionIconType,
+    ChromeToolbarButtonType,
     ChromeToolbarType,
     ColorModel,
     ColorType,
     ColorVariant,
+    ComponentState,
+    ComponentUpdateError,
+    ComponentUpdatePriority,
     ContentSettingTypes,
     ContentSettingValues,
     ContextMenuEditStateFlags,
@@ -171,20 +187,27 @@ from .types import (
     HorizontalAlignment,
     JSDialogType,
     LogSeverity,
+    MediaRouteConnectionState,
+    MediaRouteCreateResult,
+    MediaSinkIconType,
     MenuAnchorPosition,
     MenuColorType,
     MenuItemType,
     MouseButtonType,
     PaintElementType,
+    PathKey,
     PermissionRequestResult,
     PostdataelementType,
     ProcessId,
     QuickMenuEditStateFlags,
     ReferrerPolicy,
     ResourceType,
+    ResponseFilterStatus,
     ReturnValue,
     RuntimeStyle,
     ShowState,
+    SslContentStatus,
+    SslVersion,
     State,
     TerminationStatus,
     TextFieldCommands,
@@ -465,6 +488,9 @@ class BrowserHost:
     def has_view(self) -> bool:
         """Returns true if this browser is wrapped in a CefBrowserView."""
         ...
+    def get_client(self) -> Client | None:
+        """Returns the client for this browser."""
+        ...
     def get_request_context(self) -> RequestContext | None:
         """Returns the request context for this browser."""
         ...
@@ -611,6 +637,12 @@ class BrowserHost:
         events). The observer will remain registered until the returned
         Registration object is destroyed. See the SendDevToolsMessage
         documentation for additional usage information.
+        """
+        ...
+    def get_navigation_entries(self, visitor: NavigationEntryVisitor, current_only: bool) -> None:
+        """Retrieve a snapshot of current navigation entries as values sent to the
+        specified visitor. If |current_only| is true only the current navigation
+        entry will be sent, otherwise all navigation entries will be sent.
         """
         ...
     def replace_misspelling(self, word: str) -> None:
@@ -819,6 +851,11 @@ class BrowserHost:
         This method is only used when window rendering is disabled.
         """
         ...
+    def get_visible_navigation_entry(self) -> NavigationEntry | None:
+        """Returns the current visible navigation entry for this browser. This method
+        can only be called on the UI thread.
+        """
+        ...
     def set_accessibility_state(self, accessibility_state: State | int) -> None:
         """Set accessibility state for all frames. |accessibility_state| may be
         default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
@@ -926,6 +963,10 @@ class BrowserHost:
     @staticmethod
     def get_browser_by_identifier(browser_id: int) -> Browser | None:
         """Returns the browser (if any) with the specified identifier."""
+        ...
+    def show_dev_tools(self, inspect_x: int = -1, inspect_y: int = -1) -> None:
+        """Open DevTools in a window of its own. With `inspect_x` and `inspect_y` (both 0 or more) the element at
+        that point of the page is inspected."""
         ...
 
 
@@ -1041,6 +1082,79 @@ class CommandLine:
     def get_global_command_line() -> CommandLine | None:
         """Returns the singleton global CefCommandLine object. The returned object
         will be read-only.
+        """
+        ...
+
+
+class Component:
+    """Class representing a snapshot of a component's state at the time of
+    retrieval. To get updated information, retrieve a new CefComponent object
+    via CefComponentUpdater::GetComponentByID or GetComponents. The methods of
+    this class may be called on any thread.
+    """
+    def get_id(self) -> str:
+        """Returns the unique identifier for this component."""
+        ...
+    def get_name(self) -> str:
+        """Returns the human-readable name of this component.
+        Returns an empty string if the component is not installed.
+        """
+        ...
+    def get_version(self) -> str:
+        """Returns the version of this component as a string (e.g., \"1.2.3.4\").
+        Returns an empty string if the component is not installed.
+        """
+        ...
+    def get_state(self) -> ComponentState:
+        """Returns the state of this component at the time this object was created.
+        A component is considered installed when its state is one of:
+        CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or
+        CEF_COMPONENT_STATE_RUN.
+        """
+        ...
+
+
+class ComponentUpdater:
+    """This class provides access to Chromium's component updater service, allowing
+    clients to discover registered components and trigger on-demand updates. The
+    methods of this class may only be called on the browser process UI thread.
+    If the CEF context is not initialized or the component updater service is
+    not available, methods will return safe defaults (0, nullptr, or empty).
+    """
+    def get_component_count(self) -> int:
+        """Returns the number of registered components, or 0 if the service is not
+        available.
+        """
+        ...
+    def get_components(self) -> list[Component]:
+        """Populates |components| with all registered components. Any existing
+        contents will be cleared first.
+        """
+        ...
+    def get_component_by_id(self, component_id: str) -> Component | None:
+        """Returns the component with the specified |component_id|, or nullptr if
+        not found or the service is not available.
+        """
+        ...
+    def update(self, component_id: str, priority: ComponentUpdatePriority | int, callback: ComponentUpdateCallback | None) -> None:
+        """Triggers an on-demand update for the component with the specified
+        |component_id|. |priority| specifies whether the update should be
+        processed in the background or foreground. Use
+        CEF_COMPONENT_UPDATE_PRIORITY_FOREGROUND for user-initiated updates.
+
+        |callback| will be called asynchronously on the UI thread when the
+        update operation completes. The callback is always executed, including
+        when the component is already up-to-date (returns
+        CEF_COMPONENT_UPDATE_ERROR_NONE), when the requested component doesn't
+        exist, or when the service is unavailable (returns
+        CEF_COMPONENT_UPDATE_ERROR_SERVICE_ERROR). The callback may be nullptr
+        if no notification is needed.
+        """
+        ...
+    @staticmethod
+    def get_component_updater() -> ComponentUpdater | None:
+        """Returns the global CefComponentUpdater singleton. Returns nullptr if
+        called from the incorrect thread.
         """
         ...
 
@@ -2071,6 +2185,121 @@ class MediaAccessCallback:
         ...
 
 
+class MediaRoute:
+    """Represents the route between a media source and sink. Instances of this
+    object are created via CefMediaRouter::CreateRoute and retrieved via
+    CefMediaObserver::OnRoutes. Contains the status and metadata of a
+    routing operation. The methods of this class may be called on any browser
+    process thread unless otherwise indicated.
+    """
+    def get_id(self) -> str:
+        """Returns the ID for this route."""
+        ...
+    def get_source(self) -> MediaSource | None:
+        """Returns the source associated with this route."""
+        ...
+    def get_sink(self) -> MediaSink | None:
+        """Returns the sink associated with this route."""
+        ...
+    def send_route_message(self, message: bytes | bytearray | memoryview) -> None:
+        """Send a message over this route. |message| will be copied if necessary."""
+        ...
+    def terminate(self) -> None:
+        """Terminate this route. Will result in an asynchronous call to
+        CefMediaObserver::OnRoutes on all registered observers.
+        """
+        ...
+
+
+class MediaRouter:
+    """Supports discovery of and communication with media devices on the local
+    network via the Cast and DIAL protocols. The methods of this class may be
+    called on any browser process thread unless otherwise indicated.
+    """
+    def add_observer(self, observer: MediaObserver) -> Registration | None:
+        """Add an observer for MediaRouter events. The observer will remain
+        registered until the returned Registration object is destroyed.
+        """
+        ...
+    def get_source(self, urn: str) -> MediaSource | None:
+        """Returns a MediaSource object for the specified media source URN. Supported
+        URN schemes include \"cast:\" and \"dial:\", and will be already known by the
+        client application (e.g. \"cast:<appId>?clientId=<clientId>\").
+        """
+        ...
+    def notify_current_sinks(self) -> None:
+        """Trigger an asynchronous call to CefMediaObserver::OnSinks on all
+        registered observers.
+        """
+        ...
+    def create_route(self, source: MediaSource, sink: MediaSink, callback: MediaRouteCreateCallback) -> None:
+        """Create a new route between |source| and |sink|. Source and sink must be
+        valid, compatible (as reported by CefMediaSink::IsCompatibleWith), and a
+        route between them must not already exist. |callback| will be executed
+        on success or failure. If route creation succeeds it will also trigger an
+        asynchronous call to CefMediaObserver::OnRoutes on all registered
+        observers.
+        """
+        ...
+    def notify_current_routes(self) -> None:
+        """Trigger an asynchronous call to CefMediaObserver::OnRoutes on all
+        registered observers.
+        """
+        ...
+    @staticmethod
+    def get_global_media_router(callback: CompletionCallback | None) -> MediaRouter | None:
+        """Returns the MediaRouter object associated with the global request context.
+        If |callback| is non-NULL it will be executed asnychronously on the UI
+        thread after the manager's storage has been initialized. Equivalent to
+        calling CefRequestContext::GetGlobalContext()->GetMediaRouter().
+        """
+        ...
+
+
+class MediaSink:
+    """Represents a sink to which media can be routed. Instances of this object are
+    retrieved via CefMediaObserver::OnSinks. The methods of this class may
+    be called on any browser process thread unless otherwise indicated.
+    """
+    def get_id(self) -> str:
+        """Returns the ID for this sink."""
+        ...
+    def get_name(self) -> str:
+        """Returns the name of this sink."""
+        ...
+    def get_icon_type(self) -> MediaSinkIconType:
+        """Returns the icon type for this sink."""
+        ...
+    def get_device_info(self, callback: MediaSinkDeviceInfoCallback) -> None:
+        """Asynchronously retrieves device info."""
+        ...
+    def is_cast_sink(self) -> bool:
+        """Returns true if this sink accepts content via Cast."""
+        ...
+    def is_dial_sink(self) -> bool:
+        """Returns true if this sink accepts content via DIAL."""
+        ...
+    def is_compatible_with(self, source: MediaSource) -> bool:
+        """Returns true if this sink is compatible with |source|."""
+        ...
+
+
+class MediaSource:
+    """Represents a source from which media can be routed. Instances of this object
+    are retrieved via CefMediaRouter::GetSource. The methods of this class may
+    be called on any browser process thread unless otherwise indicated.
+    """
+    def get_id(self) -> str:
+        """Returns the ID (media source URN or URL) for this source."""
+        ...
+    def is_cast_source(self) -> bool:
+        """Returns true if this source outputs its content via Cast."""
+        ...
+    def is_dial_source(self) -> bool:
+        """Returns true if this source outputs its content via DIAL."""
+        ...
+
+
 class MenuButtonPressedLock:
     """MenuButton pressed lock is released when this object is destroyed."""
 
@@ -2338,6 +2567,54 @@ class MenuModel:
     @staticmethod
     def create_menu_model(delegate: MenuModelDelegate) -> MenuModel | None:
         """Create a new MenuModel with the specified |delegate|."""
+        ...
+
+
+class NavigationEntry:
+    """Class used to represent an entry in navigation history."""
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid. Do not call any other methods if
+        this function returns false.
+        """
+        ...
+    def get_url(self) -> str:
+        """Returns the actual URL of the page. For some pages this may be data: URL
+        or similar. Use GetDisplayURL() to return a display-friendly version.
+        """
+        ...
+    def get_display_url(self) -> str:
+        """Returns a display-friendly version of the URL."""
+        ...
+    def get_original_url(self) -> str:
+        """Returns the original URL that was entered by the user before any
+        redirects.
+        """
+        ...
+    def get_title(self) -> str:
+        """Returns the title set by the page. This value may be empty."""
+        ...
+    def get_transition_type(self) -> TransitionType:
+        """Returns the transition type which indicates what the user did to move to
+        this page from the previous page.
+        """
+        ...
+    def has_post_data(self) -> bool:
+        """Returns true if this navigation includes post data."""
+        ...
+    def get_completion_time(self) -> datetime.datetime | None:
+        """Returns the time for the last known successful navigation completion. A
+        navigation may be completed more than once if the page is reloaded. May be
+        0 if the navigation has not yet completed.
+        """
+        ...
+    def get_http_status_code(self) -> int:
+        """Returns the HTTP status code for the last known successful navigation
+        response. May be 0 if the response has not yet been received or if the
+        navigation has not yet completed.
+        """
+        ...
+    def get_ssl_status(self) -> SSLStatus | None:
+        """Returns the SSL information for this navigation entry."""
         ...
 
 
@@ -2662,6 +2939,11 @@ class ProcessMessage:
         Returns nullptr when message contains a shared memory region.
         """
         ...
+    def get_shared_memory_region(self) -> SharedMemoryRegion | None:
+        """Returns the shared memory region.
+        Returns nullptr when message contains an argument list.
+        """
+        ...
     @staticmethod
     def create(name: str) -> ProcessMessage:
         """Create a new CefProcessMessage object with the specified name."""
@@ -2832,6 +3114,15 @@ class RequestContext:
         process UI thread.
         """
         ...
+    def add_preference_observer(self, name: str | None, observer: PreferenceObserver) -> Registration | None:
+        """Add an observer for preference changes. |name| is the name of the
+        preference to observe. If |name| is empty then all preferences will
+        be observed. Observing all preferences has performance consequences and
+        is not recommended outside of testing scenarios. The observer will remain
+        registered until the returned Registration object is destroyed. This
+        method must be called on the browser process UI thread.
+        """
+        ...
     def is_same(self, other: RequestContext) -> bool:
         """Returns true if this object is pointing to the same context as |that|
         object.
@@ -2845,6 +3136,9 @@ class RequestContext:
         used by default when creating a browser or URL request with a NULL context
         argument.
         """
+        ...
+    def get_handler(self) -> RequestContextHandler | None:
+        """Returns the handler for this context if any."""
         ...
     def get_cache_path(self) -> str:
         """Returns the cache path for this object. If empty an \"incognito mode\"
@@ -2903,6 +3197,17 @@ class RequestContext:
         executed on the UI thread after completion.
         """
         ...
+    def resolve_host(self, origin: str, callback: ResolveCallback) -> None:
+        """Attempts to resolve |origin| to a list of associated IP addresses.
+        |callback| will be executed on the UI thread after completion.
+        """
+        ...
+    def get_media_router(self, callback: CompletionCallback | None) -> MediaRouter | None:
+        """Returns the MediaRouter object associated with this context.  If
+        |callback| is non-NULL it will be executed asnychronously on the UI thread
+        after the manager's context has been initialized.
+        """
+        ...
     def get_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> Value | None:
         """Returns the current value for |content_type| that applies for the
         specified URLs. If both URLs are empty the default value will be returned.
@@ -2945,6 +3250,12 @@ class RequestContext:
         CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
         ContentSettingsType::POPUPS in Chromium:
         https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+        """
+        ...
+    def add_setting_observer(self, observer: SettingObserver) -> Registration | None:
+        """Add an observer for content and website setting changes. The observer will
+        remain registered until the returned Registration object is destroyed.
+        This method must be called on the browser process UI thread.
         """
         ...
     def set_chrome_color_scheme(self, variant: ColorVariant | int, user_color: int) -> None:
@@ -3103,6 +3414,189 @@ class SSLInfo:
         certificate.
         """
         ...
+    def get_x509_certificate(self) -> X509Certificate | None:
+        """Returns the X.509 certificate."""
+        ...
+
+
+class SSLStatus:
+    """Class representing the SSL information for a navigation entry."""
+    def is_secure_connection(self) -> bool:
+        """Returns true if the status is related to a secure SSL/TLS connection."""
+        ...
+    def get_cert_status(self) -> CertStatus:
+        """Returns a bitmask containing any and all problems verifying the server
+        certificate.
+        """
+        ...
+    def get_ssl_version(self) -> SslVersion:
+        """Returns the SSL version used for the SSL connection."""
+        ...
+    def get_content_status(self) -> SslContentStatus:
+        """Returns a bitmask containing the page security content status."""
+        ...
+    def get_x509_certificate(self) -> X509Certificate | None:
+        """Returns the X.509 certificate."""
+        ...
+
+
+class SelectClientCertificateCallback:
+    """Callback interface used to select a client certificate for authentication."""
+    def select(self, cert: X509Certificate | None) -> None:
+        """Chooses the specified certificate for client certificate authentication.
+        NULL value means that no client certificate should be used.
+        """
+        ...
+
+
+class Server:
+    """Class representing a server that supports HTTP and WebSocket requests.
+    Server capacity is limited and is intended to handle only a small number of
+    simultaneous connections (e.g. for communicating between applications on
+    localhost). The methods of this class are safe to call from any thread in
+    the brower process unless otherwise indicated.
+    """
+    def shutdown(self) -> None:
+        """Stop the server and shut down the dedicated server thread. See
+        CefServerHandler::OnServerCreated documentation for a description of
+        server lifespan.
+        """
+        ...
+    def is_running(self) -> bool:
+        """Returns true if the server is currently running and accepting incoming
+        connections. See CefServerHandler::OnServerCreated documentation for a
+        description of server lifespan. This method must be called on the
+        dedicated server thread.
+        """
+        ...
+    def get_address(self) -> str:
+        """Returns the server address including the port number."""
+        ...
+    def has_connection(self) -> bool:
+        """Returns true if the server currently has a connection. This method must be
+        called on the dedicated server thread.
+        """
+        ...
+    def is_valid_connection(self, connection_id: int) -> bool:
+        """Returns true if |connection_id| represents a valid connection. This method
+        must be called on the dedicated server thread.
+        """
+        ...
+    def send_http200_response(self, connection_id: int, content_type: str, data: bytes | bytearray | memoryview) -> None:
+        """Send an HTTP 200 \"OK\" response to the connection identified by
+        |connection_id|. |content_type| is the response content type (e.g.
+        \"text/html\"), |data| is the response content, and |data_size| is the size
+        of |data| in bytes. The contents of |data| will be copied. The connection
+        will be closed automatically after the response is sent.
+        """
+        ...
+    def send_http404_response(self, connection_id: int) -> None:
+        """Send an HTTP 404 \"Not Found\" response to the connection identified by
+        |connection_id|. The connection will be closed automatically after the
+        response is sent.
+        """
+        ...
+    def send_http500_response(self, connection_id: int, error_message: str) -> None:
+        """Send an HTTP 500 \"Internal Server Error\" response to the connection
+        identified by |connection_id|. |error_message| is the associated error
+        message. The connection will be closed automatically after the response is
+        sent.
+        """
+        ...
+    def send_http_response(self, connection_id: int, response_code: int, content_type: str, content_length: int, extra_headers: dict[str, str] | None) -> None:
+        """Send a custom HTTP response to the connection identified by
+        |connection_id|. |response_code| is the HTTP response code sent in the
+        status line (e.g. 200), |content_type| is the response content type sent
+        as the \"Content-Type\" header (e.g. \"text/html\"), |content_length| is the
+        expected content length, and |extra_headers| is the map of extra response
+        headers. If |content_length| is >= 0 then the \"Content-Length\" header will
+        be sent. If |content_length| is 0 then no content is expected and the
+        connection will be closed automatically after the response is sent. If
+        |content_length| is < 0 then no \"Content-Length\" header will be sent and
+        the client will continue reading until the connection is closed. Use the
+        SendRawData method to send the content, if applicable, and call
+        CloseConnection after all content has been sent.
+        """
+        ...
+    def send_raw_data(self, connection_id: int, data: bytes | bytearray | memoryview) -> None:
+        """Send raw data directly to the connection identified by |connection_id|.
+        |data| is the raw data and |data_size| is the size of |data| in bytes.
+        The contents of |data| will be copied. No validation of |data| is
+        performed internally so the client should be careful to send the amount
+        indicated by the \"Content-Length\" header, if specified. See
+        SendHttpResponse documentation for intended usage.
+        """
+        ...
+    def close_connection(self, connection_id: int) -> None:
+        """Close the connection identified by |connection_id|. See SendHttpResponse
+        documentation for intended usage.
+        """
+        ...
+    def send_web_socket_message(self, connection_id: int, data: bytes | bytearray | memoryview) -> None:
+        """Send a WebSocket message to the connection identified by |connection_id|.
+        |data| is the response content and |data_size| is the size of |data| in
+        bytes. The contents of |data| will be copied. See
+        CefServerHandler::OnWebSocketRequest documentation for intended usage.
+        """
+        ...
+    @staticmethod
+    def create_server(address: str, port: int, backlog: int, handler: ServerHandler) -> None:
+        """Create a new server that binds to |address| and |port|. |address| must be
+        a valid IPv4 or IPv6 address (e.g. 127.0.0.1 or ::1) and |port| must be a
+        port number outside of the reserved range (e.g. between 1025 and 65535 on
+        most platforms). |backlog| is the maximum number of pending connections.
+        A new thread will be created for each CreateServer call (the \"dedicated
+        server thread\"). It is therefore recommended to use a different
+        CefServerHandler instance for each CreateServer call to avoid thread
+        safety issues in the CefServerHandler implementation. The
+        CefServerHandler::OnServerCreated method will be called on the dedicated
+        server thread to report success or failure. See
+        CefServerHandler::OnServerCreated documentation for a description of
+        server lifespan.
+        """
+        ...
+
+
+class SharedMemoryRegion:
+    """Class that wraps platform-dependent share memory region mapping."""
+    def is_valid(self) -> bool:
+        """Returns true if the mapping is valid."""
+        ...
+    def size(self) -> int:
+        """Returns the size of the mapping in bytes. Returns 0 for invalid instances."""
+        ...
+    def to_bytes(self) -> bytes:
+        """A copy of the shared memory as bytes."""
+        ...
+
+
+class SharedProcessMessageBuilder:
+    """Class that builds a CefProcessMessage containing a shared memory region.
+    This class is not thread-safe but may be used exclusively on a different
+    thread from the one which constructed it.
+    """
+    def is_valid(self) -> bool:
+        """Returns true if the builder is valid."""
+        ...
+    def size(self) -> int:
+        """Returns the size of the shared memory region in bytes. Returns 0 for
+        invalid instances.
+        """
+        ...
+    def build(self) -> ProcessMessage | None:
+        """Creates a new CefProcessMessage from the data provided to the builder.
+        Returns nullptr for invalid instances. Invalidates the builder instance.
+        """
+        ...
+    @staticmethod
+    def create(name: str, byte_size: int) -> SharedProcessMessageBuilder:
+        """Creates a new CefSharedProcessMessageBuilder with the specified |name| and
+        shared memory region of specified |byte_size|.
+        """
+        ...
+    def write(self, offset: int, data: bytes | bytearray | memoryview) -> bool:
+        """Write `data` into the shared memory at `offset`; False if it does not fit."""
+        ...
 
 
 class StreamReader:
@@ -3238,6 +3732,9 @@ class URLRequest:
         """Returns the request object used to create this URL request. The returned
         object is read-only and should not be modified.
         """
+        ...
+    def get_client(self) -> URLRequestClient | None:
+        """Returns the client."""
         ...
     def get_request_status(self) -> URLRequestStatus:
         """Returns the request status."""
@@ -3460,6 +3957,9 @@ class View:
         ...
     def is_same(self, that: View) -> bool:
         """Returns true if this View is the same as |that| View."""
+        ...
+    def get_delegate(self) -> ViewDelegate | None:
+        """Returns the delegate associated with this View, if any."""
         ...
     def get_window(self) -> Window | None:
         """Returns the top-level Window hosting this View, if any."""
@@ -3689,6 +4189,85 @@ class View:
         needs to be in the same Window but not necessarily the same view
         hierarchy. Returns true if the conversion is successful or false
         otherwise.
+        """
+        ...
+
+
+class X509CertPrincipal:
+    """Class representing the issuer or subject field of an X.509 certificate."""
+    def get_display_name(self) -> str:
+        """Returns a name that can be used to represent the issuer. It tries in this
+        order: Common Name (CN), Organization Name (O) and Organizational Unit
+        Name (OU) and returns the first non-empty one found.
+        """
+        ...
+    def get_common_name(self) -> str:
+        """Returns the common name."""
+        ...
+    def get_locality_name(self) -> str:
+        """Returns the locality name."""
+        ...
+    def get_state_or_province_name(self) -> str:
+        """Returns the state or province name."""
+        ...
+    def get_country_name(self) -> str:
+        """Returns the country name."""
+        ...
+    def get_organization_names(self) -> list[str]:
+        """Retrieve the list of organization names."""
+        ...
+    def get_organization_unit_names(self) -> list[str]:
+        """Retrieve the list of organization unit names."""
+        ...
+
+
+class X509Certificate:
+    """Class representing a X.509 certificate."""
+    def get_subject(self) -> X509CertPrincipal | None:
+        """Returns the subject of the X.509 certificate. For HTTPS server
+        certificates this represents the web server.  The common name of the
+        subject should match the host name of the web server.
+        """
+        ...
+    def get_issuer(self) -> X509CertPrincipal | None:
+        """Returns the issuer of the X.509 certificate."""
+        ...
+    def get_serial_number(self) -> BinaryValue | None:
+        """Returns the DER encoded serial number for the X.509 certificate. The value
+        possibly includes a leading 00 byte.
+        """
+        ...
+    def get_valid_start(self) -> datetime.datetime | None:
+        """Returns the date before which the X.509 certificate is invalid.
+        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """
+        ...
+    def get_valid_expiry(self) -> datetime.datetime | None:
+        """Returns the date after which the X.509 certificate is invalid.
+        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """
+        ...
+    def get_der_encoded(self) -> BinaryValue | None:
+        """Returns the DER encoded data for the X.509 certificate."""
+        ...
+    def get_pem_encoded(self) -> BinaryValue | None:
+        """Returns the PEM encoded data for the X.509 certificate."""
+        ...
+    def get_issuer_chain_size(self) -> int:
+        """Returns the number of certificates in the issuer chain.
+        If 0, the certificate is self-signed.
+        """
+        ...
+    def get_der_encoded_issuer_chain(self) -> list[BinaryValue]:
+        """Returns the DER encoded data for the certificate issuer chain.
+        If we failed to encode a certificate in the chain it is still
+        present in the array but is an empty string.
+        """
+        ...
+    def get_pem_encoded_issuer_chain(self) -> list[BinaryValue]:
+        """Returns the PEM encoded data for the certificate issuer chain.
+        If we failed to encode a certificate in the chain it is still
+        present in the array but is an empty string.
         """
         ...
 
@@ -4425,6 +5004,23 @@ class MenuButton(LabelButton):
         ...
 
 
+class AccessibilityHandler:
+    """Implement this interface to receive accessibility notification when
+    accessibility events have been registered. The methods of this class will
+    be called on the UI thread.
+    """
+    def on_accessibility_tree_change(self, value: Value) -> None:
+        """Called after renderer process sends accessibility tree changes to the
+        browser process.
+        """
+        ...
+    def on_accessibility_location_change(self, value: Value) -> None:
+        """Called after renderer process sends accessibility location changes to the
+        browser process.
+        """
+        ...
+
+
 class AudioHandler:
     """Implement this interface to handle audio events."""
     def get_audio_parameters(self, browser: Browser) -> tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]:
@@ -4550,6 +5146,14 @@ class BrowserViewDelegate:
         all references to |browser| and do not attempt to execute any methods on
         |browser| after this callback returns. This method will be called before
         CefLifeSpanHandler::OnBeforeClose() is called for |browser|.
+        """
+        ...
+    def get_delegate_for_popup_browser_view(self, browser_view: BrowserView, settings: BrowserSettings, client: Client | None, is_devtools: bool) -> BrowserViewDelegate | None:
+        """Called before a new popup BrowserView is created. The popup originated
+        from |browser_view|. |settings| and |client| are the values returned from
+        CefLifeSpanHandler::OnBeforePopup(). |is_devtools| will be true if the
+        popup will be a DevTools browser. Return the delegate that will be used
+        for the new popup BrowserView.
         """
         ...
     def on_popup_browser_view_created(self, browser_view: BrowserView, popup_browser_view: BrowserView, is_devtools: bool) -> bool:
@@ -4680,6 +5284,11 @@ class Client:
     def get_audio_handler(self) -> AudioHandler | None:
         """Return the handler for audio rendering events."""
         ...
+    def get_command_handler(self) -> CommandHandler | None:
+        """Return the handler for commands. If no handler is provided the default
+        implementation will be used.
+        """
+        ...
     def get_context_menu_handler(self) -> ContextMenuHandler | None:
         """Return the handler for context menus. If no handler is provided the
         default implementation will be used.
@@ -4702,8 +5311,17 @@ class Client:
     def get_drag_handler(self) -> DragHandler | None:
         """Return the handler for drag events."""
         ...
+    def get_find_handler(self) -> FindHandler | None:
+        """Return the handler for find result events."""
+        ...
     def get_focus_handler(self) -> FocusHandler | None:
         """Return the handler for focus events."""
+        ...
+    def get_frame_handler(self) -> FrameHandler | None:
+        """Return the handler for events related to CefFrame lifespan. This method
+        will be called once during CefBrowser creation and the result will be
+        cached for performance reasons.
+        """
         ...
     def get_permission_handler(self) -> PermissionHandler | None:
         """Return the handler for permission requests."""
@@ -4741,10 +5359,65 @@ class Client:
         ...
 
 
+class CommandHandler:
+    """Implement this interface to handle events related to commands. The methods
+    of this class will be called on the UI thread.
+    """
+    def on_chrome_command(self, browser: Browser, command_id: int, disposition: WindowOpenDisposition) -> bool:
+        """Called to execute a Chrome command triggered via menu selection or
+        keyboard shortcut. Use the cef_id_for_command_id_name()
+        function for version-safe mapping of command IDC names from
+        cef_command_ids.h to version-specific numerical |command_id| values.
+        |disposition| provides information about the intended command target.
+        Return true if the command was handled or false for the default
+        implementation. For context menu commands this will be called after
+        CefContextMenuHandler::OnContextMenuCommand. Only used with Chrome style.
+        """
+        ...
+    def is_chrome_app_menu_item_visible(self, browser: Browser, command_id: int) -> bool:
+        """Called to check if a Chrome app menu item should be visible. Use the
+        cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical
+        |command_id| values. Only called for menu items that would be visible by
+        default. Only used with Chrome style.
+        """
+        ...
+    def is_chrome_app_menu_item_enabled(self, browser: Browser, command_id: int) -> bool:
+        """Called to check if a Chrome app menu item should be enabled. Use the
+        cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical
+        |command_id| values. Only called for menu items that would be enabled by
+        default. Only used with Chrome style.
+        """
+        ...
+    def is_chrome_page_action_icon_visible(self, icon_type: ChromePageActionIconType) -> bool:
+        """Called during browser creation to check if a Chrome page action icon
+        should be visible. Only called for icons that would be visible by default.
+        Only used with Chrome style.
+        """
+        ...
+    def is_chrome_toolbar_button_visible(self, button_type: ChromeToolbarButtonType) -> bool:
+        """Called during browser creation to check if a Chrome toolbar button
+        should be visible. Only called for buttons that would be visible by
+        default. Only used with Chrome style.
+        """
+        ...
+
+
 class CompletionCallback:
     """Generic callback interface used for asynchronous completion."""
     def on_complete(self) -> None:
         """Method that will be called once the task is complete."""
+        ...
+
+
+class ComponentUpdateCallback:
+    """Callback interface for component update results."""
+    def on_complete(self, component_id: str, error: ComponentUpdateError) -> None:
+        """Called when the component update operation completes.
+        |component_id| is the ID of the component that was updated.
+        |error| contains the result of the operation.
+        """
         ...
 
 
@@ -5114,6 +5787,33 @@ class DragHandler:
         ...
 
 
+class EndTracingCallback:
+    """Implement this interface to receive notification when tracing has completed.
+    The methods of this class will be called on the browser process UI thread.
+    """
+    def on_end_tracing_complete(self, tracing_file: str) -> None:
+        """Called after all processes have sent their trace data. |tracing_file| is
+        the path at which tracing data was written. The client is responsible for
+        deleting |tracing_file|.
+        """
+        ...
+
+
+class FindHandler:
+    """Implement this interface to handle events related to find results. The
+    methods of this class will be called on the UI thread.
+    """
+    def on_find_result(self, browser: Browser, identifier: int, count: int, selection_rect: Rect, active_match_ordinal: int, final_update: bool) -> None:
+        """Called to report find results returned by CefBrowserHost::Find().
+        |identifer| is a unique incremental identifier for the currently active
+        search, |count| is the number of matches currently identified,
+        |selectionRect| is the location of where the match was found (in window
+        coordinates), |activeMatchOrdinal| is the current position in the search
+        results, and |finalUpdate| is true if this is the last find notification.
+        """
+        ...
+
+
 class FocusHandler:
     """Implement this interface to handle events related to focus. The methods of
     this class will be called on the UI thread.
@@ -5133,6 +5833,133 @@ class FocusHandler:
         ...
     def on_got_focus(self, browser: Browser) -> None:
         """Called when the browser component has received focus."""
+        ...
+
+
+class FrameHandler:
+    """Implement this interface to handle events related to CefFrame life span. The
+    order of callbacks is:
+
+    (1) During initial CefBrowserHost creation and navigation of the main frame:
+    - CefFrameHandler::OnFrameCreated => The initial main frame object has been
+      created. Any commands will be queued until the frame is attached.
+    - CefFrameHandler::OnMainFrameChanged => The initial main frame object has
+      been assigned to the browser.
+    - CefLifeSpanHandler::OnAfterCreated => The browser is now valid and can be
+      used.
+    - CefFrameHandler::OnFrameAttached => The initial main frame object is now
+      connected to its peer in the renderer process. Commands can be routed.
+
+    (2) During further CefBrowserHost navigation/loading of the main frame
+        and/or sub-frames:
+    - CefFrameHandler::OnFrameCreated => A new main frame or sub-frame object
+      has been created. Any commands will be queued until the frame is attached.
+    - CefFrameHandler::OnFrameAttached => A new main frame or sub-frame object
+      is now connected to its peer in the renderer process. Commands can be
+      routed.
+    - CefFrameHandler::OnFrameDetached => An existing main frame or sub-frame
+      object has lost its connection to the renderer process. If multiple
+      objects are detached at the same time then notifications will be sent for
+      any sub-frame objects before the main frame object. Commands can no longer
+      be routed and will be discarded.
+    - CefFremeHadler::OnFrameDestroyed => An existing main frame or sub-frame
+      object has been destroyed.
+    - CefFrameHandler::OnMainFrameChanged => A new main frame object has been
+      assigned to the browser. This will only occur with cross-origin navigation
+      or re-navigation after renderer process termination (due to crashes, etc).
+
+    (3) During final CefBrowserHost destruction of the main frame:
+    - CefFrameHandler::OnFrameDetached => Any sub-frame objects have lost their
+      connection to the renderer process. Commands can no longer be routed and
+      will be discarded.
+    - CefFreameHandler::OnFrameDestroyed => Any sub-frame objects have been
+      destroyed.
+    - CefLifeSpanHandler::OnBeforeClose => The browser has been destroyed.
+    - CefFrameHandler::OnFrameDetached => The main frame object have lost its
+      connection to the renderer process. Notifications will be sent for any
+      sub-frame objects before the main frame object. Commands can no longer be
+      routed and will be discarded.
+    - CefFreameHandler::OnFrameDestroyed => The main frame object has been
+      destroyed.
+    - CefFrameHandler::OnMainFrameChanged => The final main frame object has
+      been removed from the browser.
+
+    Special handling applies for cross-origin loading on creation/navigation of
+    sub-frames, and cross-origin loading on creation of new popup browsers. A
+    temporary frame will first be created in the parent frame's renderer
+    process. This temporary frame will never attach and will be discarded after
+    the real cross-origin frame is created in the new/target renderer process.
+    The client will receive creation callbacks for the temporary frame, followed
+    by cross-origin navigation callbacks (2) for the transition from the
+    temporary frame to the real frame. The temporary frame will not receive or
+    execute commands during this transitional period (any sent commands will be
+    discarded).
+
+    When the main frame navigates to a different origin the OnMainFrameChanged
+    callback (2) will be executed with the old and new main frame objects.
+
+    Callbacks will not be executed for placeholders that may be created during
+    pre-commit navigation for sub-frames that do not yet exist in the renderer
+    process. Placeholders will have CefFrame::GetIdentifier() == -4.
+
+    The methods of this class will be called on the UI thread unless otherwise
+    indicated.
+    """
+    def on_frame_created(self, browser: Browser, frame: Frame) -> None:
+        """Called when a new frame is created. This will be the first notification
+        that references |frame|. Any commands that require transport to the
+        associated renderer process (LoadRequest, SendProcessMessage, GetSource,
+        etc.) will be queued. The queued commands will be sent before
+        OnFrameAttached or discarded before OnFrameDestroyed if the frame never
+        attaches.
+        """
+        ...
+    def on_frame_destroyed(self, browser: Browser, frame: Frame) -> None:
+        """Called when an existing frame is destroyed. This will be the last
+        notification that references |frame| and CefFrame::IsValid() will return
+        false for |frame|. If called during browser destruction and after
+        CefLifeSpanHandler::OnBeforeClose() then CefBrowser::IsValid() will return
+        false for |browser|. Any queued commands that have not been sent will be
+        discarded before this callback.
+        """
+        ...
+    def on_frame_attached(self, browser: Browser, frame: Frame, reattached: bool) -> None:
+        """Called when a frame can begin routing commands to/from the associated
+        renderer process. |reattached| will be true if the frame was re-attached
+        after exiting the BackForwardCache or after encountering a recoverable
+        connection error. Any queued commands will now have been dispatched. This
+        method will not be called for temporary frames created during cross-origin
+        navigation.
+        """
+        ...
+    def on_frame_detached(self, browser: Browser, frame: Frame) -> None:
+        """Called when a frame loses its connection to the renderer process. This may
+        occur when a frame is destroyed, enters the BackForwardCache, or
+        encounters a rare connection error. In the case of frame destruction this
+        call will be followed by a (potentially async) call to OnFrameDestroyed.
+        If frame destruction is occuring synchronously then CefFrame::IsValid()
+        will return false for |frame|. If called during browser destruction and
+        after CefLifeSpanHandler::OnBeforeClose() then CefBrowser::IsValid() will
+        return false for |browser|. If, in the non-destruction case, the same
+        frame later exits the BackForwardCache or recovers from a connection error
+        then there will be a follow-up call to OnFrameAttached. This method will
+        not be called for temporary frames created during cross-origin navigation.
+        """
+        ...
+    def on_main_frame_changed(self, browser: Browser, old_frame: Frame | None, new_frame: Frame | None) -> None:
+        """Called when the main frame changes due to (a) initial browser creation,
+        (b) final browser destruction, (c) cross-origin navigation or (d)
+        re-navigation after renderer process termination (due to crashes, etc).
+        |old_frame| will be NULL and |new_frame| will be non-NULL when a main
+        frame is assigned to |browser| for the first time. |old_frame| will be
+        non-NULL and |new_frame| will be NULL when a main frame is removed from
+        |browser| for the last time. Both |old_frame| and |new_frame| will be
+        non-NULL for cross-origin navigations or re-navigation after renderer
+        process termination. This method will be called after OnFrameCreated() for
+        |new_frame| and/or after OnFrameDestroyed() for |old_frame|. If called
+        during browser destruction and after CefLifeSpanHandler::OnBeforeClose()
+        then CefBrowser::IsValid() will return false for |browser|.
+        """
         ...
 
 
@@ -5440,6 +6267,55 @@ class LoadHandler:
         ...
 
 
+class MediaObserver:
+    """Implemented by the client to observe MediaRouter events and registered via
+    CefMediaRouter::AddObserver. The methods of this class will be called on the
+    browser process UI thread.
+    """
+    def on_sinks(self, sinks: list[MediaSink]) -> None:
+        """The list of available media sinks has changed or
+        CefMediaRouter::NotifyCurrentSinks was called.
+        """
+        ...
+    def on_routes(self, routes: list[MediaRoute]) -> None:
+        """The list of available media routes has changed or
+        CefMediaRouter::NotifyCurrentRoutes was called.
+        """
+        ...
+    def on_route_state_changed(self, route: MediaRoute, state: MediaRouteConnectionState) -> None:
+        """The connection state of |route| has changed."""
+        ...
+    def on_route_message_received(self, route: MediaRoute, message: memoryview) -> None:
+        """A message was received over |route|. |message| is only valid for
+        the scope of this callback and should be copied if necessary.
+        """
+        ...
+
+
+class MediaRouteCreateCallback:
+    """Callback interface for CefMediaRouter::CreateRoute. The methods of this
+    class will be called on the browser process UI thread.
+    """
+    def on_media_route_create_finished(self, result: MediaRouteCreateResult, error: str, route: MediaRoute | None) -> None:
+        """Method that will be executed when the route creation has finished.
+        |result| will be CEF_MRCR_OK if the route creation succeeded. |error| will
+        be a description of the error if the route creation failed. |route| is the
+        resulting route, or empty if the route creation failed.
+        """
+        ...
+
+
+class MediaSinkDeviceInfoCallback:
+    """Callback interface for CefMediaSink::GetDeviceInfo. The methods of this
+    class will be called on the browser process UI thread.
+    """
+    def on_media_sink_device_info(self, device_info: MediaSinkDeviceInfo) -> None:
+        """Method that will be executed asyncronously once device information has
+        been retrieved.
+        """
+        ...
+
+
 class MenuButtonDelegate:
     """Implement this interface to handle MenuButton events. The methods of this
     class will be called on the browser process UI thread unless otherwise
@@ -5558,6 +6434,20 @@ class MenuModelDelegate:
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
         """Optionally modify a menu item label. Return true if |label| was modified."""
+        ...
+
+
+class NavigationEntryVisitor:
+    """Callback interface for CefBrowserHost::GetNavigationEntries. The methods of
+    this class will be called on the browser process UI thread.
+    """
+    def visit(self, entry: NavigationEntry, current: bool, index: int, total: int) -> bool:
+        """Method that will be executed. Do not keep a reference to |entry| outside
+        of this callback. Return true to continue visiting entries or false to
+        stop. |current| is true if this entry is the currently loaded navigation
+        entry. |index| is the 0-based index of this entry and |total| is the total
+        number of entries.
+        """
         ...
 
 
@@ -5686,6 +6576,18 @@ class PermissionHandler:
         ...
 
 
+class PreferenceObserver:
+    """Implemented by the client to observe preference changes and registered via
+    CefPreferenceManager::AddPreferenceObserver. The methods of this class will
+    be called on the browser process UI thread.
+    """
+    def on_preference_changed(self, name: str) -> None:
+        """Called when a preference has changed. The new value can be retrieved using
+        CefPreferenceManager::GetPreference.
+        """
+        ...
+
+
 class PrintHandler:
     """Implement this interface to handle printing on Linux. Each browser will have
     only one print job in progress at a time. The methods of this class will be
@@ -5757,6 +6659,11 @@ class RenderHandler:
     """Implement this interface to handle events when window rendering is disabled.
     The methods of this class will be called on the UI thread.
     """
+    def get_accessibility_handler(self) -> AccessibilityHandler | None:
+        """Return the handler for accessibility notifications. If no handler is
+        provided the default implementation will be used.
+        """
+        ...
     def get_root_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
         """Called to retrieve the root window rectangle in screen DIP coordinates.
         Return true if the rectangle was provided. If this method returns false
@@ -5987,6 +6894,23 @@ class RequestHandler:
         will be accepted without calling this method.
         """
         ...
+    def on_select_client_certificate(self, browser: Browser, is_proxy: bool, host: str, port: int, certificates: list[X509Certificate], callback: SelectClientCertificateCallback) -> bool:
+        """Called on the UI thread when a client certificate is being requested for
+        authentication. Return false to use the default behavior.  If the
+        |certificates| list is not empty the default behavior will be to display a
+        dialog for certificate selection. If the |certificates| list is empty then
+        the default behavior will be not to show a dialog and it will continue
+        without using any certificate. Return true and call
+        CefSelectClientCertificateCallback::Select either in this method or at a
+        later time to select a certificate. Do not call Select or call it with
+        NULL to continue without using any certificate. |isProxy| indicates
+        whether the host is an HTTPS proxy or the origin server. |host| and |port|
+        contains the hostname and port of the SSL server. |certificates| is the
+        list of certificates to choose from; this list has already been pruned by
+        Chromium so that it only contains certificates from issuers that the
+        server trusts.
+        """
+        ...
     def on_render_view_ready(self, browser: Browser) -> None:
         """Called on the browser process UI thread when the render view associated
         with |browser| is ready to receive/handle IPC messages in the render
@@ -6030,6 +6954,16 @@ class RequestHandler:
     def on_document_available_in_main_frame(self, browser: Browser) -> None:
         """Called on the browser process UI thread when the window.document object of
         the main frame has been created.
+        """
+        ...
+
+
+class ResolveCallback:
+    """Callback interface for CefRequestContext::ResolveHost."""
+    def on_resolve_completed(self, result: ErrorCode, resolved_ips: list[str]) -> None:
+        """Called on the UI thread after the ResolveHost request has completed.
+        |result| will be the result code. |resolved_ips| will be the list of
+        resolved IP addresses or empty if the resolution failed.
         """
         ...
 
@@ -6173,6 +7107,14 @@ class ResourceRequestHandler:
         OnBeforeResourceLoad or GetResourceHandler to perform redirects.
         """
         ...
+    def get_resource_response_filter(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> ResponseFilter | None:
+        """Called on the IO thread to optionally filter resource response content.
+        The |browser| and |frame| values represent the source of the request, and
+        may be NULL for requests originating from service workers or
+        CefURLRequest. |request| and |response| represent the request and response
+        respectively and cannot be modified in this callback.
+        """
+        ...
     def on_resource_load_complete(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, status: URLRequestStatus, received_content_length: int) -> None:
         """Called on the IO thread when a resource load has completed. The |browser|
         and |frame| values represent the source of the request, and may be NULL
@@ -6199,6 +7141,49 @@ class ResourceRequestHandler:
         OS protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD
         TO ENFORCE RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE
         ALLOWING OS EXECUTION.
+        """
+        ...
+
+
+class ResponseFilter:
+    """Implement this interface to filter resource response content. The methods of
+    this class will be called on the browser process IO thread.
+    """
+    def init_filter(self) -> bool:
+        """Initialize the response filter. Will only be called a single time. The
+        filter will not be installed if this method returns false.
+        """
+        ...
+    def filter(self, data_in: memoryview, data_out: memoryview) -> tuple[ResponseFilterStatus | int, int, int]:
+        """Called to filter a chunk of data. Expected usage is as follows:
+
+         1. Read input data from |data_in| and set |data_in_read| to the number of
+            bytes that were read up to a maximum of |data_in_size|. |data_in| will
+            be NULL if |data_in_size| is zero.
+         2. Write filtered output data to |data_out| and set |data_out_written| to
+            the number of bytes that were written up to a maximum of
+            |data_out_size|. If no output data was written then all data must be
+            read from |data_in| (user must set |data_in_read| = |data_in_size|).
+         3. Return RESPONSE_FILTER_DONE if all output data was written or
+            RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
+
+        This method will be called repeatedly until the input buffer has been
+        fully read (user sets |data_in_read| = |data_in_size|) and there is no
+        more input data to filter (the resource response is complete). This method
+        may then be called an additional time with an empty input buffer if the
+        user filled the output buffer (set |data_out_written| = |data_out_size|)
+        and returned RESPONSE_FILTER_NEED_MORE_DATA to indicate that output data
+        is still pending.
+
+        Calls to this method will stop when one of the following conditions is
+        met:
+
+         1. There is no more input data to filter (the resource response is
+            complete) and the user sets |data_out_written| = 0 or returns
+            RESPONSE_FILTER_DONE to indicate that all data has been written, or;
+         2. The user returns RESPONSE_FILTER_ERROR to indicate an error.
+
+        Do not keep a reference to the buffers passed to this method.
         """
         ...
 
@@ -6230,6 +7215,83 @@ class SchemeHandlerFactory:
         ...
 
 
+class ServerHandler:
+    """Implement this interface to handle HTTP server requests. A new thread will
+    be created for each CefServer::CreateServer call (the \"dedicated server
+    thread\"), and the methods of this class will be called on that thread. It is
+    therefore recommended to use a different CefServerHandler instance for each
+    CefServer::CreateServer call to avoid thread safety issues in the
+    CefServerHandler implementation.
+    """
+    def on_server_created(self, server: Server) -> None:
+        """Called when |server| is created. If the server was started successfully
+        then CefServer::IsRunning will return true. The server will continue
+        running until CefServer::Shutdown is called, after which time
+        OnServerDestroyed will be called. If the server failed to start then
+        OnServerDestroyed will be called immediately after this method returns.
+        """
+        ...
+    def on_server_destroyed(self, server: Server) -> None:
+        """Called when |server| is destroyed. The server thread will be stopped after
+        this method returns. The client should release any references to |server|
+        when this method is called. See OnServerCreated documentation for a
+        description of server lifespan.
+        """
+        ...
+    def on_client_connected(self, server: Server, connection_id: int) -> None:
+        """Called when a client connects to |server|. |connection_id| uniquely
+        identifies the connection. Each call to this method will have a matching
+        call to OnClientDisconnected.
+        """
+        ...
+    def on_client_disconnected(self, server: Server, connection_id: int) -> None:
+        """Called when a client disconnects from |server|. |connection_id| uniquely
+        identifies the connection. The client should release any data associated
+        with |connection_id| when this method is called and |connection_id| should
+        no longer be passed to CefServer methods. Disconnects can originate from
+        either the client or the server. For example, the server will disconnect
+        automatically after a CefServer::SendHttpXXXResponse method is called.
+        """
+        ...
+    def on_http_request(self, server: Server, connection_id: int, client_address: str, request: Request) -> None:
+        """Called when |server| receives an HTTP request. |connection_id| uniquely
+        identifies the connection, |client_address| is the requesting IPv4 or IPv6
+        client address including port number, and |request| contains the request
+        contents (URL, method, headers and optional POST data). Call CefServer
+        methods either synchronously or asynchronusly to send a response.
+        """
+        ...
+    def on_web_socket_request(self, server: Server, connection_id: int, client_address: str, request: Request, callback: Callback) -> None:
+        """Called when |server| receives a WebSocket request. |connection_id|
+        uniquely identifies the connection, |client_address| is the requesting
+        IPv4 or IPv6 client address including port number, and |request| contains
+        the request contents (URL, method, headers and optional POST data).
+        Execute |callback| either synchronously or asynchronously to accept or
+        decline the WebSocket connection. If the request is accepted then
+        OnWebSocketConnected will be called after the WebSocket has connected and
+        incoming messages will be delivered to the OnWebSocketMessage callback. If
+        the request is declined then the client will be disconnected and
+        OnClientDisconnected will be called. Call the
+        CefServer::SendWebSocketMessage method after receiving the
+        OnWebSocketConnected callback to respond with WebSocket messages.
+        """
+        ...
+    def on_web_socket_connected(self, server: Server, connection_id: int) -> None:
+        """Called after the client has accepted the WebSocket connection for |server|
+        and |connection_id| via the OnWebSocketRequest callback. See
+        OnWebSocketRequest documentation for intended usage.
+        """
+        ...
+    def on_web_socket_message(self, server: Server, connection_id: int, data: memoryview) -> None:
+        """Called when |server| receives an WebSocket message. |connection_id|
+        uniquely identifies the connection, |data| is the message content and
+        |data_size| is the size of |data| in bytes. Do not keep a reference to
+        |data| outside of this method. See OnWebSocketRequest documentation for
+        intended usage.
+        """
+        ...
+
+
 class SetCookieCallback:
     """Interface to implement to be notified of asynchronous completion via
     CefCookieManager::SetCookie().
@@ -6237,6 +7299,19 @@ class SetCookieCallback:
     def on_complete(self, success: bool) -> None:
         """Method that will be called upon completion. |success| will be true if the
         cookie was set successfully.
+        """
+        ...
+
+
+class SettingObserver:
+    """Implemented by the client to observe content and website setting changes and
+    registered via CefRequestContext::AddSettingObserver. The methods of this
+    class will be called on the browser process UI thread.
+    """
+    def on_setting_changed(self, requesting_url: str, top_level_url: str, content_type: ContentSettingTypes) -> None:
+        """Called when a content or website setting has changed. The new value can be
+        retrieved using CefRequestContext::GetContentSetting or
+        CefRequestContext::GetWebsiteSetting.
         """
         ...
 
@@ -6558,6 +7633,15 @@ class WindowDelegate:
         transitions initiated by browser content.
         """
         ...
+    def get_parent_window(self, window: Window) -> tuple[Window | None, bool, bool]:
+        """Return the parent for |window| or NULL if the |window| does not have a
+        parent. Windows with parents will not get a taskbar button. Set |is_menu|
+        to true if |window| will be displayed as a menu, in which case it will not
+        be clipped to the parent window bounds. Set |can_activate_menu| to false
+        if |is_menu| is true and |window| should not be activated (given keyboard
+        focus) when displayed.
+        """
+        ...
     def is_window_modal_dialog(self, window: Window) -> bool:
         """Return true if |window| should be created as a window modal dialog. Only
         called when a Window is returned via GetParentWindow() with |is_menu| set
@@ -6755,5 +7839,257 @@ def post_delayed_task(thread_id: ThreadId | int, task: Task, delay_ms: int) -> b
 def currently_on(thread_id: ThreadId | int) -> bool:
     """Returns true if called on the specified thread. Equivalent to using
     CefTaskRunner::GetForThread(threadId)->BelongsToCurrentThread().
+    """
+    ...
+
+
+def add_cross_origin_whitelist_entry(source_origin: str, target_protocol: str, target_domain: str | None, allow_target_subdomains: bool) -> bool:
+    """Add an entry to the cross-origin access whitelist.
+
+    The same-origin policy restricts how scripts hosted from different origins
+    (scheme + domain + port) can communicate. By default, scripts can only
+    access resources with the same origin. Scripts hosted on the HTTP and HTTPS
+    schemes (but no other schemes) can use the \"Access-Control-Allow-Origin\"
+    header to allow cross-origin requests. For example,
+    https://source.example.com can make XMLHttpRequest requests on
+    http://target.example.com if the http://target.example.com request returns
+    an \"Access-Control-Allow-Origin: https://source.example.com\" response
+    header.
+
+    Scripts in separate frames or iframes and hosted from the same protocol and
+    domain suffix can execute cross-origin JavaScript if both pages set the
+    document.domain value to the same domain suffix. For example,
+    scheme://foo.example.com and scheme://bar.example.com can communicate using
+    JavaScript if both domains set document.domain=\"example.com\".
+
+    This method is used to allow access to origins that would otherwise violate
+    the same-origin policy. Scripts hosted underneath the fully qualified
+    |source_origin| URL (like http://www.example.com) will be allowed access to
+    all resources hosted on the specified |target_protocol| and |target_domain|.
+    If |target_domain| is non-empty and |allow_target_subdomains| is false only
+    exact domain matches will be allowed. If |target_domain| contains a top-
+    level domain component (like \"example.com\") and |allow_target_subdomains| is
+    true sub-domain matches will be allowed. If |target_domain| is empty and
+    |allow_target_subdomains| if true all domains and IP addresses will be
+    allowed.
+
+    This method cannot be used to bypass the restrictions on local or display
+    isolated schemes. See the comments on CefRegisterCustomScheme for more
+    information.
+
+    This function may be called on any thread. Returns false if |source_origin|
+    is invalid or the whitelist cannot be accessed.
+    """
+    ...
+
+
+def remove_cross_origin_whitelist_entry(source_origin: str, target_protocol: str, target_domain: str | None, allow_target_subdomains: bool) -> bool:
+    """Remove an entry from the cross-origin access whitelist. Returns false if
+    |source_origin| is invalid or the whitelist cannot be accessed.
+    """
+    ...
+
+
+def clear_cross_origin_whitelist() -> bool:
+    """Remove all entries from the cross-origin access whitelist. Returns false if
+    the whitelist cannot be accessed.
+    """
+    ...
+
+
+def is_cert_status_error(status: CertStatus | int) -> bool:
+    """Returns true if the certificate status represents an error."""
+    ...
+
+
+def format_url_for_security_display(origin_url: str) -> str:
+    """This is a convenience function for formatting a URL in a concise and human-
+    friendly way to help users make security-related decisions (or in other
+    circumstances when people need to distinguish sites, origins, or otherwise-
+    simplified URLs from each other). Internationalized domain names (IDN) may
+    be presented in Unicode if the conversion is considered safe. The returned
+    value will (a) omit the path for standard schemes, excepting file and
+    filesystem, and (b) omit the port if it is the default for the scheme. Do
+    not use this for URLs which will be parsed or sent to other applications.
+    """
+    ...
+
+
+def get_extensions_for_mime_type(mime_type: str) -> list[str]:
+    """Get the extensions associated with the given mime type. This should be
+    passed in lower case. There could be multiple extensions for a given mime
+    type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"text/*\".
+    Any existing elements in the provided vector will not be erased.
+    """
+    ...
+
+
+def load_crl_sets_file(path: str) -> None:
+    """Loads the existing \"Certificate Revocation Lists\" file that is managed by
+    Google Chrome. This file can generally be found in Chrome's User Data
+    directory (e.g. \"C:\\Users\\[User]\\AppData\\Local\\Google\\Chrome\\User Data\\\" on
+    Windows) and is updated periodically by Chrome's component updater service.
+    Must be called in the browser process after the context has been
+    initialized. See https://dev.chromium.org/Home/chromium-security/crlsets for
+    background.
+    """
+    ...
+
+
+def begin_tracing(categories: str | None, callback: CompletionCallback | None) -> bool:
+    """Start tracing events on all processes. Tracing is initialized asynchronously
+    and |callback| will be executed on the UI thread after initialization is
+    complete.
+
+    If CefBeginTracing was called previously, or if a CefEndTracingAsync call is
+    pending, CefBeginTracing will fail and return false.
+
+    |categories| is a comma-delimited list of category wildcards. A category can
+    have an optional '-' prefix to make it an excluded category. Having both
+    included and excluded categories in the same list is not supported.
+
+    Examples:
+    - \"test_MyTest*\"
+    - \"test_MyTest*,test_OtherStuff\"
+    - \"-excluded_category1,-excluded_category2\"
+
+    This function must be called on the browser process UI thread.
+    """
+    ...
+
+
+def end_tracing(tracing_file: str | None, callback: EndTracingCallback | None) -> bool:
+    """Stop tracing events on all processes.
+
+    This function will fail and return false if a previous call to
+    CefEndTracingAsync is already pending or if CefBeginTracing was not called.
+
+    |tracing_file| is the path at which tracing data will be written and
+    |callback| is the callback that will be executed once all processes have
+    sent their trace data. If |tracing_file| is empty a new temporary file path
+    will be used. If |callback| is empty no trace data will be written.
+
+    This function must be called on the browser process UI thread.
+    """
+    ...
+
+
+def set_crash_key_value(key: str, value: str | None) -> None:
+    """Sets or clears a specific key-value pair from the crash metadata."""
+    ...
+
+
+def crash_reporting_enabled() -> bool:
+    """Crash reporting is configured using an INI-style config file named
+    \"crash_reporter.cfg\". On Windows and Linux this file must be placed next to
+    the main application executable. On macOS this file must be placed in the
+    top-level app bundle Resources directory (e.g.
+    \"<appname>.app/Contents/Resources\"). File contents are as follows:
+
+    <pre>
+     # Comments start with a hash character and must be on their own line.
+
+     [Config]
+     ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
+     ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
+     AppName=<Windows only; App-specific folder name component for storing crash
+              information; default to \"CEF\">
+     ExternalHandler=<Windows only; Name of the external handler exe to use
+                      instead of re-launching the main exe; default to empty>
+     BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
+                                    should be forwarded to the system crash
+                                    reporter; default to false>
+     ServerURL=<crash server URL; default to empty>
+     RateLimitEnabled=<True if uploads should be rate limited; default to true>
+     MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
+                       default to 5>
+     MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
+                          will cause older reports to be deleted; default to 20>
+     MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
+                           default to 5>
+
+     [CrashKeys]
+     my_key1=<small|medium|large>
+     my_key2=<small|medium|large>
+    </pre>
+
+    <b>Config section:</b>
+
+    If \"ProductName\" and/or \"ProductVersion\" are set then the specified values
+    will be included in the crash dump metadata. On macOS if these values are
+    set to empty then they will be retrieved from the Info.plist file using the
+    \"CFBundleName\" and \"CFBundleShortVersionString\" keys respectively.
+
+    If \"AppName\" is set on Windows then crash report information (metrics,
+    database and dumps) will be stored locally on disk under the
+    \"C:\\Users\\[CurrentUser]\\AppData\\Local\\[AppName]\\User Data\" folder. On other
+    platforms the cef_settings_t.root_cache_path value will be used.
+
+    If \"ExternalHandler\" is set on Windows then the specified exe will be
+    launched as the crashpad-handler instead of re-launching the main process
+    exe. The value can be an absolute path or a path relative to the main exe
+    directory. On Linux the cef_settings_t.browser_subprocess_path value will be
+    used. On macOS the existing subprocess app bundle will be used.
+
+    If \"BrowserCrashForwardingEnabled\" is set to true on macOS then browser
+    process crashes will be forwarded to the system crash reporter. This results
+    in the crash UI dialog being displayed to the user and crash reports being
+    logged under \"~/Library/Logs/DiagnosticReports\". Forwarding of crash reports
+    from non-browser processes and Debug builds is always disabled.
+
+    If \"ServerURL\" is set then crashes will be uploaded as a multi-part POST
+    request to the specified URL. Otherwise, reports will only be stored locally
+    on disk.
+
+    If \"RateLimitEnabled\" is set to true then crash report uploads will be rate
+    limited as follows:
+     1. If \"MaxUploadsPerDay\" is set to a positive value then at most the
+        specified number of crashes will be uploaded in each 24 hour period.
+     2. If crash upload fails due to a network or server error then an
+        incremental backoff delay up to a maximum of 24 hours will be applied
+        for retries.
+     3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
+        \"MaxUploadsPerDay\" value will be reduced to 1 until the client is
+        restarted. This helps to avoid an upload flood when the network or
+        server error is resolved.
+    Rate limiting is not supported on Linux.
+
+    If \"MaxDatabaseSizeInMb\" is set to a positive value then crash report
+    storage on disk will be limited to that size in megabytes. For example, on
+    Windows each dump is about 600KB so a \"MaxDatabaseSizeInMb\" value of 20
+    equates to about 34 crash reports stored on disk. Not supported on Linux.
+
+    If \"MaxDatabaseAgeInDays\" is set to a positive value then crash reports
+    older than the specified age in days will be deleted. Not supported on
+    Linux.
+
+    <b>CrashKeys section:</b>
+
+    A maximum of 26 crash keys of each size can be specified for use by the
+    application. Crash key values will be truncated based on the specified size
+    (small = 64 bytes, medium = 256 bytes, large = 1024 bytes). The value of
+    crash keys can be set from any thread or process using the
+    CefSetCrashKeyValue function. These key/value pairs will be sent to the
+    crash server along with the crash dump file.
+    """
+    ...
+
+
+def is_rtl() -> bool:
+    """Returns true if the application text direction is right-to-left."""
+    ...
+
+
+def get_path(key: PathKey | int) -> tuple[bool, str]:
+    """Retrieve the path associated with the specified |key|. Returns true on
+    success. Can be called on any thread in the browser process.
+    """
+    ...
+
+
+def now_from_system_trace_time() -> int:
+    """Returns the current system trace time or, if none is defined, the current
+    high-res time. Can be used by clients to synchronize with the time
+    information in trace events.
     """
     ...

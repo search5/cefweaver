@@ -8,6 +8,8 @@
 #include "javascript_binding.h"
 #include "query_router.h"
 #include "app_hooks.h"
+#include "include/cef_browser.h"
+#include "include/cef_process_message.h"
 #include <map>
 
 class CefWrapper {
@@ -63,6 +65,7 @@ public:
   void SetBrowserSettings(const CefBrowserSettings& settings);
   void SetTransparent(bool transparent);
   void SetFirstBrowser(bool create);
+  void SetRendererEvents(bool on);
   void SetSharedTexture(bool enabled);
   bool SharedTexture();
   bool Transparent();
@@ -82,7 +85,8 @@ public:
   void CancelPendingQueries(CefRefPtr<CefBrowser> browser, PythonQueryHandler* handler);
   // java-cef's CefAppHandler hooks (app_hooks.h); before InitCefSimple().
   void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
-                   app_context_ptr context, app_relaunch_ptr relaunch, app_schedule_ptr schedule);
+                   app_context_ptr context, app_relaunch_ptr relaunch, app_schedule_ptr schedule,
+                   app_child_launch_ptr child_launch, app_preferences_ptr preferences);
 
 private:
     CefRefPtr<CefWrapperApp> m_App;
@@ -106,5 +110,12 @@ private:
     std::vector<JavascriptPythonBinding> m_Javascript_Python_Bindings;
 }
 ;
+
+// Small helpers for what the generator cannot express (see tools/gen/extras/): DevTools in a window of its own,
+// and the copy of a shared memory region of a process message.
+void CefWeaverShowDevTools(CefBrowserHost* host, int inspect_x, int inspect_y);
+std::string CefWeaverSharedMemoryRead(CefSharedMemoryRegion* region);
+bool CefWeaverSharedBuilderWrite(CefSharedProcessMessageBuilder* builder, size_t offset, const void* data,
+                                 size_t size);
 
 #endif//LIBRARY_LIBRARY_H

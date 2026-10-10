@@ -41,6 +41,23 @@ cdef object _wrap_ResourceReadCallback(CefRefPtr[CefResourceReadCallback] ref):
     return obj
 
 
+cdef inline CefResourceReadCallback* _g_ref_ResourceReadCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a ResourceReadCallback that a handler method returns; None: nothing)."""
+    cdef ResourceReadCallback typed
+    cdef CefRefPtr[CefResourceReadCallback] ref
+    cdef CefResourceReadCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ResourceReadCallback):
+        raise TypeError("expected a ResourceReadCallback or None, not %s" % type(obj).__name__)
+    typed = <ResourceReadCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class ResourceSkipCallback:
     """Callback for asynchronous continuation of CefResourceHandler::Skip()."""
     cdef CefRefPtr[CefResourceSkipCallback] _ref
@@ -77,6 +94,23 @@ cdef object _wrap_ResourceSkipCallback(CefRefPtr[CefResourceSkipCallback] ref):
     obj = ResourceSkipCallback.__new__(ResourceSkipCallback)
     obj._ref = ref
     return obj
+
+
+cdef inline CefResourceSkipCallback* _g_ref_ResourceSkipCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a ResourceSkipCallback that a handler method returns; None: nothing)."""
+    cdef ResourceSkipCallback typed
+    cdef CefRefPtr[CefResourceSkipCallback] ref
+    cdef CefResourceSkipCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ResourceSkipCallback):
+        raise TypeError("expected a ResourceSkipCallback or None, not %s" % type(obj).__name__)
+    typed = <ResourceSkipCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class ResourceHandler:
@@ -282,5 +316,16 @@ cdef inline CefResourceHandler* _g_export_ResourceHandler(object obj) except? NU
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_ResourceHandler(CefRefPtr[CefResourceHandler] ref):
+    """The Python object that was given to CEF as this ResourceHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfResourceHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

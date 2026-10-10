@@ -145,3 +145,20 @@ cdef object _wrap_Panel(CefRefPtr[CefPanel] ref):
     return obj
 
 
+cdef inline CefPanel* _g_ref_Panel(object obj) except? NULL:
+    """A reference for CEF to keep (a Panel that a handler method returns; None: nothing)."""
+    cdef Panel typed
+    cdef CefRefPtr[CefPanel] ref
+    cdef CefPanel* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Panel):
+        raise TypeError("expected a Panel or None, not %s" % type(obj).__name__)
+    typed = <Panel>obj
+    ref = CefRefPtr[CefPanel](<CefPanel*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

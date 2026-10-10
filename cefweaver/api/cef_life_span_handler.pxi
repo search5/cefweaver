@@ -272,3 +272,14 @@ cdef inline CefLifeSpanHandler* _g_export_LifeSpanHandler(object obj) except? NU
     return raw
 
 
+cdef object _g_unexport_LifeSpanHandler(CefRefPtr[CefLifeSpanHandler] ref):
+    """The Python object that was given to CEF as this LifeSpanHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfLifeSpanHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

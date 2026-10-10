@@ -17,6 +17,21 @@ LIBRARY_CLASSES = [
     "CefFrame",
     "CefDisplay",
     "CefImage",
+    # Navigation entries, certificates, a server, the media router, updates (2026-10-10)
+    "CefNavigationEntry",
+    "CefX509Certificate",
+    "CefX509CertPrincipal",
+    "CefSSLStatus",
+    "CefServer",
+    "CefMediaRouter",
+    "CefMediaRoute",
+    "CefMediaSink",
+    "CefMediaSource",
+    "CefComponent",
+    "CefComponentUpdater",
+    "CefSharedMemoryRegion",
+    "CefSharedProcessMessageBuilder",
+    "CefSelectClientCertificateCallback",
     # The Views framework: windows, panels, buttons, text fields, layouts (a subclass is a Python subclass)
     "CefView",
     "CefPanel",
@@ -105,6 +120,23 @@ CLIENT_CLASSES = [
     "CefURLRequestClient",
     "CefTask",
     "CefDownloadImageCallback",
+    # Handlers and callbacks: find, frames, Chrome commands, accessibility, navigation entries, response filters,
+    # a server, DNS, observers, media, tracing (2026-10-10)
+    "CefFindHandler",
+    "CefFrameHandler",
+    "CefCommandHandler",
+    "CefAccessibilityHandler",
+    "CefNavigationEntryVisitor",
+    "CefResponseFilter",
+    "CefServerHandler",
+    "CefResolveCallback",
+    "CefSettingObserver",
+    "CefPreferenceObserver",
+    "CefMediaObserver",
+    "CefMediaRouteCreateCallback",
+    "CefMediaSinkDeviceInfoCallback",
+    "CefComponentUpdateCallback",
+    "CefEndTracingCallback",
     # The delegates of the Views (each has the methods of its parents)
     "CefViewDelegate",
     "CefPanelDelegate",
@@ -115,11 +147,21 @@ CLIENT_CLASSES = [
     "CefTextfieldDelegate",
 ]
 
-# Static functions that make an object CEF cannot free before CefInitialize(): the object is made only
-# after CefApp.initialize() (a RuntimeError before it). Measured: CefImage.CreateImage() and the release of
-# its object end the process with a segmentation fault when CEF has not been initialized.
+# Static functions (and global functions: the class is "") that end the process with a segmentation fault when CEF
+# has not been initialized: they are called only after CefApp.initialize() (a RuntimeError before it). Measured:
+# CefImage.CreateImage() (its object cannot be freed) and CefIsRTL() (it needs the i18n data).
 NEEDS_CEF_RUNNING = {
     ("CefImage", "CreateImage"): "an Image can only be made after CefApp.initialize()",
+    ("", "CefIsRTL"): "is_rtl() can only be called after CefApp.initialize()",     # a function: no class
+}
+
+# Methods that are written by hand and added to a generated class (the generator cannot express them: CEF's
+# window description, memory that CEF owns). {CEF class: file name in tools/gen/extras/}: `<name>.pxi` is
+# the Cython code of the methods (indented as in the class), `<name>.pyi` their stubs.
+EXTRA_METHODS = {
+    "CefBrowserHost": "browser_host",
+    "CefSharedMemoryRegion": "shared_memory_region",
+    "CefSharedProcessMessageBuilder": "shared_process_message_builder",
 }
 
 # Global functions.
@@ -130,6 +172,20 @@ FUNCTIONS = [
     "CefPostTask",
     "CefPostDelayedTask",
     "CefCurrentlyOn",
+    "CefAddCrossOriginWhitelistEntry",
+    "CefRemoveCrossOriginWhitelistEntry",
+    "CefClearCrossOriginWhitelist",
+    "CefIsCertStatusError",
+    "CefFormatUrlForSecurityDisplay",
+    "CefGetExtensionsForMimeType",
+    "CefLoadCRLSetsFile",
+    "CefBeginTracing",
+    "CefEndTracing",
+    "CefSetCrashKeyValue",
+    "CefCrashReportingEnabled",
+    "CefIsRTL",
+    "CefGetPath",
+    "CefNowFromSystemTraceTime",
 ]
 
 

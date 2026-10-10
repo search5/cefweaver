@@ -104,3 +104,20 @@ cdef object _wrap_TaskManager(CefRefPtr[CefTaskManager] ref):
     return obj
 
 
+cdef inline CefTaskManager* _g_ref_TaskManager(object obj) except? NULL:
+    """A reference for CEF to keep (a TaskManager that a handler method returns; None: nothing)."""
+    cdef TaskManager typed
+    cdef CefRefPtr[CefTaskManager] ref
+    cdef CefTaskManager* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, TaskManager):
+        raise TypeError("expected a TaskManager or None, not %s" % type(obj).__name__)
+    typed = <TaskManager>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

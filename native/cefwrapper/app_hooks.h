@@ -24,8 +24,20 @@ class SchemeRegistrarProxy {
   CefRawPtr<CefSchemeRegistrar> registrar_;
 };
 
+// The registrar CEF gives to OnRegisterCustomPreferences: valid during that call only.
+class PreferenceRegistrarProxy {
+ public:
+  explicit PreferenceRegistrarProxy(CefRawPtr<CefPreferenceRegistrar> registrar) : registrar_(registrar) {}
+  bool Add(const std::string& name, CefRefPtr<CefValue> default_value);
+
+ private:
+  CefRawPtr<CefPreferenceRegistrar> registrar_;
+};
+
 typedef void (*app_command_line_ptr)(void* py, CefRefPtr<CefCommandLine> command_line);
 typedef void (*app_schemes_ptr)(void* py, SchemeRegistrarProxy* registrar);
+typedef void (*app_child_launch_ptr)(void* py, CefRefPtr<CefCommandLine> command_line);
+typedef void (*app_preferences_ptr)(void* py, int type, PreferenceRegistrarProxy* registrar);
 typedef void (*app_context_ptr)(void* py);
 typedef void (*app_schedule_ptr)(void* py, long long delay_ms);
 typedef bool (*app_relaunch_ptr)(void* py, CefRefPtr<CefCommandLine> command_line,
@@ -38,6 +50,8 @@ struct AppHooks {
   app_context_ptr context = nullptr;
   app_relaunch_ptr relaunch = nullptr;
   app_schedule_ptr schedule = nullptr;  // any thread of the browser process
+  app_child_launch_ptr child_launch = nullptr;  // the command line of a child process, before it starts
+  app_preferences_ptr preferences = nullptr;    // the custom preferences (global or of a request context)
 };
 
 AppHooks& GetAppHooks();

@@ -50,3 +50,20 @@ cdef object _wrap_AuthCallback(CefRefPtr[CefAuthCallback] ref):
     return obj
 
 
+cdef inline CefAuthCallback* _g_ref_AuthCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a AuthCallback that a handler method returns; None: nothing)."""
+    cdef AuthCallback typed
+    cdef CefRefPtr[CefAuthCallback] ref
+    cdef CefAuthCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, AuthCallback):
+        raise TypeError("expected a AuthCallback or None, not %s" % type(obj).__name__)
+    typed = <AuthCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

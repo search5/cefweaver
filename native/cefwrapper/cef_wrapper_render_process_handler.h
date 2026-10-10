@@ -34,6 +34,13 @@ public:
   void OnBrowserCreated(CefRefPtr<CefBrowser> browser,
                         CefRefPtr<CefDictionaryValue> extra_info) override;
 
+  // Sent to the browser process as "cefweaver-renderer-event" messages when its switch is given (see bridge.h).
+  void OnUncaughtException(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                           CefRefPtr<CefV8Context> context, CefRefPtr<CefV8Exception> exception,
+                           CefRefPtr<CefV8StackTrace> stackTrace) override;
+  void OnFocusedNodeChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                            CefRefPtr<CefDOMNode> node) override;
+
   // "cefweaver-ping": answers with "cefweaver-pong" and the same arguments, so that the browser
   // process can tell that the renderer of a frame answers (a diagnostic, and the sender that
   // lets a Python program receive a process message of its own).

@@ -107,6 +107,27 @@ cdef class RequestContext:
             _r = _p.SetPreference(_a0, _a1, _a2)
         return (_r, _g_str(_a2))
 
+    def add_preference_observer(self, name, observer):
+        """Add an observer for preference changes. |name| is the name of the
+        preference to observe. If |name| is empty then all preferences will
+        be observed. Observing all preferences has performance consequences and
+        is not recommended outside of testing scenarios. The observer will remain
+        registered until the returned Registration object is destroyed. This
+        method must be called on the browser process UI thread.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefPreferenceObserver] _a1
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefRegistration] _r
+        if name is not None:
+            _a0 = _g_cef(name)
+        if observer is None:
+            raise TypeError("observer must not be None")
+        _a1 = _g_make_PreferenceObserver(observer)
+        with nogil:
+            _r = _p.AddPreferenceObserver(_a0, _a1)
+        return _wrap_Registration(_r)
+
     def is_same(self, RequestContext other not None):
         """Returns true if this object is pointing to the same context as |that|
         object.
@@ -139,6 +160,14 @@ cdef class RequestContext:
         with nogil:
             _r = _p.IsGlobal()
         return _r
+
+    def get_handler(self):
+        """Returns the handler for this context if any."""
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefRequestContextHandler] _r
+        with nogil:
+            _r = _p.GetHandler()
+        return _g_unexport_RequestContextHandler(_r)
 
     def get_cache_path(self):
         """Returns the cache path for this object. If empty an \"incognito mode\"
@@ -250,6 +279,34 @@ cdef class RequestContext:
             _p.CloseAllConnections(_a0)
         return None
 
+    def resolve_host(self, origin, callback):
+        """Attempts to resolve |origin| to a list of associated IP addresses.
+        |callback| will be executed on the UI thread after completion.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefResolveCallback] _a1
+        cdef CefRequestContext* _p = self._ptr()
+        _a0 = _g_cef(origin)
+        if callback is None:
+            raise TypeError("callback must not be None")
+        _a1 = _g_make_ResolveCallback(callback)
+        with nogil:
+            _p.ResolveHost(_a0, _a1)
+        return None
+
+    def get_media_router(self, callback):
+        """Returns the MediaRouter object associated with this context.  If
+        |callback| is non-NULL it will be executed asnychronously on the UI thread
+        after the manager's context has been initialized.
+        """
+        cdef CefRefPtr[CefCompletionCallback] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefMediaRouter] _r
+        _a0 = _g_make_CompletionCallback(callback)
+        with nogil:
+            _r = _p.GetMediaRouter(_a0)
+        return _wrap_MediaRouter(_r)
+
     def get_website_setting(self, requesting_url, top_level_url, long long content_type):
         """Returns the current value for |content_type| that applies for the
         specified URLs. If both URLs are empty the default value will be returned.
@@ -339,6 +396,21 @@ cdef class RequestContext:
             _p.SetContentSetting(_a0, _a1, <cef_content_setting_types_t>content_type, <cef_content_setting_values_t>value)
         return None
 
+    def add_setting_observer(self, observer):
+        """Add an observer for content and website setting changes. The observer will
+        remain registered until the returned Registration object is destroyed.
+        This method must be called on the browser process UI thread.
+        """
+        cdef CefRefPtr[CefSettingObserver] _a0
+        cdef CefRequestContext* _p = self._ptr()
+        cdef CefRefPtr[CefRegistration] _r
+        if observer is None:
+            raise TypeError("observer must not be None")
+        _a0 = _g_make_SettingObserver(observer)
+        with nogil:
+            _r = _p.AddSettingObserver(_a0)
+        return _wrap_Registration(_r)
+
     def set_chrome_color_scheme(self, long long variant, cef_color_t user_color):
         """Sets the Chrome color scheme for all browsers that share this request
         context. |variant| values of SYSTEM, LIGHT and DARK change the underlying
@@ -411,5 +483,137 @@ cdef object _wrap_RequestContext(CefRefPtr[CefRequestContext] ref):
     obj = RequestContext.__new__(RequestContext)
     obj._ref = ref
     return obj
+
+
+cdef inline CefRequestContext* _g_ref_RequestContext(object obj) except? NULL:
+    """A reference for CEF to keep (a RequestContext that a handler method returns; None: nothing)."""
+    cdef RequestContext typed
+    cdef CefRefPtr[CefRequestContext] ref
+    cdef CefRequestContext* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, RequestContext):
+        raise TypeError("expected a RequestContext or None, not %s" % type(obj).__name__)
+    typed = <RequestContext>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+class ResolveCallback:
+    """Callback interface for CefRequestContext::ResolveHost."""
+
+    def on_resolve_completed(self, result, resolved_ips):
+        """Called on the UI thread after the ResolveHost request has completed.
+        |result| will be the result code. |resolved_ips| will be the list of
+        resolved IP addresses or empty if the resolution failed.
+        """
+        return None
+
+
+cdef void _ResolveCallback_on_resolve_completed(void* py, int result, const vector[CefString]* resolved_ips) noexcept with gil:
+    try:
+        _r = (<object>py).on_resolve_completed(_g_enum(_types.ErrorCode, result), _g_str_list(resolved_ips))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefResolveCallback] _g_make_ResolveCallback(object obj) except *:
+    cdef CefRefPtr[CefResolveCallback] ref
+    cdef CwResolveCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, ResolveCallback):
+        raise TypeError("expected a ResolveCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_resolve_completed", None) is not ResolveCallback.on_resolve_completed:
+        cb.fn_on_resolve_completed = _ResolveCallback_on_resolve_completed
+    ref = CefRefPtr[CefResolveCallback](<CefResolveCallback*>new CwResolveCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefResolveCallback* _g_export_ResolveCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefResolveCallback] ref = _g_make_ResolveCallback(obj)
+    cdef CefResolveCallback* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+cdef object _g_unexport_ResolveCallback(CefRefPtr[CefResolveCallback] ref):
+    """The Python object that was given to CEF as this ResolveCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfResolveCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
+class SettingObserver:
+    """Implemented by the client to observe content and website setting changes and
+    registered via CefRequestContext::AddSettingObserver. The methods of this
+    class will be called on the browser process UI thread.
+    """
+
+    def on_setting_changed(self, requesting_url, top_level_url, content_type):
+        """Called when a content or website setting has changed. The new value can be
+        retrieved using CefRequestContext::GetContentSetting or
+        CefRequestContext::GetWebsiteSetting.
+        """
+        return None
+
+
+cdef void _SettingObserver_on_setting_changed(void* py, const CefString* requesting_url, const CefString* top_level_url, int content_type) noexcept with gil:
+    try:
+        _r = (<object>py).on_setting_changed(_g_str(requesting_url[0]), _g_str(top_level_url[0]), _g_enum(_types.ContentSettingTypes, content_type))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefSettingObserver] _g_make_SettingObserver(object obj) except *:
+    cdef CefRefPtr[CefSettingObserver] ref
+    cdef CwSettingObserverCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, SettingObserver):
+        raise TypeError("expected a SettingObserver or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_setting_changed", None) is not SettingObserver.on_setting_changed:
+        cb.fn_on_setting_changed = _SettingObserver_on_setting_changed
+    ref = CefRefPtr[CefSettingObserver](<CefSettingObserver*>new CwSettingObserverProxy(cb))
+    return ref
+
+
+cdef inline CefSettingObserver* _g_export_SettingObserver(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefSettingObserver] ref = _g_make_SettingObserver(obj)
+    cdef CefSettingObserver* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+cdef object _g_unexport_SettingObserver(CefRefPtr[CefSettingObserver] ref):
+    """The Python object that was given to CEF as this SettingObserver (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfSettingObserver(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

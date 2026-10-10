@@ -50,6 +50,23 @@ cdef object _wrap_MediaAccessCallback(CefRefPtr[CefMediaAccessCallback] ref):
     return obj
 
 
+cdef inline CefMediaAccessCallback* _g_ref_MediaAccessCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a MediaAccessCallback that a handler method returns; None: nothing)."""
+    cdef MediaAccessCallback typed
+    cdef CefRefPtr[CefMediaAccessCallback] ref
+    cdef CefMediaAccessCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, MediaAccessCallback):
+        raise TypeError("expected a MediaAccessCallback or None, not %s" % type(obj).__name__)
+    typed = <MediaAccessCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class PermissionPromptCallback:
     """Callback interface used for asynchronous continuation of permission prompts."""
     cdef CefRefPtr[CefPermissionPromptCallback] _ref
@@ -82,6 +99,23 @@ cdef object _wrap_PermissionPromptCallback(CefRefPtr[CefPermissionPromptCallback
     obj = PermissionPromptCallback.__new__(PermissionPromptCallback)
     obj._ref = ref
     return obj
+
+
+cdef inline CefPermissionPromptCallback* _g_ref_PermissionPromptCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a PermissionPromptCallback that a handler method returns; None: nothing)."""
+    cdef PermissionPromptCallback typed
+    cdef CefRefPtr[CefPermissionPromptCallback] ref
+    cdef CefPermissionPromptCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, PermissionPromptCallback):
+        raise TypeError("expected a PermissionPromptCallback or None, not %s" % type(obj).__name__)
+    typed = <PermissionPromptCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class PermissionHandler:
@@ -183,5 +217,16 @@ cdef inline CefPermissionHandler* _g_export_PermissionHandler(object obj) except
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_PermissionHandler(CefRefPtr[CefPermissionHandler] ref):
+    """The Python object that was given to CEF as this PermissionHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfPermissionHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

@@ -66,6 +66,16 @@ cdef class ProcessMessage:
             _r = _p.GetArgumentList()
         return _wrap_ListValue(_r)
 
+    def get_shared_memory_region(self):
+        """Returns the shared memory region.
+        Returns nullptr when message contains an argument list.
+        """
+        cdef CefProcessMessage* _p = self._ptr()
+        cdef CefRefPtr[CefSharedMemoryRegion] _r
+        with nogil:
+            _r = _p.GetSharedMemoryRegion()
+        return _wrap_SharedMemoryRegion(_r)
+
     @staticmethod
     def create(name):
         """Create a new CefProcessMessage object with the specified name."""
@@ -84,5 +94,22 @@ cdef object _wrap_ProcessMessage(CefRefPtr[CefProcessMessage] ref):
     obj = ProcessMessage.__new__(ProcessMessage)
     obj._ref = ref
     return obj
+
+
+cdef inline CefProcessMessage* _g_ref_ProcessMessage(object obj) except? NULL:
+    """A reference for CEF to keep (a ProcessMessage that a handler method returns; None: nothing)."""
+    cdef ProcessMessage typed
+    cdef CefRefPtr[CefProcessMessage] ref
+    cdef CefProcessMessage* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ProcessMessage):
+        raise TypeError("expected a ProcessMessage or None, not %s" % type(obj).__name__)
+    typed = <ProcessMessage>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 

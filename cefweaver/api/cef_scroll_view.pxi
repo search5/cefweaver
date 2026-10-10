@@ -92,3 +92,20 @@ cdef object _wrap_ScrollView(CefRefPtr[CefScrollView] ref):
     return obj
 
 
+cdef inline CefScrollView* _g_ref_ScrollView(object obj) except? NULL:
+    """A reference for CEF to keep (a ScrollView that a handler method returns; None: nothing)."""
+    cdef ScrollView typed
+    cdef CefRefPtr[CefScrollView] ref
+    cdef CefScrollView* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ScrollView):
+        raise TypeError("expected a ScrollView or None, not %s" % type(obj).__name__)
+    typed = <ScrollView>obj
+    ref = CefRefPtr[CefScrollView](<CefScrollView*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

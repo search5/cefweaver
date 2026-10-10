@@ -163,3 +163,20 @@ cdef object _wrap_ZipReader(CefRefPtr[CefZipReader] ref):
     return obj
 
 
+cdef inline CefZipReader* _g_ref_ZipReader(object obj) except? NULL:
+    """A reference for CEF to keep (a ZipReader that a handler method returns; None: nothing)."""
+    cdef ZipReader typed
+    cdef CefRefPtr[CefZipReader] ref
+    cdef CefZipReader* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ZipReader):
+        raise TypeError("expected a ZipReader or None, not %s" % type(obj).__name__)
+    typed = <ZipReader>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

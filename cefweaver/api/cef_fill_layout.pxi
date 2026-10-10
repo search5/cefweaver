@@ -23,3 +23,20 @@ cdef object _wrap_FillLayout(CefRefPtr[CefFillLayout] ref):
     return obj
 
 
+cdef inline CefFillLayout* _g_ref_FillLayout(object obj) except? NULL:
+    """A reference for CEF to keep (a FillLayout that a handler method returns; None: nothing)."""
+    cdef FillLayout typed
+    cdef CefRefPtr[CefFillLayout] ref
+    cdef CefFillLayout* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, FillLayout):
+        raise TypeError("expected a FillLayout or None, not %s" % type(obj).__name__)
+    typed = <FillLayout>obj
+    ref = CefRefPtr[CefFillLayout](<CefFillLayout*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

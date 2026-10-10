@@ -1,6 +1,6 @@
 """Emit the type stub (.pyi) of the compiled module."""
 
-from emit_cython import (_annotation, _docstring, all_structs, public_function_name,
+from emit_cython import (_annotation, _docstring, all_structs, extras_text, public_function_name,
                          struct_tuple_annotation)
 from model import py_class_name, py_param_name
 from typesys import Buffer, Bytes, Planes, ClientRef, ItemBytes, Enum, LibRef, Struct, Vector, Void
@@ -33,6 +33,8 @@ def _param_annotation(param, client_side):
     # gets None only for an object that CEF does not pass; strings, structs and lists are
     # always given (empty when there is nothing).
     nullable = param.optional and (not client_side or isinstance(param.kind, (LibRef, ClientRef)))
+    if client_side and isinstance(param.kind, ClientRef):
+        nullable = True        # an object of CEF's own (not one the program gave to CEF) comes as None
     return text + " | None" if nullable else text
 
 
@@ -50,8 +52,8 @@ def _return_annotation(plan, client_side):
     text = _annotation(plan.ret)
     never_none = plan.static and plan.cef_name == "Create" and not any(
         isinstance(p.kind, Bytes) for p in plan.params)  # BinaryValue.create(b"") is None
-    if isinstance(plan.ret, LibRef) and not never_none:
-        text += " | None"  # CEF may return no object; a Create() factory never does
+    if isinstance(plan.ret, (LibRef, ClientRef)) and not never_none:
+        text += " | None"  # CEF may return no object (or a client object of its own); a Create() factory never does
     if plan.outs:  # output parameters of a library method are returned after the return value
         parts = ([] if isinstance(plan.ret, Void) else [text]) + [_annotation(p.kind) for p in plan.outs]
         return parts[0] if len(parts) == 1 else "tuple[%s]" % ", ".join(parts)
@@ -126,6 +128,9 @@ def emit(model, scope, plans_by_class, function_plans, handwritten, banner):
             if client and plan.static:
                 continue
             out += _stub(plan, client, 4, model)
+        extra = extras_text(cls.get_name(), "pyi")
+        if extra:
+            out += extra.rstrip("\n").split("\n")
         out.append("")
         out.append("")
 

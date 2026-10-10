@@ -238,3 +238,20 @@ cdef object _wrap_OverlayController(CefRefPtr[CefOverlayController] ref):
     return obj
 
 
+cdef inline CefOverlayController* _g_ref_OverlayController(object obj) except? NULL:
+    """A reference for CEF to keep (a OverlayController that a handler method returns; None: nothing)."""
+    cdef OverlayController typed
+    cdef CefRefPtr[CefOverlayController] ref
+    cdef CefOverlayController* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, OverlayController):
+        raise TypeError("expected a OverlayController or None, not %s" % type(obj).__name__)
+    typed = <OverlayController>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

@@ -123,6 +123,23 @@ cdef object _wrap_StreamReader(CefRefPtr[CefStreamReader] ref):
     return obj
 
 
+cdef inline CefStreamReader* _g_ref_StreamReader(object obj) except? NULL:
+    """A reference for CEF to keep (a StreamReader that a handler method returns; None: nothing)."""
+    cdef StreamReader typed
+    cdef CefRefPtr[CefStreamReader] ref
+    cdef CefStreamReader* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, StreamReader):
+        raise TypeError("expected a StreamReader or None, not %s" % type(obj).__name__)
+    typed = <StreamReader>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class StreamWriter:
     """Class used to write data to a stream. The methods of this class may be
     called on any thread.
@@ -231,6 +248,23 @@ cdef object _wrap_StreamWriter(CefRefPtr[CefStreamWriter] ref):
     obj = StreamWriter.__new__(StreamWriter)
     obj._ref = ref
     return obj
+
+
+cdef inline CefStreamWriter* _g_ref_StreamWriter(object obj) except? NULL:
+    """A reference for CEF to keep (a StreamWriter that a handler method returns; None: nothing)."""
+    cdef StreamWriter typed
+    cdef CefRefPtr[CefStreamWriter] ref
+    cdef CefStreamWriter* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, StreamWriter):
+        raise TypeError("expected a StreamWriter or None, not %s" % type(obj).__name__)
+    typed = <StreamWriter>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class ReadHandler:
@@ -353,6 +387,17 @@ cdef inline CefReadHandler* _g_export_ReadHandler(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_ReadHandler(CefRefPtr[CefReadHandler] ref):
+    """The Python object that was given to CEF as this ReadHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfReadHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class WriteHandler:
     """Interface the client can implement to provide a custom stream writer. The
     methods of this class may be called on any thread.
@@ -471,5 +516,16 @@ cdef inline CefWriteHandler* _g_export_WriteHandler(object obj) except? NULL:
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_WriteHandler(CefRefPtr[CefWriteHandler] ref):
+    """The Python object that was given to CEF as this WriteHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfWriteHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

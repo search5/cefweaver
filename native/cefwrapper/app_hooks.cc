@@ -15,6 +15,10 @@ AppHooks& GetAppHooks() {
   return hooks;
 }
 
+bool PreferenceRegistrarProxy::Add(const std::string& name, CefRefPtr<CefValue> default_value) {
+  return registrar_ && registrar_->AddPreference(name, default_value);
+}
+
 bool SchemeRegistrarProxy::Add(const std::string& name, int options) {
   if (!registrar_) {
     return false;

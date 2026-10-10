@@ -160,3 +160,14 @@ cdef inline CefDevToolsMessageObserver* _g_export_DevToolsMessageObserver(object
     return raw
 
 
+cdef object _g_unexport_DevToolsMessageObserver(CefRefPtr[CefDevToolsMessageObserver] ref):
+    """The Python object that was given to CEF as this DevToolsMessageObserver (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDevToolsMessageObserver(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

@@ -624,3 +624,20 @@ cdef object _wrap_MenuModel(CefRefPtr[CefMenuModel] ref):
     return obj
 
 
+cdef inline CefMenuModel* _g_ref_MenuModel(object obj) except? NULL:
+    """A reference for CEF to keep (a MenuModel that a handler method returns; None: nothing)."""
+    cdef MenuModel typed
+    cdef CefRefPtr[CefMenuModel] ref
+    cdef CefMenuModel* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, MenuModel):
+        raise TypeError("expected a MenuModel or None, not %s" % type(obj).__name__)
+    typed = <MenuModel>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

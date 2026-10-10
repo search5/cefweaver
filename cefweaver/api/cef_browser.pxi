@@ -217,6 +217,23 @@ cdef object _wrap_Browser(CefRefPtr[CefBrowser] ref):
     return obj
 
 
+cdef inline CefBrowser* _g_ref_Browser(object obj) except? NULL:
+    """A reference for CEF to keep (a Browser that a handler method returns; None: nothing)."""
+    cdef Browser typed
+    cdef CefRefPtr[CefBrowser] ref
+    cdef CefBrowser* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Browser):
+        raise TypeError("expected a Browser or None, not %s" % type(obj).__name__)
+    typed = <Browser>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class BrowserHost:
     """Class used to represent the browser process aspects of a browser. The
     methods of this class can only be called in the browser process. They may be
@@ -360,6 +377,14 @@ cdef class BrowserHost:
         with nogil:
             _r = _p.HasView()
         return _r
+
+    def get_client(self):
+        """Returns the client for this browser."""
+        cdef CefBrowserHost* _p = self._ptr()
+        cdef CefRefPtr[CefClient] _r
+        with nogil:
+            _r = _p.GetClient()
+        return _g_unexport_Client(_r)
 
     def get_request_context(self):
         """Returns the request context for this browser."""
@@ -634,6 +659,20 @@ cdef class BrowserHost:
         with nogil:
             _r = _p.AddDevToolsMessageObserver(_a0)
         return _wrap_Registration(_r)
+
+    def get_navigation_entries(self, visitor, bint current_only):
+        """Retrieve a snapshot of current navigation entries as values sent to the
+        specified visitor. If |current_only| is true only the current navigation
+        entry will be sent, otherwise all navigation entries will be sent.
+        """
+        cdef CefRefPtr[CefNavigationEntryVisitor] _a0
+        cdef CefBrowserHost* _p = self._ptr()
+        if visitor is None:
+            raise TypeError("visitor must not be None")
+        _a0 = _g_make_NavigationEntryVisitor(visitor)
+        with nogil:
+            _p.GetNavigationEntries(_a0, current_only)
+        return None
 
     def replace_misspelling(self, word):
         """If a misspelled word is currently selected in an editable node calling
@@ -987,6 +1026,16 @@ cdef class BrowserHost:
             _p.DragSourceSystemDragEnded()
         return None
 
+    def get_visible_navigation_entry(self):
+        """Returns the current visible navigation entry for this browser. This method
+        can only be called on the UI thread.
+        """
+        cdef CefBrowserHost* _p = self._ptr()
+        cdef CefRefPtr[CefNavigationEntry] _r
+        with nogil:
+            _r = _p.GetVisibleNavigationEntry()
+        return _wrap_NavigationEntry(_r)
+
     def set_accessibility_state(self, long long accessibility_state):
         """Set accessibility state for all frames. |accessibility_state| may be
         default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
@@ -1152,6 +1201,16 @@ cdef class BrowserHost:
             _r = CefBrowserHost.GetBrowserByIdentifier(browser_id)
         return _wrap_Browser(_r)
 
+    def show_dev_tools(self, int inspect_x=-1, int inspect_y=-1):
+        """Open DevTools in a window of its own (CEF makes the window). If ``inspect_x`` and ``inspect_y``
+        are both 0 or more, the element of the page at that point is inspected. ``has_dev_tools()`` tells
+        whether DevTools are open and ``close_dev_tools()`` closes them. (CEF's ShowDevTools() takes a
+        window description, a client and settings: this one has CEF's defaults.)"""
+        cdef CefBrowserHost* _p = self._ptr()
+        with nogil:
+            CefWeaverShowDevTools(_p, inspect_x, inspect_y)
+        return None
+
 
 cdef object _wrap_BrowserHost(CefRefPtr[CefBrowserHost] ref):
     cdef BrowserHost obj
@@ -1160,6 +1219,23 @@ cdef object _wrap_BrowserHost(CefRefPtr[CefBrowserHost] ref):
     obj = BrowserHost.__new__(BrowserHost)
     obj._ref = ref
     return obj
+
+
+cdef inline CefBrowserHost* _g_ref_BrowserHost(object obj) except? NULL:
+    """A reference for CEF to keep (a BrowserHost that a handler method returns; None: nothing)."""
+    cdef BrowserHost typed
+    cdef CefRefPtr[CefBrowserHost] ref
+    cdef CefBrowserHost* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, BrowserHost):
+        raise TypeError("expected a BrowserHost or None, not %s" % type(obj).__name__)
+    typed = <BrowserHost>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class DownloadImageCallback:
@@ -1210,6 +1286,80 @@ cdef inline CefDownloadImageCallback* _g_export_DownloadImageCallback(object obj
     return raw
 
 
+cdef object _g_unexport_DownloadImageCallback(CefRefPtr[CefDownloadImageCallback] ref):
+    """The Python object that was given to CEF as this DownloadImageCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDownloadImageCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
+class NavigationEntryVisitor:
+    """Callback interface for CefBrowserHost::GetNavigationEntries. The methods of
+    this class will be called on the browser process UI thread.
+    """
+
+    def visit(self, entry, current, index, total):
+        """Method that will be executed. Do not keep a reference to |entry| outside
+        of this callback. Return true to continue visiting entries or false to
+        stop. |current| is true if this entry is the currently loaded navigation
+        entry. |index| is the 0-based index of this entry and |total| is the total
+        number of entries.
+        """
+        return False
+
+
+cdef cpp_bool _NavigationEntryVisitor_visit(void* py, CefNavigationEntry* entry, cpp_bool current, int index, int total) noexcept with gil:
+    try:
+        _r = (<object>py).visit(_wrap_NavigationEntry(CefRefPtr[CefNavigationEntry](entry)), current, index, total)
+        _r0 = _r
+        return _r0
+    except BaseException:
+        _g_report()
+        return 0
+
+
+cdef CefRefPtr[CefNavigationEntryVisitor] _g_make_NavigationEntryVisitor(object obj) except *:
+    cdef CefRefPtr[CefNavigationEntryVisitor] ref
+    cdef CwNavigationEntryVisitorCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, NavigationEntryVisitor):
+        raise TypeError("expected a NavigationEntryVisitor or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "visit", None) is not NavigationEntryVisitor.visit:
+        cb.fn_visit = _NavigationEntryVisitor_visit
+    ref = CefRefPtr[CefNavigationEntryVisitor](<CefNavigationEntryVisitor*>new CwNavigationEntryVisitorProxy(cb))
+    return ref
+
+
+cdef inline CefNavigationEntryVisitor* _g_export_NavigationEntryVisitor(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefNavigationEntryVisitor] ref = _g_make_NavigationEntryVisitor(obj)
+    cdef CefNavigationEntryVisitor* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
+cdef object _g_unexport_NavigationEntryVisitor(CefRefPtr[CefNavigationEntryVisitor] ref):
+    """The Python object that was given to CEF as this NavigationEntryVisitor (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfNavigationEntryVisitor(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class PdfPrintCallback:
     """Callback interface for CefBrowserHost::PrintToPDF. The methods of this class
     will be called on the browser process UI thread.
@@ -1257,6 +1407,17 @@ cdef inline CefPdfPrintCallback* _g_export_PdfPrintCallback(object obj) except? 
     return raw
 
 
+cdef object _g_unexport_PdfPrintCallback(CefRefPtr[CefPdfPrintCallback] ref):
+    """The Python object that was given to CEF as this PdfPrintCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfPdfPrintCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class RunFileDialogCallback:
     """Callback interface for CefBrowserHost::RunFileDialog. The methods of this
     class will be called on the browser process UI thread.
@@ -1302,5 +1463,16 @@ cdef inline CefRunFileDialogCallback* _g_export_RunFileDialogCallback(object obj
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_RunFileDialogCallback(CefRefPtr[CefRunFileDialogCallback] ref):
+    """The Python object that was given to CEF as this RunFileDialogCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfRunFileDialogCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

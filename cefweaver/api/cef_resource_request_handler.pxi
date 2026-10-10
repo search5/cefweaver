@@ -75,6 +75,17 @@ cdef inline CefCookieAccessFilter* _g_export_CookieAccessFilter(object obj) exce
     return raw
 
 
+cdef object _g_unexport_CookieAccessFilter(CefRefPtr[CefCookieAccessFilter] ref):
+    """The Python object that was given to CEF as this CookieAccessFilter (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfCookieAccessFilter(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class ResourceRequestHandler:
     """Implement this interface to handle events related to browser requests. The
     methods of this class will be called on the IO thread unless otherwise
@@ -139,6 +150,15 @@ class ResourceRequestHandler:
         OnBeforeResourceLoad or GetResourceHandler to perform redirects.
         """
         return False
+
+    def get_resource_response_filter(self, browser, frame, request, response):
+        """Called on the IO thread to optionally filter resource response content.
+        The |browser| and |frame| values represent the source of the request, and
+        may be NULL for requests originating from service workers or
+        CefURLRequest. |request| and |response| represent the request and response
+        respectively and cannot be modified in this callback.
+        """
+        return None
 
     def on_resource_load_complete(self, browser, frame, request, response, status, received_content_length):
         """Called on the IO thread when a resource load has completed. The |browser|
@@ -215,6 +235,15 @@ cdef cpp_bool _ResourceRequestHandler_on_resource_response(void* py, CefBrowser*
         _g_report()
         return 0
 
+cdef CefResponseFilter* _ResourceRequestHandler_get_resource_response_filter(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response) noexcept with gil:
+    try:
+        _r = (<object>py).get_resource_response_filter(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)))
+        _r0 = _r
+        return _g_export_ResponseFilter(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef void _ResourceRequestHandler_on_resource_load_complete(void* py, CefBrowser* browser, CefFrame* frame, CefRequest* request, CefResponse* response, int status, int64_t received_content_length) noexcept with gil:
     try:
         _r = (<object>py).on_resource_load_complete(_wrap_Browser(CefRefPtr[CefBrowser](browser)), _wrap_Frame(CefRefPtr[CefFrame](frame)), _wrap_Request(CefRefPtr[CefRequest](request)), _wrap_Response(CefRefPtr[CefResponse](response)), _g_enum(_types.URLRequestStatus, status), received_content_length)
@@ -252,6 +281,8 @@ cdef CefRefPtr[CefResourceRequestHandler] _g_make_ResourceRequestHandler(object 
         cb.fn_on_resource_redirect = _ResourceRequestHandler_on_resource_redirect
     if getattr(cls, "on_resource_response", None) is not ResourceRequestHandler.on_resource_response:
         cb.fn_on_resource_response = _ResourceRequestHandler_on_resource_response
+    if getattr(cls, "get_resource_response_filter", None) is not ResourceRequestHandler.get_resource_response_filter:
+        cb.fn_get_resource_response_filter = _ResourceRequestHandler_get_resource_response_filter
     if getattr(cls, "on_resource_load_complete", None) is not ResourceRequestHandler.on_resource_load_complete:
         cb.fn_on_resource_load_complete = _ResourceRequestHandler_on_resource_load_complete
     if getattr(cls, "on_protocol_execution", None) is not ResourceRequestHandler.on_protocol_execution:
@@ -267,5 +298,16 @@ cdef inline CefResourceRequestHandler* _g_export_ResourceRequestHandler(object o
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_ResourceRequestHandler(CefRefPtr[CefResourceRequestHandler] ref):
+    """The Python object that was given to CEF as this ResourceRequestHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfResourceRequestHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

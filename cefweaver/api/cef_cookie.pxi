@@ -139,6 +139,23 @@ cdef object _wrap_CookieManager(CefRefPtr[CefCookieManager] ref):
     return obj
 
 
+cdef inline CefCookieManager* _g_ref_CookieManager(object obj) except? NULL:
+    """A reference for CEF to keep (a CookieManager that a handler method returns; None: nothing)."""
+    cdef CookieManager typed
+    cdef CefRefPtr[CefCookieManager] ref
+    cdef CefCookieManager* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, CookieManager):
+        raise TypeError("expected a CookieManager or None, not %s" % type(obj).__name__)
+    typed = <CookieManager>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class CookieVisitor:
     """Interface to implement for visiting cookie values. The methods of this class
     will always be called on the UI thread.
@@ -192,6 +209,17 @@ cdef inline CefCookieVisitor* _g_export_CookieVisitor(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_CookieVisitor(CefRefPtr[CefCookieVisitor] ref):
+    """The Python object that was given to CEF as this CookieVisitor (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfCookieVisitor(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class DeleteCookiesCallback:
     """Interface to implement to be notified of asynchronous completion via
     CefCookieManager::DeleteCookies().
@@ -238,6 +266,17 @@ cdef inline CefDeleteCookiesCallback* _g_export_DeleteCookiesCallback(object obj
     return raw
 
 
+cdef object _g_unexport_DeleteCookiesCallback(CefRefPtr[CefDeleteCookiesCallback] ref):
+    """The Python object that was given to CEF as this DeleteCookiesCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDeleteCookiesCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
 class SetCookieCallback:
     """Interface to implement to be notified of asynchronous completion via
     CefCookieManager::SetCookie().
@@ -282,5 +321,16 @@ cdef inline CefSetCookieCallback* _g_export_SetCookieCallback(object obj) except
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_SetCookieCallback(CefRefPtr[CefSetCookieCallback] ref):
+    """The Python object that was given to CEF as this SetCookieCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfSetCookieCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

@@ -51,3 +51,20 @@ cdef object _wrap_BoxLayout(CefRefPtr[CefBoxLayout] ref):
     return obj
 
 
+cdef inline CefBoxLayout* _g_ref_BoxLayout(object obj) except? NULL:
+    """A reference for CEF to keep (a BoxLayout that a handler method returns; None: nothing)."""
+    cdef BoxLayout typed
+    cdef CefRefPtr[CefBoxLayout] ref
+    cdef CefBoxLayout* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, BoxLayout):
+        raise TypeError("expected a BoxLayout or None, not %s" % type(obj).__name__)
+    typed = <BoxLayout>obj
+    ref = CefRefPtr[CefBoxLayout](<CefBoxLayout*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

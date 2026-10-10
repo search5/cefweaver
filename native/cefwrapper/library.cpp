@@ -200,6 +200,41 @@ bool CefWrapper::ExecuteJavascript(std::string code) {
   return true;
 }
 
+namespace {
+
+// The browsers that are still open and that the wrapper did not make (a Views BrowserView with the client of the
+// application, DevTools): CEF has no list of them, but the identifiers are small numbers that count up from 1.
+std::vector<CefRefPtr<CefBrowser>> OpenBrowsers() {
+  std::vector<CefRefPtr<CefBrowser>> open;
+  for (int id = 1; id <= 4096; ++id) {
+    if (CefRefPtr<CefBrowser> browser = CefBrowserHost::GetBrowserByIdentifier(id)) {
+      open.push_back(browser);
+    }
+  }
+  return open;
+}
+
+// CefShutdown() with a browser that is still open ends the process (found with a Views window that was left open).
+void CloseOtherBrowsers() {
+  for (int round = 0; round < 500; ++round) {
+    std::vector<CefRefPtr<CefBrowser>> open = OpenBrowsers();
+    if (open.empty()) {
+      return;
+    }
+    if (round % 50 == 0) {              // ask now and again: a browser that is closing does not need it
+      for (const auto& browser : open) {
+        browser->GetHost()->CloseBrowser(true);
+      }
+    }
+    open.clear();
+    CefWeaverDoMessageLoopWork();
+    CefWeaverFlushClosedViews();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+}
+
+}  // namespace
+
 void CefWrapper::ShutdownCefSimple() {
   // CEF requires every browser to be closed and released before CefShutdown().
   CefRefPtr<CefWrapperClientHandler> handler = CefWrapperClientHandler::GetInstance();
@@ -213,6 +248,7 @@ void CefWrapper::ShutdownCefSimple() {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
   }
+  CloseOtherBrowsers();
   CefWrapperBrowserProcessHandler::GetInstance()->Browser = nullptr;
   CefWrapperBrowserProcessHandler::SetUserClient(nullptr);  // releases the Python objects
   QueryRouter::Reset();
@@ -278,7 +314,8 @@ void CefWrapper::CancelPendingQueries(CefRefPtr<CefBrowser> browser, PythonQuery
 }
 void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
                              app_context_ptr context, app_relaunch_ptr relaunch,
-                             app_schedule_ptr schedule) {
+                             app_schedule_ptr schedule, app_child_launch_ptr child_launch,
+                             app_preferences_ptr preferences) {
   AppHooks& hooks = GetAppHooks();
   hooks.py = py;
   hooks.command_line = command_line;
@@ -286,6 +323,8 @@ void CefWrapper::SetAppHooks(void* py, app_command_line_ptr command_line, app_sc
   hooks.context = context;
   hooks.relaunch = relaunch;
   hooks.schedule = schedule;
+  hooks.child_launch = child_launch;
+  hooks.preferences = preferences;
 }
 void CefWrapper::SetRequestContext(CefRefPtr<CefRequestContext> context) {
   CefWrapperBrowserProcessHandler::SetRequestContext(context);
@@ -316,6 +355,7 @@ void CefWrapper::SetSharedTexture(bool enabled) { g_SharedTexture.store(enabled)
 bool CefWrapper::SharedTexture() { return g_SharedTexture.load(); }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
 void CefWrapper::SetFirstBrowser(bool create) { g_NoFirstBrowser.store(!create); }
+void CefWrapper::SetRendererEvents(bool on) { g_RendererEvents.store(on); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }
 void CefWrapper::SetBridgeNames(std::string json) { BridgeNames() = json; }
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }
@@ -336,5 +376,33 @@ bool CefWrapper::LoadUrl(std::string url) {
     return false;
   }
   browser->GetMainFrame()->LoadURL(url);
+  return true;
+}
+
+
+void CefWeaverShowDevTools(CefBrowserHost* host, int inspect_x, int inspect_y) {
+  CefWindowInfo window_info;                       // CEF's defaults, as cefclient does
+  CefBrowserSettings settings;
+  CefPoint point;                                // empty: nothing is inspected
+  if (inspect_x >= 0 && inspect_y >= 0) {
+    point = CefPoint(inspect_x, inspect_y);
+  }
+  host->ShowDevTools(window_info, nullptr, settings, point);
+}
+
+std::string CefWeaverSharedMemoryRead(CefSharedMemoryRegion* region) {
+  if (!region || !region->IsValid()) {
+    return std::string();
+  }
+  const char* memory = static_cast<const char*>(region->Memory());
+  return memory ? std::string(memory, region->Size()) : std::string();
+}
+
+bool CefWeaverSharedBuilderWrite(CefSharedProcessMessageBuilder* builder, size_t offset, const void* data,
+                                 size_t size) {
+  if (!builder || !builder->IsValid() || offset > builder->Size() || size > builder->Size() - offset) {
+    return false;
+  }
+  memcpy(static_cast<char*>(builder->Memory()) + offset, data, size);
   return true;
 }

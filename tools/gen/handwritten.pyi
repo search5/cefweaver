@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from typing import Any, NamedTuple
 
 from .settings import Settings
+from .types import PreferencesType
 from .version import Version
 
 def _cef_version_info(entry: int) -> int: ...
@@ -46,6 +47,10 @@ class AppHandler:
         """The command line of the browser process (`process_type` is `""`)."""
     def on_register_custom_schemes(self, registrar: SchemeRegistrar) -> None:
         """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
+    def on_before_child_process_launch(self, command_line: CommandLine) -> None:
+        """The command line of a child process (renderer, GPU, utility) before it starts."""
+    def on_register_custom_preferences(self, type: PreferencesType, registrar: PreferenceRegistrar) -> None:
+        """Register preferences with `registrar.add_preference(name, default_value)`."""
     def on_context_initialized(self) -> None:
         """CEF is ready for browsers."""
     def on_schedule_message_pump_work(self, delay_ms: int) -> None: ...
@@ -56,6 +61,11 @@ class SchemeRegistrar:
     """Valid only during `AppHandler.on_register_custom_schemes()`."""
 
     def add_custom_scheme(self, scheme_name: str, options: int) -> bool: ...
+
+class PreferenceRegistrar:
+    """Valid only during `AppHandler.on_register_custom_preferences()`."""
+
+    def add_preference(self, name: str, default_value: Value) -> bool: ...
 
 class CefApp:
     """An embedded Chromium (CEF) instance.
@@ -100,6 +110,7 @@ class CefApp:
     def settings(self, value: Settings) -> None: ...
     def set_request_context(self, context: RequestContext | None) -> None: ...
     def set_app_handler(self, handler: AppHandler | None) -> None: ...
+    def enable_renderer_events(self, stack_size: int = 10) -> None: ...
     def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
     def remove_query_handler(self, handler: QueryHandler) -> bool: ...
     def cancel_pending_queries(self, browser: Browser | None = None, handler: QueryHandler | None = None) -> None: ...

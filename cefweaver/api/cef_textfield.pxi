@@ -256,3 +256,20 @@ cdef object _wrap_Textfield(CefRefPtr[CefTextfield] ref):
     return obj
 
 
+cdef inline CefTextfield* _g_ref_Textfield(object obj) except? NULL:
+    """A reference for CEF to keep (a Textfield that a handler method returns; None: nothing)."""
+    cdef Textfield typed
+    cdef CefRefPtr[CefTextfield] ref
+    cdef CefTextfield* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Textfield):
+        raise TypeError("expected a Textfield or None, not %s" % type(obj).__name__)
+    typed = <Textfield>obj
+    ref = CefRefPtr[CefTextfield](<CefTextfield*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

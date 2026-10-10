@@ -28,3 +28,20 @@ cdef object _wrap_Registration(CefRefPtr[CefRegistration] ref):
     return obj
 
 
+cdef inline CefRegistration* _g_ref_Registration(object obj) except? NULL:
+    """A reference for CEF to keep (a Registration that a handler method returns; None: nothing)."""
+    cdef Registration typed
+    cdef CefRefPtr[CefRegistration] ref
+    cdef CefRegistration* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Registration):
+        raise TypeError("expected a Registration or None, not %s" % type(obj).__name__)
+    typed = <Registration>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

@@ -130,3 +130,14 @@ cdef inline CefMenuModelDelegate* _g_export_MenuModelDelegate(object obj) except
     return raw
 
 
+cdef object _g_unexport_MenuModelDelegate(CefRefPtr[CefMenuModelDelegate] ref):
+    """The Python object that was given to CEF as this MenuModelDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfMenuModelDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

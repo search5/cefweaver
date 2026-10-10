@@ -123,3 +123,14 @@ cdef inline CefAudioHandler* _g_export_AudioHandler(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_AudioHandler(CefRefPtr[CefAudioHandler] ref):
+    """The Python object that was given to CEF as this AudioHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfAudioHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

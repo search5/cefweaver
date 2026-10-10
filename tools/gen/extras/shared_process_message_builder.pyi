@@ -1,0 +1,3 @@
+    def write(self, offset: int, data: bytes | bytearray | memoryview) -> bool:
+        """Write `data` into the shared memory at `offset`; False if it does not fit."""
+        ...

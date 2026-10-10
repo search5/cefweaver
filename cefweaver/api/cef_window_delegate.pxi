@@ -118,6 +118,16 @@ class WindowDelegate:
         """
         return None
 
+    def get_parent_window(self, window):
+        """Return the parent for |window| or NULL if the |window| does not have a
+        parent. Windows with parents will not get a taskbar button. Set |is_menu|
+        to true if |window| will be displayed as a menu, in which case it will not
+        be clipped to the parent window bounds. Set |can_activate_menu| to false
+        if |is_menu| is true and |window| should not be activated (given keyboard
+        focus) when displayed.
+        """
+        return None, False, False
+
     def is_window_modal_dialog(self, window):
         """Return true if |window| should be created as a window modal dialog. Only
         called when a Window is returned via GetParentWindow() with |is_menu| set
@@ -363,6 +373,17 @@ cdef void _WindowDelegate_on_window_fullscreen_transition(void* py, CefWindow* w
     except BaseException:
         _g_report()
 
+cdef CefWindow* _WindowDelegate_get_parent_window(void* py, CefWindow* window, cpp_bool* is_menu, cpp_bool* can_activate_menu) noexcept with gil:
+    try:
+        _r = (<object>py).get_parent_window(_wrap_Window(CefRefPtr[CefWindow](window)))
+        _r0, _r1, _r2 = _r
+        is_menu[0] = _r1
+        can_activate_menu[0] = _r2
+        return _g_ref_Window(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef cpp_bool _WindowDelegate_is_window_modal_dialog(void* py, CefWindow* window) noexcept with gil:
     try:
         _r = (<object>py).is_window_modal_dialog(_wrap_Window(CefRefPtr[CefWindow](window)))
@@ -552,6 +573,8 @@ cdef CefRefPtr[CefWindowDelegate] _g_make_WindowDelegate(object obj) except *:
         cb.fn_on_window_bounds_changed = _WindowDelegate_on_window_bounds_changed
     if getattr(cls, "on_window_fullscreen_transition", None) is not WindowDelegate.on_window_fullscreen_transition:
         cb.fn_on_window_fullscreen_transition = _WindowDelegate_on_window_fullscreen_transition
+    if getattr(cls, "get_parent_window", None) is not WindowDelegate.get_parent_window:
+        cb.fn_get_parent_window = _WindowDelegate_get_parent_window
     if getattr(cls, "is_window_modal_dialog", None) is not WindowDelegate.is_window_modal_dialog:
         cb.fn_is_window_modal_dialog = _WindowDelegate_is_window_modal_dialog
     if getattr(cls, "get_initial_bounds", None) is not WindowDelegate.get_initial_bounds:
@@ -595,5 +618,16 @@ cdef inline CefWindowDelegate* _g_export_WindowDelegate(object obj) except? NULL
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_WindowDelegate(CefRefPtr[CefWindowDelegate] ref):
+    """The Python object that was given to CEF as this WindowDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfWindowDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

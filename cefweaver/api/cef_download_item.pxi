@@ -192,3 +192,20 @@ cdef object _wrap_DownloadItem(CefRefPtr[CefDownloadItem] ref):
     return obj
 
 
+cdef inline CefDownloadItem* _g_ref_DownloadItem(object obj) except? NULL:
+    """A reference for CEF to keep (a DownloadItem that a handler method returns; None: nothing)."""
+    cdef DownloadItem typed
+    cdef CefRefPtr[CefDownloadItem] ref
+    cdef CefDownloadItem* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, DownloadItem):
+        raise TypeError("expected a DownloadItem or None, not %s" % type(obj).__name__)
+    typed = <DownloadItem>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

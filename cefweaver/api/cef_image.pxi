@@ -233,3 +233,20 @@ cdef object _wrap_Image(CefRefPtr[CefImage] ref):
     return obj
 
 
+cdef inline CefImage* _g_ref_Image(object obj) except? NULL:
+    """A reference for CEF to keep (a Image that a handler method returns; None: nothing)."""
+    cdef Image typed
+    cdef CefRefPtr[CefImage] ref
+    cdef CefImage* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Image):
+        raise TypeError("expected a Image or None, not %s" % type(obj).__name__)
+    typed = <Image>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

@@ -123,6 +123,23 @@ cdef object _wrap_BinaryValue(CefRefPtr[CefBinaryValue] ref):
     return obj
 
 
+cdef inline CefBinaryValue* _g_ref_BinaryValue(object obj) except? NULL:
+    """A reference for CEF to keep (a BinaryValue that a handler method returns; None: nothing)."""
+    cdef BinaryValue typed
+    cdef CefRefPtr[CefBinaryValue] ref
+    cdef CefBinaryValue* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, BinaryValue):
+        raise TypeError("expected a BinaryValue or None, not %s" % type(obj).__name__)
+    typed = <BinaryValue>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class DictionaryValue:
     """Class representing a dictionary value. Can be used on any process and
     thread.
@@ -507,6 +524,23 @@ cdef object _wrap_DictionaryValue(CefRefPtr[CefDictionaryValue] ref):
     return obj
 
 
+cdef inline CefDictionaryValue* _g_ref_DictionaryValue(object obj) except? NULL:
+    """A reference for CEF to keep (a DictionaryValue that a handler method returns; None: nothing)."""
+    cdef DictionaryValue typed
+    cdef CefRefPtr[CefDictionaryValue] ref
+    cdef CefDictionaryValue* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, DictionaryValue):
+        raise TypeError("expected a DictionaryValue or None, not %s" % type(obj).__name__)
+    typed = <DictionaryValue>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class ListValue:
     """Class representing a list value. Can be used on any process and thread."""
     cdef CefRefPtr[CefListValue] _ref
@@ -838,6 +872,23 @@ cdef object _wrap_ListValue(CefRefPtr[CefListValue] ref):
     return obj
 
 
+cdef inline CefListValue* _g_ref_ListValue(object obj) except? NULL:
+    """A reference for CEF to keep (a ListValue that a handler method returns; None: nothing)."""
+    cdef ListValue typed
+    cdef CefRefPtr[CefListValue] ref
+    cdef CefListValue* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ListValue):
+        raise TypeError("expected a ListValue or None, not %s" % type(obj).__name__)
+    typed = <ListValue>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class Value:
     """Class that wraps other data value types. Complex types (binary, dictionary
     and list) will be referenced but not owned by this object. Can be used on
@@ -1113,5 +1164,22 @@ cdef object _wrap_Value(CefRefPtr[CefValue] ref):
     obj = Value.__new__(Value)
     obj._ref = ref
     return obj
+
+
+cdef inline CefValue* _g_ref_Value(object obj) except? NULL:
+    """A reference for CEF to keep (a Value that a handler method returns; None: nothing)."""
+    cdef Value typed
+    cdef CefRefPtr[CefValue] ref
+    cdef CefValue* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Value):
+        raise TypeError("expected a Value or None, not %s" % type(obj).__name__)
+    typed = <Value>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 

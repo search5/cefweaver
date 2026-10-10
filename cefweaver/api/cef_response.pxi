@@ -192,3 +192,20 @@ cdef object _wrap_Response(CefRefPtr[CefResponse] ref):
     return obj
 
 
+cdef inline CefResponse* _g_ref_Response(object obj) except? NULL:
+    """A reference for CEF to keep (a Response that a handler method returns; None: nothing)."""
+    cdef Response typed
+    cdef CefRefPtr[CefResponse] ref
+    cdef CefResponse* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Response):
+        raise TypeError("expected a Response or None, not %s" % type(obj).__name__)
+    typed = <Response>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

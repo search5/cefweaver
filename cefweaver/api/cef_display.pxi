@@ -210,3 +210,20 @@ cdef object _wrap_Display(CefRefPtr[CefDisplay] ref):
     return obj
 
 
+cdef inline CefDisplay* _g_ref_Display(object obj) except? NULL:
+    """A reference for CEF to keep (a Display that a handler method returns; None: nothing)."""
+    cdef Display typed
+    cdef CefRefPtr[CefDisplay] ref
+    cdef CefDisplay* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Display):
+        raise TypeError("expected a Display or None, not %s" % type(obj).__name__)
+    typed = <Display>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

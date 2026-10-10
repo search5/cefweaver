@@ -48,9 +48,9 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a -s "-screen 0 1280x1024x2
 
 - **`CefApp.initialize(None)`로 시작합니다.** 첫 브라우저를 만들지 않고 CEF만 초기화합니다. 브라우저는 `BrowserView.create_browser_view()`가 만들고, 창에 붙인 뒤에야 `get_browser()`가 값을 줍니다. 이때 `is_running`은 `shutdown()`까지 계속 `True`이므로, 창이 닫힌 것은 `WindowDelegate.on_window_destroyed`로 알립니다.
 - **루프는 폴링(`do_message_loop_work()`을 자주 부름)이어야 합니다.** 이 예제의 창은 CEF가 소유하므로 창 시스템의 이벤트를 CEF가 직접 처리해야 합니다. **`MessagePump`(`external_message_pump`)를 쓰면 CEF가 알린 작업만 하고 자기 창의 X11 이벤트를 처리하지 않아서** 단추를 눌러도 `on_button_pressed`가 오지 않았습니다(확인함). 툴킷 어댑터가 `MessagePump`를 쓰는 것은 그 입력을 툴킷의 창이 받기 때문입니다.
-- **`shutdown()` 전에 창을 먼저 닫으십시오.** 창이 열린 채로 `app.shutdown()`을 부르면 세그멘테이션 오류가 났습니다(원인은 조사하지 않음). 이 예제는 `on_window_destroyed` 뒤에 `shutdown()`을 부릅니다.
+- **창이 열린 채로 `app.shutdown()`을 불러도 됩니다.** 남은 브라우저를 먼저 닫고 종료합니다. 이 예제는 그래도 `on_window_destroyed`를 기다린 뒤에 `shutdown()`을 부릅니다.
 - **델리게이트가 받는 객체는 같은 CEF 뷰라도 같은 Python 객체가 아닙니다.** 단추는 `set_id`로 번호를 주고 `get_id()`로 구분하십시오. 반대로 CEF가 돌려주는 뷰는 **실제 종류의 클래스**로 옵니다(`Window`가 `View` 자리에 오면 `Window`, `LabelButton`이 `View`로 오면 `LabelButton`).
 - 뷰의 클래스는 CEF의 상속을 그대로 따릅니다: `Window`는 `Panel`의 하위 클래스이고 `Panel`은 `View`의 하위 클래스입니다. `Window`를 `View`를 받는 자리에 그대로 넘길 수 있고, 각 클래스는 자기 메서드만 갖고 나머지는 상속합니다.
 - 창 관리자가 없는 가상 화면에서도 위 점검이 통과합니다(`windowfocus`를 줄 필요도 없었음).
 - 확인한 환경은 Linux x86_64, CPython 3.13, CEF 154, X11(`ozone-platform=x11`)입니다. **Windows와 macOS, Wayland는 확인하지 못했습니다.**
-- 아직 열지 못한 것: 팝업 창을 위한 `BrowserViewDelegate.get_delegate_for_popup_browser_view`, `WindowDelegate.get_parent_window`, 각 뷰의 `get_delegate()`([알려진 제약](../../llm-wiki/pages/reference/known-constraints.md)).
+- `View.get_delegate()`, `BrowserViewDelegate.get_delegate_for_popup_browser_view`, `WindowDelegate.get_parent_window`도 열려 있습니다([확인한 사실](../../llm-wiki/pages/reference/verified-findings-views.md)).

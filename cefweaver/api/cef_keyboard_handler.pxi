@@ -73,3 +73,14 @@ cdef inline CefKeyboardHandler* _g_export_KeyboardHandler(object obj) except? NU
     return raw
 
 
+cdef object _g_unexport_KeyboardHandler(CefRefPtr[CefKeyboardHandler] ref):
+    """The Python object that was given to CEF as this KeyboardHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfKeyboardHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

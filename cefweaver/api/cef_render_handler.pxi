@@ -6,6 +6,12 @@ class RenderHandler:
     The methods of this class will be called on the UI thread.
     """
 
+    def get_accessibility_handler(self):
+        """Return the handler for accessibility notifications. If no handler is
+        provided the default implementation will be used.
+        """
+        return None
+
     def get_root_screen_rect(self, browser):
         """Called to retrieve the root window rectangle in screen DIP coordinates.
         Return true if the rectangle was provided. If this method returns false
@@ -146,6 +152,15 @@ class RenderHandler:
         return None
 
 
+cdef CefAccessibilityHandler* _RenderHandler_get_accessibility_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_accessibility_handler()
+        _r0 = _r
+        return _g_export_AccessibilityHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef cpp_bool _RenderHandler_get_root_screen_rect(void* py, CefBrowser* browser, CefRect* rect) noexcept with gil:
     try:
         _r = (<object>py).get_root_screen_rect(_wrap_Browser(CefRefPtr[CefBrowser](browser)))
@@ -282,6 +297,8 @@ cdef CefRefPtr[CefRenderHandler] _g_make_RenderHandler(object obj) except *:
     Py_INCREF(obj)
     cb.py = <void*>obj
     cb.release = _g_release
+    if getattr(cls, "get_accessibility_handler", None) is not RenderHandler.get_accessibility_handler:
+        cb.fn_get_accessibility_handler = _RenderHandler_get_accessibility_handler
     if getattr(cls, "get_root_screen_rect", None) is not RenderHandler.get_root_screen_rect:
         cb.fn_get_root_screen_rect = _RenderHandler_get_root_screen_rect
     if getattr(cls, "get_view_rect", None) is not RenderHandler.get_view_rect:
@@ -325,5 +342,16 @@ cdef inline CefRenderHandler* _g_export_RenderHandler(object obj) except? NULL:
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_RenderHandler(CefRefPtr[CefRenderHandler] ref):
+    """The Python object that was given to CEF as this RenderHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfRenderHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

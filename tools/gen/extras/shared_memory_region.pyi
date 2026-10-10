@@ -1,0 +1,3 @@
+    def to_bytes(self) -> bytes:
+        """A copy of the shared memory as bytes."""
+        ...

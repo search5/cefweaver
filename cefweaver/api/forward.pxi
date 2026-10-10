@@ -9,6 +9,8 @@ cdef class Browser
 cdef class BrowserHost
 cdef class Callback
 cdef class CommandLine
+cdef class Component
+cdef class ComponentUpdater
 cdef class ContextMenuParams
 cdef class CookieManager
 cdef class DictionaryValue
@@ -23,8 +25,13 @@ cdef class JSDialogCallback
 cdef class Layout
 cdef class ListValue
 cdef class MediaAccessCallback
+cdef class MediaRoute
+cdef class MediaRouter
+cdef class MediaSink
+cdef class MediaSource
 cdef class MenuButtonPressedLock
 cdef class MenuModel
+cdef class NavigationEntry
 cdef class OverlayController
 cdef class PermissionPromptCallback
 cdef class PostData
@@ -42,6 +49,11 @@ cdef class Response
 cdef class RunContextMenuCallback
 cdef class RunQuickMenuCallback
 cdef class SSLInfo
+cdef class SSLStatus
+cdef class SelectClientCertificateCallback
+cdef class Server
+cdef class SharedMemoryRegion
+cdef class SharedProcessMessageBuilder
 cdef class StreamReader
 cdef class StreamWriter
 cdef class TaskManager
@@ -49,6 +61,8 @@ cdef class URLRequest
 cdef class UnresponsiveProcessCallback
 cdef class Value
 cdef class View
+cdef class X509CertPrincipal
+cdef class X509Certificate
 cdef class ZipReader
 cdef class BoxLayout
 cdef class BrowserView

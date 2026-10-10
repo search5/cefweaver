@@ -69,3 +69,14 @@ cdef inline CefDragHandler* _g_export_DragHandler(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_DragHandler(CefRefPtr[CefDragHandler] ref):
+    """The Python object that was given to CEF as this DragHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDragHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

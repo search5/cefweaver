@@ -4,12 +4,15 @@
 #ifndef CEFWEAVER_GENERATED_PROXIES_H_
 #define CEFWEAVER_GENERATED_PROXIES_H_
 
+#include "include/cef_accessibility_handler.h"
 #include "include/cef_audio_handler.h"
 #include "include/cef_auth_callback.h"
 #include "include/cef_browser.h"
 #include "include/cef_callback.h"
 #include "include/cef_client.h"
+#include "include/cef_command_handler.h"
 #include "include/cef_command_line.h"
+#include "include/cef_component_updater.h"
 #include "include/cef_context_menu_handler.h"
 #include "include/cef_cookie.h"
 #include "include/cef_devtools_message_observer.h"
@@ -19,16 +22,21 @@
 #include "include/cef_download_item.h"
 #include "include/cef_drag_data.h"
 #include "include/cef_drag_handler.h"
+#include "include/cef_find_handler.h"
 #include "include/cef_focus_handler.h"
 #include "include/cef_frame.h"
+#include "include/cef_frame_handler.h"
 #include "include/cef_image.h"
 #include "include/cef_jsdialog_handler.h"
 #include "include/cef_keyboard_handler.h"
 #include "include/cef_life_span_handler.h"
 #include "include/cef_load_handler.h"
+#include "include/cef_media_router.h"
 #include "include/cef_menu_model.h"
 #include "include/cef_menu_model_delegate.h"
+#include "include/cef_navigation_entry.h"
 #include "include/cef_permission_handler.h"
+#include "include/cef_preference.h"
 #include "include/cef_print_handler.h"
 #include "include/cef_print_settings.h"
 #include "include/cef_process_message.h"
@@ -41,15 +49,22 @@
 #include "include/cef_resource_handler.h"
 #include "include/cef_resource_request_handler.h"
 #include "include/cef_response.h"
+#include "include/cef_response_filter.h"
 #include "include/cef_scheme.h"
+#include "include/cef_server.h"
+#include "include/cef_shared_memory_region.h"
+#include "include/cef_shared_process_message_builder.h"
 #include "include/cef_ssl_info.h"
+#include "include/cef_ssl_status.h"
 #include "include/cef_stream.h"
 #include "include/cef_string_visitor.h"
 #include "include/cef_task.h"
 #include "include/cef_task_manager.h"
+#include "include/cef_trace.h"
 #include "include/cef_unresponsive_process_callback.h"
 #include "include/cef_urlrequest.h"
 #include "include/cef_values.h"
+#include "include/cef_x509_certificate.h"
 #include "include/cef_zip_reader.h"
 #include "include/views/cef_box_layout.h"
 #include "include/views/cef_browser_view.h"
@@ -74,7 +89,102 @@
 #include "include/views/cef_window_delegate.h"
 #include "../platform_structs.h"
 #include <atomic>
+#include <mutex>
+#include <unordered_map>
 #include <vector>
+
+// The proxies below are made for Python objects that the program gives to CEF (a delegate, a handler). CEF keeps them
+// and can give one back (View::GetDelegate()): the registry finds the Python object of a proxy again. (No dynamic_cast:
+// the wrapper is built without RTTI, and some objects CEF gives back are its own.)
+inline std::mutex& CwProxyRegistryMutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+inline std::unordered_map<const CefBaseRefCounted*, void*>& CwProxyRegistry() {
+  static std::unordered_map<const CefBaseRefCounted*, void*> registry;
+  return registry;
+}
+inline void CwRegisterProxy(const CefBaseRefCounted* proxy, void* py) {
+  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());
+  CwProxyRegistry()[proxy] = py;
+}
+inline void CwUnregisterProxy(const CefBaseRefCounted* proxy) {
+  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());
+  CwProxyRegistry().erase(proxy);
+}
+inline void* CwFindProxy(const CefBaseRefCounted* object) {
+  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());
+  auto found = CwProxyRegistry().find(object);
+  return found == CwProxyRegistry().end() ? nullptr : found->second;
+}
+
+
+// ---- CefAccessibilityHandler ----
+
+class CwAccessibilityHandlerForward : public CefAccessibilityHandler {
+ protected:
+  CefRefPtr<CefAccessibilityHandler> forward_accessibility_handler_;
+
+ public:
+  void OnAccessibilityTreeChange(CefRefPtr<CefValue> value) override {
+    if (!forward_accessibility_handler_) {
+      return;
+    }
+    forward_accessibility_handler_->OnAccessibilityTreeChange(value);
+  }
+
+  void OnAccessibilityLocationChange(CefRefPtr<CefValue> value) override {
+    if (!forward_accessibility_handler_) {
+      return;
+    }
+    forward_accessibility_handler_->OnAccessibilityLocationChange(value);
+  }
+};
+
+struct CwAccessibilityHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_accessibility_tree_change)(void*, CefValue*) = nullptr;
+  void (*fn_on_accessibility_location_change)(void*, CefValue*) = nullptr;
+};
+
+class CwAccessibilityHandlerProxy : public CefAccessibilityHandler {
+ public:
+  explicit CwAccessibilityHandlerProxy(const CwAccessibilityHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefAccessibilityHandler*>(this), cb_.py);
+  }
+  ~CwAccessibilityHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefAccessibilityHandler*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnAccessibilityTreeChange(CefRefPtr<CefValue> value) override {
+    if (!cb_.fn_on_accessibility_tree_change) {
+      return;
+    }
+    cb_.fn_on_accessibility_tree_change(cb_.py, value.get());
+  }
+
+  void OnAccessibilityLocationChange(CefRefPtr<CefValue> value) override {
+    if (!cb_.fn_on_accessibility_location_change) {
+      return;
+    }
+    cb_.fn_on_accessibility_location_change(cb_.py, value.get());
+  }
+
+ private:
+  CwAccessibilityHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwAccessibilityHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwAccessibilityHandlerProxy);
+};
+
+// The Python object of a CefAccessibilityHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfAccessibilityHandler(CefAccessibilityHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefAudioHandler ----
 
@@ -131,8 +241,11 @@ struct CwAudioHandlerCallbacks {
 
 class CwAudioHandlerProxy : public CefAudioHandler {
  public:
-  explicit CwAudioHandlerProxy(const CwAudioHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwAudioHandlerProxy(const CwAudioHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefAudioHandler*>(this), cb_.py);
+  }
   ~CwAudioHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefAudioHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -184,6 +297,11 @@ class CwAudioHandlerProxy : public CefAudioHandler {
   IMPLEMENT_REFCOUNTING(CwAudioHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwAudioHandlerProxy);
 };
+
+// The Python object of a CefAudioHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfAudioHandler(CefAudioHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefBrowserViewDelegate ----
 
@@ -292,6 +410,13 @@ class CwBrowserViewDelegateForward : public CefBrowserViewDelegate {
     forward_browser_view_delegate_->OnBrowserDestroyed(browser_view, browser);
   }
 
+  CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(CefRefPtr<CefBrowserView> browser_view, const CefBrowserSettings& settings, CefRefPtr<CefClient> client, bool is_devtools) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetDelegateForPopupBrowserView(browser_view, settings, client, is_devtools);
+    }
+    return forward_browser_view_delegate_->GetDelegateForPopupBrowserView(browser_view, settings, client, is_devtools);
+  }
+
   bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools) override {
     if (!forward_browser_view_delegate_) {
       return CefBrowserViewDelegate::OnPopupBrowserViewCreated(browser_view, popup_browser_view, is_devtools);
@@ -358,6 +483,7 @@ struct CwBrowserViewDelegateCallbacks {
   void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
   void (*fn_on_browser_created)(void*, CefBrowserView*, CefBrowser*) = nullptr;
   void (*fn_on_browser_destroyed)(void*, CefBrowserView*, CefBrowser*) = nullptr;
+  CefBrowserViewDelegate* (*fn_get_delegate_for_popup_browser_view)(void*, CefBrowserView*, const CefBrowserSettings*, CefClient*, bool) = nullptr;
   bool (*fn_on_popup_browser_view_created)(void*, CefBrowserView*, CefBrowserView*, bool) = nullptr;
   int (*fn_get_chrome_toolbar_type)(void*, CefBrowserView*) = nullptr;
   bool (*fn_use_frameless_window_for_picture_in_picture)(void*, CefBrowserView*) = nullptr;
@@ -369,8 +495,11 @@ struct CwBrowserViewDelegateCallbacks {
 
 class CwBrowserViewDelegateProxy : public CefBrowserViewDelegate {
  public:
-  explicit CwBrowserViewDelegateProxy(const CwBrowserViewDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwBrowserViewDelegateProxy(const CwBrowserViewDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefBrowserViewDelegate*>(this), cb_.py);
+  }
   ~CwBrowserViewDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefBrowserViewDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -483,6 +612,19 @@ class CwBrowserViewDelegateProxy : public CefBrowserViewDelegate {
     cb_.fn_on_browser_destroyed(cb_.py, browser_view.get(), browser.get());
   }
 
+  CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(CefRefPtr<CefBrowserView> browser_view, const CefBrowserSettings& settings, CefRefPtr<CefClient> client, bool is_devtools) override {
+    if (!cb_.fn_get_delegate_for_popup_browser_view) {
+      return CefBrowserViewDelegate::GetDelegateForPopupBrowserView(browser_view, settings, client, is_devtools);
+    }
+    CefBrowserViewDelegate* raw = cb_.fn_get_delegate_for_popup_browser_view(cb_.py, browser_view.get(), &settings, client.get(), is_devtools);
+    CefRefPtr<CefBrowserViewDelegate> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools) override {
     if (!cb_.fn_on_popup_browser_view_created) {
       return CefBrowserViewDelegate::OnPopupBrowserViewCreated(browser_view, popup_browser_view, is_devtools);
@@ -545,6 +687,11 @@ class CwBrowserViewDelegateProxy : public CefBrowserViewDelegate {
   IMPLEMENT_REFCOUNTING(CwBrowserViewDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwBrowserViewDelegateProxy);
 };
+
+// The Python object of a CefBrowserViewDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfBrowserViewDelegate(CefBrowserViewDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefButtonDelegate ----
 
@@ -673,8 +820,11 @@ struct CwButtonDelegateCallbacks {
 
 class CwButtonDelegateProxy : public CefButtonDelegate {
  public:
-  explicit CwButtonDelegateProxy(const CwButtonDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwButtonDelegateProxy(const CwButtonDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefButtonDelegate*>(this), cb_.py);
+  }
   ~CwButtonDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefButtonDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -793,6 +943,11 @@ class CwButtonDelegateProxy : public CefButtonDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwButtonDelegateProxy);
 };
 
+// The Python object of a CefButtonDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfButtonDelegate(CefButtonDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefClient ----
 
 class CwClientForward : public CefClient {
@@ -805,6 +960,13 @@ class CwClientForward : public CefClient {
       return CefClient::GetAudioHandler();
     }
     return forward_client_->GetAudioHandler();
+  }
+
+  CefRefPtr<CefCommandHandler> GetCommandHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetCommandHandler();
+    }
+    return forward_client_->GetCommandHandler();
   }
 
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
@@ -842,11 +1004,25 @@ class CwClientForward : public CefClient {
     return forward_client_->GetDragHandler();
   }
 
+  CefRefPtr<CefFindHandler> GetFindHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetFindHandler();
+    }
+    return forward_client_->GetFindHandler();
+  }
+
   CefRefPtr<CefFocusHandler> GetFocusHandler() override {
     if (!forward_client_) {
       return CefClient::GetFocusHandler();
     }
     return forward_client_->GetFocusHandler();
+  }
+
+  CefRefPtr<CefFrameHandler> GetFrameHandler() override {
+    if (!forward_client_) {
+      return CefClient::GetFrameHandler();
+    }
+    return forward_client_->GetFrameHandler();
   }
 
   CefRefPtr<CefPermissionHandler> GetPermissionHandler() override {
@@ -917,12 +1093,15 @@ struct CwClientCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
   CefAudioHandler* (*fn_get_audio_handler)(void*) = nullptr;
+  CefCommandHandler* (*fn_get_command_handler)(void*) = nullptr;
   CefContextMenuHandler* (*fn_get_context_menu_handler)(void*) = nullptr;
   CefDialogHandler* (*fn_get_dialog_handler)(void*) = nullptr;
   CefDisplayHandler* (*fn_get_display_handler)(void*) = nullptr;
   CefDownloadHandler* (*fn_get_download_handler)(void*) = nullptr;
   CefDragHandler* (*fn_get_drag_handler)(void*) = nullptr;
+  CefFindHandler* (*fn_get_find_handler)(void*) = nullptr;
   CefFocusHandler* (*fn_get_focus_handler)(void*) = nullptr;
+  CefFrameHandler* (*fn_get_frame_handler)(void*) = nullptr;
   CefPermissionHandler* (*fn_get_permission_handler)(void*) = nullptr;
   CefJSDialogHandler* (*fn_get_js_dialog_handler)(void*) = nullptr;
   CefKeyboardHandler* (*fn_get_keyboard_handler)(void*) = nullptr;
@@ -936,8 +1115,11 @@ struct CwClientCallbacks {
 
 class CwClientProxy : public CefClient {
  public:
-  explicit CwClientProxy(const CwClientCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwClientProxy(const CwClientCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefClient*>(this), cb_.py);
+  }
   ~CwClientProxy() override {
+    CwUnregisterProxy(static_cast<CefClient*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -949,6 +1131,19 @@ class CwClientProxy : public CefClient {
     }
     CefAudioHandler* raw = cb_.fn_get_audio_handler(cb_.py);
     CefRefPtr<CefAudioHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefCommandHandler> GetCommandHandler() override {
+    if (!cb_.fn_get_command_handler) {
+      return CefClient::GetCommandHandler();
+    }
+    CefCommandHandler* raw = cb_.fn_get_command_handler(cb_.py);
+    CefRefPtr<CefCommandHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -1021,12 +1216,38 @@ class CwClientProxy : public CefClient {
     return result;
   }
 
+  CefRefPtr<CefFindHandler> GetFindHandler() override {
+    if (!cb_.fn_get_find_handler) {
+      return CefClient::GetFindHandler();
+    }
+    CefFindHandler* raw = cb_.fn_get_find_handler(cb_.py);
+    CefRefPtr<CefFindHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   CefRefPtr<CefFocusHandler> GetFocusHandler() override {
     if (!cb_.fn_get_focus_handler) {
       return CefClient::GetFocusHandler();
     }
     CefFocusHandler* raw = cb_.fn_get_focus_handler(cb_.py);
     CefRefPtr<CefFocusHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
+  CefRefPtr<CefFrameHandler> GetFrameHandler() override {
+    if (!cb_.fn_get_frame_handler) {
+      return CefClient::GetFrameHandler();
+    }
+    CefFrameHandler* raw = cb_.fn_get_frame_handler(cb_.py);
+    CefRefPtr<CefFrameHandler> result;
     if (raw) {
       result = raw;
       raw->Release();
@@ -1153,6 +1374,128 @@ class CwClientProxy : public CefClient {
   DISALLOW_COPY_AND_ASSIGN(CwClientProxy);
 };
 
+// The Python object of a CefClient that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfClient(CefClient* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefCommandHandler ----
+
+class CwCommandHandlerForward : public CefCommandHandler {
+ protected:
+  CefRefPtr<CefCommandHandler> forward_command_handler_;
+
+ public:
+  bool OnChromeCommand(CefRefPtr<CefBrowser> browser, int command_id, cef_window_open_disposition_t disposition) override {
+    if (!forward_command_handler_) {
+      return CefCommandHandler::OnChromeCommand(browser, command_id, disposition);
+    }
+    return forward_command_handler_->OnChromeCommand(browser, command_id, disposition);
+  }
+
+  bool IsChromeAppMenuItemVisible(CefRefPtr<CefBrowser> browser, int command_id) override {
+    if (!forward_command_handler_) {
+      return CefCommandHandler::IsChromeAppMenuItemVisible(browser, command_id);
+    }
+    return forward_command_handler_->IsChromeAppMenuItemVisible(browser, command_id);
+  }
+
+  bool IsChromeAppMenuItemEnabled(CefRefPtr<CefBrowser> browser, int command_id) override {
+    if (!forward_command_handler_) {
+      return CefCommandHandler::IsChromeAppMenuItemEnabled(browser, command_id);
+    }
+    return forward_command_handler_->IsChromeAppMenuItemEnabled(browser, command_id);
+  }
+
+  bool IsChromePageActionIconVisible(cef_chrome_page_action_icon_type_t icon_type) override {
+    if (!forward_command_handler_) {
+      return CefCommandHandler::IsChromePageActionIconVisible(icon_type);
+    }
+    return forward_command_handler_->IsChromePageActionIconVisible(icon_type);
+  }
+
+  bool IsChromeToolbarButtonVisible(cef_chrome_toolbar_button_type_t button_type) override {
+    if (!forward_command_handler_) {
+      return CefCommandHandler::IsChromeToolbarButtonVisible(button_type);
+    }
+    return forward_command_handler_->IsChromeToolbarButtonVisible(button_type);
+  }
+};
+
+struct CwCommandHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_on_chrome_command)(void*, CefBrowser*, int, int) = nullptr;
+  bool (*fn_is_chrome_app_menu_item_visible)(void*, CefBrowser*, int) = nullptr;
+  bool (*fn_is_chrome_app_menu_item_enabled)(void*, CefBrowser*, int) = nullptr;
+  bool (*fn_is_chrome_page_action_icon_visible)(void*, int) = nullptr;
+  bool (*fn_is_chrome_toolbar_button_visible)(void*, int) = nullptr;
+};
+
+class CwCommandHandlerProxy : public CefCommandHandler {
+ public:
+  explicit CwCommandHandlerProxy(const CwCommandHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefCommandHandler*>(this), cb_.py);
+  }
+  ~CwCommandHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefCommandHandler*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool OnChromeCommand(CefRefPtr<CefBrowser> browser, int command_id, cef_window_open_disposition_t disposition) override {
+    if (!cb_.fn_on_chrome_command) {
+      return CefCommandHandler::OnChromeCommand(browser, command_id, disposition);
+    }
+    bool result = cb_.fn_on_chrome_command(cb_.py, browser.get(), command_id, static_cast<int>(disposition));
+    return result;
+  }
+
+  bool IsChromeAppMenuItemVisible(CefRefPtr<CefBrowser> browser, int command_id) override {
+    if (!cb_.fn_is_chrome_app_menu_item_visible) {
+      return CefCommandHandler::IsChromeAppMenuItemVisible(browser, command_id);
+    }
+    bool result = cb_.fn_is_chrome_app_menu_item_visible(cb_.py, browser.get(), command_id);
+    return result;
+  }
+
+  bool IsChromeAppMenuItemEnabled(CefRefPtr<CefBrowser> browser, int command_id) override {
+    if (!cb_.fn_is_chrome_app_menu_item_enabled) {
+      return CefCommandHandler::IsChromeAppMenuItemEnabled(browser, command_id);
+    }
+    bool result = cb_.fn_is_chrome_app_menu_item_enabled(cb_.py, browser.get(), command_id);
+    return result;
+  }
+
+  bool IsChromePageActionIconVisible(cef_chrome_page_action_icon_type_t icon_type) override {
+    if (!cb_.fn_is_chrome_page_action_icon_visible) {
+      return CefCommandHandler::IsChromePageActionIconVisible(icon_type);
+    }
+    bool result = cb_.fn_is_chrome_page_action_icon_visible(cb_.py, static_cast<int>(icon_type));
+    return result;
+  }
+
+  bool IsChromeToolbarButtonVisible(cef_chrome_toolbar_button_type_t button_type) override {
+    if (!cb_.fn_is_chrome_toolbar_button_visible) {
+      return CefCommandHandler::IsChromeToolbarButtonVisible(button_type);
+    }
+    bool result = cb_.fn_is_chrome_toolbar_button_visible(cb_.py, static_cast<int>(button_type));
+    return result;
+  }
+
+ private:
+  CwCommandHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwCommandHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwCommandHandlerProxy);
+};
+
+// The Python object of a CefCommandHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfCommandHandler(CefCommandHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefCompletionCallback ----
 
 class CwCompletionCallbackForward : public CefCompletionCallback {
@@ -1176,8 +1519,11 @@ struct CwCompletionCallbackCallbacks {
 
 class CwCompletionCallbackProxy : public CefCompletionCallback {
  public:
-  explicit CwCompletionCallbackProxy(const CwCompletionCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwCompletionCallbackProxy(const CwCompletionCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefCompletionCallback*>(this), cb_.py);
+  }
   ~CwCompletionCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefCompletionCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1196,6 +1542,63 @@ class CwCompletionCallbackProxy : public CefCompletionCallback {
   IMPLEMENT_REFCOUNTING(CwCompletionCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwCompletionCallbackProxy);
 };
+
+// The Python object of a CefCompletionCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfCompletionCallback(CefCompletionCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefComponentUpdateCallback ----
+
+class CwComponentUpdateCallbackForward : public CefComponentUpdateCallback {
+ protected:
+  CefRefPtr<CefComponentUpdateCallback> forward_component_update_callback_;
+
+ public:
+  void OnComplete(const CefString& component_id, cef_component_update_error_t error) override {
+    if (!forward_component_update_callback_) {
+      return;
+    }
+    forward_component_update_callback_->OnComplete(component_id, error);
+  }
+};
+
+struct CwComponentUpdateCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_complete)(void*, const CefString*, int) = nullptr;
+};
+
+class CwComponentUpdateCallbackProxy : public CefComponentUpdateCallback {
+ public:
+  explicit CwComponentUpdateCallbackProxy(const CwComponentUpdateCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefComponentUpdateCallback*>(this), cb_.py);
+  }
+  ~CwComponentUpdateCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefComponentUpdateCallback*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnComplete(const CefString& component_id, cef_component_update_error_t error) override {
+    if (!cb_.fn_on_complete) {
+      return;
+    }
+    cb_.fn_on_complete(cb_.py, &component_id, static_cast<int>(error));
+  }
+
+ private:
+  CwComponentUpdateCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwComponentUpdateCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwComponentUpdateCallbackProxy);
+};
+
+// The Python object of a CefComponentUpdateCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfComponentUpdateCallback(CefComponentUpdateCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefContextMenuHandler ----
 
@@ -1271,8 +1674,11 @@ struct CwContextMenuHandlerCallbacks {
 
 class CwContextMenuHandlerProxy : public CefContextMenuHandler {
  public:
-  explicit CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwContextMenuHandlerProxy(const CwContextMenuHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefContextMenuHandler*>(this), cb_.py);
+  }
   ~CwContextMenuHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefContextMenuHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1341,6 +1747,11 @@ class CwContextMenuHandlerProxy : public CefContextMenuHandler {
   DISALLOW_COPY_AND_ASSIGN(CwContextMenuHandlerProxy);
 };
 
+// The Python object of a CefContextMenuHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfContextMenuHandler(CefContextMenuHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefCookieAccessFilter ----
 
 class CwCookieAccessFilterForward : public CefCookieAccessFilter {
@@ -1372,8 +1783,11 @@ struct CwCookieAccessFilterCallbacks {
 
 class CwCookieAccessFilterProxy : public CefCookieAccessFilter {
  public:
-  explicit CwCookieAccessFilterProxy(const CwCookieAccessFilterCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwCookieAccessFilterProxy(const CwCookieAccessFilterCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefCookieAccessFilter*>(this), cb_.py);
+  }
   ~CwCookieAccessFilterProxy() override {
+    CwUnregisterProxy(static_cast<CefCookieAccessFilter*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1402,6 +1816,11 @@ class CwCookieAccessFilterProxy : public CefCookieAccessFilter {
   DISALLOW_COPY_AND_ASSIGN(CwCookieAccessFilterProxy);
 };
 
+// The Python object of a CefCookieAccessFilter that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfCookieAccessFilter(CefCookieAccessFilter* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefCookieVisitor ----
 
 class CwCookieVisitorForward : public CefCookieVisitor {
@@ -1425,8 +1844,11 @@ struct CwCookieVisitorCallbacks {
 
 class CwCookieVisitorProxy : public CefCookieVisitor {
  public:
-  explicit CwCookieVisitorProxy(const CwCookieVisitorCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwCookieVisitorProxy(const CwCookieVisitorCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefCookieVisitor*>(this), cb_.py);
+  }
   ~CwCookieVisitorProxy() override {
+    CwUnregisterProxy(static_cast<CefCookieVisitor*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1448,6 +1870,11 @@ class CwCookieVisitorProxy : public CefCookieVisitor {
   IMPLEMENT_REFCOUNTING(CwCookieVisitorProxy);
   DISALLOW_COPY_AND_ASSIGN(CwCookieVisitorProxy);
 };
+
+// The Python object of a CefCookieVisitor that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfCookieVisitor(CefCookieVisitor* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefDeleteCookiesCallback ----
 
@@ -1472,8 +1899,11 @@ struct CwDeleteCookiesCallbackCallbacks {
 
 class CwDeleteCookiesCallbackProxy : public CefDeleteCookiesCallback {
  public:
-  explicit CwDeleteCookiesCallbackProxy(const CwDeleteCookiesCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDeleteCookiesCallbackProxy(const CwDeleteCookiesCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDeleteCookiesCallback*>(this), cb_.py);
+  }
   ~CwDeleteCookiesCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefDeleteCookiesCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1492,6 +1922,11 @@ class CwDeleteCookiesCallbackProxy : public CefDeleteCookiesCallback {
   IMPLEMENT_REFCOUNTING(CwDeleteCookiesCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDeleteCookiesCallbackProxy);
 };
+
+// The Python object of a CefDeleteCookiesCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDeleteCookiesCallback(CefDeleteCookiesCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefDevToolsMessageObserver ----
 
@@ -1552,8 +1987,11 @@ struct CwDevToolsMessageObserverCallbacks {
 
 class CwDevToolsMessageObserverProxy : public CefDevToolsMessageObserver {
  public:
-  explicit CwDevToolsMessageObserverProxy(const CwDevToolsMessageObserverCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDevToolsMessageObserverProxy(const CwDevToolsMessageObserverCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDevToolsMessageObserver*>(this), cb_.py);
+  }
   ~CwDevToolsMessageObserverProxy() override {
+    CwUnregisterProxy(static_cast<CefDevToolsMessageObserver*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1606,6 +2044,11 @@ class CwDevToolsMessageObserverProxy : public CefDevToolsMessageObserver {
   DISALLOW_COPY_AND_ASSIGN(CwDevToolsMessageObserverProxy);
 };
 
+// The Python object of a CefDevToolsMessageObserver that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDevToolsMessageObserver(CefDevToolsMessageObserver* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefDialogHandler ----
 
 class CwDialogHandlerForward : public CefDialogHandler {
@@ -1629,8 +2072,11 @@ struct CwDialogHandlerCallbacks {
 
 class CwDialogHandlerProxy : public CefDialogHandler {
  public:
-  explicit CwDialogHandlerProxy(const CwDialogHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDialogHandlerProxy(const CwDialogHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDialogHandler*>(this), cb_.py);
+  }
   ~CwDialogHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefDialogHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1650,6 +2096,11 @@ class CwDialogHandlerProxy : public CefDialogHandler {
   IMPLEMENT_REFCOUNTING(CwDialogHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDialogHandlerProxy);
 };
+
+// The Python object of a CefDialogHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDialogHandler(CefDialogHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefDisplayHandler ----
 
@@ -1777,8 +2228,11 @@ struct CwDisplayHandlerCallbacks {
 
 class CwDisplayHandlerProxy : public CefDisplayHandler {
  public:
-  explicit CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDisplayHandlerProxy(const CwDisplayHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDisplayHandler*>(this), cb_.py);
+  }
   ~CwDisplayHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefDisplayHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1899,6 +2353,11 @@ class CwDisplayHandlerProxy : public CefDisplayHandler {
   DISALLOW_COPY_AND_ASSIGN(CwDisplayHandlerProxy);
 };
 
+// The Python object of a CefDisplayHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDisplayHandler(CefDisplayHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefDownloadHandler ----
 
 class CwDownloadHandlerForward : public CefDownloadHandler {
@@ -1939,8 +2398,11 @@ struct CwDownloadHandlerCallbacks {
 
 class CwDownloadHandlerProxy : public CefDownloadHandler {
  public:
-  explicit CwDownloadHandlerProxy(const CwDownloadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDownloadHandlerProxy(const CwDownloadHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDownloadHandler*>(this), cb_.py);
+  }
   ~CwDownloadHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefDownloadHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -1977,6 +2439,11 @@ class CwDownloadHandlerProxy : public CefDownloadHandler {
   DISALLOW_COPY_AND_ASSIGN(CwDownloadHandlerProxy);
 };
 
+// The Python object of a CefDownloadHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDownloadHandler(CefDownloadHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefDownloadImageCallback ----
 
 class CwDownloadImageCallbackForward : public CefDownloadImageCallback {
@@ -2000,8 +2467,11 @@ struct CwDownloadImageCallbackCallbacks {
 
 class CwDownloadImageCallbackProxy : public CefDownloadImageCallback {
  public:
-  explicit CwDownloadImageCallbackProxy(const CwDownloadImageCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDownloadImageCallbackProxy(const CwDownloadImageCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDownloadImageCallback*>(this), cb_.py);
+  }
   ~CwDownloadImageCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefDownloadImageCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2020,6 +2490,11 @@ class CwDownloadImageCallbackProxy : public CefDownloadImageCallback {
   IMPLEMENT_REFCOUNTING(CwDownloadImageCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDownloadImageCallbackProxy);
 };
+
+// The Python object of a CefDownloadImageCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDownloadImageCallback(CefDownloadImageCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefDragHandler ----
 
@@ -2053,8 +2528,11 @@ struct CwDragHandlerCallbacks {
 
 class CwDragHandlerProxy : public CefDragHandler {
  public:
-  explicit CwDragHandlerProxy(const CwDragHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwDragHandlerProxy(const CwDragHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefDragHandler*>(this), cb_.py);
+  }
   ~CwDragHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefDragHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2082,6 +2560,117 @@ class CwDragHandlerProxy : public CefDragHandler {
   IMPLEMENT_REFCOUNTING(CwDragHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwDragHandlerProxy);
 };
+
+// The Python object of a CefDragHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfDragHandler(CefDragHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefEndTracingCallback ----
+
+class CwEndTracingCallbackForward : public CefEndTracingCallback {
+ protected:
+  CefRefPtr<CefEndTracingCallback> forward_end_tracing_callback_;
+
+ public:
+  void OnEndTracingComplete(const CefString& tracing_file) override {
+    if (!forward_end_tracing_callback_) {
+      return;
+    }
+    forward_end_tracing_callback_->OnEndTracingComplete(tracing_file);
+  }
+};
+
+struct CwEndTracingCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_end_tracing_complete)(void*, const CefString*) = nullptr;
+};
+
+class CwEndTracingCallbackProxy : public CefEndTracingCallback {
+ public:
+  explicit CwEndTracingCallbackProxy(const CwEndTracingCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefEndTracingCallback*>(this), cb_.py);
+  }
+  ~CwEndTracingCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefEndTracingCallback*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnEndTracingComplete(const CefString& tracing_file) override {
+    if (!cb_.fn_on_end_tracing_complete) {
+      return;
+    }
+    cb_.fn_on_end_tracing_complete(cb_.py, &tracing_file);
+  }
+
+ private:
+  CwEndTracingCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwEndTracingCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwEndTracingCallbackProxy);
+};
+
+// The Python object of a CefEndTracingCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfEndTracingCallback(CefEndTracingCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefFindHandler ----
+
+class CwFindHandlerForward : public CefFindHandler {
+ protected:
+  CefRefPtr<CefFindHandler> forward_find_handler_;
+
+ public:
+  void OnFindResult(CefRefPtr<CefBrowser> browser, int identifier, int count, const CefRect& selectionRect, int activeMatchOrdinal, bool finalUpdate) override {
+    if (!forward_find_handler_) {
+      CefFindHandler::OnFindResult(browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
+      return;
+    }
+    forward_find_handler_->OnFindResult(browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
+  }
+};
+
+struct CwFindHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_find_result)(void*, CefBrowser*, int, int, const CefRect*, int, bool) = nullptr;
+};
+
+class CwFindHandlerProxy : public CefFindHandler {
+ public:
+  explicit CwFindHandlerProxy(const CwFindHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefFindHandler*>(this), cb_.py);
+  }
+  ~CwFindHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefFindHandler*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnFindResult(CefRefPtr<CefBrowser> browser, int identifier, int count, const CefRect& selectionRect, int activeMatchOrdinal, bool finalUpdate) override {
+    if (!cb_.fn_on_find_result) {
+      CefFindHandler::OnFindResult(browser, identifier, count, selectionRect, activeMatchOrdinal, finalUpdate);
+      return;
+    }
+    cb_.fn_on_find_result(cb_.py, browser.get(), identifier, count, &selectionRect, activeMatchOrdinal, finalUpdate);
+  }
+
+ private:
+  CwFindHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwFindHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwFindHandlerProxy);
+};
+
+// The Python object of a CefFindHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfFindHandler(CefFindHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefFocusHandler ----
 
@@ -2124,8 +2713,11 @@ struct CwFocusHandlerCallbacks {
 
 class CwFocusHandlerProxy : public CefFocusHandler {
  public:
-  explicit CwFocusHandlerProxy(const CwFocusHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwFocusHandlerProxy(const CwFocusHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefFocusHandler*>(this), cb_.py);
+  }
   ~CwFocusHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefFocusHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2161,6 +2753,133 @@ class CwFocusHandlerProxy : public CefFocusHandler {
   IMPLEMENT_REFCOUNTING(CwFocusHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwFocusHandlerProxy);
 };
+
+// The Python object of a CefFocusHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfFocusHandler(CefFocusHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefFrameHandler ----
+
+class CwFrameHandlerForward : public CefFrameHandler {
+ protected:
+  CefRefPtr<CefFrameHandler> forward_frame_handler_;
+
+ public:
+  void OnFrameCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!forward_frame_handler_) {
+      CefFrameHandler::OnFrameCreated(browser, frame);
+      return;
+    }
+    forward_frame_handler_->OnFrameCreated(browser, frame);
+  }
+
+  void OnFrameDestroyed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!forward_frame_handler_) {
+      CefFrameHandler::OnFrameDestroyed(browser, frame);
+      return;
+    }
+    forward_frame_handler_->OnFrameDestroyed(browser, frame);
+  }
+
+  void OnFrameAttached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, bool reattached) override {
+    if (!forward_frame_handler_) {
+      CefFrameHandler::OnFrameAttached(browser, frame, reattached);
+      return;
+    }
+    forward_frame_handler_->OnFrameAttached(browser, frame, reattached);
+  }
+
+  void OnFrameDetached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!forward_frame_handler_) {
+      CefFrameHandler::OnFrameDetached(browser, frame);
+      return;
+    }
+    forward_frame_handler_->OnFrameDetached(browser, frame);
+  }
+
+  void OnMainFrameChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> old_frame, CefRefPtr<CefFrame> new_frame) override {
+    if (!forward_frame_handler_) {
+      CefFrameHandler::OnMainFrameChanged(browser, old_frame, new_frame);
+      return;
+    }
+    forward_frame_handler_->OnMainFrameChanged(browser, old_frame, new_frame);
+  }
+};
+
+struct CwFrameHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_frame_created)(void*, CefBrowser*, CefFrame*) = nullptr;
+  void (*fn_on_frame_destroyed)(void*, CefBrowser*, CefFrame*) = nullptr;
+  void (*fn_on_frame_attached)(void*, CefBrowser*, CefFrame*, bool) = nullptr;
+  void (*fn_on_frame_detached)(void*, CefBrowser*, CefFrame*) = nullptr;
+  void (*fn_on_main_frame_changed)(void*, CefBrowser*, CefFrame*, CefFrame*) = nullptr;
+};
+
+class CwFrameHandlerProxy : public CefFrameHandler {
+ public:
+  explicit CwFrameHandlerProxy(const CwFrameHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefFrameHandler*>(this), cb_.py);
+  }
+  ~CwFrameHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefFrameHandler*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnFrameCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!cb_.fn_on_frame_created) {
+      CefFrameHandler::OnFrameCreated(browser, frame);
+      return;
+    }
+    cb_.fn_on_frame_created(cb_.py, browser.get(), frame.get());
+  }
+
+  void OnFrameDestroyed(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!cb_.fn_on_frame_destroyed) {
+      CefFrameHandler::OnFrameDestroyed(browser, frame);
+      return;
+    }
+    cb_.fn_on_frame_destroyed(cb_.py, browser.get(), frame.get());
+  }
+
+  void OnFrameAttached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, bool reattached) override {
+    if (!cb_.fn_on_frame_attached) {
+      CefFrameHandler::OnFrameAttached(browser, frame, reattached);
+      return;
+    }
+    cb_.fn_on_frame_attached(cb_.py, browser.get(), frame.get(), reattached);
+  }
+
+  void OnFrameDetached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override {
+    if (!cb_.fn_on_frame_detached) {
+      CefFrameHandler::OnFrameDetached(browser, frame);
+      return;
+    }
+    cb_.fn_on_frame_detached(cb_.py, browser.get(), frame.get());
+  }
+
+  void OnMainFrameChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> old_frame, CefRefPtr<CefFrame> new_frame) override {
+    if (!cb_.fn_on_main_frame_changed) {
+      CefFrameHandler::OnMainFrameChanged(browser, old_frame, new_frame);
+      return;
+    }
+    cb_.fn_on_main_frame_changed(cb_.py, browser.get(), old_frame.get(), new_frame.get());
+  }
+
+ private:
+  CwFrameHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwFrameHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwFrameHandlerProxy);
+};
+
+// The Python object of a CefFrameHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfFrameHandler(CefFrameHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefJSDialogHandler ----
 
@@ -2211,8 +2930,11 @@ struct CwJSDialogHandlerCallbacks {
 
 class CwJSDialogHandlerProxy : public CefJSDialogHandler {
  public:
-  explicit CwJSDialogHandlerProxy(const CwJSDialogHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwJSDialogHandlerProxy(const CwJSDialogHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefJSDialogHandler*>(this), cb_.py);
+  }
   ~CwJSDialogHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefJSDialogHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2259,6 +2981,11 @@ class CwJSDialogHandlerProxy : public CefJSDialogHandler {
   DISALLOW_COPY_AND_ASSIGN(CwJSDialogHandlerProxy);
 };
 
+// The Python object of a CefJSDialogHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfJSDialogHandler(CefJSDialogHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefKeyboardHandler ----
 
 class CwKeyboardHandlerForward : public CefKeyboardHandler {
@@ -2290,8 +3017,11 @@ struct CwKeyboardHandlerCallbacks {
 
 class CwKeyboardHandlerProxy : public CefKeyboardHandler {
  public:
-  explicit CwKeyboardHandlerProxy(const CwKeyboardHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwKeyboardHandlerProxy(const CwKeyboardHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefKeyboardHandler*>(this), cb_.py);
+  }
   ~CwKeyboardHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefKeyboardHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2321,6 +3051,11 @@ class CwKeyboardHandlerProxy : public CefKeyboardHandler {
   IMPLEMENT_REFCOUNTING(CwKeyboardHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwKeyboardHandlerProxy);
 };
+
+// The Python object of a CefKeyboardHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfKeyboardHandler(CefKeyboardHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefLifeSpanHandler ----
 
@@ -2380,8 +3115,11 @@ struct CwLifeSpanHandlerCallbacks {
 
 class CwLifeSpanHandlerProxy : public CefLifeSpanHandler {
  public:
-  explicit CwLifeSpanHandlerProxy(const CwLifeSpanHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwLifeSpanHandlerProxy(const CwLifeSpanHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefLifeSpanHandler*>(this), cb_.py);
+  }
   ~CwLifeSpanHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefLifeSpanHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2434,6 +3172,11 @@ class CwLifeSpanHandlerProxy : public CefLifeSpanHandler {
   DISALLOW_COPY_AND_ASSIGN(CwLifeSpanHandlerProxy);
 };
 
+// The Python object of a CefLifeSpanHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfLifeSpanHandler(CefLifeSpanHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefLoadHandler ----
 
 class CwLoadHandlerForward : public CefLoadHandler {
@@ -2485,8 +3228,11 @@ struct CwLoadHandlerCallbacks {
 
 class CwLoadHandlerProxy : public CefLoadHandler {
  public:
-  explicit CwLoadHandlerProxy(const CwLoadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwLoadHandlerProxy(const CwLoadHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefLoadHandler*>(this), cb_.py);
+  }
   ~CwLoadHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefLoadHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2530,6 +3276,212 @@ class CwLoadHandlerProxy : public CefLoadHandler {
   IMPLEMENT_REFCOUNTING(CwLoadHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwLoadHandlerProxy);
 };
+
+// The Python object of a CefLoadHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfLoadHandler(CefLoadHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefMediaObserver ----
+
+class CwMediaObserverForward : public CefMediaObserver {
+ protected:
+  CefRefPtr<CefMediaObserver> forward_media_observer_;
+
+ public:
+  void OnSinks(const std::vector<CefRefPtr<CefMediaSink>>& sinks) override {
+    if (!forward_media_observer_) {
+      return;
+    }
+    forward_media_observer_->OnSinks(sinks);
+  }
+
+  void OnRoutes(const std::vector<CefRefPtr<CefMediaRoute>>& routes) override {
+    if (!forward_media_observer_) {
+      return;
+    }
+    forward_media_observer_->OnRoutes(routes);
+  }
+
+  void OnRouteStateChanged(CefRefPtr<CefMediaRoute> route, ConnectionState state) override {
+    if (!forward_media_observer_) {
+      return;
+    }
+    forward_media_observer_->OnRouteStateChanged(route, state);
+  }
+
+  void OnRouteMessageReceived(CefRefPtr<CefMediaRoute> route, const void* message, size_t message_size) override {
+    if (!forward_media_observer_) {
+      return;
+    }
+    forward_media_observer_->OnRouteMessageReceived(route, message, message_size);
+  }
+};
+
+struct CwMediaObserverCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_sinks)(void*, const std::vector<CefRefPtr<CefMediaSink>>*) = nullptr;
+  void (*fn_on_routes)(void*, const std::vector<CefRefPtr<CefMediaRoute>>*) = nullptr;
+  void (*fn_on_route_state_changed)(void*, CefMediaRoute*, int) = nullptr;
+  void (*fn_on_route_message_received)(void*, CefMediaRoute*, void*, size_t) = nullptr;
+};
+
+class CwMediaObserverProxy : public CefMediaObserver {
+ public:
+  explicit CwMediaObserverProxy(const CwMediaObserverCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefMediaObserver*>(this), cb_.py);
+  }
+  ~CwMediaObserverProxy() override {
+    CwUnregisterProxy(static_cast<CefMediaObserver*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnSinks(const std::vector<CefRefPtr<CefMediaSink>>& sinks) override {
+    if (!cb_.fn_on_sinks) {
+      return;
+    }
+    cb_.fn_on_sinks(cb_.py, &sinks);
+  }
+
+  void OnRoutes(const std::vector<CefRefPtr<CefMediaRoute>>& routes) override {
+    if (!cb_.fn_on_routes) {
+      return;
+    }
+    cb_.fn_on_routes(cb_.py, &routes);
+  }
+
+  void OnRouteStateChanged(CefRefPtr<CefMediaRoute> route, ConnectionState state) override {
+    if (!cb_.fn_on_route_state_changed) {
+      return;
+    }
+    cb_.fn_on_route_state_changed(cb_.py, route.get(), static_cast<int>(state));
+  }
+
+  void OnRouteMessageReceived(CefRefPtr<CefMediaRoute> route, const void* message, size_t message_size) override {
+    if (!cb_.fn_on_route_message_received) {
+      return;
+    }
+    cb_.fn_on_route_message_received(cb_.py, route.get(), const_cast<void*>(message), message_size);
+  }
+
+ private:
+  CwMediaObserverCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwMediaObserverProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwMediaObserverProxy);
+};
+
+// The Python object of a CefMediaObserver that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfMediaObserver(CefMediaObserver* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefMediaRouteCreateCallback ----
+
+class CwMediaRouteCreateCallbackForward : public CefMediaRouteCreateCallback {
+ protected:
+  CefRefPtr<CefMediaRouteCreateCallback> forward_media_route_create_callback_;
+
+ public:
+  void OnMediaRouteCreateFinished(RouteCreateResult result, const CefString& error, CefRefPtr<CefMediaRoute> route) override {
+    if (!forward_media_route_create_callback_) {
+      return;
+    }
+    forward_media_route_create_callback_->OnMediaRouteCreateFinished(result, error, route);
+  }
+};
+
+struct CwMediaRouteCreateCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_media_route_create_finished)(void*, int, const CefString*, CefMediaRoute*) = nullptr;
+};
+
+class CwMediaRouteCreateCallbackProxy : public CefMediaRouteCreateCallback {
+ public:
+  explicit CwMediaRouteCreateCallbackProxy(const CwMediaRouteCreateCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefMediaRouteCreateCallback*>(this), cb_.py);
+  }
+  ~CwMediaRouteCreateCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefMediaRouteCreateCallback*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnMediaRouteCreateFinished(RouteCreateResult result, const CefString& error, CefRefPtr<CefMediaRoute> route) override {
+    if (!cb_.fn_on_media_route_create_finished) {
+      return;
+    }
+    cb_.fn_on_media_route_create_finished(cb_.py, static_cast<int>(result), &error, route.get());
+  }
+
+ private:
+  CwMediaRouteCreateCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwMediaRouteCreateCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwMediaRouteCreateCallbackProxy);
+};
+
+// The Python object of a CefMediaRouteCreateCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfMediaRouteCreateCallback(CefMediaRouteCreateCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefMediaSinkDeviceInfoCallback ----
+
+class CwMediaSinkDeviceInfoCallbackForward : public CefMediaSinkDeviceInfoCallback {
+ protected:
+  CefRefPtr<CefMediaSinkDeviceInfoCallback> forward_media_sink_device_info_callback_;
+
+ public:
+  void OnMediaSinkDeviceInfo(const CefMediaSinkDeviceInfo& device_info) override {
+    if (!forward_media_sink_device_info_callback_) {
+      return;
+    }
+    forward_media_sink_device_info_callback_->OnMediaSinkDeviceInfo(device_info);
+  }
+};
+
+struct CwMediaSinkDeviceInfoCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_media_sink_device_info)(void*, const CefMediaSinkDeviceInfo*) = nullptr;
+};
+
+class CwMediaSinkDeviceInfoCallbackProxy : public CefMediaSinkDeviceInfoCallback {
+ public:
+  explicit CwMediaSinkDeviceInfoCallbackProxy(const CwMediaSinkDeviceInfoCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefMediaSinkDeviceInfoCallback*>(this), cb_.py);
+  }
+  ~CwMediaSinkDeviceInfoCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefMediaSinkDeviceInfoCallback*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnMediaSinkDeviceInfo(const CefMediaSinkDeviceInfo& device_info) override {
+    if (!cb_.fn_on_media_sink_device_info) {
+      return;
+    }
+    cb_.fn_on_media_sink_device_info(cb_.py, &device_info);
+  }
+
+ private:
+  CwMediaSinkDeviceInfoCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwMediaSinkDeviceInfoCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwMediaSinkDeviceInfoCallbackProxy);
+};
+
+// The Python object of a CefMediaSinkDeviceInfoCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfMediaSinkDeviceInfoCallback(CefMediaSinkDeviceInfoCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefMenuButtonDelegate ----
 
@@ -2666,8 +3618,11 @@ struct CwMenuButtonDelegateCallbacks {
 
 class CwMenuButtonDelegateProxy : public CefMenuButtonDelegate {
  public:
-  explicit CwMenuButtonDelegateProxy(const CwMenuButtonDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwMenuButtonDelegateProxy(const CwMenuButtonDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefMenuButtonDelegate*>(this), cb_.py);
+  }
   ~CwMenuButtonDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefMenuButtonDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2793,6 +3748,11 @@ class CwMenuButtonDelegateProxy : public CefMenuButtonDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwMenuButtonDelegateProxy);
 };
 
+// The Python object of a CefMenuButtonDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfMenuButtonDelegate(CefMenuButtonDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefMenuModelDelegate ----
 
 class CwMenuModelDelegateForward : public CefMenuModelDelegate {
@@ -2869,8 +3829,11 @@ struct CwMenuModelDelegateCallbacks {
 
 class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
  public:
-  explicit CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefMenuModelDelegate*>(this), cb_.py);
+  }
   ~CwMenuModelDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefMenuModelDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -2939,6 +3902,64 @@ class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
   IMPLEMENT_REFCOUNTING(CwMenuModelDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
 };
+
+// The Python object of a CefMenuModelDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfMenuModelDelegate(CefMenuModelDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefNavigationEntryVisitor ----
+
+class CwNavigationEntryVisitorForward : public CefNavigationEntryVisitor {
+ protected:
+  CefRefPtr<CefNavigationEntryVisitor> forward_navigation_entry_visitor_;
+
+ public:
+  bool Visit(CefRefPtr<CefNavigationEntry> entry, bool current, int index, int total) override {
+    if (!forward_navigation_entry_visitor_) {
+      return bool();
+    }
+    return forward_navigation_entry_visitor_->Visit(entry, current, index, total);
+  }
+};
+
+struct CwNavigationEntryVisitorCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_visit)(void*, CefNavigationEntry*, bool, int, int) = nullptr;
+};
+
+class CwNavigationEntryVisitorProxy : public CefNavigationEntryVisitor {
+ public:
+  explicit CwNavigationEntryVisitorProxy(const CwNavigationEntryVisitorCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefNavigationEntryVisitor*>(this), cb_.py);
+  }
+  ~CwNavigationEntryVisitorProxy() override {
+    CwUnregisterProxy(static_cast<CefNavigationEntryVisitor*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool Visit(CefRefPtr<CefNavigationEntry> entry, bool current, int index, int total) override {
+    if (!cb_.fn_visit) {
+      return bool();
+    }
+    bool result = cb_.fn_visit(cb_.py, entry.get(), current, index, total);
+    return result;
+  }
+
+ private:
+  CwNavigationEntryVisitorCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwNavigationEntryVisitorProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwNavigationEntryVisitorProxy);
+};
+
+// The Python object of a CefNavigationEntryVisitor that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfNavigationEntryVisitor(CefNavigationEntryVisitor* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefPanelDelegate ----
 
@@ -3050,8 +4071,11 @@ struct CwPanelDelegateCallbacks {
 
 class CwPanelDelegateProxy : public CefPanelDelegate {
  public:
-  explicit CwPanelDelegateProxy(const CwPanelDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwPanelDelegateProxy(const CwPanelDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefPanelDelegate*>(this), cb_.py);
+  }
   ~CwPanelDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefPanelDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3155,6 +4179,11 @@ class CwPanelDelegateProxy : public CefPanelDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwPanelDelegateProxy);
 };
 
+// The Python object of a CefPanelDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfPanelDelegate(CefPanelDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefPdfPrintCallback ----
 
 class CwPdfPrintCallbackForward : public CefPdfPrintCallback {
@@ -3178,8 +4207,11 @@ struct CwPdfPrintCallbackCallbacks {
 
 class CwPdfPrintCallbackProxy : public CefPdfPrintCallback {
  public:
-  explicit CwPdfPrintCallbackProxy(const CwPdfPrintCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwPdfPrintCallbackProxy(const CwPdfPrintCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefPdfPrintCallback*>(this), cb_.py);
+  }
   ~CwPdfPrintCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefPdfPrintCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3198,6 +4230,11 @@ class CwPdfPrintCallbackProxy : public CefPdfPrintCallback {
   IMPLEMENT_REFCOUNTING(CwPdfPrintCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwPdfPrintCallbackProxy);
 };
+
+// The Python object of a CefPdfPrintCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfPdfPrintCallback(CefPdfPrintCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefPermissionHandler ----
 
@@ -3239,8 +4276,11 @@ struct CwPermissionHandlerCallbacks {
 
 class CwPermissionHandlerProxy : public CefPermissionHandler {
  public:
-  explicit CwPermissionHandlerProxy(const CwPermissionHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwPermissionHandlerProxy(const CwPermissionHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefPermissionHandler*>(this), cb_.py);
+  }
   ~CwPermissionHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefPermissionHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3276,6 +4316,63 @@ class CwPermissionHandlerProxy : public CefPermissionHandler {
   IMPLEMENT_REFCOUNTING(CwPermissionHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwPermissionHandlerProxy);
 };
+
+// The Python object of a CefPermissionHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfPermissionHandler(CefPermissionHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefPreferenceObserver ----
+
+class CwPreferenceObserverForward : public CefPreferenceObserver {
+ protected:
+  CefRefPtr<CefPreferenceObserver> forward_preference_observer_;
+
+ public:
+  void OnPreferenceChanged(const CefString& name) override {
+    if (!forward_preference_observer_) {
+      return;
+    }
+    forward_preference_observer_->OnPreferenceChanged(name);
+  }
+};
+
+struct CwPreferenceObserverCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_preference_changed)(void*, const CefString*) = nullptr;
+};
+
+class CwPreferenceObserverProxy : public CefPreferenceObserver {
+ public:
+  explicit CwPreferenceObserverProxy(const CwPreferenceObserverCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefPreferenceObserver*>(this), cb_.py);
+  }
+  ~CwPreferenceObserverProxy() override {
+    CwUnregisterProxy(static_cast<CefPreferenceObserver*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnPreferenceChanged(const CefString& name) override {
+    if (!cb_.fn_on_preference_changed) {
+      return;
+    }
+    cb_.fn_on_preference_changed(cb_.py, &name);
+  }
+
+ private:
+  CwPreferenceObserverCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwPreferenceObserverProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwPreferenceObserverProxy);
+};
+
+// The Python object of a CefPreferenceObserver that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfPreferenceObserver(CefPreferenceObserver* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefPrintHandler ----
 
@@ -3340,8 +4437,11 @@ struct CwPrintHandlerCallbacks {
 
 class CwPrintHandlerProxy : public CefPrintHandler {
  public:
-  explicit CwPrintHandlerProxy(const CwPrintHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwPrintHandlerProxy(const CwPrintHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefPrintHandler*>(this), cb_.py);
+  }
   ~CwPrintHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefPrintHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3400,6 +4500,11 @@ class CwPrintHandlerProxy : public CefPrintHandler {
   DISALLOW_COPY_AND_ASSIGN(CwPrintHandlerProxy);
 };
 
+// The Python object of a CefPrintHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfPrintHandler(CefPrintHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefReadHandler ----
 
 class CwReadHandlerForward : public CefReadHandler {
@@ -3455,8 +4560,11 @@ struct CwReadHandlerCallbacks {
 
 class CwReadHandlerProxy : public CefReadHandler {
  public:
-  explicit CwReadHandlerProxy(const CwReadHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwReadHandlerProxy(const CwReadHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefReadHandler*>(this), cb_.py);
+  }
   ~CwReadHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefReadHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3510,6 +4618,11 @@ class CwReadHandlerProxy : public CefReadHandler {
   DISALLOW_COPY_AND_ASSIGN(CwReadHandlerProxy);
 };
 
+// The Python object of a CefReadHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfReadHandler(CefReadHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefRenderHandler ----
 
 class CwRenderHandlerForward : public CefRenderHandler {
@@ -3517,6 +4630,13 @@ class CwRenderHandlerForward : public CefRenderHandler {
   CefRefPtr<CefRenderHandler> forward_render_handler_;
 
  public:
+  CefRefPtr<CefAccessibilityHandler> GetAccessibilityHandler() override {
+    if (!forward_render_handler_) {
+      return CefRenderHandler::GetAccessibilityHandler();
+    }
+    return forward_render_handler_->GetAccessibilityHandler();
+  }
+
   bool GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
     if (!forward_render_handler_) {
       return CefRenderHandler::GetRootScreenRect(browser, rect);
@@ -3643,6 +4763,7 @@ class CwRenderHandlerForward : public CefRenderHandler {
 struct CwRenderHandlerCallbacks {
   void* py = nullptr;  // owner, released through |release|
   void (*release)(void* py) = nullptr;
+  CefAccessibilityHandler* (*fn_get_accessibility_handler)(void*) = nullptr;
   bool (*fn_get_root_screen_rect)(void*, CefBrowser*, CefRect*) = nullptr;
   void (*fn_get_view_rect)(void*, CefBrowser*, CefRect*) = nullptr;
   bool (*fn_get_screen_point)(void*, CefBrowser*, int, int, int*, int*) = nullptr;
@@ -3663,11 +4784,27 @@ struct CwRenderHandlerCallbacks {
 
 class CwRenderHandlerProxy : public CefRenderHandler {
  public:
-  explicit CwRenderHandlerProxy(const CwRenderHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwRenderHandlerProxy(const CwRenderHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefRenderHandler*>(this), cb_.py);
+  }
   ~CwRenderHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefRenderHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
+  }
+
+  CefRefPtr<CefAccessibilityHandler> GetAccessibilityHandler() override {
+    if (!cb_.fn_get_accessibility_handler) {
+      return CefRenderHandler::GetAccessibilityHandler();
+    }
+    CefAccessibilityHandler* raw = cb_.fn_get_accessibility_handler(cb_.py);
+    CefRefPtr<CefAccessibilityHandler> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
   }
 
   bool GetRootScreenRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override {
@@ -3816,6 +4953,11 @@ class CwRenderHandlerProxy : public CefRenderHandler {
   DISALLOW_COPY_AND_ASSIGN(CwRenderHandlerProxy);
 };
 
+// The Python object of a CefRenderHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfRenderHandler(CefRenderHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefRequestContextHandler ----
 
 class CwRequestContextHandlerForward : public CefRequestContextHandler {
@@ -3848,8 +4990,11 @@ struct CwRequestContextHandlerCallbacks {
 
 class CwRequestContextHandlerProxy : public CefRequestContextHandler {
  public:
-  explicit CwRequestContextHandlerProxy(const CwRequestContextHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwRequestContextHandlerProxy(const CwRequestContextHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefRequestContextHandler*>(this), cb_.py);
+  }
   ~CwRequestContextHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefRequestContextHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -3884,6 +5029,11 @@ class CwRequestContextHandlerProxy : public CefRequestContextHandler {
   IMPLEMENT_REFCOUNTING(CwRequestContextHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwRequestContextHandlerProxy);
 };
+
+// The Python object of a CefRequestContextHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfRequestContextHandler(CefRequestContextHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefRequestHandler ----
 
@@ -3925,6 +5075,13 @@ class CwRequestHandlerForward : public CefRequestHandler {
       return CefRequestHandler::OnCertificateError(browser, cert_error, request_url, ssl_info, callback);
     }
     return forward_request_handler_->OnCertificateError(browser, cert_error, request_url, ssl_info, callback);
+  }
+
+  bool OnSelectClientCertificate(CefRefPtr<CefBrowser> browser, bool isProxy, const CefString& host, int port, const X509CertificateList& certificates, CefRefPtr<CefSelectClientCertificateCallback> callback) override {
+    if (!forward_request_handler_) {
+      return CefRequestHandler::OnSelectClientCertificate(browser, isProxy, host, port, certificates, callback);
+    }
+    return forward_request_handler_->OnSelectClientCertificate(browser, isProxy, host, port, certificates, callback);
   }
 
   void OnRenderViewReady(CefRefPtr<CefBrowser> browser) override {
@@ -3975,6 +5132,7 @@ struct CwRequestHandlerCallbacks {
   CefResourceRequestHandler* (*fn_get_resource_request_handler)(void*, CefBrowser*, CefFrame*, CefRequest*, bool, bool, const CefString*, bool*) = nullptr;
   bool (*fn_get_auth_credentials)(void*, CefBrowser*, const CefString*, bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) = nullptr;
   bool (*fn_on_certificate_error)(void*, CefBrowser*, int, const CefString*, CefCallback*) = nullptr;
+  bool (*fn_on_select_client_certificate)(void*, CefBrowser*, bool, const CefString*, int, const std::vector<CefRefPtr<CefX509Certificate>>*, CefSelectClientCertificateCallback*) = nullptr;
   void (*fn_on_render_view_ready)(void*, CefBrowser*) = nullptr;
   bool (*fn_on_render_process_unresponsive)(void*, CefBrowser*, CefUnresponsiveProcessCallback*) = nullptr;
   void (*fn_on_render_process_responsive)(void*, CefBrowser*) = nullptr;
@@ -3984,8 +5142,11 @@ struct CwRequestHandlerCallbacks {
 
 class CwRequestHandlerProxy : public CefRequestHandler {
  public:
-  explicit CwRequestHandlerProxy(const CwRequestHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwRequestHandlerProxy(const CwRequestHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefRequestHandler*>(this), cb_.py);
+  }
   ~CwRequestHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefRequestHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4038,6 +5199,14 @@ class CwRequestHandlerProxy : public CefRequestHandler {
     return result;
   }
 
+  bool OnSelectClientCertificate(CefRefPtr<CefBrowser> browser, bool isProxy, const CefString& host, int port, const X509CertificateList& certificates, CefRefPtr<CefSelectClientCertificateCallback> callback) override {
+    if (!cb_.fn_on_select_client_certificate) {
+      return CefRequestHandler::OnSelectClientCertificate(browser, isProxy, host, port, certificates, callback);
+    }
+    bool result = cb_.fn_on_select_client_certificate(cb_.py, browser.get(), isProxy, &host, port, &certificates, callback.get());
+    return result;
+  }
+
   void OnRenderViewReady(CefRefPtr<CefBrowser> browser) override {
     if (!cb_.fn_on_render_view_ready) {
       CefRequestHandler::OnRenderViewReady(browser);
@@ -4084,6 +5253,63 @@ class CwRequestHandlerProxy : public CefRequestHandler {
   IMPLEMENT_REFCOUNTING(CwRequestHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwRequestHandlerProxy);
 };
+
+// The Python object of a CefRequestHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfRequestHandler(CefRequestHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefResolveCallback ----
+
+class CwResolveCallbackForward : public CefResolveCallback {
+ protected:
+  CefRefPtr<CefResolveCallback> forward_resolve_callback_;
+
+ public:
+  void OnResolveCompleted(cef_errorcode_t result, const std::vector<CefString>& resolved_ips) override {
+    if (!forward_resolve_callback_) {
+      return;
+    }
+    forward_resolve_callback_->OnResolveCompleted(result, resolved_ips);
+  }
+};
+
+struct CwResolveCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_resolve_completed)(void*, int, const std::vector<CefString>*) = nullptr;
+};
+
+class CwResolveCallbackProxy : public CefResolveCallback {
+ public:
+  explicit CwResolveCallbackProxy(const CwResolveCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefResolveCallback*>(this), cb_.py);
+  }
+  ~CwResolveCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefResolveCallback*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnResolveCompleted(cef_errorcode_t result, const std::vector<CefString>& resolved_ips) override {
+    if (!cb_.fn_on_resolve_completed) {
+      return;
+    }
+    cb_.fn_on_resolve_completed(cb_.py, static_cast<int>(result), &resolved_ips);
+  }
+
+ private:
+  CwResolveCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwResolveCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwResolveCallbackProxy);
+};
+
+// The Python object of a CefResolveCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfResolveCallback(CefResolveCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefResourceHandler ----
 
@@ -4156,8 +5382,11 @@ struct CwResourceHandlerCallbacks {
 
 class CwResourceHandlerProxy : public CefResourceHandler {
  public:
-  explicit CwResourceHandlerProxy(const CwResourceHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwResourceHandlerProxy(const CwResourceHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefResourceHandler*>(this), cb_.py);
+  }
   ~CwResourceHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefResourceHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4236,6 +5465,11 @@ class CwResourceHandlerProxy : public CefResourceHandler {
   DISALLOW_COPY_AND_ASSIGN(CwResourceHandlerProxy);
 };
 
+// The Python object of a CefResourceHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfResourceHandler(CefResourceHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefResourceRequestHandler ----
 
 class CwResourceRequestHandlerForward : public CefResourceRequestHandler {
@@ -4279,6 +5513,13 @@ class CwResourceRequestHandlerForward : public CefResourceRequestHandler {
     return forward_resource_request_handler_->OnResourceResponse(browser, frame, request, response);
   }
 
+  CefRefPtr<CefResponseFilter> GetResourceResponseFilter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response) override {
+    if (!forward_resource_request_handler_) {
+      return CefResourceRequestHandler::GetResourceResponseFilter(browser, frame, request, response);
+    }
+    return forward_resource_request_handler_->GetResourceResponseFilter(browser, frame, request, response);
+  }
+
   void OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response, URLRequestStatus status, int64_t received_content_length) override {
     if (!forward_resource_request_handler_) {
       CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
@@ -4304,14 +5545,18 @@ struct CwResourceRequestHandlerCallbacks {
   CefResourceHandler* (*fn_get_resource_handler)(void*, CefBrowser*, CefFrame*, CefRequest*) = nullptr;
   void (*fn_on_resource_redirect)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, CefString*) = nullptr;
   bool (*fn_on_resource_response)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*) = nullptr;
+  CefResponseFilter* (*fn_get_resource_response_filter)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*) = nullptr;
   void (*fn_on_resource_load_complete)(void*, CefBrowser*, CefFrame*, CefRequest*, CefResponse*, int, int64_t) = nullptr;
   void (*fn_on_protocol_execution)(void*, CefBrowser*, CefFrame*, CefRequest*, bool*) = nullptr;
 };
 
 class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
  public:
-  explicit CwResourceRequestHandlerProxy(const CwResourceRequestHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwResourceRequestHandlerProxy(const CwResourceRequestHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefResourceRequestHandler*>(this), cb_.py);
+  }
   ~CwResourceRequestHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefResourceRequestHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4369,6 +5614,19 @@ class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
     return result;
   }
 
+  CefRefPtr<CefResponseFilter> GetResourceResponseFilter(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response) override {
+    if (!cb_.fn_get_resource_response_filter) {
+      return CefResourceRequestHandler::GetResourceResponseFilter(browser, frame, request, response);
+    }
+    CefResponseFilter* raw = cb_.fn_get_resource_response_filter(cb_.py, browser.get(), frame.get(), request.get(), response.get());
+    CefRefPtr<CefResponseFilter> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    return result;
+  }
+
   void OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response, URLRequestStatus status, int64_t received_content_length) override {
     if (!cb_.fn_on_resource_load_complete) {
       CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
@@ -4394,6 +5652,84 @@ class CwResourceRequestHandlerProxy : public CefResourceRequestHandler {
   DISALLOW_COPY_AND_ASSIGN(CwResourceRequestHandlerProxy);
 };
 
+// The Python object of a CefResourceRequestHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfResourceRequestHandler(CefResourceRequestHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefResponseFilter ----
+
+class CwResponseFilterForward : public CefResponseFilter {
+ protected:
+  CefRefPtr<CefResponseFilter> forward_response_filter_;
+
+ public:
+  bool InitFilter() override {
+    if (!forward_response_filter_) {
+      return bool();
+    }
+    return forward_response_filter_->InitFilter();
+  }
+
+  FilterStatus Filter(void* data_in, size_t data_in_size, size_t& data_in_read, void* data_out, size_t data_out_size, size_t& data_out_written) override {
+    if (!forward_response_filter_) {
+      return FilterStatus();
+    }
+    return forward_response_filter_->Filter(data_in, data_in_size, data_in_read, data_out, data_out_size, data_out_written);
+  }
+};
+
+struct CwResponseFilterCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  bool (*fn_init_filter)(void*) = nullptr;
+  int (*fn_filter)(void*, void*, size_t, size_t*, void*, size_t, size_t*) = nullptr;
+};
+
+class CwResponseFilterProxy : public CefResponseFilter {
+ public:
+  explicit CwResponseFilterProxy(const CwResponseFilterCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefResponseFilter*>(this), cb_.py);
+  }
+  ~CwResponseFilterProxy() override {
+    CwUnregisterProxy(static_cast<CefResponseFilter*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  bool InitFilter() override {
+    if (!cb_.fn_init_filter) {
+      return bool();
+    }
+    bool result = cb_.fn_init_filter(cb_.py);
+    return result;
+  }
+
+  FilterStatus Filter(void* data_in, size_t data_in_size, size_t& data_in_read, void* data_out, size_t data_out_size, size_t& data_out_written) override {
+    if (!cb_.fn_filter) {
+      return FilterStatus();
+    }
+    size_t out_data_in_read = size_t();
+    size_t out_data_out_written = size_t();
+    FilterStatus result = static_cast<FilterStatus>(cb_.fn_filter(cb_.py, data_in, data_in_size, &out_data_in_read, data_out, data_out_size, &out_data_out_written));
+    data_in_read = out_data_in_read;
+    data_out_written = out_data_out_written;
+    return result;
+  }
+
+ private:
+  CwResponseFilterCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwResponseFilterProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwResponseFilterProxy);
+};
+
+// The Python object of a CefResponseFilter that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfResponseFilter(CefResponseFilter* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefRunFileDialogCallback ----
 
 class CwRunFileDialogCallbackForward : public CefRunFileDialogCallback {
@@ -4417,8 +5753,11 @@ struct CwRunFileDialogCallbackCallbacks {
 
 class CwRunFileDialogCallbackProxy : public CefRunFileDialogCallback {
  public:
-  explicit CwRunFileDialogCallbackProxy(const CwRunFileDialogCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwRunFileDialogCallbackProxy(const CwRunFileDialogCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefRunFileDialogCallback*>(this), cb_.py);
+  }
   ~CwRunFileDialogCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefRunFileDialogCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4437,6 +5776,11 @@ class CwRunFileDialogCallbackProxy : public CefRunFileDialogCallback {
   IMPLEMENT_REFCOUNTING(CwRunFileDialogCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwRunFileDialogCallbackProxy);
 };
+
+// The Python object of a CefRunFileDialogCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfRunFileDialogCallback(CefRunFileDialogCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefSchemeHandlerFactory ----
 
@@ -4461,8 +5805,11 @@ struct CwSchemeHandlerFactoryCallbacks {
 
 class CwSchemeHandlerFactoryProxy : public CefSchemeHandlerFactory {
  public:
-  explicit CwSchemeHandlerFactoryProxy(const CwSchemeHandlerFactoryCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwSchemeHandlerFactoryProxy(const CwSchemeHandlerFactoryCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefSchemeHandlerFactory*>(this), cb_.py);
+  }
   ~CwSchemeHandlerFactoryProxy() override {
+    CwUnregisterProxy(static_cast<CefSchemeHandlerFactory*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4488,6 +5835,168 @@ class CwSchemeHandlerFactoryProxy : public CefSchemeHandlerFactory {
   DISALLOW_COPY_AND_ASSIGN(CwSchemeHandlerFactoryProxy);
 };
 
+// The Python object of a CefSchemeHandlerFactory that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfSchemeHandlerFactory(CefSchemeHandlerFactory* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefServerHandler ----
+
+class CwServerHandlerForward : public CefServerHandler {
+ protected:
+  CefRefPtr<CefServerHandler> forward_server_handler_;
+
+ public:
+  void OnServerCreated(CefRefPtr<CefServer> server) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnServerCreated(server);
+  }
+
+  void OnServerDestroyed(CefRefPtr<CefServer> server) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnServerDestroyed(server);
+  }
+
+  void OnClientConnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnClientConnected(server, connection_id);
+  }
+
+  void OnClientDisconnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnClientDisconnected(server, connection_id);
+  }
+
+  void OnHttpRequest(CefRefPtr<CefServer> server, int connection_id, const CefString& client_address, CefRefPtr<CefRequest> request) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnHttpRequest(server, connection_id, client_address, request);
+  }
+
+  void OnWebSocketRequest(CefRefPtr<CefServer> server, int connection_id, const CefString& client_address, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnWebSocketRequest(server, connection_id, client_address, request, callback);
+  }
+
+  void OnWebSocketConnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnWebSocketConnected(server, connection_id);
+  }
+
+  void OnWebSocketMessage(CefRefPtr<CefServer> server, int connection_id, const void* data, size_t data_size) override {
+    if (!forward_server_handler_) {
+      return;
+    }
+    forward_server_handler_->OnWebSocketMessage(server, connection_id, data, data_size);
+  }
+};
+
+struct CwServerHandlerCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_server_created)(void*, CefServer*) = nullptr;
+  void (*fn_on_server_destroyed)(void*, CefServer*) = nullptr;
+  void (*fn_on_client_connected)(void*, CefServer*, int) = nullptr;
+  void (*fn_on_client_disconnected)(void*, CefServer*, int) = nullptr;
+  void (*fn_on_http_request)(void*, CefServer*, int, const CefString*, CefRequest*) = nullptr;
+  void (*fn_on_web_socket_request)(void*, CefServer*, int, const CefString*, CefRequest*, CefCallback*) = nullptr;
+  void (*fn_on_web_socket_connected)(void*, CefServer*, int) = nullptr;
+  void (*fn_on_web_socket_message)(void*, CefServer*, int, void*, size_t) = nullptr;
+};
+
+class CwServerHandlerProxy : public CefServerHandler {
+ public:
+  explicit CwServerHandlerProxy(const CwServerHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefServerHandler*>(this), cb_.py);
+  }
+  ~CwServerHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefServerHandler*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnServerCreated(CefRefPtr<CefServer> server) override {
+    if (!cb_.fn_on_server_created) {
+      return;
+    }
+    cb_.fn_on_server_created(cb_.py, server.get());
+  }
+
+  void OnServerDestroyed(CefRefPtr<CefServer> server) override {
+    if (!cb_.fn_on_server_destroyed) {
+      return;
+    }
+    cb_.fn_on_server_destroyed(cb_.py, server.get());
+  }
+
+  void OnClientConnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!cb_.fn_on_client_connected) {
+      return;
+    }
+    cb_.fn_on_client_connected(cb_.py, server.get(), connection_id);
+  }
+
+  void OnClientDisconnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!cb_.fn_on_client_disconnected) {
+      return;
+    }
+    cb_.fn_on_client_disconnected(cb_.py, server.get(), connection_id);
+  }
+
+  void OnHttpRequest(CefRefPtr<CefServer> server, int connection_id, const CefString& client_address, CefRefPtr<CefRequest> request) override {
+    if (!cb_.fn_on_http_request) {
+      return;
+    }
+    cb_.fn_on_http_request(cb_.py, server.get(), connection_id, &client_address, request.get());
+  }
+
+  void OnWebSocketRequest(CefRefPtr<CefServer> server, int connection_id, const CefString& client_address, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override {
+    if (!cb_.fn_on_web_socket_request) {
+      return;
+    }
+    cb_.fn_on_web_socket_request(cb_.py, server.get(), connection_id, &client_address, request.get(), callback.get());
+  }
+
+  void OnWebSocketConnected(CefRefPtr<CefServer> server, int connection_id) override {
+    if (!cb_.fn_on_web_socket_connected) {
+      return;
+    }
+    cb_.fn_on_web_socket_connected(cb_.py, server.get(), connection_id);
+  }
+
+  void OnWebSocketMessage(CefRefPtr<CefServer> server, int connection_id, const void* data, size_t data_size) override {
+    if (!cb_.fn_on_web_socket_message) {
+      return;
+    }
+    cb_.fn_on_web_socket_message(cb_.py, server.get(), connection_id, const_cast<void*>(data), data_size);
+  }
+
+ private:
+  CwServerHandlerCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwServerHandlerProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwServerHandlerProxy);
+};
+
+// The Python object of a CefServerHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfServerHandler(CefServerHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefSetCookieCallback ----
 
 class CwSetCookieCallbackForward : public CefSetCookieCallback {
@@ -4511,8 +6020,11 @@ struct CwSetCookieCallbackCallbacks {
 
 class CwSetCookieCallbackProxy : public CefSetCookieCallback {
  public:
-  explicit CwSetCookieCallbackProxy(const CwSetCookieCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwSetCookieCallbackProxy(const CwSetCookieCallbackCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefSetCookieCallback*>(this), cb_.py);
+  }
   ~CwSetCookieCallbackProxy() override {
+    CwUnregisterProxy(static_cast<CefSetCookieCallback*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4531,6 +6043,63 @@ class CwSetCookieCallbackProxy : public CefSetCookieCallback {
   IMPLEMENT_REFCOUNTING(CwSetCookieCallbackProxy);
   DISALLOW_COPY_AND_ASSIGN(CwSetCookieCallbackProxy);
 };
+
+// The Python object of a CefSetCookieCallback that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfSetCookieCallback(CefSetCookieCallback* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
+// ---- CefSettingObserver ----
+
+class CwSettingObserverForward : public CefSettingObserver {
+ protected:
+  CefRefPtr<CefSettingObserver> forward_setting_observer_;
+
+ public:
+  void OnSettingChanged(const CefString& requesting_url, const CefString& top_level_url, cef_content_setting_types_t content_type) override {
+    if (!forward_setting_observer_) {
+      return;
+    }
+    forward_setting_observer_->OnSettingChanged(requesting_url, top_level_url, content_type);
+  }
+};
+
+struct CwSettingObserverCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_setting_changed)(void*, const CefString*, const CefString*, int) = nullptr;
+};
+
+class CwSettingObserverProxy : public CefSettingObserver {
+ public:
+  explicit CwSettingObserverProxy(const CwSettingObserverCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefSettingObserver*>(this), cb_.py);
+  }
+  ~CwSettingObserverProxy() override {
+    CwUnregisterProxy(static_cast<CefSettingObserver*>(this));
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnSettingChanged(const CefString& requesting_url, const CefString& top_level_url, cef_content_setting_types_t content_type) override {
+    if (!cb_.fn_on_setting_changed) {
+      return;
+    }
+    cb_.fn_on_setting_changed(cb_.py, &requesting_url, &top_level_url, static_cast<int>(content_type));
+  }
+
+ private:
+  CwSettingObserverCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwSettingObserverProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwSettingObserverProxy);
+};
+
+// The Python object of a CefSettingObserver that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfSettingObserver(CefSettingObserver* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefStringVisitor ----
 
@@ -4555,8 +6124,11 @@ struct CwStringVisitorCallbacks {
 
 class CwStringVisitorProxy : public CefStringVisitor {
  public:
-  explicit CwStringVisitorProxy(const CwStringVisitorCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwStringVisitorProxy(const CwStringVisitorCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefStringVisitor*>(this), cb_.py);
+  }
   ~CwStringVisitorProxy() override {
+    CwUnregisterProxy(static_cast<CefStringVisitor*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4575,6 +6147,11 @@ class CwStringVisitorProxy : public CefStringVisitor {
   IMPLEMENT_REFCOUNTING(CwStringVisitorProxy);
   DISALLOW_COPY_AND_ASSIGN(CwStringVisitorProxy);
 };
+
+// The Python object of a CefStringVisitor that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfStringVisitor(CefStringVisitor* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefTask ----
 
@@ -4599,8 +6176,11 @@ struct CwTaskCallbacks {
 
 class CwTaskProxy : public CefTask {
  public:
-  explicit CwTaskProxy(const CwTaskCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwTaskProxy(const CwTaskCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefTask*>(this), cb_.py);
+  }
   ~CwTaskProxy() override {
+    CwUnregisterProxy(static_cast<CefTask*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4619,6 +6199,11 @@ class CwTaskProxy : public CefTask {
   IMPLEMENT_REFCOUNTING(CwTaskProxy);
   DISALLOW_COPY_AND_ASSIGN(CwTaskProxy);
 };
+
+// The Python object of a CefTask that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfTask(CefTask* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefTextfieldDelegate ----
 
@@ -4747,8 +6332,11 @@ struct CwTextfieldDelegateCallbacks {
 
 class CwTextfieldDelegateProxy : public CefTextfieldDelegate {
  public:
-  explicit CwTextfieldDelegateProxy(const CwTextfieldDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwTextfieldDelegateProxy(const CwTextfieldDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefTextfieldDelegate*>(this), cb_.py);
+  }
   ~CwTextfieldDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefTextfieldDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4868,6 +6456,11 @@ class CwTextfieldDelegateProxy : public CefTextfieldDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwTextfieldDelegateProxy);
 };
 
+// The Python object of a CefTextfieldDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfTextfieldDelegate(CefTextfieldDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefURLRequestClient ----
 
 class CwURLRequestClientForward : public CefURLRequestClient {
@@ -4923,8 +6516,11 @@ struct CwURLRequestClientCallbacks {
 
 class CwURLRequestClientProxy : public CefURLRequestClient {
  public:
-  explicit CwURLRequestClientProxy(const CwURLRequestClientCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwURLRequestClientProxy(const CwURLRequestClientCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefURLRequestClient*>(this), cb_.py);
+  }
   ~CwURLRequestClientProxy() override {
+    CwUnregisterProxy(static_cast<CefURLRequestClient*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -4972,6 +6568,11 @@ class CwURLRequestClientProxy : public CefURLRequestClient {
   IMPLEMENT_REFCOUNTING(CwURLRequestClientProxy);
   DISALLOW_COPY_AND_ASSIGN(CwURLRequestClientProxy);
 };
+
+// The Python object of a CefURLRequestClient that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfURLRequestClient(CefURLRequestClient* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefViewDelegate ----
 
@@ -5083,8 +6684,11 @@ struct CwViewDelegateCallbacks {
 
 class CwViewDelegateProxy : public CefViewDelegate {
  public:
-  explicit CwViewDelegateProxy(const CwViewDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwViewDelegateProxy(const CwViewDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefViewDelegate*>(this), cb_.py);
+  }
   ~CwViewDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefViewDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -5187,6 +6791,11 @@ class CwViewDelegateProxy : public CefViewDelegate {
   IMPLEMENT_REFCOUNTING(CwViewDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwViewDelegateProxy);
 };
+
+// The Python object of a CefViewDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfViewDelegate(CefViewDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 // ---- CefWindowDelegate ----
 
@@ -5327,6 +6936,13 @@ class CwWindowDelegateForward : public CefWindowDelegate {
     forward_window_delegate_->OnWindowFullscreenTransition(window, is_completed);
   }
 
+  CefRefPtr<CefWindow> GetParentWindow(CefRefPtr<CefWindow> window, bool* is_menu, bool* can_activate_menu) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetParentWindow(window, is_menu, can_activate_menu);
+    }
+    return forward_window_delegate_->GetParentWindow(window, is_menu, can_activate_menu);
+  }
+
   bool IsWindowModalDialog(CefRefPtr<CefWindow> window) override {
     if (!forward_window_delegate_) {
       return CefWindowDelegate::IsWindowModalDialog(window);
@@ -5461,6 +7077,7 @@ struct CwWindowDelegateCallbacks {
   void (*fn_on_window_activation_changed)(void*, CefWindow*, bool) = nullptr;
   void (*fn_on_window_bounds_changed)(void*, CefWindow*, const CefRect*) = nullptr;
   void (*fn_on_window_fullscreen_transition)(void*, CefWindow*, bool) = nullptr;
+  CefWindow* (*fn_get_parent_window)(void*, CefWindow*, bool*, bool*) = nullptr;
   bool (*fn_is_window_modal_dialog)(void*, CefWindow*) = nullptr;
   void (*fn_get_initial_bounds)(void*, CefWindow*, CefRect*) = nullptr;
   int (*fn_get_initial_show_state)(void*, CefWindow*) = nullptr;
@@ -5481,8 +7098,11 @@ struct CwWindowDelegateCallbacks {
 
 class CwWindowDelegateProxy : public CefWindowDelegate {
  public:
-  explicit CwWindowDelegateProxy(const CwWindowDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwWindowDelegateProxy(const CwWindowDelegateCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefWindowDelegate*>(this), cb_.py);
+  }
   ~CwWindowDelegateProxy() override {
+    CwUnregisterProxy(static_cast<CefWindowDelegate*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -5627,6 +7247,23 @@ class CwWindowDelegateProxy : public CefWindowDelegate {
     cb_.fn_on_window_fullscreen_transition(cb_.py, window.get(), is_completed);
   }
 
+  CefRefPtr<CefWindow> GetParentWindow(CefRefPtr<CefWindow> window, bool* is_menu, bool* can_activate_menu) override {
+    if (!cb_.fn_get_parent_window) {
+      return CefWindowDelegate::GetParentWindow(window, is_menu, can_activate_menu);
+    }
+    bool out_is_menu = bool();
+    bool out_can_activate_menu = bool();
+    CefWindow* raw = cb_.fn_get_parent_window(cb_.py, window.get(), &out_is_menu, &out_can_activate_menu);
+    CefRefPtr<CefWindow> result;
+    if (raw) {
+      result = raw;
+      raw->Release();
+    }
+    if (is_menu) *is_menu = out_is_menu;
+    if (can_activate_menu) *can_activate_menu = out_can_activate_menu;
+    return result;
+  }
+
   bool IsWindowModalDialog(CefRefPtr<CefWindow> window) override {
     if (!cb_.fn_is_window_modal_dialog) {
       return CefWindowDelegate::IsWindowModalDialog(window);
@@ -5767,6 +7404,11 @@ class CwWindowDelegateProxy : public CefWindowDelegate {
   DISALLOW_COPY_AND_ASSIGN(CwWindowDelegateProxy);
 };
 
+// The Python object of a CefWindowDelegate that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfWindowDelegate(CefWindowDelegate* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
+
 // ---- CefWriteHandler ----
 
 class CwWriteHandlerForward : public CefWriteHandler {
@@ -5822,8 +7464,11 @@ struct CwWriteHandlerCallbacks {
 
 class CwWriteHandlerProxy : public CefWriteHandler {
  public:
-  explicit CwWriteHandlerProxy(const CwWriteHandlerCallbacks& callbacks) : cb_(callbacks) {}
+  explicit CwWriteHandlerProxy(const CwWriteHandlerCallbacks& callbacks) : cb_(callbacks) {
+    CwRegisterProxy(static_cast<CefWriteHandler*>(this), cb_.py);
+  }
   ~CwWriteHandlerProxy() override {
+    CwUnregisterProxy(static_cast<CefWriteHandler*>(this));
     if (cb_.release) {
       cb_.release(cb_.py);
     }
@@ -5876,5 +7521,10 @@ class CwWriteHandlerProxy : public CefWriteHandler {
   IMPLEMENT_REFCOUNTING(CwWriteHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwWriteHandlerProxy);
 };
+
+// The Python object of a CefWriteHandler that CEF kept (nullptr if it is not one of the proxies).
+inline void* CwPyOfWriteHandler(CefWriteHandler* ref) {
+  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;
+}
 
 #endif  // CEFWEAVER_GENERATED_PROXIES_H_

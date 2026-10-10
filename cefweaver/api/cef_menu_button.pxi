@@ -71,3 +71,20 @@ cdef object _wrap_MenuButton(CefRefPtr[CefMenuButton] ref):
     return obj
 
 
+cdef inline CefMenuButton* _g_ref_MenuButton(object obj) except? NULL:
+    """A reference for CEF to keep (a MenuButton that a handler method returns; None: nothing)."""
+    cdef MenuButton typed
+    cdef CefRefPtr[CefMenuButton] ref
+    cdef CefMenuButton* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, MenuButton):
+        raise TypeError("expected a MenuButton or None, not %s" % type(obj).__name__)
+    typed = <MenuButton>obj
+    ref = CefRefPtr[CefMenuButton](<CefMenuButton*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

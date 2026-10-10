@@ -42,6 +42,23 @@ cdef object _wrap_BeforeDownloadCallback(CefRefPtr[CefBeforeDownloadCallback] re
     return obj
 
 
+cdef inline CefBeforeDownloadCallback* _g_ref_BeforeDownloadCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a BeforeDownloadCallback that a handler method returns; None: nothing)."""
+    cdef BeforeDownloadCallback typed
+    cdef CefRefPtr[CefBeforeDownloadCallback] ref
+    cdef CefBeforeDownloadCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, BeforeDownloadCallback):
+        raise TypeError("expected a BeforeDownloadCallback or None, not %s" % type(obj).__name__)
+    typed = <BeforeDownloadCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class DownloadItemCallback:
     """Callback interface used to asynchronously cancel a download."""
     cdef CefRefPtr[CefDownloadItemCallback] _ref
@@ -88,6 +105,23 @@ cdef object _wrap_DownloadItemCallback(CefRefPtr[CefDownloadItemCallback] ref):
     obj = DownloadItemCallback.__new__(DownloadItemCallback)
     obj._ref = ref
     return obj
+
+
+cdef inline CefDownloadItemCallback* _g_ref_DownloadItemCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a DownloadItemCallback that a handler method returns; None: nothing)."""
+    cdef DownloadItemCallback typed
+    cdef CefRefPtr[CefDownloadItemCallback] ref
+    cdef CefDownloadItemCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, DownloadItemCallback):
+        raise TypeError("expected a DownloadItemCallback or None, not %s" % type(obj).__name__)
+    typed = <DownloadItemCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class DownloadHandler:
@@ -182,5 +216,16 @@ cdef inline CefDownloadHandler* _g_export_DownloadHandler(object obj) except? NU
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_DownloadHandler(CefRefPtr[CefDownloadHandler] ref):
+    """The Python object that was given to CEF as this DownloadHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDownloadHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

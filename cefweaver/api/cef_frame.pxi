@@ -279,3 +279,20 @@ cdef object _wrap_Frame(CefRefPtr[CefFrame] ref):
     return obj
 
 
+cdef inline CefFrame* _g_ref_Frame(object obj) except? NULL:
+    """A reference for CEF to keep (a Frame that a handler method returns; None: nothing)."""
+    cdef Frame typed
+    cdef CefRefPtr[CefFrame] ref
+    cdef CefFrame* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Frame):
+        raise TypeError("expected a Frame or None, not %s" % type(obj).__name__)
+    typed = <Frame>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

@@ -28,6 +28,23 @@ cdef object _wrap_MenuButtonPressedLock(CefRefPtr[CefMenuButtonPressedLock] ref)
     return obj
 
 
+cdef inline CefMenuButtonPressedLock* _g_ref_MenuButtonPressedLock(object obj) except? NULL:
+    """A reference for CEF to keep (a MenuButtonPressedLock that a handler method returns; None: nothing)."""
+    cdef MenuButtonPressedLock typed
+    cdef CefRefPtr[CefMenuButtonPressedLock] ref
+    cdef CefMenuButtonPressedLock* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, MenuButtonPressedLock):
+        raise TypeError("expected a MenuButtonPressedLock or None, not %s" % type(obj).__name__)
+    typed = <MenuButtonPressedLock>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class MenuButtonDelegate:
     """Implement this interface to handle MenuButton events. The methods of this
     class will be called on the browser process UI thread unless otherwise
@@ -272,5 +289,16 @@ cdef inline CefMenuButtonDelegate* _g_export_MenuButtonDelegate(object obj) exce
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_MenuButtonDelegate(CefRefPtr[CefMenuButtonDelegate] ref):
+    """The Python object that was given to CEF as this MenuButtonDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfMenuButtonDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

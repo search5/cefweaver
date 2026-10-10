@@ -63,3 +63,20 @@ cdef object _wrap_Layout(CefRefPtr[CefLayout] ref):
     return obj
 
 
+cdef inline CefLayout* _g_ref_Layout(object obj) except? NULL:
+    """A reference for CEF to keep (a Layout that a handler method returns; None: nothing)."""
+    cdef Layout typed
+    cdef CefRefPtr[CefLayout] ref
+    cdef CefLayout* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Layout):
+        raise TypeError("expected a Layout or None, not %s" % type(obj).__name__)
+    typed = <Layout>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

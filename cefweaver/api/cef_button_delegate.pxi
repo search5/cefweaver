@@ -230,3 +230,14 @@ cdef inline CefButtonDelegate* _g_export_ButtonDelegate(object obj) except? NULL
     return raw
 
 
+cdef object _g_unexport_ButtonDelegate(CefRefPtr[CefButtonDelegate] ref):
+    """The Python object that was given to CEF as this ButtonDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfButtonDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

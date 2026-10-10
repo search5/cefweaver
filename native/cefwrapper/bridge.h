@@ -15,6 +15,10 @@ inline std::string& BridgeNames() {
 }
 
 inline const char kBridgeSwitch[] = "cefweaver-bridge";
+// The renderer sends its events (JavaScript errors, the focused node, contexts) to the browser process as
+// process messages named kRendererEventMessage; the browser process turns that on with this switch.
+inline const char kRendererEventsSwitch[] = "cefweaver-renderer-events";
+inline const char kRendererEventMessage[] = "cefweaver-renderer-event";
 
 // A function expression, called with (names, queryFunctionName).
 inline const char kBridgeShim[] = R"JS((function (names, query) {

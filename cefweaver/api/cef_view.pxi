@@ -112,6 +112,14 @@ cdef class View:
             _r = _p.IsSame(_a0)
         return _r
 
+    def get_delegate(self):
+        """Returns the delegate associated with this View, if any."""
+        cdef CefView* _p = self._ptr_CefView()
+        cdef CefRefPtr[CefViewDelegate] _r
+        with nogil:
+            _r = _p.GetDelegate()
+        return _g_unexport_ViewDelegate(_r)
+
     def get_window(self):
         """Returns the top-level Window hosting this View, if any."""
         cdef CefView* _p = self._ptr_CefView()
@@ -586,5 +594,22 @@ cdef object _wrap_View(CefRefPtr[CefView] ref):
     obj = View.__new__(View)
     obj._ref = ref
     return obj
+
+
+cdef inline CefView* _g_ref_View(object obj) except? NULL:
+    """A reference for CEF to keep (a View that a handler method returns; None: nothing)."""
+    cdef View typed
+    cdef CefRefPtr[CefView] ref
+    cdef CefView* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, View):
+        raise TypeError("expected a View or None, not %s" % type(obj).__name__)
+    typed = <View>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 

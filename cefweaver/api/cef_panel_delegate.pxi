@@ -206,3 +206,14 @@ cdef inline CefPanelDelegate* _g_export_PanelDelegate(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_PanelDelegate(CefRefPtr[CefPanelDelegate] ref):
+    """The Python object that was given to CEF as this PanelDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfPanelDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

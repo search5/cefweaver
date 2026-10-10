@@ -49,6 +49,8 @@ public:
   // Gives the renderer processes the names of the message router functions (only a few
   // switches of the browser process reach a child process by themselves).
   void OnBeforeChildProcessLaunch(CefRefPtr<CefCommandLine> command_line) override;
+  void OnRegisterCustomPreferences(cef_preferences_type_t type,
+                                   CefRawPtr<CefPreferenceRegistrar> registrar) override;
 
   std::string StartUrl;
   CefRefPtr<CefRequestContext> m_RequestContext;

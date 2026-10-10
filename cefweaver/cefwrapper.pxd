@@ -9,7 +9,14 @@ from libcpp.string cimport string
 
 from libc.stdint cimport int64_t, uintptr_t
 
-from cefweaver.cef_api cimport CefBrowser, CefBrowserSettings, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr
+from cefweaver.cef_api cimport CefBrowser, CefBrowserSettings, CefClient, CefRequestContext, CefCommandLine, CefFrame, CefRefPtr, CefValue, CefBrowserHost, CefSharedMemoryRegion, CefSharedProcessMessageBuilder
+
+
+cdef extern from "library.h":
+    void CefWeaverShowDevTools(CefBrowserHost* host, int inspect_x, int inspect_y) nogil
+    string CefWeaverSharedMemoryRead(CefSharedMemoryRegion* region) nogil
+    cpp_bool CefWeaverSharedBuilderWrite(CefSharedProcessMessageBuilder* builder, size_t offset,
+                                         const void* data, size_t size) nogil
 
 
 cdef extern from "runtime.h":
@@ -55,8 +62,13 @@ cdef extern from "app_hooks.h":
     cdef cppclass SchemeRegistrarProxy:
         cpp_bool Add(const string& name, int options)
 
+    cdef cppclass PreferenceRegistrarProxy:
+        cpp_bool Add(const string& name, CefRefPtr[CefValue] default_value)
+
     ctypedef void (*app_command_line_ptr)(void* py, CefRefPtr[CefCommandLine] command_line) noexcept
     ctypedef void (*app_schemes_ptr)(void* py, SchemeRegistrarProxy* registrar) noexcept
+    ctypedef void (*app_child_launch_ptr)(void* py, CefRefPtr[CefCommandLine] command_line) noexcept
+    ctypedef void (*app_preferences_ptr)(void* py, int type, PreferenceRegistrarProxy* registrar) noexcept
     ctypedef void (*app_context_ptr)(void* py) noexcept
     ctypedef void (*app_schedule_ptr)(void* py, long long delay_ms) noexcept
     ctypedef cpp_bool (*app_relaunch_ptr)(void* py, CefRefPtr[CefCommandLine] command_line,
@@ -103,6 +115,7 @@ cdef extern from "library.h":
         cpp_bool SharedTexture()
         void SetTransparent(cpp_bool transparent)
         void SetFirstBrowser(cpp_bool create)
+        void SetRendererEvents(cpp_bool on)
         cpp_bool Transparent()
         void SetOffscreen(cpp_bool enabled)
         void SetRequestContext(CefRefPtr[CefRequestContext] context)
@@ -117,4 +130,5 @@ cdef extern from "library.h":
         void CancelPendingQueries(CefRefPtr[CefBrowser] browser, PythonQueryHandler* handler)
         void SetAppHooks(void* py, app_command_line_ptr command_line, app_schemes_ptr schemes,
                          app_context_ptr context, app_relaunch_ptr relaunch,
-                         app_schedule_ptr schedule)
+                         app_schedule_ptr schedule, app_child_launch_ptr child_launch,
+                         app_preferences_ptr preferences)

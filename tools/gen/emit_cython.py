@@ -17,7 +17,7 @@ import re
 from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import PLATFORM_STRUCTS, py_class_name, py_method_name, py_param_name
-from scope import NEEDS_CEF_RUNNING
+from scope import EXTRA_METHODS, NEEDS_CEF_RUNNING
 from model import py_class_name as _py_class_name  # noqa: F401
 from typesys import Buffer, Bytes, Planes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
@@ -336,6 +336,7 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
             out.append("        %s (*%s)(%s) noexcept" % (ret, field_name(plan), ", ".join(types)))
         out.append("    cdef cppclass Cw%sProxy(%s):" % (name, cls.get_name()))
         out.append("        Cw%sProxy(const Cw%sCallbacks&)" % (name, name))
+        out.append("    void* CwPyOf%s(%s*) nogil" % (name, cls.get_name()))
     return "\n".join(out) + "\n"
 
 
@@ -822,7 +823,7 @@ def _library_method(plan, owner_py):
         body.append(base + "cdef CefBaseTime _r")
     elif isinstance(ret, Str):
         body.append(base + "cdef CefString _r")
-    elif isinstance(ret, LibRef):
+    elif isinstance(ret, (LibRef, ClientRef)):
         body.append(base + "cdef CefRefPtr[%s] _r" % ret.cls)
     elif isinstance(ret, Struct):
         body.append(base + "cdef %s _r" % ret.cls)
@@ -851,6 +852,8 @@ def _library_method(plan, owner_py):
         values.append("_g_str(_r)")
     elif isinstance(ret, LibRef):
         values.append("_wrap_%s(_r)" % py_class_name(ret.cls))
+    elif isinstance(ret, ClientRef):
+        values.append("_g_unexport_%s(_r)" % py_class_name(ret.cls))
     elif isinstance(ret, Struct):
         values.append("_g_from_%s(&_r)" % py_class_name(ret.cls))
     for i, param in enumerate(plan.params):
@@ -931,6 +934,8 @@ def _trampoline(plan, cls_py):
                                           else "list_" + vector_tag(kind), n))
         elif isinstance(kind, LibRef):
             py_args.append("_wrap_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
+        elif isinstance(kind, ClientRef):
+            py_args.append("_g_unexport_%s(CefRefPtr[%s](%s))" % (py_class_name(kind.cls), kind.cls, n))
         elif isinstance(kind, Buffer):
             py_args.append("PyMemoryView_FromMemory(<char*>%s, %s_size, %s)"
                            % (n, n, "PyBUF_READ" if kind.readonly else "PyBUF_WRITE"))
@@ -990,13 +995,26 @@ def _trampoline(plan, cls_py):
         out.append("        return <int>_r0")
     elif isinstance(ret, ClientRef):
         out.append("        return _g_export_%s(_r0)" % py_class_name(ret.cls))
+    elif isinstance(ret, LibRef):
+        out.append("        return _g_ref_%s(_r0)" % py_class_name(ret.cls))
     out.append("    except BaseException:")
     out.append("        _g_report()")
-    if isinstance(ret, ClientRef):
+    if isinstance(ret, (ClientRef, LibRef)):
         out.append("        return NULL")
     elif not isinstance(ret, Void):
         out.append("        return 0")
     return out
+
+
+def extras_text(cef_class, kind):
+    """The hand-written methods added to a generated class (scope.EXTRA_METHODS), `kind` "pxi" or "pyi"; None
+    if the class has none."""
+    name = EXTRA_METHODS.get(cef_class)
+    if name is None:
+        return None
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "extras", "%s.%s" % (name, kind)),
+              encoding="utf-8") as f:
+        return f.read()
 
 
 def _library_class_lines(model, scope, cls, plans):
@@ -1037,6 +1055,10 @@ def _library_class_lines(model, scope, cls, plans):
         plan.accessor = accessor
         out += _library_method(plan, cn)
         out.append("")
+    extra = extras_text(cn, "pxi")
+    if extra:
+        out += extra.rstrip("\n").split("\n")
+        out.append("")
     out.append("")
     out += _wrap_function_lines(scope, cls, plans)
     return out
@@ -1069,6 +1091,24 @@ def _wrap_function_lines(scope, cls, plans):
     out.append("    obj._ref = %s" % ("CefRefPtr[%s](<%s*>ref.get())" % (_root_of(parent), _root_of(parent))
                                       if parent else "ref"))
     out.append("    return obj")
+    out.append("")
+    out.append("")
+    # the other way, for a handler method that returns this object: a reference for CEF to keep
+    out.append("cdef inline %s* _g_ref_%s(object obj) except? NULL:" % (cn, py))
+    out.append('    """A reference for CEF to keep (a %s that a handler method returns; None: nothing)."""' % py)
+    out.append("    cdef %s typed" % py)
+    out.append("    cdef CefRefPtr[%s] ref" % cn)
+    out.append("    cdef %s* raw" % cn)
+    out.append("    if obj is None:")
+    out.append("        return NULL")
+    out.append("    if not isinstance(obj, %s):" % py)
+    out.append('        raise TypeError("expected a %s or None, not %%s" %% type(obj).__name__)' % py)
+    out.append("    typed = <%s>obj" % py)
+    out.append("    ref = %s" % _libref_from_python(cn, "typed"))
+    out.append("    raw = ref.get()")
+    out.append("    if raw != NULL:")
+    out.append("        raw.AddRef()")
+    out.append("    return raw")
     out.append("")
     out.append("")
     return out
@@ -1127,6 +1167,17 @@ def _client_class_lines(model, cls, plans_all):
     out.append("    if raw != NULL:")
     out.append("        raw.AddRef()")
     out.append("    return raw")
+    out.append("")
+    out.append("")
+    out.append("cdef object _g_unexport_%s(CefRefPtr[%s] ref):" % (py, cn))
+    out.append("    \"\"\"The Python object that was given to CEF as this %s (None: CEF's own, or none).\"\"\"" % py)
+    out.append("    cdef void* py")
+    out.append("    if ref.get() == NULL:")
+    out.append("        return None")
+    out.append("    py = CwPyOf%s(ref.get())" % py)
+    out.append("    if py == NULL:")
+    out.append("        return None")
+    out.append("    return <object>py")
     out.append("")
     out.append("")
     return out

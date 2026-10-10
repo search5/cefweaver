@@ -43,3 +43,14 @@ cdef inline CefStringVisitor* _g_export_StringVisitor(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_StringVisitor(CefRefPtr[CefStringVisitor] ref):
+    """The Python object that was given to CEF as this StringVisitor (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfStringVisitor(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

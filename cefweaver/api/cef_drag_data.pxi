@@ -288,3 +288,20 @@ cdef object _wrap_DragData(CefRefPtr[CefDragData] ref):
     return obj
 
 
+cdef inline CefDragData* _g_ref_DragData(object obj) except? NULL:
+    """A reference for CEF to keep (a DragData that a handler method returns; None: nothing)."""
+    cdef DragData typed
+    cdef CefRefPtr[CefDragData] ref
+    cdef CefDragData* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, DragData):
+        raise TypeError("expected a DragData or None, not %s" % type(obj).__name__)
+    typed = <DragData>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

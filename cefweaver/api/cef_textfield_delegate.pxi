@@ -237,3 +237,14 @@ cdef inline CefTextfieldDelegate* _g_export_TextfieldDelegate(object obj) except
     return raw
 
 
+cdef object _g_unexport_TextfieldDelegate(CefRefPtr[CefTextfieldDelegate] ref):
+    """The Python object that was given to CEF as this TextfieldDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfTextfieldDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

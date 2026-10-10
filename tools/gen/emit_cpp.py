@@ -56,7 +56,7 @@ def table_in_types(param):
         return ["const %s*" % kind.cls]
     if isinstance(kind, Vector):
         return ["const std::vector<%s>*" % element_cpp(kind.element)]
-    if isinstance(kind, LibRef):
+    if isinstance(kind, (LibRef, ClientRef)):
         return [kind.cls + "*"]
     if isinstance(kind, Buffer):
         return ["void*", kind.size_cpp]
@@ -86,7 +86,7 @@ def table_ret_type(plan):
         return kind.cpp
     if isinstance(kind, Enum):
         return "int"
-    if isinstance(kind, ClientRef):
+    if isinstance(kind, (ClientRef, LibRef)):
         return kind.cls + "*"  # one reference is passed to the proxy
     raise AssertionError(kind)
 
@@ -140,7 +140,7 @@ def _default_return(plan):
         return "return %s();" % plan.ret_spelled
     if isinstance(kind, Void):
         return "return;"
-    if isinstance(kind, ClientRef):
+    if isinstance(kind, (ClientRef, LibRef)):
         return "return nullptr;"
     return "return %s();" % plan.ret_spelled
 
@@ -192,7 +192,7 @@ def _method(model, cls, plan):
             args.append("&cw_%s" % name)
         elif isinstance(kind, (Str, Struct, Vector)):
             args.append("&%s" % name)
-        elif isinstance(kind, LibRef):
+        elif isinstance(kind, (LibRef, ClientRef)):
             args.append("%s.get()" % name)
         elif isinstance(kind, Buffer):
             # The function table takes void*; a read-only view never writes through it.
@@ -205,7 +205,7 @@ def _method(model, cls, plan):
     ret = plan.ret
     if isinstance(ret, Void):
         out.append("    %s;" % call)
-    elif isinstance(ret, ClientRef):
+    elif isinstance(ret, (ClientRef, LibRef)):
         out.append("    %s* raw = %s;" % (ret.cls, call))
         out.append("    CefRefPtr<%s> result;" % ret.cls)
         out.append("    if (raw) {")
@@ -286,7 +286,37 @@ def emit(model, scope, plans_by_class, banner):
     lines += ['#include "%s"' % h for h in headers]
     lines.append('#include "../platform_structs.h"')
     lines.append("#include <atomic>")
+    lines.append("#include <mutex>")
+    lines.append("#include <unordered_map>")
     lines.append("#include <vector>")
+    lines += [
+        "",
+        "// The proxies below are made for Python objects that the program gives to CEF (a delegate, a handler). CEF keeps them",
+        "// and can give one back (View::GetDelegate()): the registry finds the Python object of a proxy again. (No dynamic_cast:",
+        "// the wrapper is built without RTTI, and some objects CEF gives back are its own.)",
+        "inline std::mutex& CwProxyRegistryMutex() {",
+        "  static std::mutex mutex;",
+        "  return mutex;",
+        "}",
+        "inline std::unordered_map<const CefBaseRefCounted*, void*>& CwProxyRegistry() {",
+        "  static std::unordered_map<const CefBaseRefCounted*, void*> registry;",
+        "  return registry;",
+        "}",
+        "inline void CwRegisterProxy(const CefBaseRefCounted* proxy, void* py) {",
+        "  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());",
+        "  CwProxyRegistry()[proxy] = py;",
+        "}",
+        "inline void CwUnregisterProxy(const CefBaseRefCounted* proxy) {",
+        "  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());",
+        "  CwProxyRegistry().erase(proxy);",
+        "}",
+        "inline void* CwFindProxy(const CefBaseRefCounted* object) {",
+        "  std::lock_guard<std::mutex> lock(CwProxyRegistryMutex());",
+        "  auto found = CwProxyRegistry().find(object);",
+        "  return found == CwProxyRegistry().end() ? nullptr : found->second;",
+        "}",
+        "",
+    ]
     lines.append("")
 
     for cls in scope.client_classes:
@@ -306,8 +336,11 @@ def emit(model, scope, plans_by_class, banner):
         lines.append("")
         lines.append("class Cw%sProxy : public %s {" % (name, cls.get_name()))
         lines.append(" public:")
-        lines.append("  explicit Cw%sProxy(const Cw%sCallbacks& callbacks) : cb_(callbacks) {}" % (name, name))
+        lines.append("  explicit Cw%sProxy(const Cw%sCallbacks& callbacks) : cb_(callbacks) {" % (name, name))
+        lines.append("    CwRegisterProxy(static_cast<%s*>(this), cb_.py);" % cls.get_name())
+        lines.append("  }")
         lines.append("  ~Cw%sProxy() override {" % name)
+        lines.append("    CwUnregisterProxy(static_cast<%s*>(this));" % cls.get_name())
         lines.append("    if (cb_.release) {")
         lines.append("      cb_.release(cb_.py);")
         lines.append("    }")
@@ -324,6 +357,11 @@ def emit(model, scope, plans_by_class, banner):
         lines.append("  IMPLEMENT_REFCOUNTING(Cw%sProxy);" % name)
         lines.append("  DISALLOW_COPY_AND_ASSIGN(Cw%sProxy);" % name)
         lines.append("};")
+        lines.append("")
+        lines.append("// The Python object of a %s that CEF kept (nullptr if it is not one of the proxies)." % cls.get_name())
+        lines.append("inline void* CwPyOf%s(%s* ref) {" % (name, cls.get_name()))
+        lines.append("  return ref ? CwFindProxy(static_cast<const CefBaseRefCounted*>(ref)) : nullptr;")
+        lines.append("}")
         lines.append("")
 
     lines.append("#endif  // CEFWEAVER_GENERATED_PROXIES_H_")

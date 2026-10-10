@@ -28,6 +28,14 @@ cdef class SSLInfo:
             _r = _p.GetCertStatus()
         return _g_enum(_types.CertStatus, <int>_r)
 
+    def get_x509_certificate(self):
+        """Returns the X.509 certificate."""
+        cdef CefSSLInfo* _p = self._ptr()
+        cdef CefRefPtr[CefX509Certificate] _r
+        with nogil:
+            _r = _p.GetX509Certificate()
+        return _wrap_X509Certificate(_r)
+
 
 cdef object _wrap_SSLInfo(CefRefPtr[CefSSLInfo] ref):
     cdef SSLInfo obj
@@ -36,5 +44,22 @@ cdef object _wrap_SSLInfo(CefRefPtr[CefSSLInfo] ref):
     obj = SSLInfo.__new__(SSLInfo)
     obj._ref = ref
     return obj
+
+
+cdef inline CefSSLInfo* _g_ref_SSLInfo(object obj) except? NULL:
+    """A reference for CEF to keep (a SSLInfo that a handler method returns; None: nothing)."""
+    cdef SSLInfo typed
+    cdef CefRefPtr[CefSSLInfo] ref
+    cdef CefSSLInfo* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, SSLInfo):
+        raise TypeError("expected a SSLInfo or None, not %s" % type(obj).__name__)
+    typed = <SSLInfo>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 

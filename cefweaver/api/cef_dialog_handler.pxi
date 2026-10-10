@@ -47,6 +47,23 @@ cdef object _wrap_FileDialogCallback(CefRefPtr[CefFileDialogCallback] ref):
     return obj
 
 
+cdef inline CefFileDialogCallback* _g_ref_FileDialogCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a FileDialogCallback that a handler method returns; None: nothing)."""
+    cdef FileDialogCallback typed
+    cdef CefRefPtr[CefFileDialogCallback] ref
+    cdef CefFileDialogCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, FileDialogCallback):
+        raise TypeError("expected a FileDialogCallback or None, not %s" % type(obj).__name__)
+    typed = <FileDialogCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class DialogHandler:
     """Implement this interface to handle dialog events. The methods of this class
     will be called on the browser process UI thread.
@@ -110,5 +127,16 @@ cdef inline CefDialogHandler* _g_export_DialogHandler(object obj) except? NULL:
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_DialogHandler(CefRefPtr[CefDialogHandler] ref):
+    """The Python object that was given to CEF as this DialogHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfDialogHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

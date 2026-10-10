@@ -44,6 +44,23 @@ cdef object _wrap_PrintDialogCallback(CefRefPtr[CefPrintDialogCallback] ref):
     return obj
 
 
+cdef inline CefPrintDialogCallback* _g_ref_PrintDialogCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a PrintDialogCallback that a handler method returns; None: nothing)."""
+    cdef PrintDialogCallback typed
+    cdef CefRefPtr[CefPrintDialogCallback] ref
+    cdef CefPrintDialogCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, PrintDialogCallback):
+        raise TypeError("expected a PrintDialogCallback or None, not %s" % type(obj).__name__)
+    typed = <PrintDialogCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class PrintJobCallback:
     """Callback interface for asynchronous continuation of print job requests."""
     cdef CefRefPtr[CefPrintJobCallback] _ref
@@ -76,6 +93,23 @@ cdef object _wrap_PrintJobCallback(CefRefPtr[CefPrintJobCallback] ref):
     obj = PrintJobCallback.__new__(PrintJobCallback)
     obj._ref = ref
     return obj
+
+
+cdef inline CefPrintJobCallback* _g_ref_PrintJobCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a PrintJobCallback that a handler method returns; None: nothing)."""
+    cdef PrintJobCallback typed
+    cdef CefRefPtr[CefPrintJobCallback] ref
+    cdef CefPrintJobCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, PrintJobCallback):
+        raise TypeError("expected a PrintJobCallback or None, not %s" % type(obj).__name__)
+    typed = <PrintJobCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class PrintHandler:
@@ -204,5 +238,16 @@ cdef inline CefPrintHandler* _g_export_PrintHandler(object obj) except? NULL:
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_PrintHandler(CefRefPtr[CefPrintHandler] ref):
+    """The Python object that was given to CEF as this PrintHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfPrintHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

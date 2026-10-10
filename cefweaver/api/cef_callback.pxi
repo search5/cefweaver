@@ -42,6 +42,23 @@ cdef object _wrap_Callback(CefRefPtr[CefCallback] ref):
     return obj
 
 
+cdef inline CefCallback* _g_ref_Callback(object obj) except? NULL:
+    """A reference for CEF to keep (a Callback that a handler method returns; None: nothing)."""
+    cdef Callback typed
+    cdef CefRefPtr[CefCallback] ref
+    cdef CefCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Callback):
+        raise TypeError("expected a Callback or None, not %s" % type(obj).__name__)
+    typed = <Callback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class CompletionCallback:
     """Generic callback interface used for asynchronous completion."""
 
@@ -82,5 +99,16 @@ cdef inline CefCompletionCallback* _g_export_CompletionCallback(object obj) exce
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_CompletionCallback(CefRefPtr[CefCompletionCallback] ref):
+    """The Python object that was given to CEF as this CompletionCallback (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfCompletionCallback(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

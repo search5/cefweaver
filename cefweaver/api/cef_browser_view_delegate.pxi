@@ -99,6 +99,15 @@ class BrowserViewDelegate:
         """
         return None
 
+    def get_delegate_for_popup_browser_view(self, browser_view, settings, client, is_devtools):
+        """Called before a new popup BrowserView is created. The popup originated
+        from |browser_view|. |settings| and |client| are the values returned from
+        CefLifeSpanHandler::OnBeforePopup(). |is_devtools| will be true if the
+        popup will be a DevTools browser. Return the delegate that will be used
+        for the new popup BrowserView.
+        """
+        return None
+
     def on_popup_browser_view_created(self, browser_view, popup_browser_view, is_devtools):
         """Called after |popup_browser_view| is created. This method will be called
         after CefLifeSpanHandler::OnAfterCreated() and OnBrowserCreated() are
@@ -238,6 +247,15 @@ cdef void _BrowserViewDelegate_on_browser_destroyed(void* py, CefBrowserView* br
     except BaseException:
         _g_report()
 
+cdef CefBrowserViewDelegate* _BrowserViewDelegate_get_delegate_for_popup_browser_view(void* py, CefBrowserView* browser_view, const CefBrowserSettings* settings, CefClient* client, cpp_bool is_devtools) noexcept with gil:
+    try:
+        _r = (<object>py).get_delegate_for_popup_browser_view(_wrap_BrowserView(CefRefPtr[CefBrowserView](browser_view)), _g_from_BrowserSettings(settings), _g_unexport_Client(CefRefPtr[CefClient](client)), is_devtools)
+        _r0 = _r
+        return _g_export_BrowserViewDelegate(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef cpp_bool _BrowserViewDelegate_on_popup_browser_view_created(void* py, CefBrowserView* browser_view, CefBrowserView* popup_browser_view, cpp_bool is_devtools) noexcept with gil:
     try:
         _r = (<object>py).on_popup_browser_view_created(_wrap_BrowserView(CefRefPtr[CefBrowserView](browser_view)), _wrap_BrowserView(CefRefPtr[CefBrowserView](popup_browser_view)), is_devtools)
@@ -340,6 +358,8 @@ cdef CefRefPtr[CefBrowserViewDelegate] _g_make_BrowserViewDelegate(object obj) e
         cb.fn_on_browser_created = _BrowserViewDelegate_on_browser_created
     if getattr(cls, "on_browser_destroyed", None) is not BrowserViewDelegate.on_browser_destroyed:
         cb.fn_on_browser_destroyed = _BrowserViewDelegate_on_browser_destroyed
+    if getattr(cls, "get_delegate_for_popup_browser_view", None) is not BrowserViewDelegate.get_delegate_for_popup_browser_view:
+        cb.fn_get_delegate_for_popup_browser_view = _BrowserViewDelegate_get_delegate_for_popup_browser_view
     if getattr(cls, "on_popup_browser_view_created", None) is not BrowserViewDelegate.on_popup_browser_view_created:
         cb.fn_on_popup_browser_view_created = _BrowserViewDelegate_on_popup_browser_view_created
     if getattr(cls, "get_chrome_toolbar_type", None) is not BrowserViewDelegate.get_chrome_toolbar_type:
@@ -365,5 +385,16 @@ cdef inline CefBrowserViewDelegate* _g_export_BrowserViewDelegate(object obj) ex
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_BrowserViewDelegate(CefRefPtr[CefBrowserViewDelegate] ref):
+    """The Python object that was given to CEF as this BrowserViewDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfBrowserViewDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

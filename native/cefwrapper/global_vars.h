@@ -36,6 +36,8 @@ inline void ForgetChildViewBrowser(int browser_id) {
 inline std::atomic<bool> g_Transparent{true};
 // initialize(None): CEF starts without a first browser (the application makes its own, e.g. a Views BrowserView).
 inline std::atomic<bool> g_NoFirstBrowser{false};
+// enable_renderer_events(): the child processes get the switch of the events of the renderer (bridge.h).
+inline std::atomic<bool> g_RendererEvents{false};
 // An offscreen browser gives CEF's shared textures (dmabufs) to OnAcceleratedPaint() instead of
 // pixels to OnPaint().
 inline std::atomic<bool> g_SharedTexture{false};

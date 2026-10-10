@@ -226,6 +226,23 @@ cdef object _wrap_ContextMenuParams(CefRefPtr[CefContextMenuParams] ref):
     return obj
 
 
+cdef inline CefContextMenuParams* _g_ref_ContextMenuParams(object obj) except? NULL:
+    """A reference for CEF to keep (a ContextMenuParams that a handler method returns; None: nothing)."""
+    cdef ContextMenuParams typed
+    cdef CefRefPtr[CefContextMenuParams] ref
+    cdef CefContextMenuParams* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, ContextMenuParams):
+        raise TypeError("expected a ContextMenuParams or None, not %s" % type(obj).__name__)
+    typed = <ContextMenuParams>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class RunContextMenuCallback:
     """Callback interface used for continuation of custom context menu display."""
     cdef CefRefPtr[CefRunContextMenuCallback] _ref
@@ -269,6 +286,23 @@ cdef object _wrap_RunContextMenuCallback(CefRefPtr[CefRunContextMenuCallback] re
     return obj
 
 
+cdef inline CefRunContextMenuCallback* _g_ref_RunContextMenuCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a RunContextMenuCallback that a handler method returns; None: nothing)."""
+    cdef RunContextMenuCallback typed
+    cdef CefRefPtr[CefRunContextMenuCallback] ref
+    cdef CefRunContextMenuCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, RunContextMenuCallback):
+        raise TypeError("expected a RunContextMenuCallback or None, not %s" % type(obj).__name__)
+    typed = <RunContextMenuCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class RunQuickMenuCallback:
     """Callback interface used for continuation of custom quick menu display."""
     cdef CefRefPtr[CefRunQuickMenuCallback] _ref
@@ -310,6 +344,23 @@ cdef object _wrap_RunQuickMenuCallback(CefRefPtr[CefRunQuickMenuCallback] ref):
     obj = RunQuickMenuCallback.__new__(RunQuickMenuCallback)
     obj._ref = ref
     return obj
+
+
+cdef inline CefRunQuickMenuCallback* _g_ref_RunQuickMenuCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a RunQuickMenuCallback that a handler method returns; None: nothing)."""
+    cdef RunQuickMenuCallback typed
+    cdef CefRefPtr[CefRunQuickMenuCallback] ref
+    cdef CefRunQuickMenuCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, RunQuickMenuCallback):
+        raise TypeError("expected a RunQuickMenuCallback or None, not %s" % type(obj).__name__)
+    typed = <RunQuickMenuCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class ContextMenuHandler:
@@ -470,5 +521,16 @@ cdef inline CefContextMenuHandler* _g_export_ContextMenuHandler(object obj) exce
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_ContextMenuHandler(CefRefPtr[CefContextMenuHandler] ref):
+    """The Python object that was given to CEF as this ContextMenuHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfContextMenuHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

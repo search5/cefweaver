@@ -42,6 +42,23 @@ cdef object _wrap_JSDialogCallback(CefRefPtr[CefJSDialogCallback] ref):
     return obj
 
 
+cdef inline CefJSDialogCallback* _g_ref_JSDialogCallback(object obj) except? NULL:
+    """A reference for CEF to keep (a JSDialogCallback that a handler method returns; None: nothing)."""
+    cdef JSDialogCallback typed
+    cdef CefRefPtr[CefJSDialogCallback] ref
+    cdef CefJSDialogCallback* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, JSDialogCallback):
+        raise TypeError("expected a JSDialogCallback or None, not %s" % type(obj).__name__)
+    typed = <JSDialogCallback>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 class JSDialogHandler:
     """Implement this interface to handle events related to JavaScript dialogs. The
     methods of this class will be called on the UI thread.
@@ -150,5 +167,16 @@ cdef inline CefJSDialogHandler* _g_export_JSDialogHandler(object obj) except? NU
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_JSDialogHandler(CefRefPtr[CefJSDialogHandler] ref):
+    """The Python object that was given to CEF as this JSDialogHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfJSDialogHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

@@ -11,7 +11,7 @@ sources:
   - setup.py
   - native/cefwrapper/platform_structs.h
   - tests/test_smoke.py
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 알려진 제약과 미검증 항목
@@ -46,7 +46,7 @@ updated: 2026-10-09
 
 ## 2. 알려진 한계
 
-- **Views의 한계** ([F96~F98](verified-findings-views.md)): (1) **외부 메시지 펌프(`MessagePump`)로는 CEF 창의 X11 입력이 오지 않아 폴링 루프가 필요**합니다(원인은 소스로 확인하지 않음). (2) **창이 열린 채 `app.shutdown()`을 부르면 세그멘테이션 오류**가 납니다(원인 미조사). (3) `View.get_delegate()`, `BrowserViewDelegate.get_delegate_for_popup_browser_view`(팝업 창), `WindowDelegate.get_parent_window`를 열지 못했습니다. (4) Windows, macOS, Wayland에서의 동작은 확인하지 못했습니다. (5) 같은 CEF 뷰의 Python 객체는 매번 다르므로 `set_id`와 `get_id`로 구분합니다.
+- **Views의 한계** ([F96~F98](verified-findings-views.md)): (1) **외부 메시지 펌프(`MessagePump`)로는 CEF 창의 X11 입력이 오지 않아 폴링 루프가 필요**합니다(원인은 소스로 확인하지 않음). (2) 창이 열린 채 `app.shutdown()`을 부르는 문제는 해결했습니다([F99](verified-findings-views.md)). (3) `get_delegate_for_popup_browser_view`는 열었지만 팝업 뷰의 모양과 위치는 Linux X11에서만 보았습니다. (4) Windows, macOS, Wayland에서의 동작은 확인하지 못했습니다. (5) 같은 CEF 뷰의 Python 객체는 매번 다르므로 `set_id`와 `get_id`로 구분합니다.
 - **기존의 간헐적 시험 실패**: `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`가 변경 전 wheel에서도 20회 중 2회 실패합니다(첫 `on_paint`의 첫 픽셀이 투명). 원인은 조사하지 않았습니다.
 - **`Image`는 CEF를 초기화한 뒤에만 만들 수 있습니다**(`create_image()`가 `RuntimeError`). 초기화 전에 만들면 소멸할 때 프로세스가 죽는 것을 확인했고 원인은 조사하지 않았습니다([F95](verified-findings-handlers.md)). `Image.is_empty()`는 `remove_representation()` 뒤에도 `False`입니다.
 - **뒤로 가기 캐시로 복원된 페이지가 크기 변경을 받지 않을 수 있습니다.** GTK 예제에서 링크 클릭 → 뒤로 가기 뒤에 창 크기를 바꿔도 `innerWidth`가 이전 값에 머물렀습니다(그림은 새 크기). `notify_screen_info_changed()` 또는 `was_hidden` 토글이 깨우고 `disable-features=BackForwardCache`로 피합니다. 순수 오프스크린 스크립트에서는 재현되지 않아 **원인이 CEF인지 위젯인지는 확인하지 못했습니다**([F67](verified-findings-handlers.md), [GTK 3 예제](gtk3-example.md)).

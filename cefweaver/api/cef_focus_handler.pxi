@@ -79,3 +79,14 @@ cdef inline CefFocusHandler* _g_export_FocusHandler(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_FocusHandler(CefRefPtr[CefFocusHandler] ref):
+    """The Python object that was given to CEF as this FocusHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfFocusHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

@@ -26,6 +26,22 @@ void CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch(
     command_line->AppendSwitchWithValue(kQueryFunctionSwitch, QueryRouter::QueryFunction());
     command_line->AppendSwitchWithValue(kCancelFunctionSwitch, QueryRouter::CancelFunction());
   }
+  if (g_RendererEvents.load()) {
+    command_line->AppendSwitch(kRendererEventsSwitch);
+  }
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.child_launch) {
+    hooks.child_launch(hooks.py, command_line);   // the application's turn, after the wrapper's switches
+  }
+}
+
+void CefWrapperBrowserProcessHandler::OnRegisterCustomPreferences(
+    cef_preferences_type_t type, CefRawPtr<CefPreferenceRegistrar> registrar) {
+  const AppHooks& hooks = GetAppHooks();
+  if (hooks.preferences) {
+    PreferenceRegistrarProxy proxy(registrar);
+    hooks.preferences(hooks.py, static_cast<int>(type), &proxy);
+  }
 }
 
 /* Null, because instance will be initialized on demand. */

@@ -8,6 +8,12 @@ class Client:
         """Return the handler for audio rendering events."""
         return None
 
+    def get_command_handler(self):
+        """Return the handler for commands. If no handler is provided the default
+        implementation will be used.
+        """
+        return None
+
     def get_context_menu_handler(self):
         """Return the handler for context menus. If no handler is provided the
         default implementation will be used.
@@ -35,8 +41,19 @@ class Client:
         """Return the handler for drag events."""
         return None
 
+    def get_find_handler(self):
+        """Return the handler for find result events."""
+        return None
+
     def get_focus_handler(self):
         """Return the handler for focus events."""
+        return None
+
+    def get_frame_handler(self):
+        """Return the handler for events related to CefFrame lifespan. This method
+        will be called once during CefBrowser creation and the result will be
+        cached for performance reasons.
+        """
         return None
 
     def get_permission_handler(self):
@@ -92,6 +109,15 @@ cdef CefAudioHandler* _Client_get_audio_handler(void* py) noexcept with gil:
         _g_report()
         return NULL
 
+cdef CefCommandHandler* _Client_get_command_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_command_handler()
+        _r0 = _r
+        return _g_export_CommandHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef CefContextMenuHandler* _Client_get_context_menu_handler(void* py) noexcept with gil:
     try:
         _r = (<object>py).get_context_menu_handler()
@@ -137,11 +163,29 @@ cdef CefDragHandler* _Client_get_drag_handler(void* py) noexcept with gil:
         _g_report()
         return NULL
 
+cdef CefFindHandler* _Client_get_find_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_find_handler()
+        _r0 = _r
+        return _g_export_FindHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
 cdef CefFocusHandler* _Client_get_focus_handler(void* py) noexcept with gil:
     try:
         _r = (<object>py).get_focus_handler()
         _r0 = _r
         return _g_export_FocusHandler(_r0)
+    except BaseException:
+        _g_report()
+        return NULL
+
+cdef CefFrameHandler* _Client_get_frame_handler(void* py) noexcept with gil:
+    try:
+        _r = (<object>py).get_frame_handler()
+        _r0 = _r
+        return _g_export_FrameHandler(_r0)
     except BaseException:
         _g_report()
         return NULL
@@ -242,6 +286,8 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
     cb.release = _g_release
     if getattr(cls, "get_audio_handler", None) is not Client.get_audio_handler:
         cb.fn_get_audio_handler = _Client_get_audio_handler
+    if getattr(cls, "get_command_handler", None) is not Client.get_command_handler:
+        cb.fn_get_command_handler = _Client_get_command_handler
     if getattr(cls, "get_context_menu_handler", None) is not Client.get_context_menu_handler:
         cb.fn_get_context_menu_handler = _Client_get_context_menu_handler
     if getattr(cls, "get_dialog_handler", None) is not Client.get_dialog_handler:
@@ -252,8 +298,12 @@ cdef CefRefPtr[CefClient] _g_make_Client(object obj) except *:
         cb.fn_get_download_handler = _Client_get_download_handler
     if getattr(cls, "get_drag_handler", None) is not Client.get_drag_handler:
         cb.fn_get_drag_handler = _Client_get_drag_handler
+    if getattr(cls, "get_find_handler", None) is not Client.get_find_handler:
+        cb.fn_get_find_handler = _Client_get_find_handler
     if getattr(cls, "get_focus_handler", None) is not Client.get_focus_handler:
         cb.fn_get_focus_handler = _Client_get_focus_handler
+    if getattr(cls, "get_frame_handler", None) is not Client.get_frame_handler:
+        cb.fn_get_frame_handler = _Client_get_frame_handler
     if getattr(cls, "get_permission_handler", None) is not Client.get_permission_handler:
         cb.fn_get_permission_handler = _Client_get_permission_handler
     if getattr(cls, "get_js_dialog_handler", None) is not Client.get_js_dialog_handler:
@@ -283,5 +333,16 @@ cdef inline CefClient* _g_export_Client(object obj) except? NULL:
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_Client(CefRefPtr[CefClient] ref):
+    """The Python object that was given to CEF as this Client (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfClient(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

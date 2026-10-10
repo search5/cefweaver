@@ -27,7 +27,8 @@ from libcpp.string cimport string
 
 from cefweaver.cef_api cimport *
 from cefweaver.cefwrapper cimport (CefWeaverLoadRuntime, cef_version_info, CefValueWrapper, CefWrapper, PythonQueryHandler,
-                                   QueryCallbackHolder, SchemeRegistrarProxy)
+                                   QueryCallbackHolder, SchemeRegistrarProxy, PreferenceRegistrarProxy,
+                                   CefWeaverShowDevTools, CefWeaverSharedMemoryRead, CefWeaverSharedBuilderWrite)
 
 
 cdef int64_t _check_parent_view(object value) except -1:
@@ -270,6 +271,16 @@ class AppHandler:
         """Register custom schemes with ``registrar.add_custom_scheme(name, options)``
         (``types.SchemeOptions``). The renderer processes get the same schemes."""
 
+    def on_before_child_process_launch(self, command_line):
+        """The command line of a child process (renderer, GPU, utility) before it starts: ``command_line`` is
+        a ``CommandLine`` (``get_switch_value("type")`` tells the kind of process) and can be changed. Called
+        after the switches of cefweaver itself (the custom schemes, the JavaScript bridge) were added."""
+
+    def on_register_custom_preferences(self, type, registrar):
+        """Register preferences of the application with ``registrar.add_preference(name, default_value)``
+        (``default_value`` is a ``Value``). ``type`` is a ``types.PreferencesType``: ``GLOBAL`` (once, for the
+        global preferences) or ``REQUEST_CONTEXT`` (for each request context). Valid during that call only."""
+
     def on_context_initialized(self):
         """CEF is ready for browsers (the first browser is created right after this)."""
 
@@ -301,6 +312,40 @@ cdef class SchemeRegistrar:
         if self._proxy == NULL:
             raise RuntimeError("the registrar is valid only during on_register_custom_schemes()")
         return bool(self._proxy.Add(_utf8(scheme_name), options))
+
+
+cdef class PreferenceRegistrar:
+    """Registers preferences of the application; given to ``AppHandler.on_register_custom_preferences()`` and
+    valid only during that call."""
+
+    cdef PreferenceRegistrarProxy* _proxy
+
+    def __init__(self):
+        raise TypeError("PreferenceRegistrar objects are created by CEF")
+
+    def add_preference(self, name, Value default_value not None):
+        """Register a preference with its default value. Returns False if CEF refuses it (a name that is
+        taken, or a value of a type that a preference cannot have)."""
+        if self._proxy == NULL:
+            raise RuntimeError("the registrar is valid only during on_register_custom_preferences()")
+        return bool(self._proxy.Add(_utf8(name), default_value._ref))
+
+
+cdef void _app_on_child_launch(void* handler, CefRefPtr[CefCommandLine] command_line) noexcept with gil:
+    try:
+        (<object>handler).on_before_child_process_launch(_wrap_CommandLine(command_line))
+    except BaseException:
+        _g_report()
+
+
+cdef void _app_on_preferences(void* handler, int type, PreferenceRegistrarProxy* proxy) noexcept with gil:
+    cdef PreferenceRegistrar registrar = PreferenceRegistrar.__new__(PreferenceRegistrar)
+    registrar._proxy = proxy
+    try:
+        (<object>handler).on_register_custom_preferences(_g_enum(_types.PreferencesType, type), registrar)
+    except BaseException:
+        _g_report()
+    registrar._proxy = NULL  # the registrar of CEF is gone after this call
 
 
 cdef void _app_on_command_line(void* handler, CefRefPtr[CefCommandLine] command_line) noexcept with gil:
@@ -555,10 +600,22 @@ cdef class CefApp:
             raise TypeError("handler must be an AppHandler, not %s" % type(handler).__name__)
         self._app_handler = handler
         if handler is None:
-            self._wrapper.SetAppHooks(NULL, NULL, NULL, NULL, NULL, NULL)
+            self._wrapper.SetAppHooks(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
         else:
             self._wrapper.SetAppHooks(<void*>handler, _app_on_command_line, _app_on_schemes,
-                                      _app_on_context, _app_on_relaunch, _app_on_schedule)
+                                      _app_on_context, _app_on_relaunch, _app_on_schedule,
+                                      _app_on_child_launch, _app_on_preferences)
+
+    def enable_renderer_events(self, int stack_size=10):
+        """Make the renderer processes tell the browser process what happens in them: a JavaScript error that
+        nothing caught, the node that has the focus, the V8 contexts that are made and released. They arrive as
+        process messages that ``cefweaver.RendererEvents`` decodes (see ``cefweaver.renderer_events``). Before
+        ``initialize()`` only. ``stack_size`` is ``settings.uncaught_exception_stack_size`` (the frames of the
+        stack of an error; CEF sends no error with 0) unless the program gave that setting."""
+        self._require_not_initialized()
+        if self._settings.uncaught_exception_stack_size is None:
+            self._settings.uncaught_exception_stack_size = stack_size
+        self._wrapper.SetRendererEvents(True)
 
     @property
     def devtools_menu(self):
@@ -862,4 +919,4 @@ cdef class CefApp:
 
 
 __all__ = ["CefApp", "QueryHandler", "QueryCallback", "AppHandler",
-           "SchemeRegistrar"] + __generated_all__
+           "SchemeRegistrar", "PreferenceRegistrar"] + __generated_all__

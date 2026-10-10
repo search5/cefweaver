@@ -33,6 +33,14 @@ cdef class URLRequest:
             _r = _p.GetRequest()
         return _wrap_Request(_r)
 
+    def get_client(self):
+        """Returns the client."""
+        cdef CefURLRequest* _p = self._ptr()
+        cdef CefRefPtr[CefURLRequestClient] _r
+        with nogil:
+            _r = _p.GetClient()
+        return _g_unexport_URLRequestClient(_r)
+
     def get_request_status(self):
         """Returns the request status."""
         cdef CefURLRequest* _p = self._ptr()
@@ -117,6 +125,23 @@ cdef object _wrap_URLRequest(CefRefPtr[CefURLRequest] ref):
     obj = URLRequest.__new__(URLRequest)
     obj._ref = ref
     return obj
+
+
+cdef inline CefURLRequest* _g_ref_URLRequest(object obj) except? NULL:
+    """A reference for CEF to keep (a URLRequest that a handler method returns; None: nothing)."""
+    cdef URLRequest typed
+    cdef CefRefPtr[CefURLRequest] ref
+    cdef CefURLRequest* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, URLRequest):
+        raise TypeError("expected a URLRequest or None, not %s" % type(obj).__name__)
+    typed = <URLRequest>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class URLRequestClient:
@@ -242,5 +267,16 @@ cdef inline CefURLRequestClient* _g_export_URLRequestClient(object obj) except? 
     if raw != NULL:
         raw.AddRef()
     return raw
+
+
+cdef object _g_unexport_URLRequestClient(CefRefPtr[CefURLRequestClient] ref):
+    """The Python object that was given to CEF as this URLRequestClient (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfURLRequestClient(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
 
 

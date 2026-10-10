@@ -37,7 +37,10 @@ class CefWrapperClientHandler : public CefClient,
                       public CwPrintHandlerForward,
                       public CwContextMenuHandlerForward,
                       public CwPermissionHandlerForward,
-                      public CwAudioHandlerForward {
+                      public CwAudioHandlerForward,
+                      public CwFindHandlerForward,
+                      public CwFrameHandlerForward,
+                      public CwCommandHandlerForward {
 public:
 
   explicit CefWrapperClientHandler(bool use_views,
@@ -104,6 +107,23 @@ public:
   CefRefPtr<CefAudioHandler> GetAudioHandler() override {
     forward_audio_handler_ = user_client_ ? user_client_->GetAudioHandler() : nullptr;
     return forward_audio_handler_ ? this : nullptr;
+  }
+
+  // Nothing in the wrapper needs the find results, the frame events or the Chrome commands: they only go to
+  // the user's handler.
+  CefRefPtr<CefFindHandler> GetFindHandler() override {
+    forward_find_handler_ = user_client_ ? user_client_->GetFindHandler() : nullptr;
+    return forward_find_handler_ ? this : nullptr;
+  }
+
+  CefRefPtr<CefFrameHandler> GetFrameHandler() override {
+    forward_frame_handler_ = user_client_ ? user_client_->GetFrameHandler() : nullptr;
+    return forward_frame_handler_ ? this : nullptr;
+  }
+
+  CefRefPtr<CefCommandHandler> GetCommandHandler() override {
+    forward_command_handler_ = user_client_ ? user_client_->GetCommandHandler() : nullptr;
+    return forward_command_handler_ ? this : nullptr;
   }
 
   // Nothing in the wrapper needs the permission requests (microphone, camera): they only go to

@@ -483,3 +483,20 @@ cdef object _wrap_Window(CefRefPtr[CefWindow] ref):
     return obj
 
 
+cdef inline CefWindow* _g_ref_Window(object obj) except? NULL:
+    """A reference for CEF to keep (a Window that a handler method returns; None: nothing)."""
+    cdef Window typed
+    cdef CefRefPtr[CefWindow] ref
+    cdef CefWindow* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Window):
+        raise TypeError("expected a Window or None, not %s" % type(obj).__name__)
+    typed = <Window>obj
+    ref = CefRefPtr[CefWindow](<CefWindow*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

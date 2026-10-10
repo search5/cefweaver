@@ -208,3 +208,14 @@ cdef inline CefViewDelegate* _g_export_ViewDelegate(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_ViewDelegate(CefRefPtr[CefViewDelegate] ref):
+    """The Python object that was given to CEF as this ViewDelegate (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfViewDelegate(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+

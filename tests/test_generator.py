@@ -600,9 +600,9 @@ class WithHeaders(unittest.TestCase):
     def test_unsupported_types_are_reported_with_a_reason(self):
         plan = self.plan("CefDownloadItem", "GetSuggestedFileName")
         self.assertTrue(plan.supported, plan.reason)
-        plan = self.plan("CefBrowserHost", "GetNavigationEntries")
+        plan = self.plan("CefFrame", "VisitDOM")                  # the DOM is in the renderer process: not generated
         self.assertFalse(plan.supported)
-        self.assertIn("CefNavigationEntryVisitor is not generated yet", plan.reason)
+        self.assertIn("CefDOMVisitor is not generated yet", plan.reason)
 
     def test_pure_virtual_methods_are_detected(self):
         cls = self.model.classes["CefResourceHandler"]
@@ -631,9 +631,9 @@ class WithHeaders(unittest.TestCase):
         self.assertEqual(plan.ret, ClientRef("CefLoadHandler"))
 
     def test_handlers_that_are_not_generated_yet_are_reported(self):
-        plan = self.plan("CefClient", "GetFindHandler")
+        plan = self.plan("CefApp", "GetRenderProcessHandler")     # Python has no code in the renderer process
         self.assertFalse(plan.supported)
-        self.assertIn("CefFindHandler is not generated yet", plan.reason)
+        self.assertIn("CefRenderProcessHandler is not generated yet", plan.reason)
 
     def test_enumerations_reach_the_load_handler(self):
         plan = self.plan("CefLoadHandler", "OnLoadError")
@@ -1381,6 +1381,20 @@ class WithHeaders(unittest.TestCase):
         # a parameter of a class below the root is reached by a cast, the root's by the reference itself
         self.assertIn("_a0 = CefRefPtr[CefBrowserView](<CefBrowserView*>browser_view._ref.get())", window)
         self.assertIn("_a0 = that._ref", view)                             # View is the root: no cast
+
+    def test_an_object_given_to_cef_is_found_again_when_cef_returns_or_passes_it(self):
+        # View::GetDelegate() returns the delegate the program gave; CreatePopup... passes a client: the proxy registry
+        # finds the Python object (no dynamic_cast: the wrapper has no RTTI); a client method may return a library object
+        import generate
+        files = generate.build_all(CEF_ROOT)
+        proxies, pyi = files["proxies"], files["pyi"]
+        self.assertIn("inline void* CwFindProxy(", proxies)
+        self.assertNotIn("dynamic_cast<", proxies)
+        self.assertIn("inline void* CwPyOfViewDelegate(", proxies)
+        self.assertIn("def get_delegate(self) -> ViewDelegate | None:", pyi)
+        self.assertIn("def get_parent_window(self, window: Window) -> tuple[Window | None, bool, bool]:", pyi)
+        self.assertRegex(pyi, r"def get_delegate_for_popup_browser_view\(self, browser_view: BrowserView, settings: BrowserSettings, "
+                              r"client: Client \| None, is_devtools: bool\) -> BrowserViewDelegate \| None:")
 
     def test_generated_files_are_up_to_date(self):
         import generate

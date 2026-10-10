@@ -1175,6 +1175,174 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
+    def test_shutdown_closes_the_browsers_of_a_views_window_that_is_still_open(self):
+        # CefShutdown() with a browser that is open ends the process: shutdown() closes the browsers of a Views
+        # window that the program left open (the wrapper does not know them: the client is the program's own)
+        result = run_cef("""
+            from cefweaver import types
+            seen = []
+            class Win(cefweaver.WindowDelegate):
+                def __init__(self, browser_view):
+                    super().__init__()
+                    self.browser_view = browser_view
+                def on_window_created(self, window):
+                    seen.append(window)
+                    window.add_child_view(self.browser_view)
+                    window.show()
+                def get_initial_bounds(self, window):
+                    return (0, 0, 400, 300)
+            app.initialize(None)
+            view = cefweaver.BrowserView.create_browser_view(cefweaver.Client(), page("open"), types.BrowserSettings(),
+                                                             None, None, cefweaver.BrowserViewDelegate())
+            cefweaver.Window.create_top_level_window(Win(view))
+            wait_until(app, lambda: seen and view.get_browser() is not None, "the window and its browser")
+            assert seen[0].is_visible()
+            app.shutdown()                                      # the window is still open
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_view_and_a_browser_give_back_the_python_objects_that_were_given_to_cef(self):
+        # CEF keeps the delegate or the client the program gave it: get_delegate(), get_client() and get_handler()
+        # find the Python object again (None for what CEF made itself or was not given)
+        result = run_cef("""
+            from cefweaver import types
+            class Panels(cefweaver.PanelDelegate):
+                pass
+            class Browsers(cefweaver.BrowserViewDelegate):
+                pass
+            class Windows(cefweaver.WindowDelegate):
+                def __init__(self):
+                    super().__init__()
+                    self.created = []
+                def on_window_created(self, window):
+                    self.created.append(window)
+                    window.show()
+            class Mine(cefweaver.Client):
+                pass
+            class Contexts(cefweaver.RequestContextHandler):
+                pass
+            app.initialize(None)
+            panels, browsers, windows, mine = Panels(), Browsers(), Windows(), Mine()
+            panel = cefweaver.Panel.create_panel(panels)
+            assert panel.get_delegate() is panels and cefweaver.Panel.create_panel(None).get_delegate() is None
+            view = cefweaver.BrowserView.create_browser_view(mine, page("one"), types.BrowserSettings(), None, None, browsers)
+            assert view.get_delegate() is browsers
+            window = cefweaver.Window.create_top_level_window(windows)
+            assert window.get_delegate() is windows                      # a Window is a Panel is a View
+            wait_until(app, lambda: windows.created, "the window")
+            window = windows.created[0]
+            window.add_child_view(view)
+            wait_until(app, lambda: view.get_browser() is not None, "the browser of the view")
+            assert view.get_browser().get_host().get_client() is mine    # the client of the program, not a copy
+            contexts = Contexts()
+            context = cefweaver.RequestContext.create_context(types.RequestContextSettings(), contexts)
+            assert context.get_handler() is contexts
+            assert cefweaver.RequestContext.create_context(types.RequestContextSettings(), None).get_handler() is None
+            window.close()
+            wait_until(app, lambda: not window.is_visible(), "the window to close")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_window_is_asked_for_its_parent_window(self):
+        result = run_cef("""
+            asked, shown = [], []
+            class Windows(cefweaver.WindowDelegate):
+                def __init__(self, name, parent=None):
+                    super().__init__()
+                    self.name, self.parent = name, parent
+                def on_window_created(self, window):
+                    shown.append(self.name)
+                    window.show()
+                def get_parent_window(self, window):
+                    asked.append((self.name, type(window).__name__))
+                    return self.parent, False, False              # (the parent, is a menu, can activate a menu)
+                def get_initial_bounds(self, window):
+                    return (0, 0, 200, 100)
+            app.initialize(None)
+            first = cefweaver.Window.create_top_level_window(Windows("first"))
+            wait_until(app, lambda: "first" in shown, "the first window")
+            second = cefweaver.Window.create_top_level_window(Windows("second", parent=first))   # a window as the parent
+            wait_until(app, lambda: "second" in shown, "the second window")
+            assert ("first", "Window") in asked and ("second", "Window") in asked, asked          # the delegate got a Window
+            assert first.is_visible() and second.is_visible()
+            second.close()
+            first.close()
+            wait_until(app, lambda: not first.is_visible() and not second.is_visible(), "the windows to close")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
+    def test_a_popup_of_a_browser_view_asks_its_delegate_for_the_delegate_of_the_popup(self):
+        # a click on a link with target=_blank (a real click: a popup needs a user gesture); needs xdotool and an X server
+        import shutil
+        if not shutil.which("xdotool") or not os.environ.get("DISPLAY"):
+            self.skipTest("needs xdotool and an X server")
+        result = run_cef("""
+            import subprocess
+            from cefweaver import types
+            log = []
+            class Windows(cefweaver.WindowDelegate):
+                def __init__(self, view):
+                    super().__init__()
+                    self.view, self.window = view, None
+                def on_window_created(self, window):
+                    self.window = window
+                    window.add_child_view(self.view)
+                    window.show()
+                def get_initial_bounds(self, window):
+                    return (0, 0, 300, 200)
+            class Popups(cefweaver.BrowserViewDelegate):
+                def get_delegate_for_popup_browser_view(self, browser_view, settings, client, is_devtools):
+                    log.append(("asked", type(browser_view).__name__, client, is_devtools))
+                    return Popups()                                   # the delegate of the popup
+                def on_popup_browser_view_created(self, browser_view, popup_browser_view, is_devtools):
+                    log.append(("created", type(popup_browser_view).__name__, is_devtools))
+                    return False                                      # CEF puts the popup in a window of its own
+            class Lives(cefweaver.LifeSpanHandler):
+                pass                                                  # without a handler CEF does not ask the delegate
+            class Mine(cefweaver.Client):
+                def __init__(self):
+                    super().__init__()
+                    self.lives = Lives()
+                def get_life_span_handler(self):
+                    return self.lives
+            mine = Mine()
+            app.initialize(None)
+            app.add_resource("http://popup.test/main.html",
+                             "<html><body style='margin:0'><a href='http://popup.test/target.html' target=_blank "
+                             "style='display:block;width:100vw;height:100vh;background:#ccc'>open</a></body></html>")
+            app.add_resource("http://popup.test/target.html", "<title>target</title><p>popup</p>")
+            view = cefweaver.BrowserView.create_browser_view(mine, "http://popup.test/main.html", types.BrowserSettings(),
+                                                             None, None, Popups())
+            windows = Windows(view)
+            cefweaver.Window.create_top_level_window(windows)
+            wait_until(app, lambda: windows.window is not None and view.get_browser() is not None, "the window")
+            for _ in range(300):                                            # the page loads
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            x, y, width, height = view.get_bounds_in_screen()
+            subprocess.run(["xdotool", "mousemove", str(x + width // 2), str(y + height // 2)], check=True)
+            for _ in range(60):
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            subprocess.run(["xdotool", "click", "1"], check=True)           # a real click: a user gesture
+            wait_until(app, lambda: any(e[0] == "created" for e in log), "the popup")
+            asked = [e for e in log if e[0] == "asked"][0]
+            assert asked[1] == "BrowserView" and asked[2] is mine and asked[3] is False, asked   # the client of the opener
+            assert ("created", "BrowserView", False) in log, log
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
     def test_browser_host_gives_back_its_browser_and_sets_the_zoom(self):
         result = run_cef("""
             boxes = []
@@ -2324,6 +2492,8 @@ class WithCef(unittest.TestCase):
                     return False, cefweaver.ScreenInfo(1.0, 24, 8, 0, cefweaver.Rect(0, 0, 0, 0),
                                                        cefweaver.Rect(0, 0, 0, 0))
                 return True, screen[0]
+            def get_accessibility_handler(self):
+                return handlers.get("accessibility")
             def on_paint(self, browser, type, dirty_rects, buffer, width, height):
                 try:
                     buffer[0] = 1
@@ -2343,7 +2513,7 @@ class WithCef(unittest.TestCase):
                 boxes.append(browser)
             def on_before_close(self, browser):
                 closed.append(browser.get_identifier())
-        handlers = {}  # more handlers of the client: "focus", "js_dialog", "dialog", "download"
+        handlers = {}  # more handlers of the client: "focus", "js_dialog", "dialog", "download", "find", "frame", ...
         class MyClient(cefweaver.Client):
             def __init__(self):
                 self.render, self.life = Render(), Life()
@@ -2367,6 +2537,15 @@ class WithCef(unittest.TestCase):
                 return handlers.get("print")
             def get_request_handler(self):
                 return handlers.get("request")
+            def get_find_handler(self):
+                return handlers.get("find")
+            def get_frame_handler(self):
+                return handlers.get("frame")
+            def get_command_handler(self):
+                return handlers.get("command")
+            def on_process_message_received(self, browser, frame, source_process, message):
+                function = handlers.get("process_message")
+                return bool(function and function(browser, frame, source_process, message))
         def start(body):
             app.offscreen = True
             app.set_client(MyClient())
@@ -2753,6 +2932,539 @@ class WithCef(unittest.TestCase):
             boxes[0].get_host().download_image("http://img.test/missing.png", False, 0, False, Done())
             wait_until(app, lambda: got, "the failed download")
             assert got[0][1] != 200 and got[0][2] is None, got        # no image for a missing file
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_find_handler_gets_the_results_of_a_search(self):
+        self.run_osr_script("""
+            results = []
+            class Finds(cefweaver.FindHandler):
+                def on_find_result(self, browser, identifier, count, selection_rect, active_match_ordinal, final_update):
+                    results.append((identifier, count, active_match_ordinal, final_update, tuple(selection_rect)))
+            handlers["find"] = Finds()
+            start("<p>needle hay needle hay needle</p>")
+            host = boxes[0].get_host()
+            host.find("needle", True, False, False)
+            wait_until(app, lambda: any(r[3] for r in results), "the first result")
+            # the first search says how many there are (CEF 154: no active match yet: ordinal 0, no rectangle)
+            assert [r for r in results if r[3]][-1][1:3] == (3, 0), results
+            for ordinal in (1, 2):                                              # find_next: the next match
+                count = len(results)
+                host.find("needle", True, False, True)
+                send_until(app, lambda: None, lambda: any(r[3] and r[2] == ordinal for r in results[count:]), "match %d" % ordinal)
+                final = [r for r in results[count:] if r[3] and r[2] == ordinal][-1]
+                assert final[1] == 3 and final[4][2] > 0 and final[4][3] > 0, final       # a rectangle of the match
+            first, second = [r for r in results if r[3] and r[2] in (1, 2)]
+            assert first[4] != second[4], results                                # another place on the page
+            count = len(results)
+            host.find("nothing like this", True, False, False)
+            send_until(app, lambda: None, lambda: any(r[3] and r[1] == 0 for r in results[count:]), "no match")
+            host.stop_finding(True)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_frame_handler_sees_frames_come_and_go(self):
+        # (an iframe with srcdoc in a data: page never finishes loading in CEF 154, F27: the pages come from add_resource)
+        self.run_osr_script("""
+            events = []
+            class Frames(cefweaver.FrameHandler):
+                def on_frame_created(self, browser, frame):
+                    events.append(("created", frame.is_main()))
+                def on_frame_destroyed(self, browser, frame):
+                    events.append(("destroyed", frame.is_main()))
+                def on_frame_attached(self, browser, frame, reattached):
+                    events.append(("attached", frame.is_main(), reattached))
+                def on_frame_detached(self, browser, frame):
+                    events.append(("detached", frame.is_main()))
+                def on_main_frame_changed(self, browser, old_frame, new_frame):
+                    events.append(("main", old_frame is not None, new_frame is not None))
+            handlers["frame"] = Frames()
+            start(RED)
+            app.add_resource("http://frames.test/inner.html", "<p>inside</p>")
+            app.add_resource("http://frames.test/main.html", "<iframe id=f src='http://frames.test/inner.html'></iframe>")
+            events.clear()
+            app.load_url("http://frames.test/main.html")
+            wait_until(app, lambda: ("attached", False, False) in events, "the iframe to be attached")
+            # a new main frame replaces the first one, then the iframe is made and both are attached
+            assert ("created", True) in events and ("destroyed", True) in events and ("main", True, True) in events, events
+            assert ("created", False) in events and ("attached", True, False) in events, events
+            events.clear()
+            boxes[0].get_main_frame().execute_java_script("document.getElementById('f').remove()", "", 0)
+            wait_until(app, lambda: ("destroyed", False) in events, "the iframe to be destroyed")
+            assert ("detached", False) in events, events                      # detached before it is destroyed
+            assert events.index(("detached", False)) < events.index(("destroyed", False)), events
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_navigation_entries_of_a_browser_are_visited(self):
+        self.run_osr_script("""
+            class Entries(cefweaver.NavigationEntryVisitor):
+                def __init__(self):
+                    super().__init__()
+                    self.seen = []
+                def visit(self, entry, current, index, total):
+                    self.seen.append((index, total, current, entry.get_url(), entry.get_title(), entry.is_valid(),
+                                      entry.get_http_status_code(), type(entry.get_transition_type()).__name__))
+                    return True                                  # go on with the next entry
+            start("<title>one</title><p>1</p>")
+            one = boxes[0].get_main_frame().get_url()
+            two = page("<title>two</title><p>2</p>")
+            app.load_url(two)
+            wait_until(app, lambda: boxes[0].get_main_frame().get_url() == two and not boxes[0].is_loading(), "the second page")
+            visitor = Entries()
+            boxes[0].get_host().get_navigation_entries(visitor, False)
+            wait_until(app, lambda: len(visitor.seen) == 2, "the two entries")
+            (i0, t0, c0, u0, title0, ok0, status0, kind0), (i1, t1, c1, u1, title1, ok1, status1, kind1) = visitor.seen
+            assert (i0, i1, t0, t1) == (0, 1, 2, 2), visitor.seen
+            assert (c0, c1) == (False, True), visitor.seen                    # the second one is the current entry
+            assert u0 == one and u1 == two and (title0, title1) == ("one", "two"), visitor.seen
+            assert ok0 and ok1 and kind0 == "int", visitor.seen              # the transition type is a number
+            current = boxes[0].get_host().get_visible_navigation_entry()
+            assert current.get_url() == two and current.get_title() == "two" and current.get_display_url(), current
+            only = Entries()
+            boxes[0].get_host().get_navigation_entries(only, True)           # the current entry only
+            wait_until(app, lambda: only.seen, "the current entry")
+            assert len(only.seen) == 1 and only.seen[0][3] == two, only.seen
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_certificate_of_a_page_is_read_from_its_ssl_status(self):
+        self.run_osr_script(prelude=self.LOCAL_TLS_SERVER, body="""
+            import datetime
+            class Requests(cefweaver.RequestHandler):
+                def on_certificate_error(self, browser, cert_error, request_url, callback):
+                    callback.continue_()
+                    return True                                   # the self-signed certificate is accepted
+            texts = []
+            class Text(cefweaver.StringVisitor):
+                def visit(self, string):
+                    texts.append(string)
+            handlers["request"] = Requests()
+            start(RED)
+            app.load_url(SECURE + "/x")
+            send_until(app, lambda: boxes[0].get_main_frame().get_text(Text()),
+                       lambda: any(t.strip() == "secure hello" for t in texts), "the secure page")
+            status = boxes[0].get_host().get_visible_navigation_entry().get_ssl_status()
+            assert status.is_secure_connection()
+            assert cefweaver.is_cert_status_error(status.get_cert_status()), status.get_cert_status()   # self-signed
+            assert not cefweaver.is_cert_status_error(0)
+            certificate = status.get_x509_certificate()
+            subject, issuer = certificate.get_subject(), certificate.get_issuer()
+            assert subject.get_common_name() == "127.0.0.1" and issuer.get_common_name() == "127.0.0.1"   # its own issuer
+            assert subject.get_display_name() == "127.0.0.1"
+            assert certificate.get_serial_number().get_size() > 0
+            start_time, expiry = certificate.get_valid_start(), certificate.get_valid_expiry()
+            assert isinstance(start_time, datetime.datetime) and start_time.tzinfo is not None
+            assert datetime.timedelta(hours=23) < expiry - start_time < datetime.timedelta(hours=25), (start_time, expiry)
+            der, pem = certificate.get_der_encoded(), certificate.get_pem_encoded()
+            assert der.get_size() > 100 and der.get_data(1, 0) == b"\\x30"                       # a DER sequence
+            assert pem.get_data(27, 0) == b"-----BEGIN CERTIFICATE-----"
+            assert certificate.get_issuer_chain_size() == 0 and certificate.get_pem_encoded_issuer_chain() == []
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_server_of_cef_answers_http_requests_from_python(self):
+        # CefServer runs an HTTP server inside the browser process; the handler is Python (port 0: CEF picks one)
+        self.run_osr_script("""
+            import threading, urllib.error, urllib.request
+            log = []
+            class Handler(cefweaver.ServerHandler):
+                def on_server_created(self, server):
+                    log.append(("created", server.get_address()))
+                    self.server = server
+                def on_server_destroyed(self, server):
+                    log.append(("destroyed",))
+                def on_client_connected(self, server, connection_id):
+                    log.append(("connected",))
+                def on_client_disconnected(self, server, connection_id):
+                    log.append(("disconnected",))
+                def on_http_request(self, server, connection_id, client_address, request):
+                    log.append(("request", request.get_method(), request.get_url().rsplit("/", 1)[1], client_address))
+                    if request.get_url().endswith("/hello"):
+                        server.send_http200_response(connection_id, "text/plain", b"hello from python")
+                    else:
+                        server.send_http404_response(connection_id)
+            handler = Handler()
+            start(RED)
+            cefweaver.Server.create_server("127.0.0.1", 0, 5, handler)
+            wait_until(app, lambda: log, "the server")
+            address = log[0][1]
+            assert address.startswith("127.0.0.1:"), log              # (is_running() is for the server thread only)
+            answers = {}
+            def fetch(path):
+                try:
+                    with urllib.request.urlopen("http://" + address + path, timeout=10) as reply:
+                        answers[path] = (reply.status, reply.read(), reply.headers.get("Content-Type"))
+                except urllib.error.HTTPError as error:
+                    answers[path] = (error.code, error.read(), None)
+            for path in ("/hello", "/nothing"):
+                threading.Thread(target=fetch, args=(path,)).start()
+                wait_until(app, lambda: path in answers, "the answer for " + path)
+            assert answers["/hello"] == (200, b"hello from python", "text/plain"), answers
+            assert answers["/nothing"][0] == 404, answers
+            assert any(e[:3] == ("request", "GET", "hello") and e[3].startswith("127.0.0.1:") for e in log), log   # with the port
+            assert ("connected",) in log and ("disconnected",) in log, log
+            handler.server.shutdown()
+            wait_until(app, lambda: ("destroyed",) in log, "the server to be destroyed")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_response_filter_changes_the_body_of_a_response(self):
+        self.run_osr_script("""
+            T = types.ResponseFilterStatus
+            calls = []
+            class Replace(cefweaver.ResponseFilter):
+                def init_filter(self):
+                    calls.append("init")
+                    return True
+                def filter(self, data_in, data_out):
+                    calls.append(("filter", len(data_in), len(data_out)))
+                    if len(data_in) == 0:                                     # the input is over (an empty view)
+                        return T.DONE, 0, 0
+                    text = bytes(data_in).replace(b"FOO", b"BAR")             # (the same length: it fits)
+                    data_out[:len(text)] = text                               # the buffer to write is writable
+                    return T.NEED_MORE_DATA, len(data_in), len(text)          # (status, bytes read, bytes written)
+            class Resources(cefweaver.ResourceRequestHandler):
+                def get_resource_response_filter(self, browser, frame, request, response):
+                    return Replace() if request.get_url().startswith("http://filter.test") else None
+            resources = Resources()
+            class Requests(cefweaver.RequestHandler):
+                def get_resource_request_handler(self, browser, frame, request, is_navigation, is_download, request_initiator):
+                    return resources, False
+            handlers["request"] = Requests()
+            start(RED)
+            app.add_resource("http://filter.test/a.html", "<html><body>FOO and FOO</body></html>")
+            app.load_url("http://filter.test/a.html")
+            texts = []
+            class Text(cefweaver.StringVisitor):
+                def visit(self, string):
+                    texts.append(string)
+            send_until(app, lambda: boxes[0].get_main_frame().get_text(Text()),
+                       lambda: any("BAR" in t or "FOO" in t for t in texts), "the text of the page")
+            assert texts[-1].strip() == "BAR and BAR", texts
+            assert calls[0] == "init" and calls[1][0] == "filter" and calls[1][1] > 0, calls
+            assert calls[-1][1] == 0, calls                                      # the last call has no input
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_global_functions_of_cef_run_after_the_start(self):
+        self.run_osr_script("""
+            start(RED)
+            assert cefweaver.add_cross_origin_whitelist_entry("http://a.test", "http", "b.test", True)
+            assert cefweaver.remove_cross_origin_whitelist_entry("http://a.test", "http", "b.test", True)
+            assert cefweaver.add_cross_origin_whitelist_entry("http://a.test", "http", "b.test", True)
+            assert cefweaver.clear_cross_origin_whitelist()
+            assert cefweaver.format_url_for_security_display("https://www.example.com:8443/a/b?q=1") == "https://www.example.com:8443"
+            extensions = cefweaver.get_extensions_for_mime_type("text/html")
+            assert "html" in extensions and "htm" in extensions, extensions
+            assert cefweaver.get_extensions_for_mime_type("image/png") == ["png"]
+            assert cefweaver.is_rtl() is False and cefweaver.crash_reporting_enabled() is False
+            assert isinstance(cefweaver.now_from_system_trace_time(), int)
+            ok, executable = cefweaver.get_path(types.PathKey.DIR_EXE)
+            assert ok and executable.startswith("/"), (ok, executable)
+            assert [cefweaver.is_cert_status_error(s) for s in (0, 1, 4, 8)] == [False, True, True, True]
+            cefweaver.set_crash_key_value("test_key", "value")                  # without crash reporting: no effect, no error
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_is_rtl_is_refused_before_cef_runs(self):
+        # CefIsRTL() ends the process before CefInitialize() (it needs the i18n data): refused (scope.NEEDS_CEF_RUNNING)
+        with self.assertRaises(RuntimeError) as caught:
+            cefweaver.is_rtl()
+        self.assertIn("CefApp.initialize()", str(caught.exception))
+
+    def test_a_host_is_resolved_from_an_origin_and_preferences_and_settings_are_observed(self):
+        self.run_osr_script("""
+            start(RED)
+            context = boxes[0].get_host().get_request_context()
+            resolved = {}
+            class Resolve(cefweaver.ResolveCallback):
+                def __init__(self, origin):
+                    super().__init__()
+                    self.origin = origin
+                def on_resolve_completed(self, result, resolved_ips):
+                    resolved[self.origin] = (result, resolved_ips)
+            for origin in ("http://127.0.0.1/", "http://localhost/", "http://does-not-exist.invalid/"):
+                context.resolve_host(origin, Resolve(origin))                  # an origin, not a host name
+            wait_until(app, lambda: len(resolved) == 3, "the three answers")
+            assert resolved["http://127.0.0.1/"] == (types.ErrorCode.NONE, ["127.0.0.1"]), resolved
+            assert "127.0.0.1" in resolved["http://localhost/"][1], resolved
+            assert resolved["http://does-not-exist.invalid/"] == (types.ErrorCode.NAME_NOT_RESOLVED, []), resolved
+            # a preference observer (all preferences: name None) hears of a change of a preference
+            changed = []
+            class Prefs(cefweaver.PreferenceObserver):
+                def on_preference_changed(self, name):
+                    changed.append(name)
+            registration = context.add_preference_observer(None, Prefs())
+            assert registration is not None
+            value = cefweaver.Value.create()
+            value.set_bool(True)
+            assert context.set_preference("enable_do_not_track", value) == (True, "")
+            wait_until(app, lambda: "enable_do_not_track" in changed, "the preference change")
+            # a setting observer hears of a website setting (the URL is made https by CEF)
+            settings = []
+            class Settings(cefweaver.SettingObserver):
+                def on_setting_changed(self, requesting_url, top_level_url, content_type):
+                    settings.append((requesting_url, content_type))
+            registration2 = context.add_setting_observer(Settings())
+            setting = cefweaver.Value.create()
+            setting.set_int(2)
+            context.set_website_setting("http://a.test/", "", types.ContentSettingTypes.COOKIES, setting)
+            wait_until(app, lambda: any(url == "https://a.test/" for url, _ in settings), "the setting change")
+            assert context.get_website_setting("http://a.test/", "", types.ContentSettingTypes.COOKIES) is not None
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_accessibility_handler_gets_the_tree_when_accessibility_is_on(self):
+        self.run_osr_script("""
+            events = []
+            class Access(cefweaver.AccessibilityHandler):
+                def on_accessibility_tree_change(self, value):
+                    events.append(("tree", value.get_type()))
+                def on_accessibility_location_change(self, value):
+                    events.append(("location", value.get_type()))
+            handlers["accessibility"] = Access()                                 # given by the render handler
+            start("<h1>hello</h1><button>press</button>")
+            boxes[0].get_host().set_accessibility_state(types.State.ENABLED)
+            wait_until(app, lambda: events, "the accessibility tree")
+            assert events[0] == ("tree", types.ValueType.DICTIONARY), events
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_media_router_and_the_component_updater_can_be_asked(self):
+        # there is no Cast device here: the router says there are no sinks and no routes
+        self.run_osr_script("""
+            start(RED)
+            context = boxes[0].get_host().get_request_context()
+            ready, sinks, routes = [], [], []
+            class Ready(cefweaver.CompletionCallback):
+                def on_complete(self):
+                    ready.append(True)
+            class Observer(cefweaver.MediaObserver):
+                def on_sinks(self, found):
+                    sinks.append(len(found))
+                def on_routes(self, found):
+                    routes.append(len(found))
+            router = context.get_media_router(Ready())
+            assert isinstance(router, cefweaver.MediaRouter)
+            wait_until(app, lambda: ready, "the media router")
+            registration = router.add_observer(Observer())
+            router.notify_current_sinks()
+            router.notify_current_routes()
+            wait_until(app, lambda: sinks and routes, "the sinks and the routes")
+            assert sinks[-1] == 0 and routes[-1] == 0, (sinks, routes)
+            assert router.get_source("urn:x-org.chromium.media:source:tab:1") is None
+            updater = cefweaver.ComponentUpdater.get_component_updater()
+            count = updater.get_component_count()
+            components = updater.get_components()
+            assert count == len(components) > 0, count
+            assert all(c.get_id() and c.get_name() and isinstance(c.get_state(), types.ComponentState) for c in components)
+            assert updater.get_component_by_id(components[0].get_id()).get_name() == components[0].get_name()
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_tracing_writes_a_file_and_says_when_it_is_done(self):
+        self.run_osr_script("""
+            import os, tempfile
+            start(RED)
+            began, ended = [], []
+            class Begun(cefweaver.CompletionCallback):
+                def on_complete(self):
+                    began.append(True)
+            class Ended(cefweaver.EndTracingCallback):
+                def on_end_tracing_complete(self, tracing_file):
+                    ended.append(tracing_file)
+            assert cefweaver.begin_tracing("-*,disabled-by-default-cc.debug", Begun())
+            wait_until(app, lambda: began, "the start of the tracing")
+            app.load_url(page("<p>trace me</p>"))
+            for _ in range(200):
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            target = os.path.join(tempfile.mkdtemp(), "trace.json")
+            assert cefweaver.end_tracing(target, Ended())
+            wait_until(app, lambda: ended, "the end of the tracing")
+            assert ended == [target] and os.path.getsize(target) > 1000, (ended, os.path.exists(target))
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_server_that_asks_for_a_client_certificate_is_told_to_the_request_handler(self):
+        self.run_osr_script(prelude=self.LOCAL_TLS_SERVER, body="""
+            import http.server, ssl as _ssl
+            asked = []
+            class Requests(cefweaver.RequestHandler):
+                def on_certificate_error(self, browser, cert_error, request_url, callback):
+                    callback.continue_()
+                    return True
+                def on_select_client_certificate(self, browser, is_proxy, host, port, certificates, callback):
+                    asked.append((is_proxy, host, port, len(certificates)))
+                    callback.select(None)                                  # no client certificate
+                    return True
+            handlers["request"] = Requests()
+            context = _ssl.SSLContext(_ssl.PROTOCOL_TLS_SERVER)             # a server that wants a certificate of the client
+            context.load_cert_chain(_crt, _key)
+            context.verify_mode = _ssl.CERT_REQUIRED
+            context.load_verify_locations(_crt)
+            asking = http.server.ThreadingHTTPServer(("127.0.0.1", 0), SecureHandler)
+            asking.socket = context.wrap_socket(asking.socket, server_side=True)
+            threading.Thread(target=asking.serve_forever, daemon=True).start()
+            port = asking.server_address[1]
+            start(RED)
+            app.load_url("https://127.0.0.1:%d/x" % port)
+            wait_until(app, lambda: asked, "the request for a client certificate")
+            assert asked[0] == (False, "127.0.0.1", port, 0), asked           # (is_proxy, host, port, no certificates here)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_app_handler_hears_of_child_processes_and_registers_preferences(self):
+        self.run_osr_script("""
+            kinds, prefs, kept = [], [], []
+            class Hooks(cefweaver.AppHandler):
+                def on_before_child_process_launch(self, command_line):
+                    kinds.append(command_line.get_switch_value("type"))       # renderer, gpu-process, utility ...
+                def on_register_custom_preferences(self, type, registrar):
+                    prefs.append(type)
+                    kept.append(registrar)
+                    text = cefweaver.Value.create()
+                    text.set_string("hello")
+                    assert registrar.add_preference("cefweaver.greeting", text)
+                    number = cefweaver.Value.create()
+                    number.set_int(7)
+                    assert registrar.add_preference("cefweaver.count", number)
+                    assert not registrar.add_preference("cefweaver.count", number)    # the name is taken
+            app.set_app_handler(Hooks())
+            start(RED)
+            wait_until(app, lambda: "renderer" in kinds, "the renderer to be launched")
+            assert all(isinstance(k, str) for k in kinds) and "renderer" in kinds, kinds
+            assert types.PreferencesType.GLOBAL in prefs and types.PreferencesType.REQUEST_CONTEXT in prefs, prefs
+            context = boxes[0].get_host().get_request_context()
+            assert context.has_preference("cefweaver.greeting") and context.has_preference("cefweaver.count")
+            assert context.get_preference("cefweaver.greeting").get_string() == "hello"        # the default
+            assert context.get_preference("cefweaver.count").get_int() == 7
+            number = cefweaver.Value.create()
+            number.set_int(8)
+            assert context.set_preference("cefweaver.count", number) == (True, "")
+            assert context.get_preference("cefweaver.count").get_int() == 8
+            try:                                                           # the registrar is valid during the call only
+                kept[0].add_preference("cefweaver.late", number)
+            except RuntimeError as error:
+                assert "valid only during" in str(error), error
+            else:
+                raise AssertionError("a registrar that is out of date still worked")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_devtools_open_in_a_window_of_their_own(self):
+        self.run_osr_script("""
+            start("<p id=target>inspect me</p>")
+            host = boxes[0].get_host()
+            assert not host.has_dev_tools()
+            host.show_dev_tools()                                  # CEF's defaults: a window of its own
+            wait_until(app, lambda: host.has_dev_tools(), "DevTools to open")
+            host.close_dev_tools()
+            wait_until(app, lambda: not host.has_dev_tools(), "DevTools to close")
+            for _ in range(60):                                    # a show right after the close is ignored: CEF is
+                app.do_message_loop_work()                         # still taking the DevTools window down
+                time.sleep(0.005)
+            host.show_dev_tools(5, 5)                              # inspect the element at a point of the page
+            wait_until(app, lambda: host.has_dev_tools(), "DevTools to open at a point")
+            host.close_dev_tools()
+            wait_until(app, lambda: not host.has_dev_tools(), "DevTools to close again")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_shared_memory_message_is_written_and_read_as_a_copy(self):
+        # the memory belongs to CEF (it can free it): the bytes are copied in and out, never lent out
+        self.run_osr_script("""
+            start(RED)
+            builder = cefweaver.SharedProcessMessageBuilder.create("shared-test", 16)
+            assert builder.is_valid() and builder.size() == 16
+            assert builder.write(0, b"hello")
+            assert builder.write(5, bytearray(b" world"))
+            assert builder.write(11, memoryview(b"!"))
+            assert builder.write(16, b"")                          # nothing to write
+            assert not builder.write(14, b"abcd")                  # does not fit
+            assert not builder.write(17, b"x")                     # starts behind the end
+            message = builder.build()
+            assert message.get_name() == "shared-test", message.get_name()
+            region = message.get_shared_memory_region()
+            assert region.is_valid() and region.size() == 16
+            data = region.to_bytes()
+            assert data[:12] == b"hello world!", data
+            assert len(data) == 16 and isinstance(data, bytes)
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_renderer_tells_javascript_errors_the_focused_node_and_contexts(self):
+        self.run_osr_script("""
+            events = []
+            class Events(cefweaver.RendererEventHandler):
+                def on_uncaught_exception(self, browser, frame, exception):
+                    events.append(("exception", frame.is_main(), exception))
+                def on_focused_node_changed(self, browser, frame, node):
+                    events.append(("focus", node))
+                def on_context_created(self, browser, frame, is_main, url):
+                    events.append(("created", is_main, url))
+                def on_context_released(self, browser, frame, is_main, url):
+                    events.append(("released", is_main, url))
+            decoder = cefweaver.RendererEvents(Events())
+            handlers["process_message"] = decoder.on_process_message_received
+            app.enable_renderer_events()
+            start(RED)
+            PAGE = ("<input id=name style='position:fixed;left:20px;top:30px;width:120px;height:24px'>"
+                    "<script>function fail() { throw new Error('boom ' + (40 + 2)); }"
+                    "setTimeout(function () { document.getElementById('name').focus(); }, 100);</script>")
+            app.add_resource("http://events.test/a.html", PAGE)
+            app.load_url("http://events.test/a.html")
+            wait_until(app, lambda: any(e[0] == "focus" and e[1] for e in events), "the focus on the input")
+            node = [e[1] for e in events if e[0] == "focus" and e[1]][-1]
+            assert node.editable and node.tag == "INPUT", node
+            assert node.bounds[0] == 20 and node.bounds[1] == 30 and node.bounds[2] >= 120, node.bounds   # in the page
+            assert ("created", True, "http://events.test/a.html") in events, events                     # the V8 context
+            boxes[0].get_main_frame().execute_java_script("document.activeElement.blur()", "", 0)
+            wait_until(app, lambda: events[-1] == ("focus", None), "the focus to leave the node")
+            boxes[0].get_main_frame().execute_java_script("setTimeout(fail, 0)", "", 0)                  # an error nothing catches
+            wait_until(app, lambda: any(e[0] == "exception" for e in events), "the JavaScript error")
+            exception = [e for e in events if e[0] == "exception"][-1][2]
+            assert "boom 42" in exception.message and exception.script_name == "http://events.test/a.html", exception
+            assert exception.line > 0 and exception.stack and exception.stack[0].function_name == "fail", exception
+            assert exception.source_line.strip().startswith("function fail"), exception.source_line
+            # an iframe: its context is made and, when the iframe is removed, released. (When the main frame leaves
+            # its page the renderer is taken down and no release comes, only the context of the next page.)
+            app.add_resource("http://events.test/inner.html", "<p>inside</p>")
+            app.add_resource("http://events.test/b.html", "<iframe id=f src='http://events.test/inner.html'></iframe>")
+            app.load_url("http://events.test/b.html")
+            wait_until(app, lambda: ("created", False, "http://events.test/inner.html") in events, "the context of the iframe")
+            boxes[0].get_main_frame().execute_java_script("document.getElementById('f').remove()", "", 0)
+            wait_until(app, lambda: ("released", False, "http://events.test/inner.html") in events, "the iframe context to be released")
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_the_renderer_sends_no_events_unless_they_are_enabled(self):
+        self.run_osr_script("""
+            messages = []
+            handlers["process_message"] = lambda browser, frame, source, message: messages.append(message.get_name())
+            start("<input id=i autofocus><script>setTimeout(function () { throw new Error('quiet') }, 50)</script>")
+            for _ in range(300):
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            assert "cefweaver-renderer-event" not in messages, messages
             app.shutdown()
             print("OK")
         """)

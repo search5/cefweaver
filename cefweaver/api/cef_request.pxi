@@ -103,6 +103,23 @@ cdef object _wrap_PostData(CefRefPtr[CefPostData] ref):
     return obj
 
 
+cdef inline CefPostData* _g_ref_PostData(object obj) except? NULL:
+    """A reference for CEF to keep (a PostData that a handler method returns; None: nothing)."""
+    cdef PostData typed
+    cdef CefRefPtr[CefPostData] ref
+    cdef CefPostData* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, PostData):
+        raise TypeError("expected a PostData or None, not %s" % type(obj).__name__)
+    typed = <PostData>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+
 cdef class PostDataElement:
     """Class used to represent a single element in the request post data. The
     methods of this class may be called on any thread.
@@ -218,6 +235,23 @@ cdef object _wrap_PostDataElement(CefRefPtr[CefPostDataElement] ref):
     obj = PostDataElement.__new__(PostDataElement)
     obj._ref = ref
     return obj
+
+
+cdef inline CefPostDataElement* _g_ref_PostDataElement(object obj) except? NULL:
+    """A reference for CEF to keep (a PostDataElement that a handler method returns; None: nothing)."""
+    cdef PostDataElement typed
+    cdef CefRefPtr[CefPostDataElement] ref
+    cdef CefPostDataElement* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, PostDataElement):
+        raise TypeError("expected a PostDataElement or None, not %s" % type(obj).__name__)
+    typed = <PostDataElement>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 cdef class Request:
@@ -482,5 +516,22 @@ cdef object _wrap_Request(CefRefPtr[CefRequest] ref):
     obj = Request.__new__(Request)
     obj._ref = ref
     return obj
+
+
+cdef inline CefRequest* _g_ref_Request(object obj) except? NULL:
+    """A reference for CEF to keep (a Request that a handler method returns; None: nothing)."""
+    cdef Request typed
+    cdef CefRefPtr[CefRequest] ref
+    cdef CefRequest* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Request):
+        raise TypeError("expected a Request or None, not %s" % type(obj).__name__)
+    typed = <Request>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 

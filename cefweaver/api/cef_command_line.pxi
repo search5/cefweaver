@@ -250,3 +250,20 @@ cdef object _wrap_CommandLine(CefRefPtr[CefCommandLine] ref):
     return obj
 
 
+cdef inline CefCommandLine* _g_ref_CommandLine(object obj) except? NULL:
+    """A reference for CEF to keep (a CommandLine that a handler method returns; None: nothing)."""
+    cdef CommandLine typed
+    cdef CefRefPtr[CefCommandLine] ref
+    cdef CefCommandLine* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, CommandLine):
+        raise TypeError("expected a CommandLine or None, not %s" % type(obj).__name__)
+    typed = <CommandLine>obj
+    ref = typed._ref
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

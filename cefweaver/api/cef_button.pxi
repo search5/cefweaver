@@ -79,3 +79,20 @@ cdef object _wrap_Button(CefRefPtr[CefButton] ref):
     return obj
 
 
+cdef inline CefButton* _g_ref_Button(object obj) except? NULL:
+    """A reference for CEF to keep (a Button that a handler method returns; None: nothing)."""
+    cdef Button typed
+    cdef CefRefPtr[CefButton] ref
+    cdef CefButton* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, Button):
+        raise TypeError("expected a Button or None, not %s" % type(obj).__name__)
+    typed = <Button>obj
+    ref = CefRefPtr[CefButton](<CefButton*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

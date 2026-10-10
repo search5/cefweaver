@@ -593,3 +593,11 @@
 - 사용자 결정(Views는 전부 열기)에 따라 `scope.py`에 Views 22개 클래스를 더하고 생성기를 고쳤습니다([F96~F98](pages/reference/verified-findings-views.md)). **상속을 Python 상속으로** 구현했고(부모도 범위 안에 있으면 하위 클래스, 자기 메서드만, 반환값은 `As*()`로 실제 종류), **API 버전 필터**(`removed`/`added`)와 **상속한 순수 가상 메서드** 판정을 고쳤으며, `initialize(None)`(첫 브라우저 없음)을 더했습니다. 생성은 1,031개(클래스 100개), 306개가 Views이고 막힌 것은 3개(`GetDelegate`, 팝업의 `GetDelegateForPopupBrowserView`, `GetParentWindow`)입니다.
 - `examples/views/`(`browser.py`, `quickstart.py`, `smoke.py`, `README.md`, `pyproject.toml`)를 더했고 `smoke.py` 13개(주소칸 클릭과 입력, Return, Back, Forward, Reload, 창 닫기를 실제 X 이벤트로)가 연속 3회 통과합니다. 사이트에 `docs/views.md`를 더했습니다.
 - **발견**: 외부 메시지 펌프로는 CEF 자신의 창에 X11 입력이 오지 않습니다(설치된 Chrome은 같은 가상 화면에서 입력을 받으므로 환경 문제가 아님, 폴링이면 됨). 창이 열린 채 `shutdown()`을 부르면 죽습니다. 이번 변경과 무관한 기존의 간헐적 시험 실패(20회 중 2회)도 기록했습니다.
+
+## [2026-10-10] ingest | 남은 A, B 그룹과 렌더러 이벤트 중계, 미디어 라우터, Views 후속 작업
+
+- 생성기가 **CEF에 준 객체를 되찾고(프록시 등록부), 핸들러가 라이브러리 객체를 돌려주는** 경우를 지원하게 되어 `View.get_delegate()`, `BrowserViewDelegate.get_delegate_for_popup_browser_view`, `WindowDelegate.get_parent_window`, `BrowserHost.get_client()`, `RequestContext.get_handler()`를 열었습니다([F100, F101](pages/reference/verified-findings-views.md)).
+- 창이 열린 채 `shutdown()`을 부르면 죽던 문제의 원인(살아 있는 브라우저)을 확인하고 `CloseOtherBrowsers()`로 해결했습니다([F99](pages/reference/verified-findings-views.md)).
+- 같은 작업 묶음에서 A 그룹 API, 손으로 쓴 B 그룹(extras, AppHooks), 렌더러 이벤트 중계, 미디어 라우터를 열었습니다. 이 항목들의 상세한 위키 정리는 아직 하지 않았습니다.
+- 전체 시험 526개에서 1개가 한 번 실패했고(철자 메뉴, 단독 4회 통과) 이번 변경과 무관해 보입니다.
+

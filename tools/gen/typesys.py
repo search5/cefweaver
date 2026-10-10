@@ -523,8 +523,6 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
                 raise Unsupported("vector of objects passed to a library method")
             if isinstance(kind, Void):
                 raise Unsupported("void parameter")
-            if isinstance(kind, ClientRef) and client_side:
-                raise Unsupported("client object parameter %s passed to the application" % name)
             plan.params.append(ParamPlan(name, py_param_name(name), analysis.get_type(), kind,
                                          out=out, const=analysis.is_const(),
                                          byref=analysis.is_byref(),
@@ -576,8 +574,5 @@ def _check_return(kind, client_side):
     if client_side:
         if isinstance(kind, Time):
             raise Unsupported("a client method returning a time")
-        if isinstance(kind, LibRef):
-            raise Unsupported("a client method returning a library object")
-    else:
-        if isinstance(kind, ClientRef):
-            raise Unsupported("a library method returning a client object")
+    # A client method returns a library object (the Python object holds one: it is given to CEF with a reference);
+    # a library method returns a client object (the Python object that was given to CEF is found again).

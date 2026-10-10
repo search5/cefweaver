@@ -113,3 +113,20 @@ cdef object _wrap_BrowserView(CefRefPtr[CefBrowserView] ref):
     return obj
 
 
+cdef inline CefBrowserView* _g_ref_BrowserView(object obj) except? NULL:
+    """A reference for CEF to keep (a BrowserView that a handler method returns; None: nothing)."""
+    cdef BrowserView typed
+    cdef CefRefPtr[CefBrowserView] ref
+    cdef CefBrowserView* raw
+    if obj is None:
+        return NULL
+    if not isinstance(obj, BrowserView):
+        raise TypeError("expected a BrowserView or None, not %s" % type(obj).__name__)
+    typed = <BrowserView>obj
+    ref = CefRefPtr[CefBrowserView](<CefBrowserView*>typed._ref.get())
+    raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
+
+

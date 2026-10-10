@@ -111,3 +111,14 @@ cdef inline CefLoadHandler* _g_export_LoadHandler(object obj) except? NULL:
     return raw
 
 
+cdef object _g_unexport_LoadHandler(CefRefPtr[CefLoadHandler] ref):
+    """The Python object that was given to CEF as this LoadHandler (None: CEF's own, or none)."""
+    cdef void* py
+    if ref.get() == NULL:
+        return None
+    py = CwPyOfLoadHandler(ref.get())
+    if py == NULL:
+        return None
+    return <object>py
+
+
