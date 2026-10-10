@@ -1,0 +1,13 @@
+[project]
+name = "cefweaver-print-example"
+version = "0.1.0"
+description = "Printing from cefweaver on Linux: a print dialog of the application (Tk) and CUPS (pycups)"
+requires-python = ">=3.13,<3.14"        # the wheel is built for CPython 3.13 (uv build --wheel)
+dependencies = ["cefweaver", "pillow>=10", "pycups>=2.0"]   # pycups is built from source: libcups2-dev
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+# The wheel of this repository: `uv build --wheel` in the repository root first.
+cefweaver = { path = "../../dist/cefweaver-0.1.0-cp313-cp313-linux_x86_64.whl" }
