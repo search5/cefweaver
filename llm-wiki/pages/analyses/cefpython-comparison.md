@@ -11,19 +11,21 @@ updated: 2026-10-08
 
 # cefpython과 cefweaver의 API 차이
 
+> 2026-10-10 점검: 아래 "한눈에" 표의 일부(플랫폼, 툴킷, JavaScript 통신)를 현재 상태로 고쳤습니다. 이하 서술은 2026-10-08 기준이라 "창 임베딩이 없다"처럼 이후에 바뀐 부분이 있습니다. CEF 클래스별로 열린 범위를 대조한 것은 [열지 않은 CEF 메서드와 cefpython의 비교](unopened-cef-api.md)에 있습니다.
+
 cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 뽑아 cefweaver의 스텁(`_cefweaver.pyi`, `types.py`, `settings.py`)과 이름으로 대조하고(CamelCase를 snake_case로 바꿔 비교), 이름이 없는 것은 뜻으로 다시 따졌습니다. 이름이 없다고 해서 기능이 없는 것은 아닙니다.
 
 ## 한눈에
 
 | 영역 | cefpython | cefweaver |
 | --- | --- | --- |
-| CEF와 플랫폼 | 오래된 CEF(v66 계열), Windows, Linux, Mac, Python 2와 3 | CEF 154, Linux x86_64만(Windows 미검증), Python 3.11 이상 |
+| CEF와 플랫폼 | 오래된 CEF(v66 계열), Windows, Linux, Mac, Python 2와 3 | CEF 154, Linux x86_64와 macOS arm64(Windows 미검증), Python 3.11 이상 |
 | 방식 | 손으로 쓴 Cython 바인딩 | 헤더에서 생성(범위 안의 메서드 2131/2255의 타입을 지원) |
 | 핸들러 | 12개(소수는 문서만 있음) | java-cef의 13개와 그 밖을 포함해 대부분 |
 | 오프스크린 | 있음 | 있음(여러 브라우저, 투명 여부 포함) |
 | 값 컨테이너와 스트림, 쿠키, URL 요청 | 일부 | 대부분 |
-| 창 임베딩과 GUI 툴킷 | 있음(`WindowInfo.SetAsChild`, Qt, wx, GTK, Tk 예제) | **없음** |
-| JavaScript와 Python의 통신 | 풍부함 | 제한적(메시지 라우터가 있음) |
+| 창 임베딩과 GUI 툴킷 | 있음(`WindowInfo.SetAsChild`, Qt, wx, GTK, Tk 예제) | 오프스크린 어댑터 6개(`cefweaver.ui`: Tk, Qt, GTK 3, SDL2, wxPython, Kivy)와 macOS의 네이티브 `NSView`(`parent_view`). **Linux의 창 모드 임베딩(`SetAsChild`)은 확인하지 않음** (2026-10-10 갱신) |
+| JavaScript와 Python의 통신 | 풍부함 | 메시지 라우터와 `JavascriptBridge`(JSON, `Promise`, 콜백, `evaluate`). 객체와 속성 바인딩은 없음 (2026-10-10 갱신) |
 | 렌더러 프로세스의 Python | 있음 | **없음**(C++만) |
 
 ## cefpython에 있고 cefweaver에 없는 것 (큰 순서)

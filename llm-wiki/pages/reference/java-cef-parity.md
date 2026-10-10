@@ -6,7 +6,7 @@ sources:
   - tools/gen/derive_surface.py
   - tools/gen/report.py
   - tests/test_generator.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # java-cef 동등성 (바닥과 그 위)
@@ -43,7 +43,7 @@ updated: 2026-10-08
 
 ## 바닥 위 (우리가 더 연 것, java-cef에는 없음)
 
-닫지 않고 둡니다(사용자 결정). 총 304개 메서드이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
+닫지 않고 둡니다(사용자 결정). 총 627개 메서드(2026-10-10 `Image`와 Views를 더해 304개에서 늘었음)이고 클래스별 목록은 `coverage-report.md`의 "beyond the floor" 절에 있습니다. 묶음별 구성은 다음과 같습니다.
 
 | 묶음 | 항목 | 메서드 |
 | --- | --- | --- |
@@ -57,6 +57,8 @@ updated: 2026-10-08
 | 오디오 | (UI: 싱크로 재생, [F74](verified-findings-media.md)) `AudioHandler` 5(스트림 시작, 패킷, 정지, 오류, 매개변수), `Client.get_audio_handler` 1 ([F72](verified-findings-media.md)) | 6 |
 | 권한(마이크, 카메라) | `PermissionHandler` 3, `MediaAccessCallback` 2, `PermissionPromptCallback` 1, `Client.get_permission_handler` 1 ([F71](verified-findings-media.md)) | 7 |
 | 그 밖 | `SSLInfo`, `UnresponsiveProcessCallback` | 3 |
+| 이미지 (2026-10-10, [F95](verified-findings-handlers.md)) | `Image` 14, `DownloadImageCallback` 1, `BrowserHost.download_image`와 `DragData.get_image` 2 | 17 |
+| Views 프레임워크 (2026-10-10, [F96](verified-findings-views.md)) | `View`, `Panel`, `Window`, `BrowserView`, `Button`, `LabelButton`, `MenuButton`, `Textfield`, `ScrollView`, 레이아웃, 델리게이트 7개 등 21개 클래스(상속한 클래스는 자기 메서드만) | 306 |
 
 메서드 수에 잡히지 않는 것도 있습니다.
 
@@ -106,6 +108,7 @@ java-cef 소스(`java/org/cef/handler/`의 핸들러 목록과 `native/client_ha
 
 ## 관련 페이지
 
+- [java-cef를 바닥으로 보았을 때 어디까지 왔는가](../analyses/beyond-java-cef.md): 바닥 위의 수치와 아직 뒤처진 곳의 요약
 - [생성 범위와 커버리지](generated-api-coverage.md)
 - [커버리지 보고서 (생성됨)](coverage-report.md)
 - [설계 결정 기록](design-decisions.md)

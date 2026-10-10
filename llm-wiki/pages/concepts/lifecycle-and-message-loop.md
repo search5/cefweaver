@@ -7,7 +7,7 @@ sources:
   - native/cefwrapper/cef_wrapper_client_handler.cc
   - cefweaver/_cefweaver.pyx
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 수명 주기와 메시지 루프
@@ -54,6 +54,10 @@ app.shutdown()
 `g_IsRunning`은 `CefWrapperClientHandler::OnBeforeClose()`에서도 꺼집니다. 그래서 **사용자가 창을 닫으면 `is_running`이 `False`가 되어** 위 루프가 끝납니다. 창 관리자가 없는 가상 X 서버에서 닫기 요청(`WM_DELETE_WINDOW`)을 직접 보내 확인했고, 요청 약 4초 뒤 루프가 끝났습니다(이 시험은 `python-xlib`가 필요해서 저장소의 `tests/`에는 없습니다).
 
 `execute_javascript()`와 `load_url()`은 준비되지 않았을 때 예외 대신 `False`를 돌려줍니다. `initialize()` 전, 또는 `shutdown()` 뒤에 부르면 `RuntimeError`입니다.
+
+### CEF가 창을 소유하면 폴링이어야 한다 (Views)
+
+`MessagePump`(`external_message_pump`)는 툴킷이 창과 이벤트 루프를 소유하는 오프스크린 어댑터를 위한 것입니다. **CEF가 자기 창을 소유하는 경우**(Views의 `Window`)에는 외부 펌프로 돌리면 그려지고 레이아웃도 되지만 **창의 X11 마우스와 키 입력이 처리되지 않았습니다**. `do_message_loop_work()`를 자주 부르는 폴링으로 바꾸면 입력이 옵니다([F97](../reference/verified-findings-views.md)). 또 `initialize(None)`은 첫 브라우저 없이 시작하고 `is_running`은 `shutdown()`까지 `True`이며, **창이 열린 채로 `shutdown()`을 부르면 죽으므로** `on_window_destroyed`를 받은 뒤에 부릅니다.
 
 ## shutdown()
 

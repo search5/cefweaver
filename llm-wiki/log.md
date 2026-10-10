@@ -566,3 +566,30 @@
 ## [2026-10-10] ingest | 인쇄 예제(examples/print) 추가
 
 - 사용자 요청으로 앱이 직접 만드는 인쇄 대화상자를 예제로 저장소에 추가했습니다(`examples/print/`: `printing.py`, `quickstart.py`, `smoke.py`, `README.md`, `pyproject.toml`). `smoke.py` 11개 점검이 연속 3회 통과했고(프린터로는 보내지 않음), `docs/installation.md`에 예제를 한 문장으로 안내했습니다. F94와 색인에 반영했습니다.
+
+## [2026-10-10] ingest | java-cef 대비 어디까지 왔는가
+
+- 사용자 질문("java-cef가 격차면 우리는 얼마나 더 나아왔는가")에 답하며 `pages/analyses/beyond-java-cef.md`를 만들었습니다. 바닥 389개는 모두 열렸고 바닥 위가 304개(전체 708개), 툴킷 어댑터 6개, macOS 네이티브 뷰, 인쇄 예제, 시험 497개를 정리하고, 뒤처진 곳(Windows 미검증, 성숙도, Linux의 창 모드 임베딩, 배포 형식)을 함께 적었습니다.
+
+## [2026-10-10] ingest | 열지 않은 CEF 메서드와 cefpython의 비교
+
+- 사용자 질문("나머지 CEF에서 열지 않은 메서드와, cefpython에서는 열려 있는지")에 답하며 `pages/analyses/unopened-cef-api.md`를 만들었습니다. 생성기 모델로 열지 않은 약 1,547개를 묶음별로 집계하고(Views 약 773, CEF 시험용 326, V8 약 111 등), cefpython의 열린 범위는 `src/extern/cef/*.pxd`의 선언과 C++ 핸들러의 재정의에서 뽑았습니다(선언이 곧 공개는 아님). cefpython만 여는 것은 약 40개이고 대부분 의도적으로 열지 않은 것입니다. `cefpython-comparison.md`의 오래된 행(플랫폼, 툴킷, JS 통신)도 고쳤습니다.
+
+## [2026-10-10] ingest | 열 수 있는 미개방 CEF API 정리
+
+- 사용자 요청("우리 바인딩 특성상 열지 못하는 것을 빼고 우회해서라도 열 수 있는 것만 정리")으로 `unopened-cef-api.md`에 "열 수 있는 것" 절을 더했습니다. 생성기의 타입 판정으로 시험용, V8, DOM, Views를 뺀 미개방 클래스가 거의 모두 막힘이 없음을 확인하고, A(scope에 추가만, 약 130개), B(손으로 쓴 래퍼나 복사, 약 25개), C(구조를 바꾸는 우회), 실익이 낮은 것, 열지 않는 것으로 나눴습니다. 가장 값이 큰 후보는 `FindHandler`입니다(`find()`의 결과를 받을 곳이 없음). 실제 컴파일과 동작은 확인하지 않았습니다.
+
+## [2026-10-10] ingest | Views 프레임워크를 전부 열기로 함
+
+- 사용자 결정("Views는 다 열어야 한다: java-cef와 달리 독립적 UI 구성이 가능하다")에 따라 `unopened-cef-api.md`의 Views 행을 "전부 연다"로 바꾸고 측정을 기록했습니다. java-cef에는 Views 참조가 없음을 확인했고(이유는 추정), 생성기를 메모리에서만 확장해 22개 클래스 789개 메서드가 오류 없이 생성되며 770개가 막힘 없음, 생성 텍스트는 약 65% 늘어남을 확인했습니다. 구현은 아직 하지 않았습니다.
+
+## [2026-10-10] ingest | Image와 DownloadImageCallback을 열고 초기화 전 크래시를 막음
+
+- Views를 여는 첫 단계로 `scope.py`에 `CefImage`와 `CefDownloadImageCallback`을 더했습니다(17개: `DragData.get_image`, `BrowserHost.download_image` 포함). 빌드와 동작은 확인했고(F95), 시험 3개를 더해 전체 500개가 통과합니다. CEF 초기화 전에 `Image.create_image()`를 부르면 소멸할 때 죽는 것을 찾아 `NEEDS_CEF_RUNNING` 표와 `_cef_started` 플래그로 `RuntimeError`가 나게 막았고(원인은 미조사), 절차 문서와 known-constraints에 적었습니다. 커버리지를 725개(클래스 79개)로, 바닥 위를 321개로 고쳤습니다.
+- **Views의 새 발견**: 생성기가 라이브러리 클래스의 상속을 부모 메서드를 펼치는 방식으로만 처리해서(`CefRequestContext`와 `PreferenceManager`) 생성된 `Window`는 `View`의 하위 클래스가 아닙니다. `window.add_child_view(browser_view)`처럼 파생 뷰를 `View` 인자로 넘기려면 **Python 쪽 상속과 업캐스트, 반환값의 동적 타입 선택(`AsBrowserView` 등)을 생성기에 구현해야 합니다.** 다음 단계의 핵심 작업입니다.
+
+## [2026-10-10] ingest | Views 프레임워크 22개 클래스를 열고 예제로 확인
+
+- 사용자 결정(Views는 전부 열기)에 따라 `scope.py`에 Views 22개 클래스를 더하고 생성기를 고쳤습니다([F96~F98](pages/reference/verified-findings-views.md)). **상속을 Python 상속으로** 구현했고(부모도 범위 안에 있으면 하위 클래스, 자기 메서드만, 반환값은 `As*()`로 실제 종류), **API 버전 필터**(`removed`/`added`)와 **상속한 순수 가상 메서드** 판정을 고쳤으며, `initialize(None)`(첫 브라우저 없음)을 더했습니다. 생성은 1,031개(클래스 100개), 306개가 Views이고 막힌 것은 3개(`GetDelegate`, 팝업의 `GetDelegateForPopupBrowserView`, `GetParentWindow`)입니다.
+- `examples/views/`(`browser.py`, `quickstart.py`, `smoke.py`, `README.md`, `pyproject.toml`)를 더했고 `smoke.py` 13개(주소칸 클릭과 입력, Return, Back, Forward, Reload, 창 닫기를 실제 X 이벤트로)가 연속 3회 통과합니다. 사이트에 `docs/views.md`를 더했습니다.
+- **발견**: 외부 메시지 펌프로는 CEF 자신의 창에 X11 입력이 오지 않습니다(설치된 Chrome은 같은 가상 화면에서 입력을 받으므로 환경 문제가 아님, 폴링이면 됨). 창이 열린 채 `shutdown()`을 부르면 죽습니다. 이번 변경과 무관한 기존의 간헐적 시험 실패(20회 중 2회)도 기록했습니다.

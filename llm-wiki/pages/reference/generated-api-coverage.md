@@ -5,7 +5,7 @@ sources:
   - llm-wiki/pages/reference/coverage-report.md
   - tools/gen/scope.py
   - tools/gen/report.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 생성 범위와 커버리지
@@ -14,7 +14,7 @@ updated: 2026-10-08
 
 ## 지금 생성되는 것
 
-범위(`scope.py`)는 클래스 77개와 전역 함수 3개입니다. 클래스의 메서드(가상과 정적) 730개 가운데 703개가 생성되고 27개가 제외되며, 함수 3개를 더해 706개입니다.
+범위(`scope.py`)는 클래스 100개와 전역 함수 6개이고(2026-10-10 `Image`, `DownloadImageCallback`, Views 22개를 더함), 생성되는 메서드와 함수는 **1,031개**입니다. 생성되는 클래스 안에서 타입 때문에 제외된 것은 26개입니다([커버리지 보고서](coverage-report.md)의 첫 절이 원본). 아래 표의 수치는 그 이전 기준이라 일부가 다를 수 있습니다.
 
 | 클래스 | 쪽 | 생성/전체 | 제외 사유 |
 | --- | --- | --- | --- |

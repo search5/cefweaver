@@ -11,7 +11,7 @@ sources:
   - native/cefwrapper/library.cpp
   - native/cefwrapper/javascript_bindings_handler.h
   - native/cefwrapper/javascript_python_binding_handler.h
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 실행해서 확인한 핸들러 (F55부터)
@@ -177,6 +177,14 @@ updated: 2026-10-09
 - 크기는 PyInstaller onedir 451MB, onefile 188MB, cx_Freeze 402MB입니다. 자세한 것은 [앱을 PyInstaller와 cx_Freeze로 묶기](../procedures/freeze-app.md).
 - **새 빌드(`setup.py` 기반, macOS 지원 병합 뒤)에서도 같습니다 (2026-10-10).** 툴킷 없는 두 앱은 5회 중 5회, 툴킷 여섯 개(Tk 포함)는 3회 중 3회 통과했고 PyInstaller의 `--collect-all`과 Tk의 `--hidden-import` 필요도 그대로입니다. `smoke.py`는 다시 돌리지 않았습니다.
 - **관찰한 일회성 오류**: 첫 PyInstaller 실행에서 stderr에 `command_buffer_proxy_impl.cc:285 ... CreateCommandBuffer` 한 줄이 나왔지만 결과는 통과였고, 이후 세 방식을 5회씩 반복했을 때는 나오지 않았습니다. 원인은 조사하지 않았습니다.
+
+## F95. `Image`와 `DownloadImageCallback` (2026-10-10)
+
+- **열었음**: `scope.py`에 `CefImage`(14개), `CefDownloadImageCallback`을 더했습니다. 함께 `DragData.get_image()`와 `BrowserHost.download_image()`(이전에는 "class CefImage is not generated yet"로 제외)가 열렸습니다. `prepare.py` 7초, `uv build --wheel` 70초에 오류 없이 빌드됩니다.
+- **동작 확인(CEF 154, 실제 실행)**: BGRA 4x3 비트맵을 `add_bitmap`으로 넣고 `get_as_png`(PNG 서명 8바이트, 4x3), `get_as_jpeg`(`ff d8`), `get_as_bitmap`(넣은 바이트와 같음)을 얻고, 그 PNG를 `add_png`로 다른 `Image`에 넣어 같은 크기가 됩니다. 잘못된 PNG는 `False`입니다. `host.download_image(url, False, 0, False, callback)`로 `add_resource`가 준 PNG를 받아 `on_download_image_finished`가 상태 200과 4x3 `Image`를 주고, 없는 파일은 상태가 200이 아니고 `image`가 `None`입니다.
+- **관찰**: `remove_representation(1.0)`은 `True`를 돌려주고 `has_representation(1.0)`이 `False`가 되지만 **`is_empty()`는 `False`로 남습니다**(원인은 조사하지 않음).
+- **함정(크래시, 막음)**: **CEF를 초기화하기 전에 `Image.create_image()`를 부르면 객체가 소멸할 때 프로세스가 세그멘테이션 오류로 죽습니다**(`del i`에서 바로 죽음, `os._exit(0)`은 정상, 초기화한 뒤에는 정상). `Request.create()` 같은 다른 클래스는 초기화 전에도 안전합니다. CEF 소스(`image_impl.cc`)에서 스레드 검사는 보이지 않았고 원인은 조사하지 않았습니다(Chromium 쪽 소멸자로 추정). **`create_image()`가 초기화 전에는 `RuntimeError`를 내도록 막았습니다**: `scope.NEEDS_CEF_RUNNING` 표와 모듈의 `_cef_started` 플래그(`CefApp.initialize()`가 첫 브라우저를 만들기 전에 켜고 실패하면 끔)이고, 시험이 고정합니다(`test_an_image_cannot_be_made_before_cef_runs`, 생성기 시험 `test_a_static_function_that_needs_a_running_cef_refuses_before_initialize`). 종료 뒤에 해제되는 객체는 기존의 `_cef_was_shut_down`이 처리합니다.
+- **시험**: 전체 500개 통과(건너뜀 9, 예상된 실패 3). 새 시험 3개(라이브러리 1, 초기화 전 거절 1, 다운로드 1)가 3회 모두 종료 코드 0입니다.
 
 ## 관련 페이지
 

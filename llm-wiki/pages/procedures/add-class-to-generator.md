@@ -32,10 +32,18 @@ CEF 클래스를 Python에서 쓰게 하는 가장 흔한 작업입니다. 타�
 - `CefClient`가 돌려주는 핸들러(로드, 수명 주기, 표시 등): `Client`의 `get_..._handler()`가 반환하며, 사용자는 `CefApp.set_client()`로 클라이언트를 넘깁니다. 새 핸들러를 추가하려면 생성(`scope.py`)에 더해 **손으로 쓴 `CefWrapperClientHandler`도 고쳐야 합니다**: 해당 `Cw<이름>Forward`를 상속에 추가하고, `Get<이름>()`이 사용자의 클라이언트에서 전달 대상을 채우게 하고, 래퍼가 스스로 하던 일이 있는 메서드에는 그 일과 전달 호출(`Cw<이름>Forward::메서드(...)`)을 함께 둡니다. 순서의 기준은 [C++ 핸들러](../components/native-handlers.md)에 있습니다.
 - 래퍼가 이미 스스로 구현하는 핸들러(컨텍스트 메뉴와 JavaScript 바인딩용 프로세스 메시지): 사용자에게 열려면 래퍼의 처리와 사용자의 처리를 합치는 방법을 먼저 정해야 합니다.
 
+## 버전에 따라 없는 메서드
+
+헤더에 `/*--cef(removed=15000)--*/`나 `added=N`이 붙은 메서드는 API 버전에 따라 `#if CEF_API_REMOVED(N)`로 묶여 있습니다. 우리의 버전(`model.API_VERSION` 999999, 빌드가 `CEF_API_VERSION`을 주지 않아 `CEF_API_VERSION_EXPERIMENTAL`)에서 없는 메서드는 생성기가 거릅니다. 걸러지지 않고 컴파일 오류(`has no member named`)가 나면 이 규칙을 먼저 의심하십시오([F98](../reference/verified-findings-views.md)).
+
+## 초기화 전에 만들면 죽는 객체
+
+일부 클래스의 객체는 CEF를 초기화하기 전에 만들면 소멸할 때 프로세스가 죽습니다(`Image`, [F95](../reference/verified-findings-handlers.md)). 그런 객체를 만드는 정적 함수는 `scope.py`의 `NEEDS_CEF_RUNNING`에 `(클래스, 함수): 메시지`로 더하면 생성기가 `_cef_started`를 확인하는 `RuntimeError`를 앞에 넣습니다. 새 클래스를 열 때 CEF를 띄우지 않고 만들어 보고 **종료 코드가 0인지** 확인하십시오(`print`만 보면 놓침).
+
 ## 추가해도 열리지 않는 경우
 
 - 값 타입 구조체(`CefRect`, `CefPoint`, `CefSize`, `cef_*_t` 구조체), 벡터, 맵, 소유 포인터를 인자나 반환으로 쓰는 메서드: [새 타입 지원 추가하기](add-type-to-generator.md)가 먼저입니다.
-- 부모가 `CefBaseRefCounted`가 아닌 라이브러리 클래스(상속): 래퍼의 상속 구조를 아직 구현하지 않았습니다.
+- 부모가 `CefBaseRefCounted`가 아닌 라이브러리 클래스(상속): **부모도 범위 안에 있으면 Python 하위 클래스로 생성됩니다**(2026-10-10, [F96](../reference/verified-findings-views.md)). 하위 클래스는 자기 메서드만 갖고 부모의 참조를 공유하며, 반환값은 `As*()` 메서드로 실제 종류의 클래스가 됩니다(그 메서드가 부모에 있어야 함). 부모가 범위 밖이면 이전처럼 부모의 메서드를 펼친 한 클래스입니다(`CefRequestContext`). 한 클래스만 넣으면 안 되고 **부모와 자식을 함께** 넣는 것이 좋습니다.
 - 라이브러리 메서드의 출력 인자, 라이브러리 메서드가 핸들러 객체를 반환하는 경우
 
 ## 관련 페이지
