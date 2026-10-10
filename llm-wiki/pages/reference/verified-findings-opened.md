@@ -58,6 +58,13 @@ updated: 2026-10-10
 - `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`: 변경 전 wheel에서도 20회 중 2회 실패했습니다.
 - 철자 메뉴 시험(`test_a_suggestion_of_the_menu_replaces_the_misspelled_word_on_a_page_that_lost_the_focus`): 전체 526개를 한 번에 돌린 실행에서 1회 실패했고, 단독으로는 4회 모두 통과했습니다. 부하 때문으로 보지만 원인은 확인하지 못했습니다.
 
+## F109. 첫 브라우저가 없을 때 `load_url`과 `execute_javascript` (2026-10-10)
+
+- `app.initialize(None)`로 시작하면 래퍼의 첫 브라우저가 없습니다. 이때 `app.load_url()`, `app.execute_javascript()`, `app.is_ready_to_execute_javascript`는 모두 `False`입니다(시험 `test_the_first_browser_functions_say_no_when_cef_starts_without_a_first_browser`).
+- **결함을 찾아 고쳤습니다**: `is_ready_to_execute_javascript`는 클라이언트 핸들러가 없는데(첫 브라우저가 없으면 만들어지지 않음) 널 검사 없이 역참조해서 프로세스가 세그멘테이션 오류(종료 코드 -11)로 죽었습니다. `CefWrapper::IsReadyToExecuteJavascript()`(`native/cefwrapper/library.cpp`)에 널 검사를 더해 고쳤고, 고치기 전 wheel에서 시험이 -11로 실패하는 것을 먼저 확인했습니다.
+- **Views 브라우저가 있어도 같습니다**: Views의 `BrowserView`로 만든 브라우저가 로드를 마친 뒤에도 `app.load_url()`과 `app.execute_javascript()`는 `False`이고 그 브라우저의 페이지는 바뀌지 않았습니다. 이 함수들은 래퍼의 첫 브라우저에만 적용됩니다. `create_browser()`나 Views의 브라우저에는 `browser.get_main_frame().load_url()`, `execute_java_script()`를 씁니다.
+- **`create_browser()`와의 관계**: `initialize(None)` 뒤에 `app.create_browser()`를 부르면 `RuntimeError("a browser can be created on the thread of initialize() once the first browser exists")`가 납니다. 그래서 `initialize(None)`은 Views의 `BrowserView`로만 브라우저를 만드는 용도입니다. 첫 브라우저가 있을 때 둘째 브라우저(`create_browser()`, 식별자 2)를 만들고 `app.load_url()`을 부르면 **첫 브라우저(식별자 1)의 페이지만** 바뀌었고 둘째는 그대로였습니다. 같은 실행에서 `execute_javascript()`를 `load_url()` 직후에 부르면 `False`였습니다(문서화된 대로 로딩 중이어서로 보이나 이 실행에서 따로 확인하지는 않았습니다).
+
 ## 관련 페이지
 
 - [열지 않은 CEF 메서드와 cefpython의 비교](../analyses/unopened-cef-api.md)

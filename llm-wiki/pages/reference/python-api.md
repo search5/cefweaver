@@ -30,7 +30,7 @@ updated: 2026-10-10
 | `devtools_menu` (속성, 읽고 쓰기) | 컨텍스트 메뉴의 "Show DevTools", "Close DevTools", "Inspect Element" 항목. 기본 `False`. 언제든 바꿀 수 있고 이후에 만들어지는 메뉴에 적용됩니다. 켜고 꺼도 사용자 핸들러가 받는 이벤트와 메뉴는 같고 항목만 뒤에 붙습니다 |
 | `add_query_handler(handler, first=False)`, `remove_query_handler(handler) -> bool`, `set_query_functions(query, cancel)` | 페이지의 `window.cefQuery`로 오는 질의를 `QueryHandler`가 받습니다. 자세한 것은 [메시지 라우터](message-router.md) |
 | `add_javascript_binding(name, callback)` | 페이지의 `window.<name>(...)`을 `callback(*args)`에 연결. `callback`이 호출 가능하지 않으면 `TypeError` |
-| `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. **`None`이면 첫 브라우저 없이 시작**(Views의 `BrowserView`나 `create_browser()`용, `is_running`은 `shutdown()`까지 `True`, [F98](verified-findings-views.md)). 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
+| `initialize(start_url="about:blank")` | CEF를 시작하고 창을 만듭니다. **`None`이면 첫 브라우저 없이 시작**(Views의 `BrowserView`용입니다. `create_browser()`는 첫 브라우저가 있어야 해서 이 상태에서는 `RuntimeError`, [F109](verified-findings-opened.md). `is_running`은 `shutdown()`까지 `True`, [F98](verified-findings-views.md)). 실패하면 `RuntimeError("CefInitialize() failed")`. **프로세스당 한 번**: `shutdown()` 뒤에 다시 부르면 `RuntimeError` |
 | `do_message_loop_work()` | 메시지 루프를 한 번 실행. 주기적으로 호출해야 합니다. |
 | `shutdown()` | CEF 종료. 시작하지 않았거나 이미 종료했으면 아무것도 하지 않습니다. 남은 브라우저(열린 Views 창 포함)는 먼저 닫고 종료합니다([F99](verified-findings-views.md)). |
 | `enable_renderer_events(stack_size=10)` | 렌더러 프로세스의 사건(잡히지 않은 JavaScript 오류, 초점이 간 노드, V8 컨텍스트 생성과 해제)을 프로세스 메시지로 받습니다. `cefweaver.RendererEvents`가 `Client.on_process_message_received`에서 풀어 줍니다(`cefweaver/renderer_events.py`). 렌더러에는 Python이 없는 구조는 그대로입니다. |

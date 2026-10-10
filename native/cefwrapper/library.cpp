@@ -267,7 +267,9 @@ bool CefWrapper::ExternalMessagePump() {
   return setting != m_IntSettings.end() && setting->second != 0;
 }
 bool CefWrapper::IsReadyToExecuteJavascript() {
-  return CefWrapperClientHandler::GetInstance()->IsReadyToExecuteJs();
+  // No client handler without a first browser (CefApp.initialize(None)).
+  CefWrapperClientHandler* handler = CefWrapperClientHandler::GetInstance();
+  return handler && handler->IsReadyToExecuteJs();
 }
 
 void CefWrapper::AddJavascriptBinding(std::string name, js_binding_function_ptr jsNativeApiFunctionPtr)

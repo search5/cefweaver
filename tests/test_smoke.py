@@ -1203,6 +1203,19 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
+    def test_the_first_browser_functions_say_no_when_cef_starts_without_a_first_browser(self):
+        # initialize(None): no first browser, so no client handler either (is_ready_to_execute_javascript crashed the process)
+        result = run_cef("""
+            app.initialize(None)
+            assert app.is_ready_to_execute_javascript is False
+            assert app.execute_javascript("1") is False
+            assert app.load_url("about:blank") is False
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
     def test_a_view_and_a_browser_give_back_the_python_objects_that_were_given_to_cef(self):
         # CEF keeps the delegate or the client the program gave it: get_delegate(), get_client() and get_handler()
         # find the Python object again (None for what CEF made itself or was not given)

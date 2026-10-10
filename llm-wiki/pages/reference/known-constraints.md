@@ -47,6 +47,7 @@ updated: 2026-10-10
 ## 2. 알려진 한계
 
 - **Views의 한계** ([F96~F98](verified-findings-views.md)): (1) **외부 메시지 펌프(`MessagePump`)로는 CEF 창의 X11 입력이 오지 않아 폴링 루프가 필요**합니다(원인은 소스로 확인하지 않음). (2) 창이 열린 채 `app.shutdown()`을 부르는 문제는 해결했습니다([F99](verified-findings-views.md)). (3) `get_delegate_for_popup_browser_view`는 열었지만 팝업 뷰의 모양과 위치는 Linux X11에서만 보았습니다. (4) Windows, macOS, Wayland에서의 동작은 확인하지 못했습니다. (5) 같은 CEF 뷰의 Python 객체는 매번 다르므로 `set_id`와 `get_id`로 구분합니다.
+- **`app.load_url()`과 `execute_javascript()`는 래퍼의 첫 브라우저에만 적용됩니다.** `initialize(None)`이나 Views의 브라우저에서는 `False`를 돌려주고 아무것도 하지 않습니다([F109](verified-findings-opened.md)). 대신 `browser.get_main_frame()`의 메서드를 씁니다.
 - **보류한 API**: (1) `RequestHandler.on_certificate_error`에 `ssl_info`를 넘기지 않습니다(넘기면 시그니처가 바뀌어 java-cef의 바닥과 달라져서 정하지 못함, 인증서는 `get_visible_navigation_entry().get_ssl_status()`로 읽음). (2) `BrowserProcessHandler.GetDefaultClient`와 `GetDefaultRequestContextHandler`, `ResourceBundleHandler`, `LifeSpanHandler.OnBeforeDevToolsPopup`(창 정보 구조체)은 열지 않았습니다. (3) 추적과 `TaskRunner`는 추적만 열었습니다. (4) 미디어 라우터는 장치가 없는 환경에서만 확인했습니다([F106](verified-findings-opened.md)).
 - **렌더러 이벤트의 한계**: 메인 프레임이 다른 페이지로 이동할 때 이전 컨텍스트의 해제 알림은 오지 않습니다([F104](verified-findings-opened.md)). 렌더러에서 Python을 실행하는 것은 여전히 불가능합니다.
 - **기존의 간헐적 시험 실패**: `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected`가 변경 전 wheel에서도 20회 중 2회 실패합니다(첫 `on_paint`의 첫 픽셀이 투명). 원인은 조사하지 않았습니다.

@@ -50,4 +50,5 @@ app.shutdown()
 - **루프는 `do_message_loop_work()`를 자주 부르는 폴링이어야 합니다.** 창을 CEF가 소유하므로 창 시스템의 이벤트를 CEF가 직접 처리해야 합니다. `MessagePump`(`external_message_pump`)를 쓰면 CEF가 알린 작업만 하고 자기 창의 X11 이벤트를 처리하지 않아서, 단추를 눌러도 `on_button_pressed`가 오지 않았습니다.
 - **창이 열린 채로 `shutdown()`을 불러도 됩니다.** `shutdown()`이 남아 있는 브라우저를 먼저 닫고 CEF를 종료합니다(예전에는 세그멘테이션 오류가 났습니다). 그래도 창의 닫힘은 `on_window_destroyed`로 확인하는 편이 분명합니다.
 - **같은 CEF 뷰라도 Python 객체는 매번 다릅니다.** 델리게이트가 받은 단추를 구분하려면 `set_id`로 번호를 주고 `get_id()`로 비교하십시오.
+- `initialize(None)` 뒤에는 `app.create_browser()`를 쓸 수 없습니다(첫 브라우저가 있어야 해서 `RuntimeError`). `app.load_url()`과 `app.execute_javascript()`는 `initialize(None)`로 시작했을 때와 Views의 브라우저에는 적용되지 않고 `False`를 돌려줍니다. 그 브라우저에서는 `view.get_browser().get_main_frame().load_url(...)`처럼 프레임을 직접 씁니다.
 - `View.get_delegate()`, `BrowserHost.get_client()`, `RequestContext.get_handler()`는 CEF에 준 Python 객체를 그대로 돌려줍니다(CEF가 만든 것은 `None`). `BrowserViewDelegate.get_delegate_for_popup_browser_view`는 팝업을 여는 뷰의 클라이언트에 `LifeSpanHandler`가 있을 때 불렸고, `WindowDelegate.get_parent_window`도 쓸 수 있습니다. 자세한 것은 [한계와 알려진 제약](limitations.md)에 있습니다.

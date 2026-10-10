@@ -62,7 +62,7 @@ window.cefQuery({request: "ping", persistent: false,
 - 요청과 응답은 문자열 또는 바이트입니다. 객체는 JSON으로 주고받습니다(변환은 호출하는 쪽).
 - 핸들러 목록은 프로세스 전역입니다(CEF가 프로세스당 한 번만 시작되기 때문).
 - 여러 프레임과 `window.open`의 팝업 브라우저는 시험으로 확인했습니다([실험으로 확인한 사실](verified-findings-api.md) F35). 서로 다른 렌더러 프로세스에 있는 프레임(교차 사이트 iframe)도 확인했습니다: 자식 프레임의 질의가 `frame.is_main() == False`로 핸들러에 오고 답이 자식에게 돌아갑니다([F57](verified-findings-handlers.md)).
-- `execute_javascript`, `load_url`, `is_ready_to_execute_javascript`는 처음 만든 브라우저에만 적용됩니다(팝업에는 쓸 수 없습니다).
+- `execute_javascript`, `load_url`, `is_ready_to_execute_javascript`는 처음 만든 브라우저에만 적용됩니다(팝업에는 쓸 수 없고, `initialize(None)`이나 Views의 브라우저에서는 `False`입니다, [F109](verified-findings-opened.md)).
 
 ## 관련 페이지
 
