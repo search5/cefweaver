@@ -31,7 +31,7 @@ bridge.evaluate(frame, "double(21)", lambda value, error: ...)          # 식의
 | `JavascriptBridge(app, origins=None)` | `app`은 아직 시작하지 않은 `CefApp`. `origins`(URL 접두사의 목록)를 주면 그 프레임의 호출만 받습니다. 기본은 모든 프레임이므로 바깥 페이지가 올라올 수 있으면 반드시 정합니다. 목록이 아니면 `TypeError` |
 | `expose(name, function, with_frame=False)` | `window.<name>`을 만듭니다(`initialize()` 전에만). 이름은 JavaScript 식별자이고 예약어가 아니어야 하며 중복되면 `ValueError`. 함수의 예외는 `Promise`를 `유형: 메시지`로 거부합니다. JSON으로 만들 수 없는 반환값(`object()`, `NaN`)도 거부됩니다 |
 | `execute_function(frame, path, *args)` | `window`에서 시작하는 경로(`"a.b.c"`)의 함수를 JSON 인자로 부릅니다 |
-| `evaluate(frame, expression, callback)` | 식을 실행하고 나중에 `callback(value, error)`를 `do_message_loop_work()` 안에서 부릅니다. 실패하면 `value`는 `None`이고 `error`는 `SyntaxError: ...` 같은 문자열 |
+| `evaluate(frame, expression, callback)` | 식을 실행하고 나중에 `callback(value, error)`를 `do_message_loop_work()` 안에서 부릅니다. 실패하면 `value`는 `None`이고 `error`는 `SyntaxError: ...` 같은 문자열. 엄격한 CSP와 Trusted Types 페이지에서도 됩니다. 컨텍스트가 없는 프레임이나 떠난 페이지에는 콜백이 오지 않습니다 |
 | `JsCallback` | 페이지의 함수를 인자로 주면 Python이 받는 객체. `call(*args)`는 그 함수를 원래 프레임에서 JSON 인자로 부르고, `release()`는 페이지가 잊게 합니다 |
 
 ## 동작
@@ -40,7 +40,7 @@ bridge.evaluate(frame, "double(21)", lambda value, error: ...)          # 식의
 2. 각 렌더러 프로세스의 `OnContextCreated`가 라우터 뒤에서 고정된 JavaScript 조각(`native/cefwrapper/bridge.h`의 `kBridgeShim`)을 실행해 `window.<name>`과 `window.__cefweaverBridge`를 정의합니다. 페이지의 스크립트보다 먼저이고, iframe도 같습니다. 렌더러에서 도는 Python은 없습니다.
 3. `window.add(1, 2)`는 `cefQuery({request: '{"cefweaver":1,"t":"call","n":"add","a":[1,2]}'})`를 보내고 `Promise`를 돌려줍니다. 브라우저 프로세스의 `JavascriptBridge`의 질의 핸들러(`first=True`로 추가됨)가 JSON을 풀어 함수를 부르고 결과를 JSON으로 답합니다. `{"cefweaver":1`로 시작하지 않는 질의는 `False`로 넘겨 응용 자신의 `QueryHandler`가 받습니다.
 4. 함수 인자는 `{"__cb": 아이디}`로 바뀌어 가고 Python에서는 `JsCallback`이 됩니다. `call`은 `execute_java_script`로 `window.__cefweaverBridge.invoke`를 부릅니다.
-5. `evaluate`의 결과는 페이지가 `{"t":"result"}` 질의로 돌려주고, 대기 중인 `callback`이 불립니다.
+5. `evaluate`는 `execute_java_script`가 아니라 **프로세스 메시지 `cefweaver-eval`**(번호와 소스)을 렌더러로 보냅니다. 렌더러는 (브라우저, 프레임)별로 `OnContextCreated`에서 모아 둔 컨텍스트를 찾아 `Enter`하고, 소스를 `{ ... }` 블록에 넣어 `CefV8Context::Eval`로 실행한 뒤 결과를 shim이 돌려준 함수(`settle`)에 넘깁니다. 이 호출은 임베더의 API라 페이지의 CSP와 Trusted Types 검사를 거치지 않습니다([F110](verified-findings-opened.md)). `settle`이 `Promise`를 기다리고 JSON으로 보낼 수 있는지 확인한 뒤 `{"t":"result"}` 질의로 돌려주고, 대기 중인 `callback`이 불립니다. 컨텍스트가 해제될 때는 그 컨텍스트의 항목만 지웁니다(`IsSame`).
 
 ## 한계
 

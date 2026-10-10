@@ -606,3 +606,9 @@
 ## [2026-10-10] ingest | 위키의 표와 긴 페이지 정리
 
 - `java-cef-parity.md`의 묶음별 표를 현재 보고서 기준으로 다시 집계해 합이 764개가 되게 했습니다. `python-api.md`가 200줄을 넘어 출력 인자와 목록의 절을 `python-api-values.md`로 나눴습니다.
+
+## [2026-10-10] ingest | JavascriptBridge의 shim 결함 수정과 CefV8Context::Eval 실험
+
+- `bridge.evaluate`가 보낼 수 없는 결과(순환 구조, BigInt)에서 callback을 잃던 결함과, 페이지가 질의 함수와 `__cefweaverBridge`를 덮어쓰면 깨지던 결함을 고쳤습니다. 시험 2개를 먼저 추가해 실패를 확인했습니다([F110](pages/reference/verified-findings-opened.md)).
+- `evaluate`를 `CefV8Context::Eval` 방식으로 바꿔 구현하고 엄격한 CSP와 Trusted Types 페이지, 실제 GitHub와 YouTube에서 통과하는 것을 확인했습니다. 옛 경로와 32개 식을 비교해 29개가 같았고 3개(문법 오류 메시지, `"use strict"`, `Symbol`)가 달랐습니다. `BigInt` 결과의 callback 유실을 고쳤고 컨텍스트 없는 프레임과 떠난 페이지의 요청이 유실되는 한계를 기록했습니다([F110](pages/reference/verified-findings-opened.md)).
+

@@ -15,7 +15,8 @@ thread that called ``CefApp.initialize()`` in ``do_message_loop_work()``.
 import json
 import sys
 
-from ._cefweaver import QueryHandler
+from . import types
+from ._cefweaver import ProcessMessage, QueryHandler
 
 _RESERVED = frozenset("""break case catch class const continue debugger default delete do else enum export
 extends false finally for function if import in instanceof new null return super switch this throw true
@@ -108,8 +109,13 @@ class JavascriptBridge:
         number = self._next
         self._next += 1
         self._pending[number] = callback
-        frame.execute_java_script("window.__cefweaverBridge.evaluate(%d, %s)"
-                                  % (number, json.dumps(expression)), "", 0)
+        # The renderer runs it with CefV8Context::Eval: a page that forbids eval (CSP, Trusted Types) does not stop it.
+        message = ProcessMessage.create("cefweaver-eval")
+        arguments = message.get_argument_list()
+        arguments.set_size(2)
+        arguments.set_int(0, number)
+        arguments.set_string(1, expression)
+        frame.send_process_message(types.ProcessId.RENDERER, message)
 
     # -- the queries of the pages ----------------------------------------------------------
 

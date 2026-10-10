@@ -24,9 +24,11 @@ inline const char kRendererEventMessage[] = "cefweaver-renderer-event";
 inline const char kBridgeShim[] = R"JS((function (names, query) {
   if (window.__cefweaverBridge) { return; }
   var callbacks = {}, next = 1;
+  // The query function as it is now: the page may replace window[query] later.
+  var send = window[query];
   function ask(payload) {
     return new Promise(function (resolve, reject) {
-      window[query]({
+      send({
         request: JSON.stringify(payload),
         onSuccess: function (answer) { resolve(answer === "" ? undefined : JSON.parse(answer)); },
         onFailure: function (code, message) { reject(new Error(message)); }
@@ -47,7 +49,7 @@ inline const char kBridgeShim[] = R"JS((function (names, query) {
       return ask({cefweaver: 1, t: "call", n: name, a: args});
     };
   });
-  window.__cefweaverBridge = {
+  var bridge = {
     invoke: function (id, args) { var f = callbacks[id]; if (f) { f.apply(null, args); } },
     release: function (id) { delete callbacks[id]; },
     call: function (path, args) {
@@ -56,11 +58,33 @@ inline const char kBridgeShim[] = R"JS((function (names, query) {
       return target[parts[parts.length - 1]].apply(target, args);
     },
     evaluate: function (id, source) {
-      Promise.resolve().then(function () { return (0, eval)(source); }).then(
-        function (value) { return ask({cefweaver: 1, t: "result", id: id, ok: true, v: value === undefined ? null : value}); },
+      Promise.resolve().then(function () { return (0, eval)(source); }).then(function (value) {
+        value = value === undefined ? null : value;
+        JSON.stringify(value);      // a result that cannot be sent (a cycle, a BigInt) is an error to report, not to lose
+        return value;
+      }).then(
+        function (value) { return ask({cefweaver: 1, t: "result", id: id, ok: true, v: value}); },
         function (error) { return ask({cefweaver: 1, t: "result", id: id, ok: false, e: (error && error.name ? error.name + ": " + error.message : String(error))}); }
       ).catch(function () {});
     }
+  };
+  // The page cannot replace the bridge that Python calls.
+  Object.defineProperty(window, "__cefweaverBridge", {value: bridge, writable: false, configurable: false});
+  // The outcome of a source that the renderer ran with CefV8Context::Eval (an embedder's call: no eval of the page,
+  // so no CSP or Trusted Types check): the value (a Promise is awaited) or, if ok is false, the text of the error.
+  // The renderer keeps this function; the page has no name for it.
+  return function (id, ok, value) {
+    Promise.resolve(ok ? value : null).then(function (result) {
+      if (!ok) { throw {name: "", message: value, text: value}; }
+      result = result === undefined ? null : result;
+      JSON.stringify(result);
+      return result;
+    }).then(
+      function (result) { return ask({cefweaver: 1, t: "result", id: id, ok: true, v: result}); },
+      function (error) { return ask({cefweaver: 1, t: "result", id: id, ok: false,
+                                     e: (error && error.text !== undefined ? error.text
+                                         : error && error.name ? error.name + ": " + error.message : String(error))}); }
+    ).catch(function () {});
   };
 }))JS";
 

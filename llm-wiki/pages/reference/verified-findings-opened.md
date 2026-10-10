@@ -1,5 +1,5 @@
 ---
-title: 실행해서 확인한 남은 API (F102~F108)
+title: 실행해서 확인한 남은 API (F102~F110)
 type: reference
 sources:
   - tests/test_smoke.py
@@ -7,10 +7,11 @@ sources:
   - native/cefwrapper/app_hooks.h
   - native/cefwrapper/cef_wrapper_render_process_handler.cc
   - cefweaver/renderer_events.py
+  - native/cefwrapper/bridge.h
 updated: 2026-10-10
 ---
 
-# 실행해서 확인한 남은 API (F102~F108)
+# 실행해서 확인한 남은 API (F102~F110)
 
 2026-10-10에 연 핸들러, 서버, 렌더러 이벤트, 미디어 라우터 등을 실제 CEF로 구동해 확인한 기록입니다. 각 항목의 시험은 `tests/test_smoke.py`에 있습니다. 표시한 것 말고는 Linux x86_64, CEF 154, 가상 X 서버에서 확인했습니다.
 
@@ -64,6 +65,26 @@ updated: 2026-10-10
 - **결함을 찾아 고쳤습니다**: `is_ready_to_execute_javascript`는 클라이언트 핸들러가 없는데(첫 브라우저가 없으면 만들어지지 않음) 널 검사 없이 역참조해서 프로세스가 세그멘테이션 오류(종료 코드 -11)로 죽었습니다. `CefWrapper::IsReadyToExecuteJavascript()`(`native/cefwrapper/library.cpp`)에 널 검사를 더해 고쳤고, 고치기 전 wheel에서 시험이 -11로 실패하는 것을 먼저 확인했습니다.
 - **Views 브라우저가 있어도 같습니다**: Views의 `BrowserView`로 만든 브라우저가 로드를 마친 뒤에도 `app.load_url()`과 `app.execute_javascript()`는 `False`이고 그 브라우저의 페이지는 바뀌지 않았습니다. 이 함수들은 래퍼의 첫 브라우저에만 적용됩니다. `create_browser()`나 Views의 브라우저에는 `browser.get_main_frame().load_url()`, `execute_java_script()`를 씁니다.
 - **`create_browser()`와의 관계**: `initialize(None)` 뒤에 `app.create_browser()`를 부르면 `RuntimeError("a browser can be created on the thread of initialize() once the first browser exists")`가 납니다. 그래서 `initialize(None)`은 Views의 `BrowserView`로만 브라우저를 만드는 용도입니다. 첫 브라우저가 있을 때 둘째 브라우저(`create_browser()`, 식별자 2)를 만들고 `app.load_url()`을 부르면 **첫 브라우저(식별자 1)의 페이지만** 바뀌었고 둘째는 그대로였습니다. 같은 실행에서 `execute_javascript()`를 `load_url()` 직후에 부르면 `False`였습니다(문서화된 대로 로딩 중이어서로 보이나 이 실행에서 따로 확인하지는 않았습니다).
+
+## F110. `JavascriptBridge`의 shim 결함 두 가지와 `Eval` 경로 실험 (2026-10-10)
+
+**고친 것** (`native/cefwrapper/bridge.h`, 시험 `test_evaluate_answers_with_an_error_when_the_result_cannot_be_sent_as_json`, `test_a_page_cannot_break_the_bridge_by_replacing_what_it_uses`. 둘 다 고치기 전에는 callback이 오지 않아 시간 초과로 실패했습니다)
+- **보낼 수 없는 결과**: 순환 구조나 `BigInt`를 돌려주는 식은 `JSON.stringify`가 shim 안에서 던졌고, 마지막 `.catch(function () {})`가 삼켜서 Python에 값도 오류도 가지 않았습니다. 이제 `TypeError: ...`가 `error`로 옵니다.
+- **페이지의 덮어쓰기**: 페이지가 `window.cefQuery`(질의 함수)나 `window.__cefweaverBridge`를 바꾸면 이후 `evaluate`가 깨졌습니다. 질의 함수는 설치 때 잡아 두고, `__cefweaverBridge`는 쓰기와 설정이 안 되는 속성으로 정의했습니다(페이지가 엄격 모드에서 대입하면 그 페이지의 코드가 `TypeError`를 받습니다).
+
+**`CefV8Context::Eval`로 실행하도록 바꾼 것** (실험으로 가능함을 보인 뒤 구현했습니다. `native/cefwrapper/cef_wrapper_render_process_handler.cc`, `bridge.h`, `cefweaver/bridge.py`)
+- 방식: Python의 `evaluate`가 프로세스 메시지 `cefweaver-eval`을 보내고, 렌더러가 `OnContextCreated`에서 (브라우저, 프레임)별로 모아 둔 컨텍스트에서 소스를 `{ ... }` 블록에 넣어 `Eval`한 뒤 결과를 shim의 `settle`에 넘깁니다. 해제할 때는 `IsSame`인 항목만 지우고, 요청을 받을 때 `frame->GetV8Context()->IsSame()`로 교차 확인합니다. 설명은 [JavascriptBridge](javascript-bridge.md)에 있습니다.
+- **엄격한 CSP와 Trusted Types 페이지에서 통과합니다**(헤더 `script-src 'self' 'unsafe-inline'; require-trusted-types-for 'script'`). 같은 페이지에서 옛 경로는 `EvalError`였습니다. 소스 안에서 다시 `eval(...)`이나 `new Function(...)`을 부르면 페이지처럼 막히고, Trusted Types 싱크(`innerHTML = '...'`)도 페이지처럼 `TypeError`입니다.
+- **실제 사이트(2026-10-10, 수동 확인)**: GitHub(CSP)와 YouTube(Trusted Types)에서 `1 + 1`, `document.title`, `location.hostname`, `var z = [1,2,3]; z.length`, `const k = 5; k`(두 번), `Promise.resolve({a: [1]})`가 모두 값을 돌려줬고, 같은 식을 옛 경로로 보내면 모두 `EvalError`였습니다.
+- **옛 경로와의 비교**: 32개 식(`var`, 함수 선언, `typeof`, 객체 리터럴, 줄 주석, 배열, `Promise`의 성공과 거부, `throw 5`, 예외 종류, `undefined`, `null`, `NaN`, `class`, 같은 `let`과 `const`를 두 번)에서 29개가 같은 결과였습니다. 다른 3개: (1) `1 +`의 메시지가 `Unexpected end of input`에서 `Unexpected token '}'`로 바뀝니다(블록의 닫는 괄호). (2) `'use strict'` 지시문이 블록 안에서는 지시문이 아니라서 `this === undefined`가 `True`에서 `False`가 됩니다. (3) `Symbol('s')`는 `null`에서 `TypeError`가 됩니다.
+- **블록으로 감싸는 효과**: 최상위 `let`과 `const`는 그 호출 안에서만 살아서 같은 식을 두 번 실행해도 성공합니다(감싸지 않으면 두 번째가 `already been declared`). `var`와 함수 선언은 전역에 남고(`typeof f` → `function`), `{a: 1}`은 옛 경로처럼 `1`입니다.
+- **오류 형식**: `Eval`의 예외 메시지에서 `Uncaught `를 떼어 지금의 형식(`RangeError: r`)을 맞춥니다.
+- **`BigInt`**: `CefV8Value`에 `BigInt` 형이 없어서 결과를 shim에 넘기는 `ExecuteFunction`이 실패했고, 처음에는 callback이 오지 않았습니다. 실패하면 `TypeError: the result cannot be passed to the bridge`를 대신 보내도록 고쳤습니다.
+- **다른 사이트의 iframe**: 기존 시험(`test_the_bridge_works_in_an_iframe_and_in_every_browser`, `test_the_bridge_works_in_a_frame_of_another_site_with_a_renderer_of_its_own`)이 새 경로로 통과합니다.
+- **페이지 이동**: 엄격한 CSP 페이지 A에서 B로 `load_url`한 뒤 `window.which`가 `'A'` 다음 `'B'`로 바뀌었고, 새 컨텍스트로 찾아갔습니다. 이동 직후에는 옛 문서가 답하기도 했습니다.
+- **알려진 한계**: 컨텍스트가 만들어지기 전에 보낸 요청(시험이 처음에 간헐적으로 시간 초과가 난 원인이었고, 페이지의 `ready()` 신호를 기다리게 고쳐 6회 모두 통과)과, 답하기 전에 페이지를 떠난 요청(느린 `Promise` 400ms, 중간에 이동)은 callback이 오지 않습니다. `_pending`의 항목도 남습니다. 옛 경로에서 이 두 경우가 어땠는지는 비교하지 않았습니다.
+- **`Eval`이 던진 예외**: 렌더러 이벤트의 `on_uncaught_exception`을 일으키지 않았습니다([F104](verified-findings-opened.md)).
+- 확인하지 못한 것: 블록으로 감싼 `import()`, 동적 `import` 같은 모듈 문법, 함수 선언의 Annex B 외의 세부, 시간 제한(`timeout`)은 구현하지 않았습니다.
 
 ## 관련 페이지
 

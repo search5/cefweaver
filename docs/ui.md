@@ -44,7 +44,7 @@ session.bridge.expose("add", lambda a, b: a + b)
 add(2, 3).then(function (sum) { console.log(sum); });   // 페이지에서는 Promise를 돌려줍니다
 ```
 
-Python에서 페이지의 JavaScript를 실행하려면 `session.bridge.evaluate(frame, "식", 콜백)`을 씁니다. 다만 `eval`을 막는 페이지(Trusted Types나 엄격한 CSP를 쓰는 YouTube, GitHub 등)에서는 콜백의 오류 값으로 `EvalError`가 옵니다. 그런 페이지에는 `expose`로 내놓은 함수를 부르게 하세요.
+Python에서 페이지의 JavaScript를 실행하려면 `session.bridge.evaluate(frame, "식", 콜백)`을 씁니다. `eval`을 막는 페이지(Trusted Types나 엄격한 CSP를 쓰는 YouTube, GitHub 등)에서도 동작합니다. 식은 렌더러가 페이지의 `eval`이 아닌 CEF의 API로 실행하기 때문입니다. 식 안에서 다시 `eval`이나 `new Function`을 부르면 그 페이지처럼 `EvalError`가 옵니다. 식의 최상위 `let`과 `const`는 그 호출 안에서만 살고(`var`와 함수 선언은 남음), 페이지가 만들기 전에 보낸 요청과 페이지를 떠난 뒤에 끝나는 요청에는 콜백이 오지 않습니다.
 
 ## 어댑터를 직접 만들기
 

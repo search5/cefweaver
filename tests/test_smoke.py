@@ -4529,6 +4529,89 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    def test_evaluate_answers_with_an_error_when_the_result_cannot_be_sent_as_json(self):
+        # a result with a cycle (or a BigInt) made JSON.stringify throw inside the shim and the answer never came
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            bridge.expose("ready", lambda: True)
+            start(page_with("ready();"))
+            wait_until(app, lambda: boxes, "the browser")
+            frame = boxes[0].get_main_frame()
+            results = {}
+            for name, source in (("cycle", "(function () { var a = {}; a.a = a; return a; })()"),
+                                 ("bigint", "10n"),
+                                 ("fine", "({ok: [1, 2]})")):
+                bridge.evaluate(frame, source, lambda value, error, name=name: results.__setitem__(name, (value, error)))
+            wait_until(app, lambda: len(results) == 3, "the three answers")
+            assert results["cycle"][0] is None and "TypeError" in results["cycle"][1], results
+            assert results["bigint"][0] is None and "TypeError" in results["bigint"][1], results
+            assert results["fine"] == ({"ok": [1, 2]}, None), results                # the others are not hurt
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_a_page_cannot_break_the_bridge_by_replacing_what_it_uses(self):
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            bridge.expose("ready", lambda: True)
+            start(page_with('''
+                ready();
+                window.cefQuery = function () { throw new Error("hijacked"); };          // the query function of the router
+                window.__cefweaverBridge = {evaluate: function () {}, call: function () {}};
+            '''))
+            wait_until(app, lambda: boxes, "the browser")
+            frame = boxes[0].get_main_frame()
+            for _ in range(60):
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            answers = []
+            bridge.evaluate(frame, "6 * 7", lambda value, error: answers.append((value, error)))
+            wait_until(app, lambda: answers, "the answer of evaluate")
+            assert answers == [(42, None)], answers
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_evaluate_runs_in_a_page_that_forbids_eval_and_keeps_the_meaning_of_the_source(self):
+        # the renderer runs the source with CefV8Context::Eval, which the CSP and Trusted Types of the page do not check
+        # (GitHub and YouTube were such pages); the source is in a block, so a let or a const does not stay
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            seen = []
+            bridge.expose("ready", lambda which: seen.append(which))                              # the page says it is there
+            start("<p>start</p>")
+            wait_until(app, lambda: boxes, "the browser")
+            CSP = {"Content-Security-Policy": "script-src 'self' 'unsafe-inline'; require-trusted-types-for 'script'"}
+            app.add_resource("http://csp.test/a.html", "<script>window.which = 'A'; ready('A')</script>", headers=CSP)
+            app.add_resource("http://csp.test/b.html", "<script>window.which = 'B'; ready('B')</script>", headers=CSP)
+            app.load_url("http://csp.test/a.html")
+            def ask(source):
+                out = []
+                bridge.evaluate(boxes[0].get_main_frame(), source, lambda value, error: out.append((value, error)))
+                wait_until(app, lambda: out, "the answer for " + source)
+                return out[0]
+            wait_until(app, lambda: "A" in seen, "page A")          # a source sent before the page has a context is lost
+            assert ask("1 + 1") == (2, None)
+            assert ask("var a = 1; a + 1") == (2, None) and ask("a") == (1, None)               # a var stays
+            assert ask("let q = 1; q") == (1, None) and ask("let q = 1; q") == (1, None)        # a let does not
+            assert ask("function f() { return 3 }; f()") == (3, None) and ask("typeof f") == ("function", None)
+            assert ask("({a: [1, 2]})") == ({"a": [1, 2]}, None) and ask("1 // a comment") == (1, None)
+            assert ask("Promise.resolve({late: true})") == ({"late": True}, None)               # a promise is awaited
+            value, error = ask("throw new RangeError('r')")
+            assert (value, error) == (None, "RangeError: r"), (value, error)                    # no "Uncaught " in front
+            value, error = ask("1 +")
+            assert value is None and error.startswith("SyntaxError"), (value, error)
+            value, error = ask("eval('1')")                                                     # the source itself may not eval
+            assert value is None and error.startswith("EvalError"), (value, error)
+            value, error = ask("10n")                                                           # CEF's value cannot carry it
+            assert value is None and error.startswith("TypeError"), (value, error)
+            app.load_url("http://csp.test/b.html")
+            wait_until(app, lambda: "B" in seen, "page B")
+            assert ask("window.which") == ("B", None)
+            app.shutdown()
+            print("OK")
+        """)
+
     def test_a_bridge_answers_only_the_origins_it_was_given_and_leaves_other_queries_alone(self):
         self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
             bridge = cefweaver.JavascriptBridge(app, origins=["http://allowed.test/"])

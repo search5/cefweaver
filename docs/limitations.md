@@ -56,7 +56,7 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 
 ## API
 
-- **`bridge.evaluate`**: 엄격한 CSP나 Trusted Types가 있는 페이지(YouTube, GitHub 등)에서는 `EvalError`로 실패합니다. `expose`로 내놓은 함수를 쓰세요.
+- **`bridge.evaluate`**: 페이지에 컨텍스트가 만들어지기 전에 보낸 식과, 답하기 전에 페이지를 떠난 식에는 콜백이 오지 않습니다(`ready()` 같은 신호를 받은 뒤에 보내세요). 식은 블록 안에서 실행되어 `"use strict"` 지시문이 효과가 없고, `Symbol`과 `BigInt` 결과는 `TypeError`로 옵니다.
 - **`DragData.get_file_name()`**: 파일 내용이 있는 드래그에서만 부르세요. 없을 때 부르면 프로세스가 죽습니다. CEF가 확인 없이 Chromium의 함수를 부르고 그 안의 `CHECK`가 실패합니다(CEF의 한계로 확인했습니다).
 - **Views**: **`MessagePump`(외부 메시지 펌프)로는 CEF 창의 마우스와 키 입력이 오지 않으므로** `do_message_loop_work()`를 자주 부르는 폴링 루프를 쓰세요. Linux X11에서만 확인했습니다([Views](views.md)).
 - **`Image`**: CEF를 초기화한 뒤에만 만들 수 있습니다(`Image.create_image()`가 `RuntimeError`). 초기화 전에 만들면 객체가 사라질 때 프로세스가 죽는 것을 확인했습니다.

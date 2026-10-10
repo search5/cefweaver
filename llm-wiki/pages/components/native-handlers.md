@@ -85,6 +85,7 @@ updated: 2026-10-10
 - `OnProcessMessageReceived()`: `cefweaver-ping`을 받으면 같은 인자로 `cefweaver-pong`을 프레임을 통해 브라우저에 보냅니다(진단용, 사용자 정의 메시지를 시험하는 보내는 쪽).
 - `OnContextCreated()` / `OnContextReleased()`: 명령줄 스위치가 있으면 `CefMessageRouterRendererSide`를 부릅니다(`window.cefQuery`). `OnProcessMessageReceived()`도 라우터가 먼저 받습니다.
 - **렌더러 이벤트**(`SetRendererEvents`가 명령줄 스위치 `cefweaver-renderer-events`를 줄 때만): `OnUncaughtException()`, `OnFocusedNodeChanged()`, `OnContextCreated()`, `OnContextReleased()`가 프로세스 메시지 `cefweaver-renderer-event`를 브라우저 프로세스로 보냅니다. 스위치가 없으면 아무것도 보내지 않습니다. 브라우저 쪽에서는 `cefweaver/renderer_events.py`의 `RendererEvents`가 메시지를 풉니다([F104](../reference/verified-findings-opened.md)).
+- **`evaluate`용 컨텍스트 목록**: `OnContextCreated`가 shim을 실행하고 그 반환값(`settle` 함수)과 컨텍스트를 (브라우저, 프레임)별로 모아 두고, `OnContextReleased`가 `IsSame`인 항목만 지우며, `OnProcessMessageReceived`가 `cefweaver-eval`(번호, 소스)을 받아 소스를 블록에 넣어 `Eval`하고 결과를 `settle`에 넘깁니다([F110](../reference/verified-findings-opened.md)). 렌더러 스레드에서만 접근합니다.
 - `OnContextCreated()`: V8 전역 객체에 바인딩 이름마다 함수를 만들고, 호출을 `JavascriptPythonBindingsHandler`(또는 인자 없는 `JavascriptBindingsHandler`)가 받습니다.
 
 ## 바인딩 자료형 (`javascript_binding.h`)

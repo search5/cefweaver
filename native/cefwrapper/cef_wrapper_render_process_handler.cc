@@ -11,7 +11,31 @@
 #include "include/cef_dom.h"
 #include "include/cef_v8.h"
 
+#include <map>
+#include <string>
+#include <utility>
+
 namespace {
+
+// The contexts that cefweaver.JavascriptBridge.evaluate() runs sources in, by (browser, frame): the context and the
+// function of the shim that reports an outcome. Renderer thread only.
+struct EvalContext {
+  CefRefPtr<CefV8Context> context;
+  CefRefPtr<CefV8Value> settle;
+};
+std::map<std::pair<int, std::string>, EvalContext>& EvalContexts() {
+  static std::map<std::pair<int, std::string>, EvalContext> contexts;
+  return contexts;
+}
+std::pair<int, std::string> EvalKey(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) {
+  return {browser ? browser->GetIdentifier() : 0, frame ? frame->GetIdentifier().ToString() : std::string()};
+}
+// "Uncaught SyntaxError: ..." as "SyntaxError: ..." (the form of the error of a page's own exception).
+std::string ErrorText(CefRefPtr<CefV8Exception> exception) {
+  std::string text = exception ? exception->GetMessage().ToString() : "error";
+  const std::string prefix = "Uncaught ";
+  return text.compare(0, prefix.size(), prefix) == 0 ? text.substr(prefix.size()) : text;
+}
 
 // True if the browser process asked for the events of the renderer (the switch of bridge.h).
 bool RendererEventsOn() {
@@ -57,6 +81,13 @@ void SimpleRenderProcessHandler::OnContextReleased(CefRefPtr<CefBrowser> browser
                                                    CefRefPtr<CefV8Context> context) {
   if (CefRefPtr<CefMessageRouterRendererSide> router = GetQueryRouter()) {
     router->OnContextReleased(browser, frame, context);
+  }
+  if (frame) {
+    // Only the entry of this very context: a new context of the frame may have been entered first.
+    auto found = EvalContexts().find(EvalKey(browser, frame));
+    if (found != EvalContexts().end() && found->second.context->IsSame(context)) {
+      EvalContexts().erase(found);
+    }
   }
   if (RendererEventsOn() && frame && frame->IsValid()) {
     CefRefPtr<CefProcessMessage> message = NewEvent("context-released");
@@ -162,6 +193,41 @@ bool SimpleRenderProcessHandler::OnProcessMessageReceived(
       return true;
     }
   }
+  if (message->GetName() == "cefweaver-eval" && frame) {
+    CefRefPtr<CefListValue> arguments = message->GetArgumentList();
+    auto found = EvalContexts().find(EvalKey(browser, frame));
+    if (found == EvalContexts().end()) {
+      return true;
+    }
+    EvalContext entry = found->second;
+    CefRefPtr<CefV8Context> current = frame->IsValid() ? frame->GetV8Context() : nullptr;
+    if (!current || !current->IsSame(entry.context)) {  // a context that was left
+      EvalContexts().erase(found);
+      return true;
+    }
+    // In a block: a let or const of the source does not stay in the page (a second source of the same name would fail).
+    const std::string source = "{\n" + arguments->GetString(1).ToString() + "\n}";
+    if (entry.context->Enter()) {
+      CefRefPtr<CefV8Value> value;
+      CefRefPtr<CefV8Exception> exception;
+      const bool ok = entry.context->Eval(source, "cefweaver-evaluate", 0, value, exception);
+      CefV8ValueList outcome;
+      outcome.push_back(CefV8Value::CreateInt(arguments->GetInt(0)));
+      outcome.push_back(CefV8Value::CreateBool(ok));
+      outcome.push_back(ok ? (value ? value : CefV8Value::CreateUndefined()) : CefV8Value::CreateString(ErrorText(exception)));
+      CefRefPtr<CefV8Value> delivered = entry.settle->ExecuteFunction(nullptr, outcome);
+      if (!delivered) {
+        // CEF's value type cannot carry this result (a BigInt, say): tell the error instead of losing the answer.
+        CefV8ValueList failure;
+        failure.push_back(CefV8Value::CreateInt(arguments->GetInt(0)));
+        failure.push_back(CefV8Value::CreateBool(false));
+        failure.push_back(CefV8Value::CreateString("TypeError: the result cannot be passed to the bridge"));
+        entry.settle->ExecuteFunction(nullptr, failure);
+      }
+      entry.context->Exit();
+    }
+    return true;
+  }
   if (message->GetName() != "cefweaver-ping" || !frame) {
     return false;
   }
@@ -224,7 +290,9 @@ void SimpleRenderProcessHandler::OnContextCreated(
                            line->GetSwitchValue(kQueryFunctionSwitch).ToString() + "\");";
         CefRefPtr<CefV8Value> result;
         CefRefPtr<CefV8Exception> exception;
-        context->Eval(code, "cefweaver-bridge", 0, result, exception);
+        if (context->Eval(code, "cefweaver-bridge", 0, result, exception) && result && result->IsFunction() && frame) {
+            EvalContexts()[EvalKey(browser, frame)] = {context, result};
+        }
     }
 
     if (!m_Javascript_Bindings.empty())
