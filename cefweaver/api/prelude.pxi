@@ -151,6 +151,10 @@ cdef inline list _g_str_list(const vector[CefString]* values):
 # freed afterwards is dropped without a Release(): nothing can use it any more.
 cdef bint _cef_was_shut_down = False
 
+# Set by CefApp.initialize() (and cleared when it fails). A few objects cannot be made before CEF runs
+# (scope.NEEDS_CEF_RUNNING): the static function that makes them refuses until it is set.
+cdef bint _cef_started = False
+
 
 cdef inline void _g_forget(void* ref) noexcept:
     (<void**>ref)[0] = NULL  # a CefRefPtr holds exactly one pointer

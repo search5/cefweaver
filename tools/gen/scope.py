@@ -16,6 +16,22 @@ LIBRARY_CLASSES = [
     "CefBrowserHost",
     "CefFrame",
     "CefDisplay",
+    "CefImage",
+    # The Views framework: windows, panels, buttons, text fields, layouts (a subclass is a Python subclass)
+    "CefView",
+    "CefPanel",
+    "CefWindow",
+    "CefBrowserView",
+    "CefButton",
+    "CefLabelButton",
+    "CefMenuButton",
+    "CefMenuButtonPressedLock",
+    "CefTextfield",
+    "CefScrollView",
+    "CefLayout",
+    "CefBoxLayout",
+    "CefFillLayout",
+    "CefOverlayController",
     "CefMenuModel",
     "CefPrintSettings",
     "CefContextMenuParams",
@@ -88,7 +104,23 @@ CLIENT_CLASSES = [
     "CefRequestContextHandler",
     "CefURLRequestClient",
     "CefTask",
+    "CefDownloadImageCallback",
+    # The delegates of the Views (each has the methods of its parents)
+    "CefViewDelegate",
+    "CefPanelDelegate",
+    "CefWindowDelegate",
+    "CefBrowserViewDelegate",
+    "CefButtonDelegate",
+    "CefMenuButtonDelegate",
+    "CefTextfieldDelegate",
 ]
+
+# Static functions that make an object CEF cannot free before CefInitialize(): the object is made only
+# after CefApp.initialize() (a RuntimeError before it). Measured: CefImage.CreateImage() and the release of
+# its object end the process with a segmentation fault when CEF has not been initialized.
+NEEDS_CEF_RUNNING = {
+    ("CefImage", "CreateImage"): "an Image can only be made after CefApp.initialize()",
+}
 
 # Global functions.
 FUNCTIONS = [
@@ -126,6 +158,25 @@ class Scope:
         client = [n for n, c in model.classes.items() if c.is_client_side()]
         return cls(model, library, client, list(model.functions))
 
+    def python_parent(self, name):
+        """The CEF parent of a library class that is a generated library class too (CefPanel -> CefView), else
+        None. Such a class is a Python subclass of its parent and has only its own methods; the others
+        (CefRequestContext, whose parent CefPreferenceManager is not generated) are one class with the methods of
+        their parents."""
+        if name not in self._library:
+            return None
+        parent = self.model.classes[name].get_parent_name()
+        return parent if parent in self._library else None
+
+    def python_children(self, name):
+        """The generated library classes whose Python parent is `name`, in name order."""
+        return [n for n in sorted(self._library) if self.python_parent(n) == name]
+
+    def in_hierarchy(self, name):
+        """True for a class that has a Python parent or Python children (the Views: CefView and the classes
+        that derive from it): its methods use a typed accessor and its objects are wrapped by their real type."""
+        return self.python_parent(name) is not None or bool(self.python_children(name))
+
     def is_library(self, name):
         return name in self._library
 
@@ -134,7 +185,12 @@ class Scope:
 
     @property
     def library_classes(self):
-        return [self.model.classes[n] for n in sorted(self._library)]
+        """The generated library classes by name, a parent before its subclasses in this order of the output
+        (the parent has to be defined first: `cdef class Panel(View)`)."""
+        def depth(name):
+            parent = self.python_parent(name)
+            return 0 if parent is None else 1 + depth(parent)
+        return [self.model.classes[n] for n in sorted(self._library, key=lambda n: (depth(n), n))]
 
     @property
     def client_classes(self):

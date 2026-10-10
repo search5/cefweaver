@@ -244,6 +244,16 @@ cdef class DragData:
             _p.ClearFilenames()
         return None
 
+    def get_image(self):
+        """Get the image representation of drag data. May return NULL if no image
+        representation is available.
+        """
+        cdef CefDragData* _p = self._ptr()
+        cdef CefRefPtr[CefImage] _r
+        with nogil:
+            _r = _p.GetImage()
+        return _wrap_Image(_r)
+
     def get_image_hotspot(self):
         """Get the image hotspot (drag start location relative to image dimensions)."""
         cdef CefDragData* _p = self._ptr()

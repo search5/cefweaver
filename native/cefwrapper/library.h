@@ -62,6 +62,7 @@ public:
   // The settings of the first browser and of the ones made without settings.
   void SetBrowserSettings(const CefBrowserSettings& settings);
   void SetTransparent(bool transparent);
+  void SetFirstBrowser(bool create);
   void SetSharedTexture(bool enabled);
   bool SharedTexture();
   bool Transparent();

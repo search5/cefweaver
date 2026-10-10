@@ -102,6 +102,7 @@ cdef extern from "library.h":
         void SetSharedTexture(cpp_bool enabled)
         cpp_bool SharedTexture()
         void SetTransparent(cpp_bool transparent)
+        void SetFirstBrowser(cpp_bool create)
         cpp_bool Transparent()
         void SetOffscreen(cpp_bool enabled)
         void SetRequestContext(CefRefPtr[CefRequestContext] context)

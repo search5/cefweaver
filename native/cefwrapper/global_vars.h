@@ -34,6 +34,8 @@ inline void ForgetChildViewBrowser(int browser_id) {
 // An offscreen browser paints nothing clear (default) or is opaque; the colour (ARGB) is
 // CefSettings.background_color, which an opaque offscreen browser uses (0: white).
 inline std::atomic<bool> g_Transparent{true};
+// initialize(None): CEF starts without a first browser (the application makes its own, e.g. a Views BrowserView).
+inline std::atomic<bool> g_NoFirstBrowser{false};
 // An offscreen browser gives CEF's shared textures (dmabufs) to OnAcceleratedPaint() instead of
 // pixels to OnPaint().
 inline std::atomic<bool> g_SharedTexture{false};

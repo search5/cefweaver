@@ -17,6 +17,7 @@ import re
 from emit_cpp import (element_cpp, field_name, table_in_types, table_out_type,
                       table_param_types, table_ret_type)
 from model import PLATFORM_STRUCTS, py_class_name, py_method_name, py_param_name
+from scope import NEEDS_CEF_RUNNING
 from model import py_class_name as _py_class_name  # noqa: F401
 from typesys import Buffer, Bytes, Planes, ClientRef, Ignored, ItemBytes, StrMap, Time, Enum, LibRef, Prim, Str, Struct, Vector, Void
 
@@ -285,13 +286,13 @@ def emit_pxd(model, scope, plans_by_class, function_plans, banner):
     out.append("# Forward declarations")
     for cls in classes:
         out.append('cdef extern from "%s":' % model.header_path(cls))
-        out.append("    cdef cppclass %s(CefBaseRefCounted)" % cls.get_name())
+        out.append("    cdef cppclass %s(%s)" % (cls.get_name(), scope.python_parent(cls.get_name()) or "CefBaseRefCounted"))
     out.append("")
 
     out.append("# Library classes (implemented by CEF)")
     for cls in scope.library_classes:
         out.append('cdef extern from "%s":' % model.header_path(cls))
-        out.append("    cdef cppclass %s(CefBaseRefCounted):" % cls.get_name())
+        out.append("    cdef cppclass %s(%s):" % (cls.get_name(), scope.python_parent(cls.get_name()) or "CefBaseRefCounted"))
         plans = [p for p in plans_by_class[cls.get_name()] if p.supported]
         if not plans:
             out.append("        pass")
@@ -493,6 +494,10 @@ cdef inline list _g_str_list(const vector[CefString]* values):
 # freed afterwards is dropped without a Release(): nothing can use it any more.
 cdef bint _cef_was_shut_down = False
 
+# Set by CefApp.initialize() (and cleared when it fails). A few objects cannot be made before CEF runs
+# (scope.NEEDS_CEF_RUNNING): the static function that makes them refuses until it is set.
+cdef bint _cef_started = False
+
 
 cdef inline void _g_forget(void* ref) noexcept:
     (<void**>ref)[0] = NULL  # a CefRefPtr holds exactly one pointer
@@ -635,6 +640,27 @@ def struct_tuple_annotation(kind):
     return "tuple[%s]" % ", ".join(f.py for f in kind.fields)
 
 
+# {CEF class: CEF parent} of the generated library classes that are Python subclasses of their parent
+# (Scope.python_parent): CefPanel(CefView), ... Set by emit_pxi() before the classes are written.
+_PYTHON_PARENT = {}
+
+
+def _set_hierarchy(scope):
+    _PYTHON_PARENT.clear()
+    for cls in scope.library_classes:
+        parent = scope.python_parent(cls.get_name())
+        if parent:
+            _PYTHON_PARENT[cls.get_name()] = parent
+
+
+def _libref_from_python(kind_cls, name):
+    """The `CefRefPtr[kind_cls]` of the Python object `name` (an object of that class or of a subclass). The
+    object holds a CefRefPtr of the root class of its hierarchy; a class below the root is reached by a cast."""
+    if kind_cls in _PYTHON_PARENT:
+        return "CefRefPtr[%s](<%s*>%s._ref.get())" % (kind_cls, kind_cls, name)
+    return "%s._ref" % name
+
+
 def _library_method(plan, owner_py):
     """Python-callable wrapper of a library method or function."""
     name = plan.name if plan.owner else public_function_name(plan.cef_name)
@@ -757,9 +783,9 @@ def _library_method(plan, owner_py):
             sig.append("%s %s%s" % (py_class_name(kind.cls), n, "" if param.optional else " not None"))
             decls.append("cdef CefRefPtr[%s] _a%d" % (kind.cls, i))
             if param.optional:
-                pre += ["if %s is not None:" % n, "    _a%d = %s._ref" % (i, n)]
+                pre += ["if %s is not None:" % n, "    _a%d = %s" % (i, _libref_from_python(kind.cls, n))]
             else:
-                pre.append("_a%d = %s._ref" % (i, n))
+                pre.append("_a%d = %s" % (i, _libref_from_python(kind.cls, n)))
             call_args.append("_a%d" % i)
         elif isinstance(kind, ClientRef):
             sig.append(n)
@@ -783,8 +809,11 @@ def _library_method(plan, owner_py):
     body += _docstring(plan.comment, len(base)) if getattr(plan, "comment", None) else []
     for d in decls:
         body.append(base + d)
+    if plan.static and (plan.owner, plan.cef_name) in NEEDS_CEF_RUNNING:
+        body.append(base + "if not _cef_started:")
+        body.append(base + '    raise RuntimeError("%s")' % NEEDS_CEF_RUNNING[(plan.owner, plan.cef_name)])
     if not plan.static:
-        body.append(base + "cdef %s* _p = self._ptr()" % plan.owner)
+        body.append(base + "cdef %s* _p = self.%s()" % (plan.owner, getattr(plan, "accessor", "_ptr")))
     if isinstance(ret, Prim):
         body.append(base + "cdef %s _r" % cy_c(ret.cpp))
     elif isinstance(ret, Enum):
@@ -970,23 +999,33 @@ def _trampoline(plan, cls_py):
     return out
 
 
-def _library_class_lines(model, cls, plans):
+def _library_class_lines(model, scope, cls, plans):
     out = []
     py = py_class_name(cls.get_name())
     cn = cls.get_name()
-    out.append("cdef class %s:" % py)
-    out += _docstring(model.comment(cls), 4)
-    out.append("    cdef CefRefPtr[%s] _ref" % cn)
-    out.append("")
-    out.append("    def __dealloc__(self):")
-    out.append("        if _cef_was_shut_down:")
-    out.append("            _g_forget(<void*>&self._ref)")
-    out.append("")
-    out.append("    def __init__(self):")
-    out.append('        raise TypeError("%s objects are created by CEF or by a create() function")' % py)
-    out.append("")
-    out.append("    cdef %s* _ptr(self) except NULL:" % cn)
-    out.append("        cdef %s* p = self._ref.get()" % cn)
+    parent = _PYTHON_PARENT.get(cn)
+    hierarchy = scope.in_hierarchy(cn)
+    accessor = "_ptr_%s" % cn if hierarchy else "_ptr"
+    if parent:
+        # A subclass: the object, its reference and the checks are those of the root class of the hierarchy;
+        # this class only adds its own methods, which reach CEF through a pointer of this class.
+        out.append("cdef class %s(%s):" % (py, py_class_name(parent)))
+        out += _docstring(model.comment(cls), 4)
+        out.append("")
+    else:
+        out.append("cdef class %s:" % py)
+        out += _docstring(model.comment(cls), 4)
+        out.append("    cdef CefRefPtr[%s] _ref" % cn)
+        out.append("")
+        out.append("    def __dealloc__(self):")
+        out.append("        if _cef_was_shut_down:")
+        out.append("            _g_forget(<void*>&self._ref)")
+        out.append("")
+        out.append("    def __init__(self):")
+        out.append('        raise TypeError("%s objects are created by CEF or by a create() function")' % py)
+        out.append("")
+    out.append("    cdef %s* %s(self) except NULL:" % (cn, accessor))
+    out.append("        cdef %s* p = %sself._ref.get()" % (cn, "<%s*>" % cn if parent else ""))
     out.append("        if p == NULL:")
     out.append('            raise RuntimeError("%s has no CEF object")' % py)
     out.append("        return p")
@@ -995,19 +1034,51 @@ def _library_class_lines(model, cls, plans):
         if not plan.supported:
             continue
         plan.comment = model.comment(plan.node)
+        plan.accessor = accessor
         out += _library_method(plan, cn)
         out.append("")
     out.append("")
-    out.append("cdef object _wrap_%s(CefRefPtr[%s] ref):" % (py, cn))
+    out += _wrap_function_lines(scope, cls, plans)
+    return out
+
+
+def _wrap_function_lines(scope, cls, plans):
+    """`_wrap_X(ref)`: the Python object of a CEF reference. For a class with subclasses it is the object of the
+    class CEF says the thing really is (a CefView that is a CefWindow becomes a Window): the `AsWindow()`,
+    `AsBrowserView()` ... methods of the class tell."""
+    cn = cls.get_name()
+    py = py_class_name(cn)
+    parent = _PYTHON_PARENT.get(cn)
+    out = ["cdef object _wrap_%s(CefRefPtr[%s] ref):" % (py, cn)]
+    lookups = []
+    own = {p.cef_name for p in plans if p.supported and not p.static}
+    for child in scope.python_children(cn):
+        method = "As" + child[len("Cef"):]
+        if method in own:
+            lookups.append((child, method))
+    for i, (child, method) in enumerate(lookups):
+        out.append("    cdef CefRefPtr[%s] _c%d" % (child, i))
     out.append("    cdef %s obj" % py)
     out.append("    if ref.get() == NULL:")
     out.append("        return None")
+    for i, (child, method) in enumerate(lookups):
+        out.append("    _c%d = ref.get().%s()" % (i, method))
+        out.append("    if _c%d.get() != NULL:" % i)
+        out.append("        return _wrap_%s(_c%d)" % (py_class_name(child), i))
     out.append("    obj = %s.__new__(%s)" % (py, py))
-    out.append("    obj._ref = ref")
+    out.append("    obj._ref = %s" % ("CefRefPtr[%s](<%s*>ref.get())" % (_root_of(parent), _root_of(parent))
+                                      if parent else "ref"))
     out.append("    return obj")
     out.append("")
     out.append("")
     return out
+
+
+def _root_of(name):
+    """The root class of the hierarchy a class belongs to (the class of `_ref`)."""
+    while name in _PYTHON_PARENT:
+        name = _PYTHON_PARENT[name]
+    return name
 
 
 def _client_class_lines(model, cls, plans_all):
@@ -1075,6 +1146,7 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
     """
     lib = scope.library_classes
     cli = scope.client_classes
+    _set_hierarchy(scope)
     head = ["# " + banner, "# GENERATED by tools/gen/generate.py. DO NOT EDIT.", ""]
     parts = {}
 
@@ -1109,7 +1181,7 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
         out = []
         for cls in classes:
             if cls in lib:
-                out += _library_class_lines(model, cls, plans_by_class[cls.get_name()])
+                out += _library_class_lines(model, scope, cls, plans_by_class[cls.get_name()])
             else:
                 out += _client_class_lines(model, cls, plans_by_class[cls.get_name()])
         parts[name] = out

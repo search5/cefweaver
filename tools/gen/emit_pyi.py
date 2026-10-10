@@ -115,7 +115,8 @@ def emit(model, scope, plans_by_class, function_plans, handwritten, banner):
 
     for cls in scope.library_classes + scope.client_classes:
         client = cls.is_client_side()
-        out.append("class %s:" % py_class_name(cls.get_name()))
+        parent = scope.python_parent(cls.get_name())
+        out.append("class %s%s:" % (py_class_name(cls.get_name()), "(%s)" % py_class_name(parent) if parent else ""))
         doc = _docstring(model.comment(cls), 4)
         out += doc
         plans = [p for p in plans_by_class[cls.get_name()] if p.supported]

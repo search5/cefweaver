@@ -315,6 +315,7 @@ uintptr_t CefWrapper::ParentView() { return g_ParentView.load(); }
 void CefWrapper::SetSharedTexture(bool enabled) { g_SharedTexture.store(enabled); }
 bool CefWrapper::SharedTexture() { return g_SharedTexture.load(); }
 void CefWrapper::SetTransparent(bool transparent) { g_Transparent.store(transparent); }
+void CefWrapper::SetFirstBrowser(bool create) { g_NoFirstBrowser.store(!create); }
 bool CefWrapper::Transparent() { return g_Transparent.load(); }
 void CefWrapper::SetBridgeNames(std::string json) { BridgeNames() = json; }
 void CefWrapper::SetOffscreen(bool enabled) { g_Offscreen.store(enabled); }

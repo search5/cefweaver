@@ -1337,6 +1337,51 @@ class WithHeaders(unittest.TestCase):
         self.assertIn("audio_channels_", proxies)                                  # what OnAudioStreamStarted said
         self.assertIn("void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float** data, int frames, int64_t pts)", proxies)
 
+    def test_a_static_function_that_needs_a_running_cef_refuses_before_initialize(self):
+        # An Image freed while CEF has not been initialized ends the process: CreateImage() is refused until
+        # CefApp.initialize() set the flag (scope.NEEDS_CEF_RUNNING).
+        import generate
+        import scope
+        self.assertIn(("CefImage", "CreateImage"), scope.NEEDS_CEF_RUNNING)
+        text = generate.build_all(CEF_ROOT)["pxi:cef_image.pxi"]
+        guard = text.index("if not _cef_started:")
+        self.assertLess(text.rindex("def create_image", 0, guard), guard)
+        self.assertLess(guard, text.index("CefImage.CreateImage()"))        # before the call into CEF
+        others = generate.build_all(CEF_ROOT)["pxi:cef_request.pxi"]
+        self.assertNotIn("_cef_started", others)                           # Request.create() is safe before it
+
+    def test_a_class_below_another_generated_class_is_a_python_subclass(self):
+        # The Views: CefWindow is a CefPanel is a CefView. A subclass has only its own methods and reaches CEF
+        # through a typed pointer; a window can be given where a view is expected; CEF's reference is the root's.
+        import generate
+        import scope
+        files = generate.build_all(CEF_ROOT)
+        pxd, pyi = files["pxd"], files["pyi"]
+        self.assertIn("cdef cppclass CefPanel(CefView):", pxd)
+        self.assertIn("cdef cppclass CefWindow(CefPanel):", pxd)
+        self.assertLess(pxd.index("cdef cppclass CefView(CefBaseRefCounted)"), pxd.index("cdef cppclass CefPanel(CefView)"))
+        self.assertIn("class Window(Panel):", pyi)
+        self.assertIn("class Panel(View):", pyi)
+        window, panel, view = files["pxi:cef_window.pxi"], files["pxi:cef_panel.pxi"], files["pxi:cef_view.pxi"]
+        self.assertIn("cdef class Window(Panel):", window)
+        self.assertNotIn("cdef CefRefPtr[CefWindow] _ref", window)         # the root class holds the reference
+        self.assertIn("cdef CefRefPtr[CefView] _ref", view)
+        self.assertIn("cdef CefWindow* _ptr_CefWindow(self) except NULL:", window)
+        self.assertIn("<CefWindow*>self._ref.get()", window)               # a typed pointer for the own methods
+        self.assertIn("def create_top_level_window(", window)
+        self.assertNotIn("def set_id(", window)                            # inherited from View
+        self.assertNotIn("def add_child_view(", window)                    # inherited from Panel
+        self.assertIn("def set_id(", view)
+        self.assertIn("def add_child_view(", panel)
+        # what CEF says a view is decides the class of the Python object
+        wrap_view = view[view.index("cdef object _wrap_View("):]
+        for method in ("AsBrowserView", "AsButton", "AsPanel", "AsScrollView", "AsTextfield"):
+            self.assertIn(".%s()" % method, wrap_view)
+        self.assertIn(".AsWindow()", panel[panel.index("cdef object _wrap_Panel("):])
+        # a parameter of a class below the root is reached by a cast, the root's by the reference itself
+        self.assertIn("_a0 = CefRefPtr[CefBrowserView](<CefBrowserView*>browser_view._ref.get())", window)
+        self.assertIn("_a0 = that._ref", view)                             # View is the root: no cast
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

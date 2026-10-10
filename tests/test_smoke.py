@@ -451,6 +451,28 @@ class ApiWithoutCef(unittest.TestCase):
             self.assertIn(name, cefweaver.__all__)
         self.assertTrue(hasattr(cefweaver.Frame, "send_process_message"))
 
+    def test_an_image_cannot_be_made_before_cef_runs(self):
+        # Freeing an Image while CEF has not been initialized ends the process (segmentation fault): refused.
+        with self.assertRaises(RuntimeError) as caught:
+            cefweaver.Image.create_image()
+        self.assertIn("CefApp.initialize()", str(caught.exception))
+
+    def test_the_views_classes_are_python_subclasses_of_their_cef_parents(self):
+        # CefWindow is a CefPanel is a CefView: a Window can be given where a View is expected, and a class has
+        # only its own methods (the others are inherited).
+        for child, parent in (("Panel", "View"), ("Window", "Panel"), ("BrowserView", "View"), ("Button", "View"),
+                              ("LabelButton", "Button"), ("MenuButton", "LabelButton"), ("Textfield", "View"),
+                              ("ScrollView", "View"), ("BoxLayout", "Layout"), ("FillLayout", "Layout")):
+            self.assertTrue(issubclass(getattr(cefweaver, child), getattr(cefweaver, parent)), (child, parent))
+        self.assertIn("create_top_level_window", vars(cefweaver.Window))
+        self.assertNotIn("add_child_view", vars(cefweaver.Window))            # Panel's
+        self.assertIn("add_child_view", vars(cefweaver.Panel))
+        self.assertNotIn("set_id", vars(cefweaver.Panel))                      # View's
+        self.assertIn("set_id", vars(cefweaver.View))
+        self.assertTrue(hasattr(cefweaver.Window, "set_id") and hasattr(cefweaver.Window, "add_child_view"))
+        with self.assertRaises(TypeError):
+            cefweaver.Window()                                                 # made by CEF, not by the caller
+
     def test_values_can_be_built_and_read_without_cef(self):
         from cefweaver import types
         values = cefweaver.ListValue.create()
@@ -1077,6 +1099,81 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
+
+    def test_a_views_window_holds_a_toolbar_and_a_browser_view(self):
+        # CEF without a first browser (initialize(None)); the window, its layout, a toolbar with buttons and a
+        # text field and a BrowserView are all views the program puts together.
+        result = run_cef("""
+            from cefweaver import types
+            BACK, ADDRESS = 1, 4
+            seen, done, pressed = {}, [], []
+            class Buttons(cefweaver.ButtonDelegate):
+                def on_button_pressed(self, button):
+                    pressed.append(button.get_id())
+            class Win(cefweaver.WindowDelegate):
+                def __init__(self, browser_view):
+                    super().__init__()
+                    self.browser_view = browser_view
+                def on_window_created(self, window):
+                    seen["window"] = window
+                    column = window.set_to_box_layout(types.BoxLayoutSettings(horizontal=False))
+                    seen["column"] = type(column).__name__
+                    toolbar = cefweaver.Panel.create_panel(None)
+                    row = toolbar.set_to_box_layout(types.BoxLayoutSettings(horizontal=True, between_child_spacing=4))
+                    back = cefweaver.LabelButton.create_label_button(Buttons(), "Back")
+                    back.set_id(BACK)
+                    toolbar.add_child_view(back)
+                    address = cefweaver.Textfield.create_textfield(None)
+                    address.set_id(ADDRESS)
+                    address.set_text("http://start.test/")
+                    toolbar.add_child_view(address)
+                    row.set_flex_for_view(address, 1)
+                    window.add_child_view(toolbar)
+                    window.add_child_view(self.browser_view)
+                    column.set_flex_for_view(self.browser_view, 1)
+                    window.set_title("views test")
+                    window.show()
+                def on_window_destroyed(self, window):
+                    done.append(True)
+                def can_close(self, window):
+                    return True
+                def get_initial_bounds(self, window):
+                    return (0, 0, 640, 480)
+            app.initialize(None)
+            assert app.is_running                       # CEF runs without a first browser
+            browser_view = cefweaver.BrowserView.create_browser_view(
+                cefweaver.Client(), page("views"), types.BrowserSettings(), None, None, cefweaver.BrowserViewDelegate())
+            assert type(browser_view) is cefweaver.BrowserView and isinstance(browser_view, cefweaver.View)
+            window = cefweaver.Window.create_top_level_window(Win(browser_view))
+            assert type(window) is cefweaver.Window and isinstance(window, cefweaver.Panel)
+            wait_until(app, lambda: "window" in seen and browser_view.get_browser() is not None, "the window and its browser")
+            made = seen["window"]
+            assert type(made) is cefweaver.Window, type(made)         # the delegate gets the real class
+            assert seen["column"] == "BoxLayout", seen
+            assert made.get_title() == "views test" and made.is_visible()
+            # what CEF says a view is decides the class of the Python object
+            kinds = [type(made.get_child_view_at(i)).__name__ for i in range(made.get_child_view_count())]
+            assert kinds == ["Panel", "BrowserView"], kinds
+            toolbar = made.get_child_view_at(0)
+            assert [type(toolbar.get_child_view_at(i)).__name__ for i in range(2)] == ["LabelButton", "Textfield"]
+            assert type(made.get_view_for_id(ADDRESS)).__name__ == "Textfield"
+            assert made.get_view_for_id(ADDRESS).get_text() == "http://start.test/"
+            assert type(toolbar.get_parent_view()) is cefweaver.Window  # a View that is a Window comes back as one
+            assert type(made.get_view_for_id(BACK)).__name__ == "LabelButton" and made.get_view_for_id(BACK).get_id() == BACK
+            assert type(browser_view.get_window()) is cefweaver.Window
+            assert browser_view.get_browser().get_identifier() >= 1
+            # the layout: the toolbar and the browser fill the width of the window, the browser the rest
+            wait_until(app, lambda: browser_view.get_bounds()[3] > 100, "the layout")
+            width, height = made.get_size()
+            assert toolbar.get_bounds()[2] == width and browser_view.get_bounds()[2] == width, (width, toolbar.get_bounds())
+            assert toolbar.get_bounds()[3] + browser_view.get_bounds()[3] == height, (height, toolbar.get_bounds(), browser_view.get_bounds())
+            made.close()
+            wait_until(app, lambda: done, "the window to be destroyed")
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
 
     def test_browser_host_gives_back_its_browser_and_sets_the_zoom(self):
         result = run_cef("""
@@ -2601,6 +2698,64 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+
+    def test_an_image_holds_bitmaps_and_makes_png_and_jpeg(self):
+        self.run_osr_script("""
+            from cefweaver import types
+            assert "Image" in cefweaver.__all__
+            start(RED)
+            image = cefweaver.Image.create_image()
+            assert image.is_empty()
+            red = bytes([0, 0, 255, 255]) * (4 * 3)                     # BGRA, 4x3, opaque red
+            assert image.add_bitmap(1.0, 4, 3, types.ColorType.BGRA_8888, types.AlphaType.PREMULTIPLIED, red)
+            assert not image.is_empty()
+            assert (image.get_width(), image.get_height()) == (4, 3)
+            assert image.has_representation(1.0) and not image.has_representation(2.0)
+            assert image.get_representation_info(1.0)[1:] == (1.0, 4, 3)   # (ok, scale, width, height)
+            value, width, height = image.get_as_png(1.0, True)          # (BinaryValue, pixel width, pixel height)
+            png = value.get_data(value.get_size(), 0)
+            assert (png[:8], width, height) == (b"\\x89PNG\\r\\n\\x1a\\n", 4, 3), png[:8]
+            jpeg, _, _ = image.get_as_jpeg(1.0, 90)
+            assert jpeg.get_data(2, 0) == b"\\xff\\xd8"
+            bitmap, width, height = image.get_as_bitmap(1.0, types.ColorType.BGRA_8888, types.AlphaType.PREMULTIPLIED)
+            assert (bitmap.get_data(bitmap.get_size(), 0), width, height) == (red, 4, 3)
+            again = cefweaver.Image.create_image()                      # the PNG makes the same picture
+            assert again.add_png(1.0, png)
+            assert (again.get_width(), again.get_height()) == (4, 3)
+            assert not again.add_png(1.0, b"not a png")
+            assert image.remove_representation(1.0)
+            assert not image.has_representation(1.0)                    # (is_empty() stays False in CEF 154)
+            assert cefweaver.DragData.create().get_image() is None      # a drag without a picture
+            app.shutdown()
+            print("OK")
+        """)
+
+    def test_an_image_is_downloaded_from_the_page_side(self):
+        self.run_osr_script("""
+            from cefweaver import types
+            start(RED)
+            source = cefweaver.Image.create_image()
+            source.add_bitmap(1.0, 4, 3, types.ColorType.BGRA_8888, types.AlphaType.PREMULTIPLIED,
+                              bytes([0, 0, 255, 255]) * 12)
+            value = source.get_as_png(1.0, True)[0]
+            png = value.get_data(value.get_size(), 0)
+            app.add_resource("http://img.test/red.png", png, mime_type="image/png")
+            got = []
+            class Done(cefweaver.DownloadImageCallback):
+                def on_download_image_finished(self, image_url, http_status_code, image):
+                    got.append((image_url, http_status_code, image))
+            boxes[0].get_host().download_image("http://img.test/red.png", False, 0, False, Done())
+            wait_until(app, lambda: got, "the image")
+            url, status, image = got[0]
+            assert (url, status) == ("http://img.test/red.png", 200), got
+            assert image is not None and (image.get_width(), image.get_height()) == (4, 3), image
+            got.clear()
+            boxes[0].get_host().download_image("http://img.test/missing.png", False, 0, False, Done())
+            wait_until(app, lambda: got, "the failed download")
+            assert got[0][1] != 200 and got[0][2] is None, got        # no image for a missing file
+            app.shutdown()
+            print("OK")
+        """)
 
     def test_the_keyboard_handler_sees_key_events_before_the_page(self):
         self.run_osr_script("""

@@ -545,14 +545,16 @@ def plan_method(model, scope, owner, method, *, client_side, static=False):
 
 
 def plan_class(model, scope, cls):
-    """The plans of all methods of a class (its parents' included). Python has one attribute
+    """The plans of all methods of a class (its parents' included, unless the class is a Python subclass of its
+    parent: see Scope.python_parent). Python has one attribute
     per name, so of overloads (CefRequestContext::CreateContext has two) the first is
     generated and the others say so."""
     client = cls.is_client_side()
+    own_only = scope.python_parent(cls.get_name()) is not None      # the rest is inherited in Python
     plans = [plan_method(model, scope, cls.get_name(), m, client_side=client)
-             for m in model.virtual_funcs(cls)]
+             for m in model.virtual_funcs(cls, own_only=own_only)]
     plans += [plan_method(model, scope, cls.get_name(), m, client_side=client, static=True)
-              for m in cls.get_static_funcs()]
+              for m in model.static_funcs(cls)]
     seen = set()
     for plan in plans:
         if plan.name in seen and plan.supported:

@@ -121,7 +121,7 @@ class CefApp:
     @windowless_frame_rate.setter
     def windowless_frame_rate(self, value: int) -> None: ...
     def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None: ...
-    def initialize(self, start_url: str = "about:blank") -> None: ...
+    def initialize(self, start_url: str | None = "about:blank") -> None: ...
     def do_message_loop_work(self) -> None: ...
     def shutdown(self) -> None: ...
     def load_url(self, url: str) -> bool: ...
@@ -145,8 +145,12 @@ class CefApp:
 
 
 from .types import (
+    AlphaType,
+    ButtonState,
     CertStatus,
+    ChromeToolbarType,
     ColorModel,
+    ColorType,
     ColorVariant,
     ContentSettingTypes,
     ContentSettingValues,
@@ -155,6 +159,7 @@ from .types import (
     ContextMenuMediaType,
     ContextMenuTypeFlags,
     CursorType,
+    DockingMode,
     DownloadInterruptReason,
     DragOperationsMask,
     DuplexMode,
@@ -162,9 +167,11 @@ from .types import (
     EventFlags,
     FileDialogMode,
     FocusSource,
+    GestureCommand,
     HorizontalAlignment,
     JSDialogType,
     LogSeverity,
+    MenuAnchorPosition,
     MenuColorType,
     MenuItemType,
     MouseButtonType,
@@ -177,9 +184,12 @@ from .types import (
     ResourceType,
     ReturnValue,
     RuntimeStyle,
+    ShowState,
     State,
     TerminationStatus,
+    TextFieldCommands,
     TextInputMode,
+    TextStyle,
     ThreadId,
     TransitionType,
     URLRequestStatus,
@@ -505,6 +515,19 @@ class BrowserHost:
         ...
     def start_download(self, url: str) -> None:
         """Download the file at |url| using CefDownloadHandler."""
+        ...
+    def download_image(self, image_url: str, is_favicon: bool, max_image_size: int, bypass_cache: bool, callback: DownloadImageCallback) -> None:
+        """Download |image_url| and execute |callback| on completion with the images
+        received from the renderer. If |is_favicon| is true then cookies are not
+        sent and not accepted during download. Images with density independent
+        pixel (DIP) sizes larger than |max_image_size| are filtered out from the
+        image results. Versions of the image at different scale factors may be
+        downloaded up to the maximum scale factor supported by the system. If
+        there are no image results <= |max_image_size| then the smallest image is
+        resized to |max_image_size| and is the only result. A |max_image_size| of
+        0 means unlimited. If |bypass_cache| is true then |image_url| is requested
+        from the server even if it is present in the browser cache.
+        """
         ...
     def print(self) -> None:
         """Print the current browser contents."""
@@ -1608,6 +1631,11 @@ class DragData:
     def clear_filenames(self) -> None:
         """Clear list of filenames."""
         ...
+    def get_image(self) -> Image | None:
+        """Get the image representation of drag data. May return NULL if no image
+        representation is available.
+        """
+        ...
     def get_image_hotspot(self) -> Point:
         """Get the image hotspot (drag start location relative to image dimensions)."""
         ...
@@ -1758,6 +1786,97 @@ class Frame:
         ...
 
 
+class Image:
+    """Container for a single image represented at different scale factors. All
+    image representations should be the same size in density independent pixel
+    (DIP) units. For example, if the image at scale factor 1.0 is 100x100 pixels
+    then the image at scale factor 2.0 should be 200x200 pixels -- both images
+    will display with a DIP size of 100x100 units. The methods of this class can
+    be called on any browser process thread.
+    """
+    def is_empty(self) -> bool:
+        """Returns true if this Image is empty."""
+        ...
+    def is_same(self, that: Image) -> bool:
+        """Returns true if this Image and |that| Image share the same underlying
+        storage. Will also return true if both images are empty.
+        """
+        ...
+    def add_bitmap(self, scale_factor: float, pixel_width: int, pixel_height: int, color_type: ColorType | int, alpha_type: AlphaType | int, pixel_data: bytes | bytearray | memoryview) -> bool:
+        """Add a bitmap image representation for |scale_factor|. Only 32-bit
+        RGBA/BGRA formats are supported. |pixel_width| and |pixel_height| are the
+        bitmap representation size in pixel coordinates. |pixel_data| is the array
+        of pixel data and should be |pixel_width| x |pixel_height| x 4 bytes in
+        size. |color_type| and |alpha_type| values specify the pixel format.
+        """
+        ...
+    def add_png(self, scale_factor: float, png_data: bytes | bytearray | memoryview) -> bool:
+        """Add a PNG image representation for |scale_factor|. |png_data| is the image
+        data of size |png_data_size|. Any alpha transparency in the PNG data will
+        be maintained.
+        """
+        ...
+    def add_jpeg(self, scale_factor: float, jpeg_data: bytes | bytearray | memoryview) -> bool:
+        """Create a JPEG image representation for |scale_factor|. |jpeg_data| is the
+        image data of size |jpeg_data_size|. The JPEG format does not support
+        transparency so the alpha byte will be set to 0xFF for all pixels.
+        """
+        ...
+    def get_width(self) -> int:
+        """Returns the image width in density independent pixel (DIP) units."""
+        ...
+    def get_height(self) -> int:
+        """Returns the image height in density independent pixel (DIP) units."""
+        ...
+    def has_representation(self, scale_factor: float) -> bool:
+        """Returns true if this image contains a representation for |scale_factor|."""
+        ...
+    def remove_representation(self, scale_factor: float) -> bool:
+        """Removes the representation for |scale_factor|. Returns true on success."""
+        ...
+    def get_representation_info(self, scale_factor: float) -> tuple[bool, float, int, int]:
+        """Returns information for the representation that most closely matches
+        |scale_factor|. |actual_scale_factor| is the actual scale factor for the
+        representation. |pixel_width| and |pixel_height| are the representation
+        size in pixel coordinates. Returns true on success.
+        """
+        ...
+    def get_as_bitmap(self, scale_factor: float, color_type: ColorType | int, alpha_type: AlphaType | int) -> tuple[BinaryValue | None, int, int]:
+        """Returns the bitmap representation that most closely matches
+        |scale_factor|. Only 32-bit RGBA/BGRA formats are supported. |color_type|
+        and |alpha_type| values specify the desired output pixel format.
+        |pixel_width| and |pixel_height| are the output representation size in
+        pixel coordinates. Returns a CefBinaryValue containing the pixel data on
+        success or NULL on failure.
+        """
+        ...
+    def get_as_png(self, scale_factor: float, with_transparency: bool) -> tuple[BinaryValue | None, int, int]:
+        """Returns the PNG representation that most closely matches |scale_factor|.
+        If |with_transparency| is true any alpha transparency in the image will be
+        represented in the resulting PNG data. |pixel_width| and |pixel_height|
+        are the output representation size in pixel coordinates. Returns a
+        CefBinaryValue containing the PNG image data on success or NULL on
+        failure.
+        """
+        ...
+    def get_as_jpeg(self, scale_factor: float, quality: int) -> tuple[BinaryValue | None, int, int]:
+        """Returns the JPEG representation that most closely matches |scale_factor|.
+        |quality| determines the compression level with 0 == lowest and 100 ==
+        highest. The JPEG format does not support alpha transparency and the alpha
+        channel, if any, will be discarded. |pixel_width| and |pixel_height| are
+        the output representation size in pixel coordinates. Returns a
+        CefBinaryValue containing the JPEG image data on success or NULL on
+        failure.
+        """
+        ...
+    @staticmethod
+    def create_image() -> Image | None:
+        """Create a new CefImage. It will initially be empty. Use the Add*() methods
+        to add representations at different scale factors.
+        """
+        ...
+
+
 class JSDialogCallback:
     """Callback interface used for asynchronous continuation of JavaScript dialog
     requests.
@@ -1766,6 +1885,22 @@ class JSDialogCallback:
         """Continue the JS dialog request. Set |success| to true if the OK button was
         pressed. The |user_input| value should be specified for prompt dialogs.
         """
+        ...
+
+
+class Layout:
+    """A Layout handles the sizing of the children of a Panel according to
+    implementation-specific heuristics. Methods must be called on the browser
+    process UI thread unless otherwise indicated.
+    """
+    def as_box_layout(self) -> BoxLayout | None:
+        """Returns this Layout as a BoxLayout or NULL if this is not a BoxLayout."""
+        ...
+    def as_fill_layout(self) -> FillLayout | None:
+        """Returns this Layout as a FillLayout or NULL if this is not a FillLayout."""
+        ...
+    def is_valid(self) -> bool:
+        """Returns true if this Layout is valid."""
         ...
 
 
@@ -1934,6 +2069,10 @@ class MediaAccessCallback:
     def cancel(self) -> None:
         """Cancel the media access request."""
         ...
+
+
+class MenuButtonPressedLock:
+    """MenuButton pressed lock is released when this object is destroyed."""
 
 
 class MenuModel:
@@ -2199,6 +2338,122 @@ class MenuModel:
     @staticmethod
     def create_menu_model(delegate: MenuModelDelegate) -> MenuModel | None:
         """Create a new MenuModel with the specified |delegate|."""
+        ...
+
+
+class OverlayController:
+    """Controller for an overlay that contains a contents View added via
+    CefWindow::AddOverlayView. Methods exposed by this controller should be
+    called in preference to methods of the same name exposed by the contents
+    View unless otherwise indicated. Methods must be called on the browser
+    process UI thread unless otherwise indicated.
+    """
+    def is_valid(self) -> bool:
+        """Returns true if this object is valid."""
+        ...
+    def is_same(self, that: OverlayController) -> bool:
+        """Returns true if this object is the same as |that| object."""
+        ...
+    def get_contents_view(self) -> View | None:
+        """Returns the contents View for this overlay."""
+        ...
+    def get_window(self) -> Window | None:
+        """Returns the top-level Window hosting this overlay. Use this method instead
+        of calling GetWindow() on the contents View.
+        """
+        ...
+    def get_docking_mode(self) -> DockingMode:
+        """Returns the docking mode for this overlay."""
+        ...
+    def destroy(self) -> None:
+        """Destroy this overlay."""
+        ...
+    def set_bounds(self, bounds: Rect | tuple[int, int, int, int]) -> None:
+        """Sets the bounds (size and position) of this overlay. This will set the
+        bounds of the contents View to match and trigger a re-layout if necessary.
+        |bounds| is in parent coordinates and any insets configured on this
+        overlay will be ignored. Use this method only for overlays created with a
+        docking mode value of CEF_DOCKING_MODE_CUSTOM. With other docking modes
+        modify the insets of this overlay and/or layout of the contents View and
+        call SizeToPreferredSize() instead to calculate the new size and
+        re-position the overlay if necessary.
+        """
+        ...
+    def get_bounds(self) -> Rect:
+        """Returns the bounds (size and position) of this overlay in parent
+        coordinates.
+        """
+        ...
+    def get_bounds_in_screen(self) -> Rect:
+        """Returns the bounds (size and position) of this overlay in DIP screen
+        coordinates.
+        """
+        ...
+    def set_size(self, size: Size | tuple[int, int]) -> None:
+        """Sets the size of this overlay without changing the position. This will set
+        the size of the contents View to match and trigger a re-layout if
+        necessary. |size| is in parent coordinates and any insets configured on
+        this overlay will be ignored. Use this method only for overlays created
+        with a docking mode value of CEF_DOCKING_MODE_CUSTOM. With other docking
+        modes modify the insets of this overlay and/or layout of the contents View
+        and call SizeToPreferredSize() instead to calculate the new size and
+        re-position the overlay if necessary.
+        """
+        ...
+    def get_size(self) -> Size:
+        """Returns the size of this overlay in parent coordinates."""
+        ...
+    def set_position(self, position: Point | tuple[int, int]) -> None:
+        """Sets the position of this overlay without changing the size. |position| is
+        in parent coordinates and any insets configured on this overlay will
+        be ignored. Use this method only for overlays created with a docking mode
+        value of CEF_DOCKING_MODE_CUSTOM. With other docking modes modify the
+        insets of this overlay and/or layout of the contents View and call
+        SizeToPreferredSize() instead to calculate the new size and re-position
+        the overlay if necessary.
+        """
+        ...
+    def get_position(self) -> Point:
+        """Returns the position of this overlay in parent coordinates."""
+        ...
+    def set_insets(self, insets: Insets | tuple[int, int, int, int]) -> None:
+        """Sets the insets for this overlay. |insets| is in parent coordinates. Use
+        this method only for overlays created with a docking mode value other than
+        CEF_DOCKING_MODE_CUSTOM.
+        """
+        ...
+    def get_insets(self) -> Insets:
+        """Returns the insets for this overlay in parent coordinates."""
+        ...
+    def size_to_preferred_size(self) -> None:
+        """Size this overlay to its preferred size and trigger a re-layout if
+        necessary. The position of overlays created with a docking mode value of
+        CEF_DOCKING_MODE_CUSTOM will not be modified by calling this method. With
+        other docking modes this method may re-position the overlay if necessary
+        to accommodate the new size and any insets configured on the contents
+        View.
+        """
+        ...
+    def set_visible(self, visible: bool) -> None:
+        """Sets whether this overlay is visible. Overlays are hidden by default. If
+        this overlay is hidden then it and any child Views will not be drawn and,
+        if any of those Views currently have focus, then focus will also be
+        cleared. Painting is scheduled as needed.
+        """
+        ...
+    def is_visible(self) -> bool:
+        """Returns whether this overlay is visible. A View may be visible but still
+        not drawn in a Window if any parent Views are hidden. Call IsDrawn() to
+        determine whether this overlay and all parent Views are visible and will
+        be drawn.
+        """
+        ...
+    def is_drawn(self) -> bool:
+        """Returns whether this overlay is visible and drawn in a Window. A View is
+        drawn if it and all parent Views are visible. To determine if the
+        containing Window is visible to the user on-screen call IsVisible() on the
+        Window.
+        """
         ...
 
 
@@ -3162,6 +3417,282 @@ class Value:
         ...
 
 
+class View:
+    """A View is a rectangle within the views View hierarchy. It is the base class
+    for all Views. All size and position values are in density independent
+    pixels (DIP) unless otherwise indicated. Methods must be called on the
+    browser process UI thread unless otherwise indicated.
+    """
+    def as_browser_view(self) -> BrowserView | None:
+        """Returns this View as a BrowserView or NULL if this is not a BrowserView."""
+        ...
+    def as_button(self) -> Button | None:
+        """Returns this View as a Button or NULL if this is not a Button."""
+        ...
+    def as_panel(self) -> Panel | None:
+        """Returns this View as a Panel or NULL if this is not a Panel."""
+        ...
+    def as_scroll_view(self) -> ScrollView | None:
+        """Returns this View as a ScrollView or NULL if this is not a ScrollView."""
+        ...
+    def as_textfield(self) -> Textfield | None:
+        """Returns this View as a Textfield or NULL if this is not a Textfield."""
+        ...
+    def get_type_string(self) -> str:
+        """Returns the type of this View as a string. Used primarily for testing
+        purposes.
+        """
+        ...
+    def to_string(self, include_children: bool) -> str:
+        """Returns a string representation of this View which includes the type and
+        various type-specific identifying attributes. If |include_children| is
+        true any child Views will also be included. Used primarily for testing
+        purposes.
+        """
+        ...
+    def is_valid(self) -> bool:
+        """Returns true if this View is valid."""
+        ...
+    def is_attached(self) -> bool:
+        """Returns true if this View is currently attached to another View. A View
+        can only be attached to one View at a time.
+        """
+        ...
+    def is_same(self, that: View) -> bool:
+        """Returns true if this View is the same as |that| View."""
+        ...
+    def get_window(self) -> Window | None:
+        """Returns the top-level Window hosting this View, if any."""
+        ...
+    def get_id(self) -> int:
+        """Returns the ID for this View."""
+        ...
+    def set_id(self, id: int) -> None:
+        """Sets the ID for this View. ID should be unique within the subtree that you
+        intend to search for it. 0 is the default ID for views.
+        """
+        ...
+    def get_group_id(self) -> int:
+        """Returns the group id of this View, or -1 if not set."""
+        ...
+    def set_group_id(self, group_id: int) -> None:
+        """A group id is used to tag Views which are part of the same logical group.
+        Focus can be moved between views with the same group using the arrow keys.
+        The group id is immutable once it's set.
+        """
+        ...
+    def get_parent_view(self) -> View | None:
+        """Returns the View that contains this View, if any."""
+        ...
+    def get_view_for_id(self, id: int) -> View | None:
+        """Recursively descends the view tree starting at this View, and returns the
+        first child that it encounters with the given ID. Returns NULL if no
+        matching child view is found.
+        """
+        ...
+    def set_bounds(self, bounds: Rect | tuple[int, int, int, int]) -> None:
+        """Sets the bounds (size and position) of this View. |bounds| is in parent
+        coordinates, or DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_bounds(self) -> Rect:
+        """Returns the bounds (size and position) of this View in parent coordinates,
+        or DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_bounds_in_screen(self) -> Rect:
+        """Returns the bounds (size and position) of this View in DIP screen
+        coordinates.
+        """
+        ...
+    def set_size(self, size: Size | tuple[int, int]) -> None:
+        """Sets the size of this View without changing the position. |size| in
+        parent coordinates, or DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_size(self) -> Size:
+        """Returns the size of this View in parent coordinates, or DIP screen
+        coordinates if there is no parent.
+        """
+        ...
+    def set_position(self, position: Point | tuple[int, int]) -> None:
+        """Sets the position of this View without changing the size. |position| is in
+        parent coordinates, or DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_position(self) -> Point:
+        """Returns the position of this View. Position is in parent coordinates, or
+        DIP screen coordinates if there is no parent.
+        """
+        ...
+    def set_insets(self, insets: Insets | tuple[int, int, int, int]) -> None:
+        """Sets the insets for this View. |insets| is in parent coordinates, or DIP
+        screen coordinates if there is no parent.
+        """
+        ...
+    def get_insets(self) -> Insets:
+        """Returns the insets for this View in parent coordinates, or DIP screen
+        coordinates if there is no parent.
+        """
+        ...
+    def get_preferred_size(self) -> Size:
+        """Returns the size this View would like to be if enough space is available.
+        Size is in parent coordinates, or DIP screen coordinates if there is no
+        parent.
+        """
+        ...
+    def size_to_preferred_size(self) -> None:
+        """Size this View to its preferred size. Size is in parent coordinates, or
+        DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_minimum_size(self) -> Size:
+        """Returns the minimum size for this View. Size is in parent coordinates, or
+        DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_maximum_size(self) -> Size:
+        """Returns the maximum size for this View. Size is in parent coordinates, or
+        DIP screen coordinates if there is no parent.
+        """
+        ...
+    def get_height_for_width(self, width: int) -> int:
+        """Returns the height necessary to display this View with the provided width."""
+        ...
+    def invalidate_layout(self) -> None:
+        """Indicate that this View and all parent Views require a re-layout. This
+        ensures the next call to Layout() will propagate to this View even if the
+        bounds of parent Views do not change.
+        """
+        ...
+    def set_visible(self, visible: bool) -> None:
+        """Sets whether this View is visible. Windows are hidden by default and other
+        views are visible by default. This View and any parent views must be set
+        as visible for this View to be drawn in a Window. If this View is set as
+        hidden then it and any child views will not be drawn and, if any of those
+        views currently have focus, then focus will also be cleared. Painting is
+        scheduled as needed. If this View is a Window then calling this method is
+        equivalent to calling the Window Show() and Hide() methods.
+        """
+        ...
+    def is_visible(self) -> bool:
+        """Returns whether this View is visible. A view may be visible but still not
+        drawn in a Window if any parent views are hidden. If this View is a Window
+        then a return value of true indicates that this Window is currently
+        visible to the user on-screen. If this View is not a Window then call
+        IsDrawn() to determine whether this View and all parent views are visible
+        and will be drawn.
+        """
+        ...
+    def is_drawn(self) -> bool:
+        """Returns whether this View is visible and drawn in a Window. A view is
+        drawn if it and all parent views are visible. If this View is a Window
+        then calling this method is equivalent to calling IsVisible(). Otherwise,
+        to determine if the containing Window is visible to the user on-screen
+        call IsVisible() on the Window.
+        """
+        ...
+    def set_enabled(self, enabled: bool) -> None:
+        """Set whether this View is enabled. A disabled View does not receive
+        keyboard or mouse inputs. If |enabled| differs from the current value the
+        View will be repainted. Also, clears focus if the focused View is
+        disabled.
+        """
+        ...
+    def is_enabled(self) -> bool:
+        """Returns whether this View is enabled."""
+        ...
+    def set_focusable(self, focusable: bool) -> None:
+        """Sets whether this View is capable of taking focus. It will clear focus if
+        the focused View is set to be non-focusable. This is false by default so
+        that a View used as a container does not get the focus.
+        """
+        ...
+    def is_focusable(self) -> bool:
+        """Returns true if this View is focusable, enabled and drawn."""
+        ...
+    def is_accessibility_focusable(self) -> bool:
+        """Return whether this View is focusable when the user requires full keyboard
+        access, even though it may not be normally focusable.
+        """
+        ...
+    def has_focus(self) -> bool:
+        """Returns true if this View has focus in the context of the containing
+        Window. Check both this method and CefWindow::IsActive to determine global
+        keyboard focus.
+        """
+        ...
+    def request_focus(self) -> None:
+        """Request focus for this View in the context of the containing Window. If
+        this View is focusable it will become the focused View. Any focus changes
+        while a Window is not active may be applied after that Window next becomes
+        active.
+        """
+        ...
+    def set_background_color(self, color: int) -> None:
+        """Sets the background color for this View. The background color will be
+        automatically reset when CefViewDelegate::OnThemeChanged is called.
+        """
+        ...
+    def get_background_color(self) -> int:
+        """Returns the background color for this View. If the background color is
+        unset then the current `GetThemeColor(CEF_ColorPrimaryBackground)` value
+        will be returned. If this View belongs to an overlay (created with
+        CefWindow::AddOverlayView), and the background color is unset, then a
+        value of transparent (0) will be returned.
+        """
+        ...
+    def get_theme_color(self, color_id: int) -> int:
+        """Returns the current theme color associated with |color_id|, or the
+        placeholder color (red) if unset. See cef_color_ids.h for standard ID
+        values. Standard colors can be overridden and custom colors can be added
+        using CefWindow::SetThemeColor.
+        """
+        ...
+    def convert_point_to_screen(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| from this View's coordinate system to DIP screen
+        coordinates. This View must belong to a Window when calling this method.
+        Returns true if the conversion is successful or false otherwise. Use
+        CefDisplay::ConvertPointToPixels() after calling this method if further
+        conversion to display-specific pixel coordinates is desired.
+        """
+        ...
+    def convert_point_from_screen(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| to this View's coordinate system from DIP screen
+        coordinates. This View must belong to a Window when calling this method.
+        Returns true if the conversion is successful or false otherwise. Use
+        CefDisplay::ConvertPointFromPixels() before calling this method if
+        conversion from display-specific pixel coordinates is necessary.
+        """
+        ...
+    def convert_point_to_window(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| from this View's coordinate system to that of the Window.
+        This View must belong to a Window when calling this method. Returns true
+        if the conversion is successful or false otherwise.
+        """
+        ...
+    def convert_point_from_window(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| to this View's coordinate system from that of the Window.
+        This View must belong to a Window when calling this method. Returns true
+        if the conversion is successful or false otherwise.
+        """
+        ...
+    def convert_point_to_view(self, view: View, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| from this View's coordinate system to that of |view|.
+        |view| needs to be in the same Window but not necessarily the same view
+        hierarchy. Returns true if the conversion is successful or false
+        otherwise.
+        """
+        ...
+    def convert_point_from_view(self, view: View, point: Point | tuple[int, int]) -> tuple[bool, Point]:
+        """Convert |point| to this View's coordinate system from that |view|. |view|
+        needs to be in the same Window but not necessarily the same view
+        hierarchy. Returns true if the conversion is successful or false
+        otherwise.
+        """
+        ...
+
+
 class ZipReader:
     """Class that supports the reading of zip archives via the zlib unzip API.
     The methods of this class should only be called on the thread that creates
@@ -3224,6 +3755,676 @@ class ZipReader:
         ...
 
 
+class BoxLayout(Layout):
+    """A Layout manager that arranges child views vertically or horizontally in a
+    side-by-side fashion with spacing around and between the child views. The
+    child views are always sized according to their preferred size. If the
+    host's bounds provide insufficient space, child views will be clamped.
+    Excess space will not be distributed. Methods must be called on the browser
+    process UI thread unless otherwise indicated.
+    """
+    def set_flex_for_view(self, view: View, flex: int) -> None:
+        """Set the flex weight for the given |view|. Using the preferred size as
+        the basis, free space along the main axis is distributed to views in the
+        ratio of their flex weights. Similarly, if the views will overflow the
+        parent, space is subtracted in these ratios. A flex of 0 means this view
+        is not resized. Flex values must not be negative.
+        """
+        ...
+    def clear_flex_for_view(self, view: View) -> None:
+        """Clears the flex for the given |view|, causing it to use the default flex
+        specified via CefBoxLayoutSettings.default_flex.
+        """
+        ...
+
+
+class BrowserView(View):
+    """A View hosting a CefBrowser instance. Methods must be called on the browser
+    process UI thread unless otherwise indicated.
+    """
+    def get_browser(self) -> Browser | None:
+        """Returns the CefBrowser hosted by this BrowserView. Will return NULL if the
+        browser has not yet been created or has already been destroyed.
+        """
+        ...
+    def get_chrome_toolbar(self) -> View | None:
+        """Returns the Chrome toolbar associated with this BrowserView. Only
+        supported when using Chrome style. The CefBrowserViewDelegate::
+        GetChromeToolbarType() method must return a value other than
+        CEF_CTT_NONE and the toolbar will not be available until after this
+        BrowserView is added to a CefWindow and CefViewDelegate::OnWindowChanged()
+        has been called.
+        """
+        ...
+    def set_prefer_accelerators(self, prefer_accelerators: bool) -> None:
+        """Sets whether normal priority accelerators are first forwarded to the web
+        content (`keydown` event handler) or CefKeyboardHandler. Normal priority
+        accelerators can be registered via CefWindow::SetAccelerator (with
+        |high_priority|=false) or internally for standard accelerators supported
+        by Chrome style. If |prefer_accelerators| is true then the matching
+        accelerator will be triggered immediately (calling
+        CefWindowDelegate::OnAccelerator or CefCommandHandler::OnChromeCommand
+        respectively) and the event will not be forwarded to the web content or
+        CefKeyboardHandler first. If |prefer_accelerators| is false then the
+        matching accelerator will only be triggered if the event is not handled by
+        web content (`keydown` event handler that calls `event.preventDefault()`)
+        or by CefKeyboardHandler. The default value is false.
+        """
+        ...
+    def get_runtime_style(self) -> RuntimeStyle:
+        """Returns the runtime style for this BrowserView (ALLOY or CHROME). See
+        cef_runtime_style_t documentation for details.
+        """
+        ...
+    @staticmethod
+    def create_browser_view(client: Client | None, url: str | None, settings: BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, State, State, State, State, State, State, State, State, State, State, State, int, State, State], extra_info: DictionaryValue | None, request_context: RequestContext | None, delegate: BrowserViewDelegate | None) -> BrowserView | None:
+        """Create a new BrowserView. The underlying CefBrowser will not be created
+        until this view is added to the views hierarchy. The optional |extra_info|
+        parameter provides an opportunity to specify extra information specific
+        to the created browser that will be passed to
+        CefRenderProcessHandler::OnBrowserCreated() in the render process.
+        """
+        ...
+    @staticmethod
+    def get_for_browser(browser: Browser) -> BrowserView | None:
+        """Returns the BrowserView associated with |browser|."""
+        ...
+
+
+class Button(View):
+    """A View representing a button. Depending on the specific type, the button
+    could be implemented by a native control or custom rendered. Methods must be
+    called on the browser process UI thread unless otherwise indicated.
+    """
+    def as_label_button(self) -> LabelButton | None:
+        """Returns this Button as a LabelButton or NULL if this is not a LabelButton."""
+        ...
+    def set_state(self, state: ButtonState | int) -> None:
+        """Sets the current display state of the Button."""
+        ...
+    def get_state(self) -> ButtonState:
+        """Returns the current display state of the Button."""
+        ...
+    def set_ink_drop_enabled(self, enabled: bool) -> None:
+        """Sets the Button will use an ink drop effect for displaying state changes."""
+        ...
+    def set_tooltip_text(self, tooltip_text: str) -> None:
+        """Sets the tooltip text that will be displayed when the user hovers the
+        mouse cursor over the Button.
+        """
+        ...
+    def set_accessible_name(self, name: str) -> None:
+        """Sets the accessible name that will be exposed to assistive technology
+        (AT).
+        """
+        ...
+
+
+class FillLayout(Layout):
+    """A simple Layout that causes the associated Panel's one child to be sized to
+    match the bounds of its parent. Methods must be called on the browser
+    process UI thread unless otherwise indicated.
+    """
+
+
+class Panel(View):
+    """A Panel is a container in the views hierarchy that can contain other Views
+    as children. Methods must be called on the browser process UI thread unless
+    otherwise indicated.
+    """
+    def as_window(self) -> Window | None:
+        """Returns this Panel as a Window or NULL if this is not a Window."""
+        ...
+    def set_to_fill_layout(self) -> FillLayout | None:
+        """Set this Panel's Layout to FillLayout and return the FillLayout object."""
+        ...
+    def set_to_box_layout(self, settings: BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]) -> BoxLayout | None:
+        """Set this Panel's Layout to BoxLayout and return the BoxLayout object."""
+        ...
+    def get_layout(self) -> Layout | None:
+        """Get the Layout."""
+        ...
+    def layout(self) -> None:
+        """Lay out the child Views (set their bounds based on sizing heuristics
+        specific to the current Layout).
+        """
+        ...
+    def add_child_view(self, view: View) -> None:
+        """Add a child View."""
+        ...
+    def add_child_view_at(self, view: View, index: int) -> None:
+        """Add a child View at the specified |index|. If |index| matches the result
+        of GetChildCount() then the View will be added at the end.
+        """
+        ...
+    def reorder_child_view(self, view: View, index: int) -> None:
+        """Move the child View to the specified |index|. A negative value for |index|
+        will move the View to the end.
+        """
+        ...
+    def remove_child_view(self, view: View) -> None:
+        """Remove a child View. The View can then be added to another Panel."""
+        ...
+    def remove_all_child_views(self) -> None:
+        """Remove all child Views. The removed Views will be deleted if the client
+        holds no references to them.
+        """
+        ...
+    def get_child_view_count(self) -> int:
+        """Returns the number of child Views."""
+        ...
+    def get_child_view_at(self, index: int) -> View | None:
+        """Returns the child View at the specified |index|."""
+        ...
+    @staticmethod
+    def create_panel(delegate: PanelDelegate | None) -> Panel | None:
+        """Create a new Panel."""
+        ...
+
+
+class ScrollView(View):
+    """A ScrollView will show horizontal and/or vertical scrollbars when necessary
+    based on the size of the attached content view. Methods must be called on
+    the browser process UI thread unless otherwise indicated.
+    """
+    def set_content_view(self, view: View) -> None:
+        """Set the content View. The content View must have a specified size (e.g.
+        via CefView::SetBounds or CefViewDelegate::GetPreferredSize).
+        """
+        ...
+    def get_content_view(self) -> View | None:
+        """Returns the content View."""
+        ...
+    def get_visible_content_rect(self) -> Rect:
+        """Returns the visible region of the content View."""
+        ...
+    def has_horizontal_scrollbar(self) -> bool:
+        """Returns true if the horizontal scrollbar is currently showing."""
+        ...
+    def get_horizontal_scrollbar_height(self) -> int:
+        """Returns the height of the horizontal scrollbar."""
+        ...
+    def has_vertical_scrollbar(self) -> bool:
+        """Returns true if the vertical scrollbar is currently showing."""
+        ...
+    def get_vertical_scrollbar_width(self) -> int:
+        """Returns the width of the vertical scrollbar."""
+        ...
+    @staticmethod
+    def create_scroll_view(delegate: ViewDelegate | None) -> ScrollView | None:
+        """Create a new ScrollView."""
+        ...
+
+
+class Textfield(View):
+    """A Textfield supports editing of text. This control is custom rendered with
+    no platform-specific code. Methods must be called on the browser process UI
+    thread unless otherwise indicated.
+    """
+    def set_password_input(self, password_input: bool) -> None:
+        """Sets whether the text will be displayed as asterisks."""
+        ...
+    def is_password_input(self) -> bool:
+        """Returns true if the text will be displayed as asterisks."""
+        ...
+    def set_read_only(self, read_only: bool) -> None:
+        """Sets whether the text will read-only."""
+        ...
+    def is_read_only(self) -> bool:
+        """Returns true if the text is read-only."""
+        ...
+    def get_text(self) -> str:
+        """Returns the currently displayed text."""
+        ...
+    def set_text(self, text: str) -> None:
+        """Sets the contents to |text|. The cursor will be moved to end of the text
+        if the current position is outside of the text range.
+        """
+        ...
+    def append_text(self, text: str) -> None:
+        """Appends |text| to the previously-existing text."""
+        ...
+    def insert_or_replace_text(self, text: str) -> None:
+        """Inserts |text| at the current cursor position replacing any selected text."""
+        ...
+    def has_selection(self) -> bool:
+        """Returns true if there is any selected text."""
+        ...
+    def get_selected_text(self) -> str:
+        """Returns the currently selected text."""
+        ...
+    def select_all(self, reversed: bool) -> None:
+        """Selects all text. If |reversed| is true the range will end at the logical
+        beginning of the text; this generally shows the leading portion of text
+        that overflows its display area.
+        """
+        ...
+    def clear_selection(self) -> None:
+        """Clears the text selection and sets the caret to the end."""
+        ...
+    def get_selected_range(self) -> Range:
+        """Returns the selected logical text range."""
+        ...
+    def select_range(self, range: Range | tuple[int, int]) -> None:
+        """Selects the specified logical text range."""
+        ...
+    def get_cursor_position(self) -> int:
+        """Returns the current cursor position."""
+        ...
+    def set_font_list(self, font_list: str) -> None:
+        """Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
+        where:
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names
+          (case-sensitive \"Bold\" and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
+        """
+        ...
+    def apply_text_color(self, color: int, range: Range | tuple[int, int]) -> None:
+        """Applies |color| to the specified |range| without changing the default
+        color. If |range| is empty the color will be set on the complete text
+        contents.
+        """
+        ...
+    def apply_text_style(self, style: TextStyle | int, add: bool, range: Range | tuple[int, int]) -> None:
+        """Applies |style| to the specified |range| without changing the default
+        style. If |add| is true the style will be added, otherwise the style will
+        be removed. If |range| is empty the style will be set on the complete text
+        contents.
+        """
+        ...
+    def is_command_enabled(self, command_id: TextFieldCommands | int) -> bool:
+        """Returns true if the action associated with the specified command id is
+        enabled. See additional comments on ExecuteCommand().
+        """
+        ...
+    def execute_command(self, command_id: TextFieldCommands | int) -> None:
+        """Performs the action associated with the specified command id."""
+        ...
+    def clear_edit_history(self) -> None:
+        """Clears Edit history."""
+        ...
+    def set_placeholder_text(self, text: str) -> None:
+        """Sets the placeholder text that will be displayed when the Textfield is
+        empty.
+        """
+        ...
+    def get_placeholder_text(self) -> str:
+        """Returns the placeholder text that will be displayed when the Textfield is
+        empty.
+        """
+        ...
+    def set_accessible_name(self, name: str) -> None:
+        """Set the accessible name that will be exposed to assistive technology (AT)."""
+        ...
+    @staticmethod
+    def create_textfield(delegate: TextfieldDelegate | None) -> Textfield | None:
+        """Create a new Textfield."""
+        ...
+
+
+class LabelButton(Button):
+    """LabelButton is a button with optional text and/or icon. Methods must be
+    called on the browser process UI thread unless otherwise indicated.
+    """
+    def as_menu_button(self) -> MenuButton | None:
+        """Returns this LabelButton as a MenuButton or NULL if this is not a
+        MenuButton.
+        """
+        ...
+    def set_text(self, text: str) -> None:
+        """Sets the text shown on the LabelButton. By default |text| will also be
+        used as the accessible name.
+        """
+        ...
+    def get_text(self) -> str:
+        """Returns the text shown on the LabelButton."""
+        ...
+    def set_image(self, button_state: ButtonState | int, image: Image | None) -> None:
+        """Sets the image shown for |button_state|. When this Button is drawn if no
+        image exists for the current state then the image for
+        CEF_BUTTON_STATE_NORMAL, if any, will be shown.
+        """
+        ...
+    def get_image(self, button_state: ButtonState | int) -> Image | None:
+        """Returns the image shown for |button_state|. If no image exists for that
+        state then the image for CEF_BUTTON_STATE_NORMAL will be returned.
+        """
+        ...
+    def set_text_color(self, for_state: ButtonState | int, color: int) -> None:
+        """Sets the text color shown for the specified button |for_state| to |color|."""
+        ...
+    def set_enabled_text_colors(self, color: int) -> None:
+        """Sets the text colors shown for the non-disabled states to |color|."""
+        ...
+    def set_font_list(self, font_list: str) -> None:
+        """Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
+        where:
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names
+          (case-sensitive \"Bold\" and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
+        """
+        ...
+    def set_horizontal_alignment(self, alignment: HorizontalAlignment | int) -> None:
+        """Sets the horizontal alignment; reversed in RTL. Default is
+        CEF_HORIZONTAL_ALIGNMENT_CENTER.
+        """
+        ...
+    def set_minimum_size(self, size: Size | tuple[int, int]) -> None:
+        """Reset the minimum size of this LabelButton to |size|."""
+        ...
+    def set_maximum_size(self, size: Size | tuple[int, int]) -> None:
+        """Reset the maximum size of this LabelButton to |size|."""
+        ...
+    @staticmethod
+    def create_label_button(delegate: ButtonDelegate, text: str | None) -> LabelButton | None:
+        """Create a new LabelButton. A |delegate| must be provided to handle the
+        button click. |text| will be shown on the LabelButton and used as the
+        default accessible name.
+        """
+        ...
+
+
+class Window(Panel):
+    """A Window is a top-level Window/widget in the Views hierarchy. By default it
+    will have a non-client area with title bar, icon and buttons that supports
+    moving and resizing. All size and position values are in density independent
+    pixels (DIP) unless otherwise indicated. Methods must be called on the
+    browser process UI thread unless otherwise indicated.
+    """
+    def show(self) -> None:
+        """Show the Window."""
+        ...
+    def show_as_browser_modal_dialog(self, browser_view: BrowserView) -> None:
+        """Show the Window as a browser modal dialog relative to |browser_view|. A
+        parent Window must be returned via CefWindowDelegate::GetParentWindow()
+        and |browser_view| must belong to that parent Window. While this Window is
+        visible, |browser_view| will be disabled while other controls in the
+        parent Window remain enabled. Navigating or destroying the |browser_view|
+        will close this Window automatically. Alternately, use Show() and return
+        true from CefWindowDelegate::IsWindowModalDialog() for a window modal
+        dialog where all controls in the parent Window are disabled.
+        """
+        ...
+    def hide(self) -> None:
+        """Hide the Window."""
+        ...
+    def center_window(self, size: Size | tuple[int, int]) -> None:
+        """Sizes the Window to |size| and centers it in the current display."""
+        ...
+    def close(self) -> None:
+        """Close the Window."""
+        ...
+    def is_closed(self) -> bool:
+        """Returns true if the Window has been closed."""
+        ...
+    def activate(self) -> None:
+        """Activate the Window, assuming it already exists and is visible."""
+        ...
+    def deactivate(self) -> None:
+        """Deactivate the Window, making the next Window in the Z order the active
+        Window.
+        """
+        ...
+    def is_active(self) -> bool:
+        """Returns whether the Window is the currently active Window."""
+        ...
+    def bring_to_top(self) -> None:
+        """Bring this Window to the top of other Windows in the Windowing system."""
+        ...
+    def set_always_on_top(self, on_top: bool) -> None:
+        """Set the Window to be on top of other Windows in the Windowing system."""
+        ...
+    def is_always_on_top(self) -> bool:
+        """Returns whether the Window has been set to be on top of other Windows in
+        the Windowing system.
+        """
+        ...
+    def maximize(self) -> None:
+        """Maximize the Window."""
+        ...
+    def minimize(self) -> None:
+        """Minimize the Window."""
+        ...
+    def restore(self) -> None:
+        """Restore the Window."""
+        ...
+    def set_fullscreen(self, fullscreen: bool) -> None:
+        """Set fullscreen Window state. The
+        CefWindowDelegate::OnWindowFullscreenTransition method will be called
+        during the fullscreen transition for notification purposes.
+        """
+        ...
+    def is_maximized(self) -> bool:
+        """Returns true if the Window is maximized."""
+        ...
+    def is_minimized(self) -> bool:
+        """Returns true if the Window is minimized."""
+        ...
+    def is_fullscreen(self) -> bool:
+        """Returns true if the Window is fullscreen."""
+        ...
+    def get_focused_view(self) -> View | None:
+        """Returns the View that currently has focus in this Window, or nullptr if no
+        View currently has focus. A Window may have a focused View even if it is
+        not currently active. Any focus changes while a Window is not active may
+        be applied after that Window next becomes active.
+        """
+        ...
+    def set_title(self, title: str | None) -> None:
+        """Set the Window title."""
+        ...
+    def get_title(self) -> str:
+        """Get the Window title."""
+        ...
+    def set_window_icon(self, image: Image) -> None:
+        """Set the Window icon. This should be a 16x16 icon suitable for use in the
+        Windows's title bar.
+        """
+        ...
+    def get_window_icon(self) -> Image | None:
+        """Get the Window icon."""
+        ...
+    def set_window_app_icon(self, image: Image) -> None:
+        """Set the Window App icon. This should be a larger icon for use in the host
+        environment app switching UI. On Windows, this is the ICON_BIG used in
+        Alt-Tab list and Windows taskbar. The Window icon will be used by default
+        if no Window App icon is specified.
+        """
+        ...
+    def get_window_app_icon(self) -> Image | None:
+        """Get the Window App icon."""
+        ...
+    def add_overlay_view(self, view: View, docking_mode: DockingMode | int, can_activate: bool) -> OverlayController | None:
+        """Add a View that will be overlayed on the Window contents with absolute
+        positioning and high z-order. Positioning is controlled by |docking_mode|
+        as described below. Setting |can_activate| to true will allow the overlay
+        view to receive input focus. The returned CefOverlayController object is
+        used to control the overlay. Overlays are hidden by default.
+
+        With CEF_DOCKING_MODE_CUSTOM:
+          1. The overlay is initially hidden, sized to |view|'s preferred size,
+             and positioned in the top-left corner.
+          2. Optionally change the overlay position and/or size by calling
+             CefOverlayController methods.
+          3. Call CefOverlayController::SetVisible(true) to show the overlay.
+          4. The overlay will be automatically re-sized if |view|'s layout
+             changes. Optionally change the overlay position and/or size when
+             OnLayoutChanged is called on the Window's delegate to indicate a
+             change in Window bounds.
+
+        With other docking modes:
+          1. The overlay is initially hidden, sized to |view|'s preferred size,
+             and positioned based on |docking_mode|.
+          2. Call CefOverlayController::SetVisible(true) to show the overlay.
+          3. The overlay will be automatically re-sized if |view|'s layout changes
+             and re-positioned as appropriate when the Window resizes.
+
+        Overlays created by this method will receive a higher z-order then any
+        child Views added previously. It is therefore recommended to call this
+        method last after all other child Views have been added so that the
+        overlay displays as the top-most child of the Window.
+        """
+        ...
+    def show_menu(self, menu_model: MenuModel, screen_point: Point | tuple[int, int], anchor_position: MenuAnchorPosition | int) -> None:
+        """Show a menu with contents |menu_model|. |screen_point| specifies the menu
+        position in screen coordinates. |anchor_position| specifies how the menu
+        will be anchored relative to |screen_point|.
+        """
+        ...
+    def cancel_menu(self) -> None:
+        """Cancel the menu that is currently showing, if any."""
+        ...
+    def get_display(self) -> Display | None:
+        """Returns the Display that most closely intersects the bounds of this
+        Window. May return NULL if this Window is not currently displayed.
+        """
+        ...
+    def get_client_area_bounds_in_screen(self) -> Rect:
+        """Returns the bounds (size and position) of this Window's client area.
+        Position is in screen coordinates.
+        """
+        ...
+    def set_draggable_regions(self, regions: Sequence[DraggableRegion | tuple[Rect, int]]) -> None:
+        """Set the regions where mouse events will be intercepted by this Window to
+        support drag operations. Call this method with an empty vector to clear
+        the draggable regions. The draggable region bounds should be in window
+        coordinates.
+        """
+        ...
+    def get_window_handle(self) -> int:
+        """Retrieve the platform window handle for this Window."""
+        ...
+    def send_key_press(self, key_code: int, event_flags: int) -> None:
+        """Simulate a key press. |key_code| is the VKEY_* value from Chromium's
+        ui/events/keycodes/keyboard_codes.h header (VK_* values on Windows).
+        |event_flags| is some combination of EVENTFLAG_SHIFT_DOWN,
+        EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN. This method is exposed
+        primarily for testing purposes.
+        """
+        ...
+    def send_mouse_move(self, screen_x: int, screen_y: int) -> None:
+        """Simulate a mouse move. The mouse cursor will be moved to the specified
+        (screen_x, screen_y) position. This method is exposed primarily for
+        testing purposes.
+        """
+        ...
+    def send_mouse_events(self, button: MouseButtonType | int, mouse_down: bool, mouse_up: bool) -> None:
+        """Simulate mouse down and/or mouse up events. |button| is the mouse button
+        type. If |mouse_down| is true a mouse down event will be sent. If
+        |mouse_up| is true a mouse up event will be sent. If both are true a mouse
+        down event will be sent followed by a mouse up event (equivalent to
+        clicking the mouse button). The events will be sent using the current
+        cursor position so make sure to call SendMouseMove() first to position the
+        mouse. This method is exposed primarily for testing purposes.
+        """
+        ...
+    def set_accelerator(self, command_id: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool, high_priority: bool) -> None:
+        """Set the keyboard accelerator for the specified |command_id|. |key_code|
+        can be any virtual key or character value. Required modifier keys are
+        specified by |shift_pressed|, |ctrl_pressed| and/or |alt_pressed|.
+        CefWindowDelegate::OnAccelerator will be called if the keyboard
+        combination is triggered while this window has focus.
+
+        The |high_priority| value will be considered if a child CefBrowserView has
+        focus when the keyboard combination is triggered. If |high_priority| is
+        true then the key event will not be forwarded to the web content
+        (`keydown` event handler) or CefKeyboardHandler first. If |high_priority|
+        is false then the behavior will depend on the
+        CefBrowserView::SetPreferAccelerators configuration.
+        """
+        ...
+    def remove_accelerator(self, command_id: int) -> None:
+        """Remove the keyboard accelerator for the specified |command_id|."""
+        ...
+    def remove_all_accelerators(self) -> None:
+        """Remove all keyboard accelerators."""
+        ...
+    def set_theme_color(self, color_id: int, color: int) -> None:
+        """Override a standard theme color or add a custom color associated with
+        |color_id|. See cef_color_ids.h for standard ID values. Recommended usage
+        is as follows:
+
+        1. Customize the default native/OS theme by calling SetThemeColor before
+           showing the first Window. When done setting colors call
+           CefWindow::ThemeChanged to trigger CefViewDelegate::OnThemeChanged
+           notifications.
+        2. Customize the current native/OS or Chrome theme after it changes by
+           calling SetThemeColor from the CefWindowDelegate::OnThemeColorsChanged
+           callback. CefViewDelegate::OnThemeChanged notifications will then be
+           triggered automatically.
+
+        The configured color will be available immediately via
+        CefView::GetThemeColor and will be applied to each View in this Window's
+        component hierarchy when CefViewDelegate::OnThemeChanged is called. See
+        OnThemeColorsChanged documentation for additional details.
+
+        Clients wishing to add custom colors should use |color_id| values >=
+        CEF_ChromeColorsEnd.
+        """
+        ...
+    def theme_changed(self) -> None:
+        """Trigger CefViewDelegate::OnThemeChanged callbacks for each View in this
+        Window's component hierarchy. Unlike a native/OS or Chrome theme change
+        this method does not reset theme colors to standard values and does not
+        result in a call to CefWindowDelegate::OnThemeColorsChanged.
+
+        Do not call this method from CefWindowDelegate::OnThemeColorsChanged or
+        CefViewDelegate::OnThemeChanged.
+        """
+        ...
+    def get_runtime_style(self) -> RuntimeStyle:
+        """Returns the runtime style for this Window (ALLOY or CHROME). See
+        cef_runtime_style_t documentation for details.
+        """
+        ...
+    @staticmethod
+    def create_top_level_window(delegate: WindowDelegate | None) -> Window | None:
+        """Create a new Window."""
+        ...
+
+
+class MenuButton(LabelButton):
+    """MenuButton is a button with optional text, icon and/or menu marker that
+    shows a menu when clicked with the left mouse button. All size and position
+    values are in density independent pixels (DIP) unless otherwise indicated.
+    Methods must be called on the browser process UI thread unless otherwise
+    indicated.
+    """
+    def show_menu(self, menu_model: MenuModel, screen_point: Point | tuple[int, int], anchor_position: MenuAnchorPosition | int) -> None:
+        """Show a menu with contents |menu_model|. |screen_point| specifies the menu
+        position in screen coordinates. |anchor_position| specifies how the menu
+        will be anchored relative to |screen_point|. This method should be called
+        from CefMenuButtonDelegate::OnMenuButtonPressed().
+        """
+        ...
+    def trigger_menu(self) -> None:
+        """Show the menu for this button. Results in a call to
+        CefMenuButtonDelegate::OnMenuButtonPressed().
+        """
+        ...
+    @staticmethod
+    def create_menu_button(delegate: MenuButtonDelegate, text: str | None) -> MenuButton | None:
+        """Create a new MenuButton. A |delegate| must be provided to call ShowMenu()
+        when the button is clicked. |text| will be shown on the MenuButton and
+        used as the default accessible name. If |with_frame| is true the button
+        will have a visible frame at all times, center alignment, additional
+        padding and a default minimum size of 70x33 DIP. If |with_frame| is false
+        the button will only have a visible frame on hover/press, left alignment,
+        less padding and no default minimum size.
+        """
+        ...
+
+
 class AudioHandler:
     """Implement this interface to handle audio events."""
     def get_audio_parameters(self, browser: Browser) -> tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]:
@@ -3264,6 +4465,213 @@ class AudioHandler:
         in the capturing phase it will be called on the audio stream thread. The
         stream will be stopped immediately.
         """
+        ...
+
+
+class BrowserViewDelegate:
+    """Implement this interface to handle BrowserView events. The methods of this
+    class will be called on the browser process UI thread unless otherwise
+    indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+    def on_browser_created(self, browser_view: BrowserView, browser: Browser) -> None:
+        """Called when |browser| associated with |browser_view| is created. This
+        method will be called after CefLifeSpanHandler::OnAfterCreated() is called
+        for |browser| and before OnPopupBrowserViewCreated() is called for
+        |browser|'s parent delegate if |browser| is a popup.
+        """
+        ...
+    def on_browser_destroyed(self, browser_view: BrowserView, browser: Browser) -> None:
+        """Called when |browser| associated with |browser_view| is destroyed. Release
+        all references to |browser| and do not attempt to execute any methods on
+        |browser| after this callback returns. This method will be called before
+        CefLifeSpanHandler::OnBeforeClose() is called for |browser|.
+        """
+        ...
+    def on_popup_browser_view_created(self, browser_view: BrowserView, popup_browser_view: BrowserView, is_devtools: bool) -> bool:
+        """Called after |popup_browser_view| is created. This method will be called
+        after CefLifeSpanHandler::OnAfterCreated() and OnBrowserCreated() are
+        called for the new popup browser. The popup originated from
+        |browser_view|. |is_devtools| will be true if the popup is a DevTools
+        browser. Optionally add |popup_browser_view| to the views hierarchy
+        yourself and return true. Otherwise return false and a default CefWindow
+        will be created for the popup.
+        """
+        ...
+    def get_chrome_toolbar_type(self, browser_view: BrowserView) -> ChromeToolbarType | int:
+        """Returns the Chrome toolbar type that will be available via
+        CefBrowserView::GetChromeToolbar(). See that method for related
+        documentation.
+        """
+        ...
+    def use_frameless_window_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
+        """Return true to create frameless windows for Document picture-in-picture
+        popups. Content in frameless windows should specify draggable regions
+        using \"-webkit-app-region: drag\" CSS.
+        """
+        ...
+    def allow_move_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
+        """Return true to allow the use of JavaScript moveTo/By() and resizeTo/By()
+        (without user activation) with Document picture-in-picture popups.
+        """
+        ...
+    def allow_picture_in_picture_without_user_activation(self, browser_view: BrowserView) -> bool:
+        """Return true to allow opening Document picture-in-picture without
+        user activation. Default is false (user activation required).
+        """
+        ...
+    def on_gesture_command(self, browser_view: BrowserView, gesture_command: GestureCommand) -> bool:
+        """Called when |browser_view| receives a gesture command. Return true to
+        handle (or disable) a |gesture_command| or false to propagate the gesture
+        to the browser for default handling. With Chrome style these commands can
+        also be handled via CefCommandHandler::OnChromeCommand.
+        """
+        ...
+    def get_browser_runtime_style(self) -> RuntimeStyle | int:
+        """Optionally change the runtime style for this BrowserView. See
+        cef_runtime_style_t documentation for details.
+        """
+        ...
+
+
+class ButtonDelegate:
+    """Implement this interface to handle Button events. The methods of this class
+    will be called on the browser process UI thread unless otherwise indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+    def on_button_pressed(self, button: Button) -> None:
+        """Called when |button| is pressed."""
+        ...
+    def on_button_state_changed(self, button: Button) -> None:
+        """Called when the state of |button| changes."""
         ...
 
 
@@ -3672,6 +5080,19 @@ class DownloadHandler:
         ...
 
 
+class DownloadImageCallback:
+    """Callback interface for CefBrowserHost::DownloadImage. The methods of this
+    class will be called on the browser process UI thread.
+    """
+    def on_download_image_finished(self, image_url: str, http_status_code: int, image: Image | None) -> None:
+        """Method that will be executed when the image download has completed.
+        |image_url| is the URL that was downloaded and |http_status_code| is the
+        resulting HTTP status code. |image| is the resulting image, possibly at
+        multiple scale factors, or empty if the download failed.
+        """
+        ...
+
+
 class DragHandler:
     """Implement this interface to handle events related to dragging. The methods
     of this class will be called on the UI thread.
@@ -4019,6 +5440,91 @@ class LoadHandler:
         ...
 
 
+class MenuButtonDelegate:
+    """Implement this interface to handle MenuButton events. The methods of this
+    class will be called on the browser process UI thread unless otherwise
+    indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+    def on_button_pressed(self, button: Button) -> None:
+        """Called when |button| is pressed."""
+        ...
+    def on_button_state_changed(self, button: Button) -> None:
+        """Called when the state of |button| changes."""
+        ...
+    def on_menu_button_pressed(self, menu_button: MenuButton, screen_point: Point, button_pressed_lock: MenuButtonPressedLock) -> None:
+        """Called when |button| is pressed. Call CefMenuButton::ShowMenu() to show a
+        popup menu at |screen_point|. When showing a custom popup such as a window
+        keep a reference to |button_pressed_lock| until the popup is hidden to
+        maintain the pressed button state.
+        """
+        ...
+
+
 class MenuModelDelegate:
     """Implement this interface to handle menu model events. The methods of this
     class will be called on the browser process UI thread unless otherwise
@@ -4052,6 +5558,77 @@ class MenuModelDelegate:
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
         """Optionally modify a menu item label. Return true if |label| was modified."""
+        ...
+
+
+class PanelDelegate:
+    """Implement this interface to handle Panel events. The methods of this class
+    will be called on the browser process UI thread unless otherwise indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
         ...
 
 
@@ -4684,6 +6261,87 @@ class Task:
         ...
 
 
+class TextfieldDelegate:
+    """Implement this interface to handle Textfield events. The methods of this
+    class will be called on the browser process UI thread unless otherwise
+    indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+    def on_key_event(self, textfield: Textfield, event: KeyEvent) -> bool:
+        """Called when |textfield| receives a keyboard event. |event| contains
+        information about the keyboard event. Return true if the keyboard event
+        was handled or false otherwise for default handling.
+        """
+        ...
+    def on_after_user_action(self, textfield: Textfield) -> None:
+        """Called after performing a user action that may change |textfield|."""
+        ...
+
+
 class URLRequestClient:
     """Interface that should be implemented by the CefURLRequest client. The
     methods of this class will be called on the same thread that created the
@@ -4724,6 +6382,297 @@ class URLRequestClient:
         CefRequestHandler associated with that browser, if any. Otherwise,
         returning false will cancel the request immediately. This method will only
         be called for requests initiated from the browser process.
+        """
+        ...
+
+
+class ViewDelegate:
+    """Implement this interface to handle view events. All size and position values
+    are in density independent pixels (DIP) unless otherwise indicated. The
+    methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+
+
+class WindowDelegate:
+    """Implement this interface to handle window events. The methods of this class
+    will be called on the browser process UI thread unless otherwise indicated.
+    """
+    def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the preferred size for |view|. The Layout will use this information
+        to determine the display size.
+        """
+        ...
+    def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the minimum size for |view|."""
+        ...
+    def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
+        """Return the maximum size for |view|."""
+        ...
+    def get_height_for_width(self, view: View, width: int) -> int:
+        """Return the height necessary to display |view| with the provided |width|.
+        If not specified the result of GetPreferredSize().height will be used by
+        default. Override if |view|'s preferred height depends upon the width
+        (for example, with Labels).
+        """
+        ...
+    def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
+        """Called when the parent of |view| has changed. If |view| is being added to
+        |parent| then |added| will be true. If |view| is being removed from
+        |parent| then |added| will be false. If |view| is being reparented the
+        remove notification will be sent before the add notification. Do not
+        modify the view hierarchy in this callback.
+        """
+        ...
+    def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
+        """Called when a child of |view| has changed. If |child| is being added to
+        |view| then |added| will be true. If |child| is being removed from |view|
+        then |added| will be false. If |child| is being reparented the remove
+        notification will be sent to the old parent before the add notification is
+        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """
+        ...
+    def on_window_changed(self, view: View, added: bool) -> None:
+        """Called when |view| is added or removed from the CefWindow."""
+        ...
+    def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
+        """Called when the layout of |view| has changed."""
+        ...
+    def on_focus(self, view: View) -> None:
+        """Called when |view| gains focus."""
+        ...
+    def on_blur(self, view: View) -> None:
+        """Called when |view| loses focus."""
+        ...
+    def on_theme_changed(self, view: View) -> None:
+        """Called when the theme for |view| has changed, after the new theme colors
+        have already been applied. Views are notified via the component hierarchy
+        in depth-first reverse order (children before parents).
+
+        This will be called in the following cases:
+
+        1. When |view|, or a parent of |view|, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains
+           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
+        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
+           that contains |view|.
+
+        Optionally use this callback to override the new per-View theme colors by
+        calling CefView::SetBackgroundColor or the appropriate component-specific
+        method. See CefWindow::SetThemeColor documentation for how to customize
+        additional Window theme colors.
+        """
+        ...
+    def on_window_created(self, window: Window) -> None:
+        """Called when |window| is created."""
+        ...
+    def on_window_closing(self, window: Window) -> None:
+        """Called when |window| is closing."""
+        ...
+    def on_window_destroyed(self, window: Window) -> None:
+        """Called when |window| is destroyed. Release all references to |window| and
+        do not attempt to execute any methods on |window| after this callback
+        returns.
+        """
+        ...
+    def on_window_activation_changed(self, window: Window, active: bool) -> None:
+        """Called when |window| is activated or deactivated."""
+        ...
+    def on_window_bounds_changed(self, window: Window, new_bounds: Rect) -> None:
+        """Called when |window| bounds have changed. |new_bounds| will be in DIP
+        screen coordinates.
+        """
+        ...
+    def on_window_fullscreen_transition(self, window: Window, is_completed: bool) -> None:
+        """Called when |window| is transitioning to or from fullscreen mode. On MacOS
+        the transition occurs asynchronously with |is_competed| set to false when
+        the transition starts and true after the transition completes. On other
+        platforms the transition occurs synchronously with |is_completed| set to
+        true after the transition completes. With Alloy style you must also
+        implement CefDisplayHandler::OnFullscreenModeChange to handle fullscreen
+        transitions initiated by browser content.
+        """
+        ...
+    def is_window_modal_dialog(self, window: Window) -> bool:
+        """Return true if |window| should be created as a window modal dialog. Only
+        called when a Window is returned via GetParentWindow() with |is_menu| set
+        to false. All controls in the parent Window will be disabled while
+        |window| is visible. This functionality is not supported by all Linux
+        window managers. Alternately, use CefWindow::ShowAsBrowserModalDialog()
+        for a browser modal dialog that works on all platforms.
+        """
+        ...
+    def get_initial_bounds(self, window: Window) -> Rect | tuple[int, int, int, int]:
+        """Return the initial bounds for |window| in density independent pixel (DIP)
+        coordinates. If this method returns an empty CefRect then
+        GetPreferredSize() will be called to retrieve the size, and the window
+        will be placed on the screen with origin (0,0). This method can be used in
+        combination with CefView::GetBoundsInScreen() to restore the previous
+        window bounds.
+        """
+        ...
+    def get_initial_show_state(self, window: Window) -> ShowState | int:
+        """Return the initial show state for |window|."""
+        ...
+    def is_frameless(self, window: Window) -> bool:
+        """Return true if |window| should be created without a frame or title bar.
+        The window will be resizable if CanResize() returns true. Use
+        CefWindow::SetDraggableRegions() to specify draggable regions.
+        """
+        ...
+    def with_standard_window_buttons(self, window: Window) -> bool:
+        """Return true if |window| should be created with standard window buttons
+        like close, minimize and zoom. This method is only supported on macOS.
+        """
+        ...
+    def get_titlebar_height(self, window: Window) -> tuple[bool, float]:
+        """Return whether the titlebar height should be overridden, and sets the
+        height of the titlebar in |titlebar_height|. On macOS, it can also be used
+        to adjust the vertical position of the traffic light buttons in frameless
+        windows. The buttons will be positioned halfway down the titlebar at a
+        height of |titlebar_height| / 2.
+        """
+        ...
+    def accepts_first_mouse(self, window: Window) -> State | int:
+        """Return whether the view should accept the initial mouse-down event,
+        allowing it to respond to click-through behavior. If STATE_ENABLED is
+        returned, the view will be sent a mouseDown: message for an initial
+        mouse-down event, activating the view with one click, instead of clicking
+        first to make the window active and then clicking the view.
+
+        This method is only supported on macOS. For more details, refer to the
+        documentation of acceptsFirstMouse.
+        """
+        ...
+    def can_resize(self, window: Window) -> bool:
+        """Return true if |window| can be resized."""
+        ...
+    def can_maximize(self, window: Window) -> bool:
+        """Return true if |window| can be maximized."""
+        ...
+    def can_minimize(self, window: Window) -> bool:
+        """Return true if |window| can be minimized."""
+        ...
+    def can_close(self, window: Window) -> bool:
+        """Return true if |window| can be closed. This will be called for user-
+        initiated window close actions and when CefWindow::Close() is called.
+        """
+        ...
+    def on_accelerator(self, window: Window, command_id: int) -> bool:
+        """Called when a keyboard accelerator registered with
+        CefWindow::SetAccelerator is triggered. Return true if the accelerator was
+        handled or false otherwise.
+        """
+        ...
+    def on_key_event(self, window: Window, event: KeyEvent) -> bool:
+        """Called after all other controls in the window have had a chance to
+        handle the event. |event| contains information about the keyboard event.
+        Return true if the keyboard event was handled or false otherwise.
+        """
+        ...
+    def on_theme_colors_changed(self, window: Window, chrome_theme: bool) -> None:
+        """Called after the native/OS or Chrome theme for |window| has changed.
+        |chrome_theme| will be true if the notification is for a Chrome theme.
+
+        Native/OS theme colors are configured globally and do not need to be
+        customized for each Window individually. An example of a native/OS theme
+        change that triggers this callback is when the user switches between dark
+        and light mode during application lifespan. Native/OS theme changes can be
+        disabled by passing the `--force-dark-mode` or `--force-light-mode`
+        command-line flag.
+
+        Chrome theme colors will be applied and this callback will be triggered
+        if/when a BrowserView is added to the Window's component hierarchy. Chrome
+        theme colors can be configured on a per-RequestContext basis using
+        CefRequestContext::SetChromeColorScheme or (Chrome style only) by
+        visiting chrome://settings/manageProfile. Any theme changes using those
+        mechanisms will also trigger this callback. Chrome theme colors will be
+        persisted and restored from disk cache.
+
+        This callback is not triggered on Window creation so clients that wish to
+        customize the initial native/OS theme must call CefWindow::SetThemeColor
+        and CefWindow::ThemeChanged before showing the first Window.
+
+        Theme colors will be reset to standard values before this callback is
+        called for the first affected Window. Call CefWindow::SetThemeColor from
+        inside this callback to override a standard color or add a custom color.
+        CefViewDelegate::OnThemeChanged will be called after this callback for the
+        complete |window| component hierarchy.
+        """
+        ...
+    def get_window_runtime_style(self) -> RuntimeStyle | int:
+        """Optionally change the runtime style for this Window. See
+        cef_runtime_style_t documentation for details.
+        """
+        ...
+    def get_linux_window_properties(self, window: Window) -> tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]:
+        """Return Linux-specific window properties for correctly handling by window
+        managers
         """
         ...
 

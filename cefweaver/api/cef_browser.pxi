@@ -462,6 +462,29 @@ cdef class BrowserHost:
             _p.StartDownload(_a0)
         return None
 
+    def download_image(self, image_url, bint is_favicon, uint32_t max_image_size, bint bypass_cache, callback):
+        """Download |image_url| and execute |callback| on completion with the images
+        received from the renderer. If |is_favicon| is true then cookies are not
+        sent and not accepted during download. Images with density independent
+        pixel (DIP) sizes larger than |max_image_size| are filtered out from the
+        image results. Versions of the image at different scale factors may be
+        downloaded up to the maximum scale factor supported by the system. If
+        there are no image results <= |max_image_size| then the smallest image is
+        resized to |max_image_size| and is the only result. A |max_image_size| of
+        0 means unlimited. If |bypass_cache| is true then |image_url| is requested
+        from the server even if it is present in the browser cache.
+        """
+        cdef CefString _a0
+        cdef CefRefPtr[CefDownloadImageCallback] _a4
+        cdef CefBrowserHost* _p = self._ptr()
+        _a0 = _g_cef(image_url)
+        if callback is None:
+            raise TypeError("callback must not be None")
+        _a4 = _g_make_DownloadImageCallback(callback)
+        with nogil:
+            _p.DownloadImage(_a0, is_favicon, max_image_size, bypass_cache, _a4)
+        return None
+
     def print(self):
         """Print the current browser contents."""
         cdef CefBrowserHost* _p = self._ptr()
@@ -1137,6 +1160,54 @@ cdef object _wrap_BrowserHost(CefRefPtr[CefBrowserHost] ref):
     obj = BrowserHost.__new__(BrowserHost)
     obj._ref = ref
     return obj
+
+
+class DownloadImageCallback:
+    """Callback interface for CefBrowserHost::DownloadImage. The methods of this
+    class will be called on the browser process UI thread.
+    """
+
+    def on_download_image_finished(self, image_url, http_status_code, image):
+        """Method that will be executed when the image download has completed.
+        |image_url| is the URL that was downloaded and |http_status_code| is the
+        resulting HTTP status code. |image| is the resulting image, possibly at
+        multiple scale factors, or empty if the download failed.
+        """
+        return None
+
+
+cdef void _DownloadImageCallback_on_download_image_finished(void* py, const CefString* image_url, int http_status_code, CefImage* image) noexcept with gil:
+    try:
+        _r = (<object>py).on_download_image_finished(_g_str(image_url[0]), http_status_code, _wrap_Image(CefRefPtr[CefImage](image)))
+    except BaseException:
+        _g_report()
+
+
+cdef CefRefPtr[CefDownloadImageCallback] _g_make_DownloadImageCallback(object obj) except *:
+    cdef CefRefPtr[CefDownloadImageCallback] ref
+    cdef CwDownloadImageCallbackCallbacks cb
+    cdef type cls
+    if obj is None:
+        return ref
+    if not isinstance(obj, DownloadImageCallback):
+        raise TypeError("expected a DownloadImageCallback or None, not %s" % type(obj).__name__)
+    cls = type(obj)
+    Py_INCREF(obj)
+    cb.py = <void*>obj
+    cb.release = _g_release
+    if getattr(cls, "on_download_image_finished", None) is not DownloadImageCallback.on_download_image_finished:
+        cb.fn_on_download_image_finished = _DownloadImageCallback_on_download_image_finished
+    ref = CefRefPtr[CefDownloadImageCallback](<CefDownloadImageCallback*>new CwDownloadImageCallbackProxy(cb))
+    return ref
+
+
+cdef inline CefDownloadImageCallback* _g_export_DownloadImageCallback(object obj) except? NULL:
+    """A reference for CEF to keep (the proxy calls Release() on it)."""
+    cdef CefRefPtr[CefDownloadImageCallback] ref = _g_make_DownloadImageCallback(obj)
+    cdef CefDownloadImageCallback* raw = ref.get()
+    if raw != NULL:
+        raw.AddRef()
+    return raw
 
 
 class PdfPrintCallback:

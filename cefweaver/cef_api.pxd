@@ -45,11 +45,17 @@ cdef extern from *:
     ctypedef unsigned short char16_t
 
 cdef extern from "include/internal/cef_types.h":
+    ctypedef enum cef_alpha_type_t:
+        pass
     ctypedef enum cef_axis_alignment_t:
+        pass
+    ctypedef enum cef_button_state_t:
         pass
     ctypedef enum cef_cert_status_t:
         pass
     ctypedef enum cef_channel_layout_t:
+        pass
+    ctypedef enum cef_chrome_toolbar_type_t:
         pass
     ctypedef enum cef_color_model_t:
         pass
@@ -77,6 +83,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_cursor_type_t:
         pass
+    ctypedef enum cef_docking_mode_t:
+        pass
     ctypedef enum cef_download_interrupt_reason_t:
         pass
     ctypedef enum cef_drag_operations_mask_t:
@@ -91,6 +99,8 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_focus_source_t:
         pass
+    ctypedef enum cef_gesture_command_t:
+        pass
     ctypedef enum cef_horizontal_alignment_t:
         pass
     ctypedef enum cef_jsdialog_type_t:
@@ -98,6 +108,8 @@ cdef extern from "include/internal/cef_types.h":
     ctypedef enum cef_key_event_type_t:
         pass
     ctypedef enum cef_log_severity_t:
+        pass
+    ctypedef enum cef_menu_anchor_position_t:
         pass
     ctypedef enum cef_menu_color_type_t:
         pass
@@ -127,13 +139,19 @@ cdef extern from "include/internal/cef_types.h":
         pass
     ctypedef enum cef_runtime_style_t:
         pass
+    ctypedef enum cef_show_state_t:
+        pass
     ctypedef enum cef_state_t:
         pass
     ctypedef enum cef_task_type_t:
         pass
     ctypedef enum cef_termination_status_t:
         pass
+    ctypedef enum cef_text_field_commands_t:
+        pass
     ctypedef enum cef_text_input_mode_t:
+        pass
+    ctypedef enum cef_text_style_t:
         pass
     ctypedef enum cef_thread_id_t:
         pass
@@ -440,14 +458,22 @@ cdef extern from "include/cef_dialog_handler.h":
     cdef cppclass CefFileDialogCallback(CefBaseRefCounted)
 cdef extern from "include/cef_frame.h":
     cdef cppclass CefFrame(CefBaseRefCounted)
+cdef extern from "include/cef_image.h":
+    cdef cppclass CefImage(CefBaseRefCounted)
 cdef extern from "include/cef_jsdialog_handler.h":
     cdef cppclass CefJSDialogCallback(CefBaseRefCounted)
+cdef extern from "include/views/cef_layout.h":
+    cdef cppclass CefLayout(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted)
 cdef extern from "include/cef_permission_handler.h":
     cdef cppclass CefMediaAccessCallback(CefBaseRefCounted)
+cdef extern from "include/views/cef_menu_button_delegate.h":
+    cdef cppclass CefMenuButtonPressedLock(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted)
+cdef extern from "include/views/cef_overlay_controller.h":
+    cdef cppclass CefOverlayController(CefBaseRefCounted)
 cdef extern from "include/cef_permission_handler.h":
     cdef cppclass CefPermissionPromptCallback(CefBaseRefCounted)
 cdef extern from "include/cef_request.h":
@@ -492,10 +518,36 @@ cdef extern from "include/cef_unresponsive_process_callback.h":
     cdef cppclass CefUnresponsiveProcessCallback(CefBaseRefCounted)
 cdef extern from "include/cef_values.h":
     cdef cppclass CefValue(CefBaseRefCounted)
+cdef extern from "include/views/cef_view.h":
+    cdef cppclass CefView(CefBaseRefCounted)
 cdef extern from "include/cef_zip_reader.h":
     cdef cppclass CefZipReader(CefBaseRefCounted)
+cdef extern from "include/views/cef_box_layout.h":
+    cdef cppclass CefBoxLayout(CefLayout)
+cdef extern from "include/views/cef_browser_view.h":
+    cdef cppclass CefBrowserView(CefView)
+cdef extern from "include/views/cef_button.h":
+    cdef cppclass CefButton(CefView)
+cdef extern from "include/views/cef_fill_layout.h":
+    cdef cppclass CefFillLayout(CefLayout)
+cdef extern from "include/views/cef_panel.h":
+    cdef cppclass CefPanel(CefView)
+cdef extern from "include/views/cef_scroll_view.h":
+    cdef cppclass CefScrollView(CefView)
+cdef extern from "include/views/cef_textfield.h":
+    cdef cppclass CefTextfield(CefView)
+cdef extern from "include/views/cef_label_button.h":
+    cdef cppclass CefLabelButton(CefButton)
+cdef extern from "include/views/cef_window.h":
+    cdef cppclass CefWindow(CefPanel)
+cdef extern from "include/views/cef_menu_button.h":
+    cdef cppclass CefMenuButton(CefLabelButton)
 cdef extern from "include/cef_audio_handler.h":
     cdef cppclass CefAudioHandler(CefBaseRefCounted)
+cdef extern from "include/views/cef_browser_view_delegate.h":
+    cdef cppclass CefBrowserViewDelegate(CefBaseRefCounted)
+cdef extern from "include/views/cef_button_delegate.h":
+    cdef cppclass CefButtonDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted)
 cdef extern from "include/cef_callback.h":
@@ -516,6 +568,8 @@ cdef extern from "include/cef_display_handler.h":
     cdef cppclass CefDisplayHandler(CefBaseRefCounted)
 cdef extern from "include/cef_download_handler.h":
     cdef cppclass CefDownloadHandler(CefBaseRefCounted)
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefDownloadImageCallback(CefBaseRefCounted)
 cdef extern from "include/cef_drag_handler.h":
     cdef cppclass CefDragHandler(CefBaseRefCounted)
 cdef extern from "include/cef_focus_handler.h":
@@ -528,8 +582,12 @@ cdef extern from "include/cef_life_span_handler.h":
     cdef cppclass CefLifeSpanHandler(CefBaseRefCounted)
 cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted)
+cdef extern from "include/views/cef_menu_button_delegate.h":
+    cdef cppclass CefMenuButtonDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted)
+cdef extern from "include/views/cef_panel_delegate.h":
+    cdef cppclass CefPanelDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefPdfPrintCallback(CefBaseRefCounted)
 cdef extern from "include/cef_permission_handler.h":
@@ -558,8 +616,14 @@ cdef extern from "include/cef_string_visitor.h":
     cdef cppclass CefStringVisitor(CefBaseRefCounted)
 cdef extern from "include/cef_task.h":
     cdef cppclass CefTask(CefBaseRefCounted)
+cdef extern from "include/views/cef_textfield_delegate.h":
+    cdef cppclass CefTextfieldDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_urlrequest.h":
     cdef cppclass CefURLRequestClient(CefBaseRefCounted)
+cdef extern from "include/views/cef_view_delegate.h":
+    cdef cppclass CefViewDelegate(CefBaseRefCounted)
+cdef extern from "include/views/cef_window_delegate.h":
+    cdef cppclass CefWindowDelegate(CefBaseRefCounted)
 cdef extern from "include/cef_stream.h":
     cdef cppclass CefWriteHandler(CefBaseRefCounted)
 
@@ -628,6 +692,7 @@ cdef extern from "include/cef_browser.h":
         void SetZoomLevel(double) nogil
         void RunFileDialog(cef_file_dialog_mode_t, const CefString&, const CefString&, const vector[CefString]&, CefRefPtr[CefRunFileDialogCallback]) nogil
         void StartDownload(const CefString&) nogil
+        void DownloadImage(const CefString&, cpp_bool, uint32_t, cpp_bool, CefRefPtr[CefDownloadImageCallback]) nogil
         void Print() nogil
         void PrintToPDF(const CefString&, const CefPdfPrintSettings&, CefRefPtr[CefPdfPrintCallback]) nogil
         void Find(const CefString&, cpp_bool, cpp_bool, cpp_bool) nogil
@@ -860,6 +925,7 @@ cdef extern from "include/cef_drag_data.h":
         void ResetFileContents() nogil
         void AddFile(const CefString&, const CefString&) nogil
         void ClearFilenames() nogil
+        CefRefPtr[CefImage] GetImage() nogil
         CefPoint GetImageHotspot() nogil
         cpp_bool HasImage() nogil
         @staticmethod
@@ -897,9 +963,33 @@ cdef extern from "include/cef_frame.h":
         CefRefPtr[CefURLRequest] CreateURLRequest(CefRefPtr[CefRequest], CefRefPtr[CefURLRequestClient]) nogil
         void SendProcessMessage(cef_process_id_t, CefRefPtr[CefProcessMessage]) nogil
 
+cdef extern from "include/cef_image.h":
+    cdef cppclass CefImage(CefBaseRefCounted):
+        cpp_bool IsEmpty() nogil
+        cpp_bool IsSame(CefRefPtr[CefImage]) nogil
+        cpp_bool AddBitmap(float, int, int, cef_color_type_t, cef_alpha_type_t, const void*, size_t) nogil
+        cpp_bool AddPNG(float, const void*, size_t) nogil
+        cpp_bool AddJPEG(float, const void*, size_t) nogil
+        size_t GetWidth() nogil
+        size_t GetHeight() nogil
+        cpp_bool HasRepresentation(float) nogil
+        cpp_bool RemoveRepresentation(float) nogil
+        cpp_bool GetRepresentationInfo(float, float&, int&, int&) nogil
+        CefRefPtr[CefBinaryValue] GetAsBitmap(float, cef_color_type_t, cef_alpha_type_t, int&, int&) nogil
+        CefRefPtr[CefBinaryValue] GetAsPNG(float, cpp_bool, int&, int&) nogil
+        CefRefPtr[CefBinaryValue] GetAsJPEG(float, int, int&, int&) nogil
+        @staticmethod
+        CefRefPtr[CefImage] CreateImage() nogil
+
 cdef extern from "include/cef_jsdialog_handler.h":
     cdef cppclass CefJSDialogCallback(CefBaseRefCounted):
         void Continue(cpp_bool, const CefString&) nogil
+
+cdef extern from "include/views/cef_layout.h":
+    cdef cppclass CefLayout(CefBaseRefCounted):
+        CefRefPtr[CefBoxLayout] AsBoxLayout() nogil
+        CefRefPtr[CefFillLayout] AsFillLayout() nogil
+        cpp_bool IsValid() nogil
 
 cdef extern from "include/cef_values.h":
     cdef cppclass CefListValue(CefBaseRefCounted):
@@ -938,6 +1028,10 @@ cdef extern from "include/cef_permission_handler.h":
     cdef cppclass CefMediaAccessCallback(CefBaseRefCounted):
         void Continue(uint32_t) nogil
         void Cancel() nogil
+
+cdef extern from "include/views/cef_menu_button_delegate.h":
+    cdef cppclass CefMenuButtonPressedLock(CefBaseRefCounted):
+        pass
 
 cdef extern from "include/cef_menu_model.h":
     cdef cppclass CefMenuModel(CefBaseRefCounted):
@@ -999,6 +1093,28 @@ cdef extern from "include/cef_menu_model.h":
         cpp_bool SetFontListAt(int, const CefString&) nogil
         @staticmethod
         CefRefPtr[CefMenuModel] CreateMenuModel(CefRefPtr[CefMenuModelDelegate]) nogil
+
+cdef extern from "include/views/cef_overlay_controller.h":
+    cdef cppclass CefOverlayController(CefBaseRefCounted):
+        cpp_bool IsValid() nogil
+        cpp_bool IsSame(CefRefPtr[CefOverlayController]) nogil
+        CefRefPtr[CefView] GetContentsView() nogil
+        CefRefPtr[CefWindow] GetWindow() nogil
+        cef_docking_mode_t GetDockingMode() nogil
+        void Destroy() nogil
+        void SetBounds(const CefRect&) nogil
+        CefRect GetBounds() nogil
+        CefRect GetBoundsInScreen() nogil
+        void SetSize(const CefSize&) nogil
+        CefSize GetSize() nogil
+        void SetPosition(const CefPoint&) nogil
+        CefPoint GetPosition() nogil
+        void SetInsets(const CefInsets&) nogil
+        CefInsets GetInsets() nogil
+        void SizeToPreferredSize() nogil
+        void SetVisible(cpp_bool) nogil
+        cpp_bool IsVisible() nogil
+        cpp_bool IsDrawn() nogil
 
 cdef extern from "include/cef_permission_handler.h":
     cdef cppclass CefPermissionPromptCallback(CefBaseRefCounted):
@@ -1260,6 +1376,60 @@ cdef extern from "include/cef_values.h":
         @staticmethod
         CefRefPtr[CefValue] Create() nogil
 
+cdef extern from "include/views/cef_view.h":
+    cdef cppclass CefView(CefBaseRefCounted):
+        CefRefPtr[CefBrowserView] AsBrowserView() nogil
+        CefRefPtr[CefButton] AsButton() nogil
+        CefRefPtr[CefPanel] AsPanel() nogil
+        CefRefPtr[CefScrollView] AsScrollView() nogil
+        CefRefPtr[CefTextfield] AsTextfield() nogil
+        CefString GetTypeString() nogil
+        CefString ToString(cpp_bool) nogil
+        cpp_bool IsValid() nogil
+        cpp_bool IsAttached() nogil
+        cpp_bool IsSame(CefRefPtr[CefView]) nogil
+        CefRefPtr[CefWindow] GetWindow() nogil
+        int GetID() nogil
+        void SetID(int) nogil
+        int GetGroupID() nogil
+        void SetGroupID(int) nogil
+        CefRefPtr[CefView] GetParentView() nogil
+        CefRefPtr[CefView] GetViewForID(int) nogil
+        void SetBounds(const CefRect&) nogil
+        CefRect GetBounds() nogil
+        CefRect GetBoundsInScreen() nogil
+        void SetSize(const CefSize&) nogil
+        CefSize GetSize() nogil
+        void SetPosition(const CefPoint&) nogil
+        CefPoint GetPosition() nogil
+        void SetInsets(const CefInsets&) nogil
+        CefInsets GetInsets() nogil
+        CefSize GetPreferredSize() nogil
+        void SizeToPreferredSize() nogil
+        CefSize GetMinimumSize() nogil
+        CefSize GetMaximumSize() nogil
+        int GetHeightForWidth(int) nogil
+        void InvalidateLayout() nogil
+        void SetVisible(cpp_bool) nogil
+        cpp_bool IsVisible() nogil
+        cpp_bool IsDrawn() nogil
+        void SetEnabled(cpp_bool) nogil
+        cpp_bool IsEnabled() nogil
+        void SetFocusable(cpp_bool) nogil
+        cpp_bool IsFocusable() nogil
+        cpp_bool IsAccessibilityFocusable() nogil
+        cpp_bool HasFocus() nogil
+        void RequestFocus() nogil
+        void SetBackgroundColor(cef_color_t) nogil
+        cef_color_t GetBackgroundColor() nogil
+        cef_color_t GetThemeColor(int) nogil
+        cpp_bool ConvertPointToScreen(CefPoint&) nogil
+        cpp_bool ConvertPointFromScreen(CefPoint&) nogil
+        cpp_bool ConvertPointToWindow(CefPoint&) nogil
+        cpp_bool ConvertPointFromWindow(CefPoint&) nogil
+        cpp_bool ConvertPointToView(CefRefPtr[CefView], CefPoint&) nogil
+        cpp_bool ConvertPointFromView(CefRefPtr[CefView], CefPoint&) nogil
+
 cdef extern from "include/cef_zip_reader.h":
     cdef cppclass CefZipReader(CefBaseRefCounted):
         cpp_bool MoveToFirstFile() nogil
@@ -1277,9 +1447,172 @@ cdef extern from "include/cef_zip_reader.h":
         @staticmethod
         CefRefPtr[CefZipReader] Create(CefRefPtr[CefStreamReader]) nogil
 
+cdef extern from "include/views/cef_box_layout.h":
+    cdef cppclass CefBoxLayout(CefLayout):
+        void SetFlexForView(CefRefPtr[CefView], int) nogil
+        void ClearFlexForView(CefRefPtr[CefView]) nogil
+
+cdef extern from "include/views/cef_browser_view.h":
+    cdef cppclass CefBrowserView(CefView):
+        CefRefPtr[CefBrowser] GetBrowser() nogil
+        CefRefPtr[CefView] GetChromeToolbar() nogil
+        void SetPreferAccelerators(cpp_bool) nogil
+        cef_runtime_style_t GetRuntimeStyle() nogil
+        @staticmethod
+        CefRefPtr[CefBrowserView] CreateBrowserView(CefRefPtr[CefClient], const CefString&, const CefBrowserSettings&, CefRefPtr[CefDictionaryValue], CefRefPtr[CefRequestContext], CefRefPtr[CefBrowserViewDelegate]) nogil
+        @staticmethod
+        CefRefPtr[CefBrowserView] GetForBrowser(CefRefPtr[CefBrowser]) nogil
+
+cdef extern from "include/views/cef_button.h":
+    cdef cppclass CefButton(CefView):
+        CefRefPtr[CefLabelButton] AsLabelButton() nogil
+        void SetState(cef_button_state_t) nogil
+        cef_button_state_t GetState() nogil
+        void SetInkDropEnabled(cpp_bool) nogil
+        void SetTooltipText(const CefString&) nogil
+        void SetAccessibleName(const CefString&) nogil
+
+cdef extern from "include/views/cef_fill_layout.h":
+    cdef cppclass CefFillLayout(CefLayout):
+        pass
+
+cdef extern from "include/views/cef_panel.h":
+    cdef cppclass CefPanel(CefView):
+        CefRefPtr[CefWindow] AsWindow() nogil
+        CefRefPtr[CefFillLayout] SetToFillLayout() nogil
+        CefRefPtr[CefBoxLayout] SetToBoxLayout(const CefBoxLayoutSettings&) nogil
+        CefRefPtr[CefLayout] GetLayout() nogil
+        void Layout() nogil
+        void AddChildView(CefRefPtr[CefView]) nogil
+        void AddChildViewAt(CefRefPtr[CefView], int) nogil
+        void ReorderChildView(CefRefPtr[CefView], int) nogil
+        void RemoveChildView(CefRefPtr[CefView]) nogil
+        void RemoveAllChildViews() nogil
+        size_t GetChildViewCount() nogil
+        CefRefPtr[CefView] GetChildViewAt(int) nogil
+        @staticmethod
+        CefRefPtr[CefPanel] CreatePanel(CefRefPtr[CefPanelDelegate]) nogil
+
+cdef extern from "include/views/cef_scroll_view.h":
+    cdef cppclass CefScrollView(CefView):
+        void SetContentView(CefRefPtr[CefView]) nogil
+        CefRefPtr[CefView] GetContentView() nogil
+        CefRect GetVisibleContentRect() nogil
+        cpp_bool HasHorizontalScrollbar() nogil
+        int GetHorizontalScrollbarHeight() nogil
+        cpp_bool HasVerticalScrollbar() nogil
+        int GetVerticalScrollbarWidth() nogil
+        @staticmethod
+        CefRefPtr[CefScrollView] CreateScrollView(CefRefPtr[CefViewDelegate]) nogil
+
+cdef extern from "include/views/cef_textfield.h":
+    cdef cppclass CefTextfield(CefView):
+        void SetPasswordInput(cpp_bool) nogil
+        cpp_bool IsPasswordInput() nogil
+        void SetReadOnly(cpp_bool) nogil
+        cpp_bool IsReadOnly() nogil
+        CefString GetText() nogil
+        void SetText(const CefString&) nogil
+        void AppendText(const CefString&) nogil
+        void InsertOrReplaceText(const CefString&) nogil
+        cpp_bool HasSelection() nogil
+        CefString GetSelectedText() nogil
+        void SelectAll(cpp_bool) nogil
+        void ClearSelection() nogil
+        CefRange GetSelectedRange() nogil
+        void SelectRange(const CefRange&) nogil
+        size_t GetCursorPosition() nogil
+        void SetFontList(const CefString&) nogil
+        void ApplyTextColor(cef_color_t, const CefRange&) nogil
+        void ApplyTextStyle(cef_text_style_t, cpp_bool, const CefRange&) nogil
+        cpp_bool IsCommandEnabled(cef_text_field_commands_t) nogil
+        void ExecuteCommand(cef_text_field_commands_t) nogil
+        void ClearEditHistory() nogil
+        void SetPlaceholderText(const CefString&) nogil
+        CefString GetPlaceholderText() nogil
+        void SetAccessibleName(const CefString&) nogil
+        @staticmethod
+        CefRefPtr[CefTextfield] CreateTextfield(CefRefPtr[CefTextfieldDelegate]) nogil
+
+cdef extern from "include/views/cef_label_button.h":
+    cdef cppclass CefLabelButton(CefButton):
+        CefRefPtr[CefMenuButton] AsMenuButton() nogil
+        void SetText(const CefString&) nogil
+        CefString GetText() nogil
+        void SetImage(cef_button_state_t, CefRefPtr[CefImage]) nogil
+        CefRefPtr[CefImage] GetImage(cef_button_state_t) nogil
+        void SetTextColor(cef_button_state_t, cef_color_t) nogil
+        void SetEnabledTextColors(cef_color_t) nogil
+        void SetFontList(const CefString&) nogil
+        void SetHorizontalAlignment(cef_horizontal_alignment_t) nogil
+        void SetMinimumSize(const CefSize&) nogil
+        void SetMaximumSize(const CefSize&) nogil
+        @staticmethod
+        CefRefPtr[CefLabelButton] CreateLabelButton(CefRefPtr[CefButtonDelegate], const CefString&) nogil
+
+cdef extern from "include/views/cef_window.h":
+    cdef cppclass CefWindow(CefPanel):
+        void Show() nogil
+        void ShowAsBrowserModalDialog(CefRefPtr[CefBrowserView]) nogil
+        void Hide() nogil
+        void CenterWindow(const CefSize&) nogil
+        void Close() nogil
+        cpp_bool IsClosed() nogil
+        void Activate() nogil
+        void Deactivate() nogil
+        cpp_bool IsActive() nogil
+        void BringToTop() nogil
+        void SetAlwaysOnTop(cpp_bool) nogil
+        cpp_bool IsAlwaysOnTop() nogil
+        void Maximize() nogil
+        void Minimize() nogil
+        void Restore() nogil
+        void SetFullscreen(cpp_bool) nogil
+        cpp_bool IsMaximized() nogil
+        cpp_bool IsMinimized() nogil
+        cpp_bool IsFullscreen() nogil
+        CefRefPtr[CefView] GetFocusedView() nogil
+        void SetTitle(const CefString&) nogil
+        CefString GetTitle() nogil
+        void SetWindowIcon(CefRefPtr[CefImage]) nogil
+        CefRefPtr[CefImage] GetWindowIcon() nogil
+        void SetWindowAppIcon(CefRefPtr[CefImage]) nogil
+        CefRefPtr[CefImage] GetWindowAppIcon() nogil
+        CefRefPtr[CefOverlayController] AddOverlayView(CefRefPtr[CefView], cef_docking_mode_t, cpp_bool) nogil
+        void ShowMenu(CefRefPtr[CefMenuModel], const CefPoint&, cef_menu_anchor_position_t) nogil
+        void CancelMenu() nogil
+        CefRefPtr[CefDisplay] GetDisplay() nogil
+        CefRect GetClientAreaBoundsInScreen() nogil
+        void SetDraggableRegions(const vector[CefDraggableRegion]&) nogil
+        cef_window_handle_t GetWindowHandle() nogil
+        void SendKeyPress(int, uint32_t) nogil
+        void SendMouseMove(int, int) nogil
+        void SendMouseEvents(cef_mouse_button_type_t, cpp_bool, cpp_bool) nogil
+        void SetAccelerator(int, int, cpp_bool, cpp_bool, cpp_bool, cpp_bool) nogil
+        void RemoveAccelerator(int) nogil
+        void RemoveAllAccelerators() nogil
+        void SetThemeColor(int, cef_color_t) nogil
+        void ThemeChanged() nogil
+        cef_runtime_style_t GetRuntimeStyle() nogil
+        @staticmethod
+        CefRefPtr[CefWindow] CreateTopLevelWindow(CefRefPtr[CefWindowDelegate]) nogil
+
+cdef extern from "include/views/cef_menu_button.h":
+    cdef cppclass CefMenuButton(CefLabelButton):
+        void ShowMenu(CefRefPtr[CefMenuModel], const CefPoint&, cef_menu_anchor_position_t) nogil
+        void TriggerMenu() nogil
+        @staticmethod
+        CefRefPtr[CefMenuButton] CreateMenuButton(CefRefPtr[CefMenuButtonDelegate], const CefString&) nogil
+
 # Client classes (implemented by the application; Cython only needs the type)
 cdef extern from "include/cef_audio_handler.h":
     cdef cppclass CefAudioHandler(CefBaseRefCounted):
+        pass
+cdef extern from "include/views/cef_browser_view_delegate.h":
+    cdef cppclass CefBrowserViewDelegate(CefBaseRefCounted):
+        pass
+cdef extern from "include/views/cef_button_delegate.h":
+    cdef cppclass CefButtonDelegate(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_client.h":
     cdef cppclass CefClient(CefBaseRefCounted):
@@ -1311,6 +1644,9 @@ cdef extern from "include/cef_display_handler.h":
 cdef extern from "include/cef_download_handler.h":
     cdef cppclass CefDownloadHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/cef_browser.h":
+    cdef cppclass CefDownloadImageCallback(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_drag_handler.h":
     cdef cppclass CefDragHandler(CefBaseRefCounted):
         pass
@@ -1329,8 +1665,14 @@ cdef extern from "include/cef_life_span_handler.h":
 cdef extern from "include/cef_load_handler.h":
     cdef cppclass CefLoadHandler(CefBaseRefCounted):
         pass
+cdef extern from "include/views/cef_menu_button_delegate.h":
+    cdef cppclass CefMenuButtonDelegate(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_menu_model_delegate.h":
     cdef cppclass CefMenuModelDelegate(CefBaseRefCounted):
+        pass
+cdef extern from "include/views/cef_panel_delegate.h":
+    cdef cppclass CefPanelDelegate(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_browser.h":
     cdef cppclass CefPdfPrintCallback(CefBaseRefCounted):
@@ -1374,8 +1716,17 @@ cdef extern from "include/cef_string_visitor.h":
 cdef extern from "include/cef_task.h":
     cdef cppclass CefTask(CefBaseRefCounted):
         pass
+cdef extern from "include/views/cef_textfield_delegate.h":
+    cdef cppclass CefTextfieldDelegate(CefBaseRefCounted):
+        pass
 cdef extern from "include/cef_urlrequest.h":
     cdef cppclass CefURLRequestClient(CefBaseRefCounted):
+        pass
+cdef extern from "include/views/cef_view_delegate.h":
+    cdef cppclass CefViewDelegate(CefBaseRefCounted):
+        pass
+cdef extern from "include/views/cef_window_delegate.h":
+    cdef cppclass CefWindowDelegate(CefBaseRefCounted):
         pass
 cdef extern from "include/cef_stream.h":
     cdef cppclass CefWriteHandler(CefBaseRefCounted):
@@ -1407,6 +1758,49 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_audio_stream_error)(void*, CefBrowser*, const CefString*) noexcept
     cdef cppclass CwAudioHandlerProxy(CefAudioHandler):
         CwAudioHandlerProxy(const CwAudioHandlerCallbacks&)
+    cdef cppclass CwBrowserViewDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+        void (*fn_on_browser_created)(void*, CefBrowserView*, CefBrowser*) noexcept
+        void (*fn_on_browser_destroyed)(void*, CefBrowserView*, CefBrowser*) noexcept
+        cpp_bool (*fn_on_popup_browser_view_created)(void*, CefBrowserView*, CefBrowserView*, cpp_bool) noexcept
+        int (*fn_get_chrome_toolbar_type)(void*, CefBrowserView*) noexcept
+        cpp_bool (*fn_use_frameless_window_for_picture_in_picture)(void*, CefBrowserView*) noexcept
+        cpp_bool (*fn_allow_move_for_picture_in_picture)(void*, CefBrowserView*) noexcept
+        cpp_bool (*fn_allow_picture_in_picture_without_user_activation)(void*, CefBrowserView*) noexcept
+        cpp_bool (*fn_on_gesture_command)(void*, CefBrowserView*, int) noexcept
+        int (*fn_get_browser_runtime_style)(void*) noexcept
+    cdef cppclass CwBrowserViewDelegateProxy(CefBrowserViewDelegate):
+        CwBrowserViewDelegateProxy(const CwBrowserViewDelegateCallbacks&)
+    cdef cppclass CwButtonDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+        void (*fn_on_button_pressed)(void*, CefButton*) noexcept
+        void (*fn_on_button_state_changed)(void*, CefButton*) noexcept
+    cdef cppclass CwButtonDelegateProxy(CefButtonDelegate):
+        CwButtonDelegateProxy(const CwButtonDelegateCallbacks&)
     cdef cppclass CwClientCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1507,6 +1901,12 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_download_updated)(void*, CefBrowser*, CefDownloadItem*, CefDownloadItemCallback*) noexcept
     cdef cppclass CwDownloadHandlerProxy(CefDownloadHandler):
         CwDownloadHandlerProxy(const CwDownloadHandlerCallbacks&)
+    cdef cppclass CwDownloadImageCallbackCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_on_download_image_finished)(void*, const CefString*, int, CefImage*) noexcept
+    cdef cppclass CwDownloadImageCallbackProxy(CefDownloadImageCallback):
+        CwDownloadImageCallbackProxy(const CwDownloadImageCallbackCallbacks&)
     cdef cppclass CwDragHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1557,6 +1957,25 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_on_load_error)(void*, CefBrowser*, CefFrame*, int, const CefString*, const CefString*) noexcept
     cdef cppclass CwLoadHandlerProxy(CefLoadHandler):
         CwLoadHandlerProxy(const CwLoadHandlerCallbacks&)
+    cdef cppclass CwMenuButtonDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+        void (*fn_on_button_pressed)(void*, CefButton*) noexcept
+        void (*fn_on_button_state_changed)(void*, CefButton*) noexcept
+        void (*fn_on_menu_button_pressed)(void*, CefMenuButton*, const CefPoint*, CefMenuButtonPressedLock*) noexcept
+    cdef cppclass CwMenuButtonDelegateProxy(CefMenuButtonDelegate):
+        CwMenuButtonDelegateProxy(const CwMenuButtonDelegateCallbacks&)
     cdef cppclass CwMenuModelDelegateCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1569,6 +1988,22 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_format_label)(void*, CefMenuModel*, CefString*) noexcept
     cdef cppclass CwMenuModelDelegateProxy(CefMenuModelDelegate):
         CwMenuModelDelegateProxy(const CwMenuModelDelegateCallbacks&)
+    cdef cppclass CwPanelDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+    cdef cppclass CwPanelDelegateProxy(CefPanelDelegate):
+        CwPanelDelegateProxy(const CwPanelDelegateCallbacks&)
     cdef cppclass CwPdfPrintCallbackCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1701,6 +2136,24 @@ cdef extern from "generated/cefweaver_proxies.h":
         void (*fn_execute)(void*) noexcept
     cdef cppclass CwTaskProxy(CefTask):
         CwTaskProxy(const CwTaskCallbacks&)
+    cdef cppclass CwTextfieldDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+        cpp_bool (*fn_on_key_event)(void*, CefTextfield*, const CefKeyEvent*) noexcept
+        void (*fn_on_after_user_action)(void*, CefTextfield*) noexcept
+    cdef cppclass CwTextfieldDelegateProxy(CefTextfieldDelegate):
+        CwTextfieldDelegateProxy(const CwTextfieldDelegateCallbacks&)
     cdef cppclass CwURLRequestClientCallbacks:
         void* py
         void (*release)(void*) noexcept
@@ -1711,6 +2164,60 @@ cdef extern from "generated/cefweaver_proxies.h":
         cpp_bool (*fn_get_auth_credentials)(void*, cpp_bool, const CefString*, int, const CefString*, const CefString*, CefAuthCallback*) noexcept
     cdef cppclass CwURLRequestClientProxy(CefURLRequestClient):
         CwURLRequestClientProxy(const CwURLRequestClientCallbacks&)
+    cdef cppclass CwViewDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+    cdef cppclass CwViewDelegateProxy(CefViewDelegate):
+        CwViewDelegateProxy(const CwViewDelegateCallbacks&)
+    cdef cppclass CwWindowDelegateCallbacks:
+        void* py
+        void (*release)(void*) noexcept
+        void (*fn_get_preferred_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_minimum_size)(void*, CefView*, CefSize*) noexcept
+        void (*fn_get_maximum_size)(void*, CefView*, CefSize*) noexcept
+        int (*fn_get_height_for_width)(void*, CefView*, int) noexcept
+        void (*fn_on_parent_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_child_view_changed)(void*, CefView*, cpp_bool, CefView*) noexcept
+        void (*fn_on_window_changed)(void*, CefView*, cpp_bool) noexcept
+        void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) noexcept
+        void (*fn_on_focus)(void*, CefView*) noexcept
+        void (*fn_on_blur)(void*, CefView*) noexcept
+        void (*fn_on_theme_changed)(void*, CefView*) noexcept
+        void (*fn_on_window_created)(void*, CefWindow*) noexcept
+        void (*fn_on_window_closing)(void*, CefWindow*) noexcept
+        void (*fn_on_window_destroyed)(void*, CefWindow*) noexcept
+        void (*fn_on_window_activation_changed)(void*, CefWindow*, cpp_bool) noexcept
+        void (*fn_on_window_bounds_changed)(void*, CefWindow*, const CefRect*) noexcept
+        void (*fn_on_window_fullscreen_transition)(void*, CefWindow*, cpp_bool) noexcept
+        cpp_bool (*fn_is_window_modal_dialog)(void*, CefWindow*) noexcept
+        void (*fn_get_initial_bounds)(void*, CefWindow*, CefRect*) noexcept
+        int (*fn_get_initial_show_state)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_is_frameless)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_with_standard_window_buttons)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_get_titlebar_height)(void*, CefWindow*, float*) noexcept
+        int (*fn_accepts_first_mouse)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_can_resize)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_can_maximize)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_can_minimize)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_can_close)(void*, CefWindow*) noexcept
+        cpp_bool (*fn_on_accelerator)(void*, CefWindow*, int) noexcept
+        cpp_bool (*fn_on_key_event)(void*, CefWindow*, const CefKeyEvent*) noexcept
+        void (*fn_on_theme_colors_changed)(void*, CefWindow*, cpp_bool) noexcept
+        int (*fn_get_window_runtime_style)(void*) noexcept
+        cpp_bool (*fn_get_linux_window_properties)(void*, CefWindow*, CefLinuxWindowProperties*) noexcept
+    cdef cppclass CwWindowDelegateProxy(CefWindowDelegate):
+        CwWindowDelegateProxy(const CwWindowDelegateCallbacks&)
     cdef cppclass CwWriteHandlerCallbacks:
         void* py
         void (*release)(void*) noexcept

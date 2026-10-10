@@ -23,6 +23,23 @@ import cef_parser  # noqa: E402  (vendored, see vendor/README.txt)
 # -- names ------------------------------------------------------------------------
 
 
+# The CEF API version the wrapper is built with: CEF_API_VERSION is CEF_API_VERSION_EXPERIMENTAL
+# (internal/cef_api_versions.h) unless the build defines it, and cefweaver does not. A method with
+# `added=N` or `removed=N` in its comment exists only at some versions (`#if CEF_API_REMOVED(15000)`): a
+# method that does not exist at this version is not in the headers the C++ compiler sees.
+API_VERSION = 999999
+
+
+def _exists_at_api_version(func):
+    """True if a function exists at API_VERSION: not `added` after it and not `removed` at or before it."""
+    if hasattr(func, "exists_at_version"):
+        return func.exists_at_version(API_VERSION)
+    attribs = func.attribs
+    if cef_parser._has_version_added(attribs) and cef_parser._get_version_added(attribs) > API_VERSION:
+        return False
+    return not (cef_parser._has_version_removed(attribs) and cef_parser._get_version_removed(attribs) <= API_VERSION)
+
+
 def snake_case(name):
     """GetURL -> get_url, OnLoadEnd -> on_load_end, HTTPStatus -> http_status."""
     name = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -515,14 +532,20 @@ class Model:
                     progress = True
         return dict(sorted(structs.items()))
 
-    def virtual_funcs(self, cls):
-        """The virtual methods of a class, with those of its CEF parents first: CefRequestContext
-        inherits its preferences from CefPreferenceManager and is used as one class."""
+    def virtual_funcs(self, cls, own_only=False):
+        """The virtual methods of a class that exist at the API version of the build, with those of its CEF
+        parents first (CefRequestContext inherits its preferences from CefPreferenceManager and is used as one
+        class), or only its own (a class that is a Python subclass of its parent: Scope.python_parent)."""
         parent = cls.get_parent_name() if hasattr(cls, "get_parent_name") else None
         inherited = []
-        if parent in self.classes:
+        if parent in self.classes and not own_only:
             inherited = list(self.virtual_funcs(self.classes[parent]))
-        return inherited + list(cls.get_virtual_funcs())
+        return inherited + [f for f in cls.get_virtual_funcs() if f.exists_at_version(API_VERSION)]
+
+    def static_funcs(self, cls):
+        """The static functions of a class that exist at the API version of the build. (The parser tells
+        it for virtual functions only: the same rule is applied to the attributes of a static one.)"""
+        return [f for f in cls.get_static_funcs() if _exists_at_api_version(f)]
 
     def header_path(self, cls):
         """`include/cef_x.h` as it is written in an #include line."""
@@ -539,8 +562,13 @@ class Model:
         start = found.start()
         end = text.find("\n};", start)
         body = text[start:end if end > 0 else len(text)]
-        pattern = r"virtual\s+[^;{}]*?\b%s\s*\([^;{}]*?\)\s*(?:const\s*)?=\s*0\s*;" % re.escape(
-            method.get_name())
+        name = re.escape(method.get_name())
+        if re.search(r"virtual\s+[^;{}]*?\b%s\s*\(" % name, body, re.S) is None:
+            # Not declared here: the method is inherited (a delegate has the methods of its parents), and the
+            # parent that declares it says whether it is pure (CefMenuButtonDelegate::OnButtonPressed).
+            parent = cls.get_parent_name() if hasattr(cls, "get_parent_name") else None
+            return parent in self.classes and self.is_pure_virtual(self.classes[parent], method)
+        pattern = r"virtual\s+[^;{}]*?\b%s\s*\([^;{}]*?\)\s*(?:const\s*)?=\s*0\s*;" % name
         return re.search(pattern, body, re.S) is not None
 
     def comment(self, node):

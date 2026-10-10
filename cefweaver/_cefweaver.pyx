@@ -732,16 +732,21 @@ cdef class CefApp:
     def initialize(self, start_url="about:blank"):
         """Start CEF and create the browser window (once per process).
 
+        ``start_url=None`` starts CEF **without a first browser**: the application makes its own (a Views
+        ``BrowserView`` in a ``Window``, ``create_browser()``). ``is_running`` then stays true until
+        ``shutdown()``: the application ends its loop itself (for instance when its window is destroyed).
+
         On Linux the browser uses X11 (XWayland on a Wayland desktop) unless
         ``ozone-platform`` (or ``ozone-platform-hint``) was given with
         ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
         native Wayland, which Chromium would pick when ``WAYLAND_DISPLAY`` is set. Without an
         X display (``DISPLAY``) the choice is left to Chromium.
         """
-        cdef string url = _utf8(start_url)
+        cdef string url = _utf8("about:blank" if start_url is None else start_url)
         cdef bint ok
         if self._initialized:
             raise RuntimeError("initialize() was already called")
+        self._wrapper.SetFirstBrowser(start_url is not None)
         if self._client is not None and "disable-chrome-login-prompt" not in self._switch_names:
             # Without this switch CEF shows Chrome's own login window and never asks the
             # client's request handler for credentials; the handler gets them only if it
@@ -769,9 +774,12 @@ cdef class CefApp:
         # The first browser is made inside this call and its handlers (on_after_created) run before
         # it returns: the application can use the app from there.
         self._initialized = True
+        global _cef_started
+        _cef_started = True                     # before the first browser: its handlers run inside this call
         with nogil:
             ok = self._wrapper.InitCefSimple(url)
         if not ok:
+            _cef_started = False
             self._initialized = False
             raise RuntimeError("CefInitialize() failed")
 

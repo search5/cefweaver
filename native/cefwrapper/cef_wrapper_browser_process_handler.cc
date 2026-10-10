@@ -170,8 +170,10 @@ void CefWrapperBrowserProcessHandler::OnContextInitialized()
   SimpleRenderProcessHandler::getInstance()->SetJavascriptBindings(
       m_JavascriptBindings, m_JavascriptPythonBindings);
 
-  Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext,
-                          nullptr, g_SharedTexture.load(), g_ParentView.load());
+  if (!g_NoFirstBrowser.load()) {
+    Browser = CreateBrowser(StartUrl, g_Offscreen.load(), g_Transparent.load(), m_RequestContext,
+                            nullptr, g_SharedTexture.load(), g_ParentView.load());
+  }
 
   // m_Browser->GetHost()->ShowDevTools(window_info, nullptr, browser_settings, CefPoint());
 }

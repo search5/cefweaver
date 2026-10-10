@@ -21,6 +21,7 @@
 #include "include/cef_drag_handler.h"
 #include "include/cef_focus_handler.h"
 #include "include/cef_frame.h"
+#include "include/cef_image.h"
 #include "include/cef_jsdialog_handler.h"
 #include "include/cef_keyboard_handler.h"
 #include "include/cef_life_span_handler.h"
@@ -50,7 +51,27 @@
 #include "include/cef_urlrequest.h"
 #include "include/cef_values.h"
 #include "include/cef_zip_reader.h"
+#include "include/views/cef_box_layout.h"
+#include "include/views/cef_browser_view.h"
+#include "include/views/cef_browser_view_delegate.h"
+#include "include/views/cef_button.h"
+#include "include/views/cef_button_delegate.h"
 #include "include/views/cef_display.h"
+#include "include/views/cef_fill_layout.h"
+#include "include/views/cef_label_button.h"
+#include "include/views/cef_layout.h"
+#include "include/views/cef_menu_button.h"
+#include "include/views/cef_menu_button_delegate.h"
+#include "include/views/cef_overlay_controller.h"
+#include "include/views/cef_panel.h"
+#include "include/views/cef_panel_delegate.h"
+#include "include/views/cef_scroll_view.h"
+#include "include/views/cef_textfield.h"
+#include "include/views/cef_textfield_delegate.h"
+#include "include/views/cef_view.h"
+#include "include/views/cef_view_delegate.h"
+#include "include/views/cef_window.h"
+#include "include/views/cef_window_delegate.h"
 #include "../platform_structs.h"
 #include <atomic>
 #include <vector>
@@ -162,6 +183,614 @@ class CwAudioHandlerProxy : public CefAudioHandler {
 
   IMPLEMENT_REFCOUNTING(CwAudioHandlerProxy);
   DISALLOW_COPY_AND_ASSIGN(CwAudioHandlerProxy);
+};
+
+// ---- CefBrowserViewDelegate ----
+
+class CwBrowserViewDelegateForward : public CefBrowserViewDelegate {
+ protected:
+  CefRefPtr<CefBrowserViewDelegate> forward_browser_view_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetPreferredSize(view);
+    }
+    return forward_browser_view_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetMinimumSize(view);
+    }
+    return forward_browser_view_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetMaximumSize(view);
+    }
+    return forward_browser_view_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_browser_view_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_browser_view_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_browser_view_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_browser_view_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_browser_view_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnFocus(view);
+      return;
+    }
+    forward_browser_view_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnBlur(view);
+      return;
+    }
+    forward_browser_view_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_browser_view_delegate_->OnThemeChanged(view);
+  }
+
+  void OnBrowserCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowser> browser) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnBrowserCreated(browser_view, browser);
+      return;
+    }
+    forward_browser_view_delegate_->OnBrowserCreated(browser_view, browser);
+  }
+
+  void OnBrowserDestroyed(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowser> browser) override {
+    if (!forward_browser_view_delegate_) {
+      CefBrowserViewDelegate::OnBrowserDestroyed(browser_view, browser);
+      return;
+    }
+    forward_browser_view_delegate_->OnBrowserDestroyed(browser_view, browser);
+  }
+
+  bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::OnPopupBrowserViewCreated(browser_view, popup_browser_view, is_devtools);
+    }
+    return forward_browser_view_delegate_->OnPopupBrowserViewCreated(browser_view, popup_browser_view, is_devtools);
+  }
+
+  ChromeToolbarType GetChromeToolbarType(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetChromeToolbarType(browser_view);
+    }
+    return forward_browser_view_delegate_->GetChromeToolbarType(browser_view);
+  }
+
+  bool UseFramelessWindowForPictureInPicture(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::UseFramelessWindowForPictureInPicture(browser_view);
+    }
+    return forward_browser_view_delegate_->UseFramelessWindowForPictureInPicture(browser_view);
+  }
+
+  bool AllowMoveForPictureInPicture(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::AllowMoveForPictureInPicture(browser_view);
+    }
+    return forward_browser_view_delegate_->AllowMoveForPictureInPicture(browser_view);
+  }
+
+  bool AllowPictureInPictureWithoutUserActivation(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::AllowPictureInPictureWithoutUserActivation(browser_view);
+    }
+    return forward_browser_view_delegate_->AllowPictureInPictureWithoutUserActivation(browser_view);
+  }
+
+  bool OnGestureCommand(CefRefPtr<CefBrowserView> browser_view, cef_gesture_command_t gesture_command) override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::OnGestureCommand(browser_view, gesture_command);
+    }
+    return forward_browser_view_delegate_->OnGestureCommand(browser_view, gesture_command);
+  }
+
+  cef_runtime_style_t GetBrowserRuntimeStyle() override {
+    if (!forward_browser_view_delegate_) {
+      return CefBrowserViewDelegate::GetBrowserRuntimeStyle();
+    }
+    return forward_browser_view_delegate_->GetBrowserRuntimeStyle();
+  }
+};
+
+struct CwBrowserViewDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+  void (*fn_on_browser_created)(void*, CefBrowserView*, CefBrowser*) = nullptr;
+  void (*fn_on_browser_destroyed)(void*, CefBrowserView*, CefBrowser*) = nullptr;
+  bool (*fn_on_popup_browser_view_created)(void*, CefBrowserView*, CefBrowserView*, bool) = nullptr;
+  int (*fn_get_chrome_toolbar_type)(void*, CefBrowserView*) = nullptr;
+  bool (*fn_use_frameless_window_for_picture_in_picture)(void*, CefBrowserView*) = nullptr;
+  bool (*fn_allow_move_for_picture_in_picture)(void*, CefBrowserView*) = nullptr;
+  bool (*fn_allow_picture_in_picture_without_user_activation)(void*, CefBrowserView*) = nullptr;
+  bool (*fn_on_gesture_command)(void*, CefBrowserView*, int) = nullptr;
+  int (*fn_get_browser_runtime_style)(void*) = nullptr;
+};
+
+class CwBrowserViewDelegateProxy : public CefBrowserViewDelegate {
+ public:
+  explicit CwBrowserViewDelegateProxy(const CwBrowserViewDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwBrowserViewDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefBrowserViewDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefBrowserViewDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefBrowserViewDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefBrowserViewDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefBrowserViewDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefBrowserViewDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefBrowserViewDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefBrowserViewDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefBrowserViewDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefBrowserViewDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefBrowserViewDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+  void OnBrowserCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_browser_created) {
+      CefBrowserViewDelegate::OnBrowserCreated(browser_view, browser);
+      return;
+    }
+    cb_.fn_on_browser_created(cb_.py, browser_view.get(), browser.get());
+  }
+
+  void OnBrowserDestroyed(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowser> browser) override {
+    if (!cb_.fn_on_browser_destroyed) {
+      CefBrowserViewDelegate::OnBrowserDestroyed(browser_view, browser);
+      return;
+    }
+    cb_.fn_on_browser_destroyed(cb_.py, browser_view.get(), browser.get());
+  }
+
+  bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view, CefRefPtr<CefBrowserView> popup_browser_view, bool is_devtools) override {
+    if (!cb_.fn_on_popup_browser_view_created) {
+      return CefBrowserViewDelegate::OnPopupBrowserViewCreated(browser_view, popup_browser_view, is_devtools);
+    }
+    bool result = cb_.fn_on_popup_browser_view_created(cb_.py, browser_view.get(), popup_browser_view.get(), is_devtools);
+    return result;
+  }
+
+  ChromeToolbarType GetChromeToolbarType(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!cb_.fn_get_chrome_toolbar_type) {
+      return CefBrowserViewDelegate::GetChromeToolbarType(browser_view);
+    }
+    ChromeToolbarType result = static_cast<ChromeToolbarType>(cb_.fn_get_chrome_toolbar_type(cb_.py, browser_view.get()));
+    return result;
+  }
+
+  bool UseFramelessWindowForPictureInPicture(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!cb_.fn_use_frameless_window_for_picture_in_picture) {
+      return CefBrowserViewDelegate::UseFramelessWindowForPictureInPicture(browser_view);
+    }
+    bool result = cb_.fn_use_frameless_window_for_picture_in_picture(cb_.py, browser_view.get());
+    return result;
+  }
+
+  bool AllowMoveForPictureInPicture(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!cb_.fn_allow_move_for_picture_in_picture) {
+      return CefBrowserViewDelegate::AllowMoveForPictureInPicture(browser_view);
+    }
+    bool result = cb_.fn_allow_move_for_picture_in_picture(cb_.py, browser_view.get());
+    return result;
+  }
+
+  bool AllowPictureInPictureWithoutUserActivation(CefRefPtr<CefBrowserView> browser_view) override {
+    if (!cb_.fn_allow_picture_in_picture_without_user_activation) {
+      return CefBrowserViewDelegate::AllowPictureInPictureWithoutUserActivation(browser_view);
+    }
+    bool result = cb_.fn_allow_picture_in_picture_without_user_activation(cb_.py, browser_view.get());
+    return result;
+  }
+
+  bool OnGestureCommand(CefRefPtr<CefBrowserView> browser_view, cef_gesture_command_t gesture_command) override {
+    if (!cb_.fn_on_gesture_command) {
+      return CefBrowserViewDelegate::OnGestureCommand(browser_view, gesture_command);
+    }
+    bool result = cb_.fn_on_gesture_command(cb_.py, browser_view.get(), static_cast<int>(gesture_command));
+    return result;
+  }
+
+  cef_runtime_style_t GetBrowserRuntimeStyle() override {
+    if (!cb_.fn_get_browser_runtime_style) {
+      return CefBrowserViewDelegate::GetBrowserRuntimeStyle();
+    }
+    cef_runtime_style_t result = static_cast<cef_runtime_style_t>(cb_.fn_get_browser_runtime_style(cb_.py));
+    return result;
+  }
+
+ private:
+  CwBrowserViewDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwBrowserViewDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwBrowserViewDelegateProxy);
+};
+
+// ---- CefButtonDelegate ----
+
+class CwButtonDelegateForward : public CefButtonDelegate {
+ protected:
+  CefRefPtr<CefButtonDelegate> forward_button_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      return CefButtonDelegate::GetPreferredSize(view);
+    }
+    return forward_button_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      return CefButtonDelegate::GetMinimumSize(view);
+    }
+    return forward_button_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      return CefButtonDelegate::GetMaximumSize(view);
+    }
+    return forward_button_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_button_delegate_) {
+      return CefButtonDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_button_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_button_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_button_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_button_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_button_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnFocus(view);
+      return;
+    }
+    forward_button_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnBlur(view);
+      return;
+    }
+    forward_button_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_button_delegate_->OnThemeChanged(view);
+  }
+
+  void OnButtonPressed(CefRefPtr<CefButton> button) override {
+    if (!forward_button_delegate_) {
+      return;
+    }
+    forward_button_delegate_->OnButtonPressed(button);
+  }
+
+  void OnButtonStateChanged(CefRefPtr<CefButton> button) override {
+    if (!forward_button_delegate_) {
+      CefButtonDelegate::OnButtonStateChanged(button);
+      return;
+    }
+    forward_button_delegate_->OnButtonStateChanged(button);
+  }
+};
+
+struct CwButtonDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+  void (*fn_on_button_pressed)(void*, CefButton*) = nullptr;
+  void (*fn_on_button_state_changed)(void*, CefButton*) = nullptr;
+};
+
+class CwButtonDelegateProxy : public CefButtonDelegate {
+ public:
+  explicit CwButtonDelegateProxy(const CwButtonDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwButtonDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefButtonDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefButtonDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefButtonDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefButtonDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefButtonDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefButtonDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefButtonDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefButtonDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefButtonDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefButtonDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefButtonDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+  void OnButtonPressed(CefRefPtr<CefButton> button) override {
+    if (!cb_.fn_on_button_pressed) {
+      return;
+    }
+    cb_.fn_on_button_pressed(cb_.py, button.get());
+  }
+
+  void OnButtonStateChanged(CefRefPtr<CefButton> button) override {
+    if (!cb_.fn_on_button_state_changed) {
+      CefButtonDelegate::OnButtonStateChanged(button);
+      return;
+    }
+    cb_.fn_on_button_state_changed(cb_.py, button.get());
+  }
+
+ private:
+  CwButtonDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwButtonDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwButtonDelegateProxy);
 };
 
 // ---- CefClient ----
@@ -1348,6 +1977,50 @@ class CwDownloadHandlerProxy : public CefDownloadHandler {
   DISALLOW_COPY_AND_ASSIGN(CwDownloadHandlerProxy);
 };
 
+// ---- CefDownloadImageCallback ----
+
+class CwDownloadImageCallbackForward : public CefDownloadImageCallback {
+ protected:
+  CefRefPtr<CefDownloadImageCallback> forward_download_image_callback_;
+
+ public:
+  void OnDownloadImageFinished(const CefString& image_url, int http_status_code, CefRefPtr<CefImage> image) override {
+    if (!forward_download_image_callback_) {
+      return;
+    }
+    forward_download_image_callback_->OnDownloadImageFinished(image_url, http_status_code, image);
+  }
+};
+
+struct CwDownloadImageCallbackCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_on_download_image_finished)(void*, const CefString*, int, CefImage*) = nullptr;
+};
+
+class CwDownloadImageCallbackProxy : public CefDownloadImageCallback {
+ public:
+  explicit CwDownloadImageCallbackProxy(const CwDownloadImageCallbackCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwDownloadImageCallbackProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  void OnDownloadImageFinished(const CefString& image_url, int http_status_code, CefRefPtr<CefImage> image) override {
+    if (!cb_.fn_on_download_image_finished) {
+      return;
+    }
+    cb_.fn_on_download_image_finished(cb_.py, &image_url, http_status_code, image.get());
+  }
+
+ private:
+  CwDownloadImageCallbackCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwDownloadImageCallbackProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwDownloadImageCallbackProxy);
+};
+
 // ---- CefDragHandler ----
 
 class CwDragHandlerForward : public CefDragHandler {
@@ -1858,6 +2531,268 @@ class CwLoadHandlerProxy : public CefLoadHandler {
   DISALLOW_COPY_AND_ASSIGN(CwLoadHandlerProxy);
 };
 
+// ---- CefMenuButtonDelegate ----
+
+class CwMenuButtonDelegateForward : public CefMenuButtonDelegate {
+ protected:
+  CefRefPtr<CefMenuButtonDelegate> forward_menu_button_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      return CefMenuButtonDelegate::GetPreferredSize(view);
+    }
+    return forward_menu_button_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      return CefMenuButtonDelegate::GetMinimumSize(view);
+    }
+    return forward_menu_button_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      return CefMenuButtonDelegate::GetMaximumSize(view);
+    }
+    return forward_menu_button_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_menu_button_delegate_) {
+      return CefMenuButtonDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_menu_button_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_menu_button_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_menu_button_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_menu_button_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_menu_button_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnFocus(view);
+      return;
+    }
+    forward_menu_button_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnBlur(view);
+      return;
+    }
+    forward_menu_button_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_menu_button_delegate_->OnThemeChanged(view);
+  }
+
+  void OnButtonPressed(CefRefPtr<CefButton> button) override {
+    if (!forward_menu_button_delegate_) {
+      return;
+    }
+    forward_menu_button_delegate_->OnButtonPressed(button);
+  }
+
+  void OnButtonStateChanged(CefRefPtr<CefButton> button) override {
+    if (!forward_menu_button_delegate_) {
+      CefMenuButtonDelegate::OnButtonStateChanged(button);
+      return;
+    }
+    forward_menu_button_delegate_->OnButtonStateChanged(button);
+  }
+
+  void OnMenuButtonPressed(CefRefPtr<CefMenuButton> menu_button, const CefPoint& screen_point, CefRefPtr<CefMenuButtonPressedLock> button_pressed_lock) override {
+    if (!forward_menu_button_delegate_) {
+      return;
+    }
+    forward_menu_button_delegate_->OnMenuButtonPressed(menu_button, screen_point, button_pressed_lock);
+  }
+};
+
+struct CwMenuButtonDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+  void (*fn_on_button_pressed)(void*, CefButton*) = nullptr;
+  void (*fn_on_button_state_changed)(void*, CefButton*) = nullptr;
+  void (*fn_on_menu_button_pressed)(void*, CefMenuButton*, const CefPoint*, CefMenuButtonPressedLock*) = nullptr;
+};
+
+class CwMenuButtonDelegateProxy : public CefMenuButtonDelegate {
+ public:
+  explicit CwMenuButtonDelegateProxy(const CwMenuButtonDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwMenuButtonDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefMenuButtonDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefMenuButtonDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefMenuButtonDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefMenuButtonDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefMenuButtonDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefMenuButtonDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefMenuButtonDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefMenuButtonDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefMenuButtonDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefMenuButtonDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefMenuButtonDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+  void OnButtonPressed(CefRefPtr<CefButton> button) override {
+    if (!cb_.fn_on_button_pressed) {
+      return;
+    }
+    cb_.fn_on_button_pressed(cb_.py, button.get());
+  }
+
+  void OnButtonStateChanged(CefRefPtr<CefButton> button) override {
+    if (!cb_.fn_on_button_state_changed) {
+      CefMenuButtonDelegate::OnButtonStateChanged(button);
+      return;
+    }
+    cb_.fn_on_button_state_changed(cb_.py, button.get());
+  }
+
+  void OnMenuButtonPressed(CefRefPtr<CefMenuButton> menu_button, const CefPoint& screen_point, CefRefPtr<CefMenuButtonPressedLock> button_pressed_lock) override {
+    if (!cb_.fn_on_menu_button_pressed) {
+      return;
+    }
+    cb_.fn_on_menu_button_pressed(cb_.py, menu_button.get(), &screen_point, button_pressed_lock.get());
+  }
+
+ private:
+  CwMenuButtonDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwMenuButtonDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwMenuButtonDelegateProxy);
+};
+
 // ---- CefMenuModelDelegate ----
 
 class CwMenuModelDelegateForward : public CefMenuModelDelegate {
@@ -2003,6 +2938,221 @@ class CwMenuModelDelegateProxy : public CefMenuModelDelegate {
 
   IMPLEMENT_REFCOUNTING(CwMenuModelDelegateProxy);
   DISALLOW_COPY_AND_ASSIGN(CwMenuModelDelegateProxy);
+};
+
+// ---- CefPanelDelegate ----
+
+class CwPanelDelegateForward : public CefPanelDelegate {
+ protected:
+  CefRefPtr<CefPanelDelegate> forward_panel_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      return CefPanelDelegate::GetPreferredSize(view);
+    }
+    return forward_panel_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      return CefPanelDelegate::GetMinimumSize(view);
+    }
+    return forward_panel_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      return CefPanelDelegate::GetMaximumSize(view);
+    }
+    return forward_panel_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_panel_delegate_) {
+      return CefPanelDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_panel_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_panel_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_panel_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_panel_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_panel_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnFocus(view);
+      return;
+    }
+    forward_panel_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnBlur(view);
+      return;
+    }
+    forward_panel_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_panel_delegate_) {
+      CefPanelDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_panel_delegate_->OnThemeChanged(view);
+  }
+};
+
+struct CwPanelDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+};
+
+class CwPanelDelegateProxy : public CefPanelDelegate {
+ public:
+  explicit CwPanelDelegateProxy(const CwPanelDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwPanelDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefPanelDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefPanelDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefPanelDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefPanelDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefPanelDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefPanelDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefPanelDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefPanelDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefPanelDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefPanelDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefPanelDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+ private:
+  CwPanelDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwPanelDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwPanelDelegateProxy);
 };
 
 // ---- CefPdfPrintCallback ----
@@ -3470,6 +4620,254 @@ class CwTaskProxy : public CefTask {
   DISALLOW_COPY_AND_ASSIGN(CwTaskProxy);
 };
 
+// ---- CefTextfieldDelegate ----
+
+class CwTextfieldDelegateForward : public CefTextfieldDelegate {
+ protected:
+  CefRefPtr<CefTextfieldDelegate> forward_textfield_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      return CefTextfieldDelegate::GetPreferredSize(view);
+    }
+    return forward_textfield_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      return CefTextfieldDelegate::GetMinimumSize(view);
+    }
+    return forward_textfield_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      return CefTextfieldDelegate::GetMaximumSize(view);
+    }
+    return forward_textfield_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_textfield_delegate_) {
+      return CefTextfieldDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_textfield_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_textfield_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_textfield_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_textfield_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_textfield_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnFocus(view);
+      return;
+    }
+    forward_textfield_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnBlur(view);
+      return;
+    }
+    forward_textfield_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_textfield_delegate_->OnThemeChanged(view);
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefTextfield> textfield, const CefKeyEvent& event) override {
+    if (!forward_textfield_delegate_) {
+      return CefTextfieldDelegate::OnKeyEvent(textfield, event);
+    }
+    return forward_textfield_delegate_->OnKeyEvent(textfield, event);
+  }
+
+  void OnAfterUserAction(CefRefPtr<CefTextfield> textfield) override {
+    if (!forward_textfield_delegate_) {
+      CefTextfieldDelegate::OnAfterUserAction(textfield);
+      return;
+    }
+    forward_textfield_delegate_->OnAfterUserAction(textfield);
+  }
+};
+
+struct CwTextfieldDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+  bool (*fn_on_key_event)(void*, CefTextfield*, const CefKeyEvent*) = nullptr;
+  void (*fn_on_after_user_action)(void*, CefTextfield*) = nullptr;
+};
+
+class CwTextfieldDelegateProxy : public CefTextfieldDelegate {
+ public:
+  explicit CwTextfieldDelegateProxy(const CwTextfieldDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwTextfieldDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefTextfieldDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefTextfieldDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefTextfieldDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefTextfieldDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefTextfieldDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefTextfieldDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefTextfieldDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefTextfieldDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefTextfieldDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefTextfieldDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefTextfieldDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefTextfield> textfield, const CefKeyEvent& event) override {
+    if (!cb_.fn_on_key_event) {
+      return CefTextfieldDelegate::OnKeyEvent(textfield, event);
+    }
+    bool result = cb_.fn_on_key_event(cb_.py, textfield.get(), &event);
+    return result;
+  }
+
+  void OnAfterUserAction(CefRefPtr<CefTextfield> textfield) override {
+    if (!cb_.fn_on_after_user_action) {
+      CefTextfieldDelegate::OnAfterUserAction(textfield);
+      return;
+    }
+    cb_.fn_on_after_user_action(cb_.py, textfield.get());
+  }
+
+ private:
+  CwTextfieldDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwTextfieldDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwTextfieldDelegateProxy);
+};
+
 // ---- CefURLRequestClient ----
 
 class CwURLRequestClientForward : public CefURLRequestClient {
@@ -3573,6 +4971,800 @@ class CwURLRequestClientProxy : public CefURLRequestClient {
 
   IMPLEMENT_REFCOUNTING(CwURLRequestClientProxy);
   DISALLOW_COPY_AND_ASSIGN(CwURLRequestClientProxy);
+};
+
+// ---- CefViewDelegate ----
+
+class CwViewDelegateForward : public CefViewDelegate {
+ protected:
+  CefRefPtr<CefViewDelegate> forward_view_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      return CefViewDelegate::GetPreferredSize(view);
+    }
+    return forward_view_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      return CefViewDelegate::GetMinimumSize(view);
+    }
+    return forward_view_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      return CefViewDelegate::GetMaximumSize(view);
+    }
+    return forward_view_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_view_delegate_) {
+      return CefViewDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_view_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_view_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_view_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_view_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_view_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnFocus(view);
+      return;
+    }
+    forward_view_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnBlur(view);
+      return;
+    }
+    forward_view_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_view_delegate_) {
+      CefViewDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_view_delegate_->OnThemeChanged(view);
+  }
+};
+
+struct CwViewDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+};
+
+class CwViewDelegateProxy : public CefViewDelegate {
+ public:
+  explicit CwViewDelegateProxy(const CwViewDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwViewDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefViewDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefViewDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefViewDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefViewDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefViewDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefViewDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefViewDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefViewDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefViewDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefViewDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefViewDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+ private:
+  CwViewDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwViewDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwViewDelegateProxy);
+};
+
+// ---- CefWindowDelegate ----
+
+class CwWindowDelegateForward : public CefWindowDelegate {
+ protected:
+  CefRefPtr<CefWindowDelegate> forward_window_delegate_;
+
+ public:
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetPreferredSize(view);
+    }
+    return forward_window_delegate_->GetPreferredSize(view);
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetMinimumSize(view);
+    }
+    return forward_window_delegate_->GetMinimumSize(view);
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetMaximumSize(view);
+    }
+    return forward_window_delegate_->GetMaximumSize(view);
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetHeightForWidth(view, width);
+    }
+    return forward_window_delegate_->GetHeightForWidth(view, width);
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    forward_window_delegate_->OnParentViewChanged(view, added, parent);
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    forward_window_delegate_->OnChildViewChanged(view, added, child);
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    forward_window_delegate_->OnWindowChanged(view, added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    forward_window_delegate_->OnLayoutChanged(view, new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnFocus(view);
+      return;
+    }
+    forward_window_delegate_->OnFocus(view);
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnBlur(view);
+      return;
+    }
+    forward_window_delegate_->OnBlur(view);
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnThemeChanged(view);
+      return;
+    }
+    forward_window_delegate_->OnThemeChanged(view);
+  }
+
+  void OnWindowCreated(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowCreated(window);
+      return;
+    }
+    forward_window_delegate_->OnWindowCreated(window);
+  }
+
+  void OnWindowClosing(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowClosing(window);
+      return;
+    }
+    forward_window_delegate_->OnWindowClosing(window);
+  }
+
+  void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowDestroyed(window);
+      return;
+    }
+    forward_window_delegate_->OnWindowDestroyed(window);
+  }
+
+  void OnWindowActivationChanged(CefRefPtr<CefWindow> window, bool active) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowActivationChanged(window, active);
+      return;
+    }
+    forward_window_delegate_->OnWindowActivationChanged(window, active);
+  }
+
+  void OnWindowBoundsChanged(CefRefPtr<CefWindow> window, const CefRect& new_bounds) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowBoundsChanged(window, new_bounds);
+      return;
+    }
+    forward_window_delegate_->OnWindowBoundsChanged(window, new_bounds);
+  }
+
+  void OnWindowFullscreenTransition(CefRefPtr<CefWindow> window, bool is_completed) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnWindowFullscreenTransition(window, is_completed);
+      return;
+    }
+    forward_window_delegate_->OnWindowFullscreenTransition(window, is_completed);
+  }
+
+  bool IsWindowModalDialog(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::IsWindowModalDialog(window);
+    }
+    return forward_window_delegate_->IsWindowModalDialog(window);
+  }
+
+  CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetInitialBounds(window);
+    }
+    return forward_window_delegate_->GetInitialBounds(window);
+  }
+
+  cef_show_state_t GetInitialShowState(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetInitialShowState(window);
+    }
+    return forward_window_delegate_->GetInitialShowState(window);
+  }
+
+  bool IsFrameless(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::IsFrameless(window);
+    }
+    return forward_window_delegate_->IsFrameless(window);
+  }
+
+  bool WithStandardWindowButtons(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::WithStandardWindowButtons(window);
+    }
+    return forward_window_delegate_->WithStandardWindowButtons(window);
+  }
+
+  bool GetTitlebarHeight(CefRefPtr<CefWindow> window, float* titlebar_height) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetTitlebarHeight(window, titlebar_height);
+    }
+    return forward_window_delegate_->GetTitlebarHeight(window, titlebar_height);
+  }
+
+  cef_state_t AcceptsFirstMouse(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::AcceptsFirstMouse(window);
+    }
+    return forward_window_delegate_->AcceptsFirstMouse(window);
+  }
+
+  bool CanResize(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::CanResize(window);
+    }
+    return forward_window_delegate_->CanResize(window);
+  }
+
+  bool CanMaximize(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::CanMaximize(window);
+    }
+    return forward_window_delegate_->CanMaximize(window);
+  }
+
+  bool CanMinimize(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::CanMinimize(window);
+    }
+    return forward_window_delegate_->CanMinimize(window);
+  }
+
+  bool CanClose(CefRefPtr<CefWindow> window) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::CanClose(window);
+    }
+    return forward_window_delegate_->CanClose(window);
+  }
+
+  bool OnAccelerator(CefRefPtr<CefWindow> window, int command_id) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::OnAccelerator(window, command_id);
+    }
+    return forward_window_delegate_->OnAccelerator(window, command_id);
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefWindow> window, const CefKeyEvent& event) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::OnKeyEvent(window, event);
+    }
+    return forward_window_delegate_->OnKeyEvent(window, event);
+  }
+
+  void OnThemeColorsChanged(CefRefPtr<CefWindow> window, bool chrome_theme) override {
+    if (!forward_window_delegate_) {
+      CefWindowDelegate::OnThemeColorsChanged(window, chrome_theme);
+      return;
+    }
+    forward_window_delegate_->OnThemeColorsChanged(window, chrome_theme);
+  }
+
+  cef_runtime_style_t GetWindowRuntimeStyle() override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetWindowRuntimeStyle();
+    }
+    return forward_window_delegate_->GetWindowRuntimeStyle();
+  }
+
+  bool GetLinuxWindowProperties(CefRefPtr<CefWindow> window, CefLinuxWindowProperties& properties) override {
+    if (!forward_window_delegate_) {
+      return CefWindowDelegate::GetLinuxWindowProperties(window, properties);
+    }
+    return forward_window_delegate_->GetLinuxWindowProperties(window, properties);
+  }
+};
+
+struct CwWindowDelegateCallbacks {
+  void* py = nullptr;  // owner, released through |release|
+  void (*release)(void* py) = nullptr;
+  void (*fn_get_preferred_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_minimum_size)(void*, CefView*, CefSize*) = nullptr;
+  void (*fn_get_maximum_size)(void*, CefView*, CefSize*) = nullptr;
+  int (*fn_get_height_for_width)(void*, CefView*, int) = nullptr;
+  void (*fn_on_parent_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_child_view_changed)(void*, CefView*, bool, CefView*) = nullptr;
+  void (*fn_on_window_changed)(void*, CefView*, bool) = nullptr;
+  void (*fn_on_layout_changed)(void*, CefView*, const CefRect*) = nullptr;
+  void (*fn_on_focus)(void*, CefView*) = nullptr;
+  void (*fn_on_blur)(void*, CefView*) = nullptr;
+  void (*fn_on_theme_changed)(void*, CefView*) = nullptr;
+  void (*fn_on_window_created)(void*, CefWindow*) = nullptr;
+  void (*fn_on_window_closing)(void*, CefWindow*) = nullptr;
+  void (*fn_on_window_destroyed)(void*, CefWindow*) = nullptr;
+  void (*fn_on_window_activation_changed)(void*, CefWindow*, bool) = nullptr;
+  void (*fn_on_window_bounds_changed)(void*, CefWindow*, const CefRect*) = nullptr;
+  void (*fn_on_window_fullscreen_transition)(void*, CefWindow*, bool) = nullptr;
+  bool (*fn_is_window_modal_dialog)(void*, CefWindow*) = nullptr;
+  void (*fn_get_initial_bounds)(void*, CefWindow*, CefRect*) = nullptr;
+  int (*fn_get_initial_show_state)(void*, CefWindow*) = nullptr;
+  bool (*fn_is_frameless)(void*, CefWindow*) = nullptr;
+  bool (*fn_with_standard_window_buttons)(void*, CefWindow*) = nullptr;
+  bool (*fn_get_titlebar_height)(void*, CefWindow*, float*) = nullptr;
+  int (*fn_accepts_first_mouse)(void*, CefWindow*) = nullptr;
+  bool (*fn_can_resize)(void*, CefWindow*) = nullptr;
+  bool (*fn_can_maximize)(void*, CefWindow*) = nullptr;
+  bool (*fn_can_minimize)(void*, CefWindow*) = nullptr;
+  bool (*fn_can_close)(void*, CefWindow*) = nullptr;
+  bool (*fn_on_accelerator)(void*, CefWindow*, int) = nullptr;
+  bool (*fn_on_key_event)(void*, CefWindow*, const CefKeyEvent*) = nullptr;
+  void (*fn_on_theme_colors_changed)(void*, CefWindow*, bool) = nullptr;
+  int (*fn_get_window_runtime_style)(void*) = nullptr;
+  bool (*fn_get_linux_window_properties)(void*, CefWindow*, CefLinuxWindowProperties*) = nullptr;
+};
+
+class CwWindowDelegateProxy : public CefWindowDelegate {
+ public:
+  explicit CwWindowDelegateProxy(const CwWindowDelegateCallbacks& callbacks) : cb_(callbacks) {}
+  ~CwWindowDelegateProxy() override {
+    if (cb_.release) {
+      cb_.release(cb_.py);
+    }
+  }
+
+  CefSize GetPreferredSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_preferred_size) {
+      return CefWindowDelegate::GetPreferredSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_preferred_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMinimumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_minimum_size) {
+      return CefWindowDelegate::GetMinimumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_minimum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  CefSize GetMaximumSize(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_get_maximum_size) {
+      return CefWindowDelegate::GetMaximumSize(view);
+    }
+    CefSize out_result;
+    cb_.fn_get_maximum_size(cb_.py, view.get(), &out_result);
+    return out_result;
+  }
+
+  int GetHeightForWidth(CefRefPtr<CefView> view, int width) override {
+    if (!cb_.fn_get_height_for_width) {
+      return CefWindowDelegate::GetHeightForWidth(view, width);
+    }
+    int result = cb_.fn_get_height_for_width(cb_.py, view.get(), width);
+    return result;
+  }
+
+  void OnParentViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> parent) override {
+    if (!cb_.fn_on_parent_view_changed) {
+      CefWindowDelegate::OnParentViewChanged(view, added, parent);
+      return;
+    }
+    cb_.fn_on_parent_view_changed(cb_.py, view.get(), added, parent.get());
+  }
+
+  void OnChildViewChanged(CefRefPtr<CefView> view, bool added, CefRefPtr<CefView> child) override {
+    if (!cb_.fn_on_child_view_changed) {
+      CefWindowDelegate::OnChildViewChanged(view, added, child);
+      return;
+    }
+    cb_.fn_on_child_view_changed(cb_.py, view.get(), added, child.get());
+  }
+
+  void OnWindowChanged(CefRefPtr<CefView> view, bool added) override {
+    if (!cb_.fn_on_window_changed) {
+      CefWindowDelegate::OnWindowChanged(view, added);
+      return;
+    }
+    cb_.fn_on_window_changed(cb_.py, view.get(), added);
+  }
+
+  void OnLayoutChanged(CefRefPtr<CefView> view, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_layout_changed) {
+      CefWindowDelegate::OnLayoutChanged(view, new_bounds);
+      return;
+    }
+    cb_.fn_on_layout_changed(cb_.py, view.get(), &new_bounds);
+  }
+
+  void OnFocus(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_focus) {
+      CefWindowDelegate::OnFocus(view);
+      return;
+    }
+    cb_.fn_on_focus(cb_.py, view.get());
+  }
+
+  void OnBlur(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_blur) {
+      CefWindowDelegate::OnBlur(view);
+      return;
+    }
+    cb_.fn_on_blur(cb_.py, view.get());
+  }
+
+  void OnThemeChanged(CefRefPtr<CefView> view) override {
+    if (!cb_.fn_on_theme_changed) {
+      CefWindowDelegate::OnThemeChanged(view);
+      return;
+    }
+    cb_.fn_on_theme_changed(cb_.py, view.get());
+  }
+
+  void OnWindowCreated(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_on_window_created) {
+      CefWindowDelegate::OnWindowCreated(window);
+      return;
+    }
+    cb_.fn_on_window_created(cb_.py, window.get());
+  }
+
+  void OnWindowClosing(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_on_window_closing) {
+      CefWindowDelegate::OnWindowClosing(window);
+      return;
+    }
+    cb_.fn_on_window_closing(cb_.py, window.get());
+  }
+
+  void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_on_window_destroyed) {
+      CefWindowDelegate::OnWindowDestroyed(window);
+      return;
+    }
+    cb_.fn_on_window_destroyed(cb_.py, window.get());
+  }
+
+  void OnWindowActivationChanged(CefRefPtr<CefWindow> window, bool active) override {
+    if (!cb_.fn_on_window_activation_changed) {
+      CefWindowDelegate::OnWindowActivationChanged(window, active);
+      return;
+    }
+    cb_.fn_on_window_activation_changed(cb_.py, window.get(), active);
+  }
+
+  void OnWindowBoundsChanged(CefRefPtr<CefWindow> window, const CefRect& new_bounds) override {
+    if (!cb_.fn_on_window_bounds_changed) {
+      CefWindowDelegate::OnWindowBoundsChanged(window, new_bounds);
+      return;
+    }
+    cb_.fn_on_window_bounds_changed(cb_.py, window.get(), &new_bounds);
+  }
+
+  void OnWindowFullscreenTransition(CefRefPtr<CefWindow> window, bool is_completed) override {
+    if (!cb_.fn_on_window_fullscreen_transition) {
+      CefWindowDelegate::OnWindowFullscreenTransition(window, is_completed);
+      return;
+    }
+    cb_.fn_on_window_fullscreen_transition(cb_.py, window.get(), is_completed);
+  }
+
+  bool IsWindowModalDialog(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_is_window_modal_dialog) {
+      return CefWindowDelegate::IsWindowModalDialog(window);
+    }
+    bool result = cb_.fn_is_window_modal_dialog(cb_.py, window.get());
+    return result;
+  }
+
+  CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_get_initial_bounds) {
+      return CefWindowDelegate::GetInitialBounds(window);
+    }
+    CefRect out_result;
+    cb_.fn_get_initial_bounds(cb_.py, window.get(), &out_result);
+    return out_result;
+  }
+
+  cef_show_state_t GetInitialShowState(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_get_initial_show_state) {
+      return CefWindowDelegate::GetInitialShowState(window);
+    }
+    cef_show_state_t result = static_cast<cef_show_state_t>(cb_.fn_get_initial_show_state(cb_.py, window.get()));
+    return result;
+  }
+
+  bool IsFrameless(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_is_frameless) {
+      return CefWindowDelegate::IsFrameless(window);
+    }
+    bool result = cb_.fn_is_frameless(cb_.py, window.get());
+    return result;
+  }
+
+  bool WithStandardWindowButtons(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_with_standard_window_buttons) {
+      return CefWindowDelegate::WithStandardWindowButtons(window);
+    }
+    bool result = cb_.fn_with_standard_window_buttons(cb_.py, window.get());
+    return result;
+  }
+
+  bool GetTitlebarHeight(CefRefPtr<CefWindow> window, float* titlebar_height) override {
+    if (!cb_.fn_get_titlebar_height) {
+      return CefWindowDelegate::GetTitlebarHeight(window, titlebar_height);
+    }
+    float out_titlebar_height = float();
+    bool result = cb_.fn_get_titlebar_height(cb_.py, window.get(), &out_titlebar_height);
+    if (titlebar_height) *titlebar_height = out_titlebar_height;
+    return result;
+  }
+
+  cef_state_t AcceptsFirstMouse(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_accepts_first_mouse) {
+      return CefWindowDelegate::AcceptsFirstMouse(window);
+    }
+    cef_state_t result = static_cast<cef_state_t>(cb_.fn_accepts_first_mouse(cb_.py, window.get()));
+    return result;
+  }
+
+  bool CanResize(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_can_resize) {
+      return CefWindowDelegate::CanResize(window);
+    }
+    bool result = cb_.fn_can_resize(cb_.py, window.get());
+    return result;
+  }
+
+  bool CanMaximize(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_can_maximize) {
+      return CefWindowDelegate::CanMaximize(window);
+    }
+    bool result = cb_.fn_can_maximize(cb_.py, window.get());
+    return result;
+  }
+
+  bool CanMinimize(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_can_minimize) {
+      return CefWindowDelegate::CanMinimize(window);
+    }
+    bool result = cb_.fn_can_minimize(cb_.py, window.get());
+    return result;
+  }
+
+  bool CanClose(CefRefPtr<CefWindow> window) override {
+    if (!cb_.fn_can_close) {
+      return CefWindowDelegate::CanClose(window);
+    }
+    bool result = cb_.fn_can_close(cb_.py, window.get());
+    return result;
+  }
+
+  bool OnAccelerator(CefRefPtr<CefWindow> window, int command_id) override {
+    if (!cb_.fn_on_accelerator) {
+      return CefWindowDelegate::OnAccelerator(window, command_id);
+    }
+    bool result = cb_.fn_on_accelerator(cb_.py, window.get(), command_id);
+    return result;
+  }
+
+  bool OnKeyEvent(CefRefPtr<CefWindow> window, const CefKeyEvent& event) override {
+    if (!cb_.fn_on_key_event) {
+      return CefWindowDelegate::OnKeyEvent(window, event);
+    }
+    bool result = cb_.fn_on_key_event(cb_.py, window.get(), &event);
+    return result;
+  }
+
+  void OnThemeColorsChanged(CefRefPtr<CefWindow> window, bool chrome_theme) override {
+    if (!cb_.fn_on_theme_colors_changed) {
+      CefWindowDelegate::OnThemeColorsChanged(window, chrome_theme);
+      return;
+    }
+    cb_.fn_on_theme_colors_changed(cb_.py, window.get(), chrome_theme);
+  }
+
+  cef_runtime_style_t GetWindowRuntimeStyle() override {
+    if (!cb_.fn_get_window_runtime_style) {
+      return CefWindowDelegate::GetWindowRuntimeStyle();
+    }
+    cef_runtime_style_t result = static_cast<cef_runtime_style_t>(cb_.fn_get_window_runtime_style(cb_.py));
+    return result;
+  }
+
+  bool GetLinuxWindowProperties(CefRefPtr<CefWindow> window, CefLinuxWindowProperties& properties) override {
+    if (!cb_.fn_get_linux_window_properties) {
+      return CefWindowDelegate::GetLinuxWindowProperties(window, properties);
+    }
+    CefLinuxWindowProperties out_properties;
+    bool result = cb_.fn_get_linux_window_properties(cb_.py, window.get(), &out_properties);
+    properties = out_properties;
+    return result;
+  }
+
+ private:
+  CwWindowDelegateCallbacks cb_;
+
+  IMPLEMENT_REFCOUNTING(CwWindowDelegateProxy);
+  DISALLOW_COPY_AND_ASSIGN(CwWindowDelegateProxy);
 };
 
 // ---- CefWriteHandler ----
