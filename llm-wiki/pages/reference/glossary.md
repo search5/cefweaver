@@ -6,7 +6,7 @@ sources:
   - CLAUDE.md
   - tools/gen/typesys.py
   - tools/prepare.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 용어집
@@ -35,10 +35,14 @@ updated: 2026-10-08
 | 프록시 (`Cw...Proxy`) | CEF 핸들러 클래스를 상속해 호출을 함수 포인터 표로 위임하는 생성된 C++ 클래스 |
 | 라이브러리 쪽 (library-side) | CEF가 구현하고 애플리케이션이 부르는 클래스(`CefRequest` 등). 헤더의 `source=library` |
 | 클라이언트 쪽 (client-side) | 애플리케이션이 구현하고 CEF가 부르는 클래스(핸들러). 헤더의 `source=client` |
-| 종류 (kind) | 생성기가 C++ 타입을 분류한 결과(`Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Buffer`, `Planes`, `Bytes`, `ItemBytes`, `StrMap`, `Time`, `Ignored`, `Void`) |
+| 종류 (kind) | 생성기가 C++ 타입을 분류한 결과(`Prim`, `Str`, `Enum`, `LibRef`, `ClientRef`, `Struct`, `Vector`, `Buffer`, `Planes`, `Bytes`, `ItemBytes`, `StrMap`, `Time`, `Ignored`, `Void`) |
 | 범위 (scope) | 지금 생성하는 클래스와 함수의 목록(`tools/gen/scope.py`) |
 | 커버리지 보고서 | 생성하지 못한 메서드와 그 사유([커버리지 보고서](coverage-report.md)) |
 | `optional_param` | 헤더가 인자를 `None`(널)을 허용한다고 표시한 것 |
+| extras | 생성기가 표현하지 못하는 메서드를 손으로 쓴 `tools/gen/extras/`의 `.pxi`, `.pyi`로 클래스 끝에 붙이는 것([바인딩 생성기의 설계](../concepts/binding-generator.md)) |
+| 프록시 등록부 (`CwProxyRegistry`) | 프록시의 포인터와 Python 객체를 짝지어 둔 표. `dynamic_cast` 없이 CEF에 준 핸들러를 되찾습니다([핸들러 프록시 구조](../concepts/handler-proxies.md)). |
+| Views | CEF가 창, 단추, 텍스트 필드, 레이아웃을 직접 만들어 주는 UI 프레임워크(`include/views/`). 툴킷 없이 창을 만듭니다([Views 확인 기록](verified-findings-views.md)). |
+| 렌더러 이벤트 | 렌더러가 프로세스 메시지로 브라우저 프로세스에 알리는 JavaScript 오류, 초점 노드, V8 컨텍스트의 생성과 해제. `app.enable_renderer_events()`로 켭니다([F104](verified-findings-opened.md)). |
 | 순수 가상 함수 | `= 0`으로 선언된 가상 함수. 기반 클래스에 구현이 없어 호출할 수 없습니다. |
 | 스테이징 | CEF 런타임과 `cefsubprocess`를 `cefweaver/` 아래에 복사하는 일(`prepare.py`) |
 | `strip` | 실행 파일과 라이브러리에서 디버그 심볼을 제거하는 도구 |

@@ -8,7 +8,7 @@ sources:
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 앱 핸들러 (명령줄, 스킴, 시작 훅)
@@ -35,6 +35,8 @@ app.set_app_handler(Hooks())                                    # initialize() �
 | `on_register_custom_schemes(registrar)` | `SchemeRegistrar.add_custom_scheme(name, options)`는 이 호출 안에서만 유효합니다(그 뒤에는 `RuntimeError`). 등록한 스킴은 기억해 두었다가 자식 프로세스(렌더러)의 명령줄에 `cefweaver-custom-schemes=이름:옵션;...`으로 붙이고(`OnBeforeChildProcessLaunch`), 렌더러의 `OnRegisterCustomSchemes`가 그것으로 같은 스킴을 등록합니다. java-cef는 임시 파일로 같은 일을 합니다. |
 | `on_context_initialized()` | 첫 브라우저를 만들기 직전에 불립니다. |
 | `on_schedule_message_pump_work(delay_ms)` | `settings.external_message_pump = True`일 때 CEF가 `do_message_loop_work()`를 부를 때를 알립니다. **CEF의 어느 스레드에서나** 불리므로 요청을 적어 두고 이벤트 루프를 깨우기만 해야 합니다. 규약(요청이 이전 요청을 대체함, 최대 1/30초의 대비 타이머)은 `cefweaver.MessagePump`가 지킵니다([F62](verified-findings-handlers.md)). |
+| `on_before_child_process_launch(command_line)` | 자식 프로세스(렌더러, GPU 등)를 시작하기 전에 그 명령줄로 불립니다. `type` 스위치로 종류를 압니다([F105](verified-findings-opened.md)). |
+| `on_register_custom_preferences(type, registrar)` | 전역(`PreferencesType.GLOBAL`)과 요청 컨텍스트(`REQUEST_CONTEXT`)마다 한 번씩 불립니다. `registrar.add_preference(이름, 값)`의 기본값을 읽고 쓸 수 있고 등록기는 그 호출 안에서만 유효합니다([F105](verified-findings-opened.md)). |
 | `on_already_running_app_relaunch(command_line, current_directory)` | 같은 사용자 데이터(`cache_path`)로 두 번째 프로세스를 시작하면 첫 프로세스에 두 번째의 명령줄이 옵니다. `True`면 처리한 것입니다. |
 
 `CommandLine`(생성된 클래스)의 메서드는 `append_switch`, `append_switch_with_value`, `append_argument`, `get_switches`(`dict`), `get_arguments`, `get_program`/`set_program`, `has_switch`, `get_switch_value`, `has_switches`, `has_arguments`, `reset`입니다. `get_global_command_line()`으로 이 프로세스의 명령줄을 읽을 수 있습니다.

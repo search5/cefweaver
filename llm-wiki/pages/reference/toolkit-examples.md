@@ -29,12 +29,14 @@ sources:
   - examples/kivy/browser.py
   - examples/kivy/pyproject.toml
   - examples/kivy/README.md
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 툴킷 예제
 
 [GTK 3 예제](gtk3-example.md)에 이어 같은 방식(오프스크린 위젯)으로 다섯 툴킷의 예제를 `examples/`에 두었습니다. 환경 구성(uv)과 실행은 각 디렉터리의 `README.md`에 있고, 여기에는 공통 구조와 실제로 돌려서 확인한 것을 적습니다([F69](verified-findings-handlers.md)). 모두 가상 X 서버(`xvfb-run`)에서 X11을 강제하고 실행합니다(툴킷이 실행 중인 Wayland 세션에 창을 여는 일을 막기 위해서입니다).
+
+`examples/views/`는 이 표의 툴킷 예제가 아닙니다. 오프스크린 위젯이 아니라 CEF의 Views로 창을 만들고 `examples/common/`의 점검도 쓰지 않습니다(자체 `smoke.py`, 근거는 [Views 확인 기록](verified-findings-views.md)). 이 페이지의 시험(`QuickstartDocs`, `Quickstarts`)은 `views`의 `quickstart.py`도 함께 점검합니다.
 
 ## 공통 구조
 

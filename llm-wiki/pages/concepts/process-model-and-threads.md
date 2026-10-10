@@ -7,7 +7,7 @@ sources:
   - native/cefwrapper/cef_wrapper_client_handler.cc
   - cefweaver/_cefweaver.pyx
   - tools/gen/emit_cython.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 프로세스 모델과 스레드
@@ -23,7 +23,7 @@ Chromium은 여러 프로세스로 동작하며, cefweaver에서는 다음과 �
 
 `CefWrapper::InitCefSimple()`(`native/cefwrapper/library.cpp`)가 `CefSettings.browser_subprocess_path`를 서브프로세스 실행 파일로 지정합니다. 기본값은 Linux에서 확장 모듈과 같은 디렉터리의 `cefsubprocess`이고, Windows에서는 현재 작업 디렉터리의 `cefsubprocess/cefsubprocess.exe`입니다. `CefApp.set_subprocess_path()`로 바꿀 수 있습니다.
 
-서브프로세스는 Python 없이 C++만 실행합니다. 그래서 JavaScript 호출 처리 중 렌더러에서 실행되는 코드(`cef_wrapper_render_process_handler.cc`)는 Python 객체에 접근하지 못하고, 이름만 가지고 브라우저 프로세스로 메시지를 보냅니다([JavaScript 바인딩](javascript-bindings.md)).
+서브프로세스는 Python 없이 C++만 실행합니다. 그래서 JavaScript 호출 처리 중 렌더러에서 실행되는 코드(`cef_wrapper_render_process_handler.cc`)는 Python 객체에 접근하지 못하고, 이름만 가지고 브라우저 프로세스로 메시지를 보냅니다([JavaScript 바인딩](javascript-bindings.md)). `app.enable_renderer_events()`를 켜면 렌더러가 처리되지 않은 JavaScript 오류, 포커스를 가진 노드, V8 컨텍스트의 생성과 해제를 같은 방식으로 프로세스 메시지(`cefweaver-renderer-event`)에 담아 브라우저 프로세스에 보냅니다. 브라우저 프로세스가 자식 프로세스의 명령줄에 `cefweaver-renderer-events` 스위치를 붙여 켭니다([F104](../reference/verified-findings-opened.md)).
 
 샌드박스는 쓰지 않습니다(`settings.no_sandbox = true`). 그래서 CEF 배포본의 `chrome-sandbox`는 스테이징에서 제외합니다([런타임 파일 배치](runtime-layout.md)).
 

@@ -6,7 +6,7 @@ sources:
   - tools/gen/emit_cython.py
   - native/cefwrapper/generated/cefweaver_proxies.h
   - cefweaver/cef_api.pxi
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 핸들러 프록시 구조
@@ -52,10 +52,16 @@ CEF 스레드 --> Cw...Proxy::Method() --> 표의 함수 포인터 --> 트램펄
 | `void*`와 크기 쌍 | `void*`, 크기 타입 | 쓰기 가능한 `memoryview` |
 | 크기 인자가 없는 `const void*`(`OnPaint`의 `buffer`) | `void*`, `size_t`(프록시가 `width * height * 4`로 계산) | 읽기 전용 `memoryview` |
 | 핸들러 반환(`CefRefPtr<T>` 반환) | `T*` (참조 1개를 넘김) | 핸들러 객체 또는 `None` |
+| 핸들러가 받는 핸들러 객체(`CefRefPtr<클라이언트 T>` 입력, 예: 팝업의 클라이언트) | `T*` | CEF에 준 Python 객체(`_g_unexport_<T>`가 등록부에서 찾음), CEF 자신의 것이면 `None` |
+| 핸들러가 돌려주는 라이브러리 객체(`CefRefPtr<라이브러리 T>` 반환, 예: 부모 창) | `T*` (참조 1개를 넘김) | 생성된 래퍼 객체 또는 `None`(`_g_ref_<T>`가 참조를 만들어 줌) |
 
 - 반환값은 반환 형식이 `void`가 아니면 그것이 먼저이고 그 뒤에 출력 인자가 순서대로 옵니다. 값이 하나면 그대로, 둘 이상이면 튜플입니다. 개수가 맞지 않으면 예외가 되고 보고됩니다.
 - 핸들러가 객체를 돌려줄 때(`create`) 트램펄린은 `AddRef()`한 원시 포인터를 넘기고, 프록시는 `CefRefPtr`로 받은 뒤 `Release()`해서 참조 수를 맞춥니다.
 - 입력 객체의 원시 포인터는 호출 동안만 유효합니다. 트램펄린이 `CefRefPtr`로 감싸 래퍼 객체를 만들면서 참조를 늘립니다.
+
+## 준 객체를 되찾기 (프록시 등록부)
+
+프로그램이 CEF에 준 핸들러를 CEF가 다시 돌려주거나 넘기는 경우가 있습니다(`View.GetDelegate()`, `BrowserHost.GetClient()`, `RequestContext.GetHandler()`, 팝업 델리게이트의 `client` 인자). 같은 Python 객체를 주어야 하므로 프록시를 만들 때 `CwRegisterProxy(포인터, py)`로 등록부(`CwProxyRegistry`, 뮤텍스로 보호)에 넣고 소멸할 때 지웁니다. `CwPyOf<이름>(포인터)`가 찾고, 없으면(CEF가 만든 객체, 준 적 없는 객체) `NULL`이라 Python에는 `None`이 갑니다. 래퍼가 RTTI 없이 빌드되어 `dynamic_cast`를 쓰지 않습니다([F100](../reference/verified-findings-views.md)).
 
 ## 수명과 오류
 

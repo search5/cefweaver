@@ -14,6 +14,8 @@
   url: /media.html
 - title: 컨텍스트 메뉴
   url: /context-menu.html
+- title: 핸들러와 이벤트
+  url: /events.html
 - title: Wayland와 GPU
   url: /wayland-gpu.html
 - title: 한계와 알려진 제약

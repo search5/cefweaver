@@ -7,7 +7,7 @@ sources:
   - tools/gen/generate.py
   - llm-wiki/pages/reference/coverage-report.md
   - tests/test_generator.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # CEF 버전 올리기
@@ -19,7 +19,7 @@ updated: 2026-10-08
 1. **후보 고르기**: `python tools/prepare.py --list-versions`로 전체 이름을 확인합니다. 메이저 버전이 크게 바뀌면 API가 바뀌어 빌드가 깨질 수 있습니다.
 2. **기본값 바꾸기**: `CMakeLists.txt`의 `CEF_VERSION`을 새 전체 이름으로 바꿉니다.
 3. **CEF 확보와 네이티브 빌드**: `python tools/prepare.py`. 같은 `build/native`에서 해도 옛 버전이 고정되지 않습니다.
-4. **바인딩 다시 생성**: `python tools/gen/generate.py`. 생성 파일 머리의 `Generated from CEF <버전>`이 바뀌고, 헤더의 변경(추가, 제거된 메서드와 클래스)이 생성 파일과 [커버리지 보고서](../reference/coverage-report.md)의 차이로 드러납니다. 차이를 읽어서 의도한 변화인지 확인합니다.
+4. **바인딩 다시 생성**: `python tools/gen/generate.py`. 생성 파일 머리의 `Generated from CEF <버전>`이 바뀌고, 헤더의 변경(추가, 제거된 메서드와 클래스)이 생성 파일과 [커버리지 보고서](../reference/coverage-report.md)의 차이로 드러납니다. 차이를 읽어서 의도한 변화인지 확인합니다. 헤더에 `added=N`, `removed=N`이 붙은 메서드는 생성기가 API 버전(`tools/gen/model.py`의 `API_VERSION`)에 맞춰 거르므로 새 버전에서 걸러지는 메서드가 달라질 수 있습니다. 손으로 쓴 메서드(`tools/gen/extras/`)가 기대는 CEF 메서드와 `scope.py`의 `NEEDS_CEF_RUNNING` 목록도 새 헤더에 맞는지 확인합니다(다른 버전에서 확인하지 못했습니다).
 5. **wheel 빌드와 시험**: `uv build --wheel`, 설치, [시험 실행하기](run-tests.md).
 6. **문서 갱신**: `CMakeLists.txt`와 `README.rst`의 버전 예시, 그리고 위키에서 옛 버전 문자열을 찾아 고칩니다.
 

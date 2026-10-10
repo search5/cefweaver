@@ -60,6 +60,7 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 - **`DragData.get_file_name()`**: 파일 내용이 있는 드래그에서만 부르세요. 없을 때 부르면 프로세스가 죽습니다. CEF가 확인 없이 Chromium의 함수를 부르고 그 안의 `CHECK`가 실패합니다(CEF의 한계로 확인했습니다).
 - **Views**: **`MessagePump`(외부 메시지 펌프)로는 CEF 창의 마우스와 키 입력이 오지 않으므로** `do_message_loop_work()`를 자주 부르는 폴링 루프를 쓰세요. Linux X11에서만 확인했습니다([Views](views.md)).
 - **`Image`**: CEF를 초기화한 뒤에만 만들 수 있습니다(`Image.create_image()`가 `RuntimeError`). 초기화 전에 만들면 객체가 사라질 때 프로세스가 죽는 것을 확인했습니다.
+- **아직 열지 않은 것**: `on_certificate_error`는 `ssl_info`를 넘기지 않습니다(인증서는 `get_visible_navigation_entry().get_ssl_status()`로 읽습니다). `OnBeforeDevToolsPopup`, `ResourceBundleHandler`, `TaskRunner`도 아직 없습니다. 렌더러에서 Python을 실행하는 것은 구조상 되지 않고, [렌더러 이벤트](events.md)로 알림만 받습니다.
 - **캐시 폴더**: 캐시 경로를 주지 않으면 CEF가 작업 폴더에 `cache/`를 만듭니다.
 
 ## 시험의 범위

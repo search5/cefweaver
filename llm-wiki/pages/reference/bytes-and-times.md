@@ -8,7 +8,7 @@ sources:
   - tools/gen/scope.py
   - tests/test_generator.py
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 바이트열과 시간
@@ -28,7 +28,7 @@ updated: 2026-10-08
 | (자동, 핸들러) | `const void* p, size_t n`이면 읽기 전용, 아니면 쓰기 가능한 `memoryview` | `memoryview` | `DevToolsMessageObserver`, `ServerHandler.on_web_socket_message` 등 |
 | `DELIBERATE_POINTERS` | 일부러 제외 | (사유가 보고서에 적힘) | 아래 |
 
-일부러 제외하는 포인터는 CEF나 V8이 소유하는 메모리를 가리키거나(`BinaryValue.get_raw_data`, `SharedMemoryRegion.memory`, `V8BackingStore.data`, `V8Value.get_array_buffer_data`), V8과 공유되어 콜백으로 해제되거나(`V8Value.create_array_buffer`, `V8ArrayBufferReleaseCallback.release_buffer`), CEF가 핸들러가 돌려준 포인터를 보관하는 것(`ResourceBundleHandler.get_data_resource`, `..._for_scale`)입니다. Python 객체가 그 메모리보다 오래 살면 해제된 메모리를 가리킬 수 있어서입니다. 복사하는 대체 메서드가 있으면 그것을 씁니다(`get_data`, `create_array_buffer_with_copy`).
+일부러 제외하는 포인터는 CEF나 V8이 소유하는 메모리를 가리키거나(`BinaryValue.get_raw_data`, `SharedMemoryRegion.memory`, `V8BackingStore.data`, `V8Value.get_array_buffer_data`), V8과 공유되어 콜백으로 해제되거나(`V8Value.create_array_buffer`, `V8ArrayBufferReleaseCallback.release_buffer`), CEF가 핸들러가 돌려준 포인터를 보관하는 것(`ResourceBundleHandler.get_data_resource`, `..._for_scale`)입니다. Python 객체가 그 메모리보다 오래 살면 해제된 메모리를 가리킬 수 있어서입니다. 복사하는 대체 메서드가 있으면 그것을 씁니다(`get_data`, `create_array_buffer_with_copy`, `SharedMemoryRegion.to_bytes`).
 
 ## 시간
 
@@ -36,11 +36,11 @@ updated: 2026-10-08
 
 | 방향 | 지원 |
 | --- | --- |
-| 라이브러리 메서드의 반환 | 지원: `DownloadItem.get_start_time`/`get_end_time`, `ZipReader.get_file_last_modified`(이 둘은 시험으로 확인), 범위 밖 `NavigationEntry`, `X509Certificate`, `V8Value.get_date_value` |
+| 라이브러리 메서드의 반환 | 지원: `DownloadItem.get_start_time`/`get_end_time`, `ZipReader.get_file_last_modified``NavigationEntry.get_completion_time`, `X509Certificate.get_valid_start`/`get_valid_expiry`(`ZipReader`와 인증서는 시험으로 확인), 범위 밖 `V8Value.get_date_value` |
 | 라이브러리 메서드의 입력 | 지원(예: `V8Value.create_date`, 범위 밖) |
 | 핸들러 메서드의 입력 | 지원 |
 | 핸들러의 반환과 출력 | 지원하지 않음 |
-| 구조체 안의 필드(쿠키) | 지원하지 않음(쿠키 구조체가 없음) |
+| 구조체 안의 필드(쿠키) | 지원: `types.Cookie`의 `creation`, `last_access`, `expires`는 `datetime \| None`이고 `CookieManager.set_cookie`와 `CookieVisitor.visit`로 주고받는 것을 시험으로 확인 |
 
 java-cef는 `CefBaseTime`을 `java.util.Date`로 바꾸는 한 방향(CEF에서 Java로)뿐이고 `cef_time_from_basetime`을 거쳐 밀리초로 줄입니다(`jni_scoped_helpers.cpp`의 `NewJNIDate`).
 

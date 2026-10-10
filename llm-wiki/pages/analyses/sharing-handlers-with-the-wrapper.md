@@ -6,7 +6,7 @@ sources:
   - native/cefwrapper/cef_wrapper_client_handler.cc
   - native/cefwrapper/generated/cefweaver_proxies.h
   - tools/gen/emit_cpp.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 래퍼와 사용자가 핸들러를 나눠 쓰는 방법
@@ -15,7 +15,7 @@ updated: 2026-10-08
 
 ## 왜 한 객체가 둘을 모두 맡는가
 
-`CefClient`는 `GetLoadHandler()` 같은 getter로 핸들러를 **종류마다 하나씩** 돌려받습니다. 래퍼와 사용자가 각자 핸들러를 가질 수 없고, 한 객체가 CEF의 호출을 받아 둘에게 나눠 줘야 합니다. 핸들러를 분리하는 것은 CEF의 구조상 불가능합니다. 로드, 수명 주기, 표시, 드래그 핸들러는 이미 이 방식으로 풉니다: 래퍼의 `CefWrapperClientHandler`가 받고, 생성된 전달 클래스(`Cw<이름>Forward`)가 사용자의 핸들러로 넘깁니다([핸들러 프록시 구조](../concepts/handler-proxies.md)). 어떤 메서드는 래퍼가 먼저 하고 사용자에게 넘기고, 어떤 메서드는 사용자에게 먼저 묻습니다([C++ 핸들러](../components/native-handlers.md)).
+`CefClient`는 `GetLoadHandler()` 같은 getter로 핸들러를 **종류마다 하나씩** 돌려받습니다. 래퍼와 사용자가 각자 핸들러를 가질 수 없고, 한 객체가 CEF의 호출을 받아 둘에게 나눠 줘야 합니다. 핸들러를 분리하는 것은 CEF의 구조상 불가능합니다. 로드, 수명 주기, 표시, 드래그 핸들러는 이미 이 방식으로 풉니다: 래퍼의 `CefWrapperClientHandler`가 받고, 생성된 전달 클래스(`Cw<이름>Forward`)가 사용자의 핸들러로 넘깁니다([핸들러 프록시 구조](../concepts/handler-proxies.md)). 2026-10-10에 찾기, 프레임, 명령 핸들러도 같은 방식으로 더해졌고, 래퍼가 하는 일이 없어 전달만 합니다. 어떤 메서드는 래퍼가 먼저 하고 사용자에게 넘기고, 어떤 메서드는 사용자에게 먼저 묻습니다([C++ 핸들러](../components/native-handlers.md)).
 
 ## 컨텍스트 메뉴와 프로세스 메시지가 다른 점
 
@@ -49,7 +49,7 @@ updated: 2026-10-08
 
 이름으로 나눕니다. 래퍼의 두 이름(`javascript-binding`, `javascript-python-binding`)은 래퍼가 처리하고 사용자에게 가지 않으며, 그 밖의 이름은 사용자의 `Client.on_process_message_received(browser, frame, source_process, message)`가 받습니다(사용자가 없으면 `false`).
 
-**Python은 브라우저 프로세스에만 있습니다.** 렌더러는 C++(`cefsubprocess`)이므로, 사용자가 받을 메시지의 보내는 쪽도 렌더러의 C++ 코드뿐입니다. 사용자 정의 메시지를 끝까지 주고받을 수 있도록 렌더러에 **진단용 ping/pong**을 두었습니다: 이름이 `cefweaver-ping`인 메시지를 받으면 같은 인자로 `cefweaver-pong`을 브라우저에 돌려줍니다. 렌더러가 응답하는지(예: [F27](../reference/verified-findings-api.md)처럼 멈춘 경우) 알아보는 데도 쓸 수 있고, `frame.send_process_message(types.ProcessId.RENDERER, message)`로 보냅니다. 렌더러의 다른 동작을 Python이 정의하는 방법은 없습니다(JavaScript에서 Python으로는 `add_javascript_binding`).
+**Python은 브라우저 프로세스에만 있습니다.** 렌더러는 C++(`cefsubprocess`)이므로, 사용자가 받을 메시지의 보내는 쪽도 렌더러의 C++ 코드뿐입니다(2026-10-10에 `app.enable_renderer_events()`로 켜는 렌더러 이벤트 메시지 `cefweaver-renderer-event`가 더해졌고 `cefweaver.RendererEvents`가 푸는 것도 사용자의 `on_process_message_received`입니다, [F104](../reference/verified-findings-opened.md)). 사용자 정의 메시지를 끝까지 주고받을 수 있도록 렌더러에 **진단용 ping/pong**을 두었습니다: 이름이 `cefweaver-ping`인 메시지를 받으면 같은 인자로 `cefweaver-pong`을 브라우저에 돌려줍니다. 렌더러가 응답하는지(예: [F27](../reference/verified-findings-api.md)처럼 멈춘 경우) 알아보는 데도 쓸 수 있고, `frame.send_process_message(types.ProcessId.RENDERER, message)`로 보냅니다. 렌더러의 다른 동작을 Python이 정의하는 방법은 없습니다(JavaScript에서 Python으로는 `add_javascript_binding`).
 
 ## 관련 페이지
 

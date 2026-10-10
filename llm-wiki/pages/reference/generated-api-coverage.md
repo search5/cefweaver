@@ -45,7 +45,7 @@ updated: 2026-10-10
 | `CefBinaryValue` | 라이브러리 | 8/9 | 타입 없는 포인터 1(`get_raw_data`, 일부러 열지 않음) |
 | `CefDragHandler` | 핸들러 | 1/2 | 범위 밖 클래스 `CefDragData`(`on_drag_enter`) |
 | `CefBrowserHost` | 라이브러리 | 58/72 | 범위 밖 클래스 11(`CefRequestContext`, `CefNavigationEntry`, `CefDragData` 등), 값 타입 `CefWindowHandle` 2, 구조체 `cef_window_info_t`(`show_dev_tools`), `cef_pdf_print_settings_t`(`print_to_pdf`), 클라이언트 객체 반환 1(`get_client`) |
-| `CefClient` | 핸들러 | 14/19 | 다른 핸들러 5개가 범위 밖(`CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`; java-cef도 구현하지 않음) |
+| `CefClient` | 핸들러 | 19/19 | 이 표는 이전 기준입니다. 이전에 범위 밖이던 다섯 핸들러(`CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`)는 모두 열었습니다(2026-10-10) |
 | `CefLoadHandler` | 핸들러 | 4/4 | |
 | `CefLifeSpanHandler` | 핸들러 | 4/6 | 값 타입 `CefPopupFeatures`(`on_before_popup`), 구조체 `cef_window_info_t`(`on_before_dev_tools_popup`) |
 | `CefDisplayHandler` | 핸들러 | 12/13 | 값 타입 `CefCursorHandle`(`on_cursor_change`) |
@@ -89,7 +89,7 @@ updated: 2026-10-10
 ### 한계와 미검증
 
 - Windows와 다른 CEF 버전에서의 재생성은 확인하지 못했습니다. 파서는 CEF master의 것(2026-09-29)이고 154 헤더에서 정상 동작했지만, 다른 버전의 헤더에서는 시험하지 않았습니다.
-- `CefClient`는 java-cef가 구현하는 핸들러 13개(컨텍스트 메뉴, 대화상자, 표시, 다운로드, 드래그, 포커스, JS 대화상자, 키보드, 수명 주기, 로드, 인쇄, 렌더, 요청)를 돌려줍니다. `CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`는 java-cef도 구현하지 않아 생성하지 않았습니다. 래퍼가 JavaScript 바인딩과 메시지 라우터를 스스로 처리하는 메시지는 사용자에게 가지 않습니다.
+- `CefClient`는 java-cef가 구현하는 핸들러 13개(컨텍스트 메뉴, 대화상자, 표시, 다운로드, 드래그, 포커스, JS 대화상자, 키보드, 수명 주기, 로드, 인쇄, 렌더, 요청)를 돌려줍니다. `CefAudioHandler`, `CefCommandHandler`, `CefFindHandler`, `CefFrameHandler`, `CefPermissionHandler`는 java-cef가 구현하지 않지만 2026-10-10까지 모두 열었습니다(`Client.get_audio_handler()` 등, [F102](verified-findings-opened.md)). 래퍼가 JavaScript 바인딩과 메시지 라우터를 스스로 처리하는 메시지는 사용자에게 가지 않습니다.
 - `on_before_popup`은 java-cef처럼 URL과 프레임 이름만 열었고(나머지 `CefWindowInfo`, `CefBrowserSettings` 등은 무시), 창 정보로 팝업을 꾸미는 일은 열지 않았습니다. `on_before_dev_tools_popup`(`cef_window_info_t`)과 `BrowserHost.show_dev_tools`, `CefBrowserHost.create_browser`도 같은 이유로 열리지 않았습니다. 포인터나 배열이 있는 구조체는 지원하지 않습니다.
 - 헤더의 한국어 설명(`cef_origin` 위키)은 아직 스텁에 쓰지 않았고 헤더의 영어 주석을 그대로 쓰고 있습니다.
 - 부모 클래스의 가상 메서드는 자식에 합칩니다(`Model.virtual_funcs`: `CefRequestContext`가 `CefPreferenceManager`의 환경설정 메서드를 가짐). 같은 이름의 오버로드는 첫 번째만 만듭니다.

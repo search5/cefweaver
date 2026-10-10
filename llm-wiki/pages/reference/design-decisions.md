@@ -8,7 +8,7 @@ sources:
   - tools/prepare.py
   - tools/gen/scope.py
   - setup.py
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 설계 결정 기록
@@ -74,7 +74,7 @@ updated: 2026-10-09
 | 렌더러에 **진단용 ping/pong**(`cefweaver-ping` → `cefweaver-pong`, 같은 인자) | Python은 렌더러에 없어서 사용자 정의 메시지의 보내는 쪽이 필요하고, 렌더러가 응답하는지 알아보는 데도 쓸 수 있습니다. 시험 전용 장치가 아니라 문서화된 동작입니다. | 구현 중 판단 |
 | `set_client()`는 `initialize()` 전에만 | 브라우저를 만들 때 클라이언트가 정해져야 합니다. 이후에는 `RuntimeError`. | 구현 중 판단 |
 | JavaScript 통신은 **CEF의 메시지 라우터**를 손으로 감싸서 엽니다(`QueryHandler`, `window.cefQuery`) | 비용 대비 효과가 가장 큽니다: 질의 번호, 취소, 구독, 정리를 CEF가 맡고 java-cef와 같은 모델입니다. cefpython식 값 변환 중계는 더 크고 콜백 수명이 어렵습니다([분석](../analyses/js-python-messaging.md)). `add_javascript_binding`은 가벼운 호출용으로 유지. | 사용자(선택) |
-| 사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 **만들지 않음** | java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 래퍼 내부의 메시지 라우터 설정만 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |
+| ~~사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 만들지 않음~~ (2026-10-10에 `AppHandler.on_before_child_process_launch`로 열음) | 당시 java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없었습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 이후 남은 API를 여는 작업에서 자식 프로세스의 명령줄을 고치는 훅이 열렸습니다. 래퍼가 자기 스위치를 먼저 붙이고 그 뒤에 사용자의 훅을 부릅니다([F105](verified-findings-opened.md)). 래퍼 내부의 메시지 라우터 설정은 처음부터 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |
 | 오프스크린 브라우저에서는 **팝업을 막음**(래퍼의 `OnBeforePopup`) | java-cef도 `IsWindowRenderingDisabled()`면 막습니다. 팝업을 그릴 창과 렌더 핸들러 처리가 아직 없기 때문입니다. | 사용자(java-cef 수준) |
 | 래퍼는 포커스, JS 대화상자, 파일 대화상자, 다운로드 이벤트를 사용자의 핸들러로만 전달하고 스스로는 쓰지 않음(핸들러가 없으면 `nullptr`) | 핸들러가 있어야 CEF의 기본 동작(대화상자, 다운로드 저장 위치 묻기)이 바뀌므로 사용자가 만든 것만 CEF에 알립니다. | 구현 중 판단 |
 | 키보드 핸들러의 `os_event`(플랫폼 이벤트)는 Python에 넘기지 않음 | java-cef도 Java로 전달하지 않습니다(`keyboard_handler.cpp`). Linux에서는 `XEvent*`라 Python 객체로 안전하게 줄 방법이 없습니다. | 사용자(java-cef 수준) |
@@ -84,6 +84,14 @@ updated: 2026-10-09
 | 표에 없는 `void*`는 표에 올리거나 이유를 적어 제외하고 "untyped pointer"로 남기지 않음 | CEF나 V8이 소유하는 메모리를 가리키는 포인터는 Python 객체가 더 오래 살 수 있어 열지 않고, 복사하는 대체 메서드를 안내합니다([바이트열과 시간](bytes-and-times.md)). | 사용자(처리하자는 제안) |
 | **java-cef가 여는 것은 바닥**: 목록(`tools/gen/surface.py`)에 있는 것은 java-cef의 동작에 맞춰 모두 구현하고, 그보다 더 연 것은 닫지 않고 위키에 정리함 | java-cef의 제약은 대개 JNI 비용 때문이라 우리가 따라 닫을 이유가 없습니다. 처음에 천장으로 읽어 범위를 줄이려다 중단하고 되돌렸습니다([java-cef 동등성](java-cef-parity.md)). | 사용자 |
 | 오프스크린은 `offscreen`, `windowless_frame_rate`, `transparent` 속성으로 켬. 브라우저 설정은 `types.BrowserSettings`로 `browser_settings`와 `create_browser(settings=)`에서 정함 | 처음에는 설정을 열지 않았으나 GUI 툴킷에 넣으려면 위젯마다 정해야 해서 열었습니다(F64). | 2026-10-08 |
+| **Views 프레임워크를 열음**(22개 클래스, `include/views/`) | 사용자 결정(2026-10-10). Views는 CEF가 창, 단추, 텍스트 필드, 레이아웃을 직접 만들어 주는 독립적인 UI 구성이어서 툴킷 없이 창을 만들 수 있습니다. java-cef는 AWT와 Swing 위에서 쓰므로 열지 않았다고 판단했고, 그 이유가 AWT와 Swing 때문이라는 것은 추정입니다. 외부 메시지 펌프로는 CEF 자신의 창에 입력이 오지 않아 Views 예제는 `do_message_loop_work()` 폴링으로 돌립니다([F97](verified-findings-views.md)). | 사용자 |
+| 라이브러리 클래스의 부모가 범위 안이면 **Python 상속**으로 만들고 자기 메서드만 가짐 | 부모의 메서드를 펼친 독립된 클래스는 인자를 정확한 타입으로 검사해서 파생 뷰를 `View` 자리에 넘길 수 없고(`window.add_child_view(browser_view)`), `View`를 돌려주는 메서드가 실제 종류(`Window`, `LabelButton`)를 알려 주지 못합니다. 상속하면 자기 메서드만 만들어 Views의 생성 메서드가 789개에서 309개로 줄었습니다. 부모가 범위 밖이면 이전처럼 합친 한 클래스입니다([F96](verified-findings-views.md)). | 구현 중 판단 |
+| CEF에 준 핸들러를 되찾을 때 `dynamic_cast` 대신 **프록시 등록부**(`CwProxyRegistry`)를 씀 | 래퍼가 RTTI 없이 빌드되어 `dynamic_cast`가 안 됩니다. 프록시를 만들 때 포인터와 Python 객체를 등록하고 소멸할 때 지워서 `View.get_delegate()` 등이 준 객체 자체를 돌려줍니다. 등록되지 않은 것(CEF가 만든 객체)은 `None`입니다([F100](verified-findings-views.md)). | 구현 중 판단 |
+| 렌더러 이벤트(잡히지 않은 JavaScript 오류, 초점 노드, V8 컨텍스트)는 렌더러에 Python을 두지 않고 **프로세스 메시지**로 브라우저에 보내 `cefweaver.RendererEvents`가 풀게 함. `app.enable_renderer_events()`로 켤 때만 | 렌더러는 C++이라 Python을 돌릴 수 없고(바인딩 브리지와 같은 방침), 꺼 두면 메시지가 오지 않습니다(300회 펌프 동안 0개)([F104](verified-findings-opened.md)). | 구현 중 판단 |
+| `shutdown()`이 래퍼가 만들지 않은 남은 브라우저(Views의 `BrowserView`, DevTools)를 먼저 닫음(`CloseOtherBrowsers`) | 브라우저가 열린 채 `CefShutdown()`을 부르면 세그멘테이션 오류(종료 코드 139)가 났습니다([F99](verified-findings-views.md)). | 구현 중 판단 |
+| `initialize(None)`은 첫 브라우저 없이 시작 | Views 응용은 자기 창과 `BrowserView`를 만들기 때문입니다. 이때 `is_running`은 `shutdown()`까지 `True`입니다. | 구현 중 판단 |
+| 생성기가 쓰지 못하는 메서드는 `tools/gen/extras/`의 손으로 쓴 `.pxi`와 `.pyi`를 클래스 끝에 붙임 | `CefWindowInfo`가 필요한 `BrowserHost`의 메서드, CEF가 소유한 메모리를 가진 공유 메모리 클래스는 생성기가 표현하지 못합니다. 메모리는 CEF가 해제할 수 있어 포인터를 빌려주지 않고 복사본을 줍니다([F107](verified-findings-opened.md)). | 구현 중 판단 |
+| `CefIsRTL()`처럼 초기화 전에 부르면 죽는 함수는 `NEEDS_CEF_RUNNING`에 올려 시작 전에 `RuntimeError`로 거절 | 시작 전에 부르면 프로세스가 세그멘테이션 오류로 죽었습니다([F103](verified-findings-opened.md)). | 구현 중 판단 |
 
 ## 서브프로세스와 런타임
 

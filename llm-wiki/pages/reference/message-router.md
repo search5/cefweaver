@@ -9,7 +9,7 @@ sources:
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - cefweaver/_cefweaver.pyx
   - tools/gen/handwritten.pyi
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 메시지 라우터 (window.cefQuery)
@@ -55,7 +55,7 @@ window.cefQuery({request: "ping", persistent: false,
 - `query_router.*`: `PythonQueryHandler`(CEF의 `Handler`를 구현해 Python으로 부름), `QueryCallbackHolder`(응답을 한 번만 보내고 소멸 때 실패시킴, 전역 재귀 뮤텍스로 다른 스레드의 응답과 취소를 직렬화), `QueryRouter`(프로세스 전역의 핸들러 목록과 브라우저 쪽 라우터). Python은 뮤텍스를 잡은 채로 부르지 않습니다.
 - 브라우저 쪽: `CefWrapperClientHandler`가 `OnProcessMessageReceived`(라우터가 먼저), `OnBeforeClose`, `OnBeforeBrowse`, `OnRenderProcessTerminated`에서 라우터를 부릅니다. 뒤의 둘은 `CefRequestHandler` 구현이고, 라우터가 있거나 사용자에게 요청 핸들러가 있을 때 `GetRequestHandler()`가 이것을 돌려줍니다(사용자의 핸들러가 `on_before_browse`로 탐색을 취소하면 라우터는 질의를 취소하지 않습니다).
 - 렌더러 쪽: `SimpleRenderProcessHandler`가 `OnContextCreated`, `OnContextReleased`, `OnProcessMessageReceived`에서 `CefMessageRouterRendererSide`를 부릅니다. 라우터는 명령줄 스위치 `cefweaver-query-function`, `cefweaver-cancel-function`이 있을 때 만듭니다.
-- 스위치는 `CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch`가 자식 프로세스의 명령줄에 붙입니다([실험으로 확인한 사실](verified-findings-api.md) F34). java-cef는 같은 설정을 브라우저를 만들 때 `extra_info`로 렌더러에 주고 `OnBrowserCreated`에서 라우터를 만드는데(`jcef_helper.cpp`), `extra_info`가 없는 브라우저(팝업 등)는 건너뜁니다. 명령줄 방식은 브라우저와 상관없이 모든 렌더러에 적용됩니다.
+- 스위치는 `CefWrapperBrowserProcessHandler::OnBeforeChildProcessLaunch`가 자식 프로세스의 명령줄에 붙입니다([실험으로 확인한 사실](verified-findings-api.md) F34). java-cef는 같은 설정을 브라우저를 만들 때 `extra_info`로 렌더러에 주고 `OnBrowserCreated`에서 라우터를 만드는데(`jcef_helper.cpp`), `extra_info`가 없는 브라우저(팝업 등)는 건너뜁니다. 명령줄 방식은 브라우저와 상관없이 모든 렌더러에 적용됩니다. 같은 곳에서 `app.enable_renderer_events()`가 켜졌으면 `cefweaver-renderer-events` 스위치를 붙이고, 그 뒤에 사용자의 `AppHandler.on_before_child_process_launch`를 부릅니다([앱 핸들러](app-handler.md), [F104](verified-findings-opened.md)).
 
 ## 제약
 

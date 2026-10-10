@@ -10,7 +10,7 @@ sources:
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - native/cefwrapper/cef_wrapper_client_handler.cc
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # JavaScript 바인딩
@@ -63,6 +63,10 @@ C++에는 함수 포인터 `void()`를 받는 `AddJavascriptBinding`과 메시�
 ## 더 풍부한 통신
 
 목록, 사전, `None`, 반환값(`Promise`), 페이지 함수의 콜백이 필요하면 [JavascriptBridge](../reference/javascript-bridge.md)를 씁니다. 렌더러에 Python을 두지 않고 메시지 라우터 위의 JSON으로 합니다.
+
+## 렌더러 이벤트
+
+같은 렌더러 핸들러(`cef_wrapper_render_process_handler.cc`)는 JavaScript 바인딩과 별개로 `app.enable_renderer_events()`를 켰을 때만 오류와 포커스 노드, 컨텍스트 이벤트를 프로세스 메시지로 보냅니다. 호출 경로가 달라서 바인딩의 동작은 바뀌지 않았습니다. 사용법은 [Python API 참조](../reference/python-api.md)와 [F104](../reference/verified-findings-opened.md)에 있습니다.
 
 ## 관련 페이지
 

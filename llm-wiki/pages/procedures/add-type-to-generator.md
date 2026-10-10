@@ -8,7 +8,7 @@ sources:
   - tools/gen/emit_pyi.py
   - llm-wiki/pages/reference/coverage-report.md
   - tests/test_generator.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 새 타입 지원 추가하기
@@ -17,7 +17,7 @@ updated: 2026-10-08
 
 ## 어떤 타입부터
 
-`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 처음에 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 했고, 값 타입 구조체와 문자열 벡터를 지원한 뒤(2026-10-08)에는 벡터 36, 값 타입 33, 소유 포인터 32, 출력 인자 25 순입니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)). 구조체 종류(`Struct`)가 이 절차를 따른 예입니다: `typesys.py`에 종류, `model.py`에 헤더 읽기, 세 방출기에 변환, `tests/test_generator.py`에 분류와 실제 C++ 실행 시험.
+`python tools/gen/generate.py --report`의 "What blocks the rest, by type"을 봅니다. 154 기준으로 모든 클래스를 범위에 넣었을 때의 장애물은 처음에 값 타입 구조체 115, 벡터 57, 소유 포인터 32, 타입 없는 포인터 24, 구조체 18, 출력 인자 16 순이었습니다. 개수가 많은 것부터 했고, 값 타입 구조체와 문자열 벡터를 지원한 뒤(2026-10-08)에는 벡터 36, 값 타입 33, 소유 포인터 32, 출력 인자 25 순입니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)). 2026-10-10 보고서 기준으로 남은 장애물은 소유 포인터 30, 타입 없는 포인터 10, 값 벡터 8, 구조체 5, `CefRefPtr` 참조 5 순입니다(클래스 129개를 연 뒤의 값, [커버리지 보고서](../reference/coverage-report.md)). 구조체 종류(`Struct`)가 이 절차를 따른 예입니다: `typesys.py`에 종류, `model.py`에 헤더 읽기, 세 방출기에 변환, `tests/test_generator.py`에 분류와 실제 C++ 실행 시험.
 
 ## 절차
 
@@ -31,6 +31,11 @@ updated: 2026-10-08
 5. **시험(먼저 쓰고 실패를 확인)**: `tests/test_generator.py`에 분류 시험을 추가하고(예: `GetHeaderMap`이 지원됨으로 바뀌는지), 생성된 C++를 컴파일해서 **실행**하는 시험(구조체 시험처럼 프록시를 직접 부르면 `libcef` 없이도 값 전달을 확인할 수 있습니다)과 통합 시험을 추가합니다.
 6. **생성과 빌드**: `python tools/gen/generate.py`, `uv build --wheel`, 시험. 새로 열린 메서드 수가 보고서에 반영됩니다.
 7. **위키 갱신**: 이 페이지의 "어떤 타입부터"와 커버리지 페이지, [생성기의 설계](../concepts/binding-generator.md)의 종류 표.
+
+## 타입 종류를 늘리기 전에 확인할 것
+
+- 메서드 하나나 둘만 막혀 있고 CEF 소유 메모리를 가리키는 포인터처럼 안전하게 빌려줄 수 없는 경우는 새 종류보다 손으로 쓰는 메서드(extras, `tools/gen/extras/`와 `scope.py`의 `EXTRA_METHODS`)가 맞습니다. 이미 `BrowserHost.show_dev_tools`, `SharedMemoryRegion.to_bytes`, `SharedProcessMessageBuilder.write`가 그렇게 열렸습니다([새 클래스를 생성 범위에 추가하기](add-class-to-generator.md), [F107](../reference/verified-findings-opened.md)).
+- 새 종류가 CEF가 간직하는 객체를 다시 받는 경로(프록시 등록부 `CwProxyRegistry`, `_g_unexport_*`, `_g_ref_*`)와 만나는지 확인합니다. 방출기를 고쳤으면 `python tools/gen/generate.py --check`가 통과하는지, extras가 쓰던 메서드의 선언이 달라지지 않았는지 봅니다.
 
 ## 설계할 때 정해야 하는 것
 

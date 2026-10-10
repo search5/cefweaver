@@ -6,7 +6,7 @@ sources:
   - cefweaver/settings.py
   - native/cefwrapper/cef_wrapper_render_process_handler.cc
   - tools/gen/scope.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # cefpython과 cefweaver의 API 차이
@@ -20,25 +20,25 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 | 영역 | cefpython | cefweaver |
 | --- | --- | --- |
 | CEF와 플랫폼 | 오래된 CEF(v66 계열), Windows, Linux, Mac, Python 2와 3 | CEF 154, Linux x86_64와 macOS arm64(Windows 미검증), Python 3.11 이상 |
-| 방식 | 손으로 쓴 Cython 바인딩 | 헤더에서 생성(범위 안의 메서드 2131/2255의 타입을 지원) |
+| 방식 | 손으로 쓴 Cython 바인딩 | 헤더에서 생성(범위 안의 메서드 2131/2255의 타입을 지원. 2026-10-10에는 클래스 129개, 메서드와 함수 1,182개, 전역 함수 20개, [커버리지 보고서](../reference/coverage-report.md)) |
 | 핸들러 | 12개(소수는 문서만 있음) | java-cef의 13개와 그 밖을 포함해 대부분 |
 | 오프스크린 | 있음 | 있음(여러 브라우저, 투명 여부 포함) |
 | 값 컨테이너와 스트림, 쿠키, URL 요청 | 일부 | 대부분 |
 | 창 임베딩과 GUI 툴킷 | 있음(`WindowInfo.SetAsChild`, Qt, wx, GTK, Tk 예제) | 오프스크린 어댑터 6개(`cefweaver.ui`: Tk, Qt, GTK 3, SDL2, wxPython, Kivy)와 macOS의 네이티브 `NSView`(`parent_view`). **Linux의 창 모드 임베딩(`SetAsChild`)은 확인하지 않음** (2026-10-10 갱신) |
 | JavaScript와 Python의 통신 | 풍부함 | 메시지 라우터와 `JavascriptBridge`(JSON, `Promise`, 콜백, `evaluate`). 객체와 속성 바인딩은 없음 (2026-10-10 갱신) |
-| 렌더러 프로세스의 Python | 있음 | **없음**(C++만) |
+| 렌더러 프로세스의 Python | 있음 | **없음**(C++만). 2026-10-10에 렌더러 이벤트 중계가 더해져 오류, 초점 노드, 컨텍스트의 생성과 해제를 브라우저 쪽 Python이 받음([F104](../reference/verified-findings-opened.md)) |
 
 ## cefpython에 있고 cefweaver에 없는 것 (큰 순서)
 
 1. **창 임베딩.** `WindowInfo.SetAsChild(부모 창)`, `WindowUtils`, `DpiAware`로 Qt나 wx, GTK, Tk 창 안에 브라우저를 넣습니다. cefweaver는 창 정보를 열지 않아 브라우저가 항상 자기 최상위 창을 만듭니다(`CefWindowInfo`가 범위 밖, [java-cef 동등성](../reference/java-cef-parity.md)). 오프스크린으로 그린 픽셀을 툴킷에 직접 그리는 방식만 가능합니다.
 2. **JavaScript와 Python의 풍부한 통신.** `JavascriptBindings`는 함수, 객체, 속성을 바인딩하고, 인자와 반환값에 목록과 사전과 `None`을 쓰며, `JavascriptCallback`으로 JS 콜백을 Python에서 부르고, `Frame.ExecuteFunction`이 JS 함수를 이름으로 부릅니다. cefweaver는 `add_javascript_binding`이 정수, 불리언, 실수, 문자열 인자만 받고 반환값이 없으며, 대신 java-cef와 같은 메시지 라우터(`cefQuery`)가 문자열과 `bytes`를 주고받습니다([메시지 라우터](../reference/message-router.md)).
-3. **렌더러 프로세스에서 도는 Python.** cefpython의 `V8ContextHandler`(`OnContextCreated`, `OnContextReleased`)와 렌더러 쪽 훅은 Python 코드가 렌더러에서 동작해야 합니다. cefweaver의 렌더러는 C++만이라 이런 핸들러가 없습니다([알려진 제약](../reference/known-constraints.md)).
+3. **렌더러 프로세스에서 도는 Python.** cefpython의 `V8ContextHandler`(`OnContextCreated`, `OnContextReleased`)와 렌더러 쪽 훅은 Python 코드가 렌더러에서 동작해야 합니다. cefweaver의 렌더러는 C++만이라 이런 핸들러가 없습니다([알려진 제약](../reference/known-constraints.md)). (2026-10-10: `on_context_created`와 `on_context_released`는 렌더러가 프로세스 메시지로 알려 브라우저 쪽 Python이 받습니다. V8 값은 다루지 못합니다. [F104](../reference/verified-findings-opened.md))
 4. **CEF를 대신 돌리는 메시지 루프.** `cef.MessageLoop()`(막는 루프), `QuitMessageLoop`, `multi_threaded_message_loop`, `single_process`는 없고 `do_message_loop_work()`를 호출하는 쪽이 부르는 외부 펌프만 있습니다.
 5. **스레드 도구.** `PostTask`, `PostDelayedTask`, `IsThread`(생성 범위 밖의 전역 함수).
 6. **브라우저 설정.** cefpython의 `BrowserSettings`는 25개 키(`javascript_disabled`, `web_security_disabled`, `image_load_disabled`, `default_encoding`, `local_storage_disabled`, 글꼴 등)입니다. CEF 154의 `CefBrowserSettings`에도 같은 종류의 필드(`javascript`, `image_loading`, `local_storage`, `webgl`, 글꼴 계열과 크기, `default_encoding` 등)가 있지만 cefweaver는 `windowless_frame_rate`만 열었습니다. java-cef도 이것만 엽니다. 그래서 java-cef 수준에서는 격차가 아닙니다.
-7. **브라우저 보조 기능**: `Browser.ShowDevTools`(창 정보 구조체 필요), `ToggleFullscreen`, `SetMouseCursorChangeDisabled`, `GetImage`와 `Image`, `LoadString`, `GetBrowserByWindowHandle`, `LoadCrlSetsFile`, 사용자 데이터(`GetUserData`는 파이썬 속성으로 대신 가능).
+7. **브라우저 보조 기능**: `Browser.ShowDevTools`(창 정보 구조체 필요. 2026-10-10에 `BrowserHost.show_dev_tools()`를 열었음, [F107](../reference/verified-findings-opened.md)), `ToggleFullscreen`, `SetMouseCursorChangeDisabled`, `GetImage`와 `Image`(`Image` 클래스는 2026-10-10에 열었음, 예를 들어 `DragData.get_image()`), `LoadString`, `GetBrowserByWindowHandle`, `LoadCrlSetsFile`, 사용자 데이터(`GetUserData`는 파이썬 속성으로 대신 가능).
 8. **플랫폼 도구**: Windows와 Mac 전용(`DpiAware`, `SetOsModalLoop`, `app_user_model_id`, `framework_dir_path`, Mac의 키 처리 훅).
-9. **오래된 것**: 플러그인과 Flash(`OnPluginCrashed`, `WebPluginInfo`), `OnQuotaRequest`, `AccessibilityHandler`의 전역 콜백, `ApplicationSettings`의 폐기된 키.
+9. **오래된 것**: 플러그인과 Flash(`OnPluginCrashed`, `WebPluginInfo`), `OnQuotaRequest`, `AccessibilityHandler`의 전역 콜백(2026-10-10에 `AccessibilityHandler`를 열었음, [F106](../reference/verified-findings-opened.md)), `ApplicationSettings`의 폐기된 키.
 
 ## 이름은 다르지만 있는 것
 
@@ -50,7 +50,7 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 
 ## cefweaver에만 있는 것
 
-생성기로 연 라이브러리 클래스(`BrowserHost`의 IME, 터치, 줌, 인쇄, 요청 컨텍스트와 설정, 값 컨테이너, 스트림, ZIP, 작업 관리자 등), 쿠키 접근 필터, DevTools 메시지 관찰자, 메시지 라우터의 `bytes`, 사용자 스킴 등록(`AppHandler`), 여러 브라우저와 브라우저별 투명도, `Settings`, `get_version()` 등. 자세한 목록은 [java-cef 동등성](../reference/java-cef-parity.md)의 "바닥 위"에 있습니다.
+생성기로 연 라이브러리 클래스(`BrowserHost`의 IME, 터치, 줌, 인쇄, 요청 컨텍스트와 설정, 값 컨테이너, 스트림, ZIP, 작업 관리자 등), 쿠키 접근 필터, DevTools 메시지 관찰자, 메시지 라우터의 `bytes`, 사용자 스킴 등록(`AppHandler`), 여러 브라우저와 브라우저별 투명도, `Settings`, `get_version()` 등. 자세한 목록은 [java-cef 동등성](../reference/java-cef-parity.md)의 "바닥 위"에 있습니다. (2026-10-10에 Views 프레임워크 22개 클래스, `Server`, 응답 필터, 미디어 라우터, 구성요소 갱신, 추적, 공유 메모리가 더해졌습니다. [F102~F107](../reference/verified-findings-opened.md), [Views 확인 기록](../reference/verified-findings-views.md))
 
 ## cefweaver가 채워야 하는 격차 (2026-10-08 판단)
 
@@ -64,7 +64,7 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 | 4 (**완료**, [JavascriptBridge](../reference/javascript-bridge.md)) | JS와 Python의 풍부한 통신 | 위젯 앞 화면(HTML)과 Python의 연결이 임베딩 응용의 핵심입니다. 렌더러에 Python을 두지 않고 메시지 라우터 위에서 JSON으로 목록, 사전, `None`, 반환값, 콜백을 주고받는 보조 계층으로 풀 수 있습니다. java-cef 수준을 넘음. |
 | 5 (**기능 완료, 내용은 미확인**, [공유 텍스처](../reference/shared-textures.md)) | GPU 가속 페인트(`on_accelerated_paint`) | 복사 없이 텍스처를 넘기는 최적화입니다. 콜백과 메타데이터는 확인했고 픽셀 내용은 이 환경에서 확인하지 못했습니다. |
 
-채우지 않을 것: 창 임베딩(`SetAsChild`, `WindowUtils`, `DpiAware`), 렌더러의 Python, 막는 `MessageLoop`(툴킷이 루프를 가짐), `ShowDevTools`(원격 디버깅 포트로 대신함), 플랫폼 전용과 오래된 항목.
+채우지 않을 것: 창 임베딩(`SetAsChild`, `WindowUtils`, `DpiAware`), 렌더러의 Python, 막는 `MessageLoop`(툴킷이 루프를 가짐), `ShowDevTools`(원격 디버깅 포트로 대신함. 이후 `show_dev_tools()`를 열었음), 플랫폼 전용과 오래된 항목.
 
 ## 맺음
 

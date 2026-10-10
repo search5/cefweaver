@@ -13,14 +13,14 @@ sources:
   - native/cefwrapper/mac_runtime.mm
   - examples/cocoa/quickstart.py
   - cefweaver/ui/keys.py
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 플랫폼 지원 현황
 
 | 플랫폼 | 상태 | 근거 |
 | --- | --- | --- |
-| Linux x86_64 | 빌드, 구동, 시험을 마쳤습니다. | Python 3.11, 3.12, 3.13, 3.14에서 통합과 생성기 시험 24개 통과(위키 점검 시험은 3.13에서만 실행) |
+| Linux x86_64 | 빌드, 구동, 시험을 마쳤습니다. | Python 3.11, 3.12, 3.13, 3.14에서 통합과 생성기 시험 통과(위키 점검 시험은 3.13에서만 실행). 시험 개수가 늘어난 지금 네 버전을 모두 다시 돌렸는지는 확인하지 못함 |
 | Windows | 코드 경로와 CMake 타깃이 있으나 **검증하지 못했습니다.** | 이 저장소의 개발 환경이 Linux입니다. |
 | macOS arm64 (Apple Silicon) | 빌드, 구동, 시험의 대부분을 마쳤습니다. 공유 텍스처와 일부 동작은 다릅니다. | [F79~F83](../reference/verified-findings-macos.md): wheel 빌드, 오프스크린과 창 모드, Tk에서의 구동, 시험 |
 | macOS x86_64 | Rosetta에서 빌드하고 구동했습니다(종료 감시 문제 있음). **실제 Intel Mac은 아닙니다.** | [F90](../reference/verified-findings-macos.md) |
@@ -55,7 +55,7 @@ macOS에서 다른 점은 [F82](../reference/verified-findings-macos.md)에 있�
 
 ## 문서와 메타데이터의 불일치
 
-`pyproject.toml`의 classifier는 Windows를 포함하지만 검증하지 못했고, `README.rst`는 여러 GUI 툴킷(wxPython, PyQt 등)의 예제가 있다고 쓰지만 저장소에는 예제가 없습니다. 실제 상태는 이 페이지를 따릅니다([알려진 제약과 미검증 항목](../reference/known-constraints.md)).
+`pyproject.toml`의 classifier는 Windows를 포함하지만 검증하지 못했고, `README.rst`의 소개 문단은 여러 GUI 툴킷의 예제가 있다고 쓰며, 저장소의 `examples/`에는 `cocoa`, `gtk3`, `kivy`, `print`, `qt`, `sdl2`, `swiftui`, `tk`, `views`, `wx`가 있습니다. 소개 문단이 든 툴킷(PyWin32 등) 모두에 예제가 있는지는 확인하지 못했습니다. 실제 상태는 이 페이지를 따릅니다([알려진 제약과 미검증 항목](../reference/known-constraints.md)).
 
 ## 관련 페이지
 

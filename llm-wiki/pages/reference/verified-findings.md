@@ -8,7 +8,7 @@ sources:
   - cefweaver/cef_api.pxi
   - tools/prepare.py
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 실험으로 확인한 사실
@@ -99,5 +99,7 @@ Python 3.11, 3.12, 3.13, 3.14에서 wheel을 빌드하고 통합과 생성기 �
 - [실험으로 확인한 사실 (F36부터)](verified-findings-more.md)
 - [실험으로 확인한 사실 2: 핸들러, 호스트, 스타일, 생성기](verified-findings-api.md)
 - [알려진 제약과 미검증 항목](known-constraints.md)
+- [Views 확인 기록](verified-findings-views.md): Views, `shutdown()`과 열린 창(F96~F101)
+- [남은 API 확인 기록](verified-findings-opened.md): 핸들러, 서버, 렌더러 이벤트, 미디어 라우터(F102~F108)
 - [설계 결정 기록](design-decisions.md)
 - [충돌 조사 방법](../procedures/debug-crashes.md)

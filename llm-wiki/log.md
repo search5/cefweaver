@@ -598,6 +598,7 @@
 
 - 생성기가 **CEF에 준 객체를 되찾고(프록시 등록부), 핸들러가 라이브러리 객체를 돌려주는** 경우를 지원하게 되어 `View.get_delegate()`, `BrowserViewDelegate.get_delegate_for_popup_browser_view`, `WindowDelegate.get_parent_window`, `BrowserHost.get_client()`, `RequestContext.get_handler()`를 열었습니다([F100, F101](pages/reference/verified-findings-views.md)).
 - 창이 열린 채 `shutdown()`을 부르면 죽던 문제의 원인(살아 있는 브라우저)을 확인하고 `CloseOtherBrowsers()`로 해결했습니다([F99](pages/reference/verified-findings-views.md)).
+- 위키를 채웠습니다: [F102~F108](pages/reference/verified-findings-opened.md)(핸들러와 서버의 측정값, `is_rtl` 보호, 렌더러 이벤트, 앱 핸들러의 새 훅, 미디어 라우터와 추적과 접근성, 공유 메모리와 개발자 도구, 간헐적 시험 실패), 핸들러 프록시의 되찾기 설명, 렌더러 이벤트와 `CloseOtherBrowsers`의 네이티브 설명, 보류한 API(`ssl_info` 등), 사용자 문서 `docs/events.md`.
 - 같은 작업 묶음에서 A 그룹 API, 손으로 쓴 B 그룹(extras, AppHooks), 렌더러 이벤트 중계, 미디어 라우터를 열었습니다. 이 항목들의 상세한 위키 정리는 아직 하지 않았습니다.
 - 전체 시험 526개에서 1개가 한 번 실패했고(철자 메뉴, 단독 4회 통과) 이번 변경과 무관해 보입니다.
 

@@ -6,7 +6,7 @@ sources:
   - native/cefwrapper/library.cpp
   - native/cefwrapper/global_vars.h
   - cefweaver/cefwrapper.pxd
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # CefWrapper 클래스
@@ -19,9 +19,12 @@ updated: 2026-10-08
 | --- | --- |
 | `bool InitCefSimple(std::string start_url)` | CEF를 초기화하고 시작 URL로 브라우저를 만듭니다. 실패하면 `false`. 순서는 [수명 주기와 메시지 루프](../concepts/lifecycle-and-message-loop.md)에 있습니다. |
 | `void DoCefMessageLoopWork()` | `CefDoMessageLoopWork()` 한 번 |
-| `void ShutdownCefSimple()` | 브라우저를 닫고 `CefShutdown()` |
+| `void ShutdownCefSimple()` | 래퍼의 브라우저와 그 밖에 열려 있는 브라우저(`CloseOtherBrowsers()`)를 닫고 `CefShutdown()` |
 | `bool LoadUrl(std::string)` | 브라우저가 없으면 `false` |
 | `void SetClient(CefRefPtr<CefClient>)` | 표시, 수명 주기, 로드 이벤트를 받을 클라이언트(생성된 `CwClientProxy`). 초기화 전에만 의미가 있고, 초기화 때 브라우저 프로세스 핸들러가 받아 `CefWrapperClientHandler`에 넘깁니다. 종료 때 해제됩니다. |
+| `void SetFirstBrowser(bool create)` | `false`이면 `OnContextInitialized()`가 첫 브라우저를 만들지 않습니다(Python의 `initialize(None)`). 초기화 전에만 의미가 있습니다. |
+| `void SetRendererEvents(bool on)` | 켜면 자식 프로세스에 `cefweaver-renderer-events` 스위치를 붙여 렌더러가 오류, 포커스 노드, 컨텍스트 이벤트를 프로세스 메시지로 보냅니다(Python의 `enable_renderer_events()`). |
+| `void SetAppHooks(py, command_line, schemes, context, relaunch, schedule, child_launch, preferences)` | `AppHandler`의 훅 여덟 개(`app_hooks.h`). `child_launch`는 자식 프로세스의 명령줄, `preferences`는 사용자 환경설정 등록입니다. 초기화 전에만 의미가 있습니다. |
 | `bool ExecuteJavascript(std::string)` | 실행하지 못하면(`CefApp` 없음, 브라우저 없음, 로딩 중) `false` |
 | `bool IsRunning()`, `bool IsReadyToExecuteJavascript()` | 상태 |
 | `void AddJavascriptPythonBinding(name, handler, owner)` | Python 호출 바인딩. 초기화 전에만 의미가 있습니다(초기화 때 `CefWrapperApp`으로 복사됩니다). |
@@ -31,6 +34,10 @@ updated: 2026-10-08
 
 `CefWrapper`의 `CefRefPtr<CefWrapperApp> m_App`이 앱 객체를 쥐고 있고, `CefApp`(Python)이 `shutdown()` 전에 `CefWrapper`를 삭제하지 않는 이유는 [수명 주기와 메시지 루프](../concepts/lifecycle-and-message-loop.md)에 있습니다.
 
+## 생성기가 표현하지 못하는 것을 돕는 함수
+
+`library.h` 끝의 자유 함수 셋입니다. `tools/gen/extras/`의 손으로 쓴 메서드가 부릅니다: `CefWeaverShowDevTools(host, x, y)`(기본 `CefWindowInfo`로 DevTools를 따로 연 창에 엶), `CefWeaverSharedMemoryRead(region)`(공유 메모리 영역을 복사해 돌려줌), `CefWeaverSharedBuilderWrite(builder, offset, data, size)`(범위를 검사하고 씀).
+
 ## 경로 함수
 
 - `ModuleDir()`(Linux, 익명 네임스페이스): `dladdr()`로 이 코드가 들어 있는 공유 객체(확장 모듈)의 디렉터리를 얻습니다. 정적 라이브러리가 확장 모듈에 링크되므로 그 모듈의 위치입니다.
@@ -39,7 +46,7 @@ updated: 2026-10-08
 
 ## 전역 상태
 
-`global_vars.h`는 `inline bool g_IsRunning`을 선언합니다(UTF-8 BOM으로 시작하는 파일입니다). 초기화 성공 시 켜지고, 브라우저가 닫힐 때(`OnBeforeClose`)와 `ShutdownCefSimple()`에서 꺼집니다. 프로세스당 CEF가 하나라는 전제의 전역입니다.
+`global_vars.h`는 `inline bool g_IsRunning`과 원자 변수 `g_NoFirstBrowser`, `g_RendererEvents` 등을 선언합니다(UTF-8 BOM으로 시작하는 파일입니다). 초기화 성공 시 켜지고, 브라우저가 닫힐 때(`OnBeforeClose`)와 `ShutdownCefSimple()`에서 꺼집니다. 프로세스당 CEF가 하나라는 전제의 전역입니다.
 
 ## 알려진 약점
 

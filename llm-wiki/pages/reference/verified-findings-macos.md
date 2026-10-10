@@ -14,7 +14,7 @@ sources:
   - cefweaver/ui/keys.py
   - cefweaver/ui/view.py
   - examples/cocoa/quickstart.py
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 실행해서 확인한 macOS (F79부터)
@@ -36,7 +36,7 @@ macOS arm64 지원을 추가하며 실행해서 확인한 사실입니다. 환�
 
 ## F81. 시험 결과
 
-최종 상태(arm64, Python 3.14.3, 설치한 wheel)입니다. 창을 여는 시험까지 모두 돌렸습니다.
+최종 상태(arm64, Python 3.14.3, 설치한 wheel)입니다(당시 값). 창을 여는 시험까지 모두 돌렸습니다.
 
 | 파일 | 결과 |
 | --- | --- |

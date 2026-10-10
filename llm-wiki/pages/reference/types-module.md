@@ -12,7 +12,7 @@ sources:
   - cefweaver/__init__.py
   - tests/test_generator.py
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # types 모듈 (열거형과 값 타입)
@@ -38,7 +38,7 @@ class Load(cefweaver.LoadHandler):
 | --- | --- | --- | --- |
 | 열거형 | 100 (멤버 1,309개) | `enum.IntEnum` | `MouseButtonType`, `ErrorCode`, `TransitionType`, `ResourceType`, `RuntimeStyle` |
 | 비트 플래그 | 17 (위 100개에 포함) | `enum.IntFlag` | `EventFlags`, `DragOperationsMask`, `SchemeOptions`, `LogItems` |
-| 값 타입 구조체 | 23 | `typing.NamedTuple` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`(필드 `bounds`가 `Rect`), `KeyEvent`(필드 `type`이 `KeyEventType`), `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline`, `AudioParameters`, `BoxLayoutSettings`, `BrowserSettings`(문자열, `State`, 색) |
+| 값 타입 구조체 | 26 | `typing.NamedTuple` | `Point`, `Rect`, `Size`, `Insets`, `Range`, `MouseEvent`, `DraggableRegion`(필드 `bounds`가 `Rect`), `KeyEvent`(필드 `type`이 `KeyEventType`), `ScreenInfo`, `PopupFeatures`, `TouchEvent`, `TouchHandleState`, `CompositionUnderline`, `AudioParameters`, `BoxLayoutSettings`, `BrowserSettings`(문자열, `State`, 색), `Cookie`(`datetime \| None` 필드) |
 
 값 타입은 `cefweaver.Rect`와 같은 객체입니다(`cefweaver.Rect is cefweaver.types.Rect`). 열거형은 `cefweaver.types`에만 있습니다.
 

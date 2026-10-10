@@ -38,7 +38,7 @@ app.shutdown()
 5. `CefSettings`를 채웁니다. 캐시 경로(`cache_path`와 `root_cache_path`)는 지정값 또는 `현재 디렉터리/cache`, `no_sandbox = true`, 선택적 리소스 경로, 서브프로세스 경로입니다.
 6. `CefInitialize()`를 호출합니다. 실패하면 `CefApp`을 비우고 `false`를 돌려주어 Python에서 `RuntimeError("CefInitialize() failed")`가 됩니다. 성공하면 전역 플래그 `g_IsRunning`을 `true`로 둡니다.
 
-브라우저는 `CefWrapperBrowserProcessHandler::OnContextInitialized()`에서 `CreateBrowserSync()`로 만들어지고 `Browser` 멤버에 저장됩니다. 시험에서 `initialize()` 직후 메시지 루프를 한 번도 돌리지 않았는데 `load_url()`이 `True`를 돌려주었으므로, 관찰된 바로는 브라우저가 `initialize()` 안에서 이미 만들어집니다. 이것이 CEF의 보장인지는 확인하지 않았습니다. 창은 Linux에서 부모 없이 최상위 창으로 만들어지고, Windows에서는 `SetAsPopup`을 씁니다.
+브라우저는 `CefWrapperBrowserProcessHandler::OnContextInitialized()`에서(`initialize(None)`이 아니면) `CreateBrowserSync()`로 만들어지고 `Browser` 멤버에 저장됩니다. 시험에서 `initialize()` 직후 메시지 루프를 한 번도 돌리지 않았는데 `load_url()`이 `True`를 돌려주었으므로, 관찰된 바로는 브라우저가 `initialize()` 안에서 이미 만들어집니다. 이것이 CEF의 보장인지는 확인하지 않았습니다. 창은 Linux에서 부모 없이 최상위 창으로 만들어지고, Windows에서는 `SetAsPopup`을 씁니다.
 
 첫 브라우저는 `initialize()` 안에서 만들어지므로 `LifeSpanHandler.on_after_created`는 `initialize()`가 끝나기 전에 불립니다. 그 안에서도 `add_resource`, `load_url` 같은 `CefApp` 메서드를 쓸 수 있습니다([F67](../reference/verified-findings-handlers.md)). `execute_javascript`는 페이지가 아직 없어 `False`를 돌려줍니다.
 
@@ -57,17 +57,18 @@ app.shutdown()
 
 ### CEF가 창을 소유하면 폴링이어야 한다 (Views)
 
-`MessagePump`(`external_message_pump`)는 툴킷이 창과 이벤트 루프를 소유하는 오프스크린 어댑터를 위한 것입니다. **CEF가 자기 창을 소유하는 경우**(Views의 `Window`)에는 외부 펌프로 돌리면 그려지고 레이아웃도 되지만 **창의 X11 마우스와 키 입력이 처리되지 않았습니다**. `do_message_loop_work()`를 자주 부르는 폴링으로 바꾸면 입력이 옵니다([F97](../reference/verified-findings-views.md)). 또 `initialize(None)`은 첫 브라우저 없이 시작하고 `is_running`은 `shutdown()`까지 `True`이며, **창이 열린 채로 `shutdown()`을 부르면 죽으므로** `on_window_destroyed`를 받은 뒤에 부릅니다.
+`MessagePump`(`external_message_pump`)는 툴킷이 창과 이벤트 루프를 소유하는 오프스크린 어댑터를 위한 것입니다. **CEF가 자기 창을 소유하는 경우**(Views의 `Window`)에는 외부 펌프로 돌리면 그려지고 레이아웃도 되지만 **창의 X11 마우스와 키 입력이 처리되지 않았습니다**. `do_message_loop_work()`를 자주 부르는 폴링으로 바꾸면 입력이 옵니다([F97](../reference/verified-findings-views.md)). 또 `initialize(None)`은 첫 브라우저 없이 시작하고(`OnContextInitialized()`가 `g_NoFirstBrowser`를 보고 브라우저를 만들지 않음) `is_running`은 `shutdown()`까지 `True`입니다. 창이 열린 채로 `shutdown()`을 부르면 예전에는 죽었지만 지금은 남은 브라우저를 먼저 닫습니다(아래 `shutdown()`, [F99](../reference/verified-findings-views.md)).
 
 ## shutdown()
 
 `CefWrapper::ShutdownCefSimple()`이 실행하는 순서입니다.
 
 1. 클라이언트 핸들러가 있으면 `CloseAllBrowsers(true)`를 호출하고, 브라우저 목록이 빌 때까지 최대 500번(10밀리초 간격, 약 5초) `CefDoMessageLoopWork()`를 돕니다.
-2. `Browser` 참조를 비웁니다.
-3. `CefShutdown()`을 호출하고 `CefApp`을 비우고 `g_IsRunning`을 끕니다.
+2. `CloseOtherBrowsers()`: 래퍼가 만들지 않았지만 아직 열려 있는 브라우저(Views의 `BrowserView`, DevTools)를 닫습니다. CEF에 브라우저 목록이 없어서 식별자 1부터 4096까지 `GetBrowserByIdentifier()`로 찾고, 50번에 한 번 `CloseBrowser(true)`를 요청하면서 비어 있을 때까지 최대 500번(10밀리초 간격) 메시지 루프를 돕니다.
+3. `Browser` 참조를 비웁니다.
+4. `CefShutdown()`을 호출하고 `CefApp`을 비우고 `g_IsRunning`을 끕니다.
 
-브라우저를 닫고 참조를 놓기 전에 `CefShutdown()`을 호출하면 세그멘테이션 오류가 났습니다. 이 순서는 그 오류를 고친 결과입니다.
+브라우저를 닫고 참조를 놓기 전에 `CefShutdown()`을 호출하면 세그멘테이션 오류가 났습니다. 이 순서는 그 오류를 고친 결과이고, 2단계는 Views 창을 연 채 부르던 경우의 종료 코드 139를 고친 것입니다.
 
 `shutdown()`을 부르지 않고 `CefApp` 객체가 사라지면, 실행 중인 CEF의 `CefApp`이 `CefShutdown()`보다 오래 살아야 하므로 C++ 객체를 삭제하지 않고 의도적으로 남겨 둡니다(`__dealloc__`). `shutdown()`은 여러 번 불러도 안전합니다.
 

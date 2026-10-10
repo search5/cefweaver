@@ -6,7 +6,7 @@ sources:
   - cefweaver/cefwrapper.pxd
   - cefweaver/__init__.py
   - pyproject.toml
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # Cython 확장 모듈 (_cefweaver)
@@ -17,10 +17,11 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 
 | 파일 | 역할 |
 | --- | --- |
-| `cefweaver/_cefweaver.pyx` | 모듈 본체(약 290줄). `CefApp` 클래스, JS 바인딩 중계, `add_resource` 구현. 생성된 `cef_api.pxi`를 `include`합니다. |
+| `cefweaver/_cefweaver.pyx` | 모듈 본체(약 920줄). `CefApp` 클래스, `AppHandler`, `SchemeRegistrar`, `PreferenceRegistrar`, 메시지 라우터 중계, JS 바인딩 중계, `add_resource` 구현. 생성된 `cef_api.pxi`를 `include`합니다. |
 | `cefweaver/cefwrapper.pxd` | `CefWrapper`(`SetClient` 포함)와 `CefValueWrapper`의 C++ 선언. 블록될 수 있는 메서드는 `nogil`입니다. |
 | `cefweaver/cef_api.pxd`, `cef_api.pxi`(색인), `api/*.pxi`(헤더별 부분) | 생성 파일([생성된 파일](generated-files.md)) |
-| `cefweaver/__init__.py` | 패키지 진입점 |
+| `cefweaver/__init__.py` | 패키지 진입점. `pump`, `bridge`, `texture`, `renderer_events`(`RendererEvents` 등), `settings`, `version`의 이름도 내보냅니다. |
+| `cefweaver/renderer_events.py` | 렌더러가 보낸 프로세스 메시지를 푸는 순수 Python(`RendererEvents`, `RendererEventHandler`, `UncaughtException`, `StackFrame`, `FocusedNode`). `CefApp.enable_renderer_events()`가 켭니다. |
 | `cefweaver/_cefweaver.pyi`, `py.typed` | 타입 스텁(생성). PEP 561 표식 |
 
 ## _cefweaver.pyx의 구성
@@ -31,7 +32,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 4. `include "cef_api.pxi"`: 생성된 래퍼들. 이 줄 뒤부터 `Request`, `ResourceHandler` 같은 이름을 쓸 수 있습니다.
 5. `_StaticResource`, `_StaticResourceFactory`, `_resource_key()`: `add_resource`의 구현([리소스 제공](../concepts/resource-serving.md))
 6. `cdef class CefApp`: 공개 API([Python API 참조](../reference/python-api.md))
-7. 맨 끝의 `__all__ = ["CefApp"] + __generated_all__`
+7. 맨 끝의 `__all__ = ["CefApp", "QueryHandler", "QueryCallback", "AppHandler", "SchemeRegistrar", "PreferenceRegistrar"] + __generated_all__`
 
 ## CefApp의 내부
 
@@ -44,7 +45,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 
 1. 패키지 디렉터리를 구합니다.
 2. Linux: `libcef.so`가 있으면 `ctypes.CDLL(..., RTLD_GLOBAL)`로 **먼저** 올립니다. Windows: `os.add_dll_directory`(시험하지 못했습니다).
-3. `from . import _cefweaver`와 `from ._cefweaver import *`를 하고 `__all__ = list(_cefweaver.__all__)`로 이름을 공개합니다. 공개 이름은 생성기가 만든 목록과 `CefApp`입니다.
+3. `from . import _cefweaver`와 `from ._cefweaver import *`를 하고, `__all__`에 `_cefweaver.__all__`과 `types`, `Settings`, `Version`, `MessagePump`, `JavascriptBridge`, `read_plane`, 렌더러 이벤트 클래스를 더해 공개합니다.
 
 ## 모듈을 불러올 때
 
@@ -52,7 +53,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 
 ## 빌드 설정
 
-확장은 `pyproject.toml`의 `[[tool.setuptools.ext-modules]]`에 선언되어 있고 `setup.py`는 없습니다. 자세한 내용은 [패키징](packaging.md)에 있습니다.
+확장은 `setup.py`에 선언되어 있습니다(`pyproject.toml`의 정적 선언에서 옮겼습니다). 자세한 내용은 [패키징](packaging.md)에 있습니다.
 
 ## 관련 페이지
 

@@ -6,12 +6,12 @@ sources:
   - tests/test_generator.py
   - tests/test_ui.py
   - CLAUDE.md
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 네 파일에 408개(통합 192, 생성기 121, UI 94, 위키 점검 1) 있습니다. 그 가운데 3개는 CEF의 알려진 문제를 지키는 `expectedFailure`이고(`srcdoc` iframe, 글꼴 크기, `default_encoding`), 4개는 선택 실행입니다. 실제 Wayland 데스크톱에 창을 여는 2개(`CEFWEAVER_TEST_WAYLAND=1`)와 실제 GPU와 디스플레이가 필요한 공유 텍스처 2개(`CEFWEAVER_TEST_GPU=1`, 픽셀은 `CEFWEAVER_TEST_GPU_PIXELS=1`)입니다. 실행 방법은 [시험 실행하기](../procedures/run-tests.md)에 있습니다.
+`unittest`로 작성한 시험이 다섯 파일에 527개(통합 221, 생성기 125, UI 164, 위키 점검 2, 문서 점검 15) 있습니다. `unittest` 로더로 2026-10-10에 센 값이고, 전체를 한 번 돌린 실행은 526개(건너뜀 9, 예상된 실패 3)였고, 그 뒤에 생성기 시험 1개를 더해 527개입니다([F108](../reference/verified-findings-opened.md)).
 
 macOS에서는 `test_smoke.py`가 `cefsubprocess.app`이 있으면 CEF 시험을 실행하고(`RUNTIME_OK`), Linux 전용인 `ozone-platform` 스위치를 주지 않으며, 일부는 `skipIf`로 건너뜁니다. `test_generator.py`에는 플랫폼마다 다른 구조체를 중립 형식으로 읽는지 보는 시험이 하나 있습니다. 결과는 [F81~F82](../reference/verified-findings-macos.md)에 있습니다.
 
@@ -134,6 +134,17 @@ macOS에서는 `test_smoke.py`가 `cefsubprocess.app`이 있으면 CEF 시험을
 
 오디오 핸들러 시험 4개(`WithCef`, 440Hz 사인파와 `disable-audio-output`, [F72](../reference/verified-findings-media.md)): 채널마다 `memoryview`로 오는 패킷(채널 수, 프레임 수, 커지는 `pts`, 소리가 있음, 호출이 끝나면 무효), 페이지를 떠나면 정지, 앱이 정한 매개변수(48000Hz, 480프레임)를 따름, `False`로 캡처를 거절. 생성기 시험에는 `Planes`(`list[memoryview]`, `audio_channels_`) 1개가 늘었습니다.
 
+### 2026-10-10에 더한 시험 (Views, 남은 API, 렌더러 이벤트)
+`test_smoke.py`에 27개를 더했습니다(확인한 사실은 [F99~F101](../reference/verified-findings-views.md), [F102~F108](../reference/verified-findings-opened.md)).
+
+| 묶음 | 시험이 확인하는 것 |
+| --- | --- |
+| Views | 클래스가 부모의 Python 하위 클래스임, 창이 도구 모음과 `BrowserView`를 가짐, 열린 Views 창을 둔 채 `shutdown()`이 브라우저를 닫음, `View.get_delegate()`와 `BrowserHost.get_client()`가 준 객체를 되돌려 줌, `get_parent_window`, 팝업 델리게이트 |
+| Image | 비트맵을 담고 PNG와 JPEG를 만듦, 페이지에서 내려받음, 초기화 전에는 만들 수 없음 |
+| 핸들러와 서버 | Find, Frame, 접근성 핸들러, 탐색 항목 방문, SSL 상태의 인증서, CEF 서버가 HTTP 요청에 답함, 응답 필터, 클라이언트 인증서 선택 |
+| 전역 함수와 기타 | 시작 뒤의 전역 함수, `is_rtl()`은 시작 전에 거절, 출처와 환경설정 관찰, 미디어 라우터와 구성요소 갱신, 추적 파일, DevTools를 따로 연 창, 공유 메모리 메시지 |
+| 앱 핸들러와 렌더러 이벤트 | `on_before_child_process_launch`, `on_register_custom_preferences`, 렌더러가 보내는 JavaScript 오류와 포커스 노드와 컨텍스트, 켜지 않으면 이벤트가 오지 않음 |
+
 ## tests/test_generator.py: 생성기 시험
 
 CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으면 헤더 시험은 건너뜀).
@@ -151,19 +162,21 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 - 열거형: 값 읽기(마우스 버튼, 오류 코드, 평가된 시프트와 마스크), 비트 플래그 판별, 전처리 분기, 멤버 중복 없음, 생성된 `types` 패키지의 임포트, 스텁의 임포트와 `ErrorCode`, `MouseButtonType | int`
 - 문자열 벡터: 라이브러리 메서드의 출력 인자(`get_frame_names`)와 핸들러의 입력(`on_favicon_url_change`)의 분류, 그 밖의 벡터가 이유와 함께 보고되는지, 표의 C 타입, 스텁의 `list[str]`. 생성된 C++ 프록시 실행 시험에도 벡터 전달이 들어 있습니다.
 - `CefBrowserHost`가 범위에 있고 `Browser.get_host`로 닿는지, 구조체와 열거형 인자의 분류, 열리지 않는 메서드의 이유
+- 초기화 전에 부르면 죽는 정적 함수(`NEEDS_CEF_RUNNING`)에 가드가 생성되는지, `Request.create()`에는 없는지
+- 라이브러리 클래스의 Python 상속(`Window(Panel)`, `Panel(View)`): 부모가 먼저 정의되는지, 자식은 자기 메서드만 갖고 형 있는 포인터로 CEF를 부르는지, 객체가 실제 타입으로 감싸지는지. 프록시 등록부(`CwFindProxy`, `dynamic_cast` 없음)와 준 객체를 되찾는 메서드의 스텁
 - 생성 파일이 최신인지, 두 번 생성한 결과가 같은지
 
 ## tests/test_ui.py: UI 어댑터 시험
 
 `cefweaver.ui`의 시험입니다([UI 어댑터 API](../reference/ui-api.md)). 92개는 가짜 브라우저(호출을 기록)와 가짜 어댑터로 CEF 프로세스 없이 실행합니다: 마우스(위치, 수정 키, 클릭 횟수를 세는 규칙, 툴킷이 주는 횟수), 키(`RAWKEYDOWN`, `CHAR`, `KEYUP`, Ctrl이나 Alt에서의 생략, Enter와 Tab과 BackSpace의 `CHAR`), 문자와 입력기 글자, 조합, 클립보드 키(능력에 따라 가로채기와 통과), 그리기와 팝업과 커서와 선택 텍스트, 제목과 주소와 로딩, 나가는 드래그(어댑터가 없을 때의 중계, 있을 때의 `start_drag_out`)와 들어오는 드래그(단계별, `leave` 미루기, 한꺼번에 오는 드롭의 대기), 키 코드와 수정 키 상수, 위젯 기반 클래스(`BrowserWidget`의 위임과 훅), 툴킷 모듈(여섯 개의 존재, 툴킷을 임포트하지 않음, 서로 임포트하지 않음, 뷰의 비공개 속성을 쓰지 않음, `Checked:`와 `Not checked:`), 세션의 시작 대상, PNG 쓰기와 뷰의 snapshot과 프레임의 `change`, 그림 저장소(`PictureStore`: 처음, dirty rect의 행, 잘림, 크기 변경, 복사본, 팝업), 표 객체(`KeyTable`, 수정 키 표 셋, `CursorTable`), 드래그 시작 전략(`immediate`, `posted`, `on_motion`)과 데이터 없는 단계. 1개(`WithCef.test_a_browser_runs_in_the_headless_adapter`)는 `HeadlessAdapter`로 실제 브라우저를 띄워 첫 그림, 클릭, 입력, 한글 확정, 외부 드롭, 크기 변경, 정상 종료를 확인합니다(5번 연속 통과).
 
-`WithCef`와 별개로 `Quickstarts`는 예제의 uv 환경이 있을 때 여섯 툴킷(일곱 환경)의 `quickstart.py`를 실제로 실행해 첫 제목을 받고 창을 닫아 정상 종료를 확인합니다(환경이 없으면 건너뜀). `QuickstartDocs`는 README가 quickstart 파일의 코드를 그대로 싣는지, 코드가 40줄 이하인지 확인합니다.
+`WithCef`와 별개로 `Quickstarts`는 예제의 uv 환경이 있을 때 일곱 툴킷(여덟 환경, `views` 포함)의 `quickstart.py`를 실제로 실행해 첫 제목을 받고 창을 닫아 정상 종료를 확인합니다(환경이 없으면 건너뜀). `QuickstartDocs`는 README가 quickstart 파일의 코드를 그대로 싣는지, 코드가 40줄 이하인지 확인합니다.
 
 `tests/playback_check.py`는 시험 모음이 아니라 **수동 점검 도구**입니다(실제 유튜브 영상이 재생되는지, [절차](../procedures/check-playback.md)).
 
 ## tests/test_wiki.py: 위키 점검
 
-`llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(1개). 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
+`llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(시험 2개: 위키가 저장소 루트에 있는지, 점검 통과). `tests/test_docs.py`(15개)는 `docs/`의 링크, 제목, 빠른 시작 코드를 지킵니다. 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
 
 ## 설계 원칙
 

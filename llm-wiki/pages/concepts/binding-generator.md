@@ -10,7 +10,7 @@ sources:
   - tools/gen/vendor/README.txt
   - llm-wiki/pages/reference/coverage-report.md
   - native/cefwrapper/platform_structs.h
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 바인딩 생성기의 설계
@@ -91,7 +91,7 @@ report.py       커버리지 보고서
 
 ## 메서드 계획 규칙
 
-- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 인자는 **출력 인자**로 보고 Python 반환값으로 돌려줍니다(반환값이 있으면 그것이 먼저이고, 값이 하나면 그대로, 둘 이상이면 튜플). 기본형, 문자열, 열거형, 문자열 벡터는 출력 전용이라 인자에서 빠지고(`ok, key_code, shift, ctrl, alt = menu.get_accelerator(command_id)`), **구조체 참조는 입출력**이라 인자로 받아 바뀐 값을 돌려줍니다(`display.convert_point_to_pixels(point)`). 객체 참조(`CefRefPtr&`)는 아직 미지원입니다. 클라이언트 객체를 반환하는 메서드도 미지원입니다. 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
+- 라이브러리 쪽 클래스(CEF가 구현): Python이 부릅니다. 비상수 참조 인자는 **출력 인자**로 보고 Python 반환값으로 돌려줍니다(반환값이 있으면 그것이 먼저이고, 값이 하나면 그대로, 둘 이상이면 튜플). 기본형, 문자열, 열거형, 문자열 벡터는 출력 전용이라 인자에서 빠지고(`ok, key_code, shift, ctrl, alt = menu.get_accelerator(command_id)`), **구조체 참조는 입출력**이라 인자로 받아 바뀐 값을 돌려줍니다(`display.convert_point_to_pixels(point)`). 객체 참조(`CefRefPtr&`)는 아직 미지원입니다. 클라이언트 객체를 반환하는 라이브러리 메서드(`View.get_delegate()`, `BrowserHost.get_client()`)는 CEF에 준 Python 객체를 되찾아 돌려줍니다([준 객체를 되찾기](handler-proxies.md#준-객체를-되찾기-프록시-등록부)). 구조체는 입력(`const CefRect&`)과 반환값으로 쓸 수 있습니다.
 - 클라이언트 쪽 클래스(핸들러): CEF가 부릅니다. 출력 인자(비상수 참조의 기본형, 문자열, 열거형, 구조체)는 Python 메서드의 반환값이 됩니다. 문자열 벡터는 입력(`const std::vector<CefString>&`)으로만 받고 `list[str]`로 전달됩니다. 구조체를 값으로 **반환**하는 핸들러 메서드는 아직 미지원입니다. 반환값이 먼저이고, 하나면 그대로, 둘 이상이면 튜플입니다.
 - `void*`와 크기는 `Buffer` 하나로 합쳐집니다(핸들러 쪽만).
 - 핸들러의 `T* flag`(비 const 포인터, 기본형)는 `T&`처럼 출력 인자이고 프록시가 `if (flag) *flag = ...`로 씁니다(`OnPreKeyEvent`의 `is_keyboard_shortcut`). 구조체를 값으로 반환하는 핸들러 메서드(`GetPdfPaperSize`)는 숨은 마지막 출력 인자로 받아 프록시가 반환합니다.
@@ -100,12 +100,22 @@ report.py       커버리지 보고서
 
 ## 범위와 커버리지
 
-생성할 클래스는 `tools/gen/scope.py`의 목록(라이브러리 20개, 핸들러 9개, 함수 3개)입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드도 함께 열립니다. 범위 안인데 생성하지 못한 메서드는 조용히 빠지지 않고 [커버리지 보고서](../reference/coverage-report.md)에 이유와 함께 남습니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)).
+생성할 클래스는 `tools/gen/scope.py`의 목록(라이브러리 72개, 핸들러 57개, 함수 20개)입니다. 클래스를 추가하면 그 클래스를 인자나 반환으로 쓰던 메서드도 함께 열립니다. 범위 안인데 생성하지 못한 메서드는 조용히 빠지지 않고 [커버리지 보고서](../reference/coverage-report.md)에 이유와 함께 남습니다([생성 범위와 커버리지](../reference/generated-api-coverage.md)).
+
+## 라이브러리 클래스의 상속
+
+부모도 범위 안의 라이브러리 클래스이면 Python 상속으로 만듭니다(`Scope.python_parent`: `CefPanel`은 `CefView`의 자식이므로 `cdef class Panel(View)`). 이 클래스는 자기 메서드만 갖고(`virtual_funcs(own_only=True)`), 나머지는 상속으로 얻으며, 부모가 먼저 정의되도록 깊이순으로 방출합니다. 객체는 실제 타입으로 감쌉니다(`View`로 받아도 `Window`이면 `Window`). 부모가 범위 밖이면(`CefRequestContext`의 `CefPreferenceManager`) 이전처럼 부모의 메서드를 합친 한 클래스입니다. Views의 델리게이트는 부모의 메서드를 모두 가진 핸들러 클래스이고, 상속한 메서드의 순수 가상 여부는 선언한 부모에서 찾습니다. Views 쪽 확인은 [Views 확인 기록](../reference/verified-findings-views.md)에 있습니다.
+
+## 그 밖의 생성기 규칙
+
+- **API 버전 필터**: 생성기는 `CEF_API_VERSION`이 실험 버전(999999)이라고 보고 `added`, `removed` 주석으로 그 버전에 없는 메서드를 뺍니다(`model.API_VERSION`).
+- **extras**: 생성기가 표현하지 못하는 메서드(`CefWindowInfo`가 필요한 `BrowserHost`의 창 관련 메서드, CEF가 소유한 메모리를 가진 공유 메모리 클래스)는 `tools/gen/extras/`의 `.pxi`와 `.pyi`를 클래스 끝에 붙입니다(`scope.EXTRA_METHODS`).
+- **초기화 전 호출**: 초기화 전에 부르면 프로세스가 죽는 정적 함수(`Image.create_image`, `is_rtl`)는 `scope.NEEDS_CEF_RUNNING`에 두고 초기화 전에는 `RuntimeError`로 막습니다.
+- **준 객체**: 핸들러 프록시 등록부, `_g_unexport_*`, `_g_ref_*`는 [핸들러 프록시 구조](handler-proxies.md)에 있습니다.
 
 ## 아직 없는 것
 
 - `CefRawPtr`인 벡터, 라이브러리 메서드에 주는 객체 목록, 맵, 소유 포인터(`CefOwnPtr`), 평범한 데이터가 아닌 구조체(포인터, 배열, 문자열이 있는 `CefCursorInfo`, `CefAcceleratedPaintInfo`, `CefCookie` 등)
-- 상속 관계가 있는 라이브러리 클래스(부모 클래스가 `CefBaseRefCounted`가 아닌 경우)
 - 라이브러리 메서드의 객체 참조 출력 인자(`CefRefPtr<T>&`), 핸들러 메서드의 구조체 반환과 벡터 출력
 - 헤더 주석의 한국어 번역(`cef_origin` 위키의 설명)을 스텁에 쓰는 일
 

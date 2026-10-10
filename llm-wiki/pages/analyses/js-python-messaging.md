@@ -6,7 +6,7 @@ sources:
   - native/cefwrapper/cef_wrapper_client_handler.cc
   - native/cefwrapper/javascript_binding.h
   - tools/gen/typesys.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # JavaScript와 호스트 사이의 통신 (java-cef, cefpython과 비교)
@@ -14,6 +14,8 @@ updated: 2026-10-08
 프로세스 메시지를 열면서 "구조화된 양방향 통신(객체, 반환값)은 어떻게 하는가"를 java-cef와 cefpython의 위키(`/home/jiho/cef_framework/java-cef/docs/llm-wiki/`, `/home/jiho/cef_framework/cefpython/docs/llm-wiki/`)와 CEF 헤더로 조사한 결과입니다. 아무것도 구현하지 않았고, 선택지와 의견을 적습니다.
 
 ## 공통점: 호스트 언어는 브라우저 프로세스에만 있고, 렌더러는 C++입니다
+
+(2026-10-10: 렌더러는 지금도 C++이지만, `app.enable_renderer_events()`를 켜면 렌더러가 잡히지 않은 JavaScript 오류, 초점이 간 노드, V8 컨텍스트의 생성과 해제를 프로세스 메시지로 브라우저에 알립니다. [F104](../reference/verified-findings-opened.md))
 
 세 프로젝트 모두 렌더러 프로세스에서 JavaScript와 만나는 코드가 C++입니다. 차이는 그 C++ 중계가 무엇을 하느냐입니다.
 
@@ -58,7 +60,7 @@ JavaScript 값과 `CefListValue` 사이의 변환, JavaScript 콜백과 Python �
 | `BinaryValue.create(data, size)` (**열렸음**: `bytes` 같은 바이트열을 받음, 빈 데이터는 CEF가 `nullptr`이라 `None`) | `const void*`와 크기 쌍을 라이브러리 메서드가 받음(지금 생성기는 클라이언트 쪽의 쓰기 가능한 쌍만 지원) | java-cef는 `ByteBuffer`를 `CefBinaryValue`로 바꾸는 변환을 가짐(`GetCefValueFromJNIObject`). cefpython은 콜백 id를 `CefBinaryValue`에 담아 전달 | 읽기용 버퍼 종류를 더해 `bytes`와 `memoryview` 같은 버퍼 객체를 받음 |
 | `BinaryValue.get_data(buffer, size, offset)` (**열렸음**: `get_data(size, offset) -> bytes`) | 호출하는 쪽의 버퍼를 CEF가 채움 | 위와 같음 | `get_data(size, offset) -> bytes`로 바꿔서 돌려줌 |
 | `BinaryValue.get_raw_data()` | CEF가 가진 메모리를 가리키는 `const void*`, 크기는 `get_size()` | | 객체의 수명을 넘어서 쓰면 위험해서 열지 않고 `get_data`로 복사해 `bytes`를 줌 |
-| `ProcessMessage.get_shared_memory_region()` | `CefSharedMemoryRegion`(`Memory()`가 `void*`, `Size()`)이 범위 밖. 지금 렌더러가 공유 메모리 메시지를 만들지 않음 | 둘 다 쓰지 않음 | 보내는 쪽이 생길 때까지 닫아 둠 |
+| `ProcessMessage.get_shared_memory_region()` (**열렸음**, 2026-10-10: `SharedMemoryRegion.to_bytes()`가 복사본을 줌, `SharedProcessMessageBuilder.write(offset, data)`, [F107](../reference/verified-findings-opened.md)) | `CefSharedMemoryRegion`(`Memory()`가 `void*`, `Size()`)이 범위 밖. 지금 렌더러가 공유 메모리 메시지를 만들지 않음 | 둘 다 쓰지 않음 | 보내는 쪽이 생길 때까지 닫아 둠 |
 
 **읽기용 버퍼 종류는 오프스크린 렌더링의 선행 작업과 같은 것입니다.** `CefRenderHandler::OnPaint(browser, type, dirty_rects, const void* buffer, int width, int height)`의 `buffer`는 `BinaryValue.create`와 같은 `const void*`이지만 크기가 인자로 오지 않고 `width * height * 4`입니다(헤더 주석). java-cef는 `NewDirectByteBuffer(buffer, width * height * 4)`로, cefpython은 `PaintBuffer`(`GetString()`, `GetIntPointer()`)로 풉니다. 생성기에서는 "포인터와 명시적인 크기 쌍"(`BinaryValue.create`)과 "메서드마다 정하는 크기 규칙"(`OnPaint`)을 하나의 읽기용 버퍼 종류로 풀 수 있습니다.
 

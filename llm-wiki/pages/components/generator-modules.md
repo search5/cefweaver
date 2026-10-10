@@ -12,7 +12,7 @@ sources:
   - tools/gen/emit_pyi.py
   - tools/gen/handwritten.pyi
   - tools/gen/vendor/README.txt
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 생성기 모듈 (tools/gen)
@@ -40,8 +40,8 @@ updated: 2026-10-08
 
 ## 방출기가 하는 일의 요약
 
-- `emit_cpp`: 핸들러 클래스마다 표 구조체, 프록시 클래스, 전달 클래스(`Cw<이름>Forward`)를 만들고, 메서드마다 표 항목이 없을 때의 동작(기반 클래스 호출 또는 기본값)과 출력 인자 복사를 씁니다.
-- `emit_cython`: 라이브러리 클래스마다 `cdef class`와 `_ptr()`, 메서드, `_wrap_*`을 만들고, 핸들러 클래스마다 Python 기반 클래스, 트램펄린, `_g_make_*`, `_g_export_*`를 만듭니다. 전역 함수는 모듈 수준 `def`입니다.
+- `emit_cpp`: 핸들러 클래스마다 표 구조체, 프록시 클래스(소멸자와 생성자가 등록부에 등록), 전달 클래스(`Cw<이름>Forward`)를 만들고, 메서드마다 표 항목이 없을 때의 동작(기반 클래스 호출 또는 기본값)과 출력 인자 복사를 씁니다.
+- `emit_cython`: 라이브러리 클래스마다 `cdef class`와 `_ptr()`, 메서드, `_wrap_*`을 만들고, 핸들러 클래스마다 Python 기반 클래스, 트램펄린, `_g_make_*`, `_g_export_*`, `_g_unexport_*`(준 객체 되찾기)를 만들고, 라이브러리 클래스마다 `_g_ref_*`(핸들러가 돌려주는 객체)를 만듭니다. 손으로 쓴 메서드는 `tools/gen/extras/`의 `.pxi`와 `.pyi`를 클래스 끝에 붙입니다(`EXTRA_METHODS`, `extras_text()`). 전역 함수는 모듈 수준 `def`입니다.
 - `emit_pyi`: 클래스와 함수의 시그니처와 헤더 주석에서 만든 docstring입니다. `None`은 `optional_param`과 `Create()`가 아닌 라이브러리 반환에서만 허용하는 형태로 표기합니다.
 
 ## 관련 페이지

@@ -17,7 +17,7 @@ sources:
   - native/cefwrapper/query_router.cc
   - native/cefwrapper/javascript_python_binding_handler.h
   - native/cefwrapper/javascript_bindings_handler.h
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # C++ 핸들러
@@ -39,6 +39,8 @@ updated: 2026-10-08
 - `OnContextInitialized()`(UI 스레드): 클라이언트 핸들러를 만들고, 렌더러 핸들러에 바인딩을 알리고, 바인딩 **이름 목록**을 `extra_info`에 담아 `CefBrowserHost::CreateBrowserSync()`로 브라우저를 만들어 `Browser` 멤버에 저장합니다. Windows에서는 `SetAsPopup`을 씁니다.
 - 브라우저는 **Alloy 스타일**로 만듭니다(`window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY`). java-cef와 같은 설정이며 이유는 [설계 결정 기록](../reference/design-decisions.md)에 있습니다.
 - `GetDefaultClient()`는 클라이언트 핸들러를 돌려줍니다.
+- `CefWrapperClientHandler`는 찾기, 프레임, 명령 핸들러도 사용자 클라이언트로 넘깁니다(각 `Forward` 클래스).
+- `ShutdownCefSimple()`(`library.cpp`)은 `CefShutdown()` 전에 `CloseOtherBrowsers()`로 남은 브라우저(열린 Views 창 포함)를 닫습니다. 살아 있는 브라우저가 있으면 종료 때 프로세스가 죽었습니다([F99](../reference/verified-findings-views.md)).
 - 싱글턴(`GetInstance()`)입니다.
 
 ## CefWrapperClientHandler
@@ -82,6 +84,7 @@ updated: 2026-10-08
 - `OnBrowserCreated()`: `extra_info`가 널이 아니면 `JSCallbackNames`, `JSNativePythonApiNames` 목록에서 바인딩을 이름만으로 다시 만듭니다. 널이면 아무것도 하지 않습니다(이 wrapper가 만들지 않은 브라우저).
 - `OnProcessMessageReceived()`: `cefweaver-ping`을 받으면 같은 인자로 `cefweaver-pong`을 프레임을 통해 브라우저에 보냅니다(진단용, 사용자 정의 메시지를 시험하는 보내는 쪽).
 - `OnContextCreated()` / `OnContextReleased()`: 명령줄 스위치가 있으면 `CefMessageRouterRendererSide`를 부릅니다(`window.cefQuery`). `OnProcessMessageReceived()`도 라우터가 먼저 받습니다.
+- **렌더러 이벤트**(`SetRendererEvents`가 명령줄 스위치 `cefweaver-renderer-events`를 줄 때만): `OnUncaughtException()`, `OnFocusedNodeChanged()`, `OnContextCreated()`, `OnContextReleased()`가 프로세스 메시지 `cefweaver-renderer-event`를 브라우저 프로세스로 보냅니다. 스위치가 없으면 아무것도 보내지 않습니다. 브라우저 쪽에서는 `cefweaver/renderer_events.py`의 `RendererEvents`가 메시지를 풉니다([F104](../reference/verified-findings-opened.md)).
 - `OnContextCreated()`: V8 전역 객체에 바인딩 이름마다 함수를 만들고, 호출을 `JavascriptPythonBindingsHandler`(또는 인자 없는 `JavascriptBindingsHandler`)가 받습니다.
 
 ## 바인딩 자료형 (`javascript_binding.h`)

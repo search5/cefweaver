@@ -6,7 +6,7 @@ sources:
   - native/cefwrapper/cef_wrapper_app.cc
   - tools/gen/typesys.py
   - tests/test_smoke.py
-updated: 2026-10-08
+updated: 2026-10-10
 ---
 
 # 실험으로 확인한 사실 (F36부터)
@@ -16,7 +16,7 @@ updated: 2026-10-08
 ## F36. 명령줄 스위치는 자식 프로세스에 전달되지 않는다
 
 - **방법**: `add_command_line_switch`로 `cefweaver-custom-switch=abc`, `disable-gpu`, `site-per-process`를 주고 실행 중인 프로세스들의 명령줄(`ps -eww`)을 비교했습니다.
-- **결과**: 세 스위치 모두 `--type=renderer`, `gpu-process`, `utility`, `zygote` 프로세스의 명령줄에 **없었습니다.** 반면 `--ozone-platform=x11`은 자식에게 있었는데, Chromium이 스스로 전달하는 스위치이기 때문으로 보입니다(이유는 확인하지 않음). 그래서 `add_command_line_switch`의 스위치는 브라우저 프로세스에서만 읽힌다고 봐야 합니다. 자식 프로세스에 필요한 스위치는 `OnBeforeChildProcessLaunch`로 붙여야 합니다(메시지 라우터가 이렇게 합니다, F34).
+- **결과**: 세 스위치 모두 `--type=renderer`, `gpu-process`, `utility`, `zygote` 프로세스의 명령줄에 **없었습니다.** 반면 `--ozone-platform=x11`은 자식에게 있었는데, Chromium이 스스로 전달하는 스위치이기 때문으로 보입니다(이유는 확인하지 않음). 그래서 `add_command_line_switch`의 스위치는 브라우저 프로세스에서만 읽힌다고 봐야 합니다. 자식 프로세스에 필요한 스위치는 `OnBeforeChildProcessLaunch`로 붙여야 합니다(메시지 라우터가 이렇게 합니다, F34). (2026-10-10에 `AppHandler.on_before_child_process_launch`로 Python에 열었음, [F105](verified-findings-opened.md))
 - **영향**: 이전의 "자식 프로세스가 물려받습니다"라는 서술(`native-library-api.md`, `native-handlers.md`, `cef_wrapper_app.cc`의 주석)이 틀려서 고쳤습니다. 스위치를 자식에게도 보내는 옵션은 **만들지 않기로 했습니다**: java-cef도 같은 한계이고 사용자가 "java-cef만큼만" 가기로 했습니다(아래 비교와 [설계 결정 기록](design-decisions.md)).
 - **java-cef와의 비교**(소스 확인, 실행하지는 않음): 스위치를 주는 길은 `CefApp.getInstance(args, settings)`의 `args`와 `CefAppHandler.onBeforeCommandLineProcessing`뿐이고, 그 훅은 `process_type`이 비었을 때(브라우저 프로세스)만 Java로 전달됩니다(`client_app.cpp:34`). `OnBeforeChildProcessLaunch`는 `native/`에 없습니다. 자식에게 값을 보낼 때는 스위치 대신 `extra_info`(라우터 설정), 프로세스 메시지(`AddMessageRouter`), 부모 PID 이름의 임시 파일(커스텀 스킴)을 씁니다.
 
@@ -44,7 +44,7 @@ updated: 2026-10-08
   - `get_screen_info`가 `(True, ScreenInfo(2.0, ...))`를 돌려주면 페이지의 `window.devicePixelRatio`가 2가 되고 `on_paint`의 크기가 400x200, 길이 `400*200*4`입니다(핸들러의 구조체 출력, 중첩 구조체 `rect`).
   - `send_touch_event`(구조체에 열거형 둘)와 `ime_set_composition`(`CompositionUnderline`의 벡터, 중첩 `Range`, 열거형 `style`)은 호출이 받아들여지고 정상 종료합니다. 결과는 시험하지 않았습니다.
 - **발견**: `char16_t`는 Cython이 알지 못하는 타입이라 `cdef extern from *: ctypedef unsigned short char16_t`로 알려 주었습니다.
-- **영향**: 구조체 15개가 공개되고 보고서의 타입 지원이 89%에서 90%로 늘었습니다([오프스크린 렌더링](offscreen-rendering.md)).
+- **영향**: 구조체 15개가 공개되고 보고서의 타입 지원이 89%에서 90%로 늘었습니다(당시 값)([오프스크린 렌더링](offscreen-rendering.md)).
 
 ## F40. 바이트열 입출력 (BinaryValue)
 
@@ -100,9 +100,9 @@ updated: 2026-10-08
 - **결과**:
   - `ZipReader.get_file_last_modified()`가 시간대가 있는 `datetime`을 돌려주고 ZIP에 적은 2020-01-02 12:00과 하루 이내로 맞습니다. 다운로드의 `get_start_time()`은 현재 시각과 2분 안이고 `get_end_time() >= get_start_time()`입니다.
   - `PostDataElement.set_to_bytes`/`get_bytes`, `PostData`, `Request.set_post_data`/`get_post_data`가 `\x00\xff`를 포함한 바이트열을 왕복합니다.
-- **발견(잠재 결함, 수정)**: 범위 밖 핸들러의 `const void*`(`DevToolsMessageObserver.on_dev_tools_message`, `ServerHandler.on_web_socket_message`, `URLRequestClient.on_download_data`, `MediaObserver`)가 const 없는 `void*`로 선언되어 있어서 범위에 넣으면 헤더와 맞지 않아 컴파일이 깨질 계획이었습니다. const를 지키고 읽기 전용 `memoryview`로 바꿨고, 범위 밖 핸들러 다섯을 넣은 넓은 범위의 프록시를 컴파일하는 시험을 더했습니다.
+- **발견(잠재 결함, 수정)**: 범위 밖 핸들러의 `const void*`(`DevToolsMessageObserver.on_dev_tools_message`, `ServerHandler.on_web_socket_message`, `URLRequestClient.on_download_data`, `MediaObserver`)가 const 없는 `void*`로 선언되어 있어서 범위에 넣으면 헤더와 맞지 않아 컴파일이 깨질 계획이었습니다. const를 지키고 읽기 전용 `memoryview`로 바꿨고, 범위 밖 핸들러 다섯을 넣은 넓은 범위의 프록시를 컴파일하는 시험을 더했습니다. (`ServerHandler`와 `MediaObserver`는 2026-10-10에 범위에 들어왔음, [F102, F106](verified-findings-opened.md))
 - **java-cef와의 비교**(소스 확인): 날짜는 `java.util.Date`로 바꾸는 한 방향이고 밀리초로 줄입니다. 스트림은 드래그 데이터의 `GetFileContents`용 `WriteHandler` 하나뿐입니다.
-- **영향**: 열린 메서드가 늘었고(타입 지원 92%) `void*` 때문에 막힌 것은 일부러 제외한 9개로 줄었습니다([바이트열과 시간](bytes-and-times.md)).
+- **영향**: 열린 메서드가 늘었고(타입 지원 92%, 당시 값) `void*` 때문에 막힌 것은 일부러 제외한 9개로 줄었습니다([바이트열과 시간](bytes-and-times.md)).
 
 ## F46. java-cef가 넘기지 않는 인자의 무시 (팝업, 커서, 인증서 오류)
 
@@ -139,7 +139,7 @@ updated: 2026-10-08
 ## F50. 문자열과 시간이 든 구조체, PDF 인쇄
 
 - **방법**: `CefStructBase<Traits>` 구조체(문자열, 시간 필드)를 열고 `print_to_pdf`로 PDF를 만들었습니다.
-- **결과**: `types.PdfPrintSettings(scale=1.0, paper_width=8.27, paper_height=11.69, print_background=1, page_ranges="1", margin_type=PdfPrintMarginType.DEFAULT)`를 `host.print_to_pdf(path, settings, callback)`에 주면 `%PDF`로 시작하는 파일이 생기고 `on_pdf_print_finished(path, True)`가 옵니다(오프스크린에서도 됨). `Cookie`, `RequestContextSettings`, `URLParts`, `MediaSinkDeviceInfo`, `TaskInfo`, `LinuxWindowProperties`도 같은 방식으로 공개되어 구조체가 22개가 되었습니다(`CefSettings`와 `CefBrowserSettings`는 배열이나 포인터가 있어 제외).
+- **결과**: `types.PdfPrintSettings(scale=1.0, paper_width=8.27, paper_height=11.69, print_background=1, page_ranges="1", margin_type=PdfPrintMarginType.DEFAULT)`를 `host.print_to_pdf(path, settings, callback)`에 주면 `%PDF`로 시작하는 파일이 생기고 `on_pdf_print_finished(path, True)`가 옵니다(오프스크린에서도 됨). `Cookie`, `RequestContextSettings`, `URLParts`, `MediaSinkDeviceInfo`, `TaskInfo`, `LinuxWindowProperties`도 같은 방식으로 공개되어 구조체가 22개가 되었습니다(당시 값)(`CefSettings`와 `CefBrowserSettings`는 배열이나 포인터가 있어 제외).
 - **발견**: 이 구조체는 파서가 `structure`로 분류해서 이름으로 찾도록 고쳤습니다. 문자열 필드는 `CefString(&field)`로 감싸 읽고 씁니다. 모든 구조체의 필드에 기본값을 주도록 바꿔(`Rect()`가 `(0, 0, 0, 0)`) 설정 구조체를 필요한 필드만으로 만들 수 있습니다.
 - **영향**: 바닥의 격차 1개가 메워졌고(`PrintToPDF`) 쿠키와 요청 컨텍스트 설정의 길이 열렸습니다.
 
