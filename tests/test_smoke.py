@@ -4616,6 +4616,44 @@ class WithCef(unittest.TestCase):
             print("OK")
         """)
 
+    def test_evaluate_gives_up_after_its_timeout_and_ignores_a_late_answer(self):
+        # a source that never answers (a promise that stays pending, a page that was left) must not wait forever
+        self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
+            bridge = cefweaver.JavascriptBridge(app)
+            seen = []
+            bridge.expose("ready", lambda: seen.append(True))
+            start(page_with("ready();"))
+            wait_until(app, lambda: seen, "the page")
+            frame = boxes[0].get_main_frame()
+            answers = []
+            started = time.time()
+            bridge.evaluate(frame, "new Promise(function () {})", lambda value, error: answers.append(("never", value, error, time.time() - started)), timeout=0.3)
+            bridge.evaluate(frame, "new Promise(r => setTimeout(() => r('late'), 600))", lambda value, error: answers.append(("late", value, error)), timeout=0.3)
+            bridge.evaluate(frame, "1 + 1", lambda value, error: answers.append(("fast", value, error)), timeout=0.3)
+            bridge.evaluate(frame, "new Promise(r => setTimeout(() => r('slow'), 500))", lambda value, error: answers.append(("slow", value, error)), timeout=None)
+            wait_until(app, lambda: len(answers) >= 4, "the four answers")
+            for _ in range(300):                                  # the late answer and the timers of the finished ones
+                app.do_message_loop_work()
+                time.sleep(0.005)
+            by_name = {a[0]: a for a in answers}
+            assert len(answers) == 4, answers                      # each callback is called once
+            assert by_name["fast"] == ("fast", 2, None), by_name
+            assert by_name["slow"] == ("slow", "slow", None), by_name                     # no timeout: waits
+            for name in ("never", "late"):
+                assert by_name[name][1] is None and by_name[name][2].startswith("TimeoutError"), by_name[name]
+            assert 0.25 < by_name["never"][3] < 2, by_name["never"]
+            assert not bridge._pending, bridge._pending                                    # nothing is left behind
+            for bad in (0, -1, "1", True):
+                try:
+                    bridge.evaluate(frame, "1", lambda value, error: None, timeout=bad)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError("timeout=%r was accepted" % (bad,))
+            app.shutdown()
+            print("OK")
+        """)
+
     def test_a_bridge_answers_only_the_origins_it_was_given_and_leaves_other_queries_alone(self):
         self.run_osr_script(prelude=self.BRIDGE_PAGE, body="""
             bridge = cefweaver.JavascriptBridge(app, origins=["http://allowed.test/"])

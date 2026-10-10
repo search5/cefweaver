@@ -1,5 +1,5 @@
 ---
-title: 실행해서 확인한 남은 API (F102~F110)
+title: 실행해서 확인한 남은 API (F102~F111)
 type: reference
 sources:
   - tests/test_smoke.py
@@ -11,7 +11,7 @@ sources:
 updated: 2026-10-10
 ---
 
-# 실행해서 확인한 남은 API (F102~F110)
+# 실행해서 확인한 남은 API (F102~F111)
 
 2026-10-10에 연 핸들러, 서버, 렌더러 이벤트, 미디어 라우터 등을 실제 CEF로 구동해 확인한 기록입니다. 각 항목의 시험은 `tests/test_smoke.py`에 있습니다. 표시한 것 말고는 Linux x86_64, CEF 154, 가상 X 서버에서 확인했습니다.
 
@@ -85,7 +85,14 @@ updated: 2026-10-10
 - **알려진 한계**: 컨텍스트가 만들어지기 전에 보낸 요청(시험이 처음에 간헐적으로 시간 초과가 난 원인이었고, 페이지의 `ready()` 신호를 기다리게 고쳐 6회 모두 통과)과, 답하기 전에 페이지를 떠난 요청(느린 `Promise` 400ms, 중간에 이동)은 callback이 오지 않습니다. `_pending`의 항목도 남습니다. 옛 경로에서 이 두 경우가 어땠는지는 비교하지 않았습니다.
 - **`Eval`이 던진 예외**: 렌더러 이벤트의 `on_uncaught_exception`을 일으키지 않았습니다([F104](verified-findings-opened.md)).
 - **모듈 문법**: 동적 `import()`는 옛 경로와 새 경로의 결과가 같았고(`import('/x.js').then(m => m.value)` → 42, 모듈 객체 전체 → `{'default': 'dflt', 'value': 42}`, 없는 파일은 `TypeError`, `(async () => (await import(...)).value)()`도 같음), 엄격한 CSP 페이지에서는 새 경로만 됩니다(같은 출처의 `script-src 'self'`). 정적 `import x from ...`, `import.meta`, 최상위 `await`는 두 경로 모두 `SyntaxError: Cannot use import statement outside a module` 등 같은 오류입니다(식은 모듈이 아니라 스크립트로 실행됨).
-- 확인하지 못한 것: 다른 출처의 모듈을 `import()`할 때의 CORS와 CSP 동작, 시간 제한(`timeout`)은 구현하지 않았습니다.
+- 확인하지 못한 것: 다른 출처의 모듈을 `import()`할 때의 CORS와 CSP 동작.
+
+## F111. `evaluate`의 시간 제한 (2026-10-10)
+
+- `JavascriptBridge.evaluate(frame, expression, callback, timeout=30.0)`: 답이 없으면 `timeout`초 뒤에 `callback(None, "TimeoutError: no answer in N s")`를 부르고 `_pending`의 항목을 지웁니다. 늦게 온 답은 무시되고(콜백은 한 번만 불림), `timeout=None`이면 제한 없이 기다립니다. `0`, 음수, 문자열, `True`는 `ValueError`입니다. `post_delayed_task`(UI 스레드)로 `Task`를 예약하므로 콜백은 `do_message_loop_work()` 안에서 불립니다.
+- 확인: 끝나지 않는 `Promise`는 약 0.3초 뒤 `TimeoutError`, 제한보다 늦게 답하는 식은 `TimeoutError`만 받고 늦은 답은 무시됨, 빠른 식과 `timeout=None`의 느린 식(500ms)은 정상(시험 `test_evaluate_gives_up_after_its_timeout_and_ignores_a_late_answer`, 5회 통과). 답하기 전에 페이지를 떠난 식(`Promise` 800ms, 중간에 이동)은 1.5초 뒤 `TimeoutError`이고 `_pending`이 비며, 다음 페이지의 `evaluate`는 정상이었습니다.
+- 기본값 30초는 시험의 기본 대기 시간(`wait_until`)에 맞춘 값이고 근거가 있는 최적값은 아닙니다. 이보다 오래 걸리는 식은 `timeout`을 늘리거나 `None`을 줘야 합니다.
+- 답이 오고 나서도 예약한 작업은 `timeout`초까지 남아 있다가 아무것도 하지 않고 끝납니다(항목이 이미 없음).
 
 ## 관련 페이지
 

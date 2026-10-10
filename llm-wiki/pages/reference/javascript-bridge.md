@@ -31,7 +31,7 @@ bridge.evaluate(frame, "double(21)", lambda value, error: ...)          # 식의
 | `JavascriptBridge(app, origins=None)` | `app`은 아직 시작하지 않은 `CefApp`. `origins`(URL 접두사의 목록)를 주면 그 프레임의 호출만 받습니다. 기본은 모든 프레임이므로 바깥 페이지가 올라올 수 있으면 반드시 정합니다. 목록이 아니면 `TypeError` |
 | `expose(name, function, with_frame=False)` | `window.<name>`을 만듭니다(`initialize()` 전에만). 이름은 JavaScript 식별자이고 예약어가 아니어야 하며 중복되면 `ValueError`. 함수의 예외는 `Promise`를 `유형: 메시지`로 거부합니다. JSON으로 만들 수 없는 반환값(`object()`, `NaN`)도 거부됩니다 |
 | `execute_function(frame, path, *args)` | `window`에서 시작하는 경로(`"a.b.c"`)의 함수를 JSON 인자로 부릅니다 |
-| `evaluate(frame, expression, callback)` | 식을 실행하고 나중에 `callback(value, error)`를 `do_message_loop_work()` 안에서 부릅니다. 실패하면 `value`는 `None`이고 `error`는 `SyntaxError: ...` 같은 문자열. 엄격한 CSP와 Trusted Types 페이지에서도 됩니다. 컨텍스트가 없는 프레임이나 떠난 페이지에는 콜백이 오지 않습니다 |
+| `evaluate(frame, expression, callback, timeout=30.0)` | 식을 실행하고 나중에 `callback(value, error)`를 `do_message_loop_work()` 안에서 부릅니다. 실패하면 `value`는 `None`이고 `error`는 `SyntaxError: ...` 같은 문자열. 엄격한 CSP와 Trusted Types 페이지에서도 됩니다. 컨텍스트가 없는 프레임이나 떠난 페이지처럼 답이 없는 식은 `timeout`초 뒤에 `error`가 `"TimeoutError: ..."`로 끝나고(`None`이면 제한 없음) 늦은 답은 무시됩니다 |
 | `JsCallback` | 페이지의 함수를 인자로 주면 Python이 받는 객체. `call(*args)`는 그 함수를 원래 프레임에서 JSON 인자로 부르고, `release()`는 페이지가 잊게 합니다 |
 
 ## 동작

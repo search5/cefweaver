@@ -16,7 +16,7 @@ import json
 import sys
 
 from . import types
-from ._cefweaver import ProcessMessage, QueryHandler
+from ._cefweaver import ProcessMessage, QueryHandler, Task, post_delayed_task
 
 _RESERVED = frozenset("""break case catch class const continue debugger default delete do else enum export
 extends false finally for function if import in instanceof new null return super switch this throw true
@@ -57,6 +57,23 @@ class _BridgeHandler(QueryHandler):
         if not request.startswith('{"cefweaver":1'):
             return False  # not the bridge's: the application's handlers get it
         return self._bridge._handle(frame, request, callback)
+
+
+class _Expire(Task):
+    """The end of the wait of one ``evaluate()``: if the answer has not come, its callback gets the timeout."""
+
+    def __init__(self, bridge, number, timeout):
+        super().__init__()
+        self._bridge, self._number, self._timeout = bridge, number, timeout
+
+    def execute(self):
+        function = self._bridge._pending.pop(self._number, None)
+        if function is None:
+            return                      # it was answered
+        try:
+            function(None, "TimeoutError: no answer in %g s" % self._timeout)
+        except BaseException:
+            sys.excepthook(*sys.exc_info())
 
 
 class JavascriptBridge:
@@ -100,12 +117,18 @@ class JavascriptBridge:
         frame.execute_java_script("window.__cefweaverBridge.call(%s, %s)"
                                   % (json.dumps(path), json.dumps(list(args), allow_nan=False)), "", 0)
 
-    def evaluate(self, frame, expression, callback):
+    def evaluate(self, frame, expression, callback, timeout=30.0):
         """Run the JavaScript ``expression`` in ``frame`` and call ``callback(value, error)`` later,
         in ``do_message_loop_work()``: ``value`` is its JSON value (a ``Promise`` is awaited) and
-        ``error`` is ``None``, or the message of the exception and then ``value`` is ``None``."""
+        ``error`` is ``None``, or the message of the exception and then ``value`` is ``None``.
+
+        An expression that gets no answer (a ``Promise`` that stays pending, a frame that has no
+        context yet, a page that was left) ends after ``timeout`` seconds with the error
+        ``"TimeoutError: ..."``; a later answer is ignored. ``timeout=None`` waits without limit."""
         if not callable(callback):
             raise TypeError("callback must be callable")
+        if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0):
+            raise ValueError("timeout must be a positive number of seconds or None")
         number = self._next
         self._next += 1
         self._pending[number] = callback
@@ -116,6 +139,8 @@ class JavascriptBridge:
         arguments.set_int(0, number)
         arguments.set_string(1, expression)
         frame.send_process_message(types.ProcessId.RENDERER, message)
+        if timeout is not None:
+            post_delayed_task(types.ThreadId.UI, _Expire(self, number, timeout), max(1, int(timeout * 1000)))
 
     # -- the queries of the pages ----------------------------------------------------------
 
