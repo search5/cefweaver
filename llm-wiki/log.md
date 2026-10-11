@@ -709,3 +709,9 @@
 
 ## [2026-10-11] ingest | Windows 병합 뒤 Linux 빌드 확인과 고침
 - Windows 지원 커밋(`7b78cb7`)을 받은 트리를 Linux에서 빌드하니 `library.cpp`의 Windows용 경로 변환 함수가 쓰이지 않아 `-Werror`로 실패했습니다. `[[maybe_unused]]`를 붙여 고쳤고, 그 wheel로 시험 547개가 통과했으며 `generate.py --check`도 최신이었습니다([F116](pages/reference/verified-findings-windows.md)). macOS는 확인하지 못했습니다.
+
+## [2026-10-11] ingest | Windows에서 Linux 수정을 받아 다시 확인하고 간헐적 시험 둘을 고침
+- 사용자 지적("조심해야 할 내용 적었어. 윈도우에서 확인해야 하지 않겠니?")으로 `0dee9ec`(`[[maybe_unused]]`)를 받은 트리를 Windows에서 다시 빌드하고 시험했습니다([F116, F117](pages/reference/verified-findings-windows.md)). 빌드는 통과했습니다.
+- 전체 시험에서 2개가 실패했고, 단독으로 돌려 보니 Windows에서 자주 실패하는 시험의 타이밍 가정이었습니다(헤더리스 시험의 흰 첫 프레임, 키 시험의 키와 스크립트의 순서). 조건을 기다리게 고쳐 모두 통과했습니다. 앞의 두 전체 실행은 우연히 통과했던 것입니다.
+- 임시 폴더 잠금 오류가 `cefweaver-root-`와 `cefweaver-profile-`에서도 나서 `ignore_cleanup_errors`를 네 곳에 Windows 한정으로 적용했습니다(이전에는 `run_cef` 하나에 모든 플랫폼에 켜 두었던 것을 좁힘).
+- 최종: 547개 `OK`, `smoke.py` 27개 통과. 고친 시험은 Linux와 macOS에서 돌려 보지 못했습니다(Windows 밖 동작은 조건을 기다리는 쪽으로만 바뀜).

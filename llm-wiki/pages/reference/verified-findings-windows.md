@@ -41,7 +41,7 @@ Windows 지원을 더하며 실제로 빌드하고 실행해서 확인한 기록
 
 설치한 wheel에서 `import cefweaver`가 처음에는 `ModuleNotFoundError: fcntl`(`texture.py`)로 실패했습니다. `fcntl`을 Windows에서 가져오지 않게 하고 `read_plane()`은 `NotImplementedError`를 내게 했습니다. 그 뒤 `cefweaver.get_version()`이 `Version(cefweaver='0.1.0', cef_major=154, ...)`를 돌려주었습니다. `libcef.dll`은 지연 적재라서 `__init__.py`가 전체 경로로 먼저 올립니다.
 
-생성된 코드가 `cef_window_handle_t`를 `unsigned long`(Windows에서 32비트)으로 선언해서 포인터 크기 HWND를 자른다는 경고(`C4311`)가 났습니다. `tools/gen/emit_cython.py`가 `uintptr_t`로 선언하게 고치고 다시 생성했습니다. **이 변경을 Linux와 macOS에서는 빌드해 보지 않았습니다**(두 곳에서 `uintptr_t`는 `unsigned long` 또는 포인터와 같은 폭이라 달라지지 않을 것으로 보지만 확인하지 못했습니다). 그 뒤 Linux x86_64에서 확인했습니다(2026-10-11): `generate.py --check`는 최신이었고, 병합한 트리의 wheel 빌드는 `library.cpp`의 `PathToUtf8`과 `PathFromUtf8`이 Linux에서 쓰이지 않아 `-Werror=unused-function`으로 실패했습니다. 두 함수에 `[[maybe_unused]]`를 붙이자 빌드가 되고 시험 547개가 통과했습니다(건너뜀 10개, 예상된 실패 3개). macOS는 빌드해 보지 못했습니다.
+생성된 코드가 `cef_window_handle_t`를 `unsigned long`(Windows에서 32비트)으로 선언해서 포인터 크기 HWND를 자른다는 경고(`C4311`)가 났습니다. `tools/gen/emit_cython.py`가 `uintptr_t`로 선언하게 고치고 다시 생성했습니다. **이 변경을 Linux와 macOS에서는 빌드해 보지 않았습니다**(두 곳에서 `uintptr_t`는 `unsigned long` 또는 포인터와 같은 폭이라 달라지지 않을 것으로 보지만 확인하지 못했습니다). 그 뒤 Linux x86_64에서 확인했습니다(2026-10-11): `generate.py --check`는 최신이었고, 병합한 트리의 wheel 빌드는 `library.cpp`의 `PathToUtf8`과 `PathFromUtf8`이 Linux에서 쓰이지 않아 `-Werror=unused-function`으로 실패했습니다. 두 함수에 `[[maybe_unused]]`를 붙이자 빌드가 되고 시험 547개가 통과했습니다(건너뜀 10개, 예상된 실패 3개). macOS는 빌드해 보지 못했습니다. 같은 트리를 Windows에서 다시 빌드하니 `[[maybe_unused]]`는 MSVC(`/W4 /WX`)에서도 문제가 없었습니다(경고는 링크의 `LNK4199`뿐).
 
 ## F117. 시험 결과
 
@@ -52,6 +52,10 @@ Windows 지원을 더하며 실제로 빌드하고 실행해서 확인한 기록
 | 1 (시험을 고치기 전, 임시 폴더 정리 오류를 막은 뒤) | 546개, 744초, 실패 13, 오류 3, 건너뜀 16 | 첫 실행은 약 28개가 실패했는데 대부분 `chrome_debug.log` 잠금으로 임시 폴더를 못 지운 오류였습니다. 이 실행에서 남은 16개를 아래 F118, F121과 시험의 Linux 가정으로 갈랐습니다 |
 | 2 (시험 수정 뒤) | 547개, 667초, 실패 3, 건너뜀 22 | 실패 3개 중 2개는 문서 점검(문서를 고치기 전에 돌아서 실패, 문서를 고친 뒤 단독 실행은 통과)이고 1개는 새로 더한 Windows quickstart 시험(venv의 `python.exe`는 런처라서 PID로는 창을 못 찾음, 창 클래스 이름으로 고침) |
 | 3 (최종 wheel) | **547개, 532초, `OK`, 건너뜀 21, 예상된 실패 3** | `cef_window_handle_t` 변환을 `uintptr_t`로 고친 wheel(위)입니다 |
+
+| 4 (Linux의 `-Werror` 수정을 받은 트리) | 547개, 590초, 실패 2 | 이 둘은 Windows에서 **간헐적으로 실패하는 시험**이었습니다(단독으로 6번 중 4번, 4번 중 4번). `test_a_browser_runs_in_the_headless_adapter`는 첫 프레임(흰색)이 오고 0.3초 뒤에 색을 검사했고, `test_keys_beyond_a_letter_edit_and_move_in_an_offscreen_input`은 입력란을 비우는 스크립트와 앞서 보낸 `x` 키가 다른 경로로 가서 순서가 보장되지 않았습니다. 앞의 두 전체 실행에서는 우연히 통과했습니다. 조건을 기다리게 고쳐 단독 6번씩 모두 통과했습니다 |
+| 5 (고친 시험) | 547개, 569초, 오류 1 | 임시 폴더의 `chrome_debug.log` 잠금(위와 같은 원인)이 `cefweaver-root-`와 `cefweaver-profile-` 폴더에서도 났습니다. 네 곳 모두 `ignore_cleanup_errors`를 **Windows에서만** 켜게 했습니다 |
+| 6 (최종) | **547개, 567초, `OK`, 건너뜀 21, 예상된 실패 3** | `examples/pywin32/smoke.py` 27개도 2회 통과 |
 
 시험을 고친 것은 크게 넷입니다. (1) Linux 가정: `/proc`(PowerShell로 대체), `libX11`, `c++`(없으면 건너뜀), `startswith("/")`(`os.path.isabs`), `signal.SIGKILL`. (2) `default_ozone_platform()`이 Wayland 소켓 경로를 `os.path`로 다루어서 Windows에서 POSIX 경로를 절대 경로로 보지 않던 것을 `posixpath`로 고쳤습니다(Wayland는 Linux입니다). (3) 줄바꿈: git이 CRLF로 체크아웃해서 생성 파일 비교가 실패했습니다. `.gitattributes`로 LF를 고정하고 생성 파일을 다시 만들었습니다. (4) `CHAR` 이벤트(F118)와 아래 F121의 차이입니다. 건너뛴 21개는 Linux나 macOS 전용, Wayland, GPU, `pygame`과 `PyYAML` 없음, `c++` 없음, 그리고 F121의 둘입니다. `c++`가 없는 것은 이 기계에 GCC나 Clang이 없어서이고, 그 시험 4개(생성된 C++ 컴파일)는 Windows에서 돌려 보지 못했습니다.
 

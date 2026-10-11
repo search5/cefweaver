@@ -1772,6 +1772,8 @@ adapter.run_until(lambda: adapter.picture and "start" in titles, "the page")
 adapter.run_for(0.3)
 width, height, _ = adapter.picture
 assert (width, height) == (300, 220), (width, height)
+# (the first picture can be a white one: wait until the page is painted, as the key says)
+adapter.run_until(lambda: adapter.pixel(250, 10)[:3] == (0, 255, 0), "the green of the page (pixel %r)" % (adapter.pixel(250, 10),))
 assert adapter.pixel(250, 10)[:3] == (0, 255, 0), adapter.pixel(250, 10)         # the green of the page
 assert any(state[0] is False for state in loading), loading
 

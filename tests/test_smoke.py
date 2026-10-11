@@ -99,7 +99,7 @@ def run_cef(script, timeout=90, ozone="x11", without=()):
     # Everything the run makes (the CEF cache, files of the script) goes into one directory
     # that is removed afterwards: hundreds of runs would fill /tmp otherwise.
     # (Windows: a child process of CEF may still hold a file of the cache for a moment after the script ended.)
-    with tempfile.TemporaryDirectory(prefix="cefweaver-run-", ignore_cleanup_errors=True) as scratch:
+    with tempfile.TemporaryDirectory(prefix="cefweaver-run-", ignore_cleanup_errors=sys.platform == "win32") as scratch:
         env = {k: v for k, v in os.environ.items() if k not in without}
         env["TMPDIR"] = env["TEMP"] = env["TMP"] = scratch  # TMPDIR: POSIX, TEMP and TMP: Windows
         return subprocess.run([sys.executable, "-I", "-c", code], capture_output=True,
@@ -5289,7 +5289,7 @@ class WithCef(unittest.TestCase):
     def test_the_root_cache_path_holds_the_profile_data_and_the_cache_path_lies_within(self):
         import os
         import tempfile as temporary
-        with temporary.TemporaryDirectory(prefix="cefweaver-root-") as root:
+        with temporary.TemporaryDirectory(prefix="cefweaver-root-", ignore_cleanup_errors=sys.platform == "win32") as root:   # (Windows: CEF still holds chrome_debug.log)
             profile = os.path.join(root, "profile")
             self.run_osr_script("""
                 app.settings.root_cache_path = %r
@@ -5303,7 +5303,7 @@ class WithCef(unittest.TestCase):
                 self.assertTrue(os.path.isdir(profile), os.listdir(root))
             self.assertTrue(os.path.exists(os.path.join(root, "Local State")), os.listdir(root))
             self.assertTrue(os.path.isdir(os.path.join(root, "Default")), os.listdir(root))
-        with temporary.TemporaryDirectory(prefix="cefweaver-root-") as root:
+        with temporary.TemporaryDirectory(prefix="cefweaver-root-", ignore_cleanup_errors=sys.platform == "win32") as root:
             self.run_osr_script("""
                 app.settings.root_cache_path = %r            # no cache path of its own: the root
                 start(RED)
@@ -5371,7 +5371,7 @@ class WithCef(unittest.TestCase):
 
     def test_session_cookies_survive_a_restart_only_when_asked_to(self):
         import tempfile as temporary
-        with temporary.TemporaryDirectory(prefix="cefweaver-profile-") as profile:
+        with temporary.TemporaryDirectory(prefix="cefweaver-profile-", ignore_cleanup_errors=sys.platform == "win32") as profile:
             def run(persist, write):
                 return self.run_osr_script("""
                     app.set_cache_path(%r)
@@ -5671,7 +5671,12 @@ class WithCef(unittest.TestCase):
                     wait_until(app, lambda: js, "the value")
                     if expected is None or js[-1][1:] == expected or time.time() > end:
                         return js[-1][1:]
+            settle = time.time() + 0.5                             # the x keys still on their way (input and script take different paths)
+            while time.time() < settle:
+                app.do_message_loop_work()
+                time.sleep(0.005)
             app.execute_javascript("i.value = ''")
+            assert value(("", 0)) == ("", 0), value()              # the clear has arrived before the keys are sent
             for code, char in ((65, 97), (66, 98), (67, 99)):      # a b c
                 press(code, char)
             assert value(("abc", 3)) == ("abc", 3), value()
