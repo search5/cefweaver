@@ -721,3 +721,6 @@
 
 ## [2026-10-12] ingest | manylinux_2_28 wheel(Linux x86_64) 확인
 - manylinux_2_28 컨테이너에서 wheel을 만들고 `auditwheel repair --exclude`로 태그를 붙여 glibc 2.28(AlmaLinux 8)에서 `test_smoke.py`를 돌렸습니다([F122](pages/reference/verified-findings-opened.md), [packaging](pages/components/packaging.md)). aarch64와 다른 Python 버전, 워크플로우 반영은 아직입니다.
+
+## [2026-10-12] ingest | abi3 wheel 시험(Linux x86_64)
+- 사본에서 `USE_SABI 3.11`과 `wheel.py-api = "cp311"`로 abi3 wheel을 만들어 3.11~3.14에서 시험했습니다([F123](pages/reference/verified-findings-opened.md)). 저장소의 빌드 설정은 바꾸지 않았고, `tests/test_ui.py`의 `XFlush.argtypes` 누락(3.11에서 세그멘테이션 오류)만 고쳤습니다.

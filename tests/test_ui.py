@@ -2169,6 +2169,7 @@ def send_delete_window(window):
     import ctypes
     x = ctypes.CDLL("libX11.so.6")
     x.XOpenDisplay.restype = ctypes.c_void_p
+    x.XFlush.argtypes = [ctypes.c_void_p]     # without it the display pointer is passed as a 32-bit int and Xlib crashes
     x.XInternAtom.restype = ctypes.c_ulong
     x.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
     x.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.c_void_p]

@@ -154,6 +154,14 @@ updated: 2026-10-11
 - **glibc 2.28에서의 실행**: AlmaLinux 8(glibc 2.28)에서 그 wheel을 Python 3.13에 설치해 `test_smoke.py` 226개를 돌렸습니다. 처음에는 `openssl` 명령이 없어 시험 몇 개가 실패했고(설치해서 해소), 한 번은 `test_images_and_local_storage_can_be_turned_off` 하나만 실패했습니다(GPU 프로세스가 `GLX is not present`로 종료, 그림이 하나도 그려지지 않음). Mesa(GL) 패키지를 설치하고 그 시험만 다시 돌리면 통과했습니다. Mesa를 설치한 상태로 전체를 다시 돌리지는 않았습니다.
 - **확인하지 못한 것**: aarch64, `manylinux_2_28`보다 낮은 glibc의 배포판(Ubuntu 18.04 등은 glibc 2.27로 제외됨), Python 3.11/3.12/3.14, 시스템 라이브러리가 없는 최소 배포판에서의 오류 메시지, PyPI 크기 제한. 이 디스크 여유가 3GB 안팎이라 빌드 디렉터리와 캐시를 tmpfs에 두었습니다.
 
+## F123. abi3 wheel 시험 (Linux x86_64, 2026-10-12)
+
+- **목적**: Python 버전마다 wheel을 따로 내지 않고 플랫폼마다 하나만 내는 `abi3`(안정 ABI)가 가능한지 봅니다(CEF 런타임이 wheel마다 중복되는 용량 문제).
+- **변경**: `git archive`로 내보낸 사본에서만 고쳤습니다. `cmake/CefweaverExtension.cmake`에서 `find_package(Python ... Development.SABIModule)`와 `Python_add_library(_cefweaver MODULE USE_SABI 3.11 WITH_SOABI ...)`, `pyproject.toml`의 `[tool.scikit-build]`에 `wheel.py-api = "cp311"`을 더했습니다(저장소에는 반영하지 않음).
+- **결과**: Cython 3.3.0이 생성한 `_cefweaver.cpp`가 `Py_LIMITED_API`가 정의되면 `CYTHON_LIMITED_API`를 켭니다. 그대로 컴파일되어 `cefweaver-0.1.0-cp311-abi3-linux_x86_64.whl`(156.1MB, 확장 `_cefweaver.abi3.so`)이 만들어졌고 크기는 일반 cp311 wheel(156.2MB)과 같습니다. 이 wheel 하나를 Python 3.11.14, 3.12.12, 3.13.11, 3.14.4에 설치해 `import cefweaver`가 모두 되었고, 전체 시험(547개)이 3.12, 3.13, 3.14에서 `OK`(건너뜀 10, 예상된 실패 3)였습니다.
+- **3.11**: 첫 전체 실행이 `test_ui.py`의 `send_delete_window`에서 세그멘테이션 오류로 끝났습니다. 일반 cp311 wheel에서도 같았으므로 abi3와 무관한 시험의 결함이었습니다(`ctypes`로 부른 `XFlush`에 `argtypes`가 없어 디스플레이 포인터가 32비트 정수로 넘어감). `x.XFlush.argtypes = [ctypes.c_void_p]`를 더해 고쳤습니다. 고친 뒤 전체 실행은 `test_a_second_offscreen_browser_paints_on_its_own_and_the_first_is_unaffected` 하나가 첫 프레임이 비어 실패했지만, 그 시험만 abi3 wheel에서 6번, 일반 cp311 wheel에서 6번 돌리면 모두 통과했습니다. 전체 실행 중에 한 번 나온 간헐적 실패로 보며 원인은 확인하지 못했습니다.
+- **확인하지 못한 것**: macOS와 Windows의 abi3 빌드, abi3로 바뀐 뒤의 성능(limited API는 일부 최적화를 쓰지 못한다고 알려져 있으나 재지 않음), `on_paint` 같은 `memoryview` 경로의 부담, 3.15 이후의 동작, 3.11 미만(지원하지 않음).
+
 ## 관련 페이지
 
 - [열지 않은 CEF 메서드와 cefpython의 비교](../analyses/unopened-cef-api.md)
