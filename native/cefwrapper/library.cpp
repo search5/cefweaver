@@ -24,12 +24,12 @@ namespace {
 
 // Paths cross into CEF as UTF-8 (CefString). On Windows path::string() is the ANSI code page, which
 // loses non-ASCII characters (a user name, for example).
-std::string PathToUtf8(const std::filesystem::path& path) {
+[[maybe_unused]] std::string PathToUtf8(const std::filesystem::path& path) {
   const std::u8string text = path.u8string();
   return std::string(text.begin(), text.end());
 }
 
-std::filesystem::path PathFromUtf8(const std::string& text) {
+[[maybe_unused]] std::filesystem::path PathFromUtf8(const std::string& text) {
   return std::filesystem::path(std::u8string(text.begin(), text.end()));
 }
 

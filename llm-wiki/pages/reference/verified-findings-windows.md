@@ -41,7 +41,7 @@ Windows 지원을 더하며 실제로 빌드하고 실행해서 확인한 기록
 
 설치한 wheel에서 `import cefweaver`가 처음에는 `ModuleNotFoundError: fcntl`(`texture.py`)로 실패했습니다. `fcntl`을 Windows에서 가져오지 않게 하고 `read_plane()`은 `NotImplementedError`를 내게 했습니다. 그 뒤 `cefweaver.get_version()`이 `Version(cefweaver='0.1.0', cef_major=154, ...)`를 돌려주었습니다. `libcef.dll`은 지연 적재라서 `__init__.py`가 전체 경로로 먼저 올립니다.
 
-생성된 코드가 `cef_window_handle_t`를 `unsigned long`(Windows에서 32비트)으로 선언해서 포인터 크기 HWND를 자른다는 경고(`C4311`)가 났습니다. `tools/gen/emit_cython.py`가 `uintptr_t`로 선언하게 고치고 다시 생성했습니다. **이 변경을 Linux와 macOS에서는 빌드해 보지 않았습니다**(두 곳에서 `uintptr_t`는 `unsigned long` 또는 포인터와 같은 폭이라 달라지지 않을 것으로 보지만 확인하지 못했습니다).
+생성된 코드가 `cef_window_handle_t`를 `unsigned long`(Windows에서 32비트)으로 선언해서 포인터 크기 HWND를 자른다는 경고(`C4311`)가 났습니다. `tools/gen/emit_cython.py`가 `uintptr_t`로 선언하게 고치고 다시 생성했습니다. **이 변경을 Linux와 macOS에서는 빌드해 보지 않았습니다**(두 곳에서 `uintptr_t`는 `unsigned long` 또는 포인터와 같은 폭이라 달라지지 않을 것으로 보지만 확인하지 못했습니다). 그 뒤 Linux x86_64에서 확인했습니다(2026-10-11): `generate.py --check`는 최신이었고, 병합한 트리의 wheel 빌드는 `library.cpp`의 `PathToUtf8`과 `PathFromUtf8`이 Linux에서 쓰이지 않아 `-Werror=unused-function`으로 실패했습니다. 두 함수에 `[[maybe_unused]]`를 붙이자 빌드가 되고 시험 547개가 통과했습니다(건너뜀 10개, 예상된 실패 3개). macOS는 빌드해 보지 못했습니다.
 
 ## F117. 시험 결과
 

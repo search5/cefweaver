@@ -706,3 +706,6 @@
 - **동결(F120)**: PyInstaller(onedir, onefile), cx_Freeze, py2exe로 최소 앱과 `smoke.py`를 묶어 모두 통과했습니다. py2exe는 CEF 런타임 파일을 손으로 복사해야 하고, 그를 위해 `__init__.py`의 `add_dll_directory`에 가드를 더했습니다([앱 묶기](pages/procedures/freeze-app.md)).
 - 그 밖: `.gitattributes`(LF 고정), `.github/workflows/build-test.yml`에 Windows 선택지(돌려 보지 못함), `pyproject.toml`의 `pywin32` extra, `docs/`와 `README.rst`와 `CLAUDE.md`의 Windows 서술, `tools/prepare.py`의 안내문. 영향받은 위키 페이지: platform-support, runtime-layout, packaging, root-cmake, native-cefsubprocess, cython-extension, legacy-code, lifecycle-and-message-loop, architecture-overview, known-constraints, design-decisions, glossary, freeze-app, build-and-install, run-tests, tests, toolkit-examples, ui-api, tool-prepare, beyond-java-cef, cefpython-comparison, scikit-build-core-prototype.
 - 커밋하지 않았습니다(작업 트리에 남아 있음).
+
+## [2026-10-11] ingest | Windows 병합 뒤 Linux 빌드 확인과 고침
+- Windows 지원 커밋(`7b78cb7`)을 받은 트리를 Linux에서 빌드하니 `library.cpp`의 Windows용 경로 변환 함수가 쓰이지 않아 `-Werror`로 실패했습니다. `[[maybe_unused]]`를 붙여 고쳤고, 그 wheel로 시험 547개가 통과했으며 `generate.py --check`도 최신이었습니다([F116](pages/reference/verified-findings-windows.md)). macOS는 확인하지 못했습니다.
