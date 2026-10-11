@@ -641,3 +641,7 @@
 ## [2026-10-11] ingest | Chromecast STOP과 경로 종료 재확인
 
 - `STOP`에는 `message: null`과 `sequenceNumber`를 담은 확인 메시지만 오고 `IDLE` 상태는 오지 않았습니다. `GET_STATUS`는 응답이 없었습니다. `terminate()` 뒤 `on_routes`는 약 1초 만에 비었고 앞서의 지연은 재현하지 못했습니다([F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | Chromecast STOP의 화면 효과
+
+- `집`에서 `STOP`을 보내면 사용자가 보는 화면이 곧바로 사진 화면(기본 화면)으로 돌아갔고 20초의 `terminate()` 뒤에도 그대로였습니다. `STOP`은 상태 메시지로는 알려지지 않았습니다([F114](pages/reference/verified-findings-opened.md)).
