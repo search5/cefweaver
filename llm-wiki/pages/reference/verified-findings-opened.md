@@ -146,6 +146,14 @@ updated: 2026-10-11
 - 시험은 환경이 한국어일 때만 언어를 확인하도록 바꿨고, `Settings.locale` 설명도 고쳤습니다. 다른 방법(명령줄 스위치, 요청 컨텍스트의 `accept_language_list`)으로 `locale`이 페이지 언어에 반영되게 할 수 있는지는 시험하지 않았습니다. macOS에서는 확인하지 않았습니다.
 - 같은 첫 실행에서 macOS(macos-14 러너)는 시험 3개가 더 실패했습니다. 원인을 시험 코드와 로그로 따져 고친 것은 두 개입니다: IO 스레드 지연 작업은 느린 러너에서 반복문이 300ms를 넘겨 "너무 일찍 실행됨"으로 잘못 판정하던 것이고, 요청 컨텍스트 핸들러는 `get_resource_request_handler`가 불린 직후에 `on_before_resource_load`의 기록을 기다리지 않고 바로 확인하던 것입니다(`wait_until`로 바꿈). 두 수정은 Linux에서만 통과를 확인했고 macOS에서는 다시 돌려 봐야 압니다. 한국어 조합 밑줄 시험은 `assert thick > thin`이 `(thin, thick) = (175, 169)`로 실패했습니다(굵은 선의 픽셀이 더 적게 나옴). 러너의 렌더링 차이로 보이나 원인을 확인하지 못했고 고치지 않았습니다.
 
+## F122. manylinux_2_28 wheel (Linux x86_64) (2026-10-12)
+
+- **환경**: `quay.io/pypa/manylinux_2_28_x86_64`(AlmaLinux 8, gcc 14.2). 저장소는 `git archive HEAD`로 내보내고 CEF 배포본(`build/native/cef`)은 읽기 전용으로 마운트했습니다. 컨테이너에 `libX11-devel`과 `libcef.so`가 필요로 하는 시스템 라이브러리(nss, nspr, atk, cups-libs, mesa-libgbm, alsa-lib 등)를 `yum`으로 설치해야 `cefsubprocess`가 링크됩니다(wheel에는 묶이지 않음). `CEF_ROOT=/cef uv build --wheel --python /opt/python/cp313-cp313/bin/python`으로 약 3분에 `linux_x86_64` wheel(156MB)이 만들어졌습니다.
+- **glibc**: 호스트(Ubuntu, glibc 2.43)에서 만든 binary는 `GLIBC_2.38`을 요구했지만(`libcef.so`는 2.25), 컨테이너에서 만든 wheel은 `auditwheel show`가 "manylinux_2_28로 제한됨"이라고 판정했습니다.
+- **repair**: `auditwheel repair --plat manylinux_2_28_x86_64`에 `libcef.so`의 시스템 라이브러리 22개를 `--exclude`로 주면 라이브러리를 묶지 않고(크기 156.1MB 그대로) 태그만 `manylinux_2_26_x86_64.manylinux_2_28_x86_64`로 바뀝니다. 제외한 것: nspr4, nss3, nssutil3, smime3, gio-2.0, atk-1.0, atk-bridge-2.0, dbus-1, cups, Xcomposite, Xdamage, Xfixes, Xrandr, gbm, expat, xcb, xkbcommon, cairo, pango-1.0, udev, asound, atspi.
+- **glibc 2.28에서의 실행**: AlmaLinux 8(glibc 2.28)에서 그 wheel을 Python 3.13에 설치해 `test_smoke.py` 226개를 돌렸습니다. 처음에는 `openssl` 명령이 없어 시험 몇 개가 실패했고(설치해서 해소), 한 번은 `test_images_and_local_storage_can_be_turned_off` 하나만 실패했습니다(GPU 프로세스가 `GLX is not present`로 종료, 그림이 하나도 그려지지 않음). Mesa(GL) 패키지를 설치하고 그 시험만 다시 돌리면 통과했습니다. Mesa를 설치한 상태로 전체를 다시 돌리지는 않았습니다.
+- **확인하지 못한 것**: aarch64, `manylinux_2_28`보다 낮은 glibc의 배포판(Ubuntu 18.04 등은 glibc 2.27로 제외됨), Python 3.11/3.12/3.14, 시스템 라이브러리가 없는 최소 배포판에서의 오류 메시지, PyPI 크기 제한. 이 디스크 여유가 3GB 안팎이라 빌드 디렉터리와 캐시를 tmpfs에 두었습니다.
+
 ## 관련 페이지
 
 - [열지 않은 CEF 메서드와 cefpython의 비교](../analyses/unopened-cef-api.md)

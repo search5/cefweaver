@@ -63,6 +63,11 @@ updated: 2026-10-11
 - 첫 실행에서는 위키 점검 시험이 `/home/jiho/...`를 가리키는 링크 하나 때문에 실패해서 한동안 환경 변수로 건너뛰었습니다. 2026-10-12에 그 링크를 인라인 코드로 바꾸고 `lint.py`가 저장소 밖을 가리키는 링크를 오류로 보게 해서, 지금은 CI에서도 이 시험이 돌아갑니다. 첫 실행(2026-10-11)에서 Linux는 빌드와 설치가 통과했고 시험 546개 중 2개(위키 점검, locale 시험)가, macOS는 4개(위키 점검과 시험 3개)가 실패했습니다. Linux의 locale 시험은 [F115](../reference/verified-findings-opened.md)로 원인을 확인해 고쳤고, macOS의 시험 두 개는 시간 가정을 고쳤습니다. 수정 뒤 실행(2026-10-11, `38122943773`)은 Linux 5분 11초, macOS 17분 8초에 546개가 모두 통과했습니다(건너뜀 각각 136개, 141개, 예상된 실패 3개). wheel은 산출물로 보관되었습니다(Linux 약 155MB, macOS 약 147MB). 고치지 않은 macOS의 한국어 조합 밑줄 시험은 이번에 통과했지만 이전 실패의 원인은 확인하지 못했습니다.
 - 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 
+## manylinux (Linux x86_64만 확인)
+
+- 호스트에서 만든 wheel은 태그가 `linux_x86_64`이고 `GLIBC_2.38`을 요구해 PyPI에 올릴 수 없습니다. manylinux_2_28 컨테이너에서 빌드하고 `auditwheel repair --exclude`(시스템 라이브러리 22개)로 태그를 붙이면 glibc 2.28(AlmaLinux 8)에서 시험이 통과합니다. 절차와 제외 목록은 [F122](../reference/verified-findings-opened.md)에 있습니다.
+- 아직 워크플로우에는 반영하지 않았습니다. aarch64, Windows ARM64, macOS x86_64, 여러 Python 버전과 PyPI의 크기 제한(wheel 약 155MB, 조합이 늘면 한 릴리스가 수 GB)은 계획 단계입니다.
+
 ## 관련 페이지
 
 - [런타임 파일 배치](../concepts/runtime-layout.md)

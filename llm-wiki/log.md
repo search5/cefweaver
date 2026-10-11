@@ -718,3 +718,6 @@
 
 ## [2026-10-12] schema | 저장소 밖을 가리키는 링크를 오류로 보고 CI의 위키 점검 건너뜀을 없앰
 - 위키 점검 시험이 다른 컴퓨터에서 깨지던 원인은 `offscreen-rendering.md`의 `/home/jiho/...` 링크 하나였습니다(나머지 13곳은 인라인 코드). 그 링크를 인라인 코드로 바꾸고, `lint.py`가 저장소 밖을 가리키는 링크를 오류로 알리게 했으며([SCHEMA](SCHEMA.md)에 규칙 추가), `CEFWEAVER_SKIP_WIKI_LINT`(시험과 워크플로우)를 지웠습니다.
+
+## [2026-10-12] ingest | manylinux_2_28 wheel(Linux x86_64) 확인
+- manylinux_2_28 컨테이너에서 wheel을 만들고 `auditwheel repair --exclude`로 태그를 붙여 glibc 2.28(AlmaLinux 8)에서 `test_smoke.py`를 돌렸습니다([F122](pages/reference/verified-findings-opened.md), [packaging](pages/components/packaging.md)). aarch64와 다른 Python 버전, 워크플로우 반영은 아직입니다.
