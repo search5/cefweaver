@@ -163,3 +163,6 @@ cefweaver/cefsubprocess.app/
 
 # SwiftUI example binary
 examples/swiftui/CefSwiftUI
+
+# The manifests of cefsubprocess.exe (mt.exe embeds them; the Windows build fails without them)
+!native/cefsubprocess/*.manifest
