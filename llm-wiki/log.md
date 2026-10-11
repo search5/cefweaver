@@ -633,3 +633,7 @@
 ## [2026-10-11] ingest | 실제 Chromecast로 미디어 라우터 확인
 
 - 사용자가 이 컴퓨터의 네트워크에 있는 Chromecast로 화면을 보내도 된다고 알려 주어, 싱크 검색, 장치 정보, 경로 생성과 종료, 경로 메시지 송수신을 확인했습니다. `LOAD` 메시지로 이 컴퓨터가 제공한 시험 영상을 보내 장치의 상태가 `PLAYING`을 거쳐 `FINISHED`로 바뀌는 것을 확인했습니다(외부 주소는 `403`이어서 실패). 탭 미러링은 확인하지 못했습니다([F114](pages/reference/verified-findings-opened.md)). `docs/events.md`와 `unopened-cef-api.md`를 고쳤습니다.
+
+## [2026-10-11] ingest | Chromecast 재생 제어 확인
+
+- `집`에서 `PAUSE`, `PLAY`, `SEEK`, `SET_VOLUME`(장치 음량, 음소거)이 동작하는 것을 확인했습니다. 응답의 `requestId`는 CEF가 다시 매기고, 음량은 `DEVICE_UPDATED`로 옵니다. `STOP`, `GET_STATUS`의 응답과 경로 종료가 느려진 원인은 확인하지 못했습니다([F114](pages/reference/verified-findings-opened.md)).

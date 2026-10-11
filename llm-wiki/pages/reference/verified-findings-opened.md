@@ -124,7 +124,14 @@ updated: 2026-10-11
 - **메시지 수신**: `on_route_message_received`가 JSON 바이트(`memoryview`)를 받았습니다: `receiver_action`, `new_session`, `update_session`, `app_message`(멀티존 상태), `v2_message`(`MEDIA_STATUS`).
 - **메시지 송신**: `client_connect` 뒤에 `route.send_route_message()`로 `{"type":"v2_message","clientId":...,"message":{"type":"LOAD","sessionId":<세션>,"media":{"contentId":<주소>,"contentType":"video/mp4","streamType":"BUFFERED"}}}`를 보내면 장치가 `MEDIA_STATUS`로 응답합니다. 네임스페이스로 감싼 형식(`"message":{"namespace":...,"message":{...}}`)으로 보낸 첫 시도에는 LOAD에 대한 응답이 없었습니다.
 - **재생 (외부 주소는 실패, 이 컴퓨터가 제공하면 성공)**: 처음 보낸 외부 주소(`commondatastorage.googleapis.com`의 Big Buck Bunny)는 그날 `403`을 돌려주었고(`curl -I`로 확인), 장치는 `LOADING` 뒤에 `IDLE`(사유 `ERROR`)로 끝났으며 사용자가 장치 화면에서 재생 막대가 잠깐 나왔다가 기본 화면으로 돌아가는 것을 봤습니다. 이 컴퓨터에서 gstreamer로 만든 10초짜리 시험 영상(H.264 baseline, 640x360, 약 219KB)을 HTTP(`http://<이 컴퓨터의 IP>:8765/test.mp4`, CORS와 Range 응답 포함)로 제공해 보내자 장치(다른 IP)가 직접 받아 갔고 상태가 `IDLE`, `BUFFERING`, `PLAYING`, `BUFFERING`, `PLAYING`(10초 위치), `IDLE`(사유 `FINISHED`)로 바뀌었습니다. `집`(Google Nest Hub)에 다시 보냈을 때 사용자가 화면에서 공이 떠다니는 영상을 직접 봤습니다(상태는 `BUFFERING`, `PLAYING`, `IDLE`/`FINISHED`). `욕실`로 보낸 실행은 상태 메시지만 확인했습니다.
-- **확인하지 못한 것**: 정지·탐색·음량 등 재생 제어, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
+- **재생 제어 (`집`, 60초 시험 영상)**: 모두 `v2_message`의 `message`에 `{"type":..., "requestId":..., "sessionId":<세션>}`을 넣어 `send_route_message()`로 보냈습니다. 미디어 메시지(`PLAY`, `PAUSE`, `SEEK`, `STOP`, `GET_STATUS`)에는 `"mediaSessionId":1`을 더했습니다.
+  - `PAUSE`: `MEDIA_STATUS`의 `playerState`가 `PAUSED`(위치 4.7초)가 됐습니다. `PLAY`: 같은 위치에서 `PLAYING`이 됐습니다.
+  - `SEEK`(`currentTime`: 30): `PLAYING`이고 `currentTime`이 30이었습니다.
+  - `SET_VOLUME`(`{"volume":{"level":0.3}}`과 `{"muted":true/false}`): 응답은 `MEDIA_STATUS`가 아니라 멀티존 네임스페이스의 `DEVICE_UPDATED`(장치의 `volume.level`, `muted`)였습니다. `MEDIA_STATUS`의 `volume`은 스트림 음량(`level` 1)으로 따로입니다. 장치의 원래 음량은 0.19였고 시험 뒤에 0.19, 음소거 해제로 되돌렸습니다(`DEVICE_UPDATED`로 확인).
+  - 응답의 `requestId`는 보낸 값(101 등)이 아니라 CEF가 다시 매긴 값(12, 13, 14, 15)이었습니다. 요청과 응답을 `requestId`로 짝짓지 못하므로 상태 변화를 기다리는 방식으로 다뤄야 합니다.
+  - `GET_STATUS`와 `STOP`은 3초 안에 눈에 띄는 응답 메시지가 없었습니다(요약한 것만 봤으므로 응답이 없다고 단정하지 않음).
+  - 경로를 종료한 뒤 `on_routes`가 빈 목록으로 바뀌는 것을 기다리는 부분이 제어 시험의 두 실행(`STOP`을 보낸 실행, 음량만 복구한 실행)에서 시간 안에 끝나지 않았습니다. 이전 실행들은 종료되었습니다. 원인은 조사하지 않았습니다.
+- **확인하지 못한 것**: `STOP`의 효과(장치가 기본 화면으로 돌아가는지), `GET_STATUS` 응답, 경로 종료가 느려진 원인, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
 
 ## 관련 페이지
 
