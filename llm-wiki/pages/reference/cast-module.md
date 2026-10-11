@@ -37,7 +37,12 @@ CEF의 미디어 라우터(`MediaRouter`, `MediaSink`, `MediaRoute`, `MediaObser
 
 ## 확인하지 못한 것
 
-DIAL 싱크(이 네트워크의 40초 검색에서 싱크 세 개가 모두 Cast였고 DIAL 싱크는 없었음), 스피커 그룹(`그룹` 싱크, 실행마다 목록에 있다가 없다가 함), `욕실`(화면 없는 스피커)에서의 재생, 탭 미러링(CEF 소스 `libcef/browser/media_router/media_router_impl.cc`의 `GetSource`가 `http`/`https` URL에 "We don't support tab/desktop mirroring"이라는 주석과 함께 NULL을 돌려줍니다. 2026-10-11에 소스로 확인. 우회 방안은 아래), 장치 전원이나 Wi-Fi가 끊길 때의 상태, `GET_STATUS`(응답이 오지 않음), Chromecast with Google TV 같은 다른 기종, macOS. `client_connect`가 없어도 되는지.
+DIAL 싱크(이 네트워크에 장치가 없어 할 수 없음), 스피커 그룹이 여러 스피커에서 소리를 내는지(`그룹`에 보냈을 때 `욕실` 하나에서만 났음, 구성은 모름), 탭 미러링(CEF 소스 `libcef/browser/media_router/media_router_impl.cc`의 `GetSource`가 `http`/`https` URL에 "We don't support tab/desktop mirroring"이라는 주석과 함께 NULL을 돌려줍니다. 2026-10-11에 소스로 확인. 우회 방안은 아래), 장치 전원이나 Wi-Fi가 끊길 때의 상태, `GET_STATUS`(응답이 오지 않음), Chromecast with Google TV 같은 다른 기종, macOS. `client_connect`가 없어도 되는지.
+
+## 사용할 때 알아 둘 것
+
+- `load()`는 장치의 음량을 바꾸지 않습니다. 두 스피커의 음량이 1.0(최대)이었고 사용자는 꽤 크다고 느꼈습니다. 소리를 낼 때는 `session.volume`(연결 때 읽은 장치 음량)을 확인하고 필요하면 먼저 `set_volume()`으로 낮춥니다.
+- 영상 없는 오디오(MP3)는 `load(url, content_type="audio/mpeg")`로 재생되었고 상태에 `duration`이 담깁니다.
 
 ## 탭 미러링을 하려면 (조사만 했고 만들지 않았습니다)
 
