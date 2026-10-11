@@ -8,7 +8,7 @@ sources:
   - native/cefwrapper/cef_wrapper_render_process_handler.cc
   - cefweaver/renderer_events.py
   - native/cefwrapper/bridge.h
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 실행해서 확인한 남은 API (F102~F112)
@@ -44,7 +44,7 @@ updated: 2026-10-10
 
 ## F106. 미디어 라우터, 구성요소 갱신, 추적, 접근성
 
-- **미디어 라우터**: 이 환경에는 Cast 장치가 없어 싱크와 경로가 0개로 옵니다(`on_sinks`, `on_routes`). 실제 장치와의 동작은 확인하지 못했습니다.
+- **미디어 라우터**: 이 환경에는 Cast 장치가 없어 싱크와 경로가 0개로 옵니다(`on_sinks`, `on_routes`). 실제 장치와의 동작은 이 시험에서 확인하지 못했고, 나중에 직접 확인했습니다([F114](#f114-실제-chromecast로-확인한-미디어-라우터-2026-10-11)).
 - **구성요소 갱신**: `ComponentUpdater.get_components()`는 1개 이상을 돌려주고 각각 ID, 이름, 상태를 읽을 수 있었습니다.
 - **추적**: `begin_tracing`, `end_tracing`이 파일을 쓰고(1,000바이트 넘음) 완료 콜백이 불립니다.
 - **접근성**: `set_accessibility_state(ENABLED)` 뒤에 `AccessibilityHandler.on_accessibility_tree_change`가 사전 값(`ValueType.DICTIONARY`)으로 옵니다. 핸들러는 렌더 핸들러가 줍니다.
@@ -112,6 +112,19 @@ updated: 2026-10-10
 - `uv build --sdist`는 약 1MB의 sdist를 만들었고(361개 항목, `docs/`, `examples/`, `llm-wiki/`, `tests/`, `tools/` 포함), 그 sdist 하나로 `uv build --wheel`이 wheel(156,076,804바이트)을 만들었습니다. `CEF_ROOT`를 주지 않았으므로 CMake가 CEF를 구했는데 어디에서 구했는지는 확인하지 않았습니다.
 - 인자 없는 `uv build`(`CEF_ROOT` 지정)도 sdist 1,062,753바이트와 wheel 156,076,196바이트를 모두 만들었습니다(약 1분 39초).
 - 확인하지 못한 것: macOS 빌드(프레임워크 옵션, `cefsubprocess.app` 조립과 wheel 포함), Windows 전부, CI.
+
+## F114. 실제 Chromecast로 확인한 미디어 라우터 (2026-10-11)
+
+이 컴퓨터가 붙은 네트워크의 실제 Cast 장치로 한 번씩 돌려 본 기록입니다. 자동 시험이 아니고(장치가 있어야 하므로 `tests/`에 넣지 않음), 스크립트는 저장소에 두지 않았습니다. 사용자가 장치에 화면을 보내도 된다고 허락했습니다. Linux x86_64, CEF 154, 가상 X 서버, `app.offscreen`.
+
+- **싱크 검색**: `MediaObserver.on_sinks`에 처음에는 빈 목록이 오고 뒤이어 장치가 나타났습니다(`notify_current_sinks()`를 반복하며 기다림). 이름이 `욕실`, `집`(Google Nest Hub), `그룹`인 싱크가 나타났고(`그룹`의 동작은 보지 않음) 실행마다 목록의 순서가 달랐습니다. `is_cast_sink()`는 True, `is_dial_sink()`는 False, `get_icon_type()`은 열거값이었습니다.
+- **장치 정보**: `sink.get_device_info(콜백)`이 `MediaSinkDeviceInfo(ip_address='192.168.50.120', port=8009, model_name='Google Nest Hub')`를 돌려주었습니다.
+- **소스**: `router.get_source("cast:CC1AD845?clientId=cefweaver1")`(기본 미디어 수신기)는 `is_cast_source()`가 True이고 싱크와 `is_compatible_with`가 True였습니다. 탭 소스 URN은 이전 시험대로 `None`이어서, 탭 화면 미러링은 이 API로 하지 못했습니다(시도하지 않음).
+- **경로 생성과 종료**: `create_route(source, sink, 콜백)`의 콜백에 결과 `1`, 빈 오류, 경로가 왔습니다. `on_route_state_changed`가 `CONNECTED`를 주었고 `route.terminate()` 뒤에 `TERMINATED`가 왔으며 `on_routes`가 빈 목록으로 바뀌었습니다. 장치에는 기본 미디어 수신기가 떴습니다.
+- **메시지 수신**: `on_route_message_received`가 JSON 바이트(`memoryview`)를 받았습니다: `receiver_action`, `new_session`, `update_session`, `app_message`(멀티존 상태), `v2_message`(`MEDIA_STATUS`).
+- **메시지 송신**: `client_connect` 뒤에 `route.send_route_message()`로 `{"type":"v2_message","clientId":...,"message":{"type":"LOAD","sessionId":<세션>,"media":{"contentId":<주소>,"contentType":"video/mp4","streamType":"BUFFERED"}}}`를 보내면 장치가 `MEDIA_STATUS`로 응답합니다. 네임스페이스로 감싼 형식(`"message":{"namespace":...,"message":{...}}`)으로 보낸 첫 시도에는 LOAD에 대한 응답이 없었습니다.
+- **재생 (외부 주소는 실패, 이 컴퓨터가 제공하면 성공)**: 처음 보낸 외부 주소(`commondatastorage.googleapis.com`의 Big Buck Bunny)는 그날 `403`을 돌려주었고(`curl -I`로 확인), 장치는 `LOADING` 뒤에 `IDLE`(사유 `ERROR`)로 끝났으며 사용자가 장치 화면에서 재생 막대가 잠깐 나왔다가 기본 화면으로 돌아가는 것을 봤습니다. 이 컴퓨터에서 gstreamer로 만든 10초짜리 시험 영상(H.264 baseline, 640x360, 약 219KB)을 HTTP(`http://<이 컴퓨터의 IP>:8765/test.mp4`, CORS와 Range 응답 포함)로 제공해 보내자 장치(다른 IP)가 직접 받아 갔고 상태가 `IDLE`, `BUFFERING`, `PLAYING`, `BUFFERING`, `PLAYING`(10초 위치), `IDLE`(사유 `FINISHED`)로 바뀌었습니다. `집`(Google Nest Hub)에 다시 보냈을 때 사용자가 화면에서 공이 떠다니는 영상을 직접 봤습니다(상태는 `BUFFERING`, `PLAYING`, `IDLE`/`FINISHED`). `욕실`로 보낸 실행은 상태 메시지만 확인했습니다.
+- **확인하지 못한 것**: 정지·탐색·음량 등 재생 제어, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
 
 ## 관련 페이지
 

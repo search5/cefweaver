@@ -59,6 +59,6 @@ app.set_app_handler(Hooks())                                         # initializ
 - **개발자 도구**: `browser.get_host().show_dev_tools()`는 자기 창을 엽니다. 닫은 직후에 다시 열면 무시되므로 잠깐 `do_message_loop_work()`를 돈 뒤에 엽니다.
 - **공유 메모리 메시지**: `SharedProcessMessageBuilder.write()`와 `SharedMemoryRegion.to_bytes()`는 바이트를 복사해서 주고받습니다.
 - **추적**: `begin_tracing()`과 `end_tracing(파일, 콜백)`.
-- **미디어 라우터와 구성요소 갱신**: `request_context.get_media_router()`, `ComponentUpdater`. Cast 장치가 없는 환경에서만 확인했습니다(싱크와 경로가 0개).
+- **미디어 라우터와 구성요소 갱신**: `request_context.get_media_router()`, `ComponentUpdater`. 시험은 Cast 장치가 없는 환경 기준(싱크와 경로가 0개)입니다. 따로 실제 Chromecast(Google Nest Hub 등)로 싱크 검색, 장치 정보, 경로 생성과 종료, 경로 메시지 송수신, 미디어 재생(`LOAD` 뒤 `PLAYING`과 `FINISHED`)을 한 번 확인했습니다(자동 시험은 아니고 장치가 있어야 합니다). 탭 화면 미러링은 확인하지 않았습니다.
 
 `CefIsRTL`에 해당하는 `is_rtl()`처럼 CEF를 시작하기 전에 부르면 프로세스가 죽는 함수는, 시작 전에 부르면 `RuntimeError`가 납니다.

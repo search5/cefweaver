@@ -629,3 +629,7 @@
 ## [2026-10-11] ingest | 빌드 체계를 scikit-build-core로 전환 (A안, Linux)
 
 - `setup.py`와 `MANIFEST.in`을 삭제하고 `pyproject.toml`의 백엔드를 scikit-build-core로 바꿨습니다. 확장 모듈과 wheel 내용(런타임, `cefsubprocess`, `libcef.so` strip)은 `cmake/CefweaverExtension.cmake`가 맡고, `tools/prepare.py`는 Linux에서 스테이징을 하지 않고 이전 결과만 지웁니다(`--no-strip` 삭제). Linux에서 wheel 빌드, 시험 532개, sdist 빌드를 확인했고 macOS와 Windows는 확인하지 못했습니다([F113](pages/reference/verified-findings-opened.md)). 갱신한 페이지: packaging, cython-extension, build-and-install, tool-prepare, runtime-layout, architecture-overview, platform-support, design-decisions, known-constraints, glossary, source-tree-map, native-cefsubprocess와 `docs/installation.md`, `README.rst`, `CLAUDE.md`.
+
+## [2026-10-11] ingest | 실제 Chromecast로 미디어 라우터 확인
+
+- 사용자가 이 컴퓨터의 네트워크에 있는 Chromecast로 화면을 보내도 된다고 알려 주어, 싱크 검색, 장치 정보, 경로 생성과 종료, 경로 메시지 송수신을 확인했습니다. `LOAD` 메시지로 이 컴퓨터가 제공한 시험 영상을 보내 장치의 상태가 `PLAYING`을 거쳐 `FINISHED`로 바뀌는 것을 확인했습니다(외부 주소는 `403`이어서 실패). 탭 미러링은 확인하지 못했습니다([F114](pages/reference/verified-findings-opened.md)). `docs/events.md`와 `unopened-cef-api.md`를 고쳤습니다.

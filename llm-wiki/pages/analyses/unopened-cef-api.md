@@ -6,7 +6,7 @@ sources:
   - tools/gen/report.py
   - cefweaver/_cefweaver.pyi
   - llm-wiki/pages/reference/coverage-report.md
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 열지 않은 CEF 메서드와 cefpython의 비교
@@ -119,7 +119,7 @@ cefpython에는 CEF 클래스별 목록이 없어서 두 곳에서 뽑았습니�
 ### 열 수 있지만 실익이 낮거나 동작이 불확실한 것
 
 - **Chrome 스타일 전용**: `CommandHandler`(5, `OnChromeCommand` 등), `ComponentUpdater`와 `Component`(10). 우리는 Alloy 스타일을 써서 불리지 않을 가능성이 큼(미확인).
-- ~~**미디어 라우터(캐스트)**~~ **열었음**(2026-10-10, 실제 장치와 동작은 미확인)(`MediaRouter`, `MediaRoute`, `MediaSink`, `MediaSource`, `MediaObserver`, 콜백 약 27개): 타입은 막힘 없음, 실제 장치와 동작은 미확인.
+- ~~**미디어 라우터(캐스트)**~~ **열었음**(2026-10-10, 실제 Chromecast로 일부 확인 2026-10-11, F114)(`MediaRouter`, `MediaRoute`, `MediaSink`, `MediaSource`, `MediaObserver`, 콜백 약 27개): 타입은 막힘 없음. 실제 장치로 확인한 범위는 F114에 있습니다.
 - **파이썬이 이미 대신하는 것**: `TaskRunner`(7), `WaitableEvent`(6), `Thread`(5)는 `threading`, 파일과 경로 함수는 `os`와 `pathlib`, `CefBase64*`와 `CefURI*`는 `base64`와 `urllib`, `CefParseJSON`과 `CefWriteJSON`은 `json`, `CefParseURL`, `CefCreateURL`, `CefResolveURL`은 `urllib.parse`, `CefZipDirectory`는 `zipfile`, `XmlReader`는 `xml`.
 
 ### 열지 않는 것 (구조상 불가능이거나 의도적)
