@@ -727,3 +727,9 @@
 
 ## [2026-10-12] ingest | abi3를 저장소 빌드 설정에 반영
 - `pyproject.toml`에 `wheel.py-api = "cp311"`, `CefweaverExtension.cmake`에 `USE_SABI 3.11`과 `Development.SABIModule`을 더했습니다. 저장소에서 만든 `cp311-abi3-linux_x86_64` wheel로 3.14 전체 시험 547개가 통과했습니다([packaging](pages/components/packaging.md), [F123](pages/reference/verified-findings-opened.md)). macOS와 Windows는 확인하지 못했습니다.
+
+## [2026-10-12] ingest | CI의 Linux 빌드를 manylinux_2_28 컨테이너로 변경 (미실행)
+`build-test.yml`의 Linux 빌드가 manylinux_2_28 컨테이너에서 `uv build`와 `auditwheel repair --exclude`를 하도록 바꿨다. 제외 목록의 soname은 F122에서 추정했고 Actions에서는 아직 돌리지 않았다. `packaging.md`에 반영.
+
+## [2026-10-12] ingest | CI 전체 실행 결과와 Windows 기준
+전체 실행 38157822305의 결과(Linux 통과, macOS 1개, Windows 8개 실패)와, 원인을 가리기 전까지 Windows는 빌드와 설치 성공만 릴리스 기준으로 삼는다는 결정을 `packaging.md`에 기록.

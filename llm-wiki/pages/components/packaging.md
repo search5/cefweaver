@@ -61,6 +61,7 @@ updated: 2026-10-11
 - `.github/workflows/build-test.yml`은 수동 실행(`workflow_dispatch`) 전용입니다. 입력은 `platform`(both, linux, macos), `python-version`(3.13), `run-tests`, `upload-wheel`이고, ubuntu-24.04와 macos-14에서 `uv build --wheel`로 wheel을 만들어 설치한 뒤 시험하고 wheel을 산출물로 보관합니다.
 - macOS 분기를 맡은 세션이 작성해 로컬 커밋으로만 두었고, 이 저장소에서 받아 옮겼습니다. 아직 GitHub에서 실행해 보지 못했고(YAML 구조만 확인), Linux의 apt 패키지 목록은 짐작한 것입니다. Windows 실행(`platform`에 `windows`와 `all`, 러너 `windows-2025`)은 2026-10-11에 더했지만 **GitHub에서 돌려 보지 못했습니다.** wheel은 `.venv-test\Scripts\python.exe`로 설치하고 시험은 `xvfb-run` 없이 돕니다.
 - 첫 실행에서는 위키 점검 시험이 `/home/jiho/...`를 가리키는 링크 하나 때문에 실패해서 한동안 환경 변수로 건너뛰었습니다. 2026-10-12에 그 링크를 인라인 코드로 바꾸고 `lint.py`가 저장소 밖을 가리키는 링크를 오류로 보게 해서, 지금은 CI에서도 이 시험이 돌아갑니다. 첫 실행(2026-10-11)에서 Linux는 빌드와 설치가 통과했고 시험 546개 중 2개(위키 점검, locale 시험)가, macOS는 4개(위키 점검과 시험 3개)가 실패했습니다. Linux의 locale 시험은 [F115](../reference/verified-findings-opened.md)로 원인을 확인해 고쳤고, macOS의 시험 두 개는 시간 가정을 고쳤습니다. 수정 뒤 실행(2026-10-11, `38122943773`)은 Linux 5분 11초, macOS 17분 8초에 546개가 모두 통과했습니다(건너뜀 각각 136개, 141개, 예상된 실패 3개). wheel은 산출물로 보관되었습니다(Linux 약 155MB, macOS 약 147MB). 고치지 않은 macOS의 한국어 조합 밑줄 시험은 이번에 통과했지만 이전 실패의 원인은 확인하지 못했습니다.
+- 전체 실행(`38157822305`, 2026-10-11)에서 Linux는 547개가 모두 통과했고, macOS는 한국어 조합 밑줄 시험 1개, Windows는 8개(페이지의 JavaScript 응답, 대화 상자, 화면 배율, 찾기 등을 기다리다 시간 초과)가 실패했습니다. Windows 러너에는 실제 데스크톱과 GPU가 없을 수 있다는 것은 추정이고, abi3 때문인지 러너 때문인지는 가리지 못했습니다(개발 컴퓨터에서 abi3 wheel로 같은 시험을 돌려 보는 것이 필요함). 그때까지 Windows는 **빌드와 wheel 설치의 성공만 릴리스 기준**으로 삼고, 시험 결과는 참고로만 봅니다.
 - 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 
 ## abi3 (Linux x86_64만 확인)
@@ -71,7 +72,7 @@ updated: 2026-10-11
 ## manylinux (Linux x86_64만 확인)
 
 - 호스트에서 만든 wheel은 태그가 `linux_x86_64`이고 `GLIBC_2.38`을 요구해 PyPI에 올릴 수 없습니다. manylinux_2_28 컨테이너에서 빌드하고 `auditwheel repair --exclude`(시스템 라이브러리 22개)로 태그를 붙이면 glibc 2.28(AlmaLinux 8)에서 시험이 통과합니다. 절차와 제외 목록은 [F122](../reference/verified-findings-opened.md)에 있습니다.
-- 아직 워크플로우에는 반영하지 않았습니다. aarch64, Windows ARM64, macOS x86_64, 여러 Python 버전과 PyPI의 크기 제한(wheel 약 155MB, 조합이 늘면 한 릴리스가 수 GB)은 계획 단계입니다.
+- 2026-10-12에 `build-test.yml`의 Linux 빌드 단계를 이 컨테이너 절차로 바꿨습니다(yum 패키지 설치, `uv build`, `auditwheel repair --exclude`). 제외 목록은 F122의 이름에 `.so`, `.so.0`, `.so.1`, `.so.2`를 붙여 만든 것이라 **GitHub에서 돌려 보지 못했습니다.** 시험은 호스트(ubuntu-24.04)에 설치해서 합니다. aarch64, Windows ARM64, macOS x86_64, 여러 Python 버전과 PyPI의 크기 제한(wheel 약 155MB, 조합이 늘면 한 릴리스가 수 GB)은 계획 단계입니다.
 
 ## 관련 페이지
 

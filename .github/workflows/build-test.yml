@@ -62,7 +62,31 @@ jobs:
             libasound2t64 libgtk-3-0t64
 
       - name: Build the wheel
+        if: matrix.name != 'linux'
         run: uv build --wheel --python ${{ inputs.python-version }} -o dist
+
+      # Linux: build in the manylinux_2_28 container (glibc 2.28) and tag the wheel with auditwheel.
+      # The system libraries libcef.so needs are excluded on purpose, so the wheel does not carry them.
+      - name: Build the wheel (Linux, manylinux_2_28)
+        if: matrix.name == 'linux'
+        run: |
+          mkdir -p dist
+          docker run --rm -v "$PWD":/src -w /src quay.io/pypa/manylinux_2_28_x86_64 bash -euxc '
+            yum install -y libX11-devel nss nspr atk at-spi2-atk cups-libs libdrm mesa-libgbm libxkbcommon \
+              libXcomposite libXdamage libXfixes libXrandr pango alsa-lib gtk3
+            PY=/opt/python/cp313-cp313/bin
+            $PY/pip install uv
+            $PY/uv build --wheel --python $PY/python -o /tmp/raw
+            EXCLUDES=""
+            for lib in libnspr4 libnss3 libnssutil3 libsmime3 libgio-2.0 libatk-1.0 libatk-bridge-2.0 libdbus-1 \
+                       libcups libXcomposite libXdamage libXfixes libXrandr libgbm libexpat libxcb libxkbcommon \
+                       libcairo libpango-1.0 libudev libasound libatspi; do
+              EXCLUDES="$EXCLUDES --exclude $lib.so.0 --exclude $lib.so.1 --exclude $lib.so.2 --exclude $lib.so"
+            done
+            $PY/pip install auditwheel
+            $PY/auditwheel repair --plat manylinux_2_28_x86_64 $EXCLUDES -w dist /tmp/raw/*.whl
+            chmod -R a+rwX dist
+          '
 
       - name: Install the wheel
         if: matrix.name != 'windows'
