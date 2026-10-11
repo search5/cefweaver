@@ -5,12 +5,11 @@ Steps:
      build CEF from source, or download the prebuilt one).
   2. Configure and build the native targets (cefwrapper, cefsubprocess) with CMake.
 
-On Linux the CEF runtime (libcef.so, resources, cefsubprocess) is not copied here:
-the wheel build (scikit-build-core, cmake/CefweaverExtension.cmake) installs it, with
-libcef.so stripped (1.4 GB -> ~270 MB), and the CEF distribution is left untouched.
-Files that an earlier version of this script staged into ``cefweaver/`` are removed.
-On macOS the framework and the helper apps are assembled as
-``cefweaver/cefsubprocess.app`` instead (see stage_macos()).
+The CEF runtime is not copied here: the wheel build (scikit-build-core,
+cmake/CefweaverExtension.cmake) installs it. On Linux that is libcef.so (stripped, 1.4 GB ->
+~270 MB), the resources and cefsubprocess; on macOS it is cefsubprocess.app (the CEF framework
+and the helper apps). The CEF distribution is left untouched. Files that an earlier version
+of this script staged into ``cefweaver/`` are removed.
 
 The resolved CEF is linked at ``build/native/cef`` so that pyproject.toml can
 reference a fixed relative path (include-dirs, library-dirs), and the result is
@@ -217,61 +216,13 @@ PACKAGE_DIR = ROOT / "cefweaver"
 STAGED_MANIFEST = "staged_runtime.json"
 
 
-MAC_BUNDLE = "cefsubprocess.app"
-MAC_FRAMEWORK = "Chromium Embedded Framework.framework"
-
-
-def stage_macos(cef_root, build_dir, config):
-    """Assemble cefweaver/cefsubprocess.app from the CEF framework and the helper apps.
-
-    A Python process has no app bundle, but CEF wants one: the helper apps and the framework
-    are looked up in the Contents/Frameworks of the main bundle (CefSettings.main_bundle_path,
-    which the wrapper points here), and each helper finds the framework next to itself. So the
-    bundle needs nothing but an Info.plist and the Frameworks directory::
-
-        cefsubprocess.app/Contents/Info.plist
-        cefsubprocess.app/Contents/Frameworks/Chromium Embedded Framework.framework
-        cefsubprocess.app/Contents/Frameworks/cefsubprocess Helper{,(Alerts),(GPU),...}.app
-
-    The framework and the helpers are signed (ad hoc) by their build and are copied as they are.
-    """
-    helper_dir = build_dir / "native" / "cefsubprocess" / config
-    helpers = sorted(helper_dir.glob("cefsubprocess Helper*.app"))
-    if not helpers:
-        sys.exit(f"error: no helper apps in {helper_dir}; was the native build successful?")
-    framework = cef_root / "Release" / MAC_FRAMEWORK
-    if not framework.is_dir():
-        sys.exit(f"error: {framework} not found; is this a macOS CEF distribution?")
-
-    bundle = PACKAGE_DIR / MAC_BUNDLE
-    if bundle.exists():                    # left by a run that was interrupted before it was recorded
-        shutil.rmtree(bundle)
-    frameworks = bundle / "Contents" / "Frameworks"
-    frameworks.mkdir(parents=True)
-    shutil.copy2(ROOT / "native" / "cefsubprocess" / "mac" / "Info.plist",
-                 bundle / "Contents" / "Info.plist")
-    shutil.copytree(framework, frameworks / MAC_FRAMEWORK, symlinks=True)
-    for helper in helpers:
-        shutil.copytree(helper, frameworks / helper.name, symlinks=True)
-
-    size = sum(f.stat().st_size for f in bundle.rglob("*") if f.is_file() and not f.is_symlink())
-    print(f"Staged {MAC_BUNDLE} into {PACKAGE_DIR} ({size / 2**20:.0f} MB, "
-          f"{len(helpers)} helper apps)")
-    return [MAC_BUNDLE]
-
-
 def stage_runtime(cef_root, build_dir, config):
-    """Copy the CEF runtime and cefsubprocess into the cefweaver/ package directory.
+    """Remove what older runs staged into the cefweaver/ package directory.
 
-    Linux: nothing is staged any more. The wheel build installs the runtime next to the
-    extension module (CEF looks for icudtl.dat next to libcef.so, and cefsubprocess finds
-    libcef.so through its rpath $ORIGIN); this function only removes what older runs staged.
-
-    macOS: everything goes into cefsubprocess.app, the stand-in for the main app bundle
-    of the Python process (see stage_macos()).
-
-    Everything staged is recorded so that the next run can remove it first (it is not
-    tracked by git).
+    Nothing is staged any more. The wheel build installs the runtime next to the extension
+    module (Linux: CEF looks for icudtl.dat next to libcef.so, and cefsubprocess finds
+    libcef.so through its rpath $ORIGIN; macOS: cefsubprocess.app, the stand-in for the main
+    app bundle of the Python process). What an earlier run staged was recorded and is removed.
     """
     if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
         print("note: staging the runtime is implemented for Linux and macOS only; skipped.")
@@ -286,15 +237,9 @@ def stage_runtime(cef_root, build_dir, config):
             elif target.exists() or target.is_symlink():
                 target.unlink()
 
-    if sys.platform.startswith("linux"):
-        # The wheel build installs the runtime (it would be packaged twice if it stayed here).
-        manifest.unlink(missing_ok=True)
-        return []
-
-    if sys.platform == "darwin":
-        staged = stage_macos(cef_root, build_dir, config)
-        manifest.write_text(json.dumps(staged, indent=2), encoding="utf-8")
-        return staged
+    # The wheel build installs the runtime (on macOS cefsubprocess.app too): staged files would
+    # be packaged twice, or, being ignored by git, left out.
+    manifest.unlink(missing_ok=True)
     return []
 
 

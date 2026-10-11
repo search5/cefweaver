@@ -20,13 +20,13 @@ title: 설치와 빌드
 저장소 루트에서 차례로 실행합니다.
 
 ```sh
-python tools/prepare.py          # CEF 준비와 네이티브 빌드 (macOS는 cefsubprocess.app 조립도)
+python tools/prepare.py          # CEF 준비와 네이티브 빌드
 CEF_ROOT=$PWD/build/native/cef uv build --wheel   # dist/에 wheel을 만듭니다
 ```
 
 Linux에서는 wheel 빌드(scikit-build-core와 CMake)가 래퍼 라이브러리, 확장 모듈, 런타임 배치를 모두 하므로 `prepare.py` 없이 `uv build --wheel`만 실행해도 됩니다(`CEF_ROOT`가 없으면 CMake가 CEF를 받습니다). `uv build`를 인자 없이 실행해도 sdist와 wheel이 모두 만들어지는 것을 Linux에서 확인했습니다.
 
-macOS에서도 같은 명령입니다(macOS에서 새 빌드 방식은 아직 시험하지 못했습니다). 결과는 `cefweaver/cefsubprocess.app`(CEF 프레임워크와 도우미 앱, 약 325 MB)과 약 147 MB의 wheel입니다. python.org에서 받은 Python으로 `--list-versions`가 인증서 오류로 실패하면 `--cef-root`로 직접 받은 배포본을 가리키세요.
+macOS에서도 같은 명령입니다(arm64에서 확인했습니다). 결과는 약 147 MB의 `macosx_12_0_arm64` wheel이고, 안에 `cefsubprocess.app`(CEF 프레임워크와 도우미 앱)이 들어 있습니다. python.org에서 받은 Python으로 `--list-versions`가 인증서 오류로 실패하면 `--cef-root`로 직접 받은 배포본을 가리키세요.
 
 `prepare.py`의 선택지:
 
@@ -69,4 +69,4 @@ uv run python quickstart.py            # 주소를 인자로 줄 수 있음
 
 - **캐시 폴더**: 캐시 경로를 주지 않으면 CEF가 현재 작업 폴더에 `cache/`를 만듭니다. 프로그램에서는 임시 폴더를 가리키세요(`ui.Session(adapter, cache_path=...)`, 창 모드는 `app.set_cache_path()`).
 - **프로세스당 한 번**: CEF는 프로세스에서 한 번만 초기화할 수 있습니다. `shutdown()` 뒤에도 다시 초기화할 수 없습니다.
-- **배치**: Linux는 `libcef.so`, `icudtl.dat`, `.pak` 파일, `locales/`, `cefsubprocess` 실행 파일이, macOS는 `cefsubprocess.app`이 확장 모듈 옆에 있어야 합니다. wheel 빌드가 이 배치를 맡습니다(macOS의 `cefsubprocess.app`은 `prepare.py`가 조립합니다).
+- **배치**: Linux는 `libcef.so`, `icudtl.dat`, `.pak` 파일, `locales/`, `cefsubprocess` 실행 파일이, macOS는 `cefsubprocess.app`이 확장 모듈 옆에 있어야 합니다. wheel 빌드가 이 배치를 맡습니다(macOS의 `cefsubprocess.app`도 wheel 빌드가 넣습니다).

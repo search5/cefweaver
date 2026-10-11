@@ -28,7 +28,7 @@ updated: 2026-10-11
 
 ## Linux
 
-확장 모듈의 설정(`-Wl,-rpath,$ORIGIN`, `-std=c++20`, 프레임워크)은 `cmake/CefweaverExtension.cmake`에 있고 라이브러리 목록은 `cefwrapper` 타깃의 의존성이 정합니다([패키징](../components/packaging.md)). 2026-10-11에 `setup.py`에서 옮겼고 Linux에서만 빌드하고 시험했습니다. macOS 분기(프레임워크와 `-ObjC`)는 옮기기 전의 값을 그대로 적었지만 빌드해 보지 못했습니다. Windows 분기는 없습니다.
+확장 모듈의 설정(`-Wl,-rpath,$ORIGIN`, `-std=c++20`, 프레임워크)은 `cmake/CefweaverExtension.cmake`에 있고 라이브러리 목록은 `cefwrapper` 타깃의 의존성이 정합니다([패키징](../components/packaging.md)). 2026-10-11에 `setup.py`에서 옮겼고 Linux와 macOS arm64에서 빌드하고 시험했습니다(macOS는 [F93](../reference/verified-findings-macos.md): 옮긴 뒤 wheel에 앱이 빠지고 태그가 틀린 것을 고침). Windows 분기는 없습니다.
 
 화면 환경은 [Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)에 있습니다. 요약하면 네이티브 Wayland와 XWayland(X11)에서 모두 Chromium이 동작했습니다. 시험은 실제 화면에 창이 뜨지 않도록 환경변수 `WAYLAND_DISPLAY`를 제거하고 `ozone-platform=x11`을 지정해서 가상 X 서버(Xvfb)에서만 실행합니다.
 

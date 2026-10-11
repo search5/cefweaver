@@ -158,6 +158,16 @@ Linux x86_64 컨테이너(podman, `debian:bookworm-slim`, g++ 12)와 Linux `mini
 - **확인하지 못함**: 키체인 대화상자(`Chromium Safe Storage`)가 뜨는 조건. 시험 중에는 뜨지 않았습니다(캐시가 임시 폴더였고 쿠키를 저장하지 않음). 필요하면 `use-mock-keychain` 스위치를 줍니다.
 - **확인하지 못함**: 실제 입력기(한글, 일본어)로의 입력. 조합과 확정을 호스트 API(`BrowserView.preedit()`, `commit_text()`)로 보내 한글이 입력창에 들어가는 것은 확인했습니다([F85](#f85-macos의-키-이벤트-규칙-cefweaverui) 의 `WithCefKeys`).
 
+## F93. scikit-build-core 전환(2026-10-11) 뒤의 macOS 빌드
+
+Linux 쪽에서 빌드를 `setup.py`에서 scikit-build-core + CMake(`cmake/CefweaverExtension.cmake`)로 옮겼고, macOS 분기는 "빌드하거나 돌려 보지 못했다"고 적혀 있었습니다. 병합 뒤 macOS arm64에서 `prepare.py`와 `CEF_ROOT=$PWD/build/native/cef uv build --wheel`을 돌렸습니다.
+
+- **확인함**: 확장 모듈과 래퍼, 도우미 앱 5개가 CMake로 빌드되고 wheel이 만들어집니다(`-Werror` 통과). 구동(오프스크린 첫 프레임, JS 바인딩, 종료)이 됩니다.
+- **깨진 곳 1 (고침)**: wheel에 `cefsubprocess.app`이 **하나도 없었습니다**(1.4 MB, 확장 모듈뿐). `prepare.py`가 스테이징하던 `cefweaver/cefsubprocess.app/`이 `.gitignore`에 있어서 scikit-build-core가 gitignore된 파일을 wheel에서 뺐습니다. 설치하고 import하면 "the CEF framework is missing"으로 실패했습니다. Linux가 하는 것처럼 CMake의 `install()`로 프레임워크, 도우미 앱 5개, Info.plist를 넣게 했습니다(147 MB, 번들 파일 243개, 프레임워크와 도우미의 실행 권한 0755 유지). 도우미는 `install.strip`을 피해 `install(DIRECTORY)`로 복사합니다(strip하면 arm64의 ad hoc 서명이 깨짐). `prepare.py`는 macOS에서도 더는 스테이징하지 않습니다.
+- **깨진 곳 2 (고침)**: wheel 태그가 `macosx_26_0_arm64`(빌드한 컴퓨터의 OS 버전)였습니다. 래퍼 라이브러리는 macOS 12용인데(`setup.py`는 12.0으로 고정했었음), 이대로면 더 낡은 macOS에 설치되지 않습니다. `pyproject.toml`에 `[[tool.scikit-build.overrides]]`(`if.platform-system = "^darwin"`, `cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "12.0"`)를 넣어 `macosx_12_0_arm64`가 됩니다.
+- **시험**: 병합으로 늘어난 시험까지 `test_generator` 125, `test_docs` 15, `test_cast` 14, `test_ui` 164, `test_smoke` 226(건너뜀 10, 예상된 실패 3)을 돌려 `test_smoke`의 Views 시험 1개(`test_a_views_window_holds_a_toolbar_and_a_browser_view`)만 실패했습니다. `Window.get_size()`는 제목 표시줄(약 28)을 포함한 바깥 크기이고 레이아웃은 클라이언트 영역을 채워서 480이 아닌 452였습니다. Linux에서는 둘이 같습니다. macOS에서는 `get_client_area_bounds_in_screen()`의 높이와 비교하도록 시험을 고쳐 통과합니다. CEF Views 창(툴바 + 브라우저 뷰)이 macOS에서 동작한다는 뜻입니다.
+- **확인하지 못함**: macOS x86_64(Rosetta)를 이 새 방식으로는 다시 빌드하지 않았습니다(F90은 `setup.py` 시절). 새 시험 중 `examples/print`, `examples/views` 예제의 macOS 동작과 `cefweaver.cast`의 실제 장치는 시험하지 않았습니다.
+
 ## 관련 페이지
 
 - [플랫폼 지원 현황](../concepts/platform-support.md)

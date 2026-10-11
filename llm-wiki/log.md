@@ -669,3 +669,9 @@
 ## [2026-10-11] ingest | Cast 소리 재생 확인
 
 - `욕실`과 `그룹`에 5초짜리 MP3를 보내 `PLAYING`에서 `FINISHED`까지 확인했습니다. `그룹`의 소리는 `욕실`에서만 났고, 장치 음량이 최대(1.0)여서 소리가 컸습니다. DIAL은 장치가 없어 확인 목록에서 뺐습니다([F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | scikit-build-core 전환 뒤의 macOS 빌드를 확인하고 고침
+
+- 원격에서 빌드가 `setup.py`에서 scikit-build-core + CMake로 바뀌어(`git pull`) macOS 분기가 "빌드해 보지 못함"으로 남아 있었습니다. macOS arm64에서 `prepare.py`와 `uv build --wheel`을 돌려 [F93](pages/reference/verified-findings-macos.md)에 적었습니다.
+- **고친 것**: wheel에 `cefsubprocess.app`이 빠지던 것(스테이징 폴더가 gitignore라 scikit-build-core가 뺌, CMake `install()`로 넣음, `prepare.py`는 macOS에서도 스테이징 중단), wheel 태그가 `macosx_26_0`이던 것(`macosx_12_0`), 새 Views 시험의 높이 비교(macOS의 제목 표시줄).
+- 병합 뒤 시험: `test_smoke` 226개 중 Views 시험 1개만 실패했고 시험을 고쳐 통과했습니다.

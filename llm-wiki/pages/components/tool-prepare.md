@@ -45,13 +45,9 @@ updated: 2026-10-11
 - `standard_builds()`가 `standard` 배포본이 있는 버전을 **버전 번호 기준 최신순**으로 돌려줍니다. 인덱스 자체의 순서는 빌드 날짜순이라 쓰지 않습니다. 옛 형식 이름(`3.3683.1920.g9f41a27`)도 정렬할 수 있도록 앞쪽 숫자 부분만 키로 씁니다.
 - 기본 버전 표시는 `CMakeLists.txt`의 `set(CEF_VERSION "...")`를 정규식으로 읽습니다.
 
-## 런타임 스테이징 (Linux는 없어짐)
+## 런타임 스테이징 (없어짐)
 
-`stage_runtime()`은 이전에 스테이징한 항목(`build/native/staged_runtime.json`)을 지웁니다. Linux는 거기서 끝납니다(2026-10-11부터 복사하지 않음: wheel 빌드가 `cmake/CefweaverExtension.cmake`의 `install()`로 `Release/`와 `Resources/` 아래 모든 항목(`chrome-sandbox` 제외)과 `cefsubprocess`를 넣고 `libcef.so`를 strip합니다. 소스 트리에 남으면 같은 파일이 wheel에 두 번 들어갑니다). CEF 배포본 자체는 건드리지 않습니다. 결과 배치는 [런타임 파일 배치](../concepts/runtime-layout.md)에 있습니다.
-
-## macOS 스테이징
-
-`stage_macos()`가 `cefweaver/cefsubprocess.app`을 조립합니다: `Contents/Info.plist`(`native/cefsubprocess/mac/Info.plist`), `Contents/Frameworks/Chromium Embedded Framework.framework`(CEF 배포본의 것을 심볼릭 링크를 보존해 복사), `Contents/Frameworks/cefsubprocess Helper*.app` 5개(CMake가 만든 것). 프레임워크는 배포본이 이미 ad hoc 서명한 대로 복사하고 strip하지 않습니다. 이전 실행의 항목은 Linux와 같은 매니페스트로 지웁니다. 스테이징 크기는 약 325 MB입니다([F79](../reference/verified-findings-macos.md)).
+`stage_runtime()`은 이전에 스테이징한 항목(`build/native/staged_runtime.json`)을 지우기만 합니다. 2026-10-11부터 복사하지 않습니다: wheel 빌드가 `cmake/CefweaverExtension.cmake`의 `install()`로 런타임을 wheel에 넣습니다. Linux는 `Release/`와 `Resources/` 아래 모든 항목(`chrome-sandbox` 제외)과 `cefsubprocess`를 넣고 `libcef.so`를 strip합니다. macOS는 `cefsubprocess.app`(`Contents/Info.plist`, `Contents/Frameworks/`의 CEF 프레임워크와 도우미 앱 5개)을 넣고, strip하지 않습니다(arm64의 ad hoc 서명이 깨지기 때문). 소스 트리에 남으면 같은 파일이 두 번 들어가거나, macOS의 `cefweaver/cefsubprocess.app/`은 `.gitignore`에 있어서 scikit-build-core가 wheel에서 빼 버립니다. CEF 배포본 자체는 건드리지 않습니다. 결과 배치는 [런타임 파일 배치](../concepts/runtime-layout.md)에 있습니다.
 
 ## 관련 페이지
 

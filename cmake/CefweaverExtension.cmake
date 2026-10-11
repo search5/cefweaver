@@ -28,14 +28,15 @@ if(OS_LINUX)
   set_target_properties(_cefweaver PROPERTIES BUILD_WITH_INSTALL_RPATH ON INSTALL_RPATH "$ORIGIN")
 endif()
 if(OS_MAC)
-  # Not built or run yet (no Mac in the tests of this change). The frameworks and -ObjC are what setup.py passed; libcef is
-  # not linked (the framework is loaded at run time, native/cefwrapper/mac_runtime.mm). The CEF runtime (cefsubprocess.app)
-  # is still assembled into cefweaver/ by tools/prepare.py (stage_macos) and goes into the wheel as a package file.
+  # The frameworks and -ObjC are what setup.py passed (it built and ran on macOS arm64, 2026-10-09); libcef is not linked
+  # (the framework is loaded at run time, native/cefwrapper/mac_runtime.mm).
   target_link_libraries(_cefweaver PRIVATE "-framework Cocoa" "-framework AppKit" "-framework IOSurface")
   target_link_options(_cefweaver PRIVATE "-Wl,-ObjC")
   # setup.py set MACOSX_DEPLOYMENT_TARGET=12.0 and -mmacosx-version-min=12.0: the wrapper libraries are built for macOS 12.
   target_compile_options(_cefweaver PRIVATE "-mmacosx-version-min=12.0")
   target_link_options(_cefweaver PRIVATE "-mmacosx-version-min=12.0")
+  # The helper apps (native/cefsubprocess) are built with the module.
+  add_dependencies(_cefweaver cefsubprocess)
 endif()
 install(TARGETS _cefweaver LIBRARY DESTINATION cefweaver RUNTIME DESTINATION cefweaver)
 
@@ -57,4 +58,19 @@ if(OS_LINUX)
     if(CMAKE_INSTALL_DO_STRIP)
       execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-unneeded \"\${CMAKE_INSTALL_PREFIX}/cefweaver/libcef.so\")
     endif()")
+endif()
+
+# macOS: cefsubprocess.app, the stand-in for the main app bundle of the Python process (CefSettings.main_bundle_path points
+# at it, native/cefwrapper/mac_runtime.mm): the CEF framework and the helper apps in its Contents/Frameworks. The helpers
+# look for the framework next to themselves. They are copied as they are (install.strip would invalidate their ad hoc
+# signatures, which arm64 needs). The bundle is not in the source tree: .gitignore leaves it out of the wheel.
+if(OS_MAC)
+  set(CEFWEAVER_APP "cefweaver/cefsubprocess.app/Contents")
+  install(FILES "${CMAKE_SOURCE_DIR}/native/cefsubprocess/mac/Info.plist" DESTINATION "${CEFWEAVER_APP}")
+  install(DIRECTORY "${CEF_ROOT}/Release/Chromium Embedded Framework.framework" DESTINATION "${CEFWEAVER_APP}/Frameworks"
+          USE_SOURCE_PERMISSIONS)
+  foreach(helper "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)")
+    install(DIRECTORY "${CMAKE_BINARY_DIR}/native/cefsubprocess/${CMAKE_BUILD_TYPE}/cefsubprocess Helper${helper}.app"
+            DESTINATION "${CEFWEAVER_APP}/Frameworks" USE_SOURCE_PERMISSIONS)
+  endforeach()
 endif()

@@ -44,7 +44,7 @@ updated: 2026-10-11
 | Views | CEF가 창, 단추, 텍스트 필드, 레이아웃을 직접 만들어 주는 UI 프레임워크(`include/views/`). 툴킷 없이 창을 만듭니다([Views 확인 기록](verified-findings-views.md)). |
 | 렌더러 이벤트 | 렌더러가 프로세스 메시지로 브라우저 프로세스에 알리는 JavaScript 오류, 초점 노드, V8 컨텍스트의 생성과 해제. `app.enable_renderer_events()`로 켭니다([F104](verified-findings-opened.md)). |
 | 순수 가상 함수 | `= 0`으로 선언된 가상 함수. 기반 클래스에 구현이 없어 호출할 수 없습니다. |
-| 스테이징 | CEF 런타임과 `cefsubprocess`를 `cefweaver/` 아래에 복사하는 일(`prepare.py`). 지금은 macOS만 하고, Linux는 wheel 빌드의 `install()`이 wheel에 바로 넣습니다. |
+| 스테이징 | CEF 런타임과 `cefsubprocess`를 `cefweaver/` 아래에 복사하던 일(`prepare.py`). 지금은 하지 않고, 두 플랫폼 모두 wheel 빌드의 `install()`이 wheel에 바로 넣습니다(macOS는 `cefsubprocess.app`). |
 | `strip` | 실행 파일과 라이브러리에서 디버그 심볼을 제거하는 도구 |
 | API 해시 | `cef_api_hash()`가 돌려주는 값. API 버전 설정과 `libcef`와 헤더의 일치 확인에 씁니다. |
 | 스킴 핸들러 | 특정 URL 스킴(과 도메인)의 요청에 응답하는 CEF 확장 지점(`CefSchemeHandlerFactory`) |

@@ -1165,6 +1165,8 @@ class WithCef(unittest.TestCase):
             # the layout: the toolbar and the browser fill the width of the window, the browser the rest
             wait_until(app, lambda: browser_view.get_bounds()[3] > 100, "the layout")
             width, height = made.get_size()
+            if sys.platform == "darwin":       # get_size() has the title bar; the layout fills the client area
+                height = made.get_client_area_bounds_in_screen()[3]
             assert toolbar.get_bounds()[2] == width and browser_view.get_bounds()[2] == width, (width, toolbar.get_bounds())
             assert toolbar.get_bounds()[3] + browser_view.get_bounds()[3] == height, (height, toolbar.get_bounds(), browser_view.get_bounds())
             made.close()

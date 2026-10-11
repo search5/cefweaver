@@ -61,3 +61,9 @@ cmake.build-type = "Release"
 wheel.packages = ["cefweaver"]
 wheel.exclude = ["**/*.pyx", "**/*.pxd", "**/*.pxi", "**/CMakeLists.txt", "**/__pycache__", "**/_cefweaver.cpp"]
 install.strip = true
+
+[[tool.scikit-build.overrides]]
+# The CEF wrapper libraries are built for macOS 12 (CEF_TARGET_SDK in CEF's cmake); without this the wheel is
+# tagged with the version of the build machine (macosx_26_0_arm64) and does not install on an older macOS.
+if.platform-system = "^darwin"
+cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "12.0"

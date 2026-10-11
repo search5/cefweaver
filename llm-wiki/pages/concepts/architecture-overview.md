@@ -49,7 +49,7 @@ libcef.so  (CEF 배포본에 이미 만들어져 있는 파일. 소스 빌드를
 | --- | --- | --- |
 | 1. CEF 확보 | `tools/prepare.py`(`--cef-root`, `--build-cef`, 또는 prebuilt 자동 다운로드) | `build/native/cef` 링크 |
 | 2. 네이티브 빌드 | CMake(`CMakeLists.txt`, `native/*/CMakeLists.txt`) | `libcef_dll_wrapper.a`, `libcefwrapper.a`, `cefsubprocess` |
-| 3. 런타임 스테이징 | macOS: `tools/prepare.py`. Linux: 5단계의 `install()` | macOS는 `cefweaver/cefsubprocess.app`. Linux는 wheel 안의 `libcef.so`와 리소스 |
+| 3. 런타임 배치 | 5단계의 `install()` (`cmake/CefweaverExtension.cmake`) | Linux는 wheel 안의 `libcef.so`와 리소스. macOS는 wheel 안의 `cefsubprocess.app` |
 | 4. 바인딩 생성(개발 시) | `tools/gen/generate.py` | 커밋되는 생성 파일 |
 | 5. 확장 빌드와 패키징 | `uv build --wheel`(scikit-build-core, CMake, Cython) | `.so`가 들어간 wheel |
 

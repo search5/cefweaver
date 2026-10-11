@@ -23,7 +23,7 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 
 ## macOS (Apple Silicon)
 
-같은 절차입니다(`python tools/prepare.py`, `uv build --wheel`). 준비물은 Xcode(또는 Command Line Tools)의 clang, CMake, uv입니다. Ninja는 필요 없습니다(Unix Makefiles). CEF는 `macosarm64` 배포본(압축 약 307 MB, 푼 것 약 791 MB)을 받습니다. 결과는 `cefweaver/cefsubprocess.app`(약 325 MB)과 `macosx_..._arm64` wheel(약 147 MB)입니다. `python.org`의 Python으로 `--list-versions`가 실패하면 [tools/prepare.py](../components/tool-prepare.md)를 보세요. 확인한 환경은 [F79](../reference/verified-findings-macos.md)에 있습니다.
+같은 절차입니다(`python tools/prepare.py`, `CEF_ROOT=$PWD/build/native/cef uv build --wheel`). 준비물은 Xcode(또는 Command Line Tools)의 clang, CMake, uv입니다. Ninja는 필요 없습니다(Unix Makefiles). CEF는 `macosarm64` 배포본(압축 약 307 MB, 푼 것 약 791 MB)을 받습니다. 결과는 `macosx_12_0_arm64` wheel(약 147 MB, 안에 `cefsubprocess.app`)입니다. 앱 번들은 `prepare.py`가 아니라 wheel 빌드(CMake의 `install()`)가 넣습니다. `python.org`의 Python으로 `--list-versions`가 실패하면 [tools/prepare.py](../components/tool-prepare.md)를 보세요. 확인한 환경은 [F79](../reference/verified-findings-macos.md)에 있습니다.
 
 ## 절차
 
@@ -60,7 +60,7 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 
 - C++(`native/`)나 `.pyx`, 생성 파일을 고쳤으면 wheel만 다시 만듭니다. CMake의 의존성으로 바뀐 것만 다시 빌드됩니다. 단 빌드 격리(기본)에서는 격리 환경의 경로가 매번 달라 변경이 없어도 약 84초가 걸립니다. 증분 빌드를 하려면 `--no-build-isolation`을 씁니다([분석](../analyses/scikit-build-core-prototype.md): 변경 없음 14초, `.pxi` 하나 83초, 래퍼 헤더 하나 17초).
 - CEF 헤더가 바뀌면(버전 변경) `python tools/gen/generate.py`가 먼저입니다([CEF 버전 올리기](update-cef-version.md)).
-- `prepare.py`는 다시 실행해도 안전합니다. macOS는 이전에 스테이징한 항목을 지우고 새로 조립합니다. Linux는 이전 버전의 스크립트가 `cefweaver/`에 복사해 둔 항목을 지웁니다.
+- `prepare.py`는 다시 실행해도 안전합니다. 이전 버전의 스크립트가 `cefweaver/`에 복사해 둔 항목(Linux의 런타임, macOS의 `cefsubprocess.app`)을 지웁니다.
 
 ## 자주 만난 문제
 
