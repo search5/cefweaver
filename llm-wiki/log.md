@@ -733,3 +733,6 @@
 
 ## [2026-10-12] ingest | CI 전체 실행 결과와 Windows 기준
 전체 실행 38157822305의 결과(Linux 통과, macOS 1개, Windows 8개 실패)와, 원인을 가리기 전까지 Windows는 빌드와 설치 성공만 릴리스 기준으로 삼는다는 결정을 `packaging.md`에 기록.
+
+## [2026-10-12] ingest | manylinux 단계의 CI 실행 결과
+Linux만 실행(38180556005)해서 manylinux_2_28 컨테이너 빌드와 auditwheel repair가 통과하고 시험 547개가 OK였음을 `packaging.md`에 기록.

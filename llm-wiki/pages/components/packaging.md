@@ -72,7 +72,7 @@ updated: 2026-10-11
 ## manylinux (Linux x86_64만 확인)
 
 - 호스트에서 만든 wheel은 태그가 `linux_x86_64`이고 `GLIBC_2.38`을 요구해 PyPI에 올릴 수 없습니다. manylinux_2_28 컨테이너에서 빌드하고 `auditwheel repair --exclude`(시스템 라이브러리 22개)로 태그를 붙이면 glibc 2.28(AlmaLinux 8)에서 시험이 통과합니다. 절차와 제외 목록은 [F122](../reference/verified-findings-opened.md)에 있습니다.
-- 2026-10-12에 `build-test.yml`의 Linux 빌드 단계를 이 컨테이너 절차로 바꿨습니다(yum 패키지 설치, `uv build`, `auditwheel repair --exclude`). 제외 목록은 F122의 이름에 `.so`, `.so.0`, `.so.1`, `.so.2`를 붙여 만든 것이라 **GitHub에서 돌려 보지 못했습니다.** 시험은 호스트(ubuntu-24.04)에 설치해서 합니다. aarch64, Windows ARM64, macOS x86_64, 여러 Python 버전과 PyPI의 크기 제한(wheel 약 155MB, 조합이 늘면 한 릴리스가 수 GB)은 계획 단계입니다.
+- 2026-10-12에 `build-test.yml`의 Linux 빌드 단계를 이 컨테이너 절차로 바꿨습니다(yum 패키지 설치, `uv build`, `auditwheel repair --exclude`). 제외 목록은 F122의 이름에 `.so`, `.so.0`, `.so.1`, `.so.2`를 붙여 만든 것입니다. Linux만 실행(`38180556005`, 2026-10-12, 9분 38초)하자 `cefweaver-0.1.0-cp311-abi3-manylinux_2_28_x86_64.whl`이 만들어졌고(산출물 약 157.6MB), 설치해서 시험 547개가 `OK`였습니다(건너뜀 136, 예상된 실패 3). 시험은 호스트(ubuntu-24.04)에 설치해서 합니다. aarch64, Windows ARM64, macOS x86_64, 여러 Python 버전과 PyPI의 크기 제한(wheel 약 155MB, 조합이 늘면 한 릴리스가 수 GB)은 계획 단계입니다.
 
 ## 관련 페이지
 
