@@ -10,7 +10,7 @@ sources:
   - tools/gen/vendor/README.txt
   - .gitignore
   - uv.lock
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 저장소 메타데이터 (문서, 라이선스, third_party)
@@ -29,7 +29,7 @@ updated: 2026-10-10
 | `tools/buildtools/` | CEF 템플릿에서 가져온 clang-format 내려받기 도구(`download_from_google_storage.py`, `gsutil.py`, `subprocess2.py`, 플랫폼별 `clang-format.sha1`). 옵션 `CEFWEAVER_FETCH_CLANG_FORMAT`를 켰을 때만 쓰입니다. `external_bin/`과 `clang-format` 실행 파일은 무시됩니다. |
 | `tools/gen/vendor/` | CEF 파서 복사본과 라이선스([생성기 모듈](generator-modules.md)) |
 | `tools/__init__.py`, `tools/gen/__init__.py` | 빈 파일 |
-| `.gitignore` | 기본 Python 항목에 CEF(`cef_binary*`, `external_bin`, `clang-format`), 생성 파일(`cefweaver/_cefweaver.cpp`), 스테이징된 런타임이 추가되어 있습니다. |
+| `.gitignore` | 기본 Python 항목에 CEF(`cef_binary*`, `external_bin`, `clang-format`), 생성 파일(`cefweaver/_cefweaver.cpp`), macOS에서 스테이징되는 `cefsubprocess.app`이 추가되어 있습니다(Linux 런타임은 2026-10-11부터 소스 트리에 복사되지 않습니다). |
 
 ## 이력
 

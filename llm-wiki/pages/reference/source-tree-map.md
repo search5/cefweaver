@@ -18,7 +18,9 @@ updated: 2026-10-11
 cefweaver/
   CMakeLists.txt              루트 CMake: CEF 확보, 하위 타깃          [root-cmake]
   cmake/DownloadCEF.cmake     prebuilt 내려받기                        [root-cmake]
-  pyproject.toml              빌드 백엔드, 메타데이터, ext-modules     [packaging]
+  cmake/CefweaverExtension.cmake  확장 모듈 빌드와 wheel 내용(scikit-build-core일 때만) [packaging]
+  pyproject.toml              빌드 백엔드(scikit-build-core), 메타데이터  [packaging]
+  (build/native: prepare.py의 사전 빌드, build/skbuild/<태그>: wheel 빌드. 둘 다 git 제외)
   uv.lock, LICENSE, README.rst, CHANGELOG.rst (비어 있음)              [repo-metadata]
   CLAUDE.md                   LLM 작업 지침                            [summaries]
   native/

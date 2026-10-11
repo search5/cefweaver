@@ -8,7 +8,7 @@ sources:
   - cefweaver/cef_api.pxi
   - tools/prepare.py
   - tests/test_smoke.py
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 실험으로 확인한 사실
@@ -53,9 +53,9 @@ F15 이후(클라이언트 핸들러, 브라우저 호스트, Chrome과 Alloy �
 
 - **방법**: `library.cpp`를 고쳐 `libcefwrapper.a`를 다시 만든 뒤 `uv build --wheel`.
 - **결과**: 확장이 다시 링크되지 않아 서브프로세스 경로가 옛 값(`cefsubprocess/cefsubprocess`)인 wheel이 만들어져, 시험이 서브프로세스 실행 오류로 실패했습니다.
-- **영향**: `ext-modules`에 `depends`를 추가했습니다([패키징](../components/packaging.md)).
+- **영향**: `ext-modules`에 `depends`를 추가했습니다([패키징](../components/packaging.md)). 2026-10-11에 scikit-build-core(CMake)로 옮기며 이 목록은 없어졌고, 재링크는 CMake의 의존성이 맡습니다.
 
-## F7. 인자 없는 uv build는 실패하고, -P 없는 시험 실행은 조용히 건너뛴다
+## F7. 인자 없는 uv build는 실패하고(2026-10-11부터는 성공, F113), -P 없는 시험 실행은 조용히 건너뛴다
 
 - **방법**: `uv build`(인자 없음)와 저장소 루트에서 `python -m unittest discover -s tests`를 실행했습니다.
 - **결과**: 앞의 것은 sdist에서 wheel을 만들 때 `include/cef_client.h`를 못 찾아 실패했습니다. 뒤의 것은 `Ran 24 tests ... OK (skipped=11)`(당시 시험은 24개)로 끝났습니다. 소스 트리의 `cefweaver/`가 설치된 wheel을 가렸기 때문입니다. `-P`를 붙이면 24개가 모두 실행됩니다.
