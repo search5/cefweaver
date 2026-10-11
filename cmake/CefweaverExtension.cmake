@@ -33,6 +33,9 @@ if(OS_MAC)
   # is still assembled into cefweaver/ by tools/prepare.py (stage_macos) and goes into the wheel as a package file.
   target_link_libraries(_cefweaver PRIVATE "-framework Cocoa" "-framework AppKit" "-framework IOSurface")
   target_link_options(_cefweaver PRIVATE "-Wl,-ObjC")
+  # setup.py set MACOSX_DEPLOYMENT_TARGET=12.0 and -mmacosx-version-min=12.0: the wrapper libraries are built for macOS 12.
+  target_compile_options(_cefweaver PRIVATE "-mmacosx-version-min=12.0")
+  target_link_options(_cefweaver PRIVATE "-mmacosx-version-min=12.0")
 endif()
 install(TARGETS _cefweaver LIBRARY DESTINATION cefweaver RUNTIME DESTINATION cefweaver)
 

@@ -27,7 +27,7 @@ updated: 2026-10-11
 
 ## macOS
 
-`OS_MAC` 분기가 `-framework Cocoa`, `-framework AppKit`, `-framework IOSurface`, `-Wl,-ObjC`를 더합니다(`setup.py`가 주던 값). `libcef`는 링크하지 않습니다. **이 분기는 macOS에서 빌드하거나 돌려 보지 못했습니다.** `cefsubprocess.app`은 아직 `tools/prepare.py`의 `stage_macos()`가 `cefweaver/` 아래에 조립하고, `wheel.packages`가 그것을 파일로 가져갑니다. Linux는 스테이징을 하지 않습니다(`prepare.py`가 이전 스테이징 결과를 지우기만 합니다. 같은 파일이 두 번 들어가지 않게 하기 위해서입니다).
+`OS_MAC` 분기가 `-framework Cocoa`, `-framework AppKit`, `-framework IOSurface`, `-Wl,-ObjC`를 더합니다(`setup.py`가 주던 값). `libcef`는 링크하지 않습니다. 배포 대상 12.0은 `-mmacosx-version-min=12.0`을 컴파일과 링크에 주는 것으로 옮겼습니다(`setup.py`는 `MACOSX_DEPLOYMENT_TARGET`도 정했는데, 환경 변수는 옮기지 않았습니다. 처음 옮길 때는 이 항목 전체를 빠뜨렸다가 나중에 보충했습니다). **이 분기는 macOS에서 빌드하거나 돌려 보지 못했습니다.** `cefsubprocess.app`은 아직 `tools/prepare.py`의 `stage_macos()`가 `cefweaver/` 아래에 조립하고, `wheel.packages`가 그것을 파일로 가져갑니다. Linux는 스테이징을 하지 않습니다(`prepare.py`가 이전 스테이징 결과를 지우기만 합니다. 같은 파일이 두 번 들어가지 않게 하기 위해서입니다).
 
 ## sdist와 `uv build`
 
