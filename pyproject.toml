@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=77", "Cython>=3.0", "cmake>=3.28.1"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.10", "Cython>=3.0", "cmake>=3.28.1"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "cefweaver"
@@ -52,16 +52,12 @@ dev = [
     "Cython>=3.0",
 ]
 
-[tool.setuptools.packages.find]
-include = ["cefweaver*"]
-
-[tool.setuptools.package-data]
-# The CEF runtime is copied into cefweaver/ by tools/prepare.py (Linux, macOS).
-# The extension module is declared in setup.py (its libraries depend on the platform).
-cefweaver = [
-    "*.so", "*.so.*", "*.pyd", "*.dylib",
-    "cefsubprocess.app/**/*",
-    "*.pak", "*.dat", "*.bin", "*.json",
-    "locales/*", "cefsubprocess",
-    "*.pyi", "py.typed",
-]
+[tool.scikit-build]
+# CMake builds everything: the CEF wrapper libraries, cefsubprocess, the extension module and the staging of the
+# CEF runtime into the wheel (see cmake/CefweaverExtension.cmake). CEF comes from $CEF_ROOT or is downloaded.
+minimum-version = "build-system.requires"
+build-dir = "build/skbuild/{wheel_tag}"
+cmake.build-type = "Release"
+wheel.packages = ["cefweaver"]
+wheel.exclude = ["**/*.pyx", "**/*.pxd", "**/*.pxi", "**/CMakeLists.txt", "**/__pycache__", "**/_cefweaver.cpp"]
+install.strip = true

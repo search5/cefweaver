@@ -8,8 +8,8 @@ sources:
   - native/cefsubprocess/CMakeLists.txt
   - pyproject.toml
   - native/cefwrapper/mac_runtime.mm
-  - setup.py
-updated: 2026-10-09
+  - cmake/CefweaverExtension.cmake
+updated: 2026-10-11
 ---
 
 # 런타임 파일 배치
@@ -18,11 +18,11 @@ Linux에서 CEF는 실행 중에 `libcef.so`와 여러 리소스 파일이 필�
 
 ## 배치
 
-154 배포본 기준으로 `tools/prepare.py`가 패키지 디렉터리에 복사하는 항목은 11개입니다.
+154 배포본 기준으로 wheel 빌드(`install()`)가 패키지 디렉터리에 넣는 항목은 11개입니다(2026-10-11 이전에는 `tools/prepare.py`가 소스 트리에 복사했습니다).
 
 | 항목 | 설명 |
 | --- | --- |
-| `libcef.so` | CEF 본체. 복사본만 `strip --strip-unneeded`합니다(1.45GB에서 약 272MB). |
+| `libcef.so` | CEF 본체. 설치되는 복사본만 `strip --strip-unneeded`합니다(1.45GB에서 약 272MB). |
 | `libvk_swiftshader.so`, `libvulkan.so.1`, `vk_swiftshader_icd.json` | 소프트웨어 Vulkan 구현과 그 설정 |
 | `v8_context_snapshot.bin` | V8 스냅샷 |
 | `icudtl.dat` | ICU 데이터 |
@@ -61,7 +61,7 @@ cefweaver/cefsubprocess.app/Contents/Frameworks/cefsubprocess Helper.app
 
 ## 개발 트리와 wheel
 
-스테이징된 파일은 `.gitignore`로 git에서 제외되고, `MANIFEST.in`으로 sdist에서도 제외됩니다. wheel에는 `package-data` 규칙으로 포함됩니다([패키징](../components/packaging.md)). 개발 중에 같은 디렉터리의 파일을 바꾸면 설치된 wheel이 아니라 이 디렉터리가 바뀐 것입니다. 시험은 설치된 wheel을 대상으로 합니다([시험](../components/tests.md)).
+Linux의 런타임은 소스 트리에 복사되지 않고 wheel 빌드가 바로 wheel에 넣습니다([패키징](../components/packaging.md)). macOS의 `cefsubprocess.app`은 아직 `prepare.py`가 `cefweaver/`에 조립하며 `.gitignore`로 git에서 제외됩니다. 시험은 설치된 wheel을 대상으로 합니다([시험](../components/tests.md)).
 
 Windows의 배치는 다릅니다. 서브프로세스 기본 경로가 현재 작업 디렉터리 기준 `cefsubprocess/cefsubprocess.exe`이며 이 경로는 검증하지 못했습니다([플랫폼 지원 현황](platform-support.md)).
 

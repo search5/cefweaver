@@ -6,8 +6,8 @@ sources:
   - CLAUDE.md
   - tools/prepare.py
   - pyproject.toml
-  - setup.py
-updated: 2026-10-09
+  - cmake/CefweaverExtension.cmake
+updated: 2026-10-11
 ---
 
 # 빌드와 설치
@@ -27,21 +27,21 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 
 ## 절차
 
-1. **사전 준비**: CEF 확보, 네이티브 빌드, 런타임 스테이징
+1. **사전 준비**(선택): CEF 확보와 네이티브 빌드
 
    ```sh
    python tools/prepare.py
    ```
 
-   `build/native/`에 `libcef_dll_wrapper.a`, `libcefwrapper.a`, `cefsubprocess`가 만들어지고, `build/native/cef`가 CEF 배포본을 가리키며, `cefweaver/`에 런타임이 복사됩니다. CEF를 직접 지정하거나 소스 빌드하는 방법은 [CEF 확보하기](obtain-cef.md)에 있습니다.
+   `build/native/`에 `libcef_dll_wrapper.a`, `libcefwrapper.a`, `cefsubprocess`가 만들어지고 `build/native/cef`가 CEF 배포본을 가리킵니다(macOS는 `cefweaver/cefsubprocess.app`도 조립합니다). Linux에서는 런타임을 복사하지 않습니다. 2단계의 wheel 빌드가 CMake로 모두 처리하므로 이 단계는 CEF를 미리 받거나 `--cef-root`로 지정할 때 씁니다. CEF를 직접 지정하거나 소스 빌드하는 방법은 [CEF 확보하기](obtain-cef.md)에 있습니다.
 
 2. **wheel 빌드**
 
    ```sh
-   uv build --wheel --python 3.13 -o dist
+   CEF_ROOT=$PWD/build/native/cef uv build --wheel --python 3.13 -o dist
    ```
 
-   **`--wheel`이 필수입니다.** 인자 없는 `uv build`는 sdist에서 wheel을 만드는 단계에서 CEF 헤더를 찾지 못해 실패합니다([패키징](../components/packaging.md)).
+   `CEF_ROOT`를 주지 않으면 CMake가 CEF를 구합니다(`third_party/cef`). scikit-build-core가 CMake로 래퍼 라이브러리, `cefsubprocess`, 확장 모듈을 빌드하고 런타임을 wheel에 넣습니다([패키징](../components/packaging.md)). 인자 없는 `uv build`도 sdist와 wheel을 모두 만드는 것을 확인했습니다.
 
 3. **설치**
 
@@ -58,18 +58,16 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 
 ## 다시 빌드할 때
 
-- C++(`native/`)를 고쳤으면 `python tools/prepare.py`를 다시 실행한 뒤 wheel을 만듭니다. `pyproject.toml`의 `depends` 덕분에 정적 라이브러리가 바뀌면 확장 모듈도 다시 링크됩니다.
-- `.pyx`나 생성 파일을 고쳤으면 wheel만 다시 만듭니다.
+- C++(`native/`)나 `.pyx`, 생성 파일을 고쳤으면 wheel만 다시 만듭니다. CMake의 의존성으로 바뀐 것만 다시 빌드됩니다. 단 빌드 격리(기본)에서는 격리 환경의 경로가 매번 달라 변경이 없어도 약 84초가 걸립니다. 증분 빌드를 하려면 `--no-build-isolation`을 씁니다([분석](../analyses/scikit-build-core-prototype.md): 변경 없음 14초, `.pxi` 하나 83초, 래퍼 헤더 하나 17초).
 - CEF 헤더가 바뀌면(버전 변경) `python tools/gen/generate.py`가 먼저입니다([CEF 버전 올리기](update-cef-version.md)).
-- 스테이징은 다시 실행해도 안전합니다. 이전에 스테이징한 항목을 지우고 새로 복사합니다.
+- `prepare.py`는 다시 실행해도 안전합니다. macOS는 이전에 스테이징한 항목을 지우고 새로 조립합니다. Linux는 이전 버전의 스크립트가 `cefweaver/`에 복사해 둔 항목을 지웁니다.
 
 ## 자주 만난 문제
 
 | 증상 | 원인과 해결 |
 | --- | --- |
-| `uv build`가 `include/cef_client.h`를 못 찾음 | `--wheel`을 쓰지 않았습니다. |
-| `ImportError`: libcef.so를 못 찾음 | 스테이징이 안 된 wheel입니다. `prepare.py`를 `--no-stage` 없이 실행했는지 확인합니다. |
-| 서브프로세스 경로가 옛 값 | 정적 라이브러리가 바뀌었는데 확장이 재링크되지 않은 경우입니다. 현재는 `depends`로 막혀 있지만 의심되면 `build/` 아래의 `lib.*`, `temp.*` 디렉터리를 지우고 다시 빌드합니다. |
+| `ImportError`: libcef.so를 못 찾음 | 런타임이 들어가지 않은 wheel입니다. 빌드 로그의 `Installing:` 줄에 `libcef.so`가 있는지 확인합니다(macOS는 `prepare.py`의 `cefweaver/cefsubprocess.app` 조립). |
+| 소스 트리에서 import가 되지 않음(`_cefweaver` 없음) | 정상입니다. 확장은 wheel에만 있으니 설치한 뒤 `python -P`로 실행합니다. |
 | 구성 단계에서 clang-format 오류 | `CEFWEAVER_FETCH_CLANG_FORMAT`가 켜져 있습니다. 기본값은 꺼짐입니다. |
 
 ## 관련 페이지

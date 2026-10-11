@@ -2,7 +2,6 @@
 title: 실행해서 확인한 macOS (F79부터)
 type: reference
 sources:
-  - setup.py
   - tools/prepare.py
   - tools/gen/model.py
   - native/cefwrapper/mac_runtime.mm

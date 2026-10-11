@@ -7,8 +7,8 @@ sources:
   - pyproject.toml
   - tools/prepare.py
   - tools/gen/scope.py
-  - setup.py
-updated: 2026-10-10
+  - cmake/CefweaverExtension.cmake
+updated: 2026-10-11
 ---
 
 # 설계 결정 기록
@@ -19,8 +19,9 @@ updated: 2026-10-10
 
 | 결정 | 이유 | 결정자 |
 | --- | --- | --- |
-| ~~`setup.py` 없이 `pyproject.toml`의 `ext-modules`로 Cython 확장을 선언~~ (macOS를 더하며 `setup.py`로 옮김) | 정적 선언만으로 Cython을 빌드하려던 결정이었으나, 플랫폼마다 링크할 라이브러리가 달라 정적 표로는 macOS를 더할 수 없었습니다. `setup.py`는 `Extension` 하나만 선언합니다. | 사용자(macOS 지원 요청) |
-| 사전 준비(CEF 확보, 네이티브 빌드)와 `uv build`를 분리 | 확장을 빌드할 때 CEF 헤더와 컴파일된 라이브러리가 이미 있어야 합니다. 앞 두 단계는 사전, Cython과 패키징은 `uv build` 시점입니다. | 사용자 |
+| ~~`setup.py` 없이 `pyproject.toml`의 `ext-modules`로 Cython 확장을 선언~~ (macOS를 더하며 `setup.py`로 옮겼고, 2026-10-11에 `setup.py`도 없애고 scikit-build-core로 옮김) | 정적 선언만으로는 macOS를 더할 수 없어 `setup.py`로 옮겼습니다. Windows 지원을 앞두고 `setup.py`를 피하려고, 래퍼 라이브러리와 같은 컴파일러·런타임 라이브러리 설정을 얻도록 확장을 CMake 타깃으로 만들었습니다. | 사용자 |
+| 빌드 백엔드를 scikit-build-core로, 확장과 wheel 내용을 `cmake/CefweaverExtension.cmake`에서 (A안) | Linux에서 프로토타입으로 wheel 빌드, 시험 532개 통과, sdist 빌드를 확인했습니다. macOS와 Windows는 확인하지 못했습니다([분석](../analyses/scikit-build-core-prototype.md)). | 사용자 |
+| ~~사전 준비(CEF 확보, 네이티브 빌드)와 `uv build`를 분리~~ (Linux는 2026-10-11에 `uv build --wheel`이 모두 하도록 바뀜. `prepare.py`는 선택, macOS 앱 번들 조립은 아직 거기에 있음) | 확장을 빌드할 때 CEF 헤더와 컴파일된 라이브러리가 이미 있어야 했기 때문입니다. | 사용자 |
 | 확정된 CEF를 `build/native/cef`에 고정 경로로 연결 | 정적 설정은 환경변수를 경로에 쓸 수 없습니다. 고정 경로가 있으면 소스 빌드와 prebuilt의 차이가 이후 단계에 드러나지 않습니다. 대안(컴파일러 환경변수)은 사용자 부담이 큽니다. | 사용자(선택지 1) |
 | 기본 CEF 버전을 154.0.34로 상향 | "최신 버전으로 가자". 래퍼 코드는 수정 없이 빌드되었습니다. | 사용자 |
 | `--cef-version`은 전체 이름만, 접두사 해석 없음. `--list-versions`는 전체 이름 출력 | 접두사는 어떤 빌드가 선택될지 모호합니다(120 하나에 빌드 15개). 필터는 목록을 걸러 보는 용도에만 씁니다. 인덱스는 하루 캐시합니다. | 사용자 |
@@ -30,9 +31,9 @@ updated: 2026-10-10
 | 플랫폼마다 다른 CEF 구조체는 생성기에 Linux 형식을 내장하고 중립 형식(`Cw...`)으로 접근 | 배포본에는 자기 플랫폼의 헤더만 있어 생성 결과가 플랫폼마다 달라졌습니다. 어디서 돌려도 같은 파일이 나와야 커밋된 생성 파일을 모든 플랫폼이 씁니다([F83](verified-findings-macos.md)). | 구현 중 판단 |
 | clang-format 내려받기를 옵션(기본 꺼짐)으로 | 빌드에 필요하지 않고 Python 3.14에서 gsutil이 오류로 구성을 중단시켰습니다. | 구현 중 판단 |
 | `CEF_ROOT`를 CMake 캐시에 저장하지 않음 | 옛 버전이 조용히 고정되는 결함([실험으로 확인한 사실](verified-findings.md)). | 구현 중 판단 |
-| 런타임을 `cefweaver/`에 복사(스테이징)하고 `libcef.so` 복사본만 strip | 1.45GB를 272MB로 줄입니다. 원본 배포본은 건드리지 않습니다. | 구현 중 판단 |
+| 런타임 파일을 wheel에 넣을 때 `libcef.so`의 복사본만 strip (Linux는 2026-10-11부터 `install(CODE)`로, 이전에는 `prepare.py`의 스테이징) | 1.45GB를 272MB로 줄입니다. 원본 배포본은 건드리지 않습니다. | 구현 중 판단 |
 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 | `libcef.so`와 리소스를 공유해 두 번 복사하지 않습니다. | 구현 중 판단 |
-| `uv build --wheel`을 표준으로, `MANIFEST.in`으로 sdist에서 런타임 제외 | sdist만으로는 wheel을 만들 수 없고, 런타임을 넣으면 147MB가 됩니다. | 구현 중 판단 |
+| ~~`uv build --wheel`을 표준으로, `MANIFEST.in`으로 sdist에서 런타임 제외~~ (scikit-build-core로 옮기며 `MANIFEST.in` 삭제) | 이전에는 sdist만으로 wheel을 만들 수 없었습니다. 지금은 sdist(약 1MB)에서 wheel이 만들어지는 것을 확인했습니다. | 구현 중 판단 |
 
 ## 바인딩
 

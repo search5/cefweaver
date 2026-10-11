@@ -8,10 +8,10 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/build_cef.py
   - CLAUDE.md
-  - setup.py
+  - cmake/CefweaverExtension.cmake
   - native/cefwrapper/platform_structs.h
   - tests/test_smoke.py
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 알려진 제약과 미검증 항목
@@ -27,7 +27,7 @@ updated: 2026-10-10
 | **py2exe**와 Windows에서의 동결 | py2exe는 Windows 전용이고 이 프로젝트의 Windows 동작을 검증하지 못했습니다. PyInstaller와 cx_Freeze는 Linux에서만 실험했습니다([F93](verified-findings-handlers.md)). | Windows에서 [동결 절차](../procedures/freeze-app.md)를 따라 해 보기 |
 | 동결본을 **Python이 없는 기계와 다른 배포판**에서 실행하는 것 | 실험은 빌드한 기계에서만 했습니다. cx_Freeze는 시스템 라이브러리를 묶지 않고(GTK 3, wxPython은 시스템의 GTK 3를 씀) PyInstaller는 묶습니다. |
 | 동결본의 **간헐적 점검 실패 두 건**: wxPython + PyInstaller의 메뉴(8회 중 2회), PySide6 + cx_Freeze의 소리 지연(6회 중 1회) | 동결하지 않은 실행은 각각 8회, 6회 모두 통과했습니다([F93](verified-findings-handlers.md)). 표본이 작아 동결이 원인인지 가를 수 없습니다. | 같은 점검을 20회 이상 반복해 동결 여부별 실패율을 비교하고, 실패할 때의 상세 로그를 받기 |
-| **Windows**에서의 빌드와 동작 | 개발 환경이 Linux입니다. `OS_WIN` 분기, `cef_wrapper_client_handler_win.cc`, Windows용 CMake, `os.add_dll_directory`, `custom_protocol_scheme_handler.cc`의 수정이 양쪽에 영향을 줍니다. `pyproject.toml`의 `ext-modules`는 Linux 전용입니다. | Windows에서 `python tools/prepare.py`와 `uv build --wheel` 후 시험 실행. 설정 방식(정적 `ext-modules`로 충분한지)도 그때 정합니다. |
+| **Windows**에서의 빌드와 동작 | 개발 환경이 Linux입니다. `OS_WIN` 분기, `cef_wrapper_client_handler_win.cc`, Windows용 CMake, `os.add_dll_directory`, `custom_protocol_scheme_handler.cc`의 수정이 양쪽에 영향을 줍니다. `cmake/CefweaverExtension.cmake`에는 Windows 분기가 없습니다. | Windows에서 `uv build --wheel` 후 시험 실행. 예상 문제는 [분석](../analyses/scikit-build-core-prototype.md)에 있습니다. |
 | `--build-cef`의 **실제 소스 빌드** | 이 환경의 디스크 여유가 약 69GB이고 요구량은 약 120GB입니다. `--dry-run`, 옵션 존재, 브랜치와 커밋 검증, 안전장치, 기존 배포본 재사용(가짜 디렉터리)까지만 확인했습니다. | 디스크 150GB 이상의 환경에서 `python tools/prepare.py --build-cef`. 결과 경로 탐색(`find_distribution`)과 `GN_DEFINES`를 그때 보정합니다. |
 | 다른 CEF 버전의 **실행** | 생성기와 컴파일은 147, 152, 154 헤더에서 확인했습니다(F23). 147과 152의 `libcef`로 실제 실행해 시험을 돌리지는 않았습니다. | 해당 버전의 배포본으로 `prepare.py`, `uv build --wheel`, 시험 |
 | `GN_DEFINES`의 **`use_allocator=none`** 필요 여부 | cefpython이 같은 설정을 썼다는 근거만 있고 CEF 154에서 필요한지는 확인하지 않았습니다. | 소스 빌드 후 설정을 빼고 Python에서 CEF를 로드해 문제가 없는지 비교 |
@@ -83,10 +83,8 @@ updated: 2026-10-10
 - `CefWrapper::IsReadyToExecuteJavascript()`는 `CefWrapperClientHandler::GetInstance()`의 널을 확인하지 않습니다. Python 래퍼가 상태로 먼저 거릅니다.
 - `resources_dir_path` 설정은 Linux에서 `icudtl.dat` 위치에 영향이 없습니다. 런타임 파일은 `libcef.so`와 같은 디렉터리여야 합니다([런타임 파일 배치](../concepts/runtime-layout.md)).
 - 생성기는 라이브러리 메서드의 객체 참조 출력 인자(`CefRefPtr<T>&`), 요소가 평범하지 않은 구조체이거나 `CefRawPtr`인 벡터, 라이브러리 메서드에 주는 객체 목록, 라이브러리 메서드에 주는 벡터, 맵, 소유 포인터, 평범한 데이터가 아닌 구조체, 라이브러리 메서드의 출력 인자, 핸들러 메서드의 구조체 반환, 라이브러리 클래스의 상속을 지원하지 않습니다([생성 범위와 커버리지](generated-api-coverage.md)).
-- `ext-modules` 설정이 Linux 전용이고 정적이라서 플랫폼별로 나눌 수 없습니다.
-- `tools/prepare.py`의 스테이징은 Linux만 구현했습니다.
+- `cmake/CefweaverExtension.cmake`의 `install()`은 Linux만 구현했습니다. macOS의 프레임워크 옵션은 적었지만 빌드하지 못했고, `cefsubprocess.app`은 아직 `prepare.py`가 조립합니다.
 - 소스 빌드(`build_cef.py`)는 Linux x86_64만 지원하고 cefpython처럼 CEF에 자체 패치를 적용하지 않습니다.
-- sdist만으로는 wheel을 만들 수 없고, 인자 없는 `uv build`는 실패합니다.
 - **Tk 예제에서는 한영 전환이 되지 않습니다**(2026-10-09 사용자가 실제 화면에서 확인. 이전에 기록된 적은 없었음). 어댑터는 입력기의 조합 중 글자(preedit)를 받지 못합니다("Tk gives none"). 원인은 확인하지 않았고, Tk 8.6이 이 구성에서 입력기(ibus, fcitx 등)와 연결되지 않는 것으로 추정합니다. 한글 입력이 필요하면 GTK 3, Qt, wx가 입력기를 받습니다(GTK 3, Qt는 실제 화면에서 한글 입력 확인). Tk 화면의 한글 글꼴이 이상하다는 보고(2026-10-09)는 페이지 안의 글자인지 툴바의 글자인지 아직 가르지 못했습니다.
 - **인쇄(메뉴의 `인쇄` 포함)는 쓸 수 있는 상태가 아닙니다**(원인 미조사, [UI API](ui-api.md)의 "아직 하지 않은 것").
 - **SDL2와 Kivy 예제는 오른쪽 클릭 메뉴가 없습니다**(보류, 사용자 결정): 오프스크린 CEF는 메뉴를 그리지 않고 두 툴킷은 네이티브 메뉴 위젯이 없어(공식 문서로 확인) 어댑터에 `show_menu`를 구현하지 않았습니다. 이 두 예제에서는 CEF 핸들러가 없어 앱의 훅 `view.on_context_menu`도 불리지 않습니다(실제로 띄워 오른쪽 클릭해서 확인). [UI API](ui-api.md)의 "아직 하지 않은 것"에 이유가 있습니다.

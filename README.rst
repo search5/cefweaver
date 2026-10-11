@@ -48,7 +48,9 @@ people is in ``docs/`` (a Jekyll site for GitHub Pages).
 Building from source
 ====================
 
-CEF and the native libraries must be prepared before building the Python package::
+On Linux ``uv build --wheel`` alone builds everything (scikit-build-core and CMake; CEF is taken from ``$CEF_ROOT``
+or downloaded). ``tools/prepare.py`` prepares CEF and the native libraries in advance (and, on macOS, assembles
+``cefsubprocess.app``)::
 
     python tools/prepare.py                        # download the prebuilt CEF
     python tools/prepare.py --cef-root /path/cef   # use a self-built or extracted CEF

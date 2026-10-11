@@ -5,13 +5,12 @@ sources:
   - cefweaver/__init__.py
   - native/cefwrapper/library.cpp
   - pyproject.toml
-  - setup.py
   - cefweaver/ui/toolkits/tk.py
   - cefweaver/ui/toolkits/qt.py
   - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/wx.py
-updated: 2026-10-09
+updated: 2026-10-10
 ---
 
 # 앱을 PyInstaller와 cx_Freeze로 묶기
@@ -47,6 +46,10 @@ cxfreeze --script app.py --target-dir out      # 약 402MB
 ```
 
 `lib/cefweaver/`에 CEF 파일 11개와 `cefsubprocess`가 모두 들어가고 `locales/`(220개 파일)도 따라옵니다. 모듈은 `.pyc`로 들어갑니다. Tk 예제도 추가 설정 없이 동작했습니다(Pillow를 설치했다면).
+
+## 최근 확인 (2026-10-10)
+
+Views, 렌더러 이벤트, 새 핸들러 등을 더한 뒤의 wheel로 같은 도구 버전에서 다시 확인했습니다. 최소 앱, Tk 예제의 `smoke.py`(30개), Views 예제의 `smoke.py`(13개)가 세 가지 방식(PyInstaller onedir와 onefile, cx_Freeze) 모두에서 3회씩 통과했습니다([F112](../reference/verified-findings-opened.md)). 그 밖의 툴킷은 다시 돌리지 않았습니다.
 
 ## 공통
 

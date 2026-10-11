@@ -5,10 +5,11 @@ Steps:
      build CEF from source, or download the prebuilt one).
   2. Configure and build the native targets (cefwrapper, cefsubprocess) with CMake.
 
-On Linux the CEF runtime (libcef.so, resources, cefsubprocess) is copied into the
-``cefweaver/`` package directory so that ``uv build --wheel`` packages it; the
-copy of libcef.so is stripped (1.4 GB -> ~270 MB) and the CEF distribution itself
-is left untouched. On macOS the framework and the helper apps are assembled as
+On Linux the CEF runtime (libcef.so, resources, cefsubprocess) is not copied here:
+the wheel build (scikit-build-core, cmake/CefweaverExtension.cmake) installs it, with
+libcef.so stripped (1.4 GB -> ~270 MB), and the CEF distribution is left untouched.
+Files that an earlier version of this script staged into ``cefweaver/`` are removed.
+On macOS the framework and the helper apps are assembled as
 ``cefweaver/cefsubprocess.app`` instead (see stage_macos()).
 
 The resolved CEF is linked at ``build/native/cef`` so that pyproject.toml can
@@ -89,8 +90,6 @@ def parse_args():
     build_cef.add_arguments(source)
     parser.add_argument("--no-stage", action="store_true",
                         help="Do not copy the CEF runtime into the cefweaver/ package directory.")
-    parser.add_argument("--no-strip", action="store_true",
-                        help="Do not strip the staged libcef.so.")
     parser.add_argument("--build-dir", type=Path, default=DEFAULT_BUILD_DIR)
     parser.add_argument("--config", choices=("Debug", "Release"), default="Release")
     return parser.parse_args()
@@ -216,7 +215,6 @@ def validate_cef_version(version, cef_platform, build_dir, refresh):
 
 PACKAGE_DIR = ROOT / "cefweaver"
 STAGED_MANIFEST = "staged_runtime.json"
-STAGE_EXCLUDE = {"chrome-sandbox"}  # the wrapper runs with no_sandbox
 
 
 MAC_BUNDLE = "cefsubprocess.app"
@@ -262,12 +260,12 @@ def stage_macos(cef_root, build_dir, config):
     return [MAC_BUNDLE]
 
 
-def stage_runtime(cef_root, build_dir, config, strip):
+def stage_runtime(cef_root, build_dir, config):
     """Copy the CEF runtime and cefsubprocess into the cefweaver/ package directory.
 
-    Linux: the files sit next to the extension module on purpose: CEF looks for
-    icudtl.dat next to libcef.so, and cefsubprocess finds libcef.so through its
-    rpath ($ORIGIN).
+    Linux: nothing is staged any more. The wheel build installs the runtime next to the
+    extension module (CEF looks for icudtl.dat next to libcef.so, and cefsubprocess finds
+    libcef.so through its rpath $ORIGIN); this function only removes what older runs staged.
 
     macOS: everything goes into cefsubprocess.app, the stand-in for the main app bundle
     of the Python process (see stage_macos()).
@@ -288,37 +286,16 @@ def stage_runtime(cef_root, build_dir, config, strip):
             elif target.exists() or target.is_symlink():
                 target.unlink()
 
+    if sys.platform.startswith("linux"):
+        # The wheel build installs the runtime (it would be packaged twice if it stayed here).
+        manifest.unlink(missing_ok=True)
+        return []
+
     if sys.platform == "darwin":
         staged = stage_macos(cef_root, build_dir, config)
         manifest.write_text(json.dumps(staged, indent=2), encoding="utf-8")
         return staged
-
-    subprocess_exe = build_dir / "native" / "cefsubprocess" / config / "cefsubprocess"
-    if not subprocess_exe.is_file():
-        sys.exit(f"error: {subprocess_exe} not found; was the native build successful?")
-
-    sources = [p for sub in ("Release", "Resources")
-               for p in sorted((cef_root / sub).iterdir())
-               if p.name not in STAGE_EXCLUDE]
-    sources.append(subprocess_exe)
-
-    staged = []
-    for src in sources:
-        dst = PACKAGE_DIR / src.name
-        if src.is_dir():
-            shutil.copytree(src, dst)
-        else:
-            shutil.copy2(src, dst)
-            if strip and src.name == "libcef.so":
-                subprocess.run(["strip", "--strip-unneeded", str(dst)], check=True)
-        staged.append(src.name)
-
-    manifest.write_text(json.dumps(staged, indent=2), encoding="utf-8")
-    size = sum(f.stat().st_size for n in staged for f in
-               ([PACKAGE_DIR / n] if (PACKAGE_DIR / n).is_file()
-                else (PACKAGE_DIR / n).rglob("*")) if f.is_file())
-    print(f"Staged {len(staged)} runtime entries into {PACKAGE_DIR} ({size / 2**20:.0f} MB)")
-    return staged
+    return []
 
 
 def run(cmd):
@@ -387,7 +364,7 @@ def main():
         sys.exit("error: could not determine CEF_ROOT from the CMake cache")
     link = link_cef(build_dir, Path(resolved))
     staged = [] if args.no_stage else stage_runtime(
-        Path(resolved), build_dir, args.config, not args.no_strip)
+        Path(resolved), build_dir, args.config)
 
     marker = {"cef_root": resolved, "cef_link": str(link), "staged": staged, "build_dir": str(build_dir), "config": args.config}
     (build_dir / MARKER_NAME).write_text(json.dumps(marker, indent=2), encoding="utf-8")

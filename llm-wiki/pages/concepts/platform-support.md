@@ -9,11 +9,11 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - native/cefsubprocess/CMakeLists.txt
   - tests/test_smoke.py
-  - setup.py
+  - cmake/CefweaverExtension.cmake
   - native/cefwrapper/mac_runtime.mm
   - examples/cocoa/quickstart.py
   - cefweaver/ui/keys.py
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 플랫폼 지원 현황
@@ -28,7 +28,7 @@ updated: 2026-10-10
 
 ## Linux
 
-확장 모듈의 설정(라이브러리 이름, 디렉터리, `-Wl,-rpath,$ORIGIN`, `-std=c++20`)은 `setup.py`에 있습니다. `pyproject.toml`의 정적 `ext-modules`는 플랫폼별로 나눌 수 없어서 macOS를 더하며 옮겼습니다([설계 결정 기록](../reference/design-decisions.md)). `setup.py`의 Linux 분기는 옮기기 전의 설정과 같게 썼지만 이 컴퓨터(macOS)에서는 돌려 보지 못했습니다.
+확장 모듈의 설정(`-Wl,-rpath,$ORIGIN`, `-std=c++20`, 프레임워크)은 `cmake/CefweaverExtension.cmake`에 있고 라이브러리 목록은 `cefwrapper` 타깃의 의존성이 정합니다([패키징](../components/packaging.md)). 2026-10-11에 `setup.py`에서 옮겼고 Linux에서만 빌드하고 시험했습니다. macOS 분기(프레임워크와 `-ObjC`)는 옮기기 전의 값을 그대로 적었지만 빌드해 보지 못했습니다. Windows 분기는 없습니다.
 
 화면 환경은 [Chromium의 Wayland와 X11 동작](../analyses/chromium-on-wayland.md)에 있습니다. 요약하면 네이티브 Wayland와 XWayland(X11)에서 모두 Chromium이 동작했습니다. 시험은 실제 화면에 창이 뜨지 않도록 환경변수 `WAYLAND_DISPLAY`를 제거하고 `ozone-platform=x11`을 지정해서 가상 X 서버(Xvfb)에서만 실행합니다.
 
@@ -63,3 +63,4 @@ macOS에서 다른 점은 [F82](../reference/verified-findings-macos.md)에 있�
 - [런타임 파일 배치](runtime-layout.md)
 - [실행해서 확인한 macOS](../reference/verified-findings-macos.md)
 - [C++ 핸들러](../components/native-handlers.md)
+- [scikit-build-core로 setup.py 없이 빌드하기 (프로토타입, Windows 준비)](../analyses/scikit-build-core-prototype.md)

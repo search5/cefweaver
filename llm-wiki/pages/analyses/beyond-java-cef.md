@@ -6,7 +6,6 @@ sources:
   - llm-wiki/pages/reference/coverage-report.md
   - tools/gen/scope.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
-  - setup.py
   - examples/print/printing.py
 updated: 2026-10-10
 ---

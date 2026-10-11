@@ -177,6 +177,11 @@ add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 add_subdirectory(native/cefwrapper)
 add_subdirectory(native/cefsubprocess)
 
+if(SKBUILD)
+  # Building a wheel (scikit-build-core): also the extension module and the files of the wheel.
+  include(CefweaverExtension)
+endif()
+
 #if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/cefwrappertest")
 #  add_subdirectory(src/cefwrappertest)
 #endif()

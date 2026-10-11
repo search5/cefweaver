@@ -6,12 +6,12 @@ sources:
   - cefweaver/cefwrapper.pxd
   - cefweaver/__init__.py
   - pyproject.toml
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # Cython 확장 모듈 (_cefweaver)
 
-Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefweaver._cefweaver`)이고 Linux에서는 `_cefweaver.cpython-<버전>-x86_64-linux-gnu.so`, Windows에서는 `.pyd`가 됩니다(setuptools가 이름을 정합니다). cefpython이 `.pyx` 약 47개를 `include`로 합쳐 하나의 모듈로 만드는 것과 구조가 같지만 규모는 훨씬 작습니다([관련 프로젝트](../reference/related-projects.md)).
+Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefweaver._cefweaver`)이고 Linux에서는 `_cefweaver.cpython-<버전>-x86_64-linux-gnu.so`, Windows에서는 `.pyd`가 됩니다(scikit-build-core의 `WITH_SOABI`가 이름을 정합니다). cefpython이 `.pyx` 약 47개를 `include`로 합쳐 하나의 모듈로 만드는 것과 구조가 같지만 규모는 훨씬 작습니다([관련 프로젝트](../reference/related-projects.md)).
 
 ## 파일
 
@@ -53,7 +53,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 
 ## 빌드 설정
 
-확장은 `setup.py`에 선언되어 있습니다(`pyproject.toml`의 정적 선언에서 옮겼습니다). 자세한 내용은 [패키징](packaging.md)에 있습니다.
+확장은 `cmake/CefweaverExtension.cmake`에서 CMake 타깃으로 빌드합니다(`setup.py`에서 옮겼습니다). 자세한 내용은 [패키징](packaging.md)에 있습니다.
 
 ## 관련 페이지
 

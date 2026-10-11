@@ -616,3 +616,16 @@
 
 - `evaluate(..., timeout=30.0)`을 더했습니다. 컨텍스트가 없는 프레임과 떠난 페이지의 요청이 영영 끝나지 않고 `_pending`에 남던 문제를 막습니다([F111](pages/reference/verified-findings-opened.md)). 시험을 먼저 써서 실패를 확인했습니다.
 
+## [2026-10-10] ingest | 새 wheel의 동결 확인
+
+- 이번 작업을 넣은 wheel을 PyInstaller 6.22.3(onedir, onefile)과 cx_Freeze 8.7.1로 묶어 최소 앱, Tk 예제의 `smoke.py`(30개), Views 예제의 `smoke.py`(13개)를 각각 3회씩 돌렸고 모두 통과했습니다([F112](pages/reference/verified-findings-opened.md)).
+
+
+
+## [2026-10-11] ingest | scikit-build-core 프로토타입 (setup.py 없이 빌드)
+
+- Windows 지원을 앞두고, 확장 모듈을 CMake에서 빌드하는 방식(`scikit-build-core`)을 Linux에서 프로토타입으로 확인했습니다. 첫 시도에 wheel이 만들어졌고 전체 시험 532개가 통과했습니다. 저장소에는 반영하지 않았고 결정은 하지 않았습니다([분석](pages/analyses/scikit-build-core-prototype.md)).
+
+## [2026-10-11] ingest | 빌드 체계를 scikit-build-core로 전환 (A안, Linux)
+
+- `setup.py`와 `MANIFEST.in`을 삭제하고 `pyproject.toml`의 백엔드를 scikit-build-core로 바꿨습니다. 확장 모듈과 wheel 내용(런타임, `cefsubprocess`, `libcef.so` strip)은 `cmake/CefweaverExtension.cmake`가 맡고, `tools/prepare.py`는 Linux에서 스테이징을 하지 않고 이전 결과만 지웁니다(`--no-strip` 삭제). Linux에서 wheel 빌드, 시험 532개, sdist 빌드를 확인했고 macOS와 Windows는 확인하지 못했습니다([F113](pages/reference/verified-findings-opened.md)). 갱신한 페이지: packaging, cython-extension, build-and-install, tool-prepare, runtime-layout, architecture-overview, platform-support, design-decisions, known-constraints, glossary, source-tree-map, native-cefsubprocess와 `docs/installation.md`, `README.rst`, `CLAUDE.md`.

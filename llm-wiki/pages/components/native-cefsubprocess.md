@@ -27,7 +27,7 @@ Linux의 `main`에 붙은 `no_stack_protector`는 서브프로세스가 종료�
 
 - Linux: `add_executable(cefsubprocess ...)`, `INSTALL_RPATH $ORIGIN`(`BUILD_WITH_INSTALL_RPATH TRUE`), 출력 디렉터리에 CEF 바이너리와 리소스 복사(`COPY_FILES`), `libminigbm.so`가 있으면 함께 복사. 출력은 `build/native/native/cefsubprocess/Release/cefsubprocess`입니다.
 - `libcefwrapper.a`, `libcef_lib`, `libcef_dll_wrapper`를 링크합니다.
-- 이 빌드 디렉터리의 `cefsubprocess`가 `tools/prepare.py`의 스테이징 원본입니다([런타임 파일 배치](../concepts/runtime-layout.md)).
+- 이 빌드 디렉터리의 `cefsubprocess`가 `tools/prepare.py`의 스테이징 원본(macOS)입니다. Linux에서는 wheel 빌드의 `install(TARGETS cefsubprocess)`가 이것을 넣습니다([런타임 파일 배치](../concepts/runtime-layout.md)).
 
 ## 관련 페이지
 

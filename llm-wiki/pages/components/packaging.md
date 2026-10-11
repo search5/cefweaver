@@ -3,56 +3,46 @@ title: 패키징
 type: component
 sources:
   - pyproject.toml
-  - MANIFEST.in
   - .gitignore
   - tools/prepare.py
   - cefweaver/__init__.py
-  - setup.py
-updated: 2026-10-09
+  - cmake/CefweaverExtension.cmake
+  - CMakeLists.txt
+updated: 2026-10-11
 ---
 
 # 패키징
 
-빌드 백엔드는 setuptools이고(`requires = ["setuptools>=77", "Cython>=3.0", "cmake>=3.28.1"]`) 도구는 uv입니다. Cython 확장은 처음에 `pyproject.toml`의 정적 선언 `[[tool.setuptools.ext-modules]]`로 적었으나, macOS를 더하며 `setup.py`로 옮겼습니다. 정적 선언은 플랫폼마다 다른 라이브러리 목록을 쓸 수 없기 때문입니다. `setup.py`는 `Extension` 하나만 선언하고 나머지 메타데이터는 `pyproject.toml`에 있습니다.
+빌드 백엔드는 scikit-build-core이고(`requires = ["scikit-build-core>=0.10", "Cython>=3.0", "cmake>=3.28.1"]`) 도구는 uv입니다. 2026-10-11에 setuptools와 `setup.py`에서 옮겼습니다. 확장 모듈과 wheel에 들어가는 파일을 모두 CMake가 만듭니다. 옮긴 이유와 확인 범위는 [분석](../analyses/scikit-build-core-prototype.md)에 있습니다(Linux에서 확인, macOS와 Windows는 확인하지 못함).
 
-## 확장 모듈 설정 (`setup.py`)
+## 흐름
 
-| 항목 | 값 | 이유 |
-| --- | --- | --- |
-| `name`, `sources` | `cefweaver._cefweaver`, `cefweaver/_cefweaver.pyx` | |
-| `language` | `c++` | |
-| `include-dirs` | `build/native/cef`, `native/cefwrapper` | CEF 헤더(`prepare.py`가 만든 링크)와 래퍼 헤더 |
-| `library-dirs` | `build/native/native/cefwrapper`, `build/native/libcef_dll_wrapper`, `build/native/cef/Release` | 세 라이브러리가 흩어져 있습니다. |
-| `libraries` | Linux: `cefwrapper`, `cef_dll_wrapper`, `cef`, `X11`(창 제목 설정), `dl`, `pthread`. macOS: `cefwrapper`, `cef_dll_wrapper` | 정적 라이브러리는 순서가 중요합니다(`cefwrapper`가 `cef_dll_wrapper`를 씀). macOS는 `libcef`를 링크하지 않고 프레임워크를 실행 중에 올립니다. |
-| `define-macros` | Linux: `NDEBUG=1`, `_FILE_OFFSET_BITS=64`. macOS: `NDEBUG=1` | 래퍼 라이브러리를 컴파일한 정의(`flags.make`)와 맞춰야 합니다. |
-| `extra-compile-args` | `-std=c++20` | CEF 154가 C++20으로 컴파일됩니다. |
-| `extra-link-args` | Linux: `-Wl,-rpath,$ORIGIN`. macOS: `-framework Cocoa -framework AppKit -framework IOSurface -Wl,-ObjC` | Linux는 같은 디렉터리의 `libcef.so`를 찾습니다. macOS는 래퍼의 Objective-C++이 쓰는 프레임워크입니다. |
-| `depends` | 생성 파일, 래퍼 헤더 두 개, 정적 라이브러리 두 개, `libcef.so` | 아래 참조 |
+1. `uv build --wheel`이 scikit-build-core를 부르고, 이것이 최상위 `CMakeLists.txt`를 구성합니다. `SKBUILD`가 켜져 있으면 `cmake/CefweaverExtension.cmake`가 포함됩니다. 그렇지 않은 구성(`tools/prepare.py`의 사전 빌드)에서는 포함되지 않습니다.
+2. 같은 CMake 안에서 `libcef_dll_wrapper`, `cefwrapper`, `cefsubprocess`가 빌드됩니다. CEF는 `-DCEF_ROOT`, 환경 변수 `CEF_ROOT`, 없으면 내려받기 순서로 정해집니다([CEF 확보 방식](../concepts/cef-acquisition.md)). `tools/prepare.py`가 만든 `build/native/cef`를 `CEF_ROOT`로 주면 같은 배포본을 씁니다.
+3. `cefweaver/_cefweaver.pyx`는 `add_custom_command`로 Cython을 실행해 C++로 바꾸고(`.pxi`, `.pxd`가 바뀌면 다시 실행), `Python_add_library(_cefweaver MODULE WITH_SOABI ...)`로 확장 모듈을 만듭니다. `cefwrapper`에 링크하면 `libcef_dll_wrapper`, `libcef`, 시스템 라이브러리가 CMake의 의존성으로 따라옵니다. 정의는 `NDEBUG=1`(Linux는 `_FILE_OFFSET_BITS=64`도), 표준은 C++20, Linux의 rpath는 `$ORIGIN`입니다.
+4. `install()`이 확장 모듈, Linux의 `cefsubprocess`, `Release/*`와 `Resources/*`(`chrome-sandbox` 제외)를 `cefweaver/`에 넣습니다. `libcef.so`는 일반 파일이라 `install.strip`이 듣지 않으므로 `install(CODE ...)`가 `strip --strip-unneeded`를 실행합니다(1.4GB에서 약 272MB).
+5. 순수 Python 파일, 타입 스텁, `py.typed`는 `wheel.packages = ["cefweaver"]`로 들어갑니다. `wheel.exclude`가 `.pyx`, `.pxd`, `.pxi`, `CMakeLists.txt`, `__pycache__`, 생성된 `_cefweaver.cpp`를 뺍니다.
 
-경로는 모두 저장소 루트 기준 상대 경로입니다. `sys.platform`이 `darwin`이면 macOS 설정을, 아니면 Linux 설정을 씁니다(Windows는 라이브러리 이름과 디렉터리가 달라 아직 없음). macOS에서는 `MACOSX_DEPLOYMENT_TARGET`을 12.0으로 기본 설정합니다(래퍼 라이브러리를 그 값으로 컴파일하기 때문). Linux 분기는 옮기기 전과 같은 값이지만 macOS 컴퓨터에서 돌려 보지 못했습니다.
+빌드 디렉터리는 `build/skbuild/{wheel_tag}`입니다. 정적 라이브러리가 바뀌면 CMake가 의존성으로 알아서 다시 링크하므로, setuptools 때 필요했던 `depends` 목록은 없습니다.
 
-## depends가 필요한 이유
+## macOS
 
-setuptools(distutils)는 `.pyx`와 `.cpp`의 수정 시각만 비교하고 **정적 라이브러리가 바뀐 것은 감지하지 못합니다.** 처음에는 `prepare.py`가 `libcefwrapper.a`를 새로 만들었는데도 이전에 링크한 확장 모듈을 재사용해서, 서브프로세스 경로가 옛 값으로 남은 wheel이 만들어졌습니다. `depends`에 라이브러리와 헤더를 적어 이를 막았습니다.
-
-## package-data
-
-`cefweaver = ["*.so", "*.so.*", "*.pyd", "*.dylib", "cefsubprocess.app/**/*", "*.pak", "*.dat", "*.bin", "*.json", "locales/*", "cefsubprocess", "*.pyi", "py.typed"]`: `prepare.py`가 `cefweaver/`에 복사한 CEF 런타임과 타입 스텁을 wheel에 넣습니다. `.so` 패턴은 확장 모듈과 `libcef.so`에 모두 해당합니다.
+`OS_MAC` 분기가 `-framework Cocoa`, `-framework AppKit`, `-framework IOSurface`, `-Wl,-ObjC`를 더합니다(`setup.py`가 주던 값). `libcef`는 링크하지 않습니다. **이 분기는 macOS에서 빌드하거나 돌려 보지 못했습니다.** `cefsubprocess.app`은 아직 `tools/prepare.py`의 `stage_macos()`가 `cefweaver/` 아래에 조립하고, `wheel.packages`가 그것을 파일로 가져갑니다. Linux는 스테이징을 하지 않습니다(`prepare.py`가 이전 스테이징 결과를 지우기만 합니다. 같은 파일이 두 번 들어가지 않게 하기 위해서입니다).
 
 ## sdist와 `uv build`
 
-- **인자 없는 `uv build`는 실패합니다.** sdist를 먼저 만들고 그 sdist에서 wheel을 만드는데, sdist에는 `build/native/cef`가 없어서 CEF 헤더를 찾지 못합니다(`include/cef_client.h` 없음). 그래서 `uv build --wheel`을 씁니다.
-- `MANIFEST.in`은 sdist에서 스테이징된 런타임을 제외합니다. 제외하기 전의 sdist는 약 147MB였고 제외한 뒤 약 9KB입니다.
-- sdist 단독으로는 wheel을 만들 수 없습니다.
+- 인자 없는 `uv build`가 sdist와 wheel을 모두 만들었습니다(`CEF_ROOT` 지정, 약 1분 39초, sdist 1,062,753바이트, wheel 156,076,196바이트). 따로 실행한 `uv build --sdist`는 약 1MB의 sdist를 만들었고, 그 sdist 하나로 `uv build --wheel`이 wheel을 만들었습니다(2026-10-11, `CEF_ROOT` 없이 실행했으므로 CMake가 CEF를 구했습니다. 어디에서 구했는지는 확인하지 않았습니다).
+- 이 이유로 `MANIFEST.in`을 지웠습니다(scikit-build-core는 쓰지 않고, sdist에는 git이 추적하는 파일이 들어갑니다). sdist에는 `docs/`, `examples/`, `llm-wiki/`, `tests/`, `tools/`도 들어 있습니다(361개 항목). 줄일지는 정하지 않았습니다.
 
 ## git에서 제외되는 파일
 
-`.gitignore`가 `cefweaver/_cefweaver.cpp`(Cython 생성), 스테이징된 런타임(`cefweaver/*.so.*`, `*.pak`, `*.dat`, `*.bin`, `vk_swiftshader_icd.json`, `locales/`, `cefsubprocess`; `libcef.so` 등은 기존의 `*.so`로 제외)을 제외합니다. `cef_binary*`와 `build/`도 제외됩니다.
+`.gitignore`가 `cefweaver/_cefweaver.cpp`(옛 setuptools 빌드의 Cython 생성물), `cef_binary*`, `build/`를 제외합니다. 이제 Linux에서는 런타임이 소스 트리에 복사되지 않습니다.
 
 ## wheel의 특성
 
 - 태그는 `cp313-cp313-linux_x86_64`처럼 로컬 플랫폼 태그입니다. PyPI에 올리려면 manylinux 규격이 필요한데, `auditwheel show`는 이 wheel에 `linux_x86_64`만 허용했습니다(빌드 호스트의 glibc 2.43 심볼과, CEF가 요구하는 허용 목록 밖의 시스템 라이브러리 때문. F24).
-- 크기: 약 148MB(스테이징 후 `libcef.so`를 strip한 값). 설치하면 약 363MB입니다.
+- 크기: 약 156,076,117바이트(2026-10-11, scikit-build-core로 만든 것). 설치하면 약 363MB입니다(이전 값, 다시 재지 않음).
+- 빌드 시간: `uv build --wheel`은 한 번에 약 1분 37초였습니다(2026-10-11). 빌드 격리를 끄면(`--no-build-isolation`) 증분 빌드가 되는 것은 프로토타입에서 확인했습니다.
 
 ## 메타데이터의 불일치
 
@@ -64,3 +54,4 @@ setuptools(distutils)는 `.pyx`와 `.cpp`의 수정 시각만 비교하고 **정
 - [tools/prepare.py](tool-prepare.md)
 - [빌드와 설치](../procedures/build-and-install.md)
 - [앱을 PyInstaller와 cx_Freeze로 묶기](../procedures/freeze-app.md)
+- [scikit-build-core로 setup.py 없이 빌드하기 (프로토타입)](../analyses/scikit-build-core-prototype.md)

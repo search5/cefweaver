@@ -7,7 +7,7 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/gen/generate.py
   - .gitignore
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 소스 트리 지도
@@ -19,7 +19,6 @@ cefweaver/
   CMakeLists.txt              루트 CMake: CEF 확보, 하위 타깃          [root-cmake]
   cmake/DownloadCEF.cmake     prebuilt 내려받기                        [root-cmake]
   pyproject.toml              빌드 백엔드, 메타데이터, ext-modules     [packaging]
-  MANIFEST.in                 sdist에서 런타임 제외                    [packaging]
   uv.lock, LICENSE, README.rst, CHANGELOG.rst (비어 있음)              [repo-metadata]
   CLAUDE.md                   LLM 작업 지침                            [summaries]
   native/
@@ -47,9 +46,9 @@ cefweaver/
     renderer_events.py        렌더러 이벤트를 푸는 RendererEvents                [javascript-bridge, verified-findings-opened]
     ui/                       툴킷 어댑터 층(session, view, adapter, toolkits/*)   [ui-api]
     cef_api.pxd, cef_api.pxi(색인), api/*.pxi(헤더별, 88개), types/(패키지), _cefweaver.pyi, py.typed   (생성)
-    (스테이징된 런타임: libcef.so, *.pak, icudtl.dat, locales/, cefsubprocess ... 은 git 제외)
+    (macOS: 스테이징된 cefsubprocess.app은 git 제외)
   tools/
-    prepare.py                CEF 확보, 빌드, 스테이징                 [tool-prepare]
+    prepare.py                CEF 확보, 빌드, macOS 번들 조립                 [tool-prepare]
     build_cef.py              CEF 소스 빌드                            [tool-build-cef]
     gen/                      바인딩 생성기                            [generator-modules]
       vendor/                 CEF 파서 복사본

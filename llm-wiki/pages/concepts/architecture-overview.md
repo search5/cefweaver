@@ -7,7 +7,7 @@ sources:
   - cefweaver/_cefweaver.pyx
   - tools/gen/generate.py
   - pyproject.toml
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 아키텍처 개요
@@ -49,11 +49,11 @@ libcef.so  (CEF 배포본에 이미 만들어져 있는 파일. 소스 빌드를
 | --- | --- | --- |
 | 1. CEF 확보 | `tools/prepare.py`(`--cef-root`, `--build-cef`, 또는 prebuilt 자동 다운로드) | `build/native/cef` 링크 |
 | 2. 네이티브 빌드 | CMake(`CMakeLists.txt`, `native/*/CMakeLists.txt`) | `libcef_dll_wrapper.a`, `libcefwrapper.a`, `cefsubprocess` |
-| 3. 런타임 스테이징 | `tools/prepare.py` | `cefweaver/` 아래에 복사된 `libcef.so`와 리소스 |
+| 3. 런타임 스테이징 | macOS: `tools/prepare.py`. Linux: 5단계의 `install()` | macOS는 `cefweaver/cefsubprocess.app`. Linux는 wheel 안의 `libcef.so`와 리소스 |
 | 4. 바인딩 생성(개발 시) | `tools/gen/generate.py` | 커밋되는 생성 파일 |
-| 5. 확장 빌드와 패키징 | `uv build --wheel`(setuptools, Cython) | `.so`가 들어간 wheel |
+| 5. 확장 빌드와 패키징 | `uv build --wheel`(scikit-build-core, CMake, Cython) | `.so`가 들어간 wheel |
 
-1단계부터 3단계는 사전 준비이고 `uv build --wheel`은 그 결과를 읽기만 합니다. 이 분리의 이유는 [설계 결정 기록](../reference/design-decisions.md)에 있습니다. 생성 파일은 저장소에 커밋되므로 패키지를 만드는 사람은 생성기를 실행하지 않아도 됩니다.
+Linux에서는 `uv build --wheel`이 1, 2, 3, 5단계를 한 번에 합니다(1단계는 `CEF_ROOT`가 없을 때 CMake가 내려받습니다). `tools/prepare.py`는 같은 단계를 미리 하는 선택적 도구입니다. 변천은 [설계 결정 기록](../reference/design-decisions.md)에 있습니다. 생성 파일은 저장소에 커밋되므로 패키지를 만드는 사람은 생성기를 실행하지 않아도 됩니다.
 
 ## 관련 페이지
 

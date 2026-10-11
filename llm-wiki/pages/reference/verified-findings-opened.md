@@ -1,5 +1,5 @@
 ---
-title: 실행해서 확인한 남은 API (F102~F111)
+title: 실행해서 확인한 남은 API (F102~F112)
 type: reference
 sources:
   - tests/test_smoke.py
@@ -11,7 +11,7 @@ sources:
 updated: 2026-10-10
 ---
 
-# 실행해서 확인한 남은 API (F102~F111)
+# 실행해서 확인한 남은 API (F102~F112)
 
 2026-10-10에 연 핸들러, 서버, 렌더러 이벤트, 미디어 라우터 등을 실제 CEF로 구동해 확인한 기록입니다. 각 항목의 시험은 `tests/test_smoke.py`에 있습니다. 표시한 것 말고는 Linux x86_64, CEF 154, 가상 X 서버에서 확인했습니다.
 
@@ -93,6 +93,25 @@ updated: 2026-10-10
 - 확인: 끝나지 않는 `Promise`는 약 0.3초 뒤 `TimeoutError`, 제한보다 늦게 답하는 식은 `TimeoutError`만 받고 늦은 답은 무시됨, 빠른 식과 `timeout=None`의 느린 식(500ms)은 정상(시험 `test_evaluate_gives_up_after_its_timeout_and_ignores_a_late_answer`, 5회 통과). 답하기 전에 페이지를 떠난 식(`Promise` 800ms, 중간에 이동)은 1.5초 뒤 `TimeoutError`이고 `_pending`이 비며, 다음 페이지의 `evaluate`는 정상이었습니다.
 - 기본값 30초는 시험의 기본 대기 시간(`wait_until`)에 맞춘 값이고 근거가 있는 최적값은 아닙니다. 이보다 오래 걸리는 식은 `timeout`을 늘리거나 `None`을 줘야 합니다.
 - 답이 오고 나서도 예약한 작업은 `timeout`초까지 남아 있다가 아무것도 하지 않고 끝납니다(항목이 이미 없음).
+
+## F112. 새 wheel을 동결해도 같다 (2026-10-10)
+
+- **환경**: Linux x86_64, Python 3.13.11, CEF 154, PyInstaller 6.22.3, cx_Freeze 8.7.1(F93과 같은 버전), 이번 작업을 모두 넣어 새로 빌드한 wheel. 새 가상환경에 설치해 `-P`로 실행했습니다.
+- **최소 앱**: 엄격한 CSP와 Trusted Types 헤더를 준 `add_resource` 페이지, 로드 이벤트, JavaScript 바인딩, `JavascriptBridge.evaluate`(렌더러의 `Eval`, `timeout`), 렌더러 이벤트(`enable_renderer_events`, 잡히지 않은 오류)를 쓰고 `shutdown()`합니다. 동결하지 않은 실행과 같은 결과(`evaluate` → `(42, None)`, 렌더러의 오류 이벤트, 종료 코드 0)가 PyInstaller onedir, PyInstaller onefile, cx_Freeze에서 각각 3회씩 9회 모두 나왔고 `stack smashing`은 없었습니다. 크기는 PyInstaller onedir 약 461MB, onefile 약 191MB, cx_Freeze 약 412MB로 F93(451MB, 188MB, 402MB)보다 조금 커졌습니다(생성 파일이 늘어서로 보이나 원인은 확인하지 않았습니다).
+- **Tk 예제의 `smoke.py`**(점검 30개): 동결하지 않은 실행이 30개 통과(`ALL OK`)이고, PyInstaller onedir, onefile, cx_Freeze 모두 3회씩 9회 모두 30개 통과, 종료 코드 0, `stack smashing` 없음이었습니다. PyInstaller에는 `--collect-all cefweaver --hidden-import PIL._tkinter_finder`를 줬습니다.
+- **Views 예제의 `smoke.py`**(점검 13개, 툴킷 없이 CEF의 창만 씀): 동결하지 않은 실행이 13개 통과이고, PyInstaller onedir, onefile, cx_Freeze 모두 3회씩 9회 모두 13개 통과, 종료 코드 0, `stack smashing` 없음이었습니다. 창을 실제 X 이벤트(xdotool)로 조작하는 점검이라, CEF가 소유한 창과 폴링 루프도 동결본에서 동작한다는 뜻입니다. PyInstaller에는 `--collect-all cefweaver`만 줬고 Tk처럼 숨은 import는 필요하지 않았습니다.
+- 확인하지 못한 것: Tk와 Views 외 툴킷(SDL2, GTK 3, Qt, wxPython)의 동결본, Python이 없는 기계에서의 실행, 새 wheel에서 PyInstaller가 `--collect-all` 없이 여전히 죽는지.
+
+## F113. scikit-build-core로 옮긴 저장소의 Linux 확인 (2026-10-11)
+
+`setup.py`와 `MANIFEST.in`을 지우고 `pyproject.toml`의 백엔드를 scikit-build-core로 바꾼 저장소에서 확인했습니다(Python 3.13, Linux x86_64, CEF 154).
+
+- `CEF_ROOT=$PWD/build/native/cef uv build --wheel`이 성공했습니다(약 1분 37초). wheel은 156,076,117바이트이고 `_cefweaver.cpython-313-x86_64-linux-gnu.so`, `cefsubprocess`, 272,219,288바이트의 `libcef.so`가 들어 있으며 `.pyx`, `.pxi`, `.cpp`는 없습니다.
+- 그 wheel로 전체 시험을 돌려 532개 중 CEF를 쓰는 시험은 모두 통과했습니다(건너뜀 9, 예상된 실패 3). 실패 1건은 위키 점검 시험이었고, 삭제된 `setup.py`를 `sources`로 가리킨 페이지 때문이었습니다(위키를 고쳐 해결).
+- `tools/prepare.py`를 다시 실행하면 이전에 `cefweaver/`에 스테이징된 런타임이 지워졌고(소스 트리에 중복되어 wheel에 두 번 들어가는 것을 막기 위함) `build/native/prepare.json`의 `staged`는 비었습니다.
+- `uv build --sdist`는 약 1MB의 sdist를 만들었고(361개 항목, `docs/`, `examples/`, `llm-wiki/`, `tests/`, `tools/` 포함), 그 sdist 하나로 `uv build --wheel`이 wheel(156,076,804바이트)을 만들었습니다. `CEF_ROOT`를 주지 않았으므로 CMake가 CEF를 구했는데 어디에서 구했는지는 확인하지 않았습니다.
+- 인자 없는 `uv build`(`CEF_ROOT` 지정)도 sdist 1,062,753바이트와 wheel 156,076,196바이트를 모두 만들었습니다(약 1분 39초).
+- 확인하지 못한 것: macOS 빌드(프레임워크 옵션, `cefsubprocess.app` 조립과 wheel 포함), Windows 전부, CI.
 
 ## 관련 페이지
 
