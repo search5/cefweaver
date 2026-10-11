@@ -102,6 +102,10 @@ jobs:
           uv venv --python ${{ inputs.python-version }} .venv-test
           uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-*.whl pywin32
 
+      - name: Fonts for Korean (Linux, for the diagnosis)
+        if: matrix.name == 'linux'
+        run: fc-list :lang=ko | head -5 || true
+
       - name: Tests (Linux, virtual X server)
         if: inputs.run-tests && matrix.name == 'linux'
         run: env -u WAYLAND_DISPLAY xvfb-run -a .venv-test/bin/python -P -m unittest discover -s tests -v

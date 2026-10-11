@@ -5786,7 +5786,7 @@ class WithCef(unittest.TestCase):
             thin = pixels_with(underline(1))
             thick = pixels_with(underline(1, thick=1))
             dotted = pixels_with(underline(1, style=Style.DOT))
-            assert thick > thin, (thin, thick)                     # a thick line has more pixels
+            assert thick > thin, (thin, thick, default, dotted)  # a thick line has more pixels
             assert len({default, thin, dotted}) == 3, (default, thin, dotted)
             host.ime_commit_text("\uac01\ub098", nothing, 0)
             wait_until(app, lambda: any(r[0] == "compositionend" for r in js), "the end of the composition")
