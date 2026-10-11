@@ -736,3 +736,6 @@
 
 ## [2026-10-12] ingest | manylinux 단계의 CI 실행 결과
 Linux만 실행(38180556005)해서 manylinux_2_28 컨테이너 빌드와 auditwheel repair가 통과하고 시험 547개가 OK였음을 `packaging.md`에 기록.
+
+## [2026-10-12] ingest | Linux aarch64 CI 실행
+`CMakeLists.txt`에 ARM 호스트의 CEF 배포본 선택(linuxarm64, windowsarm64)을 더하고 `platform=linux-arm`을 실행(38181679332). 빌드와 manylinux repair는 통과, 시험은 한국어 조합 밑줄 1개 실패. `packaging.md`에 반영.
