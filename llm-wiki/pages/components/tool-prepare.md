@@ -22,7 +22,7 @@ updated: 2026-10-11
 5. `cmake -S <저장소> -B <빌드 디렉터리> -DCMAKE_BUILD_TYPE=... -DPYTHON_EXECUTABLE=...`. 루트가 있으면 `-DCEF_ROOT=`, 없으면 `-UCEF_ROOT`(캐시에 남은 값 제거), `--cef-version`이 있으면 `-DCEF_VERSION=`을 덧붙입니다.
 6. `cmake --build`.
 7. `CMakeCache.txt`에서 `CEFWEAVER_CEF_ROOT`를 읽어 확정 경로를 얻습니다.
-8. `build/native/cef`에 링크를 만듭니다(`link_cef`; Windows는 `mklink /J` junction).
+8. `build/native/cef`에 링크를 만듭니다(`link_cef`; Windows는 `mklink /J` junction). 2026-10-11의 Windows 확인에서는 `prepare.py`를 돌리지 않고(PATH에 `cmake`가 없었음) 같은 junction을 `mklink /J`로 손으로 만들어 `build/native/cef`가 필요한 생성기 시험을 돌렸습니다. `stage_runtime`은 Windows에서도 옛 스테이징 파일만 지웁니다.
 9. `--no-stage`가 아니면 `stage_runtime`을 부릅니다. macOS는 `cefweaver/cefsubprocess.app`을 조립합니다. Linux는 복사하지 않고(wheel 빌드의 `install()`이 넣습니다) 이전 버전의 스크립트가 복사해 둔 항목만 지웁니다.
 10. `build/native/prepare.json`에 `cef_root`, `cef_link`, `staged`, `build_dir`, `config`를 기록합니다.
 

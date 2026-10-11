@@ -63,7 +63,7 @@ cefweaver/cefsubprocess.app/Contents/Frameworks/cefsubprocess Helper.app
 
 Linux의 런타임은 소스 트리에 복사되지 않고 wheel 빌드가 바로 wheel에 넣습니다([패키징](../components/packaging.md)). macOS의 `cefsubprocess.app`은 아직 `prepare.py`가 `cefweaver/`에 조립하며 `.gitignore`로 git에서 제외됩니다. 시험은 설치된 wheel을 대상으로 합니다([시험](../components/tests.md)).
 
-Windows의 배치는 다릅니다. 서브프로세스 기본 경로가 현재 작업 디렉터리 기준 `cefsubprocess/cefsubprocess.exe`이며 이 경로는 검증하지 못했습니다([플랫폼 지원 현황](platform-support.md)).
+Windows는 Linux와 같은 평평한 배치입니다. `_cefweaver.cp313-win_amd64.pyd`, `cefsubprocess.exe`, `libcef.dll`과 `chrome_elf.dll`, `d3dcompiler_47.dll`, `dxcompiler.dll`, `dxil.dll`, `vk_swiftshader.dll`, `vulkan-1.dll`, `v8_context_snapshot.bin`, `icudtl.dat`, `.pak` 파일, `locales/`가 `cefweaver/`에 함께 있습니다. 서브프로세스 경로는 `.pyd`의 디렉터리 기준입니다(F116). `libcef.dll`은 지연 적재라서 `__init__.py`가 먼저 전체 경로로 올립니다. 동결본의 배치는 [앱 묶기](../procedures/freeze-app.md)에 있습니다([플랫폼 지원 현황](platform-support.md)).
 
 ## 관련 페이지
 

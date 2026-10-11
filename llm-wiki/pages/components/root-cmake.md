@@ -40,12 +40,14 @@ updated: 2026-10-09
 - `CEF_ROOT`를 `PARENT_SCOPE` 일반 변수로만 설정합니다. 이전에는 `CACHE INTERNAL`이었고, 그 때문에 옛 버전이 고정되는 결함이 있었습니다.
 - 표준(`standard`) 배포본만 받습니다. `minimal`과 `client` 배포본은 쓰지 않습니다.
 
+Windows에서는 `find_package(CEF)` 앞에서 `USE_SANDBOX`를 `OFF`로 고정합니다(래퍼가 `no_sandbox`를 쓰고 `cef_sandbox.lib`는 VS 버전이 맞아야 링크됩니다). 이것이 없으면 `IMPORTED_LOCATION not set for imported target "cef_sandbox_lib"`로 구성이 끝나지 않았습니다([F116](../reference/verified-findings-windows.md)).
+
 ## 네이티브 타깃의 CMake
 
 | 파일 | Linux | Windows |
 | --- | --- | --- |
 | `native/cefwrapper/CMakeLists.txt` | `libcefwrapper.a`(정적, `POSITION_INDEPENDENT_CODE ON`, `libcef_lib`와 `libcef_dll_wrapper`와 `${CMAKE_DL_LIBS}` 링크). 소스에 `cef_wrapper_client_handler_linux.cc`가 추가됩니다. | 정적 라이브러리(원래 구성). 소스에 `cef_wrapper_client_handler_win.cc`. |
-| `native/cefsubprocess/CMakeLists.txt` | 실행 파일 `cefsubprocess`(RPATH `$ORIGIN`, CEF 바이너리와 리소스를 출력 디렉터리에 복사, `libminigbm.so`가 있으면 추가 복사) | `WIN32` 실행 파일, 매니페스트, 여러 대상 디렉터리로 복사 |
+| `native/cefsubprocess/CMakeLists.txt` | 실행 파일 `cefsubprocess`(RPATH `$ORIGIN`, CEF 바이너리와 리소스를 출력 디렉터리에 복사, `libminigbm.so`가 있으면 추가 복사) | `WIN32` 실행 파일, 매니페스트, 출력 디렉터리로 복사(옛 외부 대상 복사는 지움) |
 
 macOS: `native/cefwrapper/CMakeLists.txt`는 Linux처럼 PIC 정적 라이브러리를 만들되 `libcef`는 링크하지 않고(`libcef_lib`는 mac에 없음), `.mm` 두 개(`mac_runtime.mm`, `cef_wrapper_client_handler_mac.mm`)를 ARC로 컴파일합니다. `native/cefsubprocess/CMakeLists.txt`는 CEF가 정한 접미사(`(Alerts)`, `(GPU)`, `(Plugin)`, `(Renderer)`)마다 도우미 앱 타깃을 만들고 `native/cefsubprocess/mac/`의 plist를 씁니다. 도우미 앱을 모아 `cefsubprocess.app`으로 조립하는 일은 CMake가 아니라 `tools/prepare.py`가 합니다. Windows 분기에는 이 저장소에 없는 `src/PyCef_Dev`, `cefwrappertest` 디렉터리로 복사하는 줄이 남아 있습니다([사용하지 않는 코드와 유산](legacy-code.md)).
 

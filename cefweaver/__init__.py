@@ -15,7 +15,18 @@ if sys.platform.startswith("linux"):
     if os.path.exists(_libcef):
         ctypes.CDLL(_libcef, mode=ctypes.RTLD_GLOBAL)
 elif sys.platform == "win32":
-    os.add_dll_directory(_package_dir)  # libcef.dll next to the module (not tested yet)
+    # libcef.dll is delay-loaded by the extension module and by cefsubprocess.exe; a plain LoadLibrary does not search
+    # directories added with add_dll_directory, so the DLL is loaded here by its full path first (a module already
+    # loaded under that name satisfies the delay load). Its own dependencies (chrome_elf.dll, ...) sit next to it.
+    import ctypes
+
+    # (py2exe keeps the package in library.zip and puts libcef.dll and the extension module next to the executable:
+    # then the package directory is no directory, and the DLL is found next to the executable as for any program)
+    if os.path.isdir(_package_dir):
+        os.add_dll_directory(_package_dir)
+        _libcef = os.path.join(_package_dir, "libcef.dll")
+        if os.path.exists(_libcef):
+            ctypes.WinDLL(_libcef)
 
 from . import types  # noqa: E402  (enumerations and value types; plain Python)
 from . import settings as _settings  # noqa: E402,F401

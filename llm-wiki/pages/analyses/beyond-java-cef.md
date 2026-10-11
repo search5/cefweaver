@@ -30,11 +30,11 @@ updated: 2026-10-10
 | JS와 Python 연결 | 메시지 라우터(문자열) | 메시지 라우터(바이트열)와 `JavascriptBridge`(JSON, `Promise`, `evaluate`) |
 | 타입 | Java 클래스 몇 개 | 열거형 전부(IntEnum, IntFlag)와 구조체 22개, PEP 8 이름, 타입 스텁(`.pyi`, mypy로 검증) |
 | 이벤트 루프 통합 | 없음(AWT) | `MessagePump`(외부 펌프, 폴링 없음) |
-| GUI 툴킷 | Swing/AWT(윈도우드와 JOGL 오프스크린) | `cefweaver.ui`의 **어댑터 6개**: Tk, Qt(PyQt6, PySide6), GTK 3, SDL2, wxPython, Kivy. 모두 오프스크린 + 실제 X 이벤트로 점검(28~39개씩) |
+| GUI 툴킷 | Swing/AWT(윈도우드와 JOGL 오프스크린) | `cefweaver.ui`의 **어댑터 7개**: Tk, Qt(PyQt6, PySide6), GTK 3, SDL2, wxPython, Kivy, pywin32(Windows 전용). 모두 오프스크린 + 실제 X 이벤트로 점검(28~39개씩) |
 | macOS의 네이티브 뷰 | AWT 안의 창 | `parent_view`로 `NSView`에 붙임: PyObjC(Cocoa), **Swift/SwiftUI**, Qt, wx(F84~F89) |
 | **Views(툴킷 없는 UI)** (2026-10-10, [F96~F98](../reference/verified-findings-views.md)) | 없음(AWT와 Swing에 얹힘) | 창, 패널, 단추, 텍스트 필드, 레이아웃, 브라우저 뷰를 CEF가 직접 그림. `examples/views/`(실제 X 이벤트로 13개 점검). Linux X11에서만 확인 |
 | 인쇄 | 대화상자는 Java 쪽(Swing) | PDF 인쇄와 `PrintHandler` 전부, **앱이 직접 만드는 CUPS 대화상자 예제**(`examples/print`, F94) |
-| 배포 | 없음 | PyInstaller와 cx_Freeze로 묶기를 두 빌드에서 확인(F93). py2exe와 Windows는 확인하지 못함 |
+| 배포 | 없음 | PyInstaller와 cx_Freeze로 묶기를 Linux의 두 빌드에서 확인(F93), Windows에서는 PyInstaller(onedir, onefile), cx_Freeze, py2exe로 묶어 통과(F120, py2exe는 런타임 파일을 손으로 복사) |
 | 시험 | JUnit 10개 안팎(`java/tests/junittests`) | **497개**(통합 194, UI 164, 생성기 122, 문서 15, 위키 2) |
 | 문서 | 위키 | 위키 + 사람이 읽는 Jekyll 사이트(GitHub Pages) |
 
@@ -44,7 +44,7 @@ updated: 2026-10-10
 
 | 항목 | 상태 |
 | --- | --- |
-| **플랫폼** | java-cef는 Linux 64/32비트, Windows 64/32비트, macOS arm64와 x86_64를 빌드 대상으로 둡니다. cefweaver는 Linux x86_64와 macOS arm64만이고, **Windows는 검증하지 못했으며** macOS x86_64는 Rosetta에서만 확인했습니다([플랫폼 지원 현황](../concepts/platform-support.md)) |
+| **플랫폼** | java-cef는 Linux 64/32비트, Windows 64/32비트, macOS arm64와 x86_64를 빌드 대상으로 둡니다. cefweaver는 Linux x86_64, macOS arm64, Windows 11 x86_64(2026-10-11, 일부 동작 미확인)이고 macOS x86_64는 Rosetta에서만 확인했습니다([플랫폼 지원 현황](../concepts/platform-support.md)) |
 | **성숙도** | 저장소의 README가 "개발 중이며 실사용 목적이 아니다"라고 적습니다. java-cef는 오래 쓰인 프로젝트입니다. 이 문서의 "왔다"는 범위의 이야기입니다 |
 | **창 모드 임베딩(툴킷 위젯에 CEF가 만든 창을 붙이기)** | java-cef의 `CefBrowserWr`에 해당. 코드는 `SetAsChild`로 플랫폼 중립으로 쓰였지만(`cef_wrapper_browser_process_handler.cc`) **확인은 macOS의 `NSView`에서만** 했습니다. Linux의 툴킷 위젯에 붙이는 것은 하지 않았고, 툴킷 어댑터는 오프스크린(CPU 복사 또는 공유 텍스처)입니다 |
 | **배포 형식** | wheel의 태그가 `linux_x86_64`(로컬)이고 manylinux가 아니라 PyPI에 올리지 못합니다(F24, `auditwheel`이 거절) |
@@ -54,8 +54,8 @@ updated: 2026-10-10
 ## 요약
 
 - **API 범위**: 바닥(389)은 모두 열렸고 그 위로 627개를 더 열어 java-cef의 약 2.6배(1,031개)입니다.
-- **쓰기 쉬움**: 파이썬 방식(PEP 8, 타입 스텁, `IntEnum`, `datetime`, `dict`)과 GUI 툴킷 어댑터 6개, macOS 네이티브 뷰는 java-cef에 대응이 없는 부분입니다.
-- **뒤처진 곳**: 플랫폼(특히 Windows), 성숙도와 실사용 검증, Linux의 창 모드 임베딩, 배포 형식입니다.
+- **쓰기 쉬움**: 파이썬 방식(PEP 8, 타입 스텁, `IntEnum`, `datetime`, `dict`)과 GUI 툴킷 어댑터 7개(Windows의 pywin32 포함), macOS 네이티브 뷰는 java-cef에 대응이 없는 부분입니다.
+- **뒤처진 곳**: 플랫폼(Windows는 이제 빌드와 시험을 마쳤으나 32비트와 Arm64, 창 모드 임베딩은 없음), 성숙도와 실사용 검증, Linux의 창 모드 임베딩, 배포 형식입니다.
 
 ## 관련 페이지
 

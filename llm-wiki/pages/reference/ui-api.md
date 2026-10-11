@@ -17,6 +17,7 @@ sources:
   - cefweaver/ui/menu.py
   - cefweaver/ui/toolkits/tk.py
   - cefweaver/ui/toolkits/sdl2.py
+  - cefweaver/ui/toolkits/pywin32.py
   - cefweaver/ui/toolkits/wx.py
   - cefweaver/ui/toolkits/kivy.py
   - tests/test_ui.py
@@ -67,7 +68,7 @@ GUI 툴킷에 오프스크린 브라우저를 붙일 때 [툴킷 예제](toolkit
 
 ## 툴킷별 어댑터는 패키지에 둡니다
 
-여섯 어댑터는 `cefweaver.ui.toolkits.{gtk3,qt,tk,sdl2,wx,kivy}` 모듈입니다. 사용: `from cefweaver.ui.toolkits import qt`. **`cefweaver`와 `cefweaver.ui`는 이 모듈들을 임포트하지 않으므로**(시험이 지킴) 툴킷이 없어도 `import cefweaver`는 영향받지 않고, 선택 의존성은 `cefweaver[qt]`, `[gtk3]`, `[tk]`, `[sdl2]`, `[kivy]`입니다(wxPython은 PyPI에 wheel이 없어 extras에 넣지 않았고 [예제의 설치 방법](toolkit-examples.md)을 따름).
+일곱 어댑터는 `cefweaver.ui.toolkits.{gtk3,qt,tk,sdl2,wx,kivy,pywin32}` 모듈입니다(`pywin32`는 Windows 전용이고 SDL2처럼 뷰이자 루프인 클래스 `Win32Browser`입니다: [F119](verified-findings-windows.md)). 사용: `from cefweaver.ui.toolkits import qt`. **`cefweaver`와 `cefweaver.ui`는 이 모듈들을 임포트하지 않으므로**(시험이 지킴) 툴킷이 없어도 `import cefweaver`는 영향받지 않고, 선택 의존성은 `cefweaver[qt]`, `[gtk3]`, `[tk]`, `[sdl2]`, `[kivy]`입니다(wxPython은 PyPI에 wheel이 없어 extras에 넣지 않았고 [예제의 설치 방법](toolkit-examples.md)을 따름).
 
 **왜 별도 배포판이 아닌가**: 핵심 API(`cefweaver.ui`)가 아직 바뀝니다(이식할 때마다 고쳤음). 어댑터가 같은 저장소에 있으면 핵심과 어댑터를 한 커밋에서 고치고 점검으로 확인할 수 있습니다. 어댑터마다 책임질 사람이 아직 없어서 따로 배포하면 사용자에게 불편만 더합니다. **나누는 기준**: 어댑터에 대한 외부 이슈나 PR이 우리가 처리할 수 있는 속도를 넘으면, 또는 툴킷의 버전을 따라가는 일을 맡을 사람이 생기면 그 어댑터부터 별도 배포판으로 나눕니다.
 
@@ -112,3 +113,4 @@ GTK 3 예제를 이 API 위로 옮기며([GTK 3 예제](gtk3-example.md)) 고친
 
 - [UI 어댑터 설계](../analyses/ui-adapter-design.md)와 [툴킷 예제](toolkit-examples.md)
 - [메시지 펌프](verified-findings-handlers.md)(F62)
+- [실행해서 확인한 Windows](verified-findings-windows.md)

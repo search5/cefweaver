@@ -33,7 +33,7 @@ updated: 2026-10-08
 ## 원래 환경에 고정된 것
 
 - `library.cpp`의 `ExePath()`와 `CachePath()`에 남은 주석에 개발자 PC의 경로(`C:\Dev\cef-binaries\cef_binary_106.0.27+g20ed841+chromium-106.0.5249.103_windows64\...`)가 있습니다. 실행에는 영향이 없습니다.
-- `native/cefsubprocess/CMakeLists.txt`의 Windows 분기가 `../cefwrappertest/...`, `../../../src/PyCef_Dev/PyCef/...`로 복사합니다. 이 저장소에 해당 디렉터리가 없습니다.
+- (지움, 2026-10-11) `native/cefsubprocess/CMakeLists.txt`의 Windows 분기가 `../cefwrappertest/...`, `../../../src/PyCef_Dev/PyCef/...`로 복사하던 줄. 저장소 밖에 쓰는 줄이라 Windows 빌드를 확인하며 지웠습니다.
 - `native/cefwrapper/CMakeLists.txt`의 `COPY_SINGLE_FILE` 줄(주석)도 `src/PyCef_Dev`를 가리킵니다.
 - 루트 `CMakeLists.txt`의 `#add_subdirectory(native)`와 `src/cefwrappertest` 블록은 주석입니다.
 - 소스 목록 변수 이름 `CEFSIMPLE_SRCS`, 창 제목 `"cefsimple"`(Windows `SetAsPopup`), `SimpleRenderProcessHandler` 같은 이름은 CEF의 `cefsimple` 예제에서 왔습니다.

@@ -343,9 +343,9 @@ cdef class BrowserHost:
         window.
         """
         cdef CefBrowserHost* _p = self._ptr()
-        cdef cef_window_handle_t _r
+        cdef uintptr_t _r
         with nogil:
-            _r = _p.GetWindowHandle()
+            _r = <uintptr_t>_p.GetWindowHandle()
         return _r
 
     def get_opener_window_handle(self):
@@ -355,9 +355,9 @@ cdef class BrowserHost:
         custom handling of modal windows.
         """
         cdef CefBrowserHost* _p = self._ptr()
-        cdef cef_window_handle_t _r
+        cdef uintptr_t _r
         with nogil:
-            _r = _p.GetOpenerWindowHandle()
+            _r = <uintptr_t>_p.GetOpenerWindowHandle()
         return _r
 
     def get_opener_identifier(self):

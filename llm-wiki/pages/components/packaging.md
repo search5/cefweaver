@@ -9,6 +9,7 @@ sources:
   - cmake/CefweaverExtension.cmake
   - CMakeLists.txt
   - .github/workflows/build-test.yml
+  - .gitattributes
 updated: 2026-10-11
 ---
 
@@ -30,6 +31,12 @@ updated: 2026-10-11
 
 `OS_MAC` 분기가 `-framework Cocoa`, `-framework AppKit`, `-framework IOSurface`, `-Wl,-ObjC`를 더합니다(`setup.py`가 주던 값). `libcef`는 링크하지 않습니다. 배포 대상 12.0은 `-mmacosx-version-min=12.0`을 컴파일과 링크에 주는 것과, `pyproject.toml`의 `[[tool.scikit-build.overrides]]`(`if.platform-system = "^darwin"`, `cmake.define.CMAKE_OSX_DEPLOYMENT_TARGET = "12.0"`)가 정합니다. 후자가 없으면 wheel 태그가 빌드한 컴퓨터의 버전(`macosx_26_0_arm64`)이 되어 더 낡은 macOS에 설치되지 않습니다. `cefsubprocess.app`(CEF 프레임워크와 도우미 앱 5개와 Info.plist)은 같은 파일의 `install(DIRECTORY ...)`가 wheel에 넣습니다. 도우미 앱은 strip하지 않고 그대로 복사합니다(`install.strip`이 ad hoc 서명을 깨기 때문). 처음에는 `prepare.py`의 스테이징 결과를 `wheel.packages`가 파일로 가져가는 줄 알았으나, `.gitignore`에 있는 폴더를 scikit-build-core가 빼서 wheel에 앱이 하나도 없었습니다. **macOS arm64에서 빌드하고 구동해 확인했습니다**([F93](../reference/verified-findings-macos.md)).
 
+## Windows
+
+같은 CMake가 Windows(Visual Studio 생성기)에서 빌드합니다([F116](../reference/verified-findings-windows.md)). 달라지는 점: `WIN32`에서 `USE_SANDBOX`를 끕니다. `OS_WIN` 분기는 `target_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)`, `MSVC_RUNTIME_LIBRARY MultiThreaded`(`/MT`), `/utf-8 /bigobj`를 줍니다. 런타임 `install()`은 Linux와 같이 `cefsubprocess.exe`와 `Release/*`, `Resources/*`를 넣되 `.lib`를 빼고, `libcef.so`를 줄이는 `strip`은 Linux에서만 돕니다. wheel 태그는 `cp313-cp313-win_amd64`이고 약 180MB입니다. `pyproject.toml`의 extras에 `pywin32 = ["pywin32>=306; sys_platform == 'win32'"]`가 있습니다.
+
+`.gitattributes`(`* text=auto eol=lf`)가 모든 파일을 LF로 고정합니다. Windows의 git이 `core.autocrlf=true`로 CRLF 파일을 만들어서, 생성 파일을 바이트 단위로 비교하는 시험(`test_generated_files_are_up_to_date`)이 실패했기 때문입니다.
+
 ## sdist와 `uv build`
 
 - 인자 없는 `uv build`가 sdist와 wheel을 모두 만들었습니다(`CEF_ROOT` 지정, 약 1분 39초, sdist 1,062,753바이트, wheel 156,076,196바이트). 따로 실행한 `uv build --sdist`는 약 1MB의 sdist를 만들었고, 그 sdist 하나로 `uv build --wheel`이 wheel을 만들었습니다(2026-10-11, `CEF_ROOT` 없이 실행했으므로 CMake가 CEF를 구했습니다. 어디에서 구했는지는 확인하지 않았습니다).
@@ -47,12 +54,12 @@ updated: 2026-10-11
 
 ## 메타데이터의 불일치
 
-`pyproject.toml`에는 이 프로젝트의 현재 상태와 맞지 않는 항목이 있습니다. `dependencies = ["numpy>=1.26.2"]`는 코드 어디에서도 쓰이지 않습니다. classifier에는 macOS와 Windows가 있지만 지원하지 않거나 검증하지 못했습니다. `requires-python = ">=3.11"`과 달리 classifier는 3.11과 3.12만 적혀 있습니다(시험은 3.11~3.14에서 했습니다). [알려진 제약과 미검증 항목](../reference/known-constraints.md)에 모았습니다.
+`pyproject.toml`에는 이 프로젝트의 현재 상태와 맞지 않는 항목이 있습니다. `dependencies = ["numpy>=1.26.2"]`는 코드 어디에서도 쓰이지 않습니다. classifier의 macOS(arm64만)와 Windows(11 x86_64만)는 일부 환경에서만 확인했습니다. `requires-python = ">=3.11"`과 달리 classifier는 3.11과 3.12만 적혀 있습니다(시험은 3.11~3.14에서 했습니다). [알려진 제약과 미검증 항목](../reference/known-constraints.md)에 모았습니다.
 
 ## CI (`build-test.yml`)
 
 - `.github/workflows/build-test.yml`은 수동 실행(`workflow_dispatch`) 전용입니다. 입력은 `platform`(both, linux, macos), `python-version`(3.13), `run-tests`, `upload-wheel`이고, ubuntu-24.04와 macos-14에서 `uv build --wheel`로 wheel을 만들어 설치한 뒤 시험하고 wheel을 산출물로 보관합니다.
-- macOS 분기를 맡은 세션이 작성해 로컬 커밋으로만 두었고, 이 저장소에서 받아 옮겼습니다. 아직 GitHub에서 실행해 보지 못했고(YAML 구조만 확인), Linux의 apt 패키지 목록은 짐작한 것입니다. Windows는 없습니다.
+- macOS 분기를 맡은 세션이 작성해 로컬 커밋으로만 두었고, 이 저장소에서 받아 옮겼습니다. 아직 GitHub에서 실행해 보지 못했고(YAML 구조만 확인), Linux의 apt 패키지 목록은 짐작한 것입니다. Windows 실행(`platform`에 `windows`와 `all`, 러너 `windows-2025`)은 2026-10-11에 더했지만 **GitHub에서 돌려 보지 못했습니다.** wheel은 `.venv-test\Scripts\python.exe`로 설치하고 시험은 `xvfb-run` 없이 돕니다.
 - 러너에는 위키가 링크하는 java-cef와 CEF 저장소가 없어서 위키 점검 시험(`test_wiki_passes_the_mechanical_checks`)이 실패합니다. 워크플로우가 `CEFWEAVER_SKIP_WIKI_LINT=1`을 지정해 이 시험만 건너뜁니다. 첫 실행(2026-10-11)에서 Linux는 빌드와 설치가 통과했고 시험 546개 중 2개(위키 점검, locale 시험)가, macOS는 4개(위키 점검과 시험 3개)가 실패했습니다. Linux의 locale 시험은 [F115](../reference/verified-findings-opened.md)로 원인을 확인해 고쳤고, macOS의 시험 두 개는 시간 가정을 고쳤습니다. 수정 뒤 실행(2026-10-11, `38122943773`)은 Linux 5분 11초, macOS 17분 8초에 546개가 모두 통과했습니다(건너뜀 각각 136개, 141개, 예상된 실패 3개). wheel은 산출물로 보관되었습니다(Linux 약 155MB, macOS 약 147MB). 고치지 않은 macOS의 한국어 조합 밑줄 시험은 이번에 통과했지만 이전 실패의 원인은 확인하지 못했습니다.
 - 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 

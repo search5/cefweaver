@@ -8,9 +8,12 @@ texture in a driver's tiled layout is meant for the GPU (import it with
 """
 
 import errno
-import fcntl
 import mmap
 import struct
+import sys
+
+if sys.platform != "win32":
+    import fcntl
 
 # <linux/dma-buf.h>: DMA_BUF_IOCTL_SYNC = _IOW('b', 0, struct dma_buf_sync { __u64 flags; })
 _DMA_BUF_IOCTL_SYNC = 0x40086200
@@ -22,6 +25,8 @@ def read_plane(plane, length=None):
     """The bytes of a plane of a shared texture: ``length`` bytes (default ``plane.size``) from
     ``plane.offset``, rows ``plane.stride`` bytes apart. Raises ``OSError`` if the descriptor
     cannot be mapped (a tiled texture) or is not valid any more."""
+    if sys.platform == "win32":
+        raise NotImplementedError("shared textures are dmabuf file descriptors; Windows gives none")
     length = plane.size if length is None else length
     if plane.fd < 0:
         raise OSError(errno.EBADF, "not a file descriptor")

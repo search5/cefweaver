@@ -28,8 +28,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
   UNREFERENCED_PARAMETER(hPrevInstance);
   UNREFERENCED_PARAMETER(lpCmdLine);
 
-
-  CefEnableHighDPISupport();
+  // High DPI awareness comes from the manifest of this executable (CefEnableHighDPISupport is gone in CEF 154).
 
   void* sandbox_info = nullptr;
 

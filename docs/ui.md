@@ -13,7 +13,7 @@ title: GUI 툴킷에 넣기
 | `ui.Session` | CEF, JavaScript 브리지, 메시지 펌프를 한 묶음으로 가집니다. CEF가 일할 때가 되면 툴킷의 루프를 깨워서 돌리므로 별도 스레드나 폴링이 없습니다. 한 세션에 브라우저는 하나입니다 |
 | `ui.BrowserView` | CEF 쪽의 일을 합니다. 핸들러, 이벤트 기록, 클릭 횟수, 입력기, 클립보드 키, 끌어서 놓기를 처리하고 소리, 권한, 메뉴 같은 기능의 옵션을 가집니다 |
 | `ui.BrowserWidget` | 툴킷 위젯의 기반 클래스입니다. `load_url()`, `go_back()`, `reload()`, `snapshot(경로)`와 훅 `on_title`, `on_address`, `on_loading`, `on_ready`를 줍니다 |
-| 툴킷 어댑터 | 툴킷이 뷰에게 주는 것(크기, 그리기, 커서, 클립보드 등). `cefweaver.ui.toolkits` 아래에 여섯 개가 있습니다([툴킷별 상태](toolkits.md)) |
+| 툴킷 어댑터 | 툴킷이 뷰에게 주는 것(크기, 그리기, 커서, 클립보드 등). `cefweaver.ui.toolkits` 아래에 일곱 개가 있습니다(pywin32는 Windows 전용)([툴킷별 상태](toolkits.md)) |
 
 ## 기본 흐름
 

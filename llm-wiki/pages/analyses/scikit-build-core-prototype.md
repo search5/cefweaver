@@ -98,7 +98,7 @@ install.strip = true```
 ## 확인하지 못한 것
 
 - **macOS**: 확장의 링크 옵션(`-framework Cocoa AppKit IOSurface`, `-Wl,-ObjC`, `MACOSX_DEPLOYMENT_TARGET`)과 `cefsubprocess.app` 조립(`prepare.py`의 `stage_macos()`)을 CMake로 옮기지 않았습니다. 후자가 가장 큰 이식 대상입니다.
-- **Windows**: `CEF_RUNTIME_LIBRARY_FLAG=/MD`와 `USE_SANDBOX=OFF`(`pyproject.toml`의 플랫폼 조건 `overrides`로 줄 수 있어 보이나 시험하지 않음), 런타임 DLL 목록의 설치, MSVC 컴파일은 하나도 확인하지 못했습니다.
+- **Windows**: (이후 확인함, [F116](../reference/verified-findings-windows.md)) `USE_SANDBOX`는 루트 `CMakeLists.txt`에서 `WIN32`일 때 끄고(`overrides`가 아님), 런타임 라이브러리는 `/MD`가 아니라 CEF의 `/MT`를 확장 모듈에도 줍니다. 런타임 DLL은 `install()`이 `Release/*`와 `Resources/*`에서 `.lib`를 뺀 것을 넣습니다. MSVC로 컴파일했습니다.
 - `prepare.py`의 `stage_runtime`은 런타임을 `cefweaver/` 소스 폴더에 복사하므로, 이 방식에서는 `wheel.packages`가 그 파일들까지 묶어 중복됩니다. 이 방식을 채택하면 그 단계를 없애거나 끄도록 바꿔야 합니다(시험하지 않음).
 - CEF를 CMake가 내려받는 경로(`CEF_ROOT`를 주지 않을 때)와 sdist 빌드는 시험하지 않았습니다.
 - 증분 빌드가 macOS와 Windows에서도 같은지는 모릅니다.

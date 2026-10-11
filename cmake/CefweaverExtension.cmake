@@ -22,6 +22,13 @@ Python_add_library(_cefweaver MODULE WITH_SOABI "${CEFWEAVER_CPP}")
 target_include_directories(_cefweaver PRIVATE "${CEF_ROOT}" "${CMAKE_SOURCE_DIR}/native/cefwrapper")
 target_compile_definitions(_cefweaver PRIVATE NDEBUG=1 $<$<PLATFORM_ID:Linux>:_FILE_OFFSET_BITS=64>)
 target_compile_features(_cefweaver PRIVATE cxx_std_20)
+if(WIN32)
+  # <windows.h> must not define min/max (CEF's headers use std::min/max); the wrapper libraries get these from CEF's cmake.
+  target_compile_definitions(_cefweaver PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
+  # Same static runtime (/MT) as cefwrapper and libcef_dll_wrapper, which CEF's cmake builds that way.
+  set_target_properties(_cefweaver PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  target_compile_options(_cefweaver PRIVATE /utf-8 /bigobj)
+endif()
 # cefwrapper brings libcef_dll_wrapper, libcef and the system libraries (in the right order).
 target_link_libraries(_cefweaver PRIVATE cefwrapper)
 if(OS_LINUX)
@@ -40,12 +47,14 @@ if(OS_MAC)
 endif()
 install(TARGETS _cefweaver LIBRARY DESTINATION cefweaver RUNTIME DESTINATION cefweaver)
 
-# The CEF runtime next to the module (CEF looks for icudtl.dat next to libcef.so; cefsubprocess finds libcef.so through
-# its rpath). The sandbox helper is not used (no_sandbox).
-if(OS_LINUX)
+# The CEF runtime next to the module (CEF looks for icudtl.dat next to libcef.so; on Linux cefsubprocess finds libcef.so
+# through its rpath, on Windows libcef.dll is next to the executable). The sandbox helper is not used (no_sandbox).
+if(OS_LINUX OR OS_WINDOWS)
   install(TARGETS cefsubprocess RUNTIME DESTINATION cefweaver)
   file(GLOB CEFWEAVER_RUNTIME "${CEF_ROOT}/Release/*" "${CEF_ROOT}/Resources/*")
   list(FILTER CEFWEAVER_RUNTIME EXCLUDE REGEX "/chrome-sandbox$")
+  # Windows: the import libraries are for linking only.
+  list(FILTER CEFWEAVER_RUNTIME EXCLUDE REGEX "[.]lib$")
   foreach(entry IN LISTS CEFWEAVER_RUNTIME)
     if(IS_DIRECTORY "${entry}")
       install(DIRECTORY "${entry}" DESTINATION cefweaver)
@@ -54,10 +63,12 @@ if(OS_LINUX)
     endif()
   endforeach()
   # install.strip strips targets only; libcef.so (1.4 GB with its symbols, about 270 MB without) is a plain file here.
-  install(CODE "
-    if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-unneeded \"\${CMAKE_INSTALL_PREFIX}/cefweaver/libcef.so\")
-    endif()")
+  if(OS_LINUX)
+    install(CODE "
+      if(CMAKE_INSTALL_DO_STRIP)
+        execute_process(COMMAND \"${CMAKE_STRIP}\" --strip-unneeded \"\${CMAKE_INSTALL_PREFIX}/cefweaver/libcef.so\")
+      endif()")
+  endif()
 endif()
 
 # macOS: cefsubprocess.app, the stand-in for the main app bundle of the Python process (CefSettings.main_bundle_path points

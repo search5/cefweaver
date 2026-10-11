@@ -25,6 +25,20 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 
 같은 절차입니다(`python tools/prepare.py`, `CEF_ROOT=$PWD/build/native/cef uv build --wheel`). 준비물은 Xcode(또는 Command Line Tools)의 clang, CMake, uv입니다. Ninja는 필요 없습니다(Unix Makefiles). CEF는 `macosarm64` 배포본(압축 약 307 MB, 푼 것 약 791 MB)을 받습니다. 결과는 `macosx_12_0_arm64` wheel(약 147 MB, 안에 `cefsubprocess.app`)입니다. 앱 번들은 `prepare.py`가 아니라 wheel 빌드(CMake의 `install()`)가 넣습니다. `python.org`의 Python으로 `--list-versions`가 실패하면 [tools/prepare.py](../components/tool-prepare.md)를 보세요. 확인한 환경은 [F79](../reference/verified-findings-macos.md)에 있습니다.
 
+## Windows (11, x86_64)
+
+준비물: Visual Studio의 C++ 빌드 도구(Build Tools 2026, MSVC 14.50에서 확인), [uv](https://docs.astral.sh/uv/). CMake(4.4.4)와 Cython은 빌드가 알아서 받습니다(PATH에 `cmake`가 없어도 됨). CEF `windows64` 배포본은 압축 348MB, 푼 것 911MB이고 `build/skbuild`가 약 800MB입니다.
+
+```sh
+uv build --wheel -o dist        # CEF를 third_party/cef에 받고 wheel까지(첫 구성 약 2분, 내려받기 포함)
+uv venv --python 3.13 .venv-test
+uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-0.1.0-cp313-cp313-win_amd64.whl
+```
+
+- `tools/prepare.py`는 Windows에서 돌려 보지 않았습니다(PATH에 `cmake`가 필요함). 생성기 시험처럼 `build/native/cef`(CEF 헤더)가 필요하면 junction을 직접 만듭니다: `mklink /J build\native\cef third_party\cef\cef_binary_..._windows64`.
+- 빌드 중 막힌 곳과 고친 것은 [F116](../reference/verified-findings-windows.md)에 순서대로 있습니다.
+- Python은 3.13에서만 확인했습니다. 시험은 [시험 실행하기](run-tests.md)의 "Windows" 절입니다.
+
 ## 절차
 
 1. **사전 준비**(선택): CEF 확보와 네이티브 빌드

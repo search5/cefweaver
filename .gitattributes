@@ -1,0 +1,5 @@
+# The tests compare generated files byte for byte: LF in every checkout (Windows, too).
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.whl binary

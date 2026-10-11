@@ -19,7 +19,7 @@ CEF가 렌더러, GPU, 유틸리티 프로세스를 띄울 때 실행하는 별�
 | --- | --- | --- |
 | 진입점 | `int main(argc, argv)`, `CefMainArgs(argc, argv)` | `wWinMain`, `CefMainArgs(hInstance)` |
 | 반환 | `CefExecuteProcess` 반환값 | 항상 0 (반환값을 쓰지 않는 원래 코드) |
-| 고유 처리 | `__attribute__((no_stack_protector))` | `CefEnableHighDPISupport()`, 샌드박스 라이브러리 pragma |
+| 고유 처리 | `__attribute__((no_stack_protector))` | 샌드박스 라이브러리 pragma. 고DPI는 매니페스트가 맡습니다(`CefEnableHighDPISupport()`는 CEF 154에 없어 지움) |
 
 Linux의 `main`에 붙은 `no_stack_protector`는 서브프로세스가 종료할 때 `*** stack smashing detected ***`로 비정상 종료하던 문제를 없앱니다. 근거는 [실험으로 확인한 사실](../reference/verified-findings.md)에 있습니다. 순정 `cefsimple`의 `main`에는 스택 보호 검사가 없고(0개), 우리 `main`에는 있었으며(`std::string` 임시 객체의 내부 `char` 버퍼 때문으로 해석합니다), 속성을 붙인 뒤 같은 시험 3회에서 오류가 0건이 되었습니다. 코드 주석이 설명하는 메커니즘(Chromium zygote가 자식 프로세스를 포크하고 자식이 이 프레임을 거쳐 종료하며 스택 보호값이 달라진다는 것)은 이 결과에서 추정한 것이고 직접 확인한 것은 아닙니다.
 
@@ -27,6 +27,7 @@ Linux의 `main`에 붙은 `no_stack_protector`는 서브프로세스가 종료�
 
 - Linux: `add_executable(cefsubprocess ...)`, `INSTALL_RPATH $ORIGIN`(`BUILD_WITH_INSTALL_RPATH TRUE`), 출력 디렉터리에 CEF 바이너리와 리소스 복사(`COPY_FILES`), `libminigbm.so`가 있으면 함께 복사. 출력은 `build/native/native/cefsubprocess/Release/cefsubprocess`입니다.
 - `libcefwrapper.a`, `libcef_lib`, `libcef_dll_wrapper`를 링크합니다.
+- Windows: `WIN32` 실행 파일, 매니페스트(`cefsubprocess.exe.manifest`와 `compatibility.manifest`를 `mt.exe`로 붙임), 출력 디렉터리에 CEF 바이너리와 리소스 복사. 저장소 밖(`../cefwrappertest`, `src/PyCef_Dev`)으로 복사하던 옛 줄은 지웠습니다. 샌드박스는 링크하지 않습니다(루트 `CMakeLists.txt`가 `USE_SANDBOX`를 끔).
 - 이 빌드 디렉터리의 `cefsubprocess`(macOS는 도우미 앱 5개)를 wheel 빌드의 `install()`이 wheel에 넣습니다([런타임 파일 배치](../concepts/runtime-layout.md)).
 
 ## 관련 페이지

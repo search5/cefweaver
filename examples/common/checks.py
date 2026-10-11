@@ -1,8 +1,8 @@
 """The checks every toolkit example has to pass, run against the real window with real X events.
 
-The mouse and the keys are made with xdotool (XTEST), so the event handling and the input
-method of the toolkit are on the way, as for a user. A toolkit gives an *adapter*; the checks
-(``run``) are the same for all of them:
+The mouse and the keys are made with xdotool (XTEST; on Windows ``winxdo.py``, SendInput), so the
+event handling and the input method of the toolkit are on the way, as for a user. A toolkit gives
+an *adapter*; the checks (``run``) are the same for all of them:
 
     adapter.runtime        the Runtime of the example (``.bridge`` is the cefweaver.JavascriptBridge)
     adapter.browser()      the cefweaver Browser
@@ -49,6 +49,9 @@ class Checks:
 
     @staticmethod
     def xdo(*args):
+        if sys.platform == "win32":
+            import winxdo                                  # SendInput, the same commands (this folder)
+            return winxdo.run(*args)
         result = subprocess.run(["xdotool"] + [str(a) for a in args], capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError("xdotool %s failed: %s" % (" ".join(str(a) for a in args), result.stderr.strip()))

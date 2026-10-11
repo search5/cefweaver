@@ -13,14 +13,16 @@ Supported platforms
 - Linux (x86_64): supported (under development)
 - macOS (arm64, Apple Silicon): supported (under development). It builds and runs offscreen and with a native window,
   and works in Tk; other toolkits and the differences from Linux are in ``docs/limitations.md``. macOS x86_64 is not built yet.
-- Windows: not verified yet
+- Windows (11, x86_64): supported (under development). It builds and runs offscreen and in a Win32 window
+  (``cefweaver.ui.toolkits.pywin32``); the differences are in ``docs/limitations.md``. It is frozen with PyInstaller,
+  cx_Freeze and py2exe. Not done: a browser window as the child of another program's window.
 
 Showing a page in a GUI toolkit
 ===============================
 
 ``cefweaver.ui`` shows an offscreen browser in a window of a GUI toolkit. Adapters for GTK 3, Qt (PyQt6 and PySide6),
-Tk, SDL2, wxPython and Kivy are in ``cefweaver.ui.toolkits``; install the toolkit you use (``cefweaver[qt]``,
-``[gtk3]``, ``[tk]``, ``[sdl2]``, ``[kivy]``; wxPython: see ``examples/wx``). The smallest program, with Tk::
+Tk, SDL2, wxPython, Kivy and, on Windows, pywin32 are in ``cefweaver.ui.toolkits``; install the toolkit you use
+(``cefweaver[qt]``, ``[gtk3]``, ``[tk]``, ``[sdl2]``, ``[kivy]``, ``[pywin32]``; wxPython: see ``examples/wx``). The smallest program, with Tk::
 
     import sys
     import tkinter

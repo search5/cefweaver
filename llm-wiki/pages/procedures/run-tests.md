@@ -6,7 +6,8 @@ sources:
   - tests/test_smoke.py
   - tests/test_generator.py
   - tests/test_ui.py
-updated: 2026-10-10
+  - examples/pywin32/smoke.py
+updated: 2026-10-11
 ---
 
 # 시험 실행하기
@@ -44,6 +45,23 @@ uv venv .venv-test && uv pip install --python .venv-test/bin/python dist/cefweav
 - 건너뛰는 시험이 있습니다(libX11, `xwininfo`, 인쇄, 호스트에 직접 키 이벤트를 보내는 시험, Wayland, GPU). 이유는 시험의 `skipIf` 문구와 [F82](../reference/verified-findings-macos.md)에 있습니다.
 - **Cocoa 창 시험은 선택 실행입니다**(`WithCefInACocoaView`, 창이 잠깐 뜸). PyObjC가 설치된 환경에서 `CEFWEAVER_TEST_COCOA=1`을 주면 실행합니다.
 - `test_wiki.py`가 다른 컴퓨터의 경로(`/home/jiho/...`) 링크 때문에 실패할 수 있습니다.
+
+## Windows
+
+가상 디스플레이가 없어서 `xvfb-run` 없이 그대로 실행합니다(macOS처럼 창을 여는 시험은 데스크톱에 창을 엽니다).
+
+```sh
+uv build --wheel -o dist
+uv venv --python 3.13 .venv-test && uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-*.whl pywin32
+.venv-test/Scripts/python.exe -P -m unittest discover -s tests -v
+```
+
+- **`-P`는 여기서도 필수입니다.** 개별 시험은 `unittest discover -s tests -k 이름`으로 고릅니다(`-P`를 쓰면 `tests.test_smoke...` 같은 모듈 경로는 찾지 못합니다).
+- 전체가 9분에서 12분 걸렸습니다(세 번 측정: 744초, 667초, 532초, F117). 창이 열리므로 그 동안 다른 작업을 하면 포커스가 흔들릴 수 있습니다.
+- **`examples/pywin32/smoke.py`는 실제 마우스와 키보드 입력(`SendInput`)을 보냅니다.** 돌리는 1분 동안 포인터와 키보드에 손대지 말고, 전체 시험과 동시에 돌리지 마십시오(포커스를 서로 빼앗습니다). 환경은 `cd examples\pywin32 && uv sync --python 3.13`입니다.
+- 건너뛰는 시험은 Linux 전용인 것들(X11과 `libX11`, 인쇄 핸들러, 맞춤법 제안 1개)과 Cocoa, Wayland, GPU, `pygame`/`PyYAML`이 없을 때입니다. 이유는 시험의 `skipIf` 문구와 [F121](../reference/verified-findings-windows.md)에 있습니다. `c++`가 없으면 생성 코드를 컴파일해 보는 시험 4개도 건너뜁니다.
+- CEF 자식 프로세스가 `chrome_debug.log` 같은 파일을 잠시 쥐고 있어서 임시 폴더를 지울 때 `PermissionError`가 났습니다. 시험의 임시 폴더는 `ignore_cleanup_errors=True`로 지웁니다(이것이 없던 첫 실행에서 약 28개가 이 이유로 실패한 것으로 보였습니다).
+- 위키 점검 시험은 다른 컴퓨터의 경로 링크 때문에 실패하므로 `CEFWEAVER_SKIP_WIKI_LINT=1`을 줍니다.
 
 ## 일부만 실행
 

@@ -697,3 +697,12 @@
 
 ## [2026-10-11] ingest | build-test 재실행 통과
 - 시험 수정 뒤 `build-test`(both)가 Linux와 macOS에서 모두 통과했습니다(546개, 건너뜀 136개와 141개). 한국어 조합 밑줄 시험의 이전 실패는 원인을 확인하지 못했습니다([packaging](pages/components/packaging.md)).
+
+## [2026-10-11] ingest | Windows 지원 추가: wheel 빌드, 시험, pywin32 툴킷, 동결
+- 사용자 요청("윈도우 지원 추가 작업 해줘", 이어서 "pywin32 툴킷도 추가하고 이 툴킷에 대한 동결 테스트도 진행해서 llm-wiki 업데이트")으로 Windows 11 x86_64에서 빌드하고 시험했습니다. 결과는 새 페이지 [실행해서 확인한 Windows](pages/reference/verified-findings-windows.md)(F116~F121)에 있습니다.
+- **빌드(F116)**: 이전에 남아 있던 Windows 코드가 그대로는 빌드되지 않아 여섯 곳을 고쳤습니다(`USE_SANDBOX` 끔, `CefEnableHighDPISupport` 삭제, `NOMINMAX`와 `/MT` 등, UTF-8 경로와 `ModuleDir()`, 서브프로세스 매니페스트, 저장소 밖으로 복사하던 옛 줄). wheel(`win_amd64`, 약 180MB)이 만들어지고 `import cefweaver`가 됩니다. `cef_window_handle_t`를 `unsigned long`으로 잘리던 것을 `uintptr_t`로 변환하게 고쳤고, Linux와 macOS에서는 빌드해 보지 못했습니다.
+- **시험(F117, F118, F121)**: 최종 547개 `OK`(건너뜀 21, 예상된 실패 3, 532초). 시험의 Linux 가정을 바로잡고, Windows의 `CHAR` 키 이벤트가 `windows_key_code`에 문자를 요구하는 것을 찾아 `BrowserView`를 고쳤습니다. 맞춤법 제안, 자동 크기 조정, 인쇄 핸들러는 원인을 보지 않고 건너뛰거나 느슨하게 했습니다(known-constraints).
+- **pywin32 툴킷(F119)**: `cefweaver.ui.toolkits.pywin32`(`Win32Browser`)와 `examples/pywin32/`를 더했고, `xdotool` 대신 `SendInput`을 쓰는 `examples/common/winxdo.py`로 점검 27개가 실제 입력으로 통과했습니다(최종 wheel에서 3회). 실행해서 알게 된 결함 셋(`lParam` 부호, Alt 키의 메뉴 모드, `DragQueryFile`)을 고쳤습니다.
+- **동결(F120)**: PyInstaller(onedir, onefile), cx_Freeze, py2exe로 최소 앱과 `smoke.py`를 묶어 모두 통과했습니다. py2exe는 CEF 런타임 파일을 손으로 복사해야 하고, 그를 위해 `__init__.py`의 `add_dll_directory`에 가드를 더했습니다([앱 묶기](pages/procedures/freeze-app.md)).
+- 그 밖: `.gitattributes`(LF 고정), `.github/workflows/build-test.yml`에 Windows 선택지(돌려 보지 못함), `pyproject.toml`의 `pywin32` extra, `docs/`와 `README.rst`와 `CLAUDE.md`의 Windows 서술, `tools/prepare.py`의 안내문. 영향받은 위키 페이지: platform-support, runtime-layout, packaging, root-cmake, native-cefsubprocess, cython-extension, legacy-code, lifecycle-and-message-loop, architecture-overview, known-constraints, design-decisions, glossary, freeze-app, build-and-install, run-tests, tests, toolkit-examples, ui-api, tool-prepare, beyond-java-cef, cefpython-comparison, scikit-build-core-prototype.
+- 커밋하지 않았습니다(작업 트리에 남아 있음).

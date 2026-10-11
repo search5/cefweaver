@@ -10,6 +10,7 @@ All of it runs in the main thread of the toolkit (CEF is driven by ``Session`` f
 """
 
 import os
+import sys
 import time
 
 import cefweaver
@@ -303,6 +304,8 @@ class BrowserView:
         return False
 
     def _char(self, character, base):
+        if sys.platform == "win32":                # a Windows WM_CHAR carries the character where the key code goes (CEF: windows_key_code)
+            base = dict(base, windows_key_code=character)
         self.host(lambda h: h.send_key_event(types.KeyEvent(
             types.KeyEventType.CHAR, character=character, unmodified_character=character, **base)))
 

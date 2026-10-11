@@ -320,6 +320,7 @@ class WithHeaders(unittest.TestCase):
             if name in deliberate:
                 self.assertGreater(len(reason), 40, name)  # a sentence, not a type name
 
+    @unittest.skipUnless(shutil.which("c++"), "needs a C++ compiler (c++, GCC or Clang)")
     def test_the_proxies_of_the_handlers_with_buffers_compile_in_a_wide_scope(self):
         # Handlers outside the scope that take a `const void*` (DevTools messages, WebSocket
         # data, downloaded data, response filters): a const pointer is declared const and read
@@ -719,6 +720,7 @@ class WithHeaders(unittest.TestCase):
             self.assertIn(expected, names)
         self.assertNotIn("size", names)                              # the version header
 
+    @unittest.skipUnless(shutil.which("c++"), "needs a C++ compiler (c++, GCC or Clang)")
     def test_the_structs_that_differ_by_platform_are_read_in_their_linux_form_through_neutral_types(self):
         # CEF defines cef_accelerated_paint_info_t differently on Linux, macOS and Windows and a
         # distribution has the header of its own platform only. The generated files must not

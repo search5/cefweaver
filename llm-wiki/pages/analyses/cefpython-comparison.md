@@ -19,7 +19,7 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 
 | 영역 | cefpython | cefweaver |
 | --- | --- | --- |
-| CEF와 플랫폼 | 오래된 CEF(v66 계열), Windows, Linux, Mac, Python 2와 3 | CEF 154, Linux x86_64와 macOS arm64(Windows 미검증), Python 3.11 이상 |
+| CEF와 플랫폼 | 오래된 CEF(v66 계열), Windows, Linux, Mac, Python 2와 3 | CEF 154, Linux x86_64, macOS arm64, Windows 11 x86_64(Windows 일부 동작은 미확인), Python 3.11 이상 |
 | 방식 | 손으로 쓴 Cython 바인딩 | 헤더에서 생성(범위 안의 메서드 2131/2255의 타입을 지원. 2026-10-10에는 클래스 129개, 메서드와 함수 1,182개, 전역 함수 20개, [커버리지 보고서](../reference/coverage-report.md)) |
 | 핸들러 | 12개(소수는 문서만 있음) | java-cef의 13개와 그 밖을 포함해 대부분 |
 | 오프스크린 | 있음 | 있음(여러 브라우저, 투명 여부 포함) |

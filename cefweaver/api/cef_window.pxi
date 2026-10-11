@@ -338,9 +338,9 @@ cdef class Window(Panel):
     def get_window_handle(self):
         """Retrieve the platform window handle for this Window."""
         cdef CefWindow* _p = self._ptr_CefWindow()
-        cdef cef_window_handle_t _r
+        cdef uintptr_t _r
         with nogil:
-            _r = _p.GetWindowHandle()
+            _r = <uintptr_t>_p.GetWindowHandle()
         return _r
 
     def send_key_press(self, int key_code, uint32_t event_flags):

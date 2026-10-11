@@ -12,7 +12,7 @@ updated: 2026-10-11
 
 # 아키텍처 개요
 
-cefweaver는 Chromium Embedded Framework(CEF)의 Python 바인딩입니다. Linux x86_64와 macOS arm64에서 빌드와 시험을 마쳤고(macOS는 일부 동작이 다름), Windows는 코드 경로만 있고 검증하지 못했습니다([플랫폼 지원 현황](platform-support.md)).
+cefweaver는 Chromium Embedded Framework(CEF)의 Python 바인딩입니다. Linux x86_64, macOS arm64, Windows 11 x86_64에서 빌드와 시험을 마쳤고(macOS와 Windows는 일부 동작이 다름)([플랫폼 지원 현황](platform-support.md)).
 
 ## 계층
 

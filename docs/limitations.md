@@ -11,11 +11,26 @@ title: 한계와 알려진 제약
 | 항목 | 상태 |
 | --- | --- |
 | Linux x86_64 | 개발하고 시험하는 플랫폼입니다 |
-| Windows | 검증하지 못했습니다 |
+| Windows 11 x86_64 | 빌드하고 시험했습니다. 아래 "Windows" 절의 차이가 있습니다 |
 | macOS arm64 | 빌드하고 시험했습니다. 아래 "macOS" 절의 차이가 있습니다 |
 | macOS x86_64 | Rosetta에서 빌드하고 구동했습니다. 실제 Intel Mac은 아닙니다 |
 | 창 모드 + Wayland | 코드로 닫을 수 없고 종료할 때 죽습니다. CEF의 한계로 확인했습니다([Wayland와 GPU](wayland-gpu.md)) |
 | X11 + GPU | 일부 기계에서 영상이 안 나옵니다. 원인은 찾지 못했습니다(같은 쪽) |
+
+## Windows
+
+Windows 11, Python 3.13, CEF 154에서 확인한 범위입니다. 오프스크린(`cefweaver.ui`의 어댑터 포함), JavaScript 바인딩, 종료, 동결(PyInstaller, cx_Freeze, py2exe)이 동작합니다. 시험(546개) 중 **Linux에서만 의미가 있는 것은 건너뛰고**(X11, `/proc`, CUPS 같은 것) 나머지는 통과합니다.
+
+| 항목 | 상태 |
+| --- | --- |
+| 창 모드(`parent_view`와 CEF가 만든 창) | 이 저장소의 시험에서 CEF가 창을 만드는 경로(Views 창 포함)가 뜨고 닫히는 것까지는 통과했습니다. **다른 프로그램의 창에 붙이는 일(`SetAsChild`)은 만들지 않았습니다**(`parent_view`는 macOS 전용입니다) |
+| 문자 입력(`CHAR` 이벤트) | Windows는 `CHAR` 이벤트의 `windows_key_code`에 문자 코드를 요구합니다(가상 키 코드가 아닙니다). `BrowserView`는 이를 채웁니다. `send_key_event`로 직접 보낼 때는 직접 채워야 합니다 |
+| 공유 텍스처 | 확인하지 못했습니다. `read_plane()`은 dmabuf 전용이라 Windows에서는 `NotImplementedError`입니다 |
+| 인쇄 | `PrintHandler`는 Linux 전용입니다. Windows에서 `host.print()`는 시스템 인쇄 대화상자를 띄웁니다 |
+| 맞춤법 제안 | 컨텍스트 메뉴에 틀린 단어가 오지 않았고 제안을 얻지 못했습니다(원인 미확인) |
+| 자동 크기 조정 | `set_auto_resize_enabled`의 최댓값(900x700)보다 큰 크기(944x504)가 보고되었습니다(원인 미확인) |
+| 빌드 | CEF의 샌드박스 라이브러리는 링크하지 않습니다(`no_sandbox`). 정적 런타임(`/MT`)으로 링크합니다 |
+| Python | 3.13에서만 확인했습니다 |
 
 ## macOS
 

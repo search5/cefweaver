@@ -10,12 +10,14 @@ sources:
   - cefweaver/ui/toolkits/gtk3.py
   - cefweaver/ui/toolkits/sdl2.py
   - cefweaver/ui/toolkits/wx.py
-updated: 2026-10-10
+  - cefweaver/ui/toolkits/pywin32.py
+  - examples/pywin32/smoke.py
+updated: 2026-10-11
 ---
 
 # 앱을 PyInstaller와 cx_Freeze로 묶기
 
-cefweaver로 만든 앱을 파이썬이 없는 기계에 배포하려고 동결 도구로 묶을 수 있는지 실험했습니다. 결과는 [F93](../reference/verified-findings-handlers.md)에 있고, 이 페이지는 재현하는 방법과 도구별 차이를 정리합니다. 실험한 환경은 Linux x86_64, Python 3.13.11, CEF 154, PyInstaller 6.22.3, cx_Freeze 8.7.1입니다. **py2exe와 Windows는 실험하지 못했습니다**([알려진 제약](../reference/known-constraints.md)).
+cefweaver로 만든 앱을 파이썬이 없는 기계에 배포하려고 동결 도구로 묶을 수 있는지 실험했습니다. 결과는 [F93](../reference/verified-findings-handlers.md)에 있고, 이 페이지는 재현하는 방법과 도구별 차이를 정리합니다. 실험한 환경은 Linux x86_64, Python 3.13.11, CEF 154, PyInstaller 6.22.3, cx_Freeze 8.7.1입니다. Windows는 아래 "Windows" 절에 따로 있습니다(2026-10-11, Windows 11, CPython 3.13.1, 같은 도구 버전, py2exe 0.14.2.0). 이 위의 절은 Linux 실험입니다.
 
 ## 왜 그냥 되지 않는가
 
@@ -50,6 +52,24 @@ cxfreeze --script app.py --target-dir out      # 약 402MB
 ## 최근 확인 (2026-10-10)
 
 Views, 렌더러 이벤트, 새 핸들러 등을 더한 뒤의 wheel로 같은 도구 버전에서 다시 확인했습니다. 최소 앱, Tk 예제의 `smoke.py`(30개), Views 예제의 `smoke.py`(13개)가 세 가지 방식(PyInstaller onedir와 onefile, cx_Freeze) 모두에서 3회씩 통과했습니다([F112](../reference/verified-findings-opened.md)). 그 밖의 툴킷은 다시 돌리지 않았습니다.
+
+## Windows
+
+Windows 11, CPython 3.13.1, CEF 154, pywin32 312에서 `cefweaver.ui.toolkits.pywin32`(Win32 창)를 PyInstaller 6.22.3, cx_Freeze 8.7.1, py2exe 0.14.2.0으로 묶었습니다([F120](../reference/verified-findings-windows.md)). 앱은 창을 열고 제목이 `frozen-ok`이면 0.3초 뒤 닫는 최소 앱과, `examples/pywin32/smoke.py`(실제 `SendInput` 입력으로 27개 점검)입니다.
+
+| 도구 | 옵션 | 크기 | 최소 앱 | `smoke.py` 27개 |
+| --- | --- | --- | --- | --- |
+| PyInstaller onedir | `--collect-all cefweaver` | 441MB | 3회 중 3회 | 2회 중 2회 |
+| PyInstaller onefile | `--onefile --collect-all cefweaver` | 190MB | 3회 중 3회(실행당 약 11.5초) | 1회 중 1회 |
+| cx_Freeze | 없음 | 433MB | 3회 중 3회 | 2회 중 2회 |
+| py2exe | CEF 런타임을 손으로 복사(아래) | 429MB | 3회 중 3회 | 2회 중 2회 |
+
+- **PyInstaller는 Linux와 같습니다.** 옵션 없이는 `Invalid file descriptor to ICU data received`로 끝납니다(종료 코드 3). pywin32 훅은 자동이어서 `--hidden-import`가 따로 필요 없었습니다(점검 스크립트가 함수 안에서 가져오는 `winxdo`만 `--hidden-import`로 줬습니다). onefile은 실행할 때마다 풀어서 Linux(1.9초)보다 느립니다(11.5초, 원인은 보지 않았고 바이러스 검사기일 수 있음). 끝난 뒤 `%TEMP%`에 `_MEI*`는 남지 않았습니다.
+- **cx_Freeze는 설정 없이 됩니다.** 빌드 때 `api-ms-win-core-realtime-l1-1-1.dll`을 못 찾았다는 안내가 나오지만 동작에는 영향이 없었습니다(이 DLL은 Windows에 따라 있는 것으로 보입니다. 추정입니다).
+- **py2exe는 CEF 런타임을 따로 복사해야 합니다.** py2exe는 파이썬 모듈을 `library.zip`에, 확장 모듈을 `cefweaver._cefweaver.pyd`라는 이름으로 실행 파일 옆에, `libcef.dll`도 그 옆에 둡니다. `icudtl.dat`, `.pak`, `locales/`, `cefsubprocess.exe`와 나머지 DLL은 가져오지 않아서, 그대로 실행하면 같은 ICU 오류가 납니다. 패키지 디렉터리가 zip 안이라 `__init__.py`의 `os.add_dll_directory`가 `FileNotFoundError`를 내던 것은 고쳤습니다(디렉터리가 아니면 건너뜀). 서브프로세스 경로가 `.pyd`의 디렉터리 기준이라 `cefsubprocess.exe`도 실행 파일 옆에 있어야 합니다. 설치된 `cefweaver/`의 `*.dll`, `*.pak`, `*.bin`, `*.dat`, `*.json`, `cefsubprocess.exe`, `locales/`를 `dist_dir`에 복사하면 됩니다. 빌드는 `py2exe.freeze(console=[{"script": ...}], zipfile="library.zip", options={"dist_dir": ...})`로 했습니다(`python -m py2exe`는 이 버전에서 쓸 수 없었습니다).
+- py2exe는 메인 스크립트에 `__file__`을 주지 않습니다. `smoke.py`는 `__file__`로 경로를 정해서 py2exe용 복사본에서만 `sys.argv[0]`로 바꿨습니다(저장소의 파일은 그대로).
+- 점검에 쓴 `smoke.py`는 데스크톱에 창을 열고 실제 입력을 보내므로 돌리는 동안 손대지 않아야 합니다. 합격 기준은 종료 코드 0, `ALL OK`, `ok` 줄 27개입니다.
+- Python이 없는 기계에서의 실행은 시험하지 않았습니다.
 
 ## 공통
 

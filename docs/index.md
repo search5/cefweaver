@@ -25,7 +25,7 @@ CEFWeaver는 [Chromium Embedded Framework](https://bitbucket.org/chromiumembedde
 | [시작하기](quickstart.md) | 가장 작은 프로그램, 창 모드 |
 | [GUI 툴킷에 넣기](ui.md) | `Session`, 뷰와 위젯, 어댑터 |
 | [Views (툴킷 없이)](views.md) | CEF만으로 창, 단추, 입력칸, 브라우저 구성 |
-| [툴킷별 상태](toolkits.md) | 여섯 툴킷에서 확인한 것과 제한 |
+| [툴킷별 상태](toolkits.md) | 일곱 툴킷에서 확인한 것과 제한 |
 | [소리, 마이크, 카메라](media.md) | 소리 출력, 권한 정책 |
 | [컨텍스트 메뉴](context-menu.md) | 메뉴와 훅 |
 | [Cast 장치](cast.md) | Chromecast 검색, 연결, 재생, 일시정지, 탐색, 음량 |
@@ -36,6 +36,6 @@ CEFWeaver는 [Chromium Embedded Framework](https://bitbucket.org/chromiumembedde
 
 ## 지원 환경
 
-Linux x86_64와 macOS arm64(Apple Silicon)에서 빌드하고 시험합니다. macOS는 Linux와 다른 점이 있습니다([한계와 알려진 제약](limitations.md)). Windows는 검증하지 못했고 macOS x86_64는 빌드해 보지 못했습니다.
+Linux x86_64와 macOS arm64(Apple Silicon)에서 빌드하고 시험합니다. macOS는 Linux와 다른 점이 있습니다([한계와 알려진 제약](limitations.md)). Windows 11(x86_64)에서도 빌드하고 시험했습니다(Windows는 창 모드 임베딩과 일부 동작이 아직 확인되지 않았습니다. [한계와 알려진 제약](limitations.md)). macOS x86_64는 빌드해 보지 못했습니다.
 
 프로젝트 저장소: [github.com/search5/cefweaver](https://github.com/search5/cefweaver)

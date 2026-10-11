@@ -6,7 +6,7 @@ sources:
   - tools/gen/scope.py
   - tools/gen/report.py
   - tools/gen/typesys.py
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 커버리지 보고서 (생성됨)

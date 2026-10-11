@@ -92,6 +92,12 @@ endif()
 # Add the CEF binary distribution's cmake/ directory to the module path.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 
+# The wrapper runs CEF with no_sandbox (CefSettings), so the Windows sandbox library
+# (cef_sandbox.lib, which also needs a matching VS version) is not linked.
+if(WIN32)
+  set(USE_SANDBOX OFF CACHE BOOL "Enable CEF Sandbox" FORCE)
+endif()
+
 # Load the CEF configuration (executes FindCEF.cmake).
 find_package(CEF REQUIRED)
 

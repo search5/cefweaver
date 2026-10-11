@@ -4,7 +4,7 @@ title: 툴킷별 상태
 
 # 툴킷별 상태
 
-여섯 툴킷에 어댑터가 있습니다. 아래는 2026-10-09 기준으로 확인한 것입니다.
+일곱 툴킷에 어댑터가 있습니다(pywin32는 Windows 전용). 아래는 2026-10-09 기준으로 확인한 것이고, pywin32는 2026-10-11에 Windows 11에서 확인했습니다.
 
 **확인 방법**은 두 가지입니다.
 
@@ -21,10 +21,11 @@ title: 툴킷별 상태
 | SDL2 | `SdlSink` | 없음 | 통과 (28) | 소리 확인함 |
 | wxPython | pygame | `wx.Menu` | 통과 (33) | 확인함 |
 | Kivy | pygame | 없음 | 통과 (27) | 소리 확인함 |
+| pywin32 (Windows) | pygame | `TrackPopupMenu` | 통과 (27) | 100% 배율에서 확인함. 실제 한글 입력기와 소리는 확인하지 못함 |
 
 모듈은 아래 절에 있습니다.
 
-"소리"는 페이지의 소리를 재생하는 방법입니다. 툴킷에 재생 API가 있으면 그것을, 없으면 pygame을 씁니다([소리, 마이크, 카메라](media.md)). 영상과 소리는 여섯 툴킷(Qt는 두 바인딩) 모두에서 YouTube 영상을 재생해 들어 보았습니다.
+"소리"는 페이지의 소리를 재생하는 방법입니다. 툴킷에 재생 API가 있으면 그것을, 없으면 pygame을 씁니다([소리, 마이크, 카메라](media.md)). 영상과 소리는 여섯 툴킷(Qt는 두 바인딩) 모두에서 YouTube 영상을 재생해 들어 보았습니다(pywin32는 하지 않았습니다).
 
 ## 툴킷별 메모
 
@@ -51,3 +52,7 @@ title: 툴킷별 상태
 ### Kivy (`cefweaver.ui.toolkits.kivy`)
 
 `KivyLoop`, `KivyAdapter`, `CefView`. 오른쪽 클릭 메뉴는 없습니다: Kivy에는 네이티브 컨텍스트 메뉴 위젯이 없고 `DropDown`은 특정 위젯에 붙여 여는 것이라 클릭 위치에 맞지 않습니다. 같은 이유로 이 툴킷에서도 `view.on_context_menu`가 불리지 않습니다.
+
+### pywin32 (`cefweaver.ui.toolkits.pywin32`)
+
+`Win32Browser` 하나가 창, 브라우저, 메시지 루프를 모두 가집니다(Windows 전용, `cefweaver[pywin32]`). 창과 메시지는 pywin32가 맡고, 그림은 GDI `StretchDIBits`로 그립니다(pywin32에 없는 몇 호출은 `ctypes`). 오른쪽 클릭 메뉴는 `TrackPopupMenu`입니다. 탐색기에서 끌어다 놓은 파일은 `WM_DROPFILES`로 받고, 텍스트 드롭과 페이지 밖으로 끄는 드래그는 지원하지 않습니다. 점검(`smoke.py`) 27개는 `SendInput`으로 실제 마우스와 키보드 입력을 보내 확인하며, 실제 한글 입력기로 입력해 본 것은 아닙니다(점검은 입력기가 확정한 글자를 `view`로 흉내 냅니다). 배율은 100%에서만 확인했습니다. PyInstaller(onedir, onefile), cx_Freeze, py2exe로 묶어도 같은 점검이 통과했습니다(py2exe는 CEF 런타임 파일을 실행 파일 옆에 손으로 복사해야 합니다).

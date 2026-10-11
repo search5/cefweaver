@@ -31,7 +31,7 @@ app.shutdown()
 
 `CefWrapper::InitCefSimple()`(`native/cefwrapper/library.cpp`)가 이 순서로 실행합니다.
 
-1. Windows에서만 `CefEnableHighDPISupport()`를 호출합니다.
+1. (Windows의 `CefEnableHighDPISupport()` 호출은 CEF 154 헤더에 함수가 없어 지웠습니다. 고DPI는 서브프로세스의 매니페스트와 앱이 정합니다. `cefweaver.ui.toolkits.pywin32`는 창을 만들기 전에 프로세스를 모니터별 DPI 인식으로 바꿉니다.)
 2. Linux에서는 `argv = {"cefweaver"}`로 `CefMainArgs`를 만듭니다. 내장된 인터프리터에는 의미 있는 argc, argv가 없기 때문입니다.
 3. 바인딩과 시작 URL을 가진 `CefWrapperApp`을 만들고 모아 둔 명령줄 스위치를 넘깁니다.
 4. `CefExecuteProcess()`를 호출합니다. 브라우저 프로세스에서는 -1을 돌려주며 반환값은 쓰지 않습니다.

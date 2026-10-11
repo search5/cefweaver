@@ -8,6 +8,8 @@ sources:
   - tools/prepare.py
   - tools/gen/scope.py
   - cmake/CefweaverExtension.cmake
+  - cefweaver/ui/toolkits/pywin32.py
+  - .gitattributes
 updated: 2026-10-11
 ---
 
@@ -34,6 +36,8 @@ updated: 2026-10-11
 | 런타임 파일을 wheel에 넣을 때 `libcef.so`의 복사본만 strip (Linux는 2026-10-11부터 `install(CODE)`로, 이전에는 `prepare.py`의 스테이징) | 1.45GB를 272MB로 줄입니다. 원본 배포본은 건드리지 않습니다. | 구현 중 판단 |
 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 | `libcef.so`와 리소스를 공유해 두 번 복사하지 않습니다. | 구현 중 판단 |
 | ~~`uv build --wheel`을 표준으로, `MANIFEST.in`으로 sdist에서 런타임 제외~~ (scikit-build-core로 옮기며 `MANIFEST.in` 삭제) | 이전에는 sdist만으로 wheel을 만들 수 없었습니다. 지금은 sdist(약 1MB)에서 wheel이 만들어지는 것을 확인했습니다. | 구현 중 판단 |
+| Windows에서 CEF의 샌드박스를 끄고(`USE_SANDBOX OFF`) 확장 모듈을 CEF처럼 정적 런타임(`/MT`)으로 링크 | 래퍼가 `no_sandbox`를 쓰고, 래퍼 라이브러리를 CEF의 cmake가 `/MT`로 만들기 때문입니다([F116](verified-findings-windows.md)). `/MD`로 맞추는 안(프로토타입 분석에서 예상)은 쓰지 않았습니다. | |
+| 줄바꿈을 LF로 고정(`.gitattributes`의 `* text=auto eol=lf`) | Windows의 `core.autocrlf=true` 체크아웃이 생성 파일을 CRLF로 만들어 바이트 단위 비교 시험이 실패했습니다. | |
 
 ## 바인딩
 
@@ -102,6 +106,15 @@ updated: 2026-10-11
 | `resources_dir_path`를 기본으로 설정하지 않음 | 효과가 없음을 확인했습니다. 런타임 파일을 `libcef.so`와 같은 디렉터리에 둡니다(F1). 처음에 기본 설정을 넣었다가 뺐습니다. |
 | 샌드박스를 쓰지 않고(`no_sandbox`) `chrome-sandbox`를 스테이징하지 않음 | 원래 래퍼의 설정을 유지했습니다. |
 | 외부 메시지 펌프(`multi_threaded_message_loop` 끔) | 원래 래퍼의 선택을 유지했습니다. 사용자 스레드가 UI 스레드가 됩니다. |
+
+## Windows와 GUI
+
+| 결정 | 이유 | 결정자 |
+| --- | --- | --- |
+| Windows의 GUI 툴킷(pywin32)도 다른 툴킷처럼 **오프스크린** 어댑터로 만들고, CEF가 만드는 자식 창(`SetAsChild`)은 만들지 않음 | `cefweaver.ui`의 입력, 클립보드, 메뉴, 입력기 처리를 그대로 쓰고 점검(`checks.py`)을 공유하기 위해서입니다. 창 임베딩은 따로 만들어야 하고 이번에 하지 않았습니다([알려진 제약](known-constraints.md)). | |
+| `Win32Browser`는 SDL2처럼 창과 루프를 한 클래스에 둠 | Win32에는 위젯이 없습니다. `PostMessage`와 `SetTimer`를 창 프로시저가 처리해서 Windows의 자체 루프(창 끌기, 팝업 메뉴) 안에서도 CEF가 돕니다([F119](verified-findings-windows.md)). | |
+| Windows의 `CHAR` 키 이벤트는 `windows_key_code`에 문자를 넣음(`BrowserView._char`) | Windows는 `WM_CHAR`의 문자를 이 자리에 받습니다. 가상 키 코드를 보내면 소문자가 대문자가 됩니다([F118](verified-findings-windows.md)). | |
+| 점검의 입력은 Windows에서 `SendInput`(`examples/common/winxdo.py`)으로 | `xdotool`의 일부(마우스, 키, 입력)만 같은 명령으로 흉내 내서 `checks.py`를 그대로 씁니다. 실제 입력이라 점검 중에는 기계에 손댈 수 없습니다. | |
 
 ## 시험과 저장소 운영
 

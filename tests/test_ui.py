@@ -255,7 +255,7 @@ class Keyboard(unittest.TestCase):
         view.text("b")
         char = named(calls, "send_key_event")[-1][0]
         self.assertEqual((char.type, char.windows_key_code, char.native_key_code, char.character),
-                         (types.KeyEventType.CHAR, 66, 56, ord("b")))
+                         (types.KeyEventType.CHAR, ord("b") if sys.platform == "win32" else 66, 56, ord("b")))   # (Windows: the character in the key code)
 
     def test_other_text_is_committed_as_input_method_text(self):
         view, _, calls = make_view()
@@ -1457,7 +1457,7 @@ class Pictures(unittest.TestCase):
         self.assertEqual((change.kind, store.popup_pixels), (ui.PictureStore.POPUP_HIDDEN, None))
 
 
-TOOLKITS = ("gtk3", "qt", "tk", "sdl2", "wx", "kivy")
+TOOLKITS = ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "pywin32")
 
 
 class ToolkitModules(unittest.TestCase):
@@ -1508,7 +1508,7 @@ class ToolkitModules(unittest.TestCase):
 
     def test_every_toolkit_does_the_clipboard_itself(self):
         # CEF's own clipboard is the compositor's on Wayland and the X server's on X11: the toolkit's may be another one
-        for name in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy"):
+        for name in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "pywin32"):
             source = self.source(name)
             self.assertNotRegex(source, r"capabilities\s*=[^\n]*native_clipboard", name)
             self.assertIn("def clipboard_get", source, name)
@@ -2099,6 +2099,7 @@ print("OK")
 
 class WithCefSpelling(unittest.TestCase):
     @unittest.skipIf(sys.platform == "darwin", "macOS checks the spelling with NSSpellChecker: no suggestions came here; not examined")
+    @unittest.skipIf(sys.platform == "win32", "Windows: the page gave no misspelled word (an empty one) to the menu; not examined")
     def test_a_suggestion_of_the_menu_replaces_the_misspelled_word_on_a_page_that_lost_the_focus(self):
         env = dict(os.environ)
         env.pop("WAYLAND_DISPLAY", None)
@@ -2135,6 +2136,30 @@ QUICKSTARTS = (          # (example, its uv environment, what keeps the toolkit 
     ("kivy", ".venv", {"SDL_VIDEODRIVER": "x11", "KIVY_NO_CONSOLELOG": "1"}),
     ("views", ".venv", {}),
 )
+WINDOWS_QUICKSTARTS = (   # the same on Windows (a window on the desktop): (example, its uv environment)
+    ("pywin32", ".venv"),
+)
+
+
+def venv_python(example, venv):
+    scripts = ("Scripts", "python.exe") if sys.platform == "win32" else ("bin", "python")
+    return os.path.join(ROOT, "examples", example, venv, *scripts)
+
+
+def close_windows_of(class_prefix):
+    """Ask the visible windows of a window class to close, as the close button does (WM_CLOSE). (By class, not by
+    process: the python.exe of a uv environment is a launcher that starts the real one.)"""
+    import win32con
+    import win32gui
+    found = []
+
+    def visit(hwnd, _):
+        if win32gui.IsWindowVisible(hwnd) and win32gui.GetClassName(hwnd).startswith(class_prefix):
+            found.append(hwnd)
+    win32gui.EnumWindows(visit, None)
+    for hwnd in found:
+        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+    return bool(found)
 
 
 def send_delete_window(window):
@@ -2174,7 +2199,7 @@ class QuickstartDocs(unittest.TestCase):
     """The documentation shows the code of the quickstart files, not a copy that can drift away from them."""
 
     def test_each_example_readme_shows_the_code_of_its_quickstart(self):
-        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views"):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views", "pywin32"):
             code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
             with open(os.path.join(ROOT, "examples", example, "README.md"), encoding="utf-8") as f:
                 self.assertIn(code, f.read(), "examples/%s/README.md does not show quickstart.py" % example)
@@ -2186,7 +2211,7 @@ class QuickstartDocs(unittest.TestCase):
             self.assertIn(indented, f.read())
 
     def test_a_quickstart_is_short(self):
-        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views"):
+        for example in ("gtk3", "qt", "tk", "sdl2", "wx", "kivy", "views", "pywin32"):
             code = code_after_the_docstring(os.path.join(ROOT, "examples", example, "quickstart.py"))
             self.assertLessEqual(len(code.splitlines()), 40, example)     # it is what a user reads first
 
@@ -2214,7 +2239,7 @@ class Quickstarts(unittest.TestCase):
         import tempfile
         import threading
         import time
-        python = os.path.join(ROOT, "examples", example, venv, "bin", "python")
+        python = venv_python(example, venv)
         env = {k: v for k, v in os.environ.items() if k not in ("WAYLAND_DISPLAY", "XDG_SESSION_TYPE")}
         env.update(pins)
         # in a directory of its own: without a cache path CEF makes "cache" in the working directory
@@ -2232,20 +2257,40 @@ class Quickstarts(unittest.TestCase):
                 self.assertIsNone(process.poll(), "ended before the page was shown: " + "".join(errors)[-1500:])
                 self.assertLess(time.time(), end, "no title in 60 s: " + "".join(errors)[-1500:])
                 time.sleep(0.2)
-            send_delete_window(self.window_of(process.pid))
+            if sys.platform == "win32":
+                import time as _time
+                end_wait = _time.time() + 15
+                while not close_windows_of("CefweaverWin32Browser"):
+                    self.assertLess(_time.time(), end_wait, "the window of the quickstart did not appear")
+                    _time.sleep(0.3)
+            else:
+                send_delete_window(self.window_of(process.pid))
             self.assertEqual(process.wait(timeout=40), 0, "".join(errors)[-1500:])
         finally:
             if process.poll() is None:
                 process.kill()
         self.assertNotIn("stack smashing", "".join(errors))
 
+    @unittest.skipUnless(sys.platform == "win32", "a Win32 window: Windows only")
+    def test_the_windows_quickstarts_show_a_page_and_end_cleanly_when_their_window_is_closed(self):
+        ran = 0
+        for example, venv in WINDOWS_QUICKSTARTS:
+            if not os.path.isfile(venv_python(example, venv)):
+                continue
+            with self.subTest(example=example, environment=venv):
+                self.run_quickstart(example, venv, {})
+                ran += 1
+        if not ran:
+            self.skipTest("no example has its uv environment")
+
+    @unittest.skipIf(sys.platform == "win32", "X11: Linux and macOS")
     def test_each_quickstart_shows_a_page_and_ends_cleanly_when_its_window_is_closed(self):
         import shutil
         if not os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY") or not shutil.which("xdotool"):
             self.skipTest("needs an X server (not a Wayland session) and xdotool")
         ran = 0
         for example, venv, pins in QUICKSTARTS:
-            if not os.path.isfile(os.path.join(ROOT, "examples", example, venv, "bin", "python")):
+            if not os.path.isfile(venv_python(example, venv)):
                 continue
             with self.subTest(example=example, environment=venv):
                 self.run_quickstart(example, venv, pins)

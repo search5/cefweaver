@@ -7,7 +7,8 @@ Steps:
 
 The CEF runtime is not copied here: the wheel build (scikit-build-core,
 cmake/CefweaverExtension.cmake) installs it. On Linux that is libcef.so (stripped, 1.4 GB ->
-~270 MB), the resources and cefsubprocess; on macOS it is cefsubprocess.app (the CEF framework
+~270 MB), the resources and cefsubprocess; on Windows libcef.dll, its DLLs, the resources and
+cefsubprocess.exe; on macOS it is cefsubprocess.app (the CEF framework
 and the helper apps). The CEF distribution is left untouched. Files that an earlier version
 of this script staged into ``cefweaver/`` are removed.
 
@@ -221,11 +222,12 @@ def stage_runtime(cef_root, build_dir, config):
 
     Nothing is staged any more. The wheel build installs the runtime next to the extension
     module (Linux: CEF looks for icudtl.dat next to libcef.so, and cefsubprocess finds
-    libcef.so through its rpath $ORIGIN; macOS: cefsubprocess.app, the stand-in for the main
-    app bundle of the Python process). What an earlier run staged was recorded and is removed.
+    libcef.so through its rpath $ORIGIN; Windows: libcef.dll, the resources and cefsubprocess.exe
+    next to the module; macOS: cefsubprocess.app, the stand-in for the main app bundle of the
+    Python process). What an earlier run staged was recorded and is removed.
     """
-    if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
-        print("note: staging the runtime is implemented for Linux and macOS only; skipped.")
+    if not (sys.platform.startswith("linux") or sys.platform in ("darwin", "win32")):
+        print("note: staging the runtime is implemented for Linux, macOS and Windows only; skipped.")
         return []
 
     manifest = build_dir / STAGED_MANIFEST

@@ -54,6 +54,9 @@ updated: 2026-10-11
 | 스택 보호값 (canary) | 스택 오버플로를 탐지하려고 함수 진입 때 넣어 두고 반환 때 확인하는 값 |
 | llm-wiki | LLM이 작성하고 유지하는 마크다운 위키. 이 디렉터리입니다. |
 | ingest, query, lint | 위키의 세 작업: 반영, 질문 답변, 점검([SCHEMA.md](../../SCHEMA.md)) |
+| `HWND`, `WM_CHAR` | Windows의 창 핸들과 문자 메시지. Windows에서는 CEF의 `CHAR` 키 이벤트가 `windows_key_code`에 문자를 둡니다([F118](verified-findings-windows.md)) |
+| `SendInput` | Windows가 실제 마우스와 키보드 입력을 만드는 호출. `examples/common/winxdo.py`가 `xdotool` 대신 씁니다 |
+| py2exe | Windows 전용 동결 도구. CEF 런타임 파일을 따로 복사해야 합니다([앱 묶기](../procedures/freeze-app.md)) |
 
 ## 관련 페이지
 

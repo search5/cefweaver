@@ -7,7 +7,7 @@ on:
       platform:
         description: "Where to build"
         type: choice
-        options: [both, linux, macos]
+        options: [both, linux, macos, windows, all]
         default: both
       python-version:
         description: "Python version (the examples use 3.13)"
@@ -33,6 +33,8 @@ jobs:
           case "${{ inputs.platform }}" in
             linux) m='[{"name":"linux","os":"ubuntu-24.04"}]' ;;
             macos) m='[{"name":"macos","os":"macos-14"}]' ;;
+            windows) m='[{"name":"windows","os":"windows-2025"}]' ;;
+            all)   m='[{"name":"linux","os":"ubuntu-24.04"},{"name":"macos","os":"macos-14"},{"name":"windows","os":"windows-2025"}]' ;;
             *)     m='[{"name":"linux","os":"ubuntu-24.04"},{"name":"macos","os":"macos-14"}]' ;;
           esac
           echo "matrix=$m" >> "$GITHUB_OUTPUT"
@@ -66,9 +68,17 @@ jobs:
         run: uv build --wheel --python ${{ inputs.python-version }} -o dist
 
       - name: Install the wheel
+        if: matrix.name != 'windows'
         run: |
           uv venv --python ${{ inputs.python-version }} .venv-test
           uv pip install --python .venv-test/bin/python dist/cefweaver-*.whl
+
+      - name: Install the wheel (Windows)
+        if: matrix.name == 'windows'
+        shell: bash
+        run: |
+          uv venv --python ${{ inputs.python-version }} .venv-test
+          uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-*.whl pywin32
 
       - name: Tests (Linux, virtual X server)
         if: inputs.run-tests && matrix.name == 'linux'
@@ -77,6 +87,10 @@ jobs:
       - name: Tests (macOS)
         if: inputs.run-tests && matrix.name == 'macos'
         run: .venv-test/bin/python -P -m unittest discover -s tests -v
+
+      - name: Tests (Windows)
+        if: inputs.run-tests && matrix.name == 'windows'
+        run: .venv-test\Scripts\python.exe -P -m unittest discover -s tests -v
 
       - name: Keep the wheel
         if: inputs.upload-wheel

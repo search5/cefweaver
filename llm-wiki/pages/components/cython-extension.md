@@ -44,7 +44,7 @@ Python 쪽의 손으로 쓴 부분입니다. 확장 모듈은 **하나**(`cefwea
 ## __init__.py
 
 1. 패키지 디렉터리를 구합니다.
-2. Linux: `libcef.so`가 있으면 `ctypes.CDLL(..., RTLD_GLOBAL)`로 **먼저** 올립니다. Windows: `os.add_dll_directory`(시험하지 못했습니다).
+2. Linux: `libcef.so`가 있으면 `ctypes.CDLL(..., RTLD_GLOBAL)`로 **먼저** 올립니다. Windows: `os.add_dll_directory`와 `libcef.dll`을 전체 경로로 `ctypes.WinDLL`로 미리 올립니다(지연 적재가 `add_dll_directory`를 따르지 않기 때문입니다). 패키지 디렉터리가 실제 디렉터리가 아니면(py2exe의 `library.zip`) 건너뜁니다([F116, F120](../reference/verified-findings-windows.md)).
 3. `from . import _cefweaver`와 `from ._cefweaver import *`를 하고, `__all__`에 `_cefweaver.__all__`과 `types`, `Settings`, `Version`, `MessagePump`, `JavascriptBridge`, `read_plane`, 렌더러 이벤트 클래스를 더해 공개합니다.
 
 ## 모듈을 불러올 때

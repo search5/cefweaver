@@ -1,5 +1,5 @@
 ---
-title: 툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)
+title: 툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy, pywin32)
 type: reference
 sources:
   - examples/common/demo.py
@@ -29,7 +29,11 @@ sources:
   - examples/kivy/browser.py
   - examples/kivy/pyproject.toml
   - examples/kivy/README.md
-updated: 2026-10-10
+  - cefweaver/ui/toolkits/pywin32.py
+  - examples/pywin32/smoke.py
+  - examples/pywin32/README.md
+  - examples/common/winxdo.py
+updated: 2026-10-11
 ---
 
 # 툴킷 예제
@@ -78,16 +82,21 @@ updated: 2026-10-10
 4. **열거형 인자의 폭**: Tk 예제가 `DragOperationsMask.EVERY`가 넘치는 결함을 드러냈고 고쳤습니다([F68](verified-findings-handlers.md)).
 5. **wx의 세부**(드래그를 마우스 핸들러 안에서만 시작, `DropSource`가 데이터를 소유하지 않음, 드롭의 `dragover` 답을 기다림)와 **Kivy의 세부**(Esc가 앱을 끝냄, 휠 이름이 반대)는 각 `README.md`와 [F69](verified-findings-handlers.md)에 있습니다.
 
+## pywin32 (Windows, 2026-10-11)
+
+`examples/pywin32/`와 `cefweaver.ui.toolkits.pywin32`(`Win32Browser`)가 일곱 번째입니다. SDL2처럼 위젯이 없어서 창, 브라우저, 메시지 루프를 한 클래스가 가집니다. 깨움은 `PostMessage(WM_APP)`, `call_later`는 `SetTimer` 하나이고 둘 다 창 프로시저가 처리해서 Windows의 자체 루프(창 끌기, 팝업 메뉴) 안에서도 CEF가 돕니다. 그림은 GDI `StretchDIBits`, 클립보드는 `win32clipboard`, 메뉴는 `TrackPopupMenu`, 입력기는 `WM_IME_COMPOSITION`, 파일 드롭은 `WM_DROPFILES`입니다. 점검은 `xdotool` 대신 `examples/common/winxdo.py`(`SendInput`)로 실제 입력을 보내 **27개가 모두 통과**했고 PyInstaller, cx_Freeze, py2exe로 묶어도 통과했습니다. 실행해서 알게 된 것(pywin32에 없는 호출, `lParam` 부호, Alt 키의 메뉴 모드)과 한계는 [F119](verified-findings-windows.md)에 있습니다.
+
 ## 확인하지 못한 것
 
 - 실제 입력기(ibus, fcitx)로 하는 조합(가상 X 서버에 없음). 점검은 `set_preedit`와 `commit_text`를 직접 부릅니다.
 - SDL2와 Kivy가 받는 드롭은 창이 줄 이벤트를 같은 처리 함수에 넣어 확인했고, 다른 프로그램의 실제 XDND 드래그로는 확인하지 않았습니다.
 - Tk에서 `tkinterdnd2`(tkdnd 확장)로 만든 루트는 CEF를 시작할 때 `xcb_io.c: Unknown sequence number`로 프로세스가 중단되었습니다. 일반 `tkinter.Tk()`는 괜찮습니다. **원인은 찾지 못했습니다**([알려진 제약](known-constraints.md)).
 - HiDPI(Qt 외), Wayland 네이티브, 서식이 있는(HTML) 클립보드, 이미지.
-- `README.rst`가 말하는 PyGame/PyOpenGL, PyWin32, Panda3D의 예제는 만들지 않았습니다.
+- `README.rst`가 말하는 PyGame/PyOpenGL, Panda3D의 예제는 만들지 않았습니다(PyWin32는 2026-10-11에 더했습니다: 아래).
 
 ## 관련 페이지
 
 - [GTK 3 예제](gtk3-example.md)와 [오프스크린 렌더링](offscreen-rendering.md)
+- [실행해서 확인한 Windows](verified-findings-windows.md)
 - [UI 어댑터 설계](../analyses/ui-adapter-design.md): 이 예제들의 공통 코드를 라이브러리로 올리는 계획
 - [메시지 펌프](verified-findings-handlers.md)(F62)와 [JavascriptBridge](javascript-bridge.md)

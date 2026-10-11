@@ -1,6 +1,7 @@
 """``Session``: CEF for a toolkit application, driven from the toolkit's event loop."""
 
 import os
+import posixpath
 import sys
 
 import cefweaver
@@ -31,10 +32,10 @@ def default_ozone_platform(environ=None, platform=None, exists=os.path.exists):
     display = environ.get("WAYLAND_DISPLAY")
     if not display:
         return None
-    if os.path.isabs(display):
+    if posixpath.isabs(display):                        # (Wayland is Linux: POSIX paths, wherever this runs)
         path = display
     elif environ.get("XDG_RUNTIME_DIR"):
-        path = os.path.join(environ["XDG_RUNTIME_DIR"], display)
+        path = posixpath.join(environ["XDG_RUNTIME_DIR"], display)
     else:
         return None
     return "wayland" if exists(path) else None

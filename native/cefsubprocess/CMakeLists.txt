@@ -73,20 +73,6 @@ if(OS_WINDOWS)
   COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
   COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
 
-  COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "../cefwrappertest/debug/cefsubprocess/")
-  COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "../cefwrappertest/debug/cefsubprocess")
-  COPY_FILES("${CEF_TARGET}" "cefsubprocess.exe" "${CEF_TARGET_OUT_DIR}" "../cefwrappertest/debug/cefsubprocess")
-
-  COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "../cefwrappertest/release/cefsubprocess/")
-  COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "../cefwrappertest/release/cefsubprocess")
-  COPY_FILES("${CEF_TARGET}" "cefsubprocess.exe" "${CEF_TARGET_OUT_DIR}" "../cefwrappertest/release/cefsubprocess")
-
-  COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "../../../src/PyCef_Dev/PyCef/bin/")
-  COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "../../../src/PyCef_Dev/PyCef/bin/")
-
-  COPY_FILES("${CEF_TARGET}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "../../../src/PyCef_Dev/PyCef/cefsubprocess/")
-  COPY_FILES("${CEF_TARGET}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "../../../src/PyCef_Dev/PyCef/cefsubprocess/")
-  COPY_FILES("${CEF_TARGET}" "cefsubprocess.exe" "${CEF_TARGET_OUT_DIR}" "../../../src/PyCef_Dev/PyCef/cefsubprocess/")
 endif()
 
 #

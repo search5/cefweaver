@@ -16,7 +16,22 @@
 #include <climits>
 #endif
 
+#if defined(OS_WIN)
+#include <windows.h>
+#endif
+
 namespace {
+
+// Paths cross into CEF as UTF-8 (CefString). On Windows path::string() is the ANSI code page, which
+// loses non-ASCII characters (a user name, for example).
+std::string PathToUtf8(const std::filesystem::path& path) {
+  const std::u8string text = path.u8string();
+  return std::string(text.begin(), text.end());
+}
+
+std::filesystem::path PathFromUtf8(const std::string& text) {
+  return std::filesystem::path(std::u8string(text.begin(), text.end()));
+}
 
 #if defined(OS_LINUX)
 // Directory of the shared object that contains this code (the Python
@@ -29,6 +44,21 @@ std::string ModuleDir() {
   }
   return std::string();
 }
+#elif defined(OS_WIN)
+// Directory of the extension module (a .pyd); the CEF runtime and cefsubprocess.exe are deployed next to it.
+std::string ModuleDir() {
+  HMODULE module = nullptr;
+  if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                          reinterpret_cast<LPCWSTR>(&ModuleDir), &module)) {
+    return std::string();
+  }
+  wchar_t buffer[MAX_PATH * 4];
+  DWORD length = GetModuleFileNameW(module, buffer, static_cast<DWORD>(std::size(buffer)));
+  if (length == 0 || length >= std::size(buffer)) {
+    return std::string();
+  }
+  return PathToUtf8(std::filesystem::path(buffer).parent_path());
+}
 #endif
 
 }  // namespace
@@ -40,7 +70,7 @@ std::string ExePath() {
 #elif defined(OS_MAC)
   std::filesystem::path cwd = CefWeaverHelperPath();
 #else
-  std::filesystem::path cwd = std::filesystem::current_path() /"cefsubprocess" / "cefsubprocess.exe";   //"C:\\Dev\\cef-binaries\\cef_binary_106.0.27+g20ed841+chromium-106.0.5249.103_windows64\\cmake-build-debug-visual-studio\\src\\cefsubprocess\\Debug\\cefsubprocess.exe";
+  std::filesystem::path cwd = std::filesystem::path(ModuleDir()) / "cefsubprocess.exe";
 #endif
   return cwd.string();
 }
@@ -51,10 +81,6 @@ std::string CachePath() {
 }
 
 bool CefWrapper::InitCefSimple(std::string start_url) {
-#if defined(OS_WIN)
-  CefEnableHighDPISupport();
-#endif
-
   void *sandbox_info = nullptr;
 
   CefWeaverPrepareApplication();  // macOS only: NSApp for CEF's message loop
@@ -123,7 +149,12 @@ bool CefWrapper::InitCefSimple(std::string start_url) {
   }
   else
   {
+    #if defined(OS_WIN)
+    // ExePath() is UTF-8 here (a user name or a directory can be non-ASCII).
+    CefString(&settings.browser_subprocess_path).FromString(ExePath());
+#else
     CefString(&settings.browser_subprocess_path).FromASCII(ExePath().c_str());
+#endif
   }
 
   for (const auto& entry : m_StringSettings) {

@@ -10,7 +10,7 @@
 - [핸들러 프록시 구조](pages/concepts/handler-proxies.md): 핸들러를 Python 객체로 위임하는 함수 포인터 표와 프록시, 래퍼의 핸들러가 이벤트를 넘기는 전달 클래스, 값 전달 규칙
 - [JavaScript 바인딩](pages/concepts/javascript-bindings.md): JS에서 Python 콜백까지의 여섯 단계, 값 변환, 이름만 보내는 이유
 - [수명 주기와 메시지 루프](pages/concepts/lifecycle-and-message-loop.md): initialize, 외부 메시지 펌프, 창 닫기, shutdown의 순서와 상태
-- [플랫폼 지원 현황](pages/concepts/platform-support.md): Linux, Windows, macOS(arm64 지원)의 지원 상태와 근거, macOS의 구현 방식
+- [플랫폼 지원 현황](pages/concepts/platform-support.md): Linux, Windows 11, macOS(arm64)의 지원 상태와 근거, Windows에서 고친 것, macOS의 구현 방식
 - [프로세스 모델과 스레드](pages/concepts/process-model-and-threads.md): 브라우저 프로세스는 Python 프로세스, 서브프로세스, UI 스레드와 GIL 규칙
 - [리소스 제공 (스킴 핸들러와 add_resource)](pages/concepts/resource-serving.md): 스킴 핸들러와 add_resource로 네트워크 없이 페이지 제공
 - [런타임 파일 배치](pages/concepts/runtime-layout.md): libcef.so와 리소스를 같은 디렉터리에 두는 이유와 배치, macOS의 cefsubprocess.app
@@ -27,7 +27,7 @@
 - [패키징](pages/components/packaging.md): ext-modules 설정, depends, package-data, sdist와 uv build
 - [저장소 메타데이터 (문서, 라이선스, third_party)](pages/components/repo-metadata.md): README, LICENSE, docs/, third_party, tools/buildtools 등의 상태
 - [루트 CMake와 CEF 다운로드](pages/components/root-cmake.md): 루트 CMakeLists.txt, DownloadCEF.cmake, 네이티브 타깃의 CMake
-- [시험 (tests/)](pages/components/tests.md): tests/의 시험 408개(통합, 생성기, UI, 위키 점검)와 설계 원칙
+- [시험 (tests/)](pages/components/tests.md): tests/의 시험 547개(통합, 생성기, UI, Cast, 위키와 문서 점검)와 설계 원칙
 - [tools/build_cef.py](pages/components/tool-build-cef.md): tools/build_cef.py의 소스 빌드 흐름, 명령, GN_DEFINES, 한계
 - [tools/prepare.py](pages/components/tool-prepare.md): tools/prepare.py의 흐름, 옵션, 버전 조회, 스테이징
 
@@ -40,7 +40,7 @@
 - [충돌 조사 방법](pages/procedures/debug-crashes.md): 서브프로세스 충돌을 조사할 때 효과가 있었던 방법과 쓸 수 없었던 방법
 - [CEF 확보하기](pages/procedures/obtain-cef.md): 버전 조회, prebuilt, 기존 배포본, 소스 빌드 명령
 - [실제 영상이 재생되는지 확인하기](pages/procedures/check-playback.md): 유튜브를 기본 앱과 여섯 툴킷에서 재생해 보는 수동 점검(`tests/playback_check.py`)과 합격 기준
-- [앱을 PyInstaller와 cx_Freeze로 묶기](pages/procedures/freeze-app.md): 동결 도구로 배포본 만들기. PyInstaller는 `--collect-all cefweaver`가 필요하고 cx_Freeze는 설정 없이 됨, 다섯 툴킷 모두 통과(F93)
+- [앱을 PyInstaller와 cx_Freeze로 묶기](pages/procedures/freeze-app.md): 동결 도구로 배포본 만들기. PyInstaller는 `--collect-all cefweaver`가 필요하고 cx_Freeze는 설정 없이 됨, 다섯 툴킷 모두 통과(F93). Windows(pywin32)에서는 PyInstaller, cx_Freeze, py2exe(런타임 손복사) 통과(F120)
 - [시험 실행하기](pages/procedures/run-tests.md): -P가 필수인 시험 실행 명령, 일부 실행, 여러 Python 버전
 - [CEF 버전 올리기](pages/procedures/update-cef-version.md): 기본 버전 변경, 재생성, 시험, 120에서 154로 올릴 때의 관찰
 
@@ -60,6 +60,7 @@
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 - [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57), 툴킷 예제(F69), 동결 도구로 묶기(F93)
 - [실행해서 확인한 macOS 예제 (F94부터)](pages/reference/verified-findings-macos-examples.md): examples/의 예제를 macOS에서 하나씩 띄운 결과(Tk, Qt, wx, SDL2, Views, Cocoa, SwiftUI 통과, Kivy의 종료, GTK 3 미실행, print는 Linux 전용)
+- [실행해서 확인한 Windows (F116부터)](pages/reference/verified-findings-windows.md): Windows 11 wheel 빌드에서 막힌 곳 6개와 고친 것, 시험 결과, `CHAR` 키 이벤트(F118), pywin32 툴킷과 점검 27개(F119), 동결 도구 네 가지(F120), 설명하지 못한 차이(F121)
 - [실행해서 확인한 macOS (F79부터)](pages/reference/verified-findings-macos.md): macOS arm64 빌드와 구동, 시험 결과, Linux와 다른 동작(Ctrl+클릭, 편집 키, 인쇄 등), 생성기를 플랫폼과 무관하게 만든 일
 - [실행해서 확인한 Views (F96~F98)](pages/reference/verified-findings-views.md): 툴킷 없는 UI(Views 22개 클래스)를 Python 상속으로 연 방법, 외부 메시지 펌프에서는 CEF 창의 X11 입력이 오지 않아 폴링이 필요함, 생성기 수정(API 버전, 상속한 순수 가상), `initialize(None)`, 예제 `examples/views`
 - [실행해서 확인한 남은 API (F102~F110)](pages/reference/verified-findings-opened.md): 찾기와 프레임과 서버와 응답 필터의 측정값, 렌더러 이벤트, 앱 핸들러의 새 훅, 미디어 라우터, 공유 메모리, 개발자 도구, 간헐적 시험 실패
@@ -67,7 +68,7 @@
 - [실행해서 확인한 미디어 (F71부터)](pages/reference/verified-findings-media.md): 마이크와 카메라의 권한 핸들러, 오디오 핸들러(`Planes`), 소리를 내지 않는 시험 스위치, 유튜브 영상의 재생과 코덱
 - [실험으로 확인한 사실 (F36부터)](pages/reference/verified-findings-more.md): 오프스크린, 구조체, 바이트열, 핸들러, 스트림, 시간, 인자 무시 등
 - [GTK 3 예제 (오프스크린 위젯)](pages/reference/gtk3-example.md): `examples/gtk3/`의 위젯과 uv 환경, 실제로 돌려 확인한 것(27개 점검: 입력, 한글, 복사와 붙여넣기, 드래그 앤 드롭, HiDPI), 발견한 결함과 우회
-- [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)](pages/reference/toolkit-examples.md): `examples/`의 다섯 예제(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것
+- [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy, pywin32)](pages/reference/toolkit-examples.md): `examples/`의 여섯 예제와 Windows의 pywin32(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것
 - [UI 어댑터 API (cefweaver.ui)](pages/reference/ui-api.md): `BrowserView`, `ToolkitAdapter`, `Session`, `HeadlessAdapter`와 입력 메서드, 능력 선언, 예제에서 옮겨 온 규칙
 - [공유 텍스처 (GPU 가속 페인트)](pages/reference/shared-textures.md): `shared_texture`, `on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`, 규칙과 GPU 환경, 픽셀 내용을 확인하지 못한 것
 - [cefweaver.cast](pages/reference/cast-module.md): Chromecast 검색, 연결, 재생, 일시정지, 탐색, 음량을 하는 순수 Python 계층, 가짜 라우터 시험과 실제 장치 확인(F114)
@@ -88,7 +89,7 @@
 ## 분석 (analyses)
 
 - [API 중계 규모와 생성기 선택](pages/analyses/api-relay-scale.md): CEF, java-cef, cefpython의 규모와 생성기를 고른 근거
-- [java-cef를 바닥으로 보았을 때 어디까지 왔는가](pages/analyses/beyond-java-cef.md): 바닥(389개)은 닫혔고 304개를 더 열어 708개, 툴킷 어댑터 6개와 macOS 네이티브 뷰, 뒤처진 곳(Windows, 성숙도, Linux의 창 모드 임베딩, 배포 형식)
+- [java-cef를 바닥으로 보았을 때 어디까지 왔는가](pages/analyses/beyond-java-cef.md): 바닥(389개)은 닫혔고 304개를 더 열어 708개, 툴킷 어댑터 7개와 macOS 네이티브 뷰, 뒤처진 곳(Windows, 성숙도, Linux의 창 모드 임베딩, 배포 형식)
 - [열지 않은 CEF 메서드와 cefpython의 비교](pages/analyses/unopened-cef-api.md): 열지 않은 약 1,547개의 묶음(Views, 시험용, V8, DOM 등)과 cefpython이 여는 약 40개(렌더러의 Python, Views 창, 접근성, 이미지)
 - [cefpython과 cefweaver의 API 차이](pages/analyses/cefpython-comparison.md): cefpython의 API 459개와 대조한 결과(창 임베딩, JS 바인딩, 렌더러의 Python 등 없는 것, 이름만 다른 것, cefweaver에만 있는 것)
 - [UI 어댑터 설계](pages/analyses/ui-adapter-design.md): 여섯 예제의 공통인 것과 툴킷마다 다른 것의 비교, `BrowserView`와 `ToolkitAdapter` 인터페이스 초안, 능력 선언, 이식으로 검증할 것
