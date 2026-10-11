@@ -8,6 +8,7 @@ sources:
   - cefweaver/__init__.py
   - cmake/CefweaverExtension.cmake
   - CMakeLists.txt
+  - .github/workflows/build-test.yml
 updated: 2026-10-11
 ---
 
@@ -47,6 +48,12 @@ updated: 2026-10-11
 ## 메타데이터의 불일치
 
 `pyproject.toml`에는 이 프로젝트의 현재 상태와 맞지 않는 항목이 있습니다. `dependencies = ["numpy>=1.26.2"]`는 코드 어디에서도 쓰이지 않습니다. classifier에는 macOS와 Windows가 있지만 지원하지 않거나 검증하지 못했습니다. `requires-python = ">=3.11"`과 달리 classifier는 3.11과 3.12만 적혀 있습니다(시험은 3.11~3.14에서 했습니다). [알려진 제약과 미검증 항목](../reference/known-constraints.md)에 모았습니다.
+
+## CI (`build-test.yml`)
+
+- `.github/workflows/build-test.yml`은 수동 실행(`workflow_dispatch`) 전용입니다. 입력은 `platform`(both, linux, macos), `python-version`(3.13), `run-tests`, `upload-wheel`이고, ubuntu-24.04와 macos-14에서 `uv build --wheel`로 wheel을 만들어 설치한 뒤 시험하고 wheel을 산출물로 보관합니다.
+- macOS 분기를 맡은 세션이 작성해 로컬 커밋으로만 두었고, 이 저장소에서 받아 옮겼습니다. 아직 GitHub에서 실행해 보지 못했고(YAML 구조만 확인), Linux의 apt 패키지 목록은 짐작한 것입니다. Windows는 없습니다.
+- 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 
 ## 관련 페이지
 

@@ -1,0 +1,84 @@
+name: build-test
+
+# Manual only: Actions tab -> build-test -> Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Where to build"
+        type: choice
+        options: [both, linux, macos]
+        default: both
+      python-version:
+        description: "Python version (the examples use 3.13)"
+        type: string
+        default: "3.13"
+      run-tests:
+        description: "Run the tests after the build"
+        type: boolean
+        default: true
+      upload-wheel:
+        description: "Keep the wheel as an artifact"
+        type: boolean
+        default: true
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - id: pick
+        run: |
+          case "${{ inputs.platform }}" in
+            linux) m='[{"name":"linux","os":"ubuntu-24.04"}]' ;;
+            macos) m='[{"name":"macos","os":"macos-14"}]' ;;
+            *)     m='[{"name":"linux","os":"ubuntu-24.04"},{"name":"macos","os":"macos-14"}]' ;;
+          esac
+          echo "matrix=$m" >> "$GITHUB_OUTPUT"
+
+  build-test:
+    needs: select
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.select.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: System packages (Linux)
+        if: matrix.name == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 \
+            libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 \
+            libasound2t64 libgtk-3-0t64
+
+      - name: Build the wheel
+        run: uv build --wheel --python ${{ inputs.python-version }} -o dist
+
+      - name: Install the wheel
+        run: |
+          uv venv --python ${{ inputs.python-version }} .venv-test
+          uv pip install --python .venv-test/bin/python dist/cefweaver-*.whl
+
+      - name: Tests (Linux, virtual X server)
+        if: inputs.run-tests && matrix.name == 'linux'
+        run: env -u WAYLAND_DISPLAY xvfb-run -a .venv-test/bin/python -P -m unittest discover -s tests -v
+
+      - name: Tests (macOS)
+        if: inputs.run-tests && matrix.name == 'macos'
+        run: .venv-test/bin/python -P -m unittest discover -s tests -v
+
+      - name: Keep the wheel
+        if: inputs.upload-wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: cefweaver-wheel-${{ matrix.name }}
+          path: dist/*.whl
+          if-no-files-found: error

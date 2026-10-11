@@ -684,3 +684,6 @@
 ## [2026-10-11] ingest | macOS 인쇄: F96과 examples/print의 macOS 분기
 - macOS에서 `host.print()`는 끝나지 않는 것이 아니라 시스템 인쇄 패널(모달)을 띄우는 것이고, `PrintHandler`는 Linux 전용이라 불리지 않습니다. 이전 기록(F82, 시험의 건너뜀 이유, 예제 README, 한계 문서)을 바로잡았습니다. 근거는 [F96](pages/reference/verified-findings-macos-examples.md)입니다.
 - `examples/print`에 `printing_mac.py`, `quickstart_mac.py`, `smoke_mac.py`를 더하고 `quickstart.py`가 macOS에서 `quickstart_mac.py`로 넘기게 했습니다(Linux 경로는 그대로). `smoke_mac.py`의 두 실행이 통과했습니다. 패널에서 실제로 인쇄하는 것과 실제 프린터로 보내는 것은 확인하지 못했습니다.
+
+## [2026-10-11] ingest | GitHub Actions 워크플로우(build-test) 가져옴
+- 다른 맥 세션이 로컬 커밋으로만 두었던 `.github/workflows/build-test.yml`을 받아 저장소에 넣었습니다([packaging](pages/components/packaging.md)). 수동 실행 전용이며 Linux와 macOS에서 wheel 빌드, 시험, wheel 보관을 합니다. 실행해 보지 못했고 Windows는 없습니다.
