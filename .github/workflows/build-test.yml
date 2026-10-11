@@ -42,6 +42,9 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
+    env:
+      # The wiki links to sibling checkouts (java-cef, CEF) that a runner does not have.
+      CEFWEAVER_SKIP_WIKI_LINT: "1"
     strategy:
       fail-fast: false
       matrix:

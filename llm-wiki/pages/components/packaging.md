@@ -53,6 +53,7 @@ updated: 2026-10-11
 
 - `.github/workflows/build-test.yml`은 수동 실행(`workflow_dispatch`) 전용입니다. 입력은 `platform`(both, linux, macos), `python-version`(3.13), `run-tests`, `upload-wheel`이고, ubuntu-24.04와 macos-14에서 `uv build --wheel`로 wheel을 만들어 설치한 뒤 시험하고 wheel을 산출물로 보관합니다.
 - macOS 분기를 맡은 세션이 작성해 로컬 커밋으로만 두었고, 이 저장소에서 받아 옮겼습니다. 아직 GitHub에서 실행해 보지 못했고(YAML 구조만 확인), Linux의 apt 패키지 목록은 짐작한 것입니다. Windows는 없습니다.
+- 러너에는 위키가 링크하는 java-cef와 CEF 저장소가 없어서 위키 점검 시험(`test_wiki_passes_the_mechanical_checks`)이 실패합니다. 워크플로우가 `CEFWEAVER_SKIP_WIKI_LINT=1`을 지정해 이 시험만 건너뜁니다. 첫 실행(2026-10-11)에서 Linux는 빌드와 설치가 통과했고 시험 546개 중 2개(위키 점검, locale 시험)가, macOS는 4개(위키 점검과 시험 3개)가 실패했습니다. 위키 점검 외의 실패 원인은 아직 확인하지 못했습니다.
 - 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 
 ## 관련 페이지

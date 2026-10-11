@@ -687,3 +687,6 @@
 
 ## [2026-10-11] ingest | GitHub Actions 워크플로우(build-test) 가져옴
 - 다른 맥 세션이 로컬 커밋으로만 두었던 `.github/workflows/build-test.yml`을 받아 저장소에 넣었습니다([packaging](pages/components/packaging.md)). 수동 실행 전용이며 Linux와 macOS에서 wheel 빌드, 시험, wheel 보관을 합니다. 실행해 보지 못했고 Windows는 없습니다.
+
+## [2026-10-11] ingest | build-test 첫 실행과 위키 점검 건너뜀
+- 첫 실행에서 Linux는 `libx11-dev`가 없어 빌드가 실패해 추가했습니다. 그 뒤 두 플랫폼 모두 wheel 빌드와 설치는 통과했고, 시험은 Linux 2개, macOS 4개가 실패했습니다. 위키 점검은 러너에 형제 저장소가 없어서 실패하므로 `CEFWEAVER_SKIP_WIKI_LINT`로 건너뜁니다([packaging](pages/components/packaging.md)). 나머지 실패 원인은 확인하지 못했습니다.
