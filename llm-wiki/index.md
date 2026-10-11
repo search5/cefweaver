@@ -59,6 +59,7 @@
 - [실험으로 확인한 사실](pages/reference/verified-findings.md): 실행해서 확인한 14가지 사실(방법, 결과, 영향)
 - [실험으로 확인한 사실 2 (핸들러, 호스트, 스타일, 생성기)](pages/reference/verified-findings-api.md): F15~F33. 클라이언트 위임, 구조체, 호스트, Alloy와 Chrome, 스레드, 재초기화, GIL 교착, srcdoc 문제, types 모듈
 - [실행해서 확인한 핸들러 (F55부터)](pages/reference/verified-findings-handlers.md): 렌더러 종료, 새 탭과 외부 프로토콜, 인증서 오류, 요청 컨텍스트 핸들러, 설정(F58), 버전(F59), 브라우저 여러 개(F60), 메시지 펌프(F62), 스레드 작업(F63), 브라우저 설정(F64), JavascriptBridge(F65), 공유 텍스처(F66), GTK 3 예제(F67), 오프스크린 키와 터치와 IME와 팝업, 한글 조합(F56), 교차 사이트 iframe과 그 수정(F57), 툴킷 예제(F69), 동결 도구로 묶기(F93)
+- [실행해서 확인한 macOS 예제 (F94부터)](pages/reference/verified-findings-macos-examples.md): examples/의 예제를 macOS에서 하나씩 띄운 결과(Tk, Qt, wx, SDL2, Views, Cocoa, SwiftUI 통과, Kivy의 종료, GTK 3 미실행, print는 Linux 전용)
 - [실행해서 확인한 macOS (F79부터)](pages/reference/verified-findings-macos.md): macOS arm64 빌드와 구동, 시험 결과, Linux와 다른 동작(Ctrl+클릭, 편집 키, 인쇄 등), 생성기를 플랫폼과 무관하게 만든 일
 - [실행해서 확인한 Views (F96~F98)](pages/reference/verified-findings-views.md): 툴킷 없는 UI(Views 22개 클래스)를 Python 상속으로 연 방법, 외부 메시지 펌프에서는 CEF 창의 X11 입력이 오지 않아 폴링이 필요함, 생성기 수정(API 버전, 상속한 순수 가상), `initialize(None)`, 예제 `examples/views`
 - [실행해서 확인한 남은 API (F102~F110)](pages/reference/verified-findings-opened.md): 찾기와 프레임과 서버와 응답 필터의 측정값, 렌더러 이벤트, 앱 핸들러의 새 훅, 미디어 라우터, 공유 메모리, 개발자 도구, 간헐적 시험 실패

@@ -52,5 +52,5 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a -s "-screen 0 1280x1024x2
 - **델리게이트가 받는 객체는 같은 CEF 뷰라도 같은 Python 객체가 아닙니다.** 단추는 `set_id`로 번호를 주고 `get_id()`로 구분하십시오. 반대로 CEF가 돌려주는 뷰는 **실제 종류의 클래스**로 옵니다(`Window`가 `View` 자리에 오면 `Window`, `LabelButton`이 `View`로 오면 `LabelButton`).
 - 뷰의 클래스는 CEF의 상속을 그대로 따릅니다: `Window`는 `Panel`의 하위 클래스이고 `Panel`은 `View`의 하위 클래스입니다. `Window`를 `View`를 받는 자리에 그대로 넘길 수 있고, 각 클래스는 자기 메서드만 갖고 나머지는 상속합니다.
 - 창 관리자가 없는 가상 화면에서도 위 점검이 통과합니다(`windowfocus`를 줄 필요도 없었음).
-- 확인한 환경은 Linux x86_64, CPython 3.13, CEF 154, X11(`ozone-platform=x11`)입니다. **Windows와 macOS, Wayland는 확인하지 못했습니다.**
+- 확인한 환경은 Linux x86_64, CPython 3.13, CEF 154, X11(`ozone-platform=x11`)입니다. **Windows와 Wayland는 확인하지 못했습니다.** macOS arm64(CEF 154)에서는 위 점검 12개를 `xdotool` 대신 Views 자체의 이벤트(`Window.send_mouse_move`, `send_mouse_events`, `send_key_press`, `close()`)로 재현해 모두 통과했습니다. 이 예제의 `smoke.py`는 `xdotool`을 쓰는 Linux 전용이라 그대로는 돌지 않습니다.
 - `View.get_delegate()`, `BrowserViewDelegate.get_delegate_for_popup_browser_view`, `WindowDelegate.get_parent_window`도 열려 있습니다([확인한 사실](../../llm-wiki/pages/reference/verified-findings-views.md)).

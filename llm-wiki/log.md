@@ -675,3 +675,8 @@
 - 원격에서 빌드가 `setup.py`에서 scikit-build-core + CMake로 바뀌어(`git pull`) macOS 분기가 "빌드해 보지 못함"으로 남아 있었습니다. macOS arm64에서 `prepare.py`와 `uv build --wheel`을 돌려 [F93](pages/reference/verified-findings-macos.md)에 적었습니다.
 - **고친 것**: wheel에 `cefsubprocess.app`이 빠지던 것(스테이징 폴더가 gitignore라 scikit-build-core가 뺌, CMake `install()`로 넣음, `prepare.py`는 macOS에서도 스테이징 중단), wheel 태그가 `macosx_26_0`이던 것(`macosx_12_0`), 새 Views 시험의 높이 비교(macOS의 제목 표시줄).
 - 병합 뒤 시험: `test_smoke` 226개 중 Views 시험 1개만 실패했고 시험을 고쳐 통과했습니다.
+
+## [2026-10-11] ingest | examples/를 macOS에서 하나씩 띄워 확인
+
+- 사용자 요청("examples/는 모두 테스트해보고 커밋/푸시해줘, 기존 동작을 깨면 안돼")으로 예제 전부를 macOS arm64에서 실행했습니다. 결과는 [F94, F95](pages/reference/verified-findings-macos-examples.md)에 있습니다. 예제 코드는 고치지 않았고 문서만 바꿨습니다.
+- Tk, Qt, wx, SDL2(`quickstart.py`, `browser.py`), `views`(점검 12개를 Views 자체의 이벤트로 재현), `cocoa`, `swiftui`는 통과했습니다. Kivy(Python 3.13)는 종료 때 Chromium의 감시가 프로세스를 죽입니다. GTK 3는 시스템에 없어 실행하지 못했고, `print`는 Linux(CUPS) 전용이라 macOS에서 `Print...`가 응답하지 않습니다. 각 툴킷의 `smoke.py`는 Xvfb와 `xdotool`을 쓰는 Linux 전용이라 돌리지 못했습니다.

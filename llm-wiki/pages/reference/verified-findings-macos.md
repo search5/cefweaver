@@ -170,6 +170,7 @@ Linux 쪽에서 빌드를 `setup.py`에서 scikit-build-core + CMake(`cmake/Cefw
 
 ## 관련 페이지
 
+- [실행해서 확인한 macOS 예제](verified-findings-macos-examples.md)
 - [플랫폼 지원 현황](../concepts/platform-support.md)
 - [런타임 파일 배치](../concepts/runtime-layout.md)
 - [알려진 제약과 미검증 항목](known-constraints.md)

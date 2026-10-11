@@ -30,7 +30,7 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 | 인쇄 | `print()`가 끝나지 않았습니다(원인 미조사) |
 | 맞춤법 추천 | 추천 단어가 오지 않았습니다. macOS의 `NSSpellChecker`로 검사합니다(원인 미조사) |
 | 컨텍스트 메뉴 | 기본 메뉴에 뒤로와 앞으로가 없었습니다 |
-| 툴킷 | Tk, Qt, wx, SDL2는 확인했습니다. GTK 3(시스템에 없음)와 Kivy(Python 3.14용 창 제공자가 없음)는 확인하지 못했습니다. Cocoa나 SwiftUI에 붙일 때는 `parent_view`를 쓰세요([시작하기](quickstart.md)) |
+| 툴킷 | Tk, Qt, wx, SDL2는 예제를 띄워 페이지, 데모 페이지와 Python의 왕복, 닫기까지 확인했습니다(마우스, 키, 끌어서 놓기 같은 점검은 Linux에서만 합니다). Kivy는 Python 3.13에서 페이지는 뜨지만 종료 때 Chromium의 감시가 프로세스를 죽입니다(Python 3.14는 Kivy가 지원하지 않음). GTK 3는 시스템에 없어 확인하지 못했습니다. `print` 예제는 Linux(CUPS) 전용이고 macOS에서는 `Print...`를 누르면 응답하지 않습니다. Cocoa나 SwiftUI에 붙일 때는 `parent_view`를 쓰세요([시작하기](quickstart.md)) |
 | `parent_view` | PyObjC로 만든 Cocoa 창, Swift의 `NSViewRepresentable`, Qt(`winId()`), wx(`GetHandle()`)에서 확인했습니다. Tk의 `winfo_id()`는 `NSView`가 아니어서 죽습니다(창의 content view는 됨, 창 전체를 채움) |
 | 한 창에 브라우저 여러 개 | 각자의 뷰에 붙고 크기를 따라갑니다. 그중 하나만 닫으면 `on_before_close`가 `shutdown()` 때에야 옵니다 |
 | 종료 감시 | 네이티브 arm64 Python에서는 `shutdown()`이 0.1초 안에 끝납니다. Rosetta(x86_64)와 Swift 실행 파일에 임베드한 Python에서는 `CefShutdown()`이 끝나지 않아 Chromium의 감시가 10초 뒤 종료 코드 2로 프로세스를 죽였습니다(원인 미확인) |
