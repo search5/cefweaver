@@ -69,6 +69,7 @@
 - [툴킷 예제 (Qt, Tkinter, SDL2, wxPython, Kivy)](pages/reference/toolkit-examples.md): `examples/`의 다섯 예제(PyQt6와 PySide6 포함)의 공통 구조(`common/demo.py`, `common/checks.py`), 툴킷별 차이, 모두 통과한 점검, 툴킷이 드러낸 것(클립보드, 드래그 시작, 드롭의 경합)과 확인하지 못한 것
 - [UI 어댑터 API (cefweaver.ui)](pages/reference/ui-api.md): `BrowserView`, `ToolkitAdapter`, `Session`, `HeadlessAdapter`와 입력 메서드, 능력 선언, 예제에서 옮겨 온 규칙
 - [공유 텍스처 (GPU 가속 페인트)](pages/reference/shared-textures.md): `shared_texture`, `on_accelerated_paint`, `AcceleratedPaintInfo`, `read_plane`, 규칙과 GPU 환경, 픽셀 내용을 확인하지 못한 것
+- [cefweaver.cast](pages/reference/cast-module.md): Chromecast 검색, 연결, 재생, 일시정지, 탐색, 음량을 하는 순수 Python 계층, 가짜 라우터 시험과 실제 장치 확인(F114)
 - [JavascriptBridge](pages/reference/javascript-bridge.md): JSON으로 Python 함수를 페이지에 노출(`Promise`, 콜백, `execute_function`, `evaluate`, `origins`), 렌더러에 Python 없이 메시지 라우터 위에서 동작
 - [메시지 라우터 (window.cefQuery)](pages/reference/message-router.md): `QueryHandler`와 `QueryCallback`, 렌더러와 브라우저 쪽 연결, 제약
 - [오프스크린 렌더링](pages/reference/offscreen-rendering.md): `offscreen`, `RenderHandler.on_paint`의 읽기 전용 버퍼, 제약

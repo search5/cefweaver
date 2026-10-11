@@ -25,6 +25,7 @@ from . import _cefweaver  # noqa: E402
 from ._cefweaver import *  # noqa: E402,F401,F403  (the public names are listed in __all__)
 from .pump import MessagePump  # noqa: E402
 from .bridge import JavascriptBridge, JsCallback  # noqa: E402
+from .cast import Cast, CastSession, CastStatus  # noqa: E402
 from .texture import read_plane  # noqa: E402
 from .renderer_events import (FocusedNode, RendererEventHandler, RendererEvents, StackFrame,  # noqa: E402
                               UncaughtException)
@@ -38,5 +39,5 @@ def get_version():
     return _version.Version(_version._package_version(), *entries)
 
 
-__all__ = list(_cefweaver.__all__) + ["types", "Settings", "Version", "get_version", "MessagePump", "JavascriptBridge", "JsCallback", "read_plane",
+__all__ = list(_cefweaver.__all__) + ["types", "Settings", "Version", "get_version", "MessagePump", "JavascriptBridge", "JsCallback", "Cast", "CastSession", "CastStatus", "read_plane",
            "RendererEvents", "RendererEventHandler", "UncaughtException", "StackFrame", "FocusedNode"]

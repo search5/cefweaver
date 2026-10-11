@@ -5,13 +5,14 @@ sources:
   - tests/test_smoke.py
   - tests/test_generator.py
   - tests/test_ui.py
+  - tests/test_cast.py
   - CLAUDE.md
-updated: 2026-10-10
+updated: 2026-10-11
 ---
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 다섯 파일에 527개(통합 221, 생성기 125, UI 164, 위키 점검 2, 문서 점검 15) 있습니다. `unittest` 로더로 2026-10-10에 센 값이고, 전체를 한 번 돌린 실행은 526개(건너뜀 9, 예상된 실패 3)였고, 그 뒤에 생성기 시험 1개를 더해 527개입니다([F108](../reference/verified-findings-opened.md)).
+`unittest`로 작성한 시험이 여섯 파일에 546개(통합 226, 생성기 125, UI 164, Cast 14, 위키 점검 2, 문서 점검 15) 있습니다. `unittest` 로더로 2026-10-11에 센 값이고, 같은 날 전체를 한 번 돌린 실행도 546개(건너뜀 9, 예상된 실패 3)였습니다. 통합 시험은 이전 서술(221개)보다 5개 많습니다. 이전 값이 낡았던 것으로 보이며 원인은 확인하지 않았습니다([F108](../reference/verified-findings-opened.md)).
 
 macOS에서는 `test_smoke.py`가 `cefsubprocess.app`이 있으면 CEF 시험을 실행하고(`RUNTIME_OK`), Linux 전용인 `ozone-platform` 스위치를 주지 않으며, 일부는 `skipIf`로 건너뜁니다. `test_generator.py`에는 플랫폼마다 다른 구조체를 중립 형식으로 읽는지 보는 시험이 하나 있습니다. 결과는 [F81~F82](../reference/verified-findings-macos.md)에 있습니다.
 
@@ -176,7 +177,7 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 
 ## tests/test_wiki.py: 위키 점검
 
-`llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(시험 2개: 위키가 저장소 루트에 있는지, 점검 통과). `tests/test_docs.py`(15개)는 `docs/`의 링크, 제목, 빠른 시작 코드를 지킵니다. 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
+`llm-wiki/lint.py --quiet`를 실행해서 종료 코드가 0인지 확인합니다(시험 2개: 위키가 저장소 루트에 있는지, 점검 통과). `tests/test_cast.py`(14개)는 가짜 라우터, 싱크, 경로로 `cefweaver.cast`의 논리를 지킵니다([cefweaver.cast](../reference/cast-module.md)에 목록, CEF 불필요). `tests/test_docs.py`(15개)는 `docs/`의 링크, 제목, 빠른 시작 코드를 지킵니다. 링크, `sources` 경로, 색인 등재, frontmatter, 로그 형식이 깨지면 이 시험이 실패합니다. CEF나 wheel이 필요하지 않습니다.
 
 ## 설계 원칙
 
@@ -195,5 +196,4 @@ CEF를 실행하지 않고 헤더만 읽습니다(`build/native/cef`가 없으�
 ## 관련 페이지
 
 - [시험 실행하기](../procedures/run-tests.md)
-- [실험으로 확인한 사실](../reference/verified-findings.md)
-- [생성기 모듈](generator-modules.md)
+- [실험으로 확인한 사실](../reference/verified-findings.md), [생성기 모듈](generator-modules.md)

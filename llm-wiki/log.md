@@ -645,3 +645,7 @@
 ## [2026-10-11] ingest | Chromecast STOP의 화면 효과
 
 - `집`에서 `STOP`을 보내면 사용자가 보는 화면이 곧바로 사진 화면(기본 화면)으로 돌아갔고 20초의 `terminate()` 뒤에도 그대로였습니다. `STOP`은 상태 메시지로는 알려지지 않았습니다([F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | cefweaver.cast 추가
+
+- Cast 장치의 검색, 연결, 재생, 일시정지, 탐색, 음량을 하는 `Cast`, `CastSession`, `CastStatus`를 순수 Python으로 만들었습니다(`cefweaver/cast.py`, 시험 14개, `docs/cast.md`). `집`에서 이 API로 재생, 일시정지, 재개, 탐색, 음량, 정지를 확인했고 정지하면 세션이 닫힙니다([cast-module](pages/reference/cast-module.md), [F114](pages/reference/verified-findings-opened.md)).

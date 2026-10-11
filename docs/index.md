@@ -28,6 +28,7 @@ CEFWeaver는 [Chromium Embedded Framework](https://bitbucket.org/chromiumembedde
 | [툴킷별 상태](toolkits.md) | 여섯 툴킷에서 확인한 것과 제한 |
 | [소리, 마이크, 카메라](media.md) | 소리 출력, 권한 정책 |
 | [컨텍스트 메뉴](context-menu.md) | 메뉴와 훅 |
+| [Cast 장치](cast.md) | Chromecast 검색, 연결, 재생, 일시정지, 탐색, 음량 |
 | [핸들러와 이벤트](events.md) | 렌더러 사건, 시작 훅, 찾기와 프레임과 접근성 핸들러, 서버, 개발자 도구 |
 | [Wayland와 GPU](wayland-gpu.md) | 플랫폼 선택과 문제 해결 |
 | [한계와 알려진 제약](limitations.md) | 아직 안 되는 것 |
