@@ -661,3 +661,7 @@
 ## [2026-10-11] ingest | 페이지 송출 시제품과 DIAL 검색
 
 - 탭 미러링 대신 오프스크린 브라우저의 프레임을 HLS로 만들어 `집`에 보내는 시제품이 동작했습니다(naver.com, 사용자 확인). DIAL 싱크는 이 네트워크에 없었습니다([F114](pages/reference/verified-findings-opened.md)). `CastSession.load`에 `media_options`를 더했습니다.
+
+## [2026-10-11] ingest | 직접 송출은 위키에만 기록
+
+- 송출 시제품은 끊김 없이 보였고(사용자) 스크롤 간격이 설정(5초)과 달리 0.5초 정도로 보였으나 원인은 조사하지 않았습니다. `Mirror` 기능은 만들지 않기로 하고(사용자 결정) 계획만 `cast-module.md`에 적었습니다.
