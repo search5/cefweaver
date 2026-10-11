@@ -167,6 +167,7 @@ class CastWithoutADevice(unittest.TestCase):
         self.assertEqual(load["message"]["media"], {"contentId": "http://h/v.mp4", "contentType": "video/mp4",
                                                     "streamType": "BUFFERED"})
         self.assertTrue(load["message"]["autoplay"])
+        self.assertEqual(load["message"]["media"].get("hlsSegmentFormat"), None)
         self.assertNotIn("mediaSessionId", load["message"])
         self.assertEqual(volume["message"]["volume"], {"level": 0.3})
         self.assertLess(load["sequenceNumber"], volume["sequenceNumber"])

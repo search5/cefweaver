@@ -261,12 +261,15 @@ class CastSession:
 
     # --- commands -------------------------------------------------------------------------
 
-    def load(self, url, content_type="video/mp4", autoplay=True, current_time=0.0, stream_type="BUFFERED"):
+    def load(self, url, content_type="video/mp4", autoplay=True, current_time=0.0, stream_type="BUFFERED",
+             media_options=None):
         """Play the media at ``url``. The device downloads it, so the address must be reachable from
         the device (not ``localhost``) and answer with the right ``Content-Type``; some formats also
-        need CORS headers. ``stream_type`` is ``"BUFFERED"``, ``"LIVE"`` or ``"NONE"``."""
-        self._command("LOAD", False, autoplay=bool(autoplay), currentTime=float(current_time), media={
-            "contentId": url, "contentType": content_type, "streamType": stream_type})
+        need CORS headers. ``stream_type`` is ``"BUFFERED"``, ``"LIVE"`` or ``"NONE"``. ``media_options`` is a
+        dict of more fields of the Cast ``MediaInformation`` (for example ``{"hlsSegmentFormat": "ts"}``)."""
+        media = {"contentId": url, "contentType": content_type, "streamType": stream_type}
+        media.update(media_options or {})
+        self._command("LOAD", False, autoplay=bool(autoplay), currentTime=float(current_time), media=media)
 
     def play(self):
         self._command("PLAY", True)

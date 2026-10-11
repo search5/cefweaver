@@ -649,3 +649,15 @@
 ## [2026-10-11] ingest | cefweaver.cast 추가
 
 - Cast 장치의 검색, 연결, 재생, 일시정지, 탐색, 음량을 하는 `Cast`, `CastSession`, `CastStatus`를 순수 Python으로 만들었습니다(`cefweaver/cast.py`, 시험 14개, `docs/cast.md`). `집`에서 이 API로 재생, 일시정지, 재개, 탐색, 음량, 정지를 확인했고 정지하면 세션이 닫힙니다([cast-module](pages/reference/cast-module.md), [F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | cefweaver.cast의 disconnect와 GET_STATUS 확인
+
+- `집`에서 재생 중 `disconnect()`는 0.2초 안에 세션을 닫고 장치가 `receiver_action`(stop)을 보냈으며, 사용자는 화면이 사진으로 돌아간 것 같다고 했습니다. `GET_STATUS`에는 응답이 없었습니다. `욕실`은 화면 없는 스피커라고 알려 주었습니다([F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | 탭 미러링이 안 되는 이유
+
+- CEF 소스(`media_router_impl.cc`의 `GetSource`)가 `http`/`https` 소스를 의도적으로 거부합니다("We don't support tab/desktop mirroring"). `cast-module.md`에 이유와 우회 방안(직접 송출, 미확인)을 적었습니다.
+
+## [2026-10-11] ingest | 페이지 송출 시제품과 DIAL 검색
+
+- 탭 미러링 대신 오프스크린 브라우저의 프레임을 HLS로 만들어 `집`에 보내는 시제품이 동작했습니다(naver.com, 사용자 확인). DIAL 싱크는 이 네트워크에 없었습니다([F114](pages/reference/verified-findings-opened.md)). `CastSession.load`에 `media_options`를 더했습니다.

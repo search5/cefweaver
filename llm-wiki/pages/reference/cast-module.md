@@ -37,7 +37,14 @@ CEF의 미디어 라우터(`MediaRouter`, `MediaSink`, `MediaRoute`, `MediaObser
 
 ## 확인하지 못한 것
 
-DIAL 싱크, 스피커 그룹(`그룹` 싱크), 탭 미러링(CEF의 소스 URN이 `None`), 연결이 끊길 때의 상태, `GET_STATUS`, Chromecast with Google TV 같은 다른 기종, macOS. `client_connect`가 없어도 되는지.
+DIAL 싱크(이 네트워크의 40초 검색에서 싱크 세 개가 모두 Cast였고 DIAL 싱크는 없었음), 스피커 그룹(`그룹` 싱크, 실행마다 목록에 있다가 없다가 함), `욕실`(화면 없는 스피커)에서의 재생, 탭 미러링(CEF 소스 `libcef/browser/media_router/media_router_impl.cc`의 `GetSource`가 `http`/`https` URL에 "We don't support tab/desktop mirroring"이라는 주석과 함께 NULL을 돌려줍니다. 2026-10-11에 소스로 확인. 우회 방안은 아래), 장치 전원이나 Wi-Fi가 끊길 때의 상태, `GET_STATUS`(응답이 오지 않음), Chromecast with Google TV 같은 다른 기종, macOS. `client_connect`가 없어도 되는지.
+
+## 탭 미러링을 하려면 (조사만 했고 만들지 않았습니다)
+
+`MediaRouter`로는 안 됩니다(위). 가능한 우회로는 두 가지를 생각했고 둘 다 시험하지 않았습니다.
+
+1. **직접 송출**: 시제품으로 `집`에서 동작했습니다(F114: naver.com을 보냈고 화면의 겹친 시각이 실제와 일치하는 듯함, 지연은 숫자로 재지 않음, 소리 없음, 상태는 `BUFFERING`과 `PLAYING`을 자주 오감). 라이브러리에는 넣지 않았습니다. 인코더(gstreamer)가 필요하고, 소리(`AudioHandler`), 안정적인 재생, 정리가 남았습니다.
+2. **Chrome 런타임의 Cast 메뉴**: CEF 154의 Chrome 스타일 브라우저에 Cast 기능이 있는지는 확인하지 않았습니다.
 
 ## 관련 페이지
 
