@@ -128,10 +128,10 @@ updated: 2026-10-11
   - `PAUSE`: `MEDIA_STATUS`의 `playerState`가 `PAUSED`(위치 4.7초)가 됐습니다. `PLAY`: 같은 위치에서 `PLAYING`이 됐습니다.
   - `SEEK`(`currentTime`: 30): `PLAYING`이고 `currentTime`이 30이었습니다.
   - `SET_VOLUME`(`{"volume":{"level":0.3}}`과 `{"muted":true/false}`): 응답은 `MEDIA_STATUS`가 아니라 멀티존 네임스페이스의 `DEVICE_UPDATED`(장치의 `volume.level`, `muted`)였습니다. `MEDIA_STATUS`의 `volume`은 스트림 음량(`level` 1)으로 따로입니다. 장치의 원래 음량은 0.19였고 시험 뒤에 0.19, 음소거 해제로 되돌렸습니다(`DEVICE_UPDATED`로 확인).
-  - 응답의 `requestId`는 보낸 값(101 등)이 아니라 CEF가 다시 매긴 값(12, 13, 14, 15)이었습니다. 요청과 응답을 `requestId`로 짝짓지 못하므로 상태 변화를 기다리는 방식으로 다뤄야 합니다.
-  - `GET_STATUS`와 `STOP`은 3초 안에 눈에 띄는 응답 메시지가 없었습니다(요약한 것만 봤으므로 응답이 없다고 단정하지 않음).
-  - 경로를 종료한 뒤 `on_routes`가 빈 목록으로 바뀌는 것을 기다리는 부분이 제어 시험의 두 실행(`STOP`을 보낸 실행, 음량만 복구한 실행)에서 시간 안에 끝나지 않았습니다. 이전 실행들은 종료되었습니다. 원인은 조사하지 않았습니다.
-- **확인하지 못한 것**: `STOP`의 효과(장치가 기본 화면으로 돌아가는지), `GET_STATUS` 응답, 경로 종료가 느려진 원인, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
+  - `MEDIA_STATUS`의 `requestId`는 보낸 값(101 등)이 아니라 CEF가 다시 매긴 값(12, 13, 14, 15)이었습니다. 그래서 상태 메시지로 요청을 짝짓지 않고 상태 변화를 기다리는 방식으로 다뤄야 합니다. 다만 `STOP`에는 `"message":null`에 보낸 `sequenceNumber`(102)가 그대로 담긴 확인 메시지가 왔습니다(아래).
+  - `STOP`(`집`, 재생 중 보냄, 두 번째 확인): 6초 동안 받은 메시지는 `{"clientId":...,"message":null,"sequenceNumber":102,...}` 하나뿐이었고 `MEDIA_STATUS`(`IDLE`)는 오지 않았습니다. 장치가 재생을 멈췄는지는 이 메시지로 알 수 없고 사용자 확인도 받지 못했습니다. 이어 보낸 `GET_STATUS`는 3초 동안 아무 메시지도 오지 않았습니다. 재생 중에 보낸 `GET_STATUS`도 4초 동안 응답이 없었습니다(`MEDIA_STATUS`가 따로 계속 오는 것은 CEF가 보내는 것으로 보임, 확인하지 않음).
+  - 경로 종료(`terminate()`, 두 번 더 확인): `on_routes`가 빈 목록이 되기까지 두 번 모두 약 1초(확인 간격이 1초)였습니다. 재생 중에 종료한 실행에서는 `on_route_state_changed`가 `TERMINATED`(3)로 왔고 `receiver_action`(`action: stop`) 메시지도 왔습니다. `STOP`을 보낸 뒤 종료한 실행에서는 그 상태 변화를 기다린 1초 안에 오지 않았습니다. 앞서 "시간 안에 끝나지 않은" 두 실행의 원인은 재현하지 못했고, 시험 스크립트의 기다리는 방식 탓이었는지 확인하지 못했습니다.
+- **확인하지 못한 것**: `STOP`으로 재생이 실제로 멈추는지, `GET_STATUS`의 응답, `STOP` 뒤 종료의 상태 변화, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
 
 ## 관련 페이지
 

@@ -637,3 +637,7 @@
 ## [2026-10-11] ingest | Chromecast 재생 제어 확인
 
 - `집`에서 `PAUSE`, `PLAY`, `SEEK`, `SET_VOLUME`(장치 음량, 음소거)이 동작하는 것을 확인했습니다. 응답의 `requestId`는 CEF가 다시 매기고, 음량은 `DEVICE_UPDATED`로 옵니다. `STOP`, `GET_STATUS`의 응답과 경로 종료가 느려진 원인은 확인하지 못했습니다([F114](pages/reference/verified-findings-opened.md)).
+
+## [2026-10-11] ingest | Chromecast STOP과 경로 종료 재확인
+
+- `STOP`에는 `message: null`과 `sequenceNumber`를 담은 확인 메시지만 오고 `IDLE` 상태는 오지 않았습니다. `GET_STATUS`는 응답이 없었습니다. `terminate()` 뒤 `on_routes`는 약 1초 만에 비었고 앞서의 지연은 재현하지 못했습니다([F114](pages/reference/verified-findings-opened.md)).
