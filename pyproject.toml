@@ -60,6 +60,7 @@ minimum-version = "build-system.requires"
 build-dir = "build/skbuild/{wheel_tag}"
 cmake.build-type = "Release"
 wheel.packages = ["cefweaver"]
+wheel.py-api = "cp311"
 wheel.exclude = ["**/*.pyx", "**/*.pxd", "**/*.pxi", "**/CMakeLists.txt", "**/__pycache__", "**/_cefweaver.cpp"]
 install.strip = true
 

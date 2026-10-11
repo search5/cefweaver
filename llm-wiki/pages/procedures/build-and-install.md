@@ -32,7 +32,7 @@ Linux x86_64 기준입니다. 이 절차를 Python 3.11, 3.12, 3.13, 3.14에서 
 ```sh
 uv build --wheel -o dist        # CEF를 third_party/cef에 받고 wheel까지(첫 구성 약 2분, 내려받기 포함)
 uv venv --python 3.13 .venv-test
-uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-0.1.0-cp313-cp313-win_amd64.whl
+uv pip install --python .venv-test/Scripts/python.exe dist/cefweaver-0.1.0-cp311-abi3-win_amd64.whl
 ```
 
 - `tools/prepare.py`는 Windows에서 돌려 보지 않았습니다(PATH에 `cmake`가 필요함). 생성기 시험처럼 `build/native/cef`(CEF 헤더)가 필요하면 junction을 직접 만듭니다: `mklink /J build\native\cef third_party\cef\cef_binary_..._windows64`.

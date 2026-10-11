@@ -724,3 +724,6 @@
 
 ## [2026-10-12] ingest | abi3 wheel 시험(Linux x86_64)
 - 사본에서 `USE_SABI 3.11`과 `wheel.py-api = "cp311"`로 abi3 wheel을 만들어 3.11~3.14에서 시험했습니다([F123](pages/reference/verified-findings-opened.md)). 저장소의 빌드 설정은 바꾸지 않았고, `tests/test_ui.py`의 `XFlush.argtypes` 누락(3.11에서 세그멘테이션 오류)만 고쳤습니다.
+
+## [2026-10-12] ingest | abi3를 저장소 빌드 설정에 반영
+- `pyproject.toml`에 `wheel.py-api = "cp311"`, `CefweaverExtension.cmake`에 `USE_SABI 3.11`과 `Development.SABIModule`을 더했습니다. 저장소에서 만든 `cp311-abi3-linux_x86_64` wheel로 3.14 전체 시험 547개가 통과했습니다([packaging](pages/components/packaging.md), [F123](pages/reference/verified-findings-opened.md)). macOS와 Windows는 확인하지 못했습니다.

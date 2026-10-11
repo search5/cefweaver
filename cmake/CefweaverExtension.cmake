@@ -3,7 +3,7 @@
 # The module is built here and not in setup.py so that it gets the same compiler, runtime library and link
 # libraries as cefwrapper and libcef_dll_wrapper (they come from CEF's own cmake), on every platform.
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module Development.SABIModule)
 find_program(CYTHON_EXECUTABLE NAMES cython cython3 HINTS "${Python_EXECUTABLE}/.." REQUIRED)
 
 set(CEFWEAVER_PYX "${CMAKE_SOURCE_DIR}/cefweaver/_cefweaver.pyx")
@@ -18,7 +18,8 @@ add_custom_command(
   COMMENT "Cython: _cefweaver.pyx"
   VERBATIM)
 
-Python_add_library(_cefweaver MODULE WITH_SOABI "${CEFWEAVER_CPP}")
+# The stable ABI (Python 3.11 and later): one wheel per platform serves every Python version (pyproject.toml: wheel.py-api).
+Python_add_library(_cefweaver MODULE USE_SABI 3.11 WITH_SOABI "${CEFWEAVER_CPP}")
 target_include_directories(_cefweaver PRIVATE "${CEF_ROOT}" "${CMAKE_SOURCE_DIR}/native/cefwrapper")
 target_compile_definitions(_cefweaver PRIVATE NDEBUG=1 $<$<PLATFORM_ID:Linux>:_FILE_OFFSET_BITS=64>)
 target_compile_features(_cefweaver PRIVATE cxx_std_20)
