@@ -15,7 +15,7 @@ updated: 2026-10-08
 
 # 오프스크린 렌더링
 
-브라우저에 창이 없고 CEF가 그린 픽셀을 `RenderHandler.on_paint()`가 받는 방식입니다. java-cef의 `CefBrowserOsr`와 같은 용도이고, 클라이언트의 `RenderHandler`가 `native/render_handler.cpp`와 같은 역할입니다([java-cef 위키의 RenderHandler와 WindowHandler](/home/jiho/cef_framework/java-cef/docs/llm-wiki/pages/native-handler-render-window.md)).
+브라우저에 창이 없고 CEF가 그린 픽셀을 `RenderHandler.on_paint()`가 받는 방식입니다. java-cef의 `CefBrowserOsr`와 같은 용도이고, 클라이언트의 `RenderHandler`가 `native/render_handler.cpp`와 같은 역할입니다(java-cef 위키의 RenderHandler와 WindowHandler(`/home/jiho/cef_framework/java-cef/docs/llm-wiki/pages/native-handler-render-window.md`)).
 
 ## 쓰는 방법
 

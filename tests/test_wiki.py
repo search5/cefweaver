@@ -1,6 +1,5 @@
 """The wiki (llm-wiki/, at the root of the repository) must stay consistent: see llm-wiki/SCHEMA.md, "lint"."""
 
-import os
 import subprocess
 import sys
 import unittest
@@ -23,7 +22,6 @@ class WikiPlace(unittest.TestCase):
 
 class WikiLint(unittest.TestCase):
     @unittest.skipUnless(LINT.is_file(), "the wiki is not in this checkout")
-    @unittest.skipIf(os.environ.get("CEFWEAVER_SKIP_WIKI_LINT"), "CEFWEAVER_SKIP_WIKI_LINT is set (CI has no sibling repositories to link to)")
     def test_wiki_passes_the_mechanical_checks(self):
         result = subprocess.run([sys.executable, "-I", str(LINT), "--quiet"],
                                 capture_output=True, text=True)

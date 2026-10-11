@@ -66,6 +66,11 @@ def links(text):
     return found
 
 
+def leaves_repository(resolved):
+    """True for a link to a file outside this repository (an absolute path, a sibling checkout): it exists on one computer only."""
+    return not resolved.is_relative_to(ROOT)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--quiet", action="store_true")
@@ -114,7 +119,9 @@ def main():
 
         for target in links(text):
             resolved = (page.parent / target).resolve()
-            if not resolved.exists():
+            if leaves_repository(resolved):
+                errors.append(f"{rel}: link leaves the repository (write other projects' files as `inline code`): {target}")
+            elif not resolved.exists():
                 errors.append(f"{rel}: broken link: {target}")
             elif resolved in inbound and resolved != page.resolve():
                 inbound[resolved].add(rel)
@@ -136,7 +143,10 @@ def main():
     for path in (WIKI / "README.md", WIKI / "SCHEMA.md", WIKI / "log.md", WIKI / "index.md"):
         text = path.read_text(encoding="utf-8")
         for target in links(text):
-            if not (path.parent / target).resolve().exists():
+            resolved = (path.parent / target).resolve()
+            if leaves_repository(resolved):
+                errors.append(f"{path.name}: link leaves the repository (write other projects' files as `inline code`): {target}")
+            elif not resolved.exists():
                 errors.append(f"{path.name}: broken link: {target}")
         if "—" in text:
             warnings.append(f"{path.name}: contains an em dash")

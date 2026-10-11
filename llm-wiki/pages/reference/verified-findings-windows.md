@@ -45,7 +45,7 @@ Windows 지원을 더하며 실제로 빌드하고 실행해서 확인한 기록
 
 ## F117. 시험 결과
 
-명령: `.venv-test\Scripts\python.exe -P -m unittest discover -s tests -v`(설치한 wheel, `CEFWEAVER_SKIP_WIKI_LINT=1`, 데스크톱에서 실행). 세 번 돌렸습니다.
+명령: `.venv-test\Scripts\python.exe -P -m unittest discover -s tests -v`(설치한 wheel, 데스크톱에서 실행). 세 번 돌렸습니다.
 
 | 실행 | 결과 | 비고 |
 | --- | --- | --- |
