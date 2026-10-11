@@ -1,4 +1,4 @@
-"""A page in a Tk window and a print dialog of the application (CUPS, Linux).
+"""A page in a Tk window and a print dialog of the application (CUPS, Linux). On macOS: quickstart_mac.py.
 
     uv run python quickstart.py            # a dry run: the PDF is made, nothing goes to the printer
     REALLY_PRINT=1 uv run python quickstart.py     # the job is sent to the printer with lp
@@ -6,8 +6,14 @@
 
 import base64
 import os
+import sys
 import tkinter
 from tkinter import ttk
+
+if sys.platform == "darwin":                        # macOS has no PrintHandler and a print panel of its own
+    import runpy
+    runpy.run_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), "quickstart_mac.py"), run_name="__main__")
+    sys.exit()
 
 from cefweaver import ui
 from cefweaver.ui.toolkits.tk import CefCanvas, TkLoop

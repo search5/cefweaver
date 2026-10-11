@@ -63,7 +63,7 @@ uv sync
 uv run python quickstart.py            # 주소를 인자로 줄 수 있음
 ```
 
-예제는 `examples/gtk3`, `examples/qt`, `examples/tk`, `examples/sdl2`, `examples/wx`, `examples/kivy`에 있고, 각 폴더의 `README.md`에 그 툴킷에 필요한 준비가 있습니다. 인쇄(Linux, CUPS)는 `examples/print`에 앱이 직접 그리는 대화상자와 함께 있습니다(`libcups2-dev`가 필요).
+예제는 `examples/gtk3`, `examples/qt`, `examples/tk`, `examples/sdl2`, `examples/wx`, `examples/kivy`에 있고, 각 폴더의 `README.md`에 그 툴킷에 필요한 준비가 있습니다. 인쇄는 `examples/print`에 있습니다. Linux는 CUPS와 앱이 직접 그리는 대화상자(`libcups2-dev`가 필요), macOS는 시스템 인쇄 패널과 PDF 경로(`quickstart.py`가 알아서 나눕니다)입니다.
 
 ## 알아 둘 것
 

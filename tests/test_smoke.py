@@ -3513,7 +3513,7 @@ class WithCef(unittest.TestCase):
         """)
 
 
-    @unittest.skipIf(sys.platform == "darwin", 'print() does not finish on macOS (cause not examined); see the wiki')
+    @unittest.skipIf(sys.platform == "darwin", 'CefPrintHandler is Linux only: on macOS print() opens the system print panel (modal) and the handler is not called; see the wiki (F96)')
     def test_the_print_handler_sees_the_start_the_settings_and_the_reset(self):
         self.run_osr_script("""
             order = []

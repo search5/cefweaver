@@ -28,6 +28,26 @@ Print...  ->  host.print()
 - **부수(`copies`)는 PDF에 들어가지 않습니다.** 방향, 용지, 페이지 범위, 선택 영역은 PDF에 반영됩니다. 부수와 용지는 CUPS로 보낼 때(`lp -n`, `-o media=`) 앱이 줍니다.
 - **`cefweaver.ui`의 뷰에는 인쇄 핸들러가 없습니다.** `attach()`가 클라이언트의 서브클래스로 `get_print_handler`를 더합니다. 인스턴스에 속성으로 붙이면 CEF가 보지 못합니다.
 
+## macOS
+
+macOS에서는 `quickstart.py`가 `quickstart_mac.py`로 넘어갑니다(`sys.platform` 분기). CEF의 `PrintHandler`는 Linux 전용이라 위의 흐름(`printing.py`, Tk 대화상자)은 쓰지 않고, 시스템이 하는 일을 씁니다. 코드는 `printing_mac.py`에 있습니다.
+
+| 단추 | 하는 일 |
+| --- | --- |
+| `Print...` | `host.print()`: macOS 시스템 인쇄 패널이 모달로 뜹니다. 앱은 콜백을 받지 않고, 패널이 닫힐 때까지 창이 멈춥니다 |
+| `Save PDF` | `host.print_to_pdf()`로 PDF를 만들고 쪽 수와 크기를 알려 줍니다(오프스크린도 됩니다) |
+| `Print PDF...` | 그 PDF를 `NSPrintOperation`(PDFKit)으로 시스템 인쇄 패널에 보냅니다 |
+| `Send with lp` | 그 PDF를 CUPS의 `lp`로 보냅니다(`REALLY_PRINT=1`이 아니면 명령만 보여 주는 모의 실행) |
+
+`printing_mac.print_with_system(pdf, save_to=파일)`은 패널 없이 "파일로 저장" 작업을 하므로 종이 없이 시험할 수 있습니다. 필요한 것은 PyObjC(`pyobjc-framework-Quartz`)입니다.
+
+```sh
+uv run python smoke_mac.py              # printing_mac.py: PDF(A4, Letter 가로), NSPrintOperation, lp, 인쇄 패널이 뜨는 것
+uv run python smoke_mac.py --window     # quickstart_mac.py의 창과 단추
+```
+
+점검하지 못한 것: 시스템 인쇄 패널에서 실제로 인쇄를 눌러 작업이 끝나는 것(패널은 프로그램이 누를 수 없음), 실제 프린터로 보내는 것(`REALLY_PRINT=1`, `printer=`). 이 예제의 `pyproject.toml`은 Linux wheel을 가리키므로 macOS에서는 만든 macOS wheel과 PyObjC를 직접 설치해 실행하십시오.
+
 ## 환경 (uv)
 
 `pycups`는 소스에서 빌드하므로 CUPS 개발 파일이 필요합니다.
@@ -60,4 +80,4 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a -s "-screen 0 1000x640x24
 - **`get_pdf_paper_size`는 구현하지 않았습니다.** 일반 인쇄에서 불리지 않았고(인쇄 미리보기의 "PDF로 저장"이나 기업용 콘텐츠 분석에서만 닿는 것으로 Chromium 소스에서 읽음), 어떤 경로로도 불리는 것을 보지 못했습니다.
 - **종이로 나온 결과의 내용은 확인하지 못했습니다.** 점검은 모의 실행으로 합니다. 별도의 시험에서 `on_print_job`의 PDF를 `lp`로 한 장 보내 CUPS가 작업을 받고 완료하는 것까지 확인했지만(`REALLY_PRINT=1`로 이 예제를 실행해 본 것은 아님), 종이의 내용은 사람이 봐야 합니다.
 - Tk는 한 위젯에 브라우저 하나이고, 대화상자의 위치는 고정입니다(`+300+140`).
-- 확인한 환경은 Linux x86_64, CPython 3.13, CEF 154입니다. CEF의 `PrintHandler`는 Linux 전용이라 macOS는 이 예제의 대상이 아닙니다(macOS에서 `host.print()`는 90초 안에 끝나지 않았습니다).
+- 확인한 환경은 Linux x86_64, CPython 3.13, CEF 154입니다. CEF의 `PrintHandler`는 Linux 전용이라 macOS는 아래의 [macOS 절](#macos)을 따릅니다. macOS에서 `host.print()`는 곧바로 돌아오고 **시스템 인쇄 패널**이 모달로 뜨며, 앱의 `PrintHandler`는 불리지 않습니다(이 예제의 `Print...`를 누르면 패널이 닫힐 때까지 Tk 루프가 멈춘 것처럼 보입니다). macOS에서 인쇄하는 방법은 [위키의 F96](../../llm-wiki/pages/reference/verified-findings-macos-examples.md)에 있습니다.

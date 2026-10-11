@@ -679,4 +679,8 @@
 ## [2026-10-11] ingest | examples/를 macOS에서 하나씩 띄워 확인
 
 - 사용자 요청("examples/는 모두 테스트해보고 커밋/푸시해줘, 기존 동작을 깨면 안돼")으로 예제 전부를 macOS arm64에서 실행했습니다. 결과는 [F94, F95](pages/reference/verified-findings-macos-examples.md)에 있습니다. 예제 코드는 고치지 않았고 문서만 바꿨습니다.
-- Tk, Qt, wx, SDL2(`quickstart.py`, `browser.py`), `views`(점검 12개를 Views 자체의 이벤트로 재현), `cocoa`, `swiftui`는 통과했습니다. Kivy(Python 3.13)는 종료 때 Chromium의 감시가 프로세스를 죽입니다. GTK 3는 시스템에 없어 실행하지 못했고, `print`는 Linux(CUPS) 전용이라 macOS에서 `Print...`가 응답하지 않습니다. 각 툴킷의 `smoke.py`는 Xvfb와 `xdotool`을 쓰는 Linux 전용이라 돌리지 못했습니다.
+- Tk, Qt, wx, SDL2(`quickstart.py`, `browser.py`), `views`(점검 12개를 Views 자체의 이벤트로 재현), `cocoa`, `swiftui`는 통과했습니다. Kivy(Python 3.13)는 종료 때 Chromium의 감시가 프로세스를 죽입니다. GTK 3는 시스템에 없어 실행하지 못했고, `print`는 Linux(CUPS) 전용이고 macOS에서는 `Print...`가 시스템 인쇄 패널을 띄웁니다([F96](pages/reference/verified-findings-macos-examples.md)). 각 툴킷의 `smoke.py`는 Xvfb와 `xdotool`을 쓰는 Linux 전용이라 돌리지 못했습니다.
+
+## [2026-10-11] ingest | macOS 인쇄: F96과 examples/print의 macOS 분기
+- macOS에서 `host.print()`는 끝나지 않는 것이 아니라 시스템 인쇄 패널(모달)을 띄우는 것이고, `PrintHandler`는 Linux 전용이라 불리지 않습니다. 이전 기록(F82, 시험의 건너뜀 이유, 예제 README, 한계 문서)을 바로잡았습니다. 근거는 [F96](pages/reference/verified-findings-macos-examples.md)입니다.
+- `examples/print`에 `printing_mac.py`, `quickstart_mac.py`, `smoke_mac.py`를 더하고 `quickstart.py`가 macOS에서 `quickstart_mac.py`로 넘기게 했습니다(Linux 경로는 그대로). `smoke_mac.py`의 두 실행이 통과했습니다. 패널에서 실제로 인쇄하는 것과 실제 프린터로 보내는 것은 확인하지 못했습니다.

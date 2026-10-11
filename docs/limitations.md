@@ -27,7 +27,7 @@ Apple Silicon에서 확인한 범위입니다. 오프스크린과 네이티브 �
 | Command 조합 | 오프스크린에서 Command+A/Z/Shift+Z는 `Frame` 명령으로, Command+C/X/V는 툴킷 클립보드로 처리합니다(CEF에 Edit 메뉴가 없어 키로는 안 됩니다). 네이티브 뷰(`parent_view`)는 CEF가 처리합니다 |
 | 새 탭 요청 | Ctrl+클릭은 오른쪽 클릭이 됩니다. Command+클릭을 쓰세요 |
 | 공유 텍스처 | 없습니다. `on_accelerated_paint`의 평면은 비어 있습니다 |
-| 인쇄 | `print()`가 끝나지 않았습니다(원인 미조사) |
+| 인쇄 | `host.print()`는 CEF의 `PrintHandler` 대신 **macOS의 시스템 인쇄 패널**(모달)을 띄웁니다. 오프스크린과 창 모드 모두 같습니다. 대화상자 없이 인쇄하려면 `print_to_pdf()`로 PDF를 만들어 `NSPrintOperation`이나 `lp`로 보냅니다([F96](../llm-wiki/pages/reference/verified-findings-macos-examples.md)). 패널에서 실제로 인쇄해 본 것은 아닙니다 |
 | 맞춤법 추천 | 추천 단어가 오지 않았습니다. macOS의 `NSSpellChecker`로 검사합니다(원인 미조사) |
 | 컨텍스트 메뉴 | 기본 메뉴에 뒤로와 앞으로가 없었습니다 |
 | 툴킷 | Tk, Qt, wx, SDL2는 예제를 띄워 페이지, 데모 페이지와 Python의 왕복, 닫기까지 확인했습니다(마우스, 키, 끌어서 놓기 같은 점검은 Linux에서만 합니다). Kivy는 Python 3.13에서 페이지는 뜨지만 종료 때 Chromium의 감시가 프로세스를 죽입니다(Python 3.14는 Kivy가 지원하지 않음). GTK 3는 시스템에 없어 확인하지 못했습니다. `print` 예제는 Linux(CUPS) 전용이고 macOS에서는 `Print...`를 누르면 응답하지 않습니다. Cocoa나 SwiftUI에 붙일 때는 `parent_view`를 쓰세요([시작하기](quickstart.md)) |

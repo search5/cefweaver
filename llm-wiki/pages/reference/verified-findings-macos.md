@@ -59,7 +59,7 @@ macOS arm64 지원을 추가하며 실행해서 확인한 사실입니다. 환�
 | **KEYUP에 `character`가 없으면 Cocoa가 그 이벤트를 key down으로 취급합니다.** 페이지에 가짜 keydown(`Unidentified`나 같은 키 한 번 더)이 가고 편집 키는 한 번 더 편집됩니다. 처음에는 "KEYUP이 편집을 반복한다"고 잘못 읽었습니다. | `cefweaver.ui`가 채움(F85) |
 | 기본 컨텍스트 메뉴에 뒤로와 앞으로가 없고 `113`(`MenuId`에 이름이 없는 값)만 옵니다. 항목을 고르면 CEF가 실행하는 것(`SELECT_ALL`)은 됩니다. | 시험이 macOS에서 `BACK`, `FORWARD` 검사를 뺌 |
 | 맞춤법은 `NSSpellChecker`로 검사해서 틀린 단어(`teh`)의 추천 단어가 오지 않았습니다(`NSSpellServer dataFromCheckingString timed out`). | 건너뜀. 원인 미조사 |
-| `host.print()`가 90초 안에 끝나지 않습니다(시작, 설정, 끝이 오지 않음). | 건너뜀. 원인 미조사 |
+| `host.print()`가 끝나지 않는 것처럼 보였던 것은 **시스템 인쇄 패널이 모달로 떠서 사람이 누르길 기다린 것**이었습니다. `PrintHandler`는 Linux 전용이라 불리지 않습니다([F96](verified-findings-macos-examples.md)). | 시험을 건너뜀(이유를 고침) |
 | `root_cache_path` 아래에 `cache_path`로 준 `profile/` 폴더가 만들어지지 않습니다(`Local State`와 `Default/`는 만들어짐). | 그 검사만 macOS에서 뺌. 원인 미조사 |
 | 창 제목(`PlatformTitleChange`)은 `NSWindow.title`로 확인했습니다(F92). 시험은 `xwininfo`를 쓰는 것이라 macOS에서 건너뜀 | |
 
