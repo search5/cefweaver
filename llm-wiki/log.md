@@ -690,3 +690,7 @@
 
 ## [2026-10-11] ingest | build-test 첫 실행과 위키 점검 건너뜀
 - 첫 실행에서 Linux는 `libx11-dev`가 없어 빌드가 실패해 추가했습니다. 그 뒤 두 플랫폼 모두 wheel 빌드와 설치는 통과했고, 시험은 Linux 2개, macOS 4개가 실패했습니다. 위키 점검은 러너에 형제 저장소가 없어서 실패하므로 `CEFWEAVER_SKIP_WIKI_LINT`로 건너뜁니다([packaging](pages/components/packaging.md)). 나머지 실패 원인은 확인하지 못했습니다.
+
+## [2026-10-11] ingest | F115: Linux의 페이지 언어는 환경을 따름
+- CI의 Linux 시험 실패를 이 컴퓨터에서 재현해 원인을 확인했습니다([F115](pages/reference/verified-findings-opened.md)). `settings.locale`만으로는 `navigator.language`가 바뀌지 않고 `LANGUAGE`/`LANG`이 정합니다. 시험과 `Settings.locale` 설명을 고쳤습니다.
+- 같은 실행의 macOS 시험 3개 중 2개(IO 스레드 지연 작업, 요청 컨텍스트 핸들러)는 시험의 시간 가정을 고쳤고(Linux에서만 확인), 한국어 조합 밑줄 시험은 원인을 확인하지 못했습니다([F115](pages/reference/verified-findings-opened.md)).

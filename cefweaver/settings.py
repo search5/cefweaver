@@ -15,7 +15,7 @@ _FIELDS = {
     "root_cache_path": ("str", "The directory of the profile data shared by the caches below it (CEF's ``root_cache_path``). ``set_cache_path()`` must name a directory within it; without that the cache is the root itself."),
     "user_agent": ("str", "The user agent string; it replaces the default one."),
     "user_agent_product": ("str", "The product token of the default user agent, e.g. ``Product/1.2``."),
-    "locale": ("str", "The UI locale, e.g. ``ko`` (also the language of the pages)."),
+    "locale": ("str", "The UI locale, e.g. ``ko``. On Linux the language of the pages follows LANGUAGE/LANG, not this setting."),
     "log_file": ("str", "The log file; the default is ``debug.log`` in the executable's directory."),
     "log_severity": ("severity", "A ``types.LogSeverity``; ``DISABLE`` writes nothing."),
     "javascript_flags": ("str", "Flags for V8, e.g. ``--expose-gc``."),

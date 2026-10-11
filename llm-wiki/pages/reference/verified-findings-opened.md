@@ -139,6 +139,13 @@ updated: 2026-10-11
 - **DIAL**: 이 네트워크에 DIAL 장치가 없어 확인할 수 없습니다. 확인 목록에서 뺐습니다(장치가 생기면 다시).
 - **확인하지 못한 것**: `STOP` 뒤 앱이 내려가는 것을 알리는 메시지가 있는지(오지 않았음), `GET_STATUS`의 응답, `STOP` 뒤 종료의 상태 변화, DIAL 싱크, 탭 화면 미러링, 여러 경로의 동시 사용, 장치 연결이 끊길 때의 `on_route_state_changed`.
 
+## F115. Linux에서 페이지의 언어는 settings.locale이 아니라 환경을 따른다 (2026-10-11)
+
+- GitHub Actions의 Linux 러너에서 `test_the_locale_and_the_javascript_flags_are_set`가 `('page', 'en-US', 'function')`으로 실패했습니다. 이 컴퓨터(`LANG=ko_KR.UTF-8`, `LANGUAGE=ko:en`)에서만 통과하던 시험입니다.
+- 같은 wheel로 환경만 바꿔 `settings.locale = "ko"`를 지정한 채 `navigator.language`를 확인했습니다: `LANG=ko_KR.UTF-8`는 통과, `LANG=C.UTF-8 LANGUAGE=ko`는 통과, `LANG=C.UTF-8`, `LANG=en_US.UTF-8`, `LANG=C.UTF-8 LANGUAGE=en`은 모두 `en-US`였습니다. Linux에서 `locale`은 페이지 언어를 정하지 못하고 환경의 `LANGUAGE`/`LANG`이 정합니다. `javascript_flags`(`gc`)는 환경과 무관하게 동작했습니다.
+- 시험은 환경이 한국어일 때만 언어를 확인하도록 바꿨고, `Settings.locale` 설명도 고쳤습니다. 다른 방법(명령줄 스위치, 요청 컨텍스트의 `accept_language_list`)으로 `locale`이 페이지 언어에 반영되게 할 수 있는지는 시험하지 않았습니다. macOS에서는 확인하지 않았습니다.
+- 같은 첫 실행에서 macOS(macos-14 러너)는 시험 3개가 더 실패했습니다. 원인을 시험 코드와 로그로 따져 고친 것은 두 개입니다: IO 스레드 지연 작업은 느린 러너에서 반복문이 300ms를 넘겨 "너무 일찍 실행됨"으로 잘못 판정하던 것이고, 요청 컨텍스트 핸들러는 `get_resource_request_handler`가 불린 직후에 `on_before_resource_load`의 기록을 기다리지 않고 바로 확인하던 것입니다(`wait_until`로 바꿈). 두 수정은 Linux에서만 통과를 확인했고 macOS에서는 다시 돌려 봐야 압니다. 한국어 조합 밑줄 시험은 `assert thick > thin`이 `(thin, thick) = (175, 169)`로 실패했습니다(굵은 선의 픽셀이 더 적게 나옴). 러너의 렌더링 차이로 보이나 원인을 확인하지 못했고 고치지 않았습니다.
+
 ## 관련 페이지
 
 - [열지 않은 CEF 메서드와 cefpython의 비교](../analyses/unopened-cef-api.md)

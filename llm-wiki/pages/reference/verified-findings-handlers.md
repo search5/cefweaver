@@ -53,7 +53,7 @@ updated: 2026-10-10
 - **방법**: `CefApp.settings`(`cefweaver.Settings`)의 필드를 정하고 `initialize()`한 뒤 효과를 관찰했습니다.
 - **효과를 확인한 것**:
   - `user_agent`: `navigator.userAgent`가 그 문자열이 됩니다. `user_agent_product`: 기본 사용자 에이전트에 그 토큰이 들어갑니다.
-  - `locale="ko"`: `navigator.language`가 `ko`로 시작합니다. `javascript_flags="--expose-gc"`: 페이지에 `gc`가 있습니다.
+  - `locale="ko"`: 한국어 환경(`LANG=ko_KR.UTF-8`)에서는 `navigator.language`가 `ko`로 시작합니다. 환경이 한국어가 아니면 그렇지 않습니다([F115](verified-findings-opened.md)). `javascript_flags="--expose-gc"`: 페이지에 `gc`가 있습니다.
   - `log_file`, `log_severity`: 로그 파일이 만들어지고 내용이 있습니다.
   - `remote_debugging_port`: `http://127.0.0.1:<포트>/json/version`이 `Browser` 항목을 줍니다.
   - `persist_session_cookies`: 캐시 디렉터리를 공유하는 두 프로세스에서 켜면 세션 쿠키가 다음 프로세스에 남고(쓰는 쪽은 `CookieManager.flush_store` 뒤 종료), 끄면 남지 않습니다.
