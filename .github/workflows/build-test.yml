@@ -7,7 +7,7 @@ on:
       platform:
         description: "Where to build"
         type: choice
-        options: [both, linux, macos, windows, all]
+        options: [both, linux, linux-arm, macos, windows, all]
         default: both
       python-version:
         description: "Python version (the examples use 3.13)"
@@ -31,17 +31,18 @@ jobs:
       - id: pick
         run: |
           case "${{ inputs.platform }}" in
-            linux) m='[{"name":"linux","os":"ubuntu-24.04"}]' ;;
-            macos) m='[{"name":"macos","os":"macos-14"}]' ;;
-            windows) m='[{"name":"windows","os":"windows-2025"}]' ;;
-            all)   m='[{"name":"linux","os":"ubuntu-24.04"},{"name":"macos","os":"macos-14"},{"name":"windows","os":"windows-2025"}]' ;;
-            *)     m='[{"name":"linux","os":"ubuntu-24.04"},{"name":"macos","os":"macos-14"}]' ;;
+            linux) m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"}]' ;;
+            linux-arm) m='[{"name":"linux","label":"linux-arm","os":"ubuntu-24.04-arm","arch":"aarch64"}]' ;;
+            macos) m='[{"name":"macos","label":"macos","os":"macos-14"}]' ;;
+            windows) m='[{"name":"windows","label":"windows","os":"windows-2025"}]' ;;
+            all)   m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"},{"name":"linux","label":"linux-arm","os":"ubuntu-24.04-arm","arch":"aarch64"},{"name":"macos","label":"macos","os":"macos-14"},{"name":"windows","label":"windows","os":"windows-2025"}]' ;;
+            *)     m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"},{"name":"macos","label":"macos","os":"macos-14"}]' ;;
           esac
           echo "matrix=$m" >> "$GITHUB_OUTPUT"
 
   build-test:
     needs: select
-    name: ${{ matrix.name }}
+    name: ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -71,7 +72,7 @@ jobs:
         if: matrix.name == 'linux'
         run: |
           mkdir -p dist
-          docker run --rm -v "$PWD":/src -w /src quay.io/pypa/manylinux_2_28_x86_64 bash -euxc '
+          docker run --rm -v "$PWD":/src -w /src quay.io/pypa/manylinux_2_28_${{ matrix.arch }} bash -euxc '
             yum install -y libX11-devel nss nspr atk at-spi2-atk cups-libs libdrm mesa-libgbm libxkbcommon \
               libXcomposite libXdamage libXfixes libXrandr pango alsa-lib gtk3
             PY=/opt/python/cp313-cp313/bin
@@ -84,7 +85,7 @@ jobs:
               EXCLUDES="$EXCLUDES --exclude $lib.so.0 --exclude $lib.so.1 --exclude $lib.so.2 --exclude $lib.so"
             done
             $PY/pip install auditwheel
-            $PY/auditwheel repair --plat manylinux_2_28_x86_64 $EXCLUDES -w dist /tmp/raw/*.whl
+            $PY/auditwheel repair --plat manylinux_2_28_${{ matrix.arch }} $EXCLUDES -w dist /tmp/raw/*.whl
             chmod -R a+rwX dist
           '
 
@@ -117,6 +118,6 @@ jobs:
         if: inputs.upload-wheel
         uses: actions/upload-artifact@v4
         with:
-          name: cefweaver-wheel-${{ matrix.name }}
+          name: cefweaver-wheel-${{ matrix.label }}
           path: dist/*.whl
           if-no-files-found: error
