@@ -742,3 +742,6 @@ Linux만 실행(38180556005)해서 manylinux_2_28 컨테이너 빌드와 auditwh
 
 ## [2026-10-12] ingest | 한국어 밑줄 시험 실패의 원인
 Linux aarch64 러너에는 한국어 글꼴이 없어 한국어 조합 밑줄 시험이 실패했고, `fonts-noto-cjk`를 설치하자 547개가 통과(38189969143). `packaging.md`에 반영.
+
+## [2026-10-12] ingest | macOS x86_64 CI 실행
+`platform=macos-intel`(macos-15-intel)을 실행(38198907604): 빌드와 설치는 통과, 시험 1개(공유 텍스처 브라우저)가 GPU 초기화 실패 속에서 SIGTRAP으로 실패. `packaging.md`에 반영.
