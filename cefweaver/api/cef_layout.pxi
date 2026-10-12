@@ -25,7 +25,7 @@ cdef class Layout:
         """Return this Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
 
         Returns:
-            BoxLayout | None: This Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
+            cefweaver.BoxLayout | None: This Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
         """
         cdef CefLayout* _p = self._ptr_CefLayout()
         cdef CefRefPtr[CefBoxLayout] _r
@@ -37,7 +37,7 @@ cdef class Layout:
         """Return this Layout as a FillLayout or ``None`` if this is not a FillLayout.
 
         Returns:
-            FillLayout | None: This Layout as a FillLayout or ``None`` if this is not a FillLayout.
+            cefweaver.FillLayout | None: This Layout as a FillLayout or ``None`` if this is not a FillLayout.
         """
         cdef CefLayout* _p = self._ptr_CefLayout()
         cdef CefRefPtr[CefFillLayout] _r

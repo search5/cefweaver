@@ -34,13 +34,13 @@ cdef class PostData:
         return _r
 
     def has_excluded_elements(self):
-        """Return ``True`` if the underlying POST data includes elements that are not represented by this :class:`PostData` object (for example, multi-part file upload data).
+        """Return ``True`` if the underlying POST data includes elements that are not represented by this :class:`~cefweaver.PostData` object (for example, multi-part file upload data).
 
-        Modifying :class:`PostData` objects with excluded elements may result in the request
-        failing.
+        Modifying :class:`~cefweaver.PostData` objects with excluded elements may result in
+        the request failing.
 
         Returns:
-            bool: ``True`` if the underlying POST data includes elements that are not  represented by this ``CefPostData`` object (for example, multi-part file  upload data).
+            bool: ``True`` if the underlying POST data includes elements that are not represented by this ``CefPostData`` object (for example, multi-part file upload data).
         """
         cdef CefPostData* _p = self._ptr()
         cdef cpp_bool _r
@@ -64,7 +64,7 @@ cdef class PostData:
         """Retrieve the post data elements.
 
         Returns:
-            list[PostDataElement]
+            list[cefweaver.PostDataElement]
         """
         cdef vector[CefRefPtr[CefPostDataElement]] _a0
         cdef CefPostData* _p = self._ptr()
@@ -78,7 +78,7 @@ cdef class PostData:
         Returns ``True`` if the removal succeeds.
 
         Args:
-            element (PostDataElement):
+            element (cefweaver.PostDataElement):
         Returns:
             bool
         """
@@ -96,7 +96,7 @@ cdef class PostData:
         Returns ``True`` if the add succeeds.
 
         Args:
-            element (PostDataElement):
+            element (cefweaver.PostDataElement):
         Returns:
             bool
         """
@@ -117,10 +117,10 @@ cdef class PostData:
 
     @staticmethod
     def create():
-        """Create a new :class:`PostData` object.
+        """Create a new :class:`~cefweaver.PostData` object.
 
         Returns:
-            PostData
+            cefweaver.PostData
         """
         cdef CefRefPtr[CefPostData] _r
         with nogil:
@@ -232,7 +232,7 @@ cdef class PostDataElement:
         """Return the type of this post data element.
 
         Returns:
-            PostdataelementType: The type of this post data element.
+            cefweaver.types.PostdataelementType: The type of this post data element.
         """
         cdef CefPostDataElement* _p = self._ptr()
         cdef cef_postdataelement_type_t _r
@@ -284,10 +284,10 @@ cdef class PostDataElement:
 
     @staticmethod
     def create():
-        """Create a new :class:`PostDataElement` object.
+        """Create a new :class:`~cefweaver.PostDataElement` object.
 
         Returns:
-            PostDataElement
+            cefweaver.PostDataElement
         """
         cdef CefRefPtr[CefPostDataElement] _r
         with nogil:
@@ -413,7 +413,7 @@ cdef class Request:
 
         Args:
             referrer_url (str | None):
-            policy (ReferrerPolicy | int):
+            policy (cefweaver.types.ReferrerPolicy | int):
         """
         cdef CefString _a0
         cdef CefRequest* _p = self._ptr()
@@ -439,7 +439,7 @@ cdef class Request:
         """Get the referrer policy.
 
         Returns:
-            ReferrerPolicy
+            cefweaver.types.ReferrerPolicy
         """
         cdef CefRequest* _p = self._ptr()
         cdef cef_referrer_policy_t _r
@@ -451,7 +451,7 @@ cdef class Request:
         """Get the post data.
 
         Returns:
-            PostData | None
+            cefweaver.PostData | None
         """
         cdef CefRequest* _p = self._ptr()
         cdef CefRefPtr[CefPostData] _r
@@ -463,7 +463,7 @@ cdef class Request:
         """Set the post data.
 
         Args:
-            post_data (PostData):
+            post_data (cefweaver.PostData):
         """
         cdef CefRefPtr[CefPostData] _a0
         cdef CefRequest* _p = self._ptr()
@@ -530,7 +530,7 @@ cdef class Request:
         Args:
             name (str):
             value (str | None):
-            overwrite (bool): False any  existing values will not be overwritten.
+            overwrite (bool): False any existing values will not be overwritten.
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -548,7 +548,7 @@ cdef class Request:
         Args:
             url (str):
             method (str):
-            post_data (PostData | None):
+            post_data (cefweaver.PostData | None):
             header_map (dict[str, str]):
         """
         cdef CefString _a0
@@ -566,7 +566,7 @@ cdef class Request:
         return None
 
     def get_flags(self):
-        """Get the flags used in combination with :class:`URLRequest`.
+        """Get the flags used in combination with :class:`~cefweaver.URLRequest`.
 
         See cef_urlrequest_flags_t for supported values.
 
@@ -580,7 +580,7 @@ cdef class Request:
         return _r
 
     def set_flags(self, int flags):
-        """Set the flags used in combination with :class:`URLRequest`.
+        """Set the flags used in combination with :class:`~cefweaver.URLRequest`.
 
         See cef_urlrequest_flags_t for supported values.
 
@@ -593,7 +593,7 @@ cdef class Request:
         return None
 
     def get_first_party_for_cookies(self):
-        """Get the URL to the first party for cookies used in combination with :class:`URLRequest`.
+        """Get the URL to the first party for cookies used in combination with :class:`~cefweaver.URLRequest`.
 
         Returns:
             str
@@ -605,7 +605,7 @@ cdef class Request:
         return _g_str(_r)
 
     def set_first_party_for_cookies(self, url):
-        """Set the URL to the first party for cookies used in combination with :class:`URLRequest`.
+        """Set the URL to the first party for cookies used in combination with :class:`~cefweaver.URLRequest`.
 
         Args:
             url (str | None):
@@ -624,7 +624,7 @@ cdef class Request:
         Only available in the browser process.
 
         Returns:
-            ResourceType
+            cefweaver.types.ResourceType
         """
         cdef CefRequest* _p = self._ptr()
         cdef cef_resource_type_t _r
@@ -639,7 +639,7 @@ cdef class Request:
         main frame or sub-frame navigation.
 
         Returns:
-            TransitionType
+            cefweaver.types.TransitionType
         """
         cdef CefRequest* _p = self._ptr()
         cdef cef_transition_type_t _r
@@ -650,11 +650,11 @@ cdef class Request:
     def get_identifier(self):
         """Return the globally unique identifier for this request or 0 if not specified.
 
-        Can be used by :class:`ResourceRequestHandler` implementations in the browser
-        process to track a single request across multiple callbacks.
+        Can be used by :class:`~cefweaver.ResourceRequestHandler` implementations in the
+        browser process to track a single request across multiple callbacks.
 
         Returns:
-            int: The globally unique identifier for this request or 0 if not  specified.
+            int: The globally unique identifier for this request or 0 if not specified.
         """
         cdef CefRequest* _p = self._ptr()
         cdef uint64_t _r
@@ -664,10 +664,10 @@ cdef class Request:
 
     @staticmethod
     def create():
-        """Create a new :class:`Request` object.
+        """Create a new :class:`~cefweaver.Request` object.
 
         Returns:
-            Request
+            cefweaver.Request
         """
         cdef CefRefPtr[CefRequest] _r
         with nogil:

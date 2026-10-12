@@ -11,7 +11,7 @@ class AccessibilityHandler:
         """Called after renderer process sends accessibility tree changes to the browser process.
 
         Args:
-            value (Value):
+            value (cefweaver.Value):
         """
         return None
 
@@ -19,7 +19,7 @@ class AccessibilityHandler:
         """Called after renderer process sends accessibility location changes to the browser process.
 
         Args:
-            value (Value):
+            value (cefweaver.Value):
         """
         return None
 

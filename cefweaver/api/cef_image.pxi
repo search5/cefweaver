@@ -43,9 +43,9 @@ cdef class Image:
         Will also return ``True`` if both images are empty.
 
         Args:
-            that (Image):
+            that (cefweaver.Image):
         Returns:
-            bool: ``True`` if this Image and ``that`` Image share the same underlying  storage.
+            bool: ``True`` if this Image and ``that`` Image share the same underlying storage.
         """
         cdef CefRefPtr[CefImage] _a0
         cdef CefImage* _p = self._ptr()
@@ -66,10 +66,10 @@ cdef class Image:
         Args:
             scale_factor (float):
             pixel_width (int):
-            pixel_height (int): The  bitmap representation size in pixel coordinates.
-            color_type (ColorType | int):
-            alpha_type (AlphaType | int):
-            pixel_data (bytes | bytearray | memoryview): The array  of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in  size.
+            pixel_height (int): The bitmap representation size in pixel coordinates.
+            color_type (cefweaver.types.ColorType | int):
+            alpha_type (cefweaver.types.AlphaType | int):
+            pixel_data (bytes | bytearray | memoryview): The array of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in size.
         Returns:
             bool
         """
@@ -96,7 +96,7 @@ cdef class Image:
 
         Args:
             scale_factor (float):
-            png_data (bytes | bytearray | memoryview): The image  data of size ``png_data_size``.
+            png_data (bytes | bytearray | memoryview): The image data of size ``png_data_size``.
         Returns:
             bool
         """
@@ -123,7 +123,7 @@ cdef class Image:
 
         Args:
             scale_factor (float):
-            jpeg_data (bytes | bytearray | memoryview): The  image data of size ``jpeg_data_size``.
+            jpeg_data (bytes | bytearray | memoryview): The image data of size ``jpeg_data_size``.
         Returns:
             bool
         """
@@ -206,7 +206,7 @@ cdef class Image:
         Args:
             scale_factor (float):
         Returns:
-            tuple[bool, float, int, int]: Information for the representation that most closely matches  ``scale_factor``.
+            tuple[bool, float, int, int]: Information for the representation that most closely matches ``scale_factor``.
         """
         cdef float _a1
         cdef int _a2
@@ -226,14 +226,15 @@ cdef class Image:
         Only 32-bit RGBA/BGRA formats are supported. ``color_type`` and ``alpha_type``
         values specify the desired output pixel format. ``pixel_width`` and ``pixel_height``
         are the output representation size in pixel coordinates. Returns a
-        :class:`BinaryValue` containing the pixel data on success or ``None`` on failure.
+        :class:`~cefweaver.BinaryValue` containing the pixel data on success or ``None`` on
+        failure.
 
         Args:
             scale_factor (float):
-            color_type (ColorType | int):
-            alpha_type (AlphaType | int):
+            color_type (cefweaver.types.ColorType | int):
+            alpha_type (cefweaver.types.AlphaType | int):
         Returns:
-            tuple[BinaryValue | None, int, int]: The bitmap representation that most closely matches  ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The bitmap representation that most closely matches ``scale_factor``.
         """
         cdef int _a3
         cdef int _a4
@@ -250,14 +251,15 @@ cdef class Image:
 
         If ``with_transparency`` is ``True`` any alpha transparency in the image will be
         represented in the resulting PNG data. ``pixel_width`` and ``pixel_height`` are the
-        output representation size in pixel coordinates. Returns a :class:`BinaryValue`
-        containing the PNG image data on success or ``None`` on failure.
+        output representation size in pixel coordinates. Returns a
+        :class:`~cefweaver.BinaryValue` containing the PNG image data on success or ``None``
+        on failure.
 
         Args:
             scale_factor (float):
-            with_transparency (bool): True any alpha transparency in the image will be  represented in the resulting PNG data.
+            with_transparency (bool): True any alpha transparency in the image will be represented in the resulting PNG data.
         Returns:
-            tuple[BinaryValue | None, int, int]: The PNG representation that most closely matches ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The PNG representation that most closely matches ``scale_factor``.
         """
         cdef int _a2
         cdef int _a3
@@ -275,14 +277,14 @@ cdef class Image:
         ``quality`` determines the compression level with 0 == lowest and 100 == highest.
         The JPEG format does not support alpha transparency and the alpha channel, if any,
         will be discarded. ``pixel_width`` and ``pixel_height`` are the output
-        representation size in pixel coordinates. Returns a :class:`BinaryValue` containing
-        the JPEG image data on success or ``None`` on failure.
+        representation size in pixel coordinates. Returns a :class:`~cefweaver.BinaryValue`
+        containing the JPEG image data on success or ``None`` on failure.
 
         Args:
             scale_factor (float):
             quality (int):
         Returns:
-            tuple[BinaryValue | None, int, int]: The JPEG representation that most closely matches ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The JPEG representation that most closely matches ``scale_factor``.
         """
         cdef int _a2
         cdef int _a3
@@ -296,13 +298,13 @@ cdef class Image:
 
     @staticmethod
     def create_image():
-        """Create a new :class:`Image`.
+        """Create a new :class:`~cefweaver.Image`.
 
         It will initially be empty. Use the Add*() methods to add representations at
         different scale factors.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         if not _cef_started:
             raise RuntimeError("an Image can only be made after CefApp.initialize()")

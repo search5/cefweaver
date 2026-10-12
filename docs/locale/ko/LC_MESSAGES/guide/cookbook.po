@@ -1,0 +1,171 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/cookbook.rst:2
+msgid "Cookbook"
+msgstr "쿡북"
+
+#: ../../guide/cookbook.rst:4
+msgid "Short recipes for common jobs. Each one builds on :doc:`quickstart` and :doc:`embedding`."
+msgstr "자주 하는 작업을 위한 짧은 레시피입니다. 각 레시피는 :doc:`quickstart`\\ 와 :doc:`embedding`\\ 을 바탕으로 합니다."
+
+#: ../../guide/cookbook.rst:6
+#, python-brace-format
+msgid ""
+"The recipes of the first four sections come from one script that runs without a screen (it uses "
+":class:`~cefweaver.ui.headless.HeadlessAdapter`). It was run against the built wheel on a virtual"
+" X server (``xvfb-run python -P headless.py``) and prints ``evaluate: {'v': 'hello', 'e': "
+"None}``, ``snapshot: True True`` and ``ok ['app.test/index.html', 'sum=5']``. Here is the whole "
+"script:"
+msgstr ""
+"처음 네 절의 레시피는 화면 없이 실행되는 스크립트 하나에서 나왔습니다(:class:`~cefweaver.ui.headless.HeadlessAdapter`\\ 를 "
+"사용합니다). 이 스크립트를 가상 X 서버에서 빌드된 wheel에 대해 실행했고(``xvfb-run python -P headless.py``), ``evaluate: "
+"{'v': 'hello', 'e': None}``, ``snapshot: True True``, ``ok ['app.test/index.html', 'sum=5']``\\ 를"
+" 출력했습니다. 전체 스크립트는 다음과 같습니다."
+
+#: ../../guide/cookbook.rst:12
+msgid "Show a page from memory"
+msgstr "메모리의 페이지 보여 주기"
+
+#: ../../guide/cookbook.rst:14
+msgid ""
+"``app.add_resource(url, html)`` answers a fake URL without a network. Add the resource once the "
+"browser exists (``on_ready``), then load it:"
+msgstr ""
+"``app.add_resource(url, html)``\\ 는 네트워크 없이 가짜 URL에 응답합니다. 브라우저가 생긴 뒤(``on_ready``)에 리소스를 추가하고 "
+"로드합니다."
+
+#: ../../guide/cookbook.rst:23
+msgid ""
+"``add_resource`` raises ``RuntimeError`` before ``initialize()``, which "
+":meth:`~cefweaver.ui.Session.start` calls."
+msgstr ""
+"``add_resource``\\ 는 ``initialize()`` 전에 ``RuntimeError``\\ 를 발생시키며, ``initialize()``\\ 는 "
+":meth:`~cefweaver.ui.Session.start`\\ 가 호출합니다."
+
+#: ../../guide/cookbook.rst:26
+msgid "Call Python from the page"
+msgstr "페이지에서 Python 호출하기"
+
+#: ../../guide/cookbook.rst:28
+msgid "Expose the function **before** ``session.start()``; the page gets a ``Promise``:"
+msgstr "``session.start()`` **전에** 함수를 노출합니다. 페이지는 ``Promise``\\ 를 받습니다."
+
+#: ../../guide/cookbook.rst:38
+msgid ""
+"An exception in the function rejects the ``Promise`` with its type and message. "
+"``with_frame=True`` passes the calling frame as the first argument."
+msgstr "함수 안의 예외는 예외의 타입과 메시지로 ``Promise``\\ 를 거부합니다. ``with_frame=True``\\ 는 호출한 frame을 첫 번째 인자로 넘깁니다."
+
+#: ../../guide/cookbook.rst:41
+msgid "Run JavaScript from Python"
+msgstr "Python에서 JavaScript 실행하기"
+
+#: ../../guide/cookbook.rst:43
+msgid ""
+"``evaluate`` needs a frame and a callback ``callback(value, error)``; ``value`` is the JSON value"
+" of the result:"
+msgstr "``evaluate``\\ 에는 frame과 콜백 ``callback(value, error)``\\ 가 필요하며, ``value``\\ 는 결과의 JSON 값입니다."
+
+#: ../../guide/cookbook.rst:52
+msgid "Save a screenshot"
+msgstr "스크린샷 저장하기"
+
+#: ../../guide/cookbook.rst:54
+msgid ""
+"``view.snapshot(path)`` writes the last painted picture as a PNG and returns ``False`` if CEF has"
+" not painted yet:"
+msgstr "``view.snapshot(path)``\\ 는 마지막으로 그려진 그림을 PNG로 쓰고, CEF가 아직 그리지 않았다면 ``False``\\ 를 반환합니다."
+
+#: ../../guide/cookbook.rst:61
+msgid "Wait for something without a toolkit"
+msgstr "툴킷 없이 무언가를 기다리기"
+
+#: ../../guide/cookbook.rst:63
+msgid ""
+"With the headless adapter, ``adapter.run_until(condition, \"what you wait for\")`` runs the loop "
+"until the condition holds and raises a ``TimeoutError`` that names what you waited for. In a "
+"toolkit the loop of the toolkit runs, so you react in the hooks (``on_ready``, ``on_title``, "
+"``on_loading``) instead."
+msgstr ""
+"헤드리스 어댑터에서는 ``adapter.run_until(condition, \"what you wait for\")``\\ 가 조건이 성립할 때까지 루프를 실행하고, 기다린"
+" 대상을 이름으로 밝히는 ``TimeoutError``\\ 를 발생시킵니다. 툴킷에서는 툴킷의 루프가 실행되므로 대신 훅(``on_ready``, ``on_title``, "
+"``on_loading``)에서 반응합니다."
+
+#: ../../guide/cookbook.rst:66
+msgid "Know when a page has loaded"
+msgstr "페이지 로드가 끝난 것을 알기"
+
+#: ../../guide/cookbook.rst:68
+msgid ""
+"A hook of the view tells you the loading state: ``view.on_loading = lambda loading, can_back, "
+"can_forward: ...``. To react to a frame finishing, use a ``LoadHandler`` in window mode (see "
+":doc:`quickstart`)."
+msgstr ""
+"뷰의 훅이 로드 상태를 알려 줍니다. ``view.on_loading = lambda loading, can_back, can_forward: ...``. frame의 로드 "
+"완료에 반응하려면 창 모드에서 ``LoadHandler``\\ 를 사용합니다(:doc:`quickstart` 참조)."
+
+#: ../../guide/cookbook.rst:71
+msgid "Allow the microphone for one site"
+msgstr "한 사이트에 마이크 허용하기"
+
+#: ../../guide/cookbook.rst:77
+msgid ""
+"Set the policy before the session starts. The details, including a policy as a function, are in "
+":doc:`media`."
+msgstr "세션이 시작되기 전에 정책을 설정합니다. 함수로 된 정책을 포함한 자세한 내용은 :doc:`media`\\ 에 있습니다."
+
+#: ../../guide/cookbook.rst:80
+msgid "Add an item to the right-click menu"
+msgstr "오른쪽 클릭 메뉴에 항목 추가하기"
+
+#: ../../guide/cookbook.rst:90
+msgid "More in :doc:`context-menu`."
+msgstr "자세한 내용은 :doc:`context-menu`\\ 에 있습니다."
+
+#: ../../guide/cookbook.rst:93
+msgid "Change a Chromium switch or the cache folder"
+msgstr "Chromium 스위치나 캐시 폴더 바꾸기"
+
+#: ../../guide/cookbook.rst:101
+msgid ""
+"``session.switches`` lists what CEF got (an ``ozone-platform`` may have been added; see :doc"
+":`wayland-gpu`)."
+msgstr ""
+"``session.switches``\\ 는 CEF가 받은 것을 나열합니다(``ozone-platform``\\ 이 추가되었을 수 있습니다. :doc:`wayland-gpu`"
+" 참조)."
+
+#: ../../guide/cookbook.rst:104
+msgid "Close cleanly"
+msgstr "깔끔하게 닫기"
+
+#: ../../guide/cookbook.rst:106
+msgid "Always close the browser before ending the toolkit:"
+msgstr "툴킷을 끝내기 전에 항상 브라우저를 닫습니다."
+
+#: ../../guide/cookbook.rst:112
+msgid ""
+"``shutdown`` returns at once and calls ``done`` when CEF has shut down. CEF can be initialized "
+"only once per process, so build a new process for a second session."
+msgstr ""
+"``shutdown``\\ 은 즉시 반환되고 CEF가 종료되면 ``done``\\ 을 호출합니다. CEF는 프로세스당 한 번만 초기화할 수 있으므로, 두 번째 세션에는 새 "
+"프로세스를 만듭니다."
+

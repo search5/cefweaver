@@ -145,7 +145,7 @@ cdef class Textfield(View):
         this generally shows the leading portion of text that overflows its display area.
 
         Args:
-            reversed (bool): True the range will end at the logical  beginning of the text; this generally shows the leading portion of text  that overflows its display area.
+            reversed (bool): True the range will end at the logical beginning of the text; this generally shows the leading portion of text that overflows its display area.
         """
         cdef CefTextfield* _p = self._ptr_CefTextfield()
         with nogil:
@@ -197,15 +197,19 @@ cdef class Textfield(View):
         return _r
 
     def set_font_list(self, font_list):
-        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-         where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             font_list (str):
@@ -224,7 +228,7 @@ cdef class Textfield(View):
 
         Args:
             color (int):
-            range (Range | tuple[int, int]): Empty the color will be set on the complete text  contents.
+            range (Range | tuple[int, int]): Empty the color will be set on the complete text contents.
         """
         cdef CefRange _a1
         cdef CefTextfield* _p = self._ptr_CefTextfield()
@@ -240,9 +244,9 @@ cdef class Textfield(View):
         If ``range`` is empty the style will be set on the complete text contents.
 
         Args:
-            style (TextStyle | int):
-            add (bool): True the style will be added, otherwise the style will  be removed.
-            range (Range | tuple[int, int]): Empty the style will be set on the complete text  contents.
+            style (cefweaver.types.TextStyle | int):
+            add (bool): True the style will be added, otherwise the style will be removed.
+            range (Range | tuple[int, int]): Empty the style will be set on the complete text contents.
         """
         cdef CefRange _a2
         cdef CefTextfield* _p = self._ptr_CefTextfield()
@@ -257,9 +261,9 @@ cdef class Textfield(View):
         See additional comments on ExecuteCommand().
 
         Args:
-            command_id (TextFieldCommands | int):
+            command_id (cefweaver.types.TextFieldCommands | int):
         Returns:
-            bool: ``True`` if the action associated with the specified command id is  enabled.
+            bool: ``True`` if the action associated with the specified command id is enabled.
         """
         cdef CefTextfield* _p = self._ptr_CefTextfield()
         cdef cpp_bool _r
@@ -271,7 +275,7 @@ cdef class Textfield(View):
         """Perform the action associated with the specified command id.
 
         Args:
-            command_id (TextFieldCommands | int):
+            command_id (cefweaver.types.TextFieldCommands | int):
         """
         cdef CefTextfield* _p = self._ptr_CefTextfield()
         with nogil:
@@ -302,7 +306,7 @@ cdef class Textfield(View):
         """Return the placeholder text that will be displayed when the Textfield is empty.
 
         Returns:
-            str: The placeholder text that will be displayed when the Textfield is  empty.
+            str: The placeholder text that will be displayed when the Textfield is empty.
         """
         cdef CefTextfield* _p = self._ptr_CefTextfield()
         cdef CefString _r
@@ -328,9 +332,9 @@ cdef class Textfield(View):
         """Create a new Textfield.
 
         Args:
-            delegate (TextfieldDelegate | None):
+            delegate (cefweaver.TextfieldDelegate | None):
         Returns:
-            Textfield | None
+            cefweaver.Textfield | None
         """
         cdef CefRefPtr[CefTextfieldDelegate] _a0
         cdef CefRefPtr[CefTextfield] _r

@@ -12,9 +12,9 @@ Supported platforms
 
 - Linux (x86_64): supported (under development)
 - macOS (arm64, Apple Silicon): supported (under development). It builds and runs offscreen and with a native window,
-  and works in Tk; other toolkits and the differences from Linux are in ``docs/limitations.md``. macOS x86_64 is not built yet.
+  and works in Tk; other toolkits and the differences from Linux are in ``llm-wiki/pages/reference/known-constraints.md``. macOS x86_64 is not built yet.
 - Windows (11, x86_64): supported (under development). It builds and runs offscreen and in a Win32 window
-  (``cefweaver.ui.toolkits.pywin32``); the differences are in ``docs/limitations.md``. It is frozen with PyInstaller,
+  (``cefweaver.ui.toolkits.pywin32``); the differences are in ``llm-wiki/pages/reference/known-constraints.md``. It is frozen with PyInstaller,
   cx_Freeze and py2exe. Not done: a browser window as the child of another program's window.
 
 Showing a page in a GUI toolkit
@@ -44,8 +44,9 @@ Tk, SDL2, wxPython, Kivy and, on Windows, pywin32 are in ``cefweaver.ui.toolkits
 
 Each ``examples/<toolkit>/quickstart.py`` is the same for its toolkit. This is experimental: the adapters have been
 checked on a virtual X server with real X events, and the menus, clipboard and sound on a real desktop for most of
-them; a real input method (Korean) only with GTK 3 (each module says what it was checked on). The documentation for
-people is in ``docs/`` (a Jekyll site for GitHub Pages).
+them; a real input method (Korean) only with GTK 3 (each module says what it was checked on). The API reference
+is generated from the docstrings with Sphinx (``docs/``, Read the Docs theme, English and Korean; see
+``docs/Makefile``).
 
 Building from source
 ====================

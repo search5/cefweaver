@@ -1,0 +1,2035 @@
+# Korean translation of the cefweaver documentation.
+# The same license as the cefweaver package.
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 01:01+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: cefweaver contributors\n"
+"Language: ko\n"
+"Language-Team: Korean\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../api/ui.rst:2
+msgid "GUI toolkit layer"
+msgstr "GUI 툴킷 계층"
+
+#: cefweaver.ui:1 of
+msgid "Show a cefweaver browser in a GUI toolkit (experimental; the interface may change)."
+msgstr "GUI 툴킷에서 cefweaver 브라우저를 표시합니다(실험적이며 인터페이스가 바뀔 수 있습니다)."
+
+#: cefweaver.ui:3 of
+msgid ""
+"A toolkit implements :class:`ToolkitAdapter` and calls the input methods of :class:`BrowserView` "
+"from its events. :class:`Session` runs CEF in the toolkit's event loop. "
+":mod:`cefweaver.ui.headless` provides an adapter that needs no toolkit."
+msgstr ""
+"툴킷은 :class:`ToolkitAdapter`\\ 를 구현하고, 자신의 이벤트에서 :class:`BrowserView`\\ 의 입력 메서드를 호출합니다. "
+":class:`Session`\\ 은 툴킷의 이벤트 루프에서 CEF를 실행합니다. :mod:`cefweaver.ui.headless`\\ 는 툴킷이 필요 없는 adapter를"
+" 제공합니다."
+
+#: cefweaver.ui.view.BrowserView:1 of
+msgid "The browser in a toolkit view."
+msgstr "툴킷 view 안의 브라우저."
+
+#: cefweaver.ui.view.BrowserView:3 of
+msgid ""
+"Set the callables ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` as needed. "
+"``client`` is what :meth:`Session.start <cefweaver.ui.Session.start>` gives to CEF."
+msgstr ""
+"필요에 따라 callable ``on_title``, ``on_address``, ``on_loading``, ``on_ready``\\ 를 설정합니다. "
+"``client``\\ 는 :meth:`Session.start <cefweaver.ui.Session.start>`\\ 가 CEF에 전달하는 것입니다."
+
+#: ../../api/ui.rst
+msgid "Parameters"
+msgstr "매개변수"
+
+#: cefweaver.ui.view.BrowserView:6 cefweaver.ui.view.BrowserView:22
+#: cefweaver.ui.widget.BrowserWidget.attach_view:3 of
+msgid "The adapter of the toolkit."
+msgstr "툴킷의 adapter."
+
+#: cefweaver.ui.view.BrowserView:8 of
+msgid ""
+"``None`` (CEF plays the sound, the default), a sink (an object with ``start``, ``write`` and "
+"``stop`` methods), or ``\"auto\"``: the sink of ``adapter.audio_sink()``, else a pygame sink if "
+"pygame is installed, else ``None``."
+msgstr ""
+"``None``\\ (CEF가 소리를 재생하며, 기본값), sink(``start``, ``write``, ``stop`` 메서드를 가진 객체), 또는 "
+"``\"auto\"``: ``adapter.audio_sink()``\\ 의 sink, 없으면 pygame이 설치된 경우 pygame sink, 그것도 없으면 "
+"``None``\\ 입니다."
+
+#: cefweaver.ui.view.BrowserView:12 of
+msgid ""
+"Returns the sink that ``\"auto\"`` falls back to. Defaults to the pygame sink of "
+":mod:`cefweaver.ui.audio`."
+msgstr "``\"auto\"``\\ 가 대체로 사용하는 sink를 반환합니다. 기본값은 :mod:`cefweaver.ui.audio`\\ 의 pygame sink입니다."
+
+#: cefweaver.ui.view.BrowserView:15 of
+msgid ""
+"The policy for requests of the microphone and the camera (see :mod:`cefweaver.ui.permissions`). "
+"Without one CEF refuses them. Set it before the session starts."
+msgstr ""
+"마이크와 카메라 요청에 대한 정책입니다(:mod:`cefweaver.ui.permissions` 참고). 정책이 없으면 CEF는 요청을 거부합니다. 세션이 시작되기 전에 "
+"설정합니다."
+
+#: ../../api/ui.rst
+msgid "Raises"
+msgstr "예외"
+
+#: cefweaver.ui.view.BrowserView:20 of
+msgid "If ``audio`` is neither ``None``, ``\"auto\"`` nor a sink."
+msgstr "``audio``\\ 가 ``None``, ``\"auto\"``, sink 중 어느 것도 아닌 경우."
+
+#: ../../api/ui.rst
+msgid "Variables"
+msgstr "변수"
+
+#: cefweaver.ui.view.BrowserView:24 of
+msgid "The client for CEF."
+msgstr "CEF용 client."
+
+#: cefweaver.ui.view.BrowserView:26 of
+msgid "The browser; ``None`` until it is created and after it closed."
+msgstr "브라우저. 생성되기 전과 닫힌 뒤에는 ``None``\\ 입니다."
+
+#: cefweaver.ui.view.BrowserView:28 of
+msgid "The policy for media requests, or ``None``."
+msgstr "미디어 요청에 대한 정책, 또는 ``None``."
+
+#: cefweaver.ui.view.BrowserView:30 of
+msgid ""
+"``hook(info, items)``, called before the context menu is shown; return the items to show or "
+"``None`` to show no menu (see :mod:`cefweaver.ui.menu`). ``None`` by default. The menu is shown "
+"only if the adapter has ``show_menu``."
+msgstr ""
+"``hook(info, items)``\\ 이며, context menu가 표시되기 전에 호출됩니다. 표시할 항목을 반환하거나, 메뉴를 표시하지 않으려면 ``None``\\ "
+"을 반환합니다(:mod:`cefweaver.ui.menu` 참고). 기본값은 ``None``\\ 입니다. 메뉴는 adapter에 ``show_menu``\\ 가 있을 때만 "
+"표시됩니다."
+
+#: cefweaver.ui.view.BrowserView:34 of
+msgid "The sink in use, or ``None``. Set to ``None`` if the sink raised."
+msgstr "사용 중인 sink, 또는 ``None``. sink가 예외를 발생시키면 ``None``\\ 으로 설정됩니다."
+
+#: cefweaver.ui.view.BrowserView:36 of
+msgid "If true, the sound is not passed to the sink."
+msgstr "true이면 소리가 sink로 전달되지 않습니다."
+
+#: cefweaver.ui.view.BrowserView:38 of
+msgid "Called with a message when the sink or the audio stream failed."
+msgstr "sink나 오디오 스트림이 실패했을 때 메시지와 함께 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView:40 of
+msgid "``on_title(title)``, called when the title changes."
+msgstr "``on_title(title)``\\ 이며, 제목이 바뀔 때 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView:42 of
+msgid "``on_address(url)``, called when the address of the main frame changes."
+msgstr "``on_address(url)``\\ 이며, 메인 frame의 주소가 바뀔 때 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView:44 of
+msgid "``on_loading(loading, can_back, can_forward)``, called when the loading state changes."
+msgstr "``on_loading(loading, can_back, can_forward)``\\ 이며, 로드 상태가 바뀔 때 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView:47 of
+msgid "``on_ready()``, called when the browser exists."
+msgstr "``on_ready()``\\ 이며, 브라우저가 존재하게 되었을 때 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView:49 of
+msgid "``(width, height)`` in pixels of the last painted picture of the view."
+msgstr "view에 마지막으로 그려진 그림의 ``(width, height)``\\ (픽셀 단위)."
+
+#: cefweaver.ui.view.BrowserView:51 of
+msgid "The store of the pixels of the view and of the popup, which backs :meth:`snapshot`."
+msgstr "view와 팝업의 픽셀 저장소이며, :meth:`snapshot`\\ 의 바탕이 됩니다."
+
+#: cefweaver.ui.view.BrowserView:52 of
+msgid "Whether a popup is shown."
+msgstr "팝업이 표시되고 있는지 여부."
+
+#: cefweaver.ui.view.BrowserView:54 of
+msgid "The rectangle of the popup in view coordinates, or ``None``."
+msgstr "view 좌표에서 팝업의 사각형, 또는 ``None``."
+
+#: cefweaver.ui.view.BrowserView:55 of
+msgid "The text selected in the page."
+msgstr "페이지에서 선택된 텍스트."
+
+#: cefweaver.ui.view.BrowserView:57 of
+msgid ""
+"The :class:`~cefweaver.types.DragOperationsMask` that CEF last answered to a drag over the view; "
+"``COPY`` otherwise."
+msgstr ""
+"view 위의 drag에 대해 CEF가 마지막으로 응답한 :class:`~cefweaver.types.DragOperationsMask`\\ 이며, 그런 응답이 없으면 "
+"``COPY``\\ 입니다."
+
+#: cefweaver.ui.BrowserView.capabilities:1 of
+msgid "The ``capabilities`` of the adapter as a frozenset; empty if the adapter has none."
+msgstr "adapter의 ``capabilities``\\ 를 frozenset으로 만든 것이며, adapter에 없으면 비어 있습니다."
+
+#: cefweaver.ui.view.BrowserView.host:1 of
+msgid "Call a function with the browser host if the browser exists."
+msgstr "브라우저가 존재하면 브라우저 host로 함수를 호출합니다."
+
+#: cefweaver.ui.view.BrowserView.host:3 of
+msgid "Called with the :class:`~cefweaver.BrowserHost` of the browser."
+msgstr "브라우저의 :class:`~cefweaver.BrowserHost`\\ 와 함께 호출됩니다."
+
+#: ../../api/ui.rst
+msgid "Returns"
+msgstr "반환값"
+
+#: cefweaver.ui.view.BrowserView.host:6 of
+msgid "What ``function`` returns, or ``None`` if the browser does not exist."
+msgstr "``function``\\ 이 반환하는 값, 또는 브라우저가 존재하지 않으면 ``None``."
+
+#: ../../api/ui.rst
+msgid "Return type"
+msgstr "반환 타입"
+
+#: cefweaver.ui.view.BrowserView.load_url:1 of
+msgid "Load a URL in the main frame; do nothing if the browser does not exist."
+msgstr "메인 frame에서 URL을 로드합니다. 브라우저가 존재하지 않으면 아무것도 하지 않습니다."
+
+#: cefweaver.ui.view.BrowserView.load_url:3 cefweaver.ui.widget.BrowserWidget.load_url:3 of
+msgid "The URL."
+msgstr "URL."
+
+#: cefweaver.ui.view.BrowserView.go_back:1 of
+msgid "Go back in the history; do nothing if the browser does not exist."
+msgstr "기록에서 뒤로 이동합니다. 브라우저가 존재하지 않으면 아무것도 하지 않습니다."
+
+#: cefweaver.ui.view.BrowserView.go_forward:1 of
+msgid "Go forward in the history; do nothing if the browser does not exist."
+msgstr "기록에서 앞으로 이동합니다. 브라우저가 존재하지 않으면 아무것도 하지 않습니다."
+
+#: cefweaver.ui.view.BrowserView.reload:1 of
+msgid "Reload the page; do nothing if the browser does not exist."
+msgstr "페이지를 다시 로드합니다. 브라우저가 존재하지 않으면 아무것도 하지 않습니다."
+
+#: cefweaver.ui.view.BrowserView.close_browser:1 of
+msgid "Close the browser, forcing the close; do nothing if it does not exist."
+msgstr "브라우저를 강제로 닫습니다. 브라우저가 존재하지 않으면 아무것도 하지 않습니다."
+
+#: cefweaver.ui.view.BrowserView.snapshot:1 cefweaver.ui.widget.BrowserWidget.snapshot:1 of
+msgid "Save the last picture of the view as a PNG file."
+msgstr "view의 마지막 그림을 PNG 파일로 저장합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.save_png:3 cefweaver.ui.picture.PictureStore.save_png:3
+#: cefweaver.ui.picture.write_png:3 cefweaver.ui.view.BrowserView.snapshot:3
+#: cefweaver.ui.widget.BrowserWidget.snapshot:3 of
+msgid "The file to write."
+msgstr "쓸 파일."
+
+#: cefweaver.ui.view.BrowserView.snapshot:6 cefweaver.ui.widget.BrowserWidget.snapshot:6 of
+msgid "``False`` if CEF has not painted yet."
+msgstr "CEF가 아직 그리지 않았으면 ``False``."
+
+#: cefweaver.ui.view.BrowserView.resized:1 of
+msgid "Tell CEF that the view has another size, which ``view_size()`` of the adapter returns."
+msgstr "view의 크기가 달라졌음을 CEF에 알리며, 이 크기는 adapter의 ``view_size()``\\ 가 반환합니다."
+
+#: cefweaver.ui.view.BrowserView.focus:1 of
+msgid "Give the page the focus or take it away."
+msgstr "페이지에 포커스를 주거나 빼앗습니다."
+
+#: cefweaver.ui.view.BrowserView.focus:3 of
+msgid "Whether the view has the focus."
+msgstr "view에 포커스가 있는지 여부."
+
+#: cefweaver.ui.view.BrowserView.shown:1 of
+msgid "Tell CEF whether the view is visible."
+msgstr "view가 보이는지 CEF에 알립니다."
+
+#: cefweaver.ui.view.BrowserView.shown:3 of
+msgid "Whether the view is shown."
+msgstr "view가 표시되고 있는지 여부."
+
+#: cefweaver.ui.BrowserView.dragging_out:1 of
+msgid "Whether a drag that the page started is going on, so that :meth:`drag_out_finished` is due."
+msgstr "페이지가 시작한 drag가 진행 중이어서 :meth:`drag_out_finished`\\ 가 필요한 상태인지 여부."
+
+#: cefweaver.ui.view.BrowserView.mouse_move:1 of
+msgid "Pass a movement of the pointer."
+msgstr "포인터의 움직임을 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:6 cefweaver.ui.view.BrowserView.drag_enter:7
+#: cefweaver.ui.view.BrowserView.drag_over:3 cefweaver.ui.view.BrowserView.drop:6
+#: cefweaver.ui.view.BrowserView.mouse_button:5 cefweaver.ui.view.BrowserView.mouse_move:3
+#: cefweaver.ui.view.BrowserView.wheel:3 of
+msgid "X coordinate in the view."
+msgstr "view에서의 X 좌표."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:8 cefweaver.ui.view.BrowserView.drag_enter:9
+#: cefweaver.ui.view.BrowserView.drag_over:5 cefweaver.ui.view.BrowserView.drop:8
+#: cefweaver.ui.view.BrowserView.mouse_button:7 cefweaver.ui.view.BrowserView.mouse_move:5
+#: cefweaver.ui.view.BrowserView.wheel:5 of
+msgid "Y coordinate in the view."
+msgstr "view에서의 Y 좌표."
+
+#: cefweaver.ui.view.BrowserView.mouse_button:13 cefweaver.ui.view.BrowserView.mouse_move:7 of
+msgid "The modifier and mouse button flags of :mod:`cefweaver.ui.keys`."
+msgstr ":mod:`cefweaver.ui.keys`\\ 의 modifier 및 마우스 단추 플래그."
+
+#: cefweaver.ui.view.BrowserView.mouse_move:9 of
+msgid "Whether the pointer left the view."
+msgstr "포인터가 view를 벗어났는지 여부."
+
+#: cefweaver.ui.view.BrowserView.mouse_button:1 of
+msgid "Pass a press or a release of a mouse button."
+msgstr "마우스 단추를 누르거나 놓는 동작을 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.mouse_button:3 of
+msgid "A press gives the page the focus."
+msgstr "누르면 페이지에 포커스가 갑니다."
+
+#: cefweaver.ui.view.BrowserView.mouse_button:9 of
+msgid "``\"left\"``, ``\"middle\"`` or ``\"right\"``. Others are ignored."
+msgstr "``\"left\"``, ``\"middle\"``, ``\"right\"``\\ 입니다. 그 외는 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.key:3 cefweaver.ui.view.BrowserView.mouse_button:11 of
+msgid "True for a press, False for a release."
+msgstr "누르면 True, 놓으면 False."
+
+#: cefweaver.ui.view.BrowserView.mouse_button:15 of
+msgid ""
+"The count of clicks in a row that the toolkit gives. Without it the view counts clicks within 0.4"
+" s and 4 pixels of each other, up to 3."
+msgstr "툴킷이 알려 주는 연속 클릭 횟수. 이 값이 없으면 view는 서로 0.4초, 4픽셀 이내의 클릭을 최대 3까지 세어 계산합니다."
+
+#: cefweaver.ui.view.BrowserView.wheel:1 of
+msgid "Pass a scroll of the wheel."
+msgstr "휠 스크롤을 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.wheel:7 of
+msgid "Horizontal delta as CEF takes it, 120 for a notch."
+msgstr "CEF가 받는 방식의 가로 delta이며, 휠 한 칸은 120입니다."
+
+#: cefweaver.ui.view.BrowserView.wheel:9 of
+msgid "Vertical delta as CEF takes it, 120 for a notch. A positive ``dy`` shows what is above."
+msgstr "CEF가 받는 방식의 세로 delta이며, 휠 한 칸은 120입니다. ``dy``\\ 가 양수이면 위쪽에 있는 내용이 보입니다."
+
+#: cefweaver.ui.view.BrowserView.key:9 cefweaver.ui.view.BrowserView.wheel:11 of
+msgid "The modifier flags of :mod:`cefweaver.ui.keys`."
+msgstr ":mod:`cefweaver.ui.keys`\\ 의 modifier 플래그."
+
+#: cefweaver.ui.view.BrowserView.key:1 of
+msgid "Pass a key press or release."
+msgstr "키를 누르거나 놓는 동작을 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.key:5 of
+msgid "The Windows virtual-key code (see :mod:`cefweaver.ui.keys`)."
+msgstr "Windows 가상 키 코드(:mod:`cefweaver.ui.keys` 참고)."
+
+#: cefweaver.ui.view.BrowserView.key:7 of
+msgid "The native key code of the platform."
+msgstr "플랫폼의 네이티브 키 코드."
+
+#: cefweaver.ui.view.BrowserView.key:11 of
+msgid "The character the key types, if the toolkit gives it with the key."
+msgstr "툴킷이 키와 함께 알려 주는 경우, 그 키로 입력되는 문자."
+
+#: cefweaver.ui.view.BrowserView.key:14 of
+msgid ""
+"True if the view used the key itself (a clipboard key, or Select All, Undo and Redo on macOS), in"
+" which case the toolkit should not handle it further."
+msgstr "view가 키를 직접 사용했으면 True입니다(클립보드 키, 또는 macOS의 모두 선택, 실행 취소, 다시 실행). 이 경우 툴킷은 그 키를 더 이상 처리하지 않아야 합니다."
+
+#: cefweaver.ui.view.BrowserView.text:1 of
+msgid "Pass text that the toolkit commits, apart from key events."
+msgstr "키 이벤트와 별개로 툴킷이 확정한 텍스트를 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.text:3 of
+msgid "A single ASCII character is sent as a typed character, anything else as committed text."
+msgstr "ASCII 문자 하나는 입력된 문자로 전송되고, 그 외에는 확정된 텍스트로 전송됩니다."
+
+#: cefweaver.ui.view.BrowserView.text:5 of
+msgid "The text, such as typed letters or the result of an input method."
+msgstr "입력한 글자나 입력기의 결과와 같은 텍스트."
+
+#: cefweaver.ui.view.BrowserView.commit_text:1 of
+msgid "Pass text that an input method committed, always as committed text."
+msgstr "입력기가 확정한 텍스트를 항상 확정된 텍스트로 전달합니다."
+
+#: cefweaver.ui.view.BrowserView.commit_text:3 of
+msgid ""
+"Unlike :meth:`text`, a single ASCII character is not sent as a typed character. Use this for a "
+"toolkit whose input method also handles the plain keys."
+msgstr ":meth:`text`\\ 와 달리 ASCII 문자 하나도 입력된 문자로 전송되지 않습니다. 입력기가 일반 키도 처리하는 툴킷에 사용합니다."
+
+#: cefweaver.ui.view.BrowserView.commit_text:6 of
+msgid "The committed text. An empty string is ignored."
+msgstr "확정된 텍스트. 빈 문자열은 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.preedit:1 of
+msgid "Set the text an input method is composing."
+msgstr "입력기가 조합 중인 텍스트를 설정합니다."
+
+#: cefweaver.ui.view.BrowserView.preedit:3 of
+msgid "The composition text. An empty string cancels the composition."
+msgstr "조합 텍스트. 빈 문자열은 조합을 취소합니다."
+
+#: cefweaver.ui.view.BrowserView.preedit:5 of
+msgid "The cursor position in ``text``."
+msgstr "``text``\\ 에서의 커서 위치."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:1 of
+msgid "Report that a drag from the toolkit entered the view."
+msgstr "툴킷의 drag가 view에 들어왔음을 알립니다."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:3 of
+msgid ""
+":meth:`drag_over`, :meth:`drag_leave` or :meth:`drag_drop` follow. Without data it is taken as "
+"the drag of the page itself over its own view, if one is going on; otherwise the call is ignored,"
+" as are the following steps, until :meth:`drag_drop` brings the data."
+msgstr ""
+"이어서 :meth:`drag_over`, :meth:`drag_leave`, :meth:`drag_drop` 중 하나가 호출됩니다. 데이터가 없으면 진행 중인 경우 페이지 "
+"자신의 view 위에서 페이지 자체의 drag로 간주되고, 그렇지 않으면 :meth:`drag_drop`\\ 이 데이터를 가져올 때까지 이 호출과 이어지는 단계가 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.begin_drag:8 cefweaver.ui.view.BrowserView.drag_drop:10
+#: cefweaver.ui.view.BrowserView.drag_enter:11 cefweaver.ui.view.BrowserView.drag_over:7 of
+msgid "The allowed :class:`~cefweaver.types.DragOperationsMask`."
+msgstr "허용되는 :class:`~cefweaver.types.DragOperationsMask`."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:12 of
+msgid "Dragged text."
+msgstr "끌어온 텍스트."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:14 of
+msgid "Dragged HTML fragment."
+msgstr "끌어온 HTML 조각."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:16 of
+msgid "Dragged link URL."
+msgstr "끌어온 링크 URL."
+
+#: cefweaver.ui.view.BrowserView.drag_enter:18 of
+msgid "Paths of dragged files."
+msgstr "끌어온 파일의 경로."
+
+#: cefweaver.ui.view.BrowserView.drag_over:1 of
+msgid "Report that a drag moved over the view; ignored unless :meth:`drag_enter` started one."
+msgstr "drag가 view 위에서 움직였음을 알립니다. :meth:`drag_enter`\\ 가 drag를 시작하지 않았으면 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.drag_leave:1 of
+msgid "Report that the drag left the view."
+msgstr "drag가 view를 벗어났음을 알립니다."
+
+#: cefweaver.ui.view.BrowserView.drag_leave:3 of
+msgid ""
+"CEF is told after the next turn of the toolkit loop, and not at all if :meth:`drag_drop` came in "
+"between. Ignored unless :meth:`drag_enter` started a drag."
+msgstr ""
+"CEF에는 툴킷 루프의 다음 순환 뒤에 알려지며, 그 사이에 :meth:`drag_drop`\\ 이 들어오면 전혀 알려지지 않습니다. :meth:`drag_enter`\\ 가"
+" drag를 시작하지 않았으면 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:1 of
+msgid "Report the drop of a drag."
+msgstr "drag의 drop을 알립니다."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:3 of
+msgid ""
+"If :meth:`drag_enter` started the drag, this ends it. Otherwise, if data is given, it acts as "
+":meth:`drop`; without data it is ignored."
+msgstr ""
+":meth:`drag_enter`\\ 가 drag를 시작했으면 이 호출로 drag가 끝납니다. 그렇지 않고 데이터가 주어지면 :meth:`drop`\\ 처럼 동작하며, "
+"데이터가 없으면 무시됩니다."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:11 cefweaver.ui.view.BrowserView.drop:10 of
+msgid "Dropped text."
+msgstr "드롭된 텍스트."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:13 cefweaver.ui.view.BrowserView.drop:12 of
+msgid "Dropped HTML fragment."
+msgstr "drop된 HTML 조각."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:15 cefweaver.ui.view.BrowserView.drop:14 of
+msgid "Dropped link URL."
+msgstr "drop된 링크 URL."
+
+#: cefweaver.ui.view.BrowserView.drag_drop:17 cefweaver.ui.view.BrowserView.drop:16 of
+msgid "Paths of dropped files."
+msgstr "drop된 파일의 경로."
+
+#: cefweaver.ui.view.BrowserView.drop:1 of
+msgid "Drop data into the view as a whole drag: enter, over and drop."
+msgstr "데이터를 하나의 완전한 drag(enter, over, drop)로 view에 drop합니다."
+
+#: cefweaver.ui.view.BrowserView.drop:3 of
+msgid ""
+"For a toolkit that reports only the drop, with its data. The drop is sent when CEF has answered "
+"the drag over, or after 0.5 s."
+msgstr "데이터와 함께 drop만 알려 주는 툴킷용입니다. drop은 CEF가 drag over에 응답했을 때, 또는 0.5초 뒤에 전송됩니다."
+
+#: cefweaver.ui.view.BrowserView.begin_drag:1 of
+msgid "Start a drag that the page began; called for ``start_dragging`` of CEF."
+msgstr "페이지가 시작한 drag를 시작합니다. CEF의 ``start_dragging``\\ 에 대해 호출됩니다."
+
+#: cefweaver.ui.view.BrowserView.begin_drag:3 of
+msgid ""
+"Without the capability ``\"drag_out\"`` the view carries the drag itself, inside the page. With "
+"it, the adapter's ``start_drag_out`` starts the drag, at the time given by the adapter's "
+"``drag_start``."
+msgstr ""
+"``\"drag_out\"`` capability가 없으면 view가 페이지 안에서 drag를 직접 처리합니다. 있으면 adapter의 ``drag_start``\\ 가 정한"
+" 시점에 adapter의 ``start_drag_out``\\ 이 drag를 시작합니다."
+
+#: cefweaver.ui.view.BrowserView.begin_drag:6 of
+msgid "The dragged data."
+msgstr "끌어온 데이터."
+
+#: cefweaver.ui.adapter.DragPayload:11 cefweaver.ui.view.BrowserView.begin_drag:9 of
+msgid "X coordinate in the view where the page started the drag."
+msgstr "페이지가 drag를 시작한 view의 X 좌표."
+
+#: cefweaver.ui.adapter.DragPayload:13 cefweaver.ui.view.BrowserView.begin_drag:11 of
+msgid "Y coordinate in the view where the page started the drag."
+msgstr "페이지가 drag를 시작한 view의 Y 좌표."
+
+#: cefweaver.ui.view.BrowserView.begin_drag:14 of
+msgid "Whether a drag is going on."
+msgstr "drag가 진행 중인지 여부."
+
+#: cefweaver.ui.view.BrowserView.drag_out_finished:1 of
+msgid "Report that the drag started by ``start_drag_out`` of the adapter is over."
+msgstr "adapter의 ``start_drag_out``\\ 이 시작한 drag가 끝났음을 알립니다."
+
+#: cefweaver.ui.view.BrowserView.drag_out_finished:3 of
+msgid "X coordinate in the view where the drag ended."
+msgstr "drag가 끝난 view의 X 좌표."
+
+#: cefweaver.ui.view.BrowserView.drag_out_finished:5 of
+msgid "Y coordinate in the view where the drag ended."
+msgstr "drag가 끝난 view의 Y 좌표."
+
+#: cefweaver.ui.view.BrowserView.drag_out_finished:7 of
+msgid "The resulting :class:`~cefweaver.types.DragOperationsMask`; ``NONE`` if the drag was cancelled."
+msgstr "결과 :class:`~cefweaver.types.DragOperationsMask`. drag가 취소되었으면 ``NONE``\\ 입니다."
+
+#: cefweaver.ui.widget.BrowserWidget:1 of
+msgid ""
+"A base class for a toolkit widget that shows a browser through a "
+":class:`~cefweaver.ui.BrowserView`."
+msgstr ":class:`~cefweaver.ui.BrowserView`\\ 를 통해 브라우저를 표시하는 툴킷 widget의 기반 클래스."
+
+#: cefweaver.ui.widget.BrowserWidget:3 of
+msgid ""
+"List it first among the base classes. Call ``self.attach_view(adapter)`` once, in ``__init__`` "
+"after the toolkit's base class. Then the widget has ``view``, the navigation methods and the "
+"state of the view. Override the hooks ``browser_title``, ``browser_address``, ``browser_loading``"
+" and ``browser_ready`` to handle the notifications of the browser; they do nothing here."
+msgstr ""
+"기반 클래스 중 맨 앞에 둡니다. 툴킷의 기반 클래스 뒤, ``__init__``\\ 에서 ``self.attach_view(adapter)``\\ 를 한 번 호출합니다. "
+"그러면 widget에 ``view``, 탐색 메서드, view의 상태가 생깁니다. 브라우저의 알림을 처리하려면 hook ``browser_title``, "
+"``browser_address``, ``browser_loading``, ``browser_ready``\\ 를 재정의합니다. 이 클래스에서는 아무 동작도 하지 않습니다."
+
+#: cefweaver.ui.widget.BrowserWidget:8 of
+msgid "The view; ``None`` until :meth:`attach_view` is called."
+msgstr "view. :meth:`attach_view`\\ 가 호출되기 전에는 ``None``\\ 입니다."
+
+#: cefweaver.ui.widget.BrowserWidget.attach_view:1 of
+msgid "Create the view and connect the hooks to it."
+msgstr "view를 만들고 hook을 연결합니다."
+
+#: cefweaver.ui.widget.BrowserWidget.attach_view:5 of
+msgid "Keyword arguments of :class:`~cefweaver.ui.BrowserView`, such as ``audio``."
+msgstr "``audio``\\ 와 같은 :class:`~cefweaver.ui.BrowserView`\\ 의 키워드 인자."
+
+#: cefweaver.ui.widget.BrowserWidget.attach_view:7 of
+msgid "The new view, also stored as ``view``."
+msgstr "새 view이며, ``view``\\ 에도 저장됩니다."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_title:1 of
+msgid "Handle a change of the page title."
+msgstr "페이지 제목의 변경을 처리합니다."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_title:3 of
+msgid "The new title."
+msgstr "새 제목."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_address:1 of
+msgid "Handle a change of the address of the main frame."
+msgstr "메인 frame의 주소 변경을 처리합니다."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_address:3 of
+msgid "The new URL."
+msgstr "새 URL."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_loading:1 of
+msgid "Handle a change of the loading state."
+msgstr "로드 상태의 변경을 처리합니다."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_loading:3 of
+msgid "Whether a page is loading."
+msgstr "페이지가 로드 중인지 여부."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_loading:5 of
+msgid "Whether the browser can go back."
+msgstr "브라우저가 뒤로 갈 수 있는지 여부."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_loading:7 of
+msgid "Whether the browser can go forward."
+msgstr "브라우저가 앞으로 갈 수 있는지 여부."
+
+#: cefweaver.ui.widget.BrowserWidget.browser_ready:1 of
+msgid "Handle the creation of the browser, after which pages can be loaded."
+msgstr "브라우저의 생성을 처리하며, 그 뒤에 페이지를 로드할 수 있습니다."
+
+#: cefweaver.ui.BrowserWidget.browser:1 of
+msgid "The CEF browser of the view, or ``None`` before it exists and after it closed."
+msgstr "view의 CEF 브라우저. 생성되기 전과 닫힌 뒤에는 ``None``\\ 입니다."
+
+#: cefweaver.ui.BrowserWidget.popup_visible:1 of
+msgid "Whether a popup (such as the list of a ``<select>``) is shown."
+msgstr "``<select>``\\ 의 목록과 같은 팝업이 표시되고 있는지 여부."
+
+#: cefweaver.ui.BrowserWidget.popup_rect:1 of
+msgid "The rectangle of the popup in view coordinates, or ``None`` if CEF has not told one."
+msgstr "view 좌표에서 팝업의 사각형, 또는 CEF가 알려 주지 않았으면 ``None``."
+
+#: cefweaver.ui.widget.BrowserWidget.load_url:1 of
+msgid "Load a URL in the main frame; see :meth:`~cefweaver.ui.BrowserView.load_url`."
+msgstr "메인 frame에서 URL을 로드합니다. :meth:`~cefweaver.ui.BrowserView.load_url`\\ 을 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.go_back:1 of
+msgid "Go back in the history; see :meth:`~cefweaver.ui.BrowserView.go_back`."
+msgstr "기록에서 뒤로 이동합니다. :meth:`~cefweaver.ui.BrowserView.go_back`\\ 을 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.go_forward:1 of
+msgid "Go forward in the history; see :meth:`~cefweaver.ui.BrowserView.go_forward`."
+msgstr "기록에서 앞으로 이동합니다. :meth:`~cefweaver.ui.BrowserView.go_forward`\\ 를 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.reload:1 of
+msgid "Reload the page; see :meth:`~cefweaver.ui.BrowserView.reload`."
+msgstr "페이지를 다시 로드합니다. :meth:`~cefweaver.ui.BrowserView.reload`\\ 를 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.close_browser:1 of
+msgid "Close the browser; see :meth:`~cefweaver.ui.BrowserView.close_browser`."
+msgstr "브라우저를 닫습니다. :meth:`~cefweaver.ui.BrowserView.close_browser`\\ 를 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.commit_text:1 of
+msgid "Send text that an input method committed; see :meth:`~cefweaver.ui.BrowserView.commit_text`."
+msgstr "입력기가 확정한 텍스트를 보냅니다. :meth:`~cefweaver.ui.BrowserView.commit_text`\\ 를 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.commit_text:3 of
+msgid "The committed text."
+msgstr "확정된 텍스트."
+
+#: cefweaver.ui.widget.BrowserWidget.set_preedit:1 of
+msgid "Set the text an input method is composing; see :meth:`~cefweaver.ui.BrowserView.preedit`."
+msgstr "입력기가 조합 중인 텍스트를 설정합니다. :meth:`~cefweaver.ui.BrowserView.preedit`\\ 를 참고하십시오."
+
+#: cefweaver.ui.widget.BrowserWidget.set_preedit:3 of
+msgid "The composition text. An empty string ends the composition."
+msgstr "조합 텍스트. 빈 문자열은 조합을 끝냅니다."
+
+#: cefweaver.ui.widget.BrowserWidget.set_preedit:5 of
+msgid "The cursor position in the text."
+msgstr "텍스트에서의 커서 위치."
+
+#: cefweaver.ui.tables.CursorTable:1 of
+msgid "Map a ``types.CursorType`` to a toolkit's cursor."
+msgstr "``types.CursorType``\\ 을 툴킷의 커서에 대응시킵니다."
+
+#: cefweaver.ui.tables.CursorTable:3 of
+#, python-brace-format
+msgid "``{CursorType: toolkit cursor}``."
+msgstr "``{CursorType: toolkit cursor}``."
+
+#: cefweaver.ui.tables.CursorTable:5 of
+msgid "The cursor for types not in ``cursors``."
+msgstr "``cursors``\\ 에 없는 타입에 쓰는 커서."
+
+#: cefweaver.ui.tables.CursorTable:7 of
+msgid "The cursor table."
+msgstr "커서 표."
+
+#: cefweaver.ui.tables.CursorTable:9 of
+msgid "The default cursor."
+msgstr "기본 커서."
+
+#: cefweaver.ui.tables.CursorTable.get:1 of
+msgid "Return the toolkit cursor for a cursor type."
+msgstr "커서 타입에 해당하는 툴킷 커서를 반환합니다."
+
+#: cefweaver.ui.tables.CursorTable.get:3 of
+msgid "The CEF cursor type."
+msgstr "CEF 커서 타입."
+
+#: cefweaver.ui.tables.CursorTable.get:6 of
+msgid "The toolkit cursor, or the default if there is none for ``cursor``."
+msgstr "툴킷 커서. ``cursor``\\ 에 해당하는 것이 없으면 기본 커서."
+
+#: cefweaver.ui.adapter.DragPayload:1 of
+msgid "What the page drags out, passed to ``start_drag_out`` of a toolkit that starts the drag itself."
+msgstr "페이지가 밖으로 끌어내는 내용이며, 직접 drag를 시작하는 툴킷의 ``start_drag_out``\\ 에 전달됩니다."
+
+#: cefweaver.ui.adapter.DragPayload:3 of
+msgid "The dragged text, or ``\"\"``."
+msgstr "끌어온 텍스트, 또는 ``\"\"``."
+
+#: cefweaver.ui.adapter.DragPayload:5 of
+msgid "The dragged HTML fragment, or ``\"\"``."
+msgstr "끌어온 HTML 조각, 또는 ``\"\"``."
+
+#: cefweaver.ui.adapter.DragPayload:7 of
+msgid "The dragged link URL, or ``\"\"``."
+msgstr "끌어온 링크 URL, 또는 ``\"\"``."
+
+#: cefweaver.ui.adapter.DragPayload:9 of
+msgid "Paths of the dragged files."
+msgstr "끌어온 파일의 경로."
+
+#: cefweaver.ui.adapter.DragPayload:15 of
+msgid "The :class:`~cefweaver.DragData` of the drag."
+msgstr "drag의 :class:`~cefweaver.DragData`."
+
+#: cefweaver.ui.tables.EventModifiers:1 of
+msgid "Modifiers that an event object answers by methods, e.g. wx's ``event.ShiftDown()``."
+msgstr "wx의 ``event.ShiftDown()``\\ 처럼 이벤트 객체가 메서드로 답하는 modifier."
+
+#: cefweaver.ui.tables.EventModifiers:3 of
+msgid "The state is the event. A missing method counts as not down."
+msgstr "상태는 이벤트입니다. 없는 메서드는 눌리지 않은 것으로 간주됩니다."
+
+#: cefweaver.ui.tables.EventModifiers:5 of
+msgid "The method name for each modifier."
+msgstr "각 modifier의 메서드 이름."
+
+#: cefweaver.ui.tables.EventModifiers.has:1 of
+msgid "Return whether an event reports a modifier as down."
+msgstr "이벤트가 modifier를 눌린 상태로 알리는지 반환합니다."
+
+#: cefweaver.ui.tables.EventModifiers.has:3 of
+msgid "The toolkit's event object."
+msgstr "툴킷의 이벤트 객체."
+
+#: cefweaver.ui.tables.EventModifiers.has:4 cefweaver.ui.tables.MaskModifiers.has:5
+#: cefweaver.ui.tables.ModifierTable.has:4 cefweaver.ui.tables.NamedModifiers.has:5 of
+msgid "``\"shift\"``, ``\"control\"``, ``\"alt\"``, ``\"left\"``, ``\"middle\"`` or ``\"right\"``."
+msgstr "``\"shift\"``, ``\"control\"``, ``\"alt\"``, ``\"left\"``, ``\"middle\"``, ``\"right\"``\\ 입니다."
+
+#: cefweaver.ui.tables.EventModifiers.has:7 of
+msgid "``False`` if the event has no such question method."
+msgstr "이벤트에 해당하는 조회 메서드가 없으면 ``False``."
+
+#: cefweaver.ui.adapter.Frame:1 of
+msgid "A picture CEF painted: the whole view, or a popup such as the list of a ``<select>``."
+msgstr "CEF가 그린 그림: 전체 view, 또는 ``<select>``\\ 의 목록과 같은 팝업."
+
+#: cefweaver.ui.adapter.Frame:3 of
+msgid ""
+"``buffer`` is valid only during the :meth:`~cefweaver.ui.ToolkitAdapter.present` call; copy the "
+"pixels that are kept. A frame of kind ``POPUP_HIDDEN`` has no pixels and signals that the popup "
+"is gone."
+msgstr ""
+"``buffer``\\ 는 :meth:`~cefweaver.ui.ToolkitAdapter.present` 호출 중에만 유효합니다. 보관할 픽셀은 복사해야 합니다. "
+"``POPUP_HIDDEN`` 종류의 frame에는 픽셀이 없으며 팝업이 사라졌음을 알립니다."
+
+#: cefweaver.ui.adapter.Frame:6 of
+msgid "Value of ``kind`` for a frame of the whole view."
+msgstr "전체 view의 frame에 대한 ``kind`` 값."
+
+#: cefweaver.ui.adapter.Frame:8 of
+msgid "Value of ``kind`` for a frame of a popup."
+msgstr "팝업의 frame에 대한 ``kind`` 값."
+
+#: cefweaver.ui.adapter.Frame:10 of
+msgid "Value of ``kind`` for the end of a popup."
+msgstr "팝업의 끝에 대한 ``kind`` 값."
+
+#: cefweaver.ui.adapter.Frame:12 of
+msgid "One of ``VIEW``, ``POPUP`` and ``POPUP_HIDDEN``."
+msgstr "``VIEW``, ``POPUP``, ``POPUP_HIDDEN`` 중 하나."
+
+#: cefweaver.ui.adapter.Frame:14 of
+msgid "Width of the picture in pixels."
+msgstr "그림의 너비(픽셀 단위)."
+
+#: cefweaver.ui.adapter.Frame:16 of
+msgid "Height of the picture in pixels."
+msgstr "그림의 높이(픽셀 단위)."
+
+#: cefweaver.ui.adapter.Frame:18 of
+msgid "BGRA pixels, ``width * height * 4`` bytes, rows from the top."
+msgstr "BGRA 픽셀이며, ``width * height * 4``\\ 바이트이고 행은 위에서부터입니다."
+
+#: cefweaver.ui.adapter.Frame:20 of
+msgid "The rectangles that changed since the last frame of the same kind. The first frame is all of it."
+msgstr "같은 종류의 마지막 frame 이후 바뀐 사각형. 첫 frame은 전체입니다."
+
+#: cefweaver.ui.adapter.Frame:23 of
+msgid "For a popup frame, the place of the popup in view coordinates; otherwise ``None``."
+msgstr "팝업 frame에서는 view 좌표에서 팝업의 위치이고, 그 외에는 ``None``."
+
+#: cefweaver.ui.adapter.Frame:25 of
+msgid ""
+"The ``PictureChange`` that the view's picture store made of this frame, for adapters that wrap "
+"its pixels."
+msgstr "adapter가 픽셀을 감싸 쓰는 경우를 위해, view의 picture store가 이 frame으로 만든 ``PictureChange``."
+
+#: cefweaver.ui.tables.KeyTable:1 of
+msgid "Map a toolkit's key to a virtual key code (``keys.VK_*``)."
+msgstr "툴킷의 키를 가상 키 코드(``keys.VK_*``)에 대응시킵니다."
+
+#: cefweaver.ui.tables.KeyTable:3 of
+#, python-brace-format
+msgid "``{toolkit key: code}`` for keys that follow no rule (arrows, Enter, modifiers)."
+msgstr "규칙을 따르지 않는 키(화살표, Enter, modifier)에 대한 ``{toolkit key: code}``."
+
+#: cefweaver.ui.tables.KeyTable:6 of
+msgid ""
+"``function(key)`` returns the function key number 1 to 12 for a function key, otherwise ``None``."
+" See :func:`function_range`."
+msgstr ""
+"``function(key)``\\ 는 function 키이면 function 키 번호 1에서 12를, 아니면 ``None``\\ 을 반환합니다. "
+":func:`function_range`\\ 를 참고하십시오."
+
+#: cefweaver.ui.tables.KeyTable:9 of
+msgid ""
+"``char(key)`` returns the character the key produces, or a false value. The code is that of the "
+"character's key, see :func:`~cefweaver.ui.keys.vk_for_char`."
+msgstr ""
+"``char(key)``\\ 는 그 키가 만드는 문자를, 또는 거짓 값을 반환합니다. 코드는 그 문자의 키에 해당하는 것이며, "
+":func:`~cefweaver.ui.keys.vk_for_char`\\ 를 참고하십시오."
+
+#: cefweaver.ui.tables.KeyTable:13 of
+msgid ""
+"If true, a character without a virtual key (e.g. Hangul) yields its code point instead of 0. "
+"Defaults to ``False``."
+msgstr "true이면 가상 키가 없는 문자(예: 한글)는 0 대신 코드 포인트를 제공합니다. 기본값은 ``False``\\ 입니다."
+
+#: cefweaver.ui.tables.KeyTable:17 of
+msgid "The special key table."
+msgstr "특수 키 표."
+
+#: cefweaver.ui.tables.KeyTable:19 of
+msgid "The function key detector."
+msgstr "function 키 감지기."
+
+#: cefweaver.ui.tables.KeyTable:21 of
+msgid "The character function."
+msgstr "문자 함수."
+
+#: cefweaver.ui.tables.KeyTable:23 of
+msgid "See above."
+msgstr "위를 참고하십시오."
+
+#: cefweaver.ui.tables.KeyTable.code:1 of
+msgid "Return the virtual key code of a toolkit key."
+msgstr "툴킷 키의 가상 키 코드를 반환합니다."
+
+#: cefweaver.ui.tables.KeyTable.code:3 of
+msgid "The toolkit's key."
+msgstr "툴킷의 키."
+
+#: cefweaver.ui.tables.KeyTable.code:5 of
+msgid "The virtual key code, or 0 if the key has none."
+msgstr "가상 키 코드. 키에 해당하는 것이 없으면 0."
+
+#: cefweaver.ui.tables.MaskModifiers:1 of
+msgid "Modifiers that are bits of a number or of a flags enumeration."
+msgstr "숫자 또는 플래그 열거형의 비트로 된 modifier."
+
+#: cefweaver.ui.tables.MaskModifiers:3 of
+msgid "Example: ``MaskModifiers(shift=1, control=4)``."
+msgstr "예시: ``MaskModifiers(shift=1, control=4)``."
+
+#: cefweaver.ui.tables.MaskModifiers:5 of
+msgid "The mask of Shift, or ``None`` if the toolkit has none."
+msgstr "Shift의 mask. 툴킷에 없으면 ``None``."
+
+#: cefweaver.ui.tables.MaskModifiers:6 of
+msgid "The mask of Control."
+msgstr "Control의 mask."
+
+#: cefweaver.ui.tables.MaskModifiers:7 of
+msgid "The mask of Alt."
+msgstr "Alt의 mask."
+
+#: cefweaver.ui.tables.MaskModifiers:8 of
+msgid "The mask of the left mouse button."
+msgstr "마우스 왼쪽 단추의 mask."
+
+#: cefweaver.ui.tables.MaskModifiers:9 of
+msgid "The mask of the middle mouse button."
+msgstr "마우스 가운데 단추의 mask."
+
+#: cefweaver.ui.tables.MaskModifiers:10 of
+msgid "The mask of the right mouse button."
+msgstr "마우스 오른쪽 단추의 mask."
+
+#: cefweaver.ui.tables.MaskModifiers.has:1 of
+msgid "Return whether the mask of a modifier is set in a state."
+msgstr "modifier의 mask가 상태에 설정되어 있는지 반환합니다."
+
+#: cefweaver.ui.tables.MaskModifiers.has:3 of
+msgid "The toolkit's modifier state, a bit mask."
+msgstr "툴킷의 modifier 상태이며, 비트 mask입니다."
+
+#: cefweaver.ui.tables.MaskModifiers.has:8 of
+msgid "``False`` if no mask was given for ``name``."
+msgstr "``name``\\ 에 대한 mask가 주어지지 않았으면 ``False``."
+
+#: cefweaver.ui.tables.NamedModifiers:1 of
+msgid "Modifiers that are names in a collection, e.g. Kivy's ``[\"ctrl\", \"shift\"]``."
+msgstr "Kivy의 ``[\"ctrl\", \"shift\"]``\\ 처럼 컬렉션 안의 이름으로 된 modifier."
+
+#: cefweaver.ui.tables.NamedModifiers:3 of
+msgid "The toolkit name of each modifier."
+msgstr "각 modifier의 툴킷 이름."
+
+#: cefweaver.ui.tables.NamedModifiers.has:1 of
+msgid "Return whether the toolkit name of a modifier is in a state."
+msgstr "modifier의 툴킷 이름이 상태에 있는지 반환합니다."
+
+#: cefweaver.ui.tables.NamedModifiers.has:3 of
+msgid "The toolkit's modifier names."
+msgstr "툴킷의 modifier 이름."
+
+#: cefweaver.ui.tables.NamedModifiers.has:8 of
+msgid "Whether ``NAMES[name]`` is in ``state``."
+msgstr "``NAMES[name]``\\ 이 ``state``\\ 에 있는지 여부."
+
+#: cefweaver.ui.picture.PictureChange:1 of
+msgid "The result of :meth:`PictureStore.apply`."
+msgstr ":meth:`PictureStore.apply`\\ 의 결과."
+
+#: cefweaver.ui.picture.PictureChange:3 of
+msgid "The kind of change."
+msgstr "변경의 종류."
+
+#: cefweaver.ui.picture.PictureChange:5 of
+msgid "The changed rectangles."
+msgstr "바뀐 사각형."
+
+#: cefweaver.ui.picture.PictureChange:8 of
+msgid "``PictureStore.NEW``, ``DIRTY``, ``POPUP`` or ``POPUP_HIDDEN``."
+msgstr "``PictureStore.NEW``, ``DIRTY``, ``POPUP``, ``POPUP_HIDDEN`` 중 하나."
+
+#: cefweaver.ui.picture.PictureChange:10 of
+msgid ""
+"For ``DIRTY``, the changed rectangles in device pixels, clipped to the picture; for ``NEW``, the "
+"whole picture; otherwise empty."
+msgstr "``DIRTY``\\ 에서는 그림에 맞게 잘린, 장치 픽셀 단위의 바뀐 사각형이고, ``NEW``\\ 에서는 그림 전체이며, 그 외에는 비어 있습니다."
+
+#: cefweaver.ui.picture.PictureStore:1 of
+msgid "A copy of the painted pixels, updated in place frame by frame."
+msgstr "그려진 픽셀의 복사본이며, frame마다 제자리에서 갱신됩니다."
+
+#: cefweaver.ui.picture.PictureStore:3 of
+msgid ""
+"Meant for toolkits that wrap pixels without copying them (cairo, ``QImage``) and need to know "
+"what changed. CEF's buffer is valid only during ``present()``. A frame of the same size updates "
+"``pixels`` in place, only in the dirty rows, so a surface wrapped around ``pixels`` stays valid. "
+"A frame of another size allocates new pixels and yields ``NEW``; the toolkit must then create a "
+"new surface."
+msgstr ""
+"픽셀을 복사 없이 감싸 쓰며(cairo, ``QImage``) 무엇이 바뀌었는지 알아야 하는 툴킷을 위한 것입니다. CEF의 버퍼는 ``present()`` 중에만 "
+"유효합니다. 같은 크기의 frame은 dirty 행에서만 ``pixels``\\ 를 제자리에서 갱신하므로 ``pixels``\\ 를 감싼 surface는 계속 유효합니다. "
+"다른 크기의 frame은 새 픽셀을 할당하고 ``NEW``\\ 를 제공하며, 이때 툴킷은 새 surface를 만들어야 합니다."
+
+#: cefweaver.ui.picture.PictureStore:9 of
+msgid "The view pixels in BGRA, ``width * height * 4`` bytes, or ``None`` before the first frame."
+msgstr "BGRA 형식의 view 픽셀(``width * height * 4``\\ 바이트), 또는 첫 frame 전에는 ``None``."
+
+#: cefweaver.ui.picture.PictureStore:12 of
+msgid "``(width, height)`` of ``pixels``."
+msgstr "``pixels``\\ 의 ``(width, height)``."
+
+#: cefweaver.ui.picture.PictureStore:14 of
+msgid "The popup pixels in BGRA, or ``None`` if no popup is shown."
+msgstr "BGRA 형식의 팝업 픽셀, 또는 팝업이 표시되지 않으면 ``None``."
+
+#: cefweaver.ui.picture.PictureStore:17 of
+msgid "``(width, height)`` of the popup."
+msgstr "팝업의 ``(width, height)``."
+
+#: cefweaver.ui.picture.PictureStore:19 of
+msgid "The position of the popup in the view."
+msgstr "view에서 팝업의 위치."
+
+#: cefweaver.ui.picture.PictureStore:21 of
+msgid "Kind of change: new pixels were allocated."
+msgstr "변경의 종류: 새 픽셀이 할당되었습니다."
+
+#: cefweaver.ui.picture.PictureStore:23 of
+msgid "Kind of change: rectangles of ``pixels`` changed."
+msgstr "변경의 종류: ``pixels``\\ 의 사각형이 바뀌었습니다."
+
+#: cefweaver.ui.picture.PictureStore:25 of
+msgid "Kind of change: the popup was replaced."
+msgstr "변경의 종류: 팝업이 교체되었습니다."
+
+#: cefweaver.ui.picture.PictureStore:27 of
+msgid "Kind of change: the popup was hidden."
+msgstr "변경의 종류: 팝업이 숨겨졌습니다."
+
+#: cefweaver.ui.picture.PictureStore.save_png:1 of
+msgid "Save the view picture as a PNG file."
+msgstr "view의 그림을 PNG 파일로 저장합니다."
+
+#: cefweaver.ui.picture.PictureStore.save_png:6 of
+msgid "``True`` if written, ``False`` if there is no picture yet."
+msgstr "기록했으면 ``True``, 아직 그림이 없으면 ``False``."
+
+#: cefweaver.ui.picture.PictureStore.apply:1 of
+msgid "Apply a painted frame to the stored pixels."
+msgstr "그려진 frame을 저장된 픽셀에 적용합니다."
+
+#: cefweaver.ui.picture.PictureStore.apply:3 of
+msgid "The frame, from ``ToolkitAdapter.present()``."
+msgstr "``ToolkitAdapter.present()``\\ 에서 온 frame."
+
+#: cefweaver.ui.picture.PictureStore.apply:6 of
+msgid "What changed."
+msgstr "바뀐 내용."
+
+#: cefweaver.ui.session.Session:1 of
+msgid ""
+"The :class:`~cefweaver.CefApp`, the :class:`~cefweaver.JavascriptBridge` and the "
+":class:`~cefweaver.MessagePump` of an application."
+msgstr ""
+"애플리케이션의 :class:`~cefweaver.CefApp`, :class:`~cefweaver.JavascriptBridge`, "
+":class:`~cefweaver.MessagePump`."
+
+#: cefweaver.ui.session.Session:3 of
+msgid ""
+"CEF reports from any of its threads when it wants to run; ``adapter.post`` brings that into the "
+"main thread and ``adapter.call_later`` carries the deadline, so nothing polls. A session holds "
+"one browser (one :class:`~cefweaver.ui.BrowserView`)."
+msgstr ""
+"CEF는 실행하고 싶을 때 임의의 스레드에서 알립니다. ``adapter.post``\\ 가 이를 메인 스레드로 가져오고 ``adapter.call_later``\\ 가 "
+"기한을 전달하므로, 폴링은 필요 없습니다. 세션은 브라우저 하나(:class:`~cefweaver.ui.BrowserView` 하나)를 가집니다."
+
+#: cefweaver.ui.session.Session:8 of
+msgid "Example"
+msgstr "예시"
+
+#: cefweaver.ui.session.Session:18 of
+msgid "The toolkit adapter; only ``post`` and ``call_later`` are needed (and ``release``, if it has one)."
+msgstr "툴킷 adapter. ``post``\\ 와 ``call_later``\\ 만 필요합니다(``release``\\ 가 있으면 그것도 사용됩니다)."
+
+#: cefweaver.ui.session.Session:21 of
+msgid ""
+"Chromium command line switches as ``(name, value)`` pairs. If "
+":func:`~cefweaver.ui.session.default_ozone_platform` returns a platform and neither ``ozone-"
+"platform`` nor ``ozone-platform-hint`` is given, ``(\"ozone-platform\", platform)`` is added."
+msgstr ""
+"``(name, value)`` 쌍으로 된 Chromium 명령줄 스위치. :func:`~cefweaver.ui.session.default_ozone_platform`\\ "
+"이 플랫폼을 반환하고 ``ozone-platform``\\ 도 ``ozone-platform-hint``\\ 도 주어지지 않았으면 ``(\"ozone-platform\", "
+"platform)``\\ 이 추가됩니다."
+
+#: cefweaver.ui.session.Session:25 of
+msgid "The cache directory, passed to :meth:`~cefweaver.CefApp.set_cache_path`."
+msgstr "캐시 디렉터리이며, :meth:`~cefweaver.CefApp.set_cache_path`\\ 에 전달됩니다."
+
+#: cefweaver.ui.session.Session:28 of
+msgid "The toolkit adapter."
+msgstr "툴킷 adapter."
+
+#: cefweaver.ui.session.Session:30 of
+msgid "The switches given to CEF, including one added by the session."
+msgstr "세션이 추가한 것을 포함해 CEF에 전달된 스위치."
+
+#: cefweaver.ui.session.Session:32 of
+msgid "The offscreen, non-transparent application."
+msgstr "오프스크린이며 투명하지 않은 애플리케이션."
+
+#: cefweaver.ui.session.Session:34 of
+msgid "The JavaScript bridge of ``app``."
+msgstr "``app``\\ 의 JavaScript bridge."
+
+#: cefweaver.ui.session.Session:36 of
+msgid "The message pump of ``app``."
+msgstr "``app``\\ 의 message pump."
+
+#: cefweaver.ui.session.Session:38 of
+msgid "Whether :meth:`start` has been called and :meth:`shutdown` has not finished."
+msgstr ":meth:`start`\\ 가 호출되었고 :meth:`shutdown`\\ 이 끝나지 않았는지 여부."
+
+#: cefweaver.ui.session.Session:40 of
+msgid "The views of the session."
+msgstr "세션의 view."
+
+#: cefweaver.ui.session.Session.start:1 of
+msgid "Start CEF and create the browser of a view."
+msgstr "CEF를 시작하고 view의 브라우저를 만듭니다."
+
+#: cefweaver.ui.session.Session.start:3 of
+msgid "``on_ready`` of the view is called when the browser exists."
+msgstr "브라우저가 존재하게 되면 view의 ``on_ready``\\ 가 호출됩니다."
+
+#: cefweaver.ui.session.Session.start:5 of
+msgid "The view, or the widget that has it."
+msgstr "view, 또는 view를 가진 widget."
+
+#: cefweaver.ui.session.Session.start:7 of
+msgid "The first URL. Defaults to ``\"about:blank\"``."
+msgstr "처음 URL. 기본값은 ``\"about:blank\"``\\ 입니다."
+
+#: cefweaver.ui.session.Session.start:10 of
+msgid "If ``target`` is neither a view nor a widget."
+msgstr "``target``\\ 이 view도 widget도 아닌 경우."
+
+#: cefweaver.ui.session.Session.shutdown:1 of
+msgid "Close the browsers, wait until CEF has closed them, shut CEF down and call ``done``."
+msgstr "브라우저를 닫고, CEF가 닫을 때까지 기다리고, CEF를 종료한 뒤 ``done``\\ 을 호출합니다."
+
+#: cefweaver.ui.session.Session.shutdown:3 of
+msgid ""
+"Returns at once; the rest runs from the loop of the toolkit. Calls ``adapter.release()`` if the "
+"adapter has it, before ``done``."
+msgstr "즉시 반환하며, 나머지는 툴킷의 루프에서 실행됩니다. adapter에 ``adapter.release()``\\ 가 있으면 ``done`` 앞에 그것을 호출합니다."
+
+#: cefweaver.ui.session.Session.shutdown:6 of
+msgid "Called without arguments when the shutdown is complete."
+msgstr "종료가 끝나면 인자 없이 호출됩니다."
+
+#: cefweaver.ui.picture.write_png:1 of
+msgid "Write BGRA pixels as an 8-bit RGBA PNG file."
+msgstr "BGRA 픽셀을 8비트 RGBA PNG 파일로 씁니다."
+
+#: cefweaver.ui.picture.write_png:5 of
+msgid "The width in pixels."
+msgstr "너비(픽셀 단위)."
+
+#: cefweaver.ui.picture.write_png:7 of
+msgid "The height in pixels."
+msgstr "높이(픽셀 단위)."
+
+#: cefweaver.ui.picture.write_png:9 of
+msgid "``width * height * 4`` bytes, rows from the top."
+msgstr "``width * height * 4``\\ 바이트이며, 행은 위에서부터입니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:1 of
+msgid "The methods a toolkit adapter must have."
+msgstr "툴킷 adapter가 반드시 가져야 하는 메서드."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:3 of
+msgid ""
+"A toolkit implements these structurally (no inheritance) and calls the input methods of "
+":class:`~cefweaver.ui.BrowserView`. The optional members below are used if the adapter has them. "
+"Those that change how the view behaves must also be named in the ``capabilities`` attribute (a "
+"collection of strings) of the adapter."
+msgstr ""
+"툴킷은 이를 구조적으로(상속 없이) 구현하고 :class:`~cefweaver.ui.BrowserView`\\ 의 입력 메서드를 호출합니다. 아래의 선택 멤버는 "
+"adapter에 있으면 사용됩니다. view의 동작을 바꾸는 멤버는 adapter의 ``capabilities`` 속성(문자열 컬렉션)에도 이름이 있어야 합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:8 of
+msgid ""
+":class:`~cefweaver.ui.Session` needs only ``post`` and ``call_later``, so an object with these "
+"two can start CEF before any widget exists."
+msgstr ""
+":class:`~cefweaver.ui.Session`\\ 은 ``post``\\ 와 ``call_later``\\ 만 필요로 하므로, 이 둘을 가진 객체만 있으면 "
+"widget이 생기기 전에 CEF를 시작할 수 있습니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:11 of
+msgid "Optional members:"
+msgstr "선택 멤버:"
+
+#: cefweaver.ui.adapter.ToolkitAdapter:13 of
+msgid "``set_cursor(cursor_type)``: show the cursor CEF wants (a :class:`~cefweaver.types.CursorType`)."
+msgstr "``set_cursor(cursor_type)``: CEF가 원하는 커서(:class:`~cefweaver.types.CursorType`)를 표시합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:14 of
+msgid ""
+"``clipboard_get()`` and ``clipboard_set(text)``: the text clipboard of the toolkit. The view uses"
+" them for Ctrl+C, Ctrl+X and Ctrl+V (Command on macOS). Name ``\"native_clipboard\"`` in "
+"``capabilities`` if CEF can do these itself."
+msgstr ""
+"``clipboard_get()``\\ 과 ``clipboard_set(text)``: 툴킷의 텍스트 클립보드입니다. view는 이를 Ctrl+C, Ctrl+X, "
+"Ctrl+V(macOS에서는 Command)에 사용합니다. CEF가 이를 직접 처리할 수 있으면 ``capabilities``\\ 에 "
+"``\"native_clipboard\"``\\ 를 지정합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:17 of
+msgid "``set_ime_rect(x, y, w, h)``: where the input method puts its candidate window."
+msgstr "``set_ime_rect(x, y, w, h)``: 입력기가 후보 창을 놓을 위치입니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:18 of
+msgid ""
+"``start_drag_out(payload, allowed)``: start a drag of the toolkit for a drag from the page "
+"(capability ``\"drag_out\"``). ``payload`` is a :class:`~cefweaver.ui.DragPayload`. Return "
+"whether the drag started. The call may run until the drag is over; then call "
+":meth:`~cefweaver.ui.BrowserView.drag_out_finished`. Without the capability the view carries the "
+"drag out itself, inside the page only."
+msgstr ""
+"``start_drag_out(payload, allowed)``: 페이지에서 시작된 드래그를 위해 툴킷의 드래그를 시작합니다(capability "
+"``\"drag_out\"``). ``payload``\\ 는 :class:`~cefweaver.ui.DragPayload`\\ 입니다. 드래그가 시작되었는지 반환합니다. 이"
+" 호출은 드래그가 끝날 때까지 실행될 수 있으며, 끝나면 :meth:`~cefweaver.ui.BrowserView.drag_out_finished`\\ 를 호출합니다. "
+"capability가 없으면 view가 드래그를 페이지 안에서만 직접 처리합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:23 of
+msgid ""
+"``drag_start``: an attribute telling when the toolkit can start its drag. ``\"immediate\"`` (the "
+"default), ``\"posted\"`` (from the loop, after the callback of CEF is over) or ``\"on_motion\"`` "
+"(with the next pointer move, button down)."
+msgstr ""
+"``drag_start``: 툴킷이 드래그를 시작할 수 있는 시점을 알려 주는 속성입니다. ``\"immediate\"``\\ (기본값), ``\"posted\"``\\ "
+"(CEF의 콜백이 끝난 뒤 루프에서) 또는 ``\"on_motion\"``\\ (단추를 누른 채 다음 포인터 이동 때)입니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:26 of
+msgid "``drag_operation_changed(operation)``: CEF's answer to a drag over the view."
+msgstr "``drag_operation_changed(operation)``: view 위의 드래그에 대한 CEF의 응답입니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:27 of
+msgid "``show_menu(items, x, y, answer)``: show a context menu; without it CEF shows none."
+msgstr "``show_menu(items, x, y, answer)``: 컨텍스트 메뉴를 표시합니다. 이것이 없으면 CEF는 메뉴를 표시하지 않습니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:28 of
+msgid "``audio_sink()``: return a sink for ``audio=\"auto\"`` or ``None``."
+msgstr "``audio_sink()``: ``audio=\"auto\"``\\ 에 쓸 sink 또는 ``None``\\ 을 반환합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter:29 of
+msgid "``release()``: let go of resources; called by :meth:`~cefweaver.ui.Session.shutdown`."
+msgstr "``release()``: 리소스를 해제합니다. :meth:`~cefweaver.ui.Session.shutdown`\\ 이 호출합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.view_size:1 of
+msgid "Return the size of the view."
+msgstr "view의 크기를 반환합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.view_size:3 of
+msgid "``(width, height)`` in logical pixels."
+msgstr "논리 픽셀 단위의 ``(width, height)``."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.scale:1 cefweaver.ui.headless.HeadlessAdapter.scale:1 of
+msgid "Return the device pixels per logical pixel."
+msgstr "논리 픽셀당 장치 픽셀 수를 반환합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.scale:3 of
+msgid "The scale factor."
+msgstr "배율."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.screen_origin:1 of
+msgid "Return the position of the view's top left corner on the screen."
+msgstr "화면에서 view의 왼쪽 위 모서리 위치를 반환합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.screen_origin:3 of
+msgid "``(x, y)`` in screen coordinates."
+msgstr "화면 좌표의 ``(x, y)``."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.screen_size:1 of
+msgid "Return the size of the screen."
+msgstr "화면의 크기를 반환합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.screen_size:3 of
+msgid "``(width, height)``."
+msgstr "``(width, height)``."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.present:1 of
+msgid "Show a picture that CEF painted."
+msgstr "CEF가 그린 그림을 표시합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.present:3 of
+msgid "The picture. Its ``buffer`` is valid only during this call."
+msgstr "그림. ``buffer``\\ 는 이 호출 중에만 유효합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.post:1 of
+msgid "Run a function in the main thread of the toolkit."
+msgstr "툴킷의 메인 스레드에서 함수를 실행합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.call_later:5 cefweaver.ui.adapter.ToolkitAdapter.post:3
+#: cefweaver.ui.headless.HeadlessAdapter.call_later:5 cefweaver.ui.headless.HeadlessAdapter.post:3 of
+msgid "Called without arguments."
+msgstr "인자 없이 호출됩니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.post:6 of
+msgid "Callable from any thread."
+msgstr "어느 스레드에서든 호출할 수 있습니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.call_later:1 of
+msgid "Run a function in the main thread of the toolkit after a delay."
+msgstr "지연 시간 뒤에 툴킷의 메인 스레드에서 함수를 실행합니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.call_later:3 cefweaver.ui.headless.HeadlessAdapter.call_later:3
+#: of
+msgid "The delay in seconds."
+msgstr "지연 시간(초)."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.call_later:8 of
+msgid "May be an object with a ``cancel()`` method, which cancels the call."
+msgstr "호출을 취소하는 ``cancel()`` 메서드를 가진 객체일 수 있습니다."
+
+#: cefweaver.ui.adapter.ToolkitAdapter.call_later:11 of
+msgid "Called in the main thread."
+msgstr "메인 스레드에서 호출됩니다."
+
+#: cefweaver.ui.tables.function_range:1 of
+msgid "Create a function key detector for ``KeyTable(function=...)``."
+msgstr "``KeyTable(function=...)``\\ 에 쓸 function key 검출 함수를 만듭니다."
+
+#: cefweaver.ui.tables.function_range:3 of
+msgid "The toolkit's key code of F1; F12 is ``first + 11``."
+msgstr "툴킷에서 F1의 키 코드이며, F12는 ``first + 11``\\ 입니다."
+
+#: cefweaver.ui.tables.function_range:6 of
+msgid "A function that maps a key to its function key number (1 to 12), or ``None``."
+msgstr "키를 function key 번호(1부터 12까지)로 매핑하는 함수, 또는 ``None``."
+
+#: cefweaver.ui.session.default_ozone_platform:1 of
+msgid "Return the Ozone platform an offscreen browser should use."
+msgstr "오프스크린 브라우저가 사용해야 할 Ozone 플랫폼을 반환합니다."
+
+#: cefweaver.ui.session.default_ozone_platform:3 of
+msgid ""
+"A Wayland compositor must be present: ``WAYLAND_DISPLAY`` names a socket that exists, either as "
+"an absolute path or relative to ``XDG_RUNTIME_DIR``."
+msgstr ""
+"Wayland compositor가 있어야 합니다. ``WAYLAND_DISPLAY``\\ 가 존재하는 소켓을 가리켜야 하며, 절대 경로이거나 "
+"``XDG_RUNTIME_DIR``\\ 에 대한 상대 경로일 수 있습니다."
+
+#: cefweaver.ui.session.default_ozone_platform:6 of
+msgid "The environment to read. Defaults to ``os.environ``."
+msgstr "읽을 환경. 기본값은 ``os.environ``\\ 입니다."
+
+#: cefweaver.ui.session.default_ozone_platform:8 of
+msgid "The platform name. Defaults to ``sys.platform``."
+msgstr "플랫폼 이름. 기본값은 ``sys.platform``\\ 입니다."
+
+#: cefweaver.ui.session.default_ozone_platform:10 of
+msgid "Tells whether a path exists. Defaults to ``os.path.exists``."
+msgstr "경로가 존재하는지 알려 줍니다. 기본값은 ``os.path.exists``\\ 입니다."
+
+#: cefweaver.ui.session.default_ozone_platform:13 of
+msgid ""
+"``\"wayland\"`` on Linux where a compositor is present; otherwise ``None``, which leaves the "
+"choice to Chromium or :class:`~cefweaver.CefApp`."
+msgstr ""
+"compositor가 있는 Linux에서는 ``\"wayland\"``\\ 이고, 그 외에는 ``None``\\ 이며 이 경우 선택은 Chromium 또는 "
+":class:`~cefweaver.CefApp`\\ 에 맡겨집니다."
+
+#: cefweaver.ui.tables.ModifierTable:1 of
+msgid "Base class that converts a toolkit's modifier state to CEF modifier flags."
+msgstr "툴킷의 modifier 상태를 CEF modifier 플래그로 변환하는 기반 클래스입니다."
+
+#: cefweaver.ui.tables.ModifierTable:3 of
+msgid "A subclass implements :meth:`has`."
+msgstr "하위 클래스는 :meth:`has`\\ 를 구현합니다."
+
+#: cefweaver.ui.tables.ModifierTable.has:1 of
+msgid "Return whether a modifier is down in a state."
+msgstr "어떤 상태에서 modifier가 눌려 있는지 반환합니다."
+
+#: cefweaver.ui.tables.ModifierTable.flags:3 cefweaver.ui.tables.ModifierTable.has:3 of
+msgid "The toolkit's modifier state."
+msgstr "툴킷의 modifier 상태."
+
+#: cefweaver.ui.tables.ModifierTable.has:8 of
+msgid "``True`` if the modifier or button is down."
+msgstr "modifier 또는 단추가 눌려 있으면 ``True``\\ 입니다."
+
+#: cefweaver.ui.tables.ModifierTable.flags:1 of
+msgid "Return the CEF modifier flags of a state."
+msgstr "상태의 CEF modifier 플래그를 반환합니다."
+
+#: cefweaver.ui.tables.ModifierTable.flags:4 of
+msgid ""
+"A separate state for the mouse buttons, for toolkits that report them apart from the keys. "
+"Defaults to ``state``."
+msgstr "키와 따로 마우스 단추를 보고하는 툴킷을 위한, 마우스 단추의 별도 상태입니다. 기본값은 ``state``\\ 입니다."
+
+#: cefweaver.ui.tables.ModifierTable.flags:8 of
+msgid "The sum of the ``keys`` flags."
+msgstr "``keys`` 플래그의 합."
+
+#: ../../api/ui.rst:13
+msgid "Keys"
+msgstr "키"
+
+#: cefweaver.ui.keys:1 of
+msgid "Key codes and modifier flags for the input events passed to ``BrowserView``."
+msgstr "``BrowserView``\\ 에 전달되는 입력 이벤트의 키 코드와 modifier 플래그입니다."
+
+#: cefweaver.ui.keys:3 of
+msgid ""
+"The modifier flags are CEF event flags. A toolkit translates its modifiers and held mouse buttons"
+" into a sum of them. The key codes are Windows virtual key codes; a toolkit passes the code of "
+"the key, not the character it types. :func:`vk_for_char` and :func:`vk_for_function` cover the "
+"codes that follow a rule, so a toolkit needs a table only for special keys such as arrows."
+msgstr ""
+"modifier 플래그는 CEF 이벤트 플래그입니다. 툴킷은 자신의 modifier와 눌린 마우스 단추를 이 플래그의 합으로 변환합니다. 키 코드는 Windows 가상 키 "
+"코드이며, 툴킷은 키가 입력하는 문자가 아니라 키의 코드를 전달합니다. :func:`vk_for_char`\\ 와 :func:`vk_for_function`\\ 이 규칙을 "
+"따르는 코드를 처리하므로, 툴킷은 화살표 같은 특수 키에 대해서만 표가 필요합니다."
+
+#: cefweaver.ui.keys.shortcut_modifier:1 of
+msgid "Return the modifier flag of the editing shortcuts (copy, paste, select all, undo)."
+msgstr "편집 단축키(복사, 붙여넣기, 모두 선택, 실행 취소)의 modifier 플래그를 반환합니다."
+
+#: cefweaver.ui.keys.shortcut_modifier:3 of
+msgid "``COMMAND`` on macOS, otherwise ``CONTROL``."
+msgstr "macOS에서는 ``COMMAND``\\ 이고, 그 외에는 ``CONTROL``\\ 입니다."
+
+#: cefweaver.ui.keys.native_code_for_key_down:1 of
+msgid "Return the native key code to send with a key down."
+msgstr "키 누름과 함께 보낼 네이티브 키 코드를 반환합니다."
+
+#: cefweaver.ui.keys.native_code_for_key_down:3 of
+msgid "The Windows virtual key code of the key."
+msgstr "키의 Windows 가상 키 코드."
+
+#: cefweaver.ui.keys.native_code_for_key_down:5 of
+msgid "The native code given by the toolkit, or 0."
+msgstr "툴킷이 준 네이티브 코드, 또는 0."
+
+#: cefweaver.ui.keys.native_code_for_key_down:8 of
+msgid ""
+"``native_code`` if it is not 0 or the platform is not macOS; otherwise the macOS code of an "
+"editing key, or 0 for other keys."
+msgstr ""
+"``native_code``\\ 가 0이 아니거나 플랫폼이 macOS가 아니면 ``native_code``\\ 이고, 그렇지 않으면 편집 키의 macOS 코드, 다른 키에는 "
+"0입니다."
+
+#: cefweaver.ui.keys.vk_for_char:1 of
+msgid "Return the virtual key code of a printable ASCII character."
+msgstr "출력 가능한 ASCII 문자의 가상 키 코드를 반환합니다."
+
+#: cefweaver.ui.keys.vk_for_char:3 of
+msgid "A single character."
+msgstr "한 글자."
+
+#: cefweaver.ui.keys.vk_for_char:6 of
+msgid "The code of the key without Shift, or 0 if ``char`` is not a single printable ASCII character."
+msgstr "Shift 없이 누르는 키의 코드, 또는 ``char``\\ 가 출력 가능한 ASCII 문자 한 개가 아니면 0."
+
+#: cefweaver.ui.keys.vk_for_function:1 of
+msgid "Return the virtual key code of a function key."
+msgstr "function key의 가상 키 코드를 반환합니다."
+
+#: cefweaver.ui.keys.vk_for_function:3 of
+msgid "The function key number, 1 to 12."
+msgstr "function key 번호, 1부터 12까지."
+
+#: cefweaver.ui.keys.vk_for_function:6 of
+msgid "The virtual key code."
+msgstr "가상 키 코드."
+
+#: cefweaver.ui.keys.vk_for_function:9 of
+msgid "If ``number`` is not from 1 to 12."
+msgstr "``number``\\ 가 1부터 12까지가 아니면 발생합니다."
+
+#: ../../api/ui.rst:18
+msgid "Menus"
+msgstr "메뉴"
+
+#: cefweaver.ui.menu:1 of
+msgid "The context menu of a page: CEF describes it, the toolkit shows it."
+msgstr "페이지의 컨텍스트 메뉴입니다. CEF가 설명하고 툴킷이 표시합니다."
+
+#: cefweaver.ui.menu:3 of
+msgid ""
+"A toolkit adapter that has ``show_menu(items, x, y, done)`` shows the menu items with its menu "
+"widget and calls ``done(command_id)`` for the picked item, or ``done(None)`` if the menu was "
+"dismissed. CEF runs the standard commands itself."
+msgstr ""
+"``show_menu(items, x, y, done)``\\ 를 가진 툴킷 adapter는 메뉴 widget으로 메뉴 항목을 표시하고, 선택된 항목에 대해 "
+"``done(command_id)``\\ 를 호출하며, 메뉴가 닫히면 ``done(None)``\\ 을 호출합니다. 표준 명령은 CEF가 직접 실행합니다."
+
+#: cefweaver.ui.menu:7 of
+msgid ""
+"The application can change the menu with ``view.on_context_menu = hook``, where ``hook(info, "
+"items)`` receives a :class:`ContextMenuInfo` and a list of :class:`MenuItem` and returns the list"
+" of items to show, or ``None`` for no menu."
+msgstr ""
+"애플리케이션은 ``view.on_context_menu = hook``\\ 으로 메뉴를 바꿀 수 있습니다. ``hook(info, items)``\\ 는 "
+":class:`ContextMenuInfo`\\ 와 :class:`MenuItem` 목록을 받아, 표시할 항목 목록을 반환하거나 메뉴를 표시하지 않으려면 ``None``\\ "
+"을 반환합니다."
+
+#: cefweaver.ui.menu.MenuItem:1 of
+msgid "One item of a context menu."
+msgstr "컨텍스트 메뉴의 항목 하나입니다."
+
+#: cefweaver.ui.menu.MenuItem:3 of
+msgid ""
+"An item added by the application has an ``action`` and no ``command_id``; the view assigns one "
+"when the menu is shown."
+msgstr "애플리케이션이 추가한 항목은 ``action``\\ 이 있고 ``command_id``\\ 는 없습니다. view가 메뉴를 표시할 때 하나를 지정합니다."
+
+#: cefweaver.ui.menu.MenuItem:6 of
+msgid "The text of the item. Defaults to ``\"\"``."
+msgstr "항목의 텍스트. 기본값은 ``\"\"``\\ 입니다."
+
+#: cefweaver.ui.menu.MenuItem:8 of
+msgid "Called without arguments when the item is picked; CEF is not told."
+msgstr "항목이 선택될 때 인자 없이 호출됩니다. CEF에는 알리지 않습니다."
+
+#: cefweaver.ui.menu.MenuItem:11 of
+msgid "The CEF command id."
+msgstr "CEF 명령 id."
+
+#: cefweaver.ui.menu.MenuItem:13 of
+msgid ""
+"``\"command\"``, ``\"check\"``, ``\"radio\"``, ``\"separator\"`` or ``\"submenu\"``. Defaults to "
+"``\"command\"``."
+msgstr ""
+"``\"command\"``, ``\"check\"``, ``\"radio\"``, ``\"separator\"`` 또는 ``\"submenu\"``. 기본값은 "
+"``\"command\"``\\ 입니다."
+
+#: cefweaver.ui.menu.MenuItem:16 of
+msgid "Whether the item can be picked. Defaults to ``True``."
+msgstr "항목을 선택할 수 있는지 여부. 기본값은 ``True``\\ 입니다."
+
+#: cefweaver.ui.menu.MenuItem:18 of
+msgid "Whether a check or radio item is checked. Defaults to ``False``."
+msgstr "check 또는 radio 항목이 선택되어 있는지 여부. 기본값은 ``False``\\ 입니다."
+
+#: cefweaver.ui.menu.MenuItem:20 cefweaver.ui.menu.MenuItem:35 of
+msgid "The items of a submenu."
+msgstr "하위 메뉴의 항목."
+
+#: cefweaver.ui.menu.MenuItem:23 of
+msgid "The text of the item."
+msgstr "항목의 텍스트."
+
+#: cefweaver.ui.menu.MenuItem:25 of
+msgid "Called when the item is picked."
+msgstr "항목이 선택될 때 호출됩니다."
+
+#: cefweaver.ui.menu.MenuItem:27 of
+msgid "The command id."
+msgstr "명령 id."
+
+#: cefweaver.ui.menu.MenuItem:29 of
+msgid "The kind of the item."
+msgstr "항목의 종류."
+
+#: cefweaver.ui.menu.MenuItem:31 of
+msgid "Whether the item can be picked."
+msgstr "항목을 선택할 수 있는지 여부."
+
+#: cefweaver.ui.menu.MenuItem:33 of
+msgid "Whether the item is checked."
+msgstr "항목이 선택되어 있는지 여부."
+
+#: cefweaver.ui.menu.ContextMenuInfo:1 of
+msgid "Where the page was clicked and on what; passed to ``view.on_context_menu``."
+msgstr "페이지의 어디를, 무엇 위에서 클릭했는지를 나타내며 ``view.on_context_menu``\\ 에 전달됩니다."
+
+#: cefweaver.ui.menu.ContextMenuInfo:3 cefweaver.ui.menu.ContextMenuInfo:6 of
+msgid "The CEF context menu parameters."
+msgstr "CEF 컨텍스트 메뉴 매개변수."
+
+#: cefweaver.ui.menu.ContextMenuInfo:8 of
+msgid "The x coordinate of the click."
+msgstr "클릭한 곳의 x 좌표."
+
+#: cefweaver.ui.menu.ContextMenuInfo:10 of
+msgid "The y coordinate of the click."
+msgstr "클릭한 곳의 y 좌표."
+
+#: cefweaver.ui.menu.ContextMenuInfo:12 of
+msgid "The URL of the link clicked, or ``\"\"``."
+msgstr "클릭한 링크의 URL, 또는 ``\"\"``."
+
+#: cefweaver.ui.menu.ContextMenuInfo:14 of
+msgid "The URL of the source (image, media) clicked, or ``\"\"``."
+msgstr "클릭한 소스(이미지, 미디어)의 URL, 또는 ``\"\"``."
+
+#: cefweaver.ui.menu.ContextMenuInfo:16 of
+msgid "The URL of the page."
+msgstr "페이지의 URL."
+
+#: cefweaver.ui.menu.ContextMenuInfo:18 of
+msgid "The selected text, or ``\"\"``."
+msgstr "선택한 텍스트, 또는 ``\"\"``."
+
+#: cefweaver.ui.menu.ContextMenuInfo:20 of
+msgid "Whether the clicked node is editable."
+msgstr "클릭한 노드가 편집 가능한지 여부."
+
+#: cefweaver.ui.menu.ContextMenuInfo:22 of
+msgid "The misspelled word clicked, or ``\"\"`` if spelled correctly."
+msgstr "클릭한 철자가 틀린 단어, 철자가 맞으면 ``\"\"``."
+
+#: cefweaver.ui.menu.ContextMenuInfo:24 of
+msgid "The spelling suggestions for the word."
+msgstr "그 단어의 철자 추천."
+
+#: cefweaver.ui.menu.items_from_model:1 of
+msgid "Convert a CEF menu model to menu items."
+msgstr "CEF 메뉴 모델을 메뉴 항목으로 변환합니다."
+
+#: cefweaver.ui.menu.items_from_model:3 of
+msgid "The CEF menu model."
+msgstr "CEF 메뉴 모델."
+
+#: cefweaver.ui.menu.items_from_model:6 of
+msgid "The visible items, tidied by :func:`tidy`."
+msgstr "보이는 항목이며, :func:`tidy`\\ 로 정리됩니다."
+
+#: cefweaver.ui.menu.tidy:1 of
+msgid "Remove superfluous separators."
+msgstr "불필요한 구분선을 제거합니다."
+
+#: cefweaver.ui.menu.tidy:3 of
+msgid "The items."
+msgstr "항목."
+
+#: cefweaver.ui.menu.tidy:6 of
+msgid "``items`` without separators at the start or the end, and without two in a row."
+msgstr "처음과 끝에 구분선이 없고 구분선이 연속 두 개가 아닌 ``items``\\ 입니다."
+
+#: cefweaver.ui.menu.give_ids:1 of
+msgid "Assign command ids to the application's items, including submenus."
+msgstr "하위 메뉴를 포함하여 애플리케이션의 항목에 명령 id를 지정합니다."
+
+#: cefweaver.ui.menu.give_ids:3 of
+msgid "The items; those with an ``action`` and no ``command_id`` get one."
+msgstr "항목. ``action``\\ 이 있고 ``command_id``\\ 가 없는 항목에 id가 지정됩니다."
+
+#: cefweaver.ui.menu.give_ids:6 of
+msgid "The source of ids. Defaults to a counter from ``APP_FIRST``."
+msgstr "id의 공급원. 기본값은 ``APP_FIRST``\\ 부터 시작하는 카운터입니다."
+
+#: cefweaver.ui.menu.give_ids:9 of
+msgid "The mapping to add to."
+msgstr "추가할 대상 매핑."
+
+#: cefweaver.ui.menu.give_ids:12 of
+#, python-brace-format
+msgid "The mapping ``{command_id: action}``."
+msgstr "``{command_id: action}`` 매핑."
+
+#: cefweaver.ui.menu.report:1 of
+msgid "Report the exception being handled through ``sys.excepthook``."
+msgstr "처리 중인 예외를 ``sys.excepthook``\\ 으로 보고합니다."
+
+#: ../../api/ui.rst:23
+msgid "Permissions"
+msgstr "권한"
+
+#: cefweaver.ui.permissions:1 of
+msgid "Microphone and camera permission requests of a page."
+msgstr "페이지의 마이크와 카메라 권한 요청입니다."
+
+#: cefweaver.ui.permissions:3 of
+msgid ""
+"With ``BrowserView(adapter, media_permissions=policy)``, CEF calls ``policy(request)`` when a "
+"page asks for the microphone or the camera (``getUserMedia``). The policy receives a "
+":class:`MediaRequest` and answers with ``request.allow()`` or ``request.deny()``, immediately or "
+"later. Without a policy CEF keeps its default answer, which refuses."
+msgstr ""
+"``BrowserView(adapter, media_permissions=policy)``\\ 를 쓰면, 페이지가 마이크나 카메라(``getUserMedia``)를 요청할 때"
+" CEF가 ``policy(request)``\\ 를 호출합니다. policy는 :class:`MediaRequest`\\ 를 받아 즉시 또는 나중에 "
+"``request.allow()``\\ 나 ``request.deny()``\\ 로 응답합니다. policy가 없으면 CEF는 거부하는 기본 응답을 유지합니다."
+
+#: cefweaver.ui.permissions.MediaRequest:1 of
+msgid "A request of a page for the microphone or the camera."
+msgstr "마이크나 카메라에 대한 페이지의 요청입니다."
+
+#: cefweaver.ui.permissions.MediaRequest:3 of
+msgid "It is answered once; later answers are ignored."
+msgstr "한 번만 응답할 수 있으며, 이후의 응답은 무시됩니다."
+
+#: cefweaver.ui.permissions.MediaRequest:5 cefweaver.ui.permissions.MediaRequest:13 of
+msgid "The origin of the requesting page."
+msgstr "요청한 페이지의 origin."
+
+#: cefweaver.ui.permissions.MediaRequest:7 cefweaver.ui.permissions.MediaRequest:15 of
+msgid "The requested permissions."
+msgstr "요청된 권한."
+
+#: cefweaver.ui.permissions.MediaRequest:9 cefweaver.ui.permissions.MediaRequest:17 of
+msgid "Whether the request comes from the main frame."
+msgstr "요청이 메인 frame에서 왔는지 여부."
+
+#: cefweaver.ui.permissions.MediaRequest:11 of
+msgid "The CEF callback that receives the answer."
+msgstr "응답을 받는 CEF 콜백."
+
+#: cefweaver.ui.permissions.MediaRequest.allow:1 of
+msgid "Grant the request."
+msgstr "요청을 허용합니다."
+
+#: cefweaver.ui.permissions.MediaRequest.allow:3 of
+msgid "The permissions to grant, restricted to those requested. Defaults to everything requested."
+msgstr "허용할 권한이며, 요청된 것으로 제한됩니다. 기본값은 요청된 모든 것입니다."
+
+#: cefweaver.ui.permissions.MediaRequest.deny:1 of
+msgid "Refuse the request."
+msgstr "요청을 거부합니다."
+
+#: cefweaver.ui.permissions.allow_origins:1 of
+msgid "Create a policy that grants the microphone and the camera to the given origins only."
+msgstr "주어진 origin에만 마이크와 카메라를 허용하는 policy를 만듭니다."
+
+#: cefweaver.ui.permissions.allow_origins:3 of
+msgid ""
+"Requests from other origins are denied, and permissions other than audio and video capture (such "
+"as screen capture) are never granted."
+msgstr "다른 origin의 요청은 거부되고, 오디오와 비디오 캡처 이외의 권한(예: 화면 캡처)은 절대 허용되지 않습니다."
+
+#: cefweaver.ui.permissions.allow_origins:6 of
+msgid "Origins as ``scheme://host`` with the port if any, e.g. ``https://meet.example.org``."
+msgstr "``scheme://host`` 형식의 origin이며, 포트가 있으면 포함합니다. 예: ``https://meet.example.org``."
+
+#: cefweaver.ui.permissions.allow_origins:10 of
+msgid "A policy for ``media_permissions``."
+msgstr "``media_permissions``\\ 에 쓸 policy."
+
+#: cefweaver.ui.permissions.ask:1 of
+msgid "Run a policy for a request."
+msgstr "요청에 대해 policy를 실행합니다."
+
+#: cefweaver.ui.permissions.ask:3 of
+msgid "An exception raised by the policy denies the request and is reported through ``sys.excepthook``."
+msgstr "policy가 발생시킨 예외는 요청을 거부하고 ``sys.excepthook``\\ 으로 보고됩니다."
+
+#: cefweaver.ui.permissions.ask:6 of
+msgid "The policy."
+msgstr "policy."
+
+#: cefweaver.ui.permissions.ask:8 of
+msgid "The request."
+msgstr "요청."
+
+#: ../../api/ui.rst:28
+msgid "Audio"
+msgstr "오디오"
+
+#: cefweaver.ui.audio:1 of
+msgid "Audio sinks: receive the sound of a page as interleaved float32 samples."
+msgstr "오디오 sink: 페이지의 소리를 interleaved float32 샘플로 받습니다."
+
+#: cefweaver.ui.audio:3 of
+msgid ""
+"When a :class:`~cefweaver.ui.BrowserView` is given a sink with ``BrowserView(adapter, "
+"audio=sink)``, it installs an ``AudioHandler`` and passes the page sound to the sink instead of "
+"CEF playing it. The sink can be provided by the application, by a toolkit adapter "
+"(``audio_sink()``) or be a :class:`PygameSink`."
+msgstr ""
+":class:`~cefweaver.ui.BrowserView`\\ 에 ``BrowserView(adapter, audio=sink)``\\ 로 sink를 주면, "
+"``AudioHandler``\\ 를 설치하고 CEF가 소리를 재생하는 대신 페이지의 소리를 sink에 전달합니다. sink는 애플리케이션이 제공하거나, 툴킷 "
+"adapter(``audio_sink()``)가 제공하거나, :class:`PygameSink`\\ 일 수 있습니다."
+
+#: cefweaver.ui.audio:8 of
+msgid "A sink implements three methods:"
+msgstr "sink는 세 메서드를 구현합니다."
+
+#: cefweaver.ui.audio:10 of
+msgid "``start(sample_rate, channels)``: A stream begins; may be called again later."
+msgstr "``start(sample_rate, channels)``: 스트림이 시작됩니다. 나중에 다시 호출될 수 있습니다."
+
+#: cefweaver.ui.audio:11 of
+msgid ""
+"``write(samples, frames)``: ``samples`` is ``bytes`` of ``frames * channels`` interleaved little-"
+"endian float32 values (L R L R ...)."
+msgstr ""
+"``write(samples, frames)``: ``samples``\\ 는 ``frames * channels``\\ 개의 interleaved little-endian "
+"float32 값(L R L R ...)으로 이루어진 ``bytes``\\ 입니다."
+
+#: cefweaver.ui.audio:13 of
+msgid "``stop()``: The stream ended or failed."
+msgstr "``stop()``: 스트림이 끝났거나 실패했습니다."
+
+#: cefweaver.ui.audio:15 of
+msgid "The methods are called on the thread of CEF's audio stream and must not block."
+msgstr "이 메서드들은 CEF 오디오 스트림의 스레드에서 호출되며 block해서는 안 됩니다."
+
+#: cefweaver.ui.audio.interleave:1 of
+msgid "Interleave per-channel planes into one buffer of samples."
+msgstr "채널별 plane을 샘플 버퍼 하나로 interleave합니다."
+
+#: cefweaver.ui.audio.interleave:3 of
+msgid "One float32 ``memoryview`` (or ``array.array``) per channel."
+msgstr "채널마다 float32 ``memoryview``\\ (또는 ``array.array``) 하나."
+
+#: cefweaver.ui.audio.interleave:6 of
+msgid ""
+"``(samples, frames)``, where ``samples`` is ``bytes`` of little-endian float32 values interleaved"
+" by channel, and ``frames`` is the number of samples per channel."
+msgstr ""
+"``(samples, frames)``. ``samples``\\ 는 채널별로 interleave된 little-endian float32 값의 ``bytes``\\ 이고, "
+"``frames``\\ 는 채널당 샘플 수입니다."
+
+#: cefweaver.ui.audio.apply_volume:1 of
+msgid "Scale interleaved float32 samples."
+msgstr "interleaved float32 샘플의 크기를 조정합니다."
+
+#: cefweaver.ui.audio.apply_volume:3 of
+msgid "Interleaved float32 samples in native byte order."
+msgstr "네이티브 바이트 순서의 interleaved float32 샘플."
+
+#: cefweaver.ui.audio.apply_volume:5 of
+msgid "The factor to multiply each sample by."
+msgstr "각 샘플에 곱할 배율."
+
+#: cefweaver.ui.audio.apply_volume:8 of
+msgid "The scaled samples; ``samples`` itself if ``volume`` is 1.0."
+msgstr "크기가 조정된 샘플. ``volume``\\ 이 1.0이면 ``samples`` 자체입니다."
+
+#: cefweaver.ui.audio.is_sink:1 of
+msgid "Return whether an object has the ``start``, ``write`` and ``stop`` methods of a sink."
+msgstr "객체가 sink의 ``start``, ``write``, ``stop`` 메서드를 가지고 있는지 반환합니다."
+
+#: cefweaver.ui.audio.is_sink:3 of
+msgid "The object to test."
+msgstr "검사할 객체."
+
+#: cefweaver.ui.audio.is_sink:5 of
+msgid "``True`` if all three are callable attributes."
+msgstr "세 가지가 모두 호출 가능한 속성이면 ``True``\\ 입니다."
+
+#: cefweaver.ui.audio.PygameSink:1 of
+msgid "A sink that plays through pygame, for toolkits that cannot play a stream themselves."
+msgstr "스트림을 직접 재생할 수 없는 툴킷을 위해 pygame으로 재생하는 sink입니다."
+
+#: cefweaver.ui.audio.PygameSink:3 of
+msgid ""
+"Requires pygame (``pip install pygame``). Samples passed to :meth:`write` are buffered in a ring "
+"of at most ``max_latency`` seconds; older samples are dropped when playback falls behind. "
+"Playback starts once ``prebuffer`` seconds are buffered, and again after the ring ran empty. A "
+"failure to start is reported by ``BrowserView.on_audio_error``."
+msgstr ""
+"pygame이 필요합니다(``pip install pygame``). :meth:`write`\\ 에 전달된 샘플은 최대 ``max_latency``\\ 초 길이의 ring에"
+" 버퍼링되며, 재생이 뒤처지면 오래된 샘플은 버려집니다. 재생은 ``prebuffer``\\ 초가 버퍼링되면 시작되고, ring이 비었다가 다시 채워진 뒤에도 다시 "
+"시작됩니다. 시작에 실패하면 ``BrowserView.on_audio_error``\\ 가 보고합니다."
+
+#: cefweaver.ui.audio.PygameSink:8 of
+msgid "The name of the output device. Defaults to the first one."
+msgstr "출력 장치의 이름. 기본값은 첫 번째 장치입니다."
+
+#: cefweaver.ui.audio.PygameSink:10 of
+msgid "The factor applied to the samples, 0.0 to 1.0. Defaults to 1.0."
+msgstr "샘플에 적용되는 배율, 0.0부터 1.0까지. 기본값은 1.0입니다."
+
+#: cefweaver.ui.audio.PygameSink:12 of
+msgid "The capacity of the ring, in seconds. Defaults to 0.5."
+msgstr "ring의 용량(초). 기본값은 0.5입니다."
+
+#: cefweaver.ui.audio.PygameSink:14 of
+msgid "The size of a device block, in frames. Defaults to 1024."
+msgstr "장치 블록의 크기(frame 단위). 기본값은 1024입니다."
+
+#: cefweaver.ui.audio.PygameSink:16 of
+msgid "The seconds of sound collected before playback starts. Defaults to 0.04."
+msgstr "재생이 시작되기 전에 모으는 소리의 길이(초). 기본값은 0.04입니다."
+
+#: cefweaver.ui.audio.PygameSink:20 of
+msgid "If pygame is not installed."
+msgstr "pygame이 설치되어 있지 않으면 발생합니다."
+
+#: cefweaver.ui.audio.PygameSink:22 of
+msgid "The ``device`` argument."
+msgstr "``device`` 인자."
+
+#: cefweaver.ui.audio.PygameSink:24 of
+msgid "The factor applied to the samples."
+msgstr "샘플에 적용되는 배율."
+
+#: cefweaver.ui.audio.PygameSink:26 of
+msgid "The capacity of the ring, in seconds."
+msgstr "ring의 용량(초)."
+
+#: cefweaver.ui.audio.PygameSink:28 of
+msgid "The size of a device block, in frames."
+msgstr "장치 블록의 크기(frame 단위)."
+
+#: cefweaver.ui.audio.PygameSink:30 of
+msgid "The seconds collected before playback starts."
+msgstr "재생이 시작되기 전에 모으는 시간(초)."
+
+#: cefweaver.ui.audio.PygameSink.start:1 of
+msgid "Open the audio device and begin playback; any previous stream is stopped."
+msgstr "오디오 장치를 열고 재생을 시작합니다. 이전 스트림이 있으면 중지됩니다."
+
+#: cefweaver.ui.audio.PygameSink.start:3 of
+msgid "The sample rate in Hz."
+msgstr "샘플 레이트(Hz)."
+
+#: cefweaver.ui.audio.PygameSink.start:5 of
+msgid "The number of channels."
+msgstr "채널의 수."
+
+#: cefweaver.ui.audio.PygameSink.write:1 of
+msgid "Queue samples for playback."
+msgstr "재생할 샘플을 큐에 넣습니다."
+
+#: cefweaver.ui.audio.PygameSink.write:3 of
+msgid "Interleaved float32 samples."
+msgstr "interleaved float32 샘플."
+
+#: cefweaver.ui.audio.PygameSink.write:5 of
+msgid "The number of samples per channel."
+msgstr "채널당 샘플 수."
+
+#: cefweaver.ui.audio.PygameSink.stop:1 of
+msgid "Close the audio device and discard queued samples."
+msgstr "오디오 장치를 닫고 대기 중인 샘플을 버립니다."
+
+#: cefweaver.ui.audio.PygameSink.stats:1 of
+msgid "Return the playback counters."
+msgstr "재생 카운터를 반환합니다."
+
+#: cefweaver.ui.audio.PygameSink.stats:3 of
+msgid ""
+"``written``, ``consumed``, ``dropped`` and ``queued`` in frames, and ``underruns``, the number of"
+" device blocks that found nothing to play."
+msgstr ""
+"frame 단위의 ``written``, ``consumed``, ``dropped``, ``queued``\\ 와, 재생할 것이 없었던 장치 블록의 수인 "
+"``underruns``\\ 입니다."
+
+#: cefweaver.ui.audio.pygame_sink:1 of
+msgid "Create a :class:`PygameSink` with default arguments."
+msgstr "기본 인자로 :class:`PygameSink`\\ 를 만듭니다."
+
+#: cefweaver.ui.audio.pygame_sink:3 of
+msgid "The sink, or ``None`` if pygame is not installed."
+msgstr "sink, 또는 pygame이 설치되어 있지 않으면 ``None``."
+
+#: ../../api/ui.rst:33
+msgid "Headless adapter"
+msgstr "헤드리스 어댑터"
+
+#: cefweaver.ui.headless:1 of
+msgid "A toolkit-free adapter for scripts, tests and screenshots."
+msgstr "스크립트, 시험, 스크린샷을 위한 툴킷이 없는 adapter입니다."
+
+#: cefweaver.ui.headless:3 of
+msgid ":class:`HeadlessAdapter` keeps the last picture of a view and runs its own event loop."
+msgstr ":class:`HeadlessAdapter`\\ 는 view의 마지막 그림을 보관하고 자체 이벤트 루프를 실행합니다."
+
+#: cefweaver.ui.headless:5 of
+msgid "Example::"
+msgstr "예시::"
+
+#: cefweaver.ui.headless.HeadlessAdapter:1 of
+msgid "A :class:`~cefweaver.ui.ToolkitAdapter` without a toolkit."
+msgstr "툴킷이 없는 :class:`~cefweaver.ui.ToolkitAdapter`\\ 입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:3 of
+msgid ""
+"Functions passed to :meth:`post` and :meth:`call_later` run in :meth:`step`, :meth:`run_until` "
+"and :meth:`run_for`, on the thread that calls them."
+msgstr ""
+":meth:`post`\\ 와 :meth:`call_later`\\ 에 전달된 함수는 :meth:`step`, :meth:`run_until`, :meth:`run_for` "
+"안에서, 이를 호출한 스레드에서 실행됩니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:6 of
+msgid "The ``(width, height)`` of the view in logical pixels. Defaults to ``(800, 600)``."
+msgstr "논리 픽셀 단위의 view ``(width, height)``. 기본값은 ``(800, 600)``\\ 입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:9 of
+msgid "The device pixels per logical pixel. Defaults to 1.0."
+msgstr "논리 픽셀당 장치 픽셀 수. 기본값은 1.0입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:11 of
+msgid "The ``(width, height)`` of the screen. Defaults to ``(1920, 1080)``."
+msgstr "화면의 ``(width, height)``. 기본값은 ``(1920, 1080)``\\ 입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:15 of
+msgid "The adapter's capabilities; empty."
+msgstr "adapter의 capability이며, 비어 있습니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter:17 of
+msgid "The ``(width, height)`` of the view."
+msgstr "view의 ``(width, height)``."
+
+#: cefweaver.ui.headless.HeadlessAdapter:19 of
+msgid "``(width, height, bytes)`` of the last view frame in BGRA, or ``None`` before the first."
+msgstr "view의 마지막 frame의 BGRA ``(width, height, bytes)``, 첫 frame 전에는 ``None``."
+
+#: cefweaver.ui.headless.HeadlessAdapter:22 of
+msgid "``(width, height, bytes, rect)`` of the shown popup in BGRA, or ``None`` if no popup is shown."
+msgstr "표시된 팝업의 BGRA ``(width, height, bytes, rect)``, 팝업이 표시되지 않으면 ``None``."
+
+#: cefweaver.ui.headless.HeadlessAdapter:25 of
+msgid "The number of view frames presented."
+msgstr "표시된 view frame의 수."
+
+#: cefweaver.ui.headless.HeadlessAdapter.view_size:1 of
+msgid "Return the size of the view as ``(width, height)``."
+msgstr "view의 크기를 ``(width, height)``\\ 로 반환합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.screen_origin:1 of
+msgid "Return the position of the view on the screen, always ``(0, 0)``."
+msgstr "화면에서 view의 위치를 반환하며, 항상 ``(0, 0)``\\ 입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.screen_size:1 of
+msgid "Return the size of the screen as ``(width, height)``."
+msgstr "화면의 크기를 ``(width, height)``\\ 로 반환합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.present:1 of
+msgid "Store a painted picture in ``picture`` or ``popup``."
+msgstr "그려진 그림을 ``picture`` 또는 ``popup``\\ 에 저장합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.present:3 of
+msgid "The picture; a ``POPUP_HIDDEN`` frame clears ``popup``."
+msgstr "그림. ``POPUP_HIDDEN`` frame은 ``popup``\\ 을 비웁니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.post:1 of
+msgid "Queue a function to run in the loop; may be called from any thread."
+msgstr "루프에서 실행할 함수를 큐에 넣습니다. 어느 스레드에서나 호출할 수 있습니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.call_later:1 of
+msgid "Run a function in the loop after a delay."
+msgstr "지연 시간 뒤에 루프에서 함수를 실행합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.call_later:8 of
+msgid "A timer with a ``cancel()`` method."
+msgstr "``cancel()`` 메서드를 가진 타이머."
+
+#: cefweaver.ui.headless.HeadlessAdapter.step:1 of
+msgid "Run the timers that are due and the queued functions."
+msgstr "실행 시점이 된 타이머와 큐에 있는 함수를 실행합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.step:3 of
+msgid "The longest time to wait for something to run, in seconds. Defaults to 0.05."
+msgstr "실행할 것을 기다리는 최대 시간(초). 기본값은 0.05입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_until:1 of
+msgid "Run the loop until a condition is true."
+msgstr "조건이 참이 될 때까지 루프를 실행합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_until:3 of
+msgid "Called without arguments; the loop ends when it returns true."
+msgstr "인자 없이 호출되며, 참을 반환하면 루프가 끝납니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_until:5 of
+msgid "A description of the awaited event, used in the error message."
+msgstr "기다리는 이벤트의 설명이며 오류 메시지에 쓰입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_until:7 of
+msgid "The limit in seconds. Defaults to 30."
+msgstr "초 단위의 제한 시간. 기본값은 30입니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_until:10 of
+msgid "If the condition is not true within ``timeout``."
+msgstr "``timeout`` 안에 조건이 참이 되지 않으면 발생합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_for:1 of
+msgid "Run the loop for a fixed time."
+msgstr "정해진 시간 동안 루프를 실행합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.run_for:3 of
+msgid "The duration in seconds."
+msgstr "초 단위의 지속 시간."
+
+#: cefweaver.ui.headless.HeadlessAdapter.save_png:1 of
+msgid "Write the last picture of the view as a PNG file."
+msgstr "view의 마지막 그림을 PNG 파일로 기록합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.pixel:11 cefweaver.ui.headless.HeadlessAdapter.save_png:6 of
+msgid "If no picture has been presented yet."
+msgstr "아직 표시된 그림이 없으면 발생합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.pixel:1 of
+msgid "Return a pixel of the last picture."
+msgstr "마지막 그림의 픽셀 하나를 반환합니다."
+
+#: cefweaver.ui.headless.HeadlessAdapter.pixel:3 of
+msgid "The column."
+msgstr "열."
+
+#: cefweaver.ui.headless.HeadlessAdapter.pixel:5 of
+msgid "The row."
+msgstr "행."
+
+#: cefweaver.ui.headless.HeadlessAdapter.pixel:8 of
+msgid "``(red, green, blue, alpha)``."
+msgstr "``(red, green, blue, alpha)``."
+

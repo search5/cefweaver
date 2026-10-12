@@ -1,0 +1,130 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/cast.rst:2
+msgid "Cast devices (Chromecast)"
+msgstr "Cast 기기 (Chromecast)"
+
+#: ../../guide/cast.rst:4
+msgid ""
+":class:`cefweaver.Cast` finds Cast devices on the same network, connects to them, sends a video "
+"address and controls playback, seeking and volume. CEF gives only ``MediaRouter``, ``MediaSink`` "
+"and ``MediaRoute``; the JSON messages of the Cast protocol that playback uses are wrapped by the "
+"module ``cefweaver.cast``. This was verified on Linux x86_64 with CEF 154 and real devices (a "
+"Google Nest Hub and one other Cast device)."
+msgstr ""
+":class:`cefweaver.Cast`\\ 는 같은 네트워크의 Cast 기기를 찾아 연결하고, 영상 주소를 보내며, 재생, 탐색(seek), 음량을 제어합니다. CEF가 "
+"제공하는 것은 ``MediaRouter``, ``MediaSink``, ``MediaRoute``\\ 뿐이며, 재생에 쓰는 Cast 프로토콜의 JSON 메시지는 "
+"``cefweaver.cast`` 모듈이 감쌉니다. 이 기능은 Linux x86_64에서 CEF 154와 실제 기기(Google Nest Hub와 다른 Cast 기기 하나)로"
+" 확인했습니다."
+
+#: ../../guide/cast.rst:31
+msgid "How it works"
+msgstr "동작 방식"
+
+#: ../../guide/cast.rst:33
+msgid ""
+"Every call is made on the thread that called ``initialize()`` (the message loop), and callbacks "
+"run on that thread. Calls return at once; results arrive in ``on_status`` (player state), "
+"``on_volume`` and ``on_state`` (``connecting``, ``connected``, ``closed``)."
+msgstr ""
+"모든 호출은 ``initialize()``\\ 를 호출한 스레드(메시지 루프)에서 이루어지고, 콜백도 그 스레드에서 실행됩니다. 호출은 즉시 반환되며, 결과는 "
+"``on_status``\\ (플레이어 상태), ``on_volume``, ``on_state``\\ (``connecting``, ``connected``, "
+"``closed``)로 도착합니다."
+
+#: ../../guide/cast.rst:34
+msgid ""
+"It takes time for a device to appear in the list. First an empty list arrived and a device "
+"appeared later. Wait for ``on_sinks`` or call ``cast.refresh()`` again."
+msgstr ""
+"기기가 목록에 나타나기까지는 시간이 걸립니다. 처음에는 빈 목록이 도착했고 기기는 나중에 나타났습니다. ``on_sinks``\\ 를 기다리거나 "
+"``cast.refresh()``\\ 를 다시 호출합니다."
+
+#: ../../guide/cast.rst:35
+msgid "A command sent before the app opened (``load`` and so on) waits in line and goes out in order."
+msgstr "앱이 열리기 전에 보낸 명령(``load`` 등)은 대기열에서 기다렸다가 순서대로 전송됩니다."
+
+#: ../../guide/cast.rst:36
+msgid ""
+"A reply of the device is not paired with a request by number. Wait for the state you expect "
+"(``PLAYING``, ``PAUSED``, ``IDLE`` with ``FINISHED``)."
+msgstr ""
+"기기의 응답은 번호로 요청과 짝지어지지 않습니다. 기대하는 상태(``PLAYING``, ``PAUSED``, ``FINISHED``\\ 와 함께 오는 ``IDLE``)를 "
+"기다립니다."
+
+#: ../../guide/cast.rst:37
+msgid ""
+"After ``stop()`` the app on the device ends and the session becomes ``closed``. To play again, "
+"``connect()`` again."
+msgstr "``stop()`` 뒤에는 기기의 앱이 끝나고 세션이 ``closed``\\ 가 됩니다. 다시 재생하려면 ``connect()``\\ 를 다시 호출합니다."
+
+#: ../../guide/cast.rst:38
+msgid ""
+"The device fetches the video address, so it must be reachable from the device (not "
+"``localhost``). On the devices tested it played when the server sent a correct ``Content-Type`` "
+"and answered Range requests and CORS headers. An address that is refused (``403``) shows the "
+"playback bar for a moment and returns to the home screen."
+msgstr ""
+"기기가 영상 주소를 직접 가져오므로 기기에서 접근할 수 있어야 합니다(``localhost``\\ 는 안 됩니다). 시험한 기기에서는 서버가 올바른 ``Content-"
+"Type``\\ 을 보내고 Range 요청과 CORS 헤더에 응답할 때 재생되었습니다. 거부되는 주소(``403``)는 재생 막대를 잠깐 보여 준 뒤 홈 화면으로 돌아갑니다."
+
+#: ../../guide/cast.rst:41
+msgid "What was verified and what was not"
+msgstr "확인한 것과 확인하지 못한 것"
+
+#: ../../guide/cast.rst:43
+msgid ""
+"Verified: finding devices (Cast sinks), playing video and sound (MP3), connecting, ``load``, "
+"``pause``, ``play``, ``seek``, ``set_volume``, ``set_muted``, ``stop`` and ``disconnect``. A "
+"person watched the device screen: ``pause`` stopped the video, ``play`` moved it again and "
+"``stop`` returned to the photo screen."
+msgstr ""
+"확인한 것: 기기 찾기(Cast sink), 영상과 소리(MP3) 재생, 연결, ``load``, ``pause``, ``play``, ``seek``, "
+"``set_volume``, ``set_muted``, ``stop``, ``disconnect``. 사람이 기기 화면을 지켜보며 확인했습니다. ``pause``\\ 는 "
+"영상을 멈췄고, ``play``\\ 는 영상을 다시 움직이게 했으며, ``stop``\\ 는 사진 화면으로 돌아가게 했습니다."
+
+#: ../../guide/cast.rst:45
+msgid ""
+"Take care: ``load()`` does not change the volume of the device. The speaker tested was at maximum"
+" (1.0) and quite loud, so look at ``session.volume`` before making sound and lower it with "
+"``set_volume()`` if needed. When sent to a speaker group, only one speaker of the group made "
+"sound."
+msgstr ""
+"주의: ``load()``\\ 는 기기의 음량을 바꾸지 않습니다. 시험한 스피커는 최대(1.0)였고 꽤 시끄러웠으므로, 소리를 내기 전에 ``session.volume``\\"
+" 을 확인하고 필요하면 ``set_volume()``\\ 으로 낮춥니다. 스피커 그룹으로 보냈을 때는 그룹의 스피커 하나만 소리를 냈습니다."
+
+#: ../../guide/cast.rst:47
+msgid ""
+"Not verified: DIAL devices (this network had none), speaker groups (a sink named like a group "
+"appeared but its behavior was not observed), mirroring a tab (CEF does not support it; CEF's own "
+"source states as intended that ``MediaRouter.get_source()`` returns ``None`` for ``http`` and "
+"``https`` addresses and tab addresses), behavior when a device loses power or Wi-Fi, and playback"
+" on a speaker without a screen. The list of sinks differs between runs (a sink like a group came "
+"and went), so wait for ``on_sinks``. A ``GET_STATUS`` requested during playback got no answer "
+"from the device, and the status (``on_status``) keeps arriving without a request. Without a "
+"device, the logic of the library is tested with a fake router (``tests/test_cast.py``)."
+msgstr ""
+"확인하지 못한 것: DIAL 기기(이 네트워크에는 없었습니다), 스피커 그룹(그룹처럼 이름 붙은 sink가 나타났지만 동작은 관찰하지 못했습니다), 탭 미러링(CEF가 "
+"지원하지 않습니다. ``MediaRouter.get_source()``\\ 가 ``http``\\ 와 ``https`` 주소 및 탭 주소에 대해 ``None``\\ 을 "
+"반환하는 것이 의도된 동작이라고 CEF 자체 소스에 적혀 있습니다), 기기의 전원이나 Wi-Fi가 끊길 때의 동작, 화면이 없는 스피커에서의 재생. sink 목록은 실행마다 "
+"다르므로(그룹 같은 sink가 나타났다 사라졌습니다) ``on_sinks``\\ 를 기다립니다. 재생 중에 요청한 ``GET_STATUS``\\ 에는 기기가 응답하지 않았고,"
+" 상태(``on_status``)는 요청 없이도 계속 도착합니다. 기기가 없을 때는 라이브러리의 로직을 가짜 라우터(``tests/test_cast.py``)로 시험합니다."
+

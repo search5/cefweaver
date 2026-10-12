@@ -1,0 +1,299 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/embedding.rst:2
+msgid "Embedding in a GUI toolkit"
+msgstr "GUI 툴킷에 임베딩하기"
+
+#: ../../guide/embedding.rst:4
+msgid ""
+":mod:`cefweaver.ui` shows an **offscreen** browser inside a widget of a GUI toolkit. It does not "
+"embed a window into the widget: it takes the pixels CEF paints and draws them in the way of the "
+"toolkit. That is why it behaves the same on Wayland, and why the widget turns mouse, keys, the "
+"input method, the clipboard and drag and drop into CEF events."
+msgstr ""
+":mod:`cefweaver.ui`\\ 는 **오프스크린** 브라우저를 GUI 툴킷의 위젯 안에 보여 줍니다. 창을 위젯에 끼워 넣지 않고, CEF가 그린 픽셀을 받아 툴킷의"
+" 방식으로 그립니다. 그래서 Wayland에서도 똑같이 동작하고, 위젯이 마우스, 키, 입력기, 클립보드, 드래그 앤 드롭을 CEF 이벤트로 바꿉니다."
+
+#: ../../guide/embedding.rst:7
+msgid "Parts"
+msgstr "구성 요소"
+
+#: ../../guide/embedding.rst:13
+msgid "Name"
+msgstr "이름"
+
+#: ../../guide/embedding.rst:14
+msgid "What it does"
+msgstr "하는 일"
+
+#: ../../guide/embedding.rst:15
+msgid ":class:`~cefweaver.ui.Session`"
+msgstr ":class:`~cefweaver.ui.Session`"
+
+#: ../../guide/embedding.rst:16
+msgid ""
+"Holds CEF, the JavaScript bridge and the message pump together. When CEF has work to do it wakes "
+"the loop of the toolkit, so there is no extra thread and no polling. A session holds one browser."
+msgstr ""
+"CEF, JavaScript 브리지, 메시지 펌프를 함께 보유합니다. CEF가 할 일이 있으면 툴킷의 루프를 깨우므로 별도의 스레드도 폴링도 없습니다. 세션 하나는 브라우저 "
+"하나를 가집니다."
+
+#: ../../guide/embedding.rst:17
+msgid ":class:`~cefweaver.ui.BrowserView`"
+msgstr ":class:`~cefweaver.ui.BrowserView`"
+
+#: ../../guide/embedding.rst:18
+msgid ""
+"The CEF side: handlers, the record of events, click counts, the input method, clipboard keys and "
+"drag and drop. It also carries the options of features such as sound, permissions and menus."
+msgstr "CEF 쪽입니다. 핸들러, 이벤트 기록, 클릭 횟수, 입력기, 클립보드 키, 드래그 앤 드롭을 맡습니다. 소리, 권한, 메뉴 같은 기능의 옵션도 담고 있습니다."
+
+#: ../../guide/embedding.rst:19
+msgid ":class:`~cefweaver.ui.BrowserWidget`"
+msgstr ":class:`~cefweaver.ui.BrowserWidget`"
+
+#: ../../guide/embedding.rst:20
+msgid ""
+"The base class of the widgets. It gives ``load_url()``, ``go_back()``, ``reload()``, "
+"``snapshot(path)`` and the hooks ``on_title``, ``on_address``, ``on_loading`` and ``on_ready``."
+msgstr ""
+"위젯의 기반 클래스입니다. ``load_url()``, ``go_back()``, ``reload()``, ``snapshot(path)``\\ 와 훅 "
+"``on_title``, ``on_address``, ``on_loading``, ``on_ready``\\ 를 제공합니다."
+
+#: ../../guide/embedding.rst:21
+msgid "Toolkit adapters"
+msgstr "툴킷 어댑터"
+
+#: ../../guide/embedding.rst:22
+msgid ""
+"What a toolkit gives the view (size, drawing, cursor, clipboard, ...). Seven of them are in "
+"``cefweaver.ui.toolkits`` (pywin32 on Windows only); see :doc:`toolkits`."
+msgstr ""
+"툴킷이 뷰에 제공하는 것(크기, 그리기, 커서, 클립보드 등)입니다. ``cefweaver.ui.toolkits``\\ 에 일곱 개가 있습니다(pywin32는 Windows "
+"전용). :doc:`toolkits`\\ 를 참조합니다."
+
+#: ../../guide/embedding.rst:25
+msgid "The basic flow"
+msgstr "기본 흐름"
+
+#: ../../guide/embedding.rst:38
+msgid ""
+"``loop`` is the loop object of the toolkit (for example ``TkLoop(root)``). The session needs only"
+" two things from it: ``post(function)`` (run on the main thread, callable from any thread) and "
+"``call_later(seconds, function)``."
+msgstr ""
+"``loop``\\ 는 툴킷의 루프 객체입니다(예: ``TkLoop(root)``). 세션이 여기에서 필요로 하는 것은 두 가지뿐입니다. ``post(function)``\\"
+" (메인 스레드에서 실행하며 어느 스레드에서든 호출할 수 있습니다)과 ``call_later(seconds, function)``\\ 입니다."
+
+#: ../../guide/embedding.rst:39
+msgid ""
+"``switches`` is a list of Chromium command-line switches as ``(name, value)``. An ``ozone-"
+"platform`` you do not give is filled with ``wayland`` when a Wayland compositor exists (see :doc"
+":`wayland-gpu`). ``session.switches`` is the list that CEF actually got."
+msgstr ""
+"``switches``\\ 는 ``(name, value)`` 형태의 Chromium 명령줄 스위치 목록입니다. 지정하지 않은 ``ozone-platform``\\ 은 "
+"Wayland 컴포지터가 있으면 ``wayland``\\ 로 채워집니다(:doc:`wayland-gpu` 참조). ``session.switches``\\ 는 CEF가 실제로"
+" 받은 목록입니다."
+
+#: ../../guide/embedding.rst:40
+msgid ""
+"Without ``cache_path`` CEF creates ``cache/`` in the working directory. A temporary folder is "
+"safer."
+msgstr "``cache_path``\\ 가 없으면 CEF는 작업 디렉터리에 ``cache/``\\ 를 만듭니다. 임시 폴더가 더 안전합니다."
+
+#: ../../guide/embedding.rst:43
+msgid "Calls between the page and Python"
+msgstr "페이지와 Python 사이의 호출"
+
+#: ../../guide/embedding.rst:45
+msgid ""
+"``session.bridge`` exposes Python functions to the page. Expose them **before** "
+"``session.start()``."
+msgstr "``session.bridge``\\ 는 Python 함수를 페이지에 노출합니다. ``session.start()`` **전에** 노출합니다."
+
+#: ../../guide/embedding.rst:55
+msgid ""
+"To run JavaScript of the page from Python use ``session.bridge.evaluate(frame, \"expression\", "
+"callback)``. It works on pages that forbid ``eval`` (Trusted Types or a strict CSP, as on YouTube"
+" and GitHub), because the renderer runs the expression with the API of CEF and not with the "
+"``eval`` of the page. Calling ``eval`` or ``new Function`` inside the expression raises "
+"``EvalError``, as it does for the page. A top-level ``let`` or ``const`` of the expression lives "
+"only in that call (``var`` and function declarations stay). If no answer comes (a ``Promise`` "
+"that never ends, a frame without a context, a page that was left), the callback gets "
+"``TimeoutError: ...`` after ``timeout`` seconds (30 by default, ``None`` for no limit)."
+msgstr ""
+"Python에서 페이지의 JavaScript를 실행하려면 ``session.bridge.evaluate(frame, \"expression\", callback)``\\ 을 "
+"사용합니다. 렌더러가 페이지의 ``eval``\\ 이 아니라 CEF의 API로 표현식을 실행하므로, ``eval``\\ 을 금지하는 페이지(YouTube와 GitHub처럼 "
+"Trusted Types나 엄격한 CSP를 쓰는 페이지)에서도 동작합니다. 표현식 안에서 ``eval``\\ 이나 ``new Function``\\ 을 호출하면 페이지에서와 "
+"마찬가지로 ``EvalError``\\ 가 발생합니다. 표현식의 최상위 ``let``\\ 이나 ``const``\\ 는 그 호출 안에서만 유지됩니다(``var``\\ 와 함수"
+" 선언은 남습니다). 답이 오지 않으면(끝나지 않는 ``Promise``, 컨텍스트가 없는 frame, 떠난 페이지) 콜백은 ``timeout``\\ 초(기본값 30, 제한 "
+"없음은 ``None``) 뒤에 ``TimeoutError: ...``\\ 를 받습니다."
+
+#: ../../guide/embedding.rst:58
+msgid "Writing an adapter"
+msgstr "어댑터 작성하기"
+
+#: ../../guide/embedding.rst:60
+msgid "To attach another toolkit, write an adapter. Seven methods are **required**:"
+msgstr "다른 툴킷을 붙이려면 어댑터를 작성합니다. 메서드 일곱 개는 **필수**\\ 입니다."
+
+#: ../../guide/embedding.rst:66 ../../guide/embedding.rst:89
+msgid "Method"
+msgstr "메서드"
+
+#: ../../guide/embedding.rst:67
+msgid "Meaning"
+msgstr "의미"
+
+#: ../../guide/embedding.rst:68
+msgid "``view_size()``"
+msgstr "``view_size()``"
+
+#: ../../guide/embedding.rst:69
+msgid "The ``(width, height)`` of the view in logical pixels."
+msgstr "논리 픽셀 단위의 뷰 ``(width, height)``."
+
+#: ../../guide/embedding.rst:70
+msgid "``scale()``"
+msgstr "``scale()``"
+
+#: ../../guide/embedding.rst:71
+msgid "The device pixels per logical pixel."
+msgstr "논리 픽셀 하나당 장치 픽셀 수."
+
+#: ../../guide/embedding.rst:72
+msgid "``screen_origin()``"
+msgstr "``screen_origin()``"
+
+#: ../../guide/embedding.rst:73
+msgid "The screen coordinates of the top-left corner of the view."
+msgstr "뷰 왼쪽 위 모서리의 화면 좌표."
+
+#: ../../guide/embedding.rst:74
+msgid "``screen_size()``"
+msgstr "``screen_size()``"
+
+#: ../../guide/embedding.rst:75
+msgid "The ``(width, height)`` of the screen."
+msgstr "화면의 ``(width, height)``."
+
+#: ../../guide/embedding.rst:76
+msgid "``present(frame)``"
+msgstr "``present(frame)``"
+
+#: ../../guide/embedding.rst:77
+msgid ""
+"Draw the :class:`~cefweaver.ui.Frame` that CEF painted. ``frame.buffer`` (BGRA) is valid only "
+"during this call."
+msgstr "CEF가 그린 :class:`~cefweaver.ui.Frame`\\ 을 그립니다. ``frame.buffer``\\ (BGRA)는 이 호출 동안에만 유효합니다."
+
+#: ../../guide/embedding.rst:78
+msgid "``post(function)``"
+msgstr "``post(function)``"
+
+#: ../../guide/embedding.rst:79
+msgid "Run on the main thread."
+msgstr "메인 스레드에서 실행합니다."
+
+#: ../../guide/embedding.rst:80
+msgid "``call_later(seconds, function)``"
+msgstr "``call_later(seconds, function)``"
+
+#: ../../guide/embedding.rst:81
+msgid "Run on the main thread later."
+msgstr "나중에 메인 스레드에서 실행합니다."
+
+#: ../../guide/embedding.rst:83
+msgid "The **optional** methods switch a feature on when the adapter has them:"
+msgstr "**선택** 메서드는 어댑터에 있으면 해당 기능을 켭니다."
+
+#: ../../guide/embedding.rst:90
+msgid "Feature"
+msgstr "기능"
+
+#: ../../guide/embedding.rst:91
+msgid "``set_cursor(cursor)``"
+msgstr "``set_cursor(cursor)``"
+
+#: ../../guide/embedding.rst:92
+msgid "Show the cursor CEF wants."
+msgstr "CEF가 원하는 커서를 보여 줍니다."
+
+#: ../../guide/embedding.rst:93
+msgid "``clipboard_get()``, ``clipboard_set(text)``"
+msgstr "``clipboard_get()``, ``clipboard_set(text)``"
+
+#: ../../guide/embedding.rst:94
+msgid "Copy, cut and paste (from keys and from the context menu) through the clipboard of the toolkit."
+msgstr "툴킷의 클립보드를 통한 복사, 잘라내기, 붙여넣기(키 입력과 컨텍스트 메뉴에서)."
+
+#: ../../guide/embedding.rst:95
+msgid "``set_ime_rect(x, y, w, h)``"
+msgstr "``set_ime_rect(x, y, w, h)``"
+
+#: ../../guide/embedding.rst:96
+msgid "The position of the candidate window of the input method."
+msgstr "입력기의 후보 창 위치."
+
+#: ../../guide/embedding.rst:97
+msgid "``start_drag_out(payload, allowed)``"
+msgstr "``start_drag_out(payload, allowed)``"
+
+#: ../../guide/embedding.rst:98
+msgid "Send what was dragged out of the page into the drag and drop of the toolkit."
+msgstr "페이지 밖으로 끌어낸 것을 툴킷의 드래그 앤 드롭으로 보냅니다."
+
+#: ../../guide/embedding.rst:99
+msgid "``audio_sink()``"
+msgstr "``audio_sink()``"
+
+#: ../../guide/embedding.rst:100
+msgid "Give a sink that plays the sound of the page (:doc:`media`)."
+msgstr "페이지의 소리를 재생하는 sink를 제공합니다(:doc:`media`)."
+
+#: ../../guide/embedding.rst:101
+msgid "``show_menu(items, x, y, done)``"
+msgstr "``show_menu(items, x, y, done)``"
+
+#: ../../guide/embedding.rst:102
+msgid "Show the context menu (:doc:`context-menu`)."
+msgstr "컨텍스트 메뉴를 보여 줍니다(:doc:`context-menu`)."
+
+#: ../../guide/embedding.rst:103
+msgid "``release()``"
+msgstr "``release()``"
+
+#: ../../guide/embedding.rst:104
+msgid "Let go of what the loop holds, when the session ends."
+msgstr "세션이 끝날 때 루프가 쥐고 있는 것을 놓아 줍니다."
+
+#: ../../guide/embedding.rst:106
+msgid ""
+"Without a screen you can test with :class:`cefweaver.ui.headless.HeadlessAdapter`. It keeps the "
+"pictures in memory, saves them with ``save_png(path)``, and runs its own event loop "
+"(``run_until``, ``run_for``). The ``snapshot(path)`` of a widget saves the picture the view holds"
+" as a PNG."
+msgstr ""
+"화면 없이는 :class:`cefweaver.ui.headless.HeadlessAdapter`\\ 로 시험할 수 있습니다. 이 어댑터는 그림을 메모리에 보관하고, "
+"``save_png(path)``\\ 로 저장하며, 자체 이벤트 루프(``run_until``, ``run_for``)를 실행합니다. 위젯의 "
+"``snapshot(path)``\\ 는 뷰가 가진 그림을 PNG로 저장합니다."
+

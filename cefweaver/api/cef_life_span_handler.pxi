@@ -27,9 +27,9 @@ class LifeSpanHandler:
         source browser's values. If the ``no_javascript_access`` value is set to ``False``
         the new browser will not be scriptable and may not be hosted in the same renderer
         process as the source browser. Any modifications to ``window_info`` will be ignored
-        if the parent browser is wrapped in a :class:`BrowserView`. The ``extra_info``
-        parameter provides an opportunity to specify extra information specific to the
-        created popup browser that will be passed to
+        if the parent browser is wrapped in a :class:`~cefweaver.BrowserView`. The
+        ``extra_info`` parameter provides an opportunity to specify extra information
+        specific to the created popup browser that will be passed to
         ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
 
         If popup browser creation succeeds then OnAfterCreated will be called for the new
@@ -37,21 +37,21 @@ class LifeSpanHandler:
         yet been destroyed, then OnBeforePopupAborted will be called for the opener browser.
         See OnBeforePopupAborted documentation for additional details.
 
-         A default popup window is created if this method returns ``False`` without
-         setting a parent window handle via ``CefWindowInfo`` (for native-hosted
-         popups), or without implementing
-         :meth:`BrowserViewDelegate.on_popup_browser_view_created` (for Views-hosted
-         popups). The default popup window type depends on the parent browser
-         configuration:
-         - Views-hosted parent: Creates a Views-hosted popup window.
-         - Native-hosted Alloy style parent: Creates a native popup window.
-         - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
-           default; set ``CefSettings``.use_views_default_popup to ``True`` to instead
-           create a Views-hosted popup window.
+        A default popup window is created if this method returns ``False`` without setting a
+        parent window handle via ``CefWindowInfo`` (for native-hosted popups), or without
+        implementing :meth:`~cefweaver.BrowserViewDelegate.on_popup_browser_view_created`
+        (for Views-hosted popups). The default popup window type depends on the parent
+        browser configuration:
+
+        - Views-hosted parent: Creates a Views-hosted popup window.
+        - Native-hosted Alloy style parent: Creates a native popup window.
+        - Native-hosted Chrome style parent: Creates a Chrome UI popup window by default;
+          set ``CefSettings``.use_views_default_popup to ``True`` to instead create a
+          Views-hosted popup window.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             target_url (str):
             target_frame_name (str):
         Returns:
@@ -72,10 +72,10 @@ class LifeSpanHandler:
         OnBeforePopupAborted, OnAfterCreated of the popup browser, or OnBeforeClose of the
         opener browser. OnBeforeClose of the opener browser may be called before this method
         in cases where the opener is closing during popup creation, in which case
-        :meth:`BrowserHost.is_valid` will return ``False`` in this method.
+        ``BrowserHost.is_valid`` will return ``False`` in this method.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             popup_id (int):
         """
         return None
@@ -83,28 +83,30 @@ class LifeSpanHandler:
     def on_after_created(self, browser):
         """Called after a new browser is created.
 
-        It is now safe to begin performing actions with ``browser``. :class:`FrameHandler`
-        callbacks related to initial main frame creation will arrive before this callback.
-        See :class:`FrameHandler` documentation for additional usage information.
+        It is now safe to begin performing actions with ``browser``.
+        :class:`~cefweaver.FrameHandler` callbacks related to initial main frame creation
+        will arrive before this callback. See :class:`~cefweaver.FrameHandler` documentation
+        for additional usage information.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
     def do_close(self, browser):
         """Called when an Alloy style browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
 
-        This may result directly from a call to :class:`BrowserHost`::[Try]CloseBrowser() or
-        indirectly if the browser's top-level parent window was created by CEF and the user
-        attempts to close that window (by clicking the 'X', for example). DoClose() will not
-        be called if the browser's host window/view has already been destroyed (via parent
-        window/view hierarchy tear-down, for example), as it is no longer possible to
-        customize the close behavior at that point.
+        This may result directly from a call to
+        :class:`~cefweaver.BrowserHost`::[Try]CloseBrowser() or indirectly if the browser's
+        top-level parent window was created by CEF and the user attempts to close that
+        window (by clicking the 'X', for example). DoClose() will not be called if the
+        browser's host window/view has already been destroyed (via parent window/view
+        hierarchy tear-down, for example), as it is no longer possible to customize the
+        close behavior at that point.
 
         An application should handle top-level parent window close notifications by calling
-        :meth:`BrowserHost.try_close_browser` or
-        :meth:`BrowserHost.close_browser`(``False``) instead of allowing the window to close
+        :meth:`~cefweaver.BrowserHost.try_close_browser` or
+        :meth:`~cefweaver.BrowserHost.close_browser` instead of allowing the window to close
         immediately (see the examples below). This gives CEF an opportunity to process
         JavaScript unload handlers and optionally cancel the close before DoClose() is
         called.
@@ -113,7 +115,7 @@ class LifeSpanHandler:
         host the browser. In that case returning ``False`` from DoClose() will send the
         standard close notification to the browser's top-level parent window (e.g. WM_CLOSE
         on Windows, performClose: on OS X, \"delete_event\" on Linux or
-        :meth:`WindowDelegate.can_close` callback from Views).
+        :meth:`~cefweaver.WindowDelegate.can_close` callback from Views).
 
         When windowed rendering is disabled there is no internal window/view and returning
         ``False`` from DoClose() will cause the browser object to be destroyed immediately.
@@ -124,77 +126,74 @@ class LifeSpanHandler:
         [Try]CloseBrowser() or by proceeding with window/view hierarchy tear-down),
         otherwise the browser will be left in a partially closed state that interferes with
         proper functioning. Top-level windows created on the browser process UI thread can
-        alternately call :meth:`BrowserHost.is_ready_to_be_closed` in the close handler to
-        check close status instead of relying on custom DoClose() handling. See
+        alternately call :meth:`~cefweaver.BrowserHost.is_ready_to_be_closed` in the close
+        handler to check close status instead of relying on custom DoClose() handling. See
         documentation on that method for additional details.
 
-        The :meth:`LifeSpanHandler.on_before_close` method will be called after DoClose()
-        (if DoClose() is called) and immediately before the browser object is destroyed. The
-        application should only exit after OnBeforeClose() has been called for all existing
-        browsers.
+        The :meth:`~cefweaver.LifeSpanHandler.on_before_close` method will be called after
+        DoClose() (if DoClose() is called) and immediately before the browser object is
+        destroyed. The application should only exit after OnBeforeClose() has been called
+        for all existing browsers.
 
         The below examples describe what should happen during window close when the browser
         is parented to an application-provided top-level window.
 
-         Example 1: Using :meth:`BrowserHost.try_close_browser`. This is recommended
-         for clients using standard close handling and windows created on the
-         browser process UI thread.
-         1.  User clicks the window close button which sends a close notification
-             to the application's top-level window.
-         2.  Application's top-level window receives the close notification and
-             calls TryCloseBrowser() (similar to calling CloseBrowser(``False``)).
-             TryCloseBrowser() returns ``False`` so the client cancels the window
-             close.
-         3.  JavaScript 'onbeforeunload' handler executes and shows the close
-             confirmation dialog (which can be overridden via
-             :meth:`JSDialogHandler.on_before_unload_dialog`).
-         4.  User approves the close.
-         5.  JavaScript 'onunload' handler executes.
-         6.  Application's DoClose() handler is called and returns ``False`` by
-             default.
-         7.  CEF sends a close notification to the application's top-level window
-             (because DoClose() returned ``False``).
-         8.  Application's top-level window receives the close notification and
-             calls TryCloseBrowser(). TryCloseBrowser() returns ``True`` so the client
-             allows the window close.
-         9.  Application's top-level window is destroyed, triggering destruction
-             of the child browser window.
-         10. Application's OnBeforeClose() handler is called and the browser object
-             is destroyed.
-         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
-             exist.
+        Example 1: Using :meth:`~cefweaver.BrowserHost.try_close_browser`. This is
+        recommended for clients using standard close handling and windows created on the
+        browser process UI thread.
 
-         Example 2: Using :meth:`BrowserHost.close_browser`(``False``) and implementing the
-         DoClose() callback. This is recommended for clients using non-standard
-         close handling or windows that were not created on the browser process UI
-         thread.
-         1.  User clicks the window close button which sends a close notification
-             to the application's top-level window.
-         2.  Application's top-level window receives the close notification and:
-             A. Calls :meth:`BrowserHost.close_browser`(``False``).
-             B. Cancels the window close.
-         3.  JavaScript 'onbeforeunload' handler executes and shows the close
-             confirmation dialog (which can be overridden via
-             :meth:`JSDialogHandler.on_before_unload_dialog`).
-         4.  User approves the close.
-         5.  JavaScript 'onunload' handler executes.
-         6.  Application's DoClose() handler is called. Application will:
-             A. Set a flag to indicate that the next top-level window close attempt
-                will be allowed.
-             B. Return ``False``.
-         7.  CEF sends a close notification to the application's top-level window
-             (because DoClose() returned ``False``).
-         8.  Application's top-level window receives the close notification and
-             allows the window to close based on the flag from #6A.
-         9.  Application's top-level window is destroyed, triggering destruction
-             of the child browser window.
-         10. Application's OnBeforeClose() handler is called and the browser object
-             is destroyed.
-         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
-             exist.
+        1. User clicks the window close button which sends a close notification to the
+           application's top-level window.
+        2. Application's top-level window receives the close notification and calls
+           TryCloseBrowser() (similar to calling CloseBrowser(``False``)). TryCloseBrowser()
+           returns ``False`` so the client cancels the window close.
+        3. JavaScript 'onbeforeunload' handler executes and shows the close confirmation
+           dialog (which can be overridden via
+           :meth:`~cefweaver.JSDialogHandler.on_before_unload_dialog`).
+        4. User approves the close.
+        5. JavaScript 'onunload' handler executes.
+        6. Application's DoClose() handler is called and returns ``False`` by default.
+        7. CEF sends a close notification to the application's top-level window (because
+           DoClose() returned ``False``).
+        8. Application's top-level window receives the close notification and calls
+           TryCloseBrowser(). TryCloseBrowser() returns ``True`` so the client allows the
+           window close.
+        9. Application's top-level window is destroyed, triggering destruction of the child
+           browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object is
+            destroyed.
+        11. Application exits by calling ``CefQuitMessageLoop`` () if no other browsers
+            exist.
+
+        Example 2: Using :meth:`~cefweaver.BrowserHost.close_browser` and implementing the
+        DoClose() callback. This is recommended for clients using non-standard close
+        handling or windows that were not created on the browser process UI thread.
+
+        1. User clicks the window close button which sends a close notification to the
+           application's top-level window.
+        2. Application's top-level window receives the close notification and: A. Calls
+           :meth:`~cefweaver.BrowserHost.close_browser`. B. Cancels the window close.
+        3. JavaScript 'onbeforeunload' handler executes and shows the close confirmation
+           dialog (which can be overridden via
+           :meth:`~cefweaver.JSDialogHandler.on_before_unload_dialog`).
+        4. User approves the close.
+        5. JavaScript 'onunload' handler executes.
+        6. Application's DoClose() handler is called. Application will: A. Set a flag to
+           indicate that the next top-level window close attempt will be allowed. B. Return
+           ``False``.
+        7. CEF sends a close notification to the application's top-level window (because
+           DoClose() returned ``False``).
+        8. Application's top-level window receives the close notification and allows the
+           window to close based on the flag from #6A.
+        9. Application's top-level window is destroyed, triggering destruction of the child
+           browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object is
+            destroyed.
+        11. Application exits by calling ``CefQuitMessageLoop`` () if no other browsers
+            exist.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             bool
         """
@@ -205,16 +204,18 @@ class LifeSpanHandler:
 
         Release all references to the browser object and do not attempt to execute any
         methods on the browser object (other than IsValid, GetIdentifier or IsSame) after
-        this callback returns. :class:`FrameHandler` callbacks related to final main frame
-        destruction, and OnBeforePopupAborted callbacks for any pending popups, will arrive
-        after this callback and :meth:`Browser.is_valid` will return ``False`` at that time.
-        Any in-progress network requests associated with ``browser`` will be aborted when
-        the browser is destroyed, and :class:`ResourceRequestHandler` callbacks related to
-        those requests may still arrive on the IO thread after this callback. See
-        :class:`FrameHandler` and DoClose() documentation for additional usage information.
+        this callback returns. :class:`~cefweaver.FrameHandler` callbacks related to final
+        main frame destruction, and OnBeforePopupAborted callbacks for any pending popups,
+        will arrive after this callback and :meth:`~cefweaver.Browser.is_valid` will return
+        ``False`` at that time. Any in-progress network requests associated with ``browser``
+        will be aborted when the browser is destroyed, and
+        :class:`~cefweaver.ResourceRequestHandler` callbacks related to those requests may
+        still arrive on the IO thread after this callback. See
+        :class:`~cefweaver.FrameHandler` and DoClose() documentation for additional usage
+        information.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 

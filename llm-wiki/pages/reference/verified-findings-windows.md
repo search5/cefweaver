@@ -17,7 +17,7 @@ sources:
   - tests/test_ui.py
   - tools/gen/emit_cython.py
   - .gitattributes
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 실행해서 확인한 Windows (F116부터)
@@ -65,7 +65,7 @@ Windows 지원을 더하며 실제로 빌드하고 실행해서 확인한 기록
 
 ## F119. pywin32 툴킷
 
-`cefweaver/ui/toolkits/pywin32.py`의 `Win32Browser`는 `SdlBrowser`처럼 창, 브라우저, 메시지 루프를 한 클래스에 둡니다. 구조는 [툴킷 예제](toolkit-examples.md)와 `docs/toolkits.md`에 있고, 여기에는 실행해서 알게 된 것만 적습니다. 예제는 `examples/pywin32/`(`quickstart.py`, `browser.py`, `smoke.py`, `README.md`)입니다.
+`cefweaver/ui/toolkits/pywin32.py`의 `Win32Browser`는 `SdlBrowser`처럼 창, 브라우저, 메시지 루프를 한 클래스에 둡니다. 구조는 [툴킷 예제](toolkit-examples.md)와 `cefweaver/ui/toolkits/pywin32.py`의 docstring에 있고, 여기에는 실행해서 알게 된 것만 적습니다. 예제는 `examples/pywin32/`(`quickstart.py`, `browser.py`, `smoke.py`, `README.md`)입니다.
 
 - 창이 뜨고 데모 페이지가 그려지고 정상 종료했습니다. `smoke.py`는 `examples/common/checks.py`의 공통 점검 23개에 이 툴킷의 점검 4개(페이지 안의 드래그, `WM_DROPFILES`, 컨텍스트 메뉴 2개)를 더한 **27개**를 실제 입력으로 돌려 모두 통과했습니다(`ALL OK`). 입력은 `xdotool` 대신 `examples/common/winxdo.py`가 `SendInput`으로 보냅니다(마우스 이동과 클릭, 휠, `ctrl+a` 같은 조합 키, 문자 입력). `checks.py`가 Windows에서 이 모듈을 부르도록 했습니다.
 - **pywin32에 없는 것**: `AdjustWindowRectEx`, `SetTimer`, `KillTimer`, `DragQueryPoint`, 상수 `WM_MOUSEHWHEEL`이 없었습니다(`win32gui`와 `win32api`와 `win32con`에서 `hasattr`로 확인). `ctypes`로 채웠고, 그림도 pywin32에 `StretchDIBits`가 없어서 `ctypes`입니다.

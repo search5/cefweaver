@@ -4,10 +4,10 @@
 cdef class MediaRoute:
     """Represents the route between a media source and sink.
 
-    Instances of this object are created via :meth:`MediaRouter.create_route` and
-    retrieved via :meth:`MediaObserver.on_routes`. Contains the status and metadata of a
-    routing operation. The methods of this class may be called on any browser process
-    thread unless otherwise indicated.
+    Instances of this object are created via :meth:`~cefweaver.MediaRouter.create_route`
+    and retrieved via :meth:`~cefweaver.MediaObserver.on_routes`. Contains the status
+    and metadata of a routing operation. The methods of this class may be called on any
+    browser process thread unless otherwise indicated.
     """
     cdef CefRefPtr[CefMediaRoute] _ref
 
@@ -40,7 +40,7 @@ cdef class MediaRoute:
         """Return the source associated with this route.
 
         Returns:
-            MediaSource | None: The source associated with this route.
+            cefweaver.MediaSource | None: The source associated with this route.
         """
         cdef CefMediaRoute* _p = self._ptr()
         cdef CefRefPtr[CefMediaSource] _r
@@ -52,7 +52,7 @@ cdef class MediaRoute:
         """Return the sink associated with this route.
 
         Returns:
-            MediaSink | None: The sink associated with this route.
+            cefweaver.MediaSink | None: The sink associated with this route.
         """
         cdef CefMediaRoute* _p = self._ptr()
         cdef CefRefPtr[CefMediaSink] _r
@@ -85,8 +85,8 @@ cdef class MediaRoute:
     def terminate(self):
         """Terminate this route.
 
-        Will result in an asynchronous call to :meth:`MediaObserver.on_routes` on all
-        registered observers.
+        Will result in an asynchronous call to :meth:`~cefweaver.MediaObserver.on_routes` on
+        all registered observers.
         """
         cdef CefMediaRoute* _p = self._ptr()
         with nogil:
@@ -148,9 +148,9 @@ cdef class MediaRouter:
         destroyed.
 
         Args:
-            observer (MediaObserver):
+            observer (cefweaver.MediaObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         cdef CefRefPtr[CefMediaObserver] _a0
         cdef CefMediaRouter* _p = self._ptr()
@@ -171,7 +171,7 @@ cdef class MediaRouter:
         Args:
             urn (str):
         Returns:
-            MediaSource | None: A MediaSource object for the specified media source URN.
+            cefweaver.MediaSource | None: A MediaSource object for the specified media source URN.
         """
         cdef CefString _a0
         cdef CefMediaRouter* _p = self._ptr()
@@ -182,7 +182,7 @@ cdef class MediaRouter:
         return _wrap_MediaSource(_r)
 
     def notify_current_sinks(self):
-        """Trigger an asynchronous call to :meth:`MediaObserver.on_sinks` on all registered observers."""
+        """Trigger an asynchronous call to :meth:`~cefweaver.MediaObserver.on_sinks` on all registered observers."""
         cdef CefMediaRouter* _p = self._ptr()
         with nogil:
             _p.NotifyCurrentSinks()
@@ -192,15 +192,15 @@ cdef class MediaRouter:
         """Create a new route between ``source`` and ``sink``.
 
         Source and sink must be valid, compatible (as reported by
-        :meth:`MediaSink.is_compatible_with`), and a route between them must not already
-        exist. ``callback`` will be executed on success or failure. If route creation
-        succeeds it will also trigger an asynchronous call to
-        :meth:`MediaObserver.on_routes` on all registered observers.
+        :meth:`~cefweaver.MediaSink.is_compatible_with`), and a route between them must not
+        already exist. ``callback`` will be executed on success or failure. If route
+        creation succeeds it will also trigger an asynchronous call to
+        :meth:`~cefweaver.MediaObserver.on_routes` on all registered observers.
 
         Args:
-            source (MediaSource):
-            sink (MediaSink):
-            callback (MediaRouteCreateCallback):
+            source (cefweaver.MediaSource):
+            sink (cefweaver.MediaSink):
+            callback (cefweaver.MediaRouteCreateCallback):
         """
         cdef CefRefPtr[CefMediaSource] _a0
         cdef CefRefPtr[CefMediaSink] _a1
@@ -216,7 +216,7 @@ cdef class MediaRouter:
         return None
 
     def notify_current_routes(self):
-        """Trigger an asynchronous call to :meth:`MediaObserver.on_routes` on all registered observers."""
+        """Trigger an asynchronous call to :meth:`~cefweaver.MediaObserver.on_routes` on all registered observers."""
         cdef CefMediaRouter* _p = self._ptr()
         with nogil:
             _p.NotifyCurrentRoutes()
@@ -228,12 +228,12 @@ cdef class MediaRouter:
 
         If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
         after the manager's storage has been initialized. Equivalent to calling
-        :meth:`RequestContext.get_global_context`->GetMediaRouter().
+        :meth:`~cefweaver.RequestContext.get_global_context`->GetMediaRouter().
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI  thread after the manager's storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            MediaRouter | None: The MediaRouter object associated with the global request context.
+            cefweaver.MediaRouter | None: The MediaRouter object associated with the global request context.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRefPtr[CefMediaRouter] _r
@@ -272,9 +272,9 @@ cdef inline CefMediaRouter* _g_ref_MediaRouter(object obj) except? NULL:
 cdef class MediaSink:
     """Represents a sink to which media can be routed.
 
-    Instances of this object are retrieved via :meth:`MediaObserver.on_sinks`. The
-    methods of this class may be called on any browser process thread unless otherwise
-    indicated.
+    Instances of this object are retrieved via
+    :meth:`~cefweaver.MediaObserver.on_sinks`. The methods of this class may be called
+    on any browser process thread unless otherwise indicated.
     """
     cdef CefRefPtr[CefMediaSink] _ref
 
@@ -319,7 +319,7 @@ cdef class MediaSink:
         """Return the icon type for this sink.
 
         Returns:
-            MediaSinkIconType: The icon type for this sink.
+            cefweaver.types.MediaSinkIconType: The icon type for this sink.
         """
         cdef CefMediaSink* _p = self._ptr()
         cdef cef_media_sink_icon_type_t _r
@@ -331,7 +331,7 @@ cdef class MediaSink:
         """Asynchronously retrieves device info.
 
         Args:
-            callback (MediaSinkDeviceInfoCallback):
+            callback (cefweaver.MediaSinkDeviceInfoCallback):
         """
         cdef CefRefPtr[CefMediaSinkDeviceInfoCallback] _a0
         cdef CefMediaSink* _p = self._ptr()
@@ -370,7 +370,7 @@ cdef class MediaSink:
         """Return ``True`` if this sink is compatible with ``source``.
 
         Args:
-            source (MediaSource):
+            source (cefweaver.MediaSource):
         Returns:
             bool: ``True`` if this sink is compatible with ``source``.
         """
@@ -412,9 +412,9 @@ cdef inline CefMediaSink* _g_ref_MediaSink(object obj) except? NULL:
 cdef class MediaSource:
     """Represents a source from which media can be routed.
 
-    Instances of this object are retrieved via :meth:`MediaRouter.get_source`. The
-    methods of this class may be called on any browser process thread unless otherwise
-    indicated.
+    Instances of this object are retrieved via
+    :meth:`~cefweaver.MediaRouter.get_source`. The methods of this class may be called
+    on any browser process thread unless otherwise indicated.
     """
     cdef CefRefPtr[CefMediaSource] _ref
 
@@ -495,24 +495,24 @@ cdef inline CefMediaSource* _g_ref_MediaSource(object obj) except? NULL:
 
 
 class MediaObserver:
-    """Implemented by the client to observe MediaRouter events and registered via :meth:`MediaRouter.add_observer`.
+    """Implemented by the client to observe MediaRouter events and registered via :meth:`~cefweaver.MediaRouter.add_observer`.
 
     The methods of this class will be called on the browser process UI thread.
     """
 
     def on_sinks(self, sinks):
-        """The list of available media sinks has changed or :meth:`MediaRouter.notify_current_sinks` was called.
+        """The list of available media sinks has changed or :meth:`~cefweaver.MediaRouter.notify_current_sinks` was called.
 
         Args:
-            sinks (list[MediaSink]):
+            sinks (list[cefweaver.MediaSink]):
         """
         return None
 
     def on_routes(self, routes):
-        """The list of available media routes has changed or :meth:`MediaRouter.notify_current_routes` was called.
+        """The list of available media routes has changed or :meth:`~cefweaver.MediaRouter.notify_current_routes` was called.
 
         Args:
-            routes (list[MediaRoute]):
+            routes (list[cefweaver.MediaRoute]):
         """
         return None
 
@@ -520,8 +520,8 @@ class MediaObserver:
         """The connection state of ``route`` has changed.
 
         Args:
-            route (MediaRoute):
-            state (MediaRouteConnectionState):
+            route (cefweaver.MediaRoute):
+            state (cefweaver.types.MediaRouteConnectionState):
         """
         return None
 
@@ -532,8 +532,8 @@ class MediaObserver:
         necessary.
 
         Args:
-            route (MediaRoute):
-            message (memoryview): Only valid for  the scope of this callback and should be copied if necessary.
+            route (cefweaver.MediaRoute):
+            message (memoryview): Only valid for the scope of this callback and should be copied if necessary.
         """
         return None
 
@@ -615,7 +615,7 @@ cdef object _g_unexport_MediaObserver(CefRefPtr[CefMediaObserver] ref):
 
 
 class MediaRouteCreateCallback:
-    """Callback interface for :meth:`MediaRouter.create_route`.
+    """Callback interface for :meth:`~cefweaver.MediaRouter.create_route`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -628,9 +628,9 @@ class MediaRouteCreateCallback:
         route, or empty if the route creation failed.
 
         Args:
-            result (MediaRouteCreateResult):
+            result (cefweaver.types.MediaRouteCreateResult):
             error (str):
-            route (MediaRoute | None): The  resulting route, or empty if the route creation failed.
+            route (cefweaver.MediaRoute | None): The resulting route, or empty if the route creation failed.
         """
         return None
 
@@ -681,7 +681,7 @@ cdef object _g_unexport_MediaRouteCreateCallback(CefRefPtr[CefMediaRouteCreateCa
 
 
 class MediaSinkDeviceInfoCallback:
-    """Callback interface for :meth:`MediaSink.get_device_info`.
+    """Callback interface for :meth:`~cefweaver.MediaSink.get_device_info`.
 
     The methods of this class will be called on the browser process UI thread.
     """

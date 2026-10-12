@@ -14,7 +14,7 @@ class BrowserViewDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -24,7 +24,7 @@ class BrowserViewDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -34,7 +34,7 @@ class BrowserViewDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -48,7 +48,7 @@ class BrowserViewDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -64,9 +64,9 @@ class BrowserViewDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         return None
 
@@ -80,17 +80,17 @@ class BrowserViewDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         return None
 
     def on_window_changed(self, view, added):
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         return None
@@ -99,7 +99,7 @@ class BrowserViewDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         return None
@@ -108,7 +108,7 @@ class BrowserViewDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -116,7 +116,7 @@ class BrowserViewDelegate:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -128,32 +128,32 @@ class BrowserViewDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
     def on_browser_created(self, browser_view, browser):
         """Called when ``browser`` associated with ``browser_view`` is created.
 
-        This method will be called after :meth:`LifeSpanHandler.on_after_created` is called
-        for ``browser`` and before OnPopupBrowserViewCreated() is called for ``browser``'s
-        parent delegate if ``browser`` is a popup.
+        This method will be called after :meth:`~cefweaver.LifeSpanHandler.on_after_created`
+        is called for ``browser`` and before OnPopupBrowserViewCreated() is called for
+        ``browser``'s parent delegate if ``browser`` is a popup.
 
         Args:
-            browser_view (BrowserView): Created.
-            browser (Browser): A popup.
+            browser_view (cefweaver.BrowserView): Created.
+            browser (cefweaver.Browser): A popup.
         """
         return None
 
@@ -162,11 +162,11 @@ class BrowserViewDelegate:
 
         Release all references to ``browser`` and do not attempt to execute any methods on
         ``browser`` after this callback returns. This method will be called before
-        :meth:`LifeSpanHandler.on_before_close` is called for ``browser``.
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` is called for ``browser``.
 
         Args:
-            browser_view (BrowserView): Destroyed.
-            browser (Browser):
+            browser_view (cefweaver.BrowserView): Destroyed.
+            browser (cefweaver.Browser):
         """
         return None
 
@@ -174,33 +174,33 @@ class BrowserViewDelegate:
         """Called before a new popup BrowserView is created.
 
         The popup originated from ``browser_view``. ``settings`` and ``client`` are the
-        values returned from :meth:`LifeSpanHandler.on_before_popup`. ``is_devtools`` will
-        be ``True`` if the popup will be a DevTools browser. Return the delegate that will
-        be used for the new popup BrowserView.
+        values returned from :meth:`~cefweaver.LifeSpanHandler.on_before_popup`.
+        ``is_devtools`` will be ``True`` if the popup will be a DevTools browser. Return the
+        delegate that will be used for the new popup BrowserView.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
             settings (BrowserSettings):
-            client (Client | None): The values returned from  ``CefLifeSpanHandler::OnBeforePopup()``.
+            client (cefweaver.Client | None): The values returned from ``CefLifeSpanHandler::OnBeforePopup()``.
             is_devtools (bool):
         Returns:
-            BrowserViewDelegate | None
+            cefweaver.BrowserViewDelegate | None
         """
         return None
 
     def on_popup_browser_view_created(self, browser_view, popup_browser_view, is_devtools):
         """Called after ``popup_browser_view`` is created.
 
-        This method will be called after :meth:`LifeSpanHandler.on_after_created` and
-        OnBrowserCreated() are called for the new popup browser. The popup originated from
-        ``browser_view``. ``is_devtools`` will be ``True`` if the popup is a DevTools
+        This method will be called after :meth:`~cefweaver.LifeSpanHandler.on_after_created`
+        and OnBrowserCreated() are called for the new popup browser. The popup originated
+        from ``browser_view``. ``is_devtools`` will be ``True`` if the popup is a DevTools
         browser. Optionally add ``popup_browser_view`` to the views hierarchy yourself and
-        return ``True``. Otherwise return ``False`` and a default :class:`Window` will be
-        created for the popup.
+        return ``True``. Otherwise return ``False`` and a default :class:`~cefweaver.Window`
+        will be created for the popup.
 
         Args:
-            browser_view (BrowserView):
-            popup_browser_view (BrowserView): Created.
+            browser_view (cefweaver.BrowserView):
+            popup_browser_view (cefweaver.BrowserView): Created.
             is_devtools (bool):
         Returns:
             bool
@@ -208,14 +208,14 @@ class BrowserViewDelegate:
         return False
 
     def get_chrome_toolbar_type(self, browser_view):
-        """Return the Chrome toolbar type that will be available via :meth:`BrowserView.get_chrome_toolbar`.
+        """Return the Chrome toolbar type that will be available via :meth:`~cefweaver.BrowserView.get_chrome_toolbar`.
 
         See that method for related documentation.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            ChromeToolbarType | int: The Chrome toolbar type that will be available via  ``CefBrowserView::GetChromeToolbar()``.
+            cefweaver.types.ChromeToolbarType | int: The Chrome toolbar type that will be available via ``CefBrowserView::GetChromeToolbar()``.
         """
         return 0
 
@@ -226,9 +226,9 @@ class BrowserViewDelegate:
         \"-webkit-app-region: drag\" CSS.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to create frameless windows for Document picture-in-picture  popups.
+            bool: ``True`` to create frameless windows for Document picture-in-picture popups.
         """
         return False
 
@@ -236,9 +236,9 @@ class BrowserViewDelegate:
         """Return ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By() (without user activation) with Document picture-in-picture popups.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By()  (without user activation) with Document picture-in-picture popups.
+            bool: ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By() (without user activation) with Document picture-in-picture popups.
         """
         return False
 
@@ -248,9 +248,9 @@ class BrowserViewDelegate:
         Default is ``False`` (user activation required).
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to allow opening Document picture-in-picture without  user activation.
+            bool: ``True`` to allow opening Document picture-in-picture without user activation.
         """
         return False
 
@@ -259,11 +259,12 @@ class BrowserViewDelegate:
 
         Return ``True`` to handle (or disable) a ``gesture_command`` or ``False`` to
         propagate the gesture to the browser for default handling. With Chrome style these
-        commands can also be handled via :meth:`CommandHandler.on_chrome_command`.
+        commands can also be handled via
+        :meth:`~cefweaver.CommandHandler.on_chrome_command`.
 
         Args:
-            browser_view (BrowserView):
-            gesture_command (GestureCommand):
+            browser_view (cefweaver.BrowserView):
+            gesture_command (cefweaver.types.GestureCommand):
         Returns:
             bool
         """
@@ -275,7 +276,7 @@ class BrowserViewDelegate:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle | int
+            cefweaver.types.RuntimeStyle | int
         """
         return 0
 

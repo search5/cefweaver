@@ -17,7 +17,7 @@ class LoadHandler:
         OnLoadStart and after all calls to OnLoadError and/or OnLoadEnd.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             is_loading (bool):
             can_go_back (bool):
             can_go_forward (bool):
@@ -37,9 +37,9 @@ class LoadHandler:
         OnLoadingStateChange instead.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            transition_type (TransitionType):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            transition_type (cefweaver.types.TransitionType):
         """
         return None
 
@@ -54,8 +54,8 @@ class LoadHandler:
         browser load status use OnLoadingStateChange instead.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             http_status_code (int):
         """
         return None
@@ -69,9 +69,9 @@ class LoadHandler:
         See net\\base\\net_error_list.h for complete descriptions of the error codes.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            error_code (ErrorCode): The error code number, ``error_text`` is the  error text and ``failed_url`` is the URL that failed to load.
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            error_code (cefweaver.types.ErrorCode): The error code number, ``error_text`` is the error text and ``failed_url`` is the URL that failed to load.
             error_text (str):
             failed_url (str):
         """

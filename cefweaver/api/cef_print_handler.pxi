@@ -22,7 +22,7 @@ cdef class PrintDialogCallback:
         """Continue printing with the specified ``settings``.
 
         Args:
-            settings (PrintSettings):
+            settings (cefweaver.PrintSettings):
         """
         cdef CefRefPtr[CefPrintSettings] _a0
         cdef CefPrintDialogCallback* _p = self._ptr()
@@ -127,11 +127,11 @@ class PrintHandler:
         """Called when printing has started for the specified ``browser``.
 
         This method will be called before the other OnPrint*() methods and irrespective of
-        how printing was initiated (e.g. :meth:`BrowserHost.print`, JavaScript
+        how printing was initiated (e.g. :meth:`~cefweaver.BrowserHost.print`, JavaScript
         window.print() or PDF extension print button).
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
@@ -142,9 +142,9 @@ class PrintHandler:
         settings. Do not keep a reference to ``settings`` outside of this callback.
 
         Args:
-            browser (Browser):
-            settings (PrintSettings):
-            get_defaults (bool): True then  populate ``settings`` with the default print settings.
+            browser (cefweaver.Browser):
+            settings (cefweaver.PrintSettings):
+            get_defaults (bool): True then populate ``settings`` with the default print settings.
         """
         return None
 
@@ -155,9 +155,9 @@ class PrintHandler:
         will be displayed or ``False`` to cancel the printing immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             has_selection (bool):
-            callback (PrintDialogCallback):
+            callback (cefweaver.PrintDialogCallback):
         Returns:
             bool
         """
@@ -170,10 +170,10 @@ class PrintHandler:
         proceed or ``False`` to cancel the job immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             document_name (str):
             pdf_file_path (str):
-            callback (PrintJobCallback):
+            callback (cefweaver.PrintJobCallback):
         Returns:
             bool
         """
@@ -183,17 +183,17 @@ class PrintHandler:
         """Reset client state related to printing.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
     def get_pdf_paper_size(self, browser, device_units_per_inch):
         """Return the PDF paper size in device units.
 
-        Used in combination with :meth:`BrowserHost.print_to_pdf`.
+        Used in combination with :meth:`~cefweaver.BrowserHost.print_to_pdf`.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             device_units_per_inch (int):
         Returns:
             Size | tuple[int, int]: The PDF paper size in device units.

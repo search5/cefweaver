@@ -14,12 +14,12 @@ def register_scheme_handler_factory(scheme_name, domain_name, factory):
     ``scheme_name`` and optional ``domain_name``. Returns ``False`` if an error occurs.
     This function may be called on any thread in the browser process. Using this
     function is equivalent to calling
-    :meth:`RequestContext.get_global_context`->RegisterSchemeHandlerFactory().
+    :meth:`~cefweaver.RequestContext.get_global_context`->RegisterSchemeHandlerFactory().
 
     Args:
-        scheme_name (str): A custom scheme then you must also implement the  ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
+        scheme_name (str): A custom scheme then you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
         domain_name (str | None):
-        factory (SchemeHandlerFactory | None):
+        factory (cefweaver.SchemeHandlerFactory | None):
     Returns:
         bool
     """
@@ -41,7 +41,7 @@ def clear_scheme_handler_factories():
 
     Returns ``False`` on error. This function may be called on any thread in the browser
     process. Using this function is equivalent to calling
-    :meth:`RequestContext.get_global_context`->ClearSchemeHandlerFactories().
+    :meth:`~cefweaver.RequestContext.get_global_context`->ClearSchemeHandlerFactories().
 
     Returns:
         bool
@@ -58,7 +58,7 @@ def get_mime_type(extension):
     Args:
         extension (str):
     Returns:
-        str: The mime type for the specified file extension or an empty string if  unknown.
+        str: The mime type for the specified file extension or an empty string if unknown.
     """
     cdef CefString _a0
     cdef CefString _r
@@ -71,11 +71,11 @@ def get_mime_type(extension):
 def post_task(long long thread_id, task):
     """Post a task for execution on the specified thread.
 
-    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostTask(task).
+    Equivalent to using ``CefTaskRunner::GetForThread(threadId)``->PostTask(task).
 
     Args:
-        thread_id (ThreadId | int):
-        task (Task):
+        thread_id (cefweaver.types.ThreadId | int):
+        task (cefweaver.Task):
     Returns:
         bool
     """
@@ -92,12 +92,12 @@ def post_task(long long thread_id, task):
 def post_delayed_task(long long thread_id, task, int64_t delay_ms):
     """Post a task for delayed execution on the specified thread.
 
-    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostDelayedTask(task,
+    Equivalent to using ``CefTaskRunner::GetForThread(threadId)``->PostDelayedTask(task,
     delay_ms).
 
     Args:
-        thread_id (ThreadId | int):
-        task (Task):
+        thread_id (cefweaver.types.ThreadId | int):
+        task (cefweaver.Task):
         delay_ms (int):
     Returns:
         bool
@@ -116,10 +116,10 @@ def currently_on(long long thread_id):
     """Return ``True`` if called on the specified thread.
 
     Equivalent to using
-    ``CefTaskRunner::GetForThread``(threadId)->BelongsToCurrentThread().
+    ``CefTaskRunner::GetForThread(threadId)``->BelongsToCurrentThread().
 
     Args:
-        thread_id (ThreadId | int):
+        thread_id (cefweaver.types.ThreadId | int):
     Returns:
         bool: ``True`` if called on the specified thread.
     """
@@ -165,7 +165,7 @@ def add_cross_origin_whitelist_entry(source_origin, target_protocol, target_doma
     Args:
         source_origin (str): Invalid or the whitelist cannot be accessed.
         target_protocol (str):
-        target_domain (str | None): Empty and  ``allow_target_subdomains`` if ``True`` all domains and IP addresses will be  allowed.
+        target_domain (str | None): Empty and ``allow_target_subdomains`` if ``True`` all domains and IP addresses will be allowed.
         allow_target_subdomains (bool): True sub-domain matches will be allowed.
     Returns:
         bool
@@ -228,7 +228,7 @@ def is_cert_status_error(long long status):
     """Return ``True`` if the certificate status represents an error.
 
     Args:
-        status (CertStatus | int):
+        status (cefweaver.types.CertStatus | int):
     Returns:
         bool: ``True`` if the certificate status represents an error.
     """
@@ -263,8 +263,8 @@ def get_extensions_for_mime_type(mime_type):
     """Get the extensions associated with the given mime type.
 
     This should be passed in lower case. There could be multiple extensions for a given
-    mime type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"text/*\". Any
-    existing elements in the provided vector will not be erased.
+    mime type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"``text/*``\".
+    Any existing elements in the provided vector will not be erased.
 
     Args:
         mime_type (str):
@@ -311,14 +311,17 @@ def begin_tracing(categories, callback):
     an optional '-' prefix to make it an excluded category. Having both included and
     excluded categories in the same list is not supported.
 
-    Examples: - \"test_MyTest*\" - \"test_MyTest*,test_OtherStuff\" -
-    \"-excluded_category1,-excluded_category2\"
+    Examples:
+
+    - \"``test_MyTest*``\"
+    - \"test_MyTest*,test_OtherStuff\"
+    - \"-excluded_category1,-excluded_category2\"
 
     This function must be called on the browser process UI thread.
 
     Args:
         categories (str | None): A comma-delimited list of category wildcards.
-        callback (CompletionCallback | None):
+        callback (cefweaver.CompletionCallback | None):
     Returns:
         bool
     """
@@ -347,8 +350,8 @@ def end_tracing(tracing_file, callback):
     This function must be called on the browser process UI thread.
 
     Args:
-        tracing_file (str | None): Empty a new temporary file path  will be used.
-        callback (EndTracingCallback | None): Empty no trace data will be written.
+        tracing_file (str | None): Empty a new temporary file path will be used.
+        callback (cefweaver.EndTracingCallback | None): Empty no trace data will be written.
     Returns:
         bool
     """
@@ -385,36 +388,38 @@ def crash_reporting_enabled():
 
     On Windows and Linux this file must be placed next to the main application
     executable. On macOS this file must be placed in the top-level app bundle Resources
-    directory (e.g. \"<appname>.app/Contents/Resources\"). File contents are as follows:
+    directory (e.g. \"<appname>.app/Contents/Resources\"). File contents are as follows::
 
-     <pre>
-      # Comments start with a hash character and must be on their own line.
+        # Comments start with a hash character and must be on their own line.
 
-      [Config]
-      ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
-      ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
-      AppName=<Windows only; App-specific folder name component for storing crash
-               information; default to \"CEF\">
-      ExternalHandler=<Windows only; Name of the external handler exe to use
-                       instead of re-launching the main exe; default to empty>
-      BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
-                                     should be forwarded to the system crash
-                                     reporter; default to ``False``>
-      ServerURL=<crash server URL; default to empty>
-      RateLimitEnabled=<True if uploads should be rate limited; default to ``True``>
-      MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
-                        default to 5>
-      MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
-                           will cause older reports to be deleted; default to 20>
-      MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
-                            default to 5>
+    ::
 
-      [CrashKeys]
-      my_key1=<small``medium``large>
-      my_key2=<small``medium``large>
-     </pre>
+        [Config]
+        ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
+        ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
+        AppName=<Windows only; App-specific folder name component for storing crash
+                 information; default to \"CEF\">
+        ExternalHandler=<Windows only; Name of the external handler exe to use
+                         instead of re-launching the main exe; default to empty>
+        BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
+                                       should be forwarded to the system crash
+                                       reporter; default to false>
+        ServerURL=<crash server URL; default to empty>
+        RateLimitEnabled=<True if uploads should be rate limited; default to true>
+        MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
+                          default to 5>
+        MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
+                             will cause older reports to be deleted; default to 20>
+        MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
+                              default to 5>
 
-    <b>Config section:</b>
+    ::
+
+        [CrashKeys]
+        my_key1=<small|medium|large>
+        my_key2=<small|medium|large>
+
+    ``**Config`` section:``**``
 
     If \"ProductName\" and/or \"ProductVersion\" are set then the specified values will be
     included in the crash dump metadata. On macOS if these values are set to empty then
@@ -441,18 +446,17 @@ def crash_reporting_enabled():
     If \"ServerURL\" is set then crashes will be uploaded as a multi-part POST request to
     the specified URL. Otherwise, reports will only be stored locally on disk.
 
-     If \"RateLimitEnabled\" is set to ``True`` then crash report uploads will be rate
-     limited as follows:
-      1. If \"MaxUploadsPerDay\" is set to a positive value then at most the
-         specified number of crashes will be uploaded in each 24 hour period.
-      2. If crash upload fails due to a network or server error then an
-         incremental backoff delay up to a maximum of 24 hours will be applied
-         for retries.
-      3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
-         \"MaxUploadsPerDay\" value will be reduced to 1 until the client is
-         restarted. This helps to avoid an upload flood when the network or
-         server error is resolved.
-     Rate limiting is not supported on Linux.
+    If \"RateLimitEnabled\" is set to ``True`` then crash report uploads will be rate
+    limited as follows:
+
+    1. If \"MaxUploadsPerDay\" is set to a positive value then at most the specified
+       number of crashes will be uploaded in each 24 hour period.
+    2. If crash upload fails due to a network or server error then an incremental
+       backoff delay up to a maximum of 24 hours will be applied for retries.
+    3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
+       \"MaxUploadsPerDay\" value will be reduced to 1 until the client is restarted. This
+       helps to avoid an upload flood when the network or server error is resolved. Rate
+       limiting is not supported on Linux.
 
     If \"MaxDatabaseSizeInMb\" is set to a positive value then crash report storage on
     disk will be limited to that size in megabytes. For example, on Windows each dump is
@@ -462,7 +466,7 @@ def crash_reporting_enabled():
     If \"MaxDatabaseAgeInDays\" is set to a positive value then crash reports older than
     the specified age in days will be deleted. Not supported on Linux.
 
-    <b>CrashKeys section:</b>
+    ``**CrashKeys`` section:``**``
 
     A maximum of 26 crash keys of each size can be specified for use by the application.
     Crash key values will be truncated based on the specified size (small = 64 bytes,
@@ -499,7 +503,7 @@ def get_path(long long key):
     Returns ``True`` on success. Can be called on any thread in the browser process.
 
     Args:
-        key (PathKey | int):
+        key (cefweaver.types.PathKey | int):
     Returns:
         tuple[bool, str]
     """
@@ -516,7 +520,7 @@ def now_from_system_trace_time():
     Can be used by clients to synchronize with the time information in trace events.
 
     Returns:
-        int: The current system trace time or, if none is defined, the current  high-res time.
+        int: The current system trace time or, if none is defined, the current high-res time.
     """
     cdef int64_t _r
     with nogil:

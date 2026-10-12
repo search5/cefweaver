@@ -1,0 +1,138 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/views.rst:2
+msgid "Views (without a toolkit)"
+msgstr "뷰(툴킷 없이)"
+
+#: ../../guide/views.rst:4
+msgid ""
+"You can build windows with CEF alone. The **Views framework** of CEF draws the window, toolbars, "
+"buttons, text fields, layouts and the browser itself and handles mouse and key input. The program"
+" assembles views and reacts in delegates (callbacks). Unlike :doc:`embedding`, which draws an "
+"offscreen picture into a toolkit widget, the browser here is drawn into the own window of CEF."
+msgstr ""
+"CEF만으로 창을 만들 수 있습니다. CEF의 **Views framework**\\ 가 창, 도구 모음, 단추, 텍스트 필드, 레이아웃, 브라우저 자체를 그리고 마우스와 키"
+" 입력을 처리합니다. 프로그램은 뷰를 조립하고 delegate(콜백)에서 반응합니다. 오프스크린 그림을 툴킷 위젯에 그리는 :doc:`embedding`\\ 과 달리, 여기서"
+" 브라우저는 CEF 자신의 창에 그려집니다."
+
+#: ../../guide/views.rst:8
+msgid "This page was verified on Linux x86_64 (X11). Windows, macOS and Wayland were not verified."
+msgstr "이 페이지는 Linux x86_64(X11)에서 확인했습니다. Windows, macOS, Wayland는 확인하지 못했습니다."
+
+#: ../../guide/views.rst:11
+msgid "Classes"
+msgstr "클래스"
+
+#: ../../guide/views.rst:13
+msgid ""
+"The classes follow the inheritance of CEF. ``Window`` is a subclass of ``Panel``, and ``Panel`` "
+"of ``View``. ``BrowserView``, ``Button`` (``LabelButton``, ``MenuButton``), ``Textfield`` and "
+"``ScrollView`` are subclasses of ``View`` too. An object of a subclass can be passed wherever the"
+" base class is expected. In the other direction, an object that CEF returns as ``View`` arrives "
+"as the class of its real kind (a ``Window`` as ``Window``, a ``LabelButton`` as ``LabelButton``)."
+msgstr ""
+"클래스는 CEF의 상속을 따릅니다. ``Window``\\ 는 ``Panel``\\ 의 하위 클래스이고, ``Panel``\\ 은 ``View``\\ 의 하위 클래스입니다. "
+"``BrowserView``, ``Button``\\ (``LabelButton``, ``MenuButton``), ``Textfield``, ``ScrollView``\\ "
+"도 ``View``\\ 의 하위 클래스입니다. 하위 클래스의 객체는 기반 클래스가 필요한 곳 어디에든 넘길 수 있습니다. 반대 방향으로, CEF가 ``View``\\ 로 "
+"반환하는 객체는 실제 종류의 클래스로 도착합니다(``Window``\\ 는 ``Window``\\ 로, ``LabelButton``\\ 은 ``LabelButton``\\ "
+"으로)."
+
+#: ../../guide/views.rst:16
+msgid "Starting"
+msgstr "시작"
+
+#: ../../guide/views.rst:18
+msgid ""
+"``initialize(None)`` starts CEF **without a first browser**; then you create a ``BrowserView`` "
+"and a ``Window``. ``WindowDelegate.on_window_created`` is called when the window exists, which is"
+" where you attach the views."
+msgstr ""
+"``initialize(None)``\\ 은 **첫 브라우저 없이** CEF를 시작합니다. 그다음 ``BrowserView``\\ 와 ``Window``\\ 를 만듭니다. "
+"``WindowDelegate.on_window_created``\\ 는 창이 생겼을 때 호출되며, 여기서 뷰를 붙입니다."
+
+#: ../../guide/views.rst:47
+msgid ""
+"A full example with a toolbar (buttons and an address field) is in ``examples/views/`` "
+"(``quickstart.py``, and ``smoke.py``, which checks it with real X events)."
+msgstr ""
+"도구 모음(단추와 주소 필드)이 있는 전체 예제는 ``examples/views/``\\ 에 있습니다(``quickstart.py``, 그리고 실제 X 이벤트로 점검하는 "
+"``smoke.py``)."
+
+#: ../../guide/views.rst:50
+msgid "Good to know"
+msgstr "알아 두면 좋은 점"
+
+#: ../../guide/views.rst:52
+msgid ""
+"**The loop must poll ``do_message_loop_work()`` often.** CEF owns the window, so CEF has to "
+"process the events of the window system itself. With a ``MessagePump`` "
+"(``external_message_pump``) CEF only does the work it announced and does not process the X11 "
+"events of its own window: pressing a button never delivered ``on_button_pressed``."
+msgstr ""
+"**루프는 ``do_message_loop_work()``\\ 를 자주 폴링해야 합니다.** CEF가 창을 소유하므로 창 시스템의 이벤트도 CEF가 직접 처리해야 합니다. "
+"``MessagePump``\\ (``external_message_pump``)를 쓰면 CEF는 알린 작업만 하고 자기 창의 X11 이벤트는 처리하지 않습니다. 단추를 "
+"눌러도 ``on_button_pressed``\\ 가 전달되지 않았습니다."
+
+#: ../../guide/views.rst:53
+msgid ""
+"**You may call ``shutdown()`` while a window is open.** ``shutdown()`` closes the remaining "
+"browsers first and then shuts CEF down (it used to crash with a segmentation fault). Still, the "
+"``on_window_destroyed`` call is the clearer signal that a window closed."
+msgstr ""
+"**창이 열려 있는 동안 ``shutdown()``\\ 을 호출해도 됩니다.** ``shutdown()``\\ 은 남은 브라우저를 먼저 닫고 나서 CEF를 종료합니다(예전에는"
+" segmentation fault로 비정상 종료했습니다). 그래도 창이 닫혔다는 더 분명한 신호는 ``on_window_destroyed`` 호출입니다."
+
+#: ../../guide/views.rst:54
+msgid ""
+"**The same CEF view is a different Python object every time.** To tell the buttons apart in a "
+"delegate, give each one a number with ``set_id`` and compare ``get_id()``."
+msgstr ""
+"**같은 CEF 뷰라도 매번 다른 Python 객체입니다.** delegate에서 단추를 구별하려면 ``set_id``\\ 로 각각 번호를 주고 ``get_id()``\\ 를"
+" 비교합니다."
+
+#: ../../guide/views.rst:55
+msgid ""
+"After ``initialize(None)`` you cannot use ``app.create_browser()`` (a first browser is required; "
+"it raises ``RuntimeError``). ``app.load_url()`` and ``app.execute_javascript()`` do not apply to "
+"a browser started by ``initialize(None)`` or to the browser of a Views window; they return "
+"``False``. For such a browser use the frame: "
+"``view.get_browser().get_main_frame().load_url(...)``."
+msgstr ""
+"``initialize(None)`` 뒤에는 ``app.create_browser()``\\ 를 쓸 수 없습니다(첫 브라우저가 필요하며, ``RuntimeError``\\ 를"
+" 발생시킵니다). ``app.load_url()``\\ 과 ``app.execute_javascript()``\\ 는 ``initialize(None)``\\ 으로 시작한 "
+"브라우저나 Views 창의 브라우저에는 적용되지 않으며 ``False``\\ 를 반환합니다. 이런 브라우저에는 frame을 씁니다: "
+"``view.get_browser().get_main_frame().load_url(...)``."
+
+#: ../../guide/views.rst:56
+msgid ""
+"``View.get_delegate()``, ``BrowserHost.get_client()`` and ``RequestContext.get_handler()`` return"
+" the Python object you gave CEF (``None`` for what CEF made). "
+"``BrowserViewDelegate.get_delegate_for_popup_browser_view`` was called when the client of the "
+"view that opens the popup had a ``LifeSpanHandler``; ``WindowDelegate.get_parent_window`` works "
+"too. More in :doc:`limitations`."
+msgstr ""
+"``View.get_delegate()``, ``BrowserHost.get_client()``, ``RequestContext.get_handler()``\\ 는 CEF에 "
+"준 Python 객체를 반환합니다(CEF가 만든 것은 ``None``). "
+"``BrowserViewDelegate.get_delegate_for_popup_browser_view``\\ 는 팝업을 여는 뷰의 클라이언트에 "
+"``LifeSpanHandler``\\ 가 있을 때 호출되었고, ``WindowDelegate.get_parent_window``\\ 도 동작합니다. 자세한 내용은 "
+":doc:`limitations`\\ 에 있습니다."
+

@@ -25,7 +25,7 @@ cdef class DragData:
         """Return a copy of the current object.
 
         Returns:
-            DragData | None: A copy of the current object.
+            cefweaver.DragData | None: A copy of the current object.
         """
         cdef CefDragData* _p = self._ptr()
         cdef CefRefPtr[CefDragData] _r
@@ -175,7 +175,7 @@ cdef class DragData:
         a suggested name for the file.
 
         Args:
-            writer (StreamWriter | None): ``None`` this method will return the size of the file contents in bytes.
+            writer (cefweaver.StreamWriter | None): ``None`` this method will return the size of the file contents in bytes.
         Returns:
             int
         """
@@ -301,8 +301,9 @@ cdef class DragData:
     def reset_file_contents(self):
         """Reset the file contents.
 
-        You should do this before calling :meth:`BrowserHost.drag_target_drag_enter` as the
-        web view does not allow us to drag in this kind of data.
+        You should do this before calling
+        :meth:`~cefweaver.BrowserHost.drag_target_drag_enter` as the web view does not allow
+        us to drag in this kind of data.
         """
         cdef CefDragData* _p = self._ptr()
         with nogil:
@@ -339,7 +340,7 @@ cdef class DragData:
         May return ``None`` if no image representation is available.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         cdef CefDragData* _p = self._ptr()
         cdef CefRefPtr[CefImage] _r
@@ -373,10 +374,10 @@ cdef class DragData:
 
     @staticmethod
     def create():
-        """Create a new :class:`DragData` object.
+        """Create a new :class:`~cefweaver.DragData` object.
 
         Returns:
-            DragData
+            cefweaver.DragData
         """
         cdef CefRefPtr[CefDragData] _r
         with nogil:

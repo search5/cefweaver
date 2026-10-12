@@ -25,7 +25,7 @@ cdef class BoxLayout(Layout):
         resized. Flex values must not be negative.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             flex (int):
         """
         cdef CefRefPtr[CefView] _a0
@@ -39,7 +39,7 @@ cdef class BoxLayout(Layout):
         """Clear the flex for the given ``view``, causing it to use the default flex specified via ``CefBoxLayoutSettings``.default_flex.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         cdef CefRefPtr[CefView] _a0
         cdef CefBoxLayout* _p = self._ptr_CefBoxLayout()

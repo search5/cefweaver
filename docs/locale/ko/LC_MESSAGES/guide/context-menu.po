@@ -1,0 +1,245 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/context-menu.rst:2
+msgid "Context menu"
+msgstr "컨텍스트 메뉴"
+
+#: ../../guide/context-menu.rst:4
+msgid ""
+"An offscreen browser does not get a menu drawn by CEF. So :mod:`cefweaver.ui` reads the menu "
+"model of CEF and shows it with the **menu widget of the toolkit**. This works in toolkits whose "
+"adapter has ``show_menu``."
+msgstr ""
+"오프스크린 브라우저는 CEF가 그려 주는 메뉴를 받지 못합니다. 그래서 :mod:`cefweaver.ui`\\ 는 CEF의 메뉴 모델을 읽어 **툴킷의 메뉴 위젯**\\ 으로"
+" 보여 줍니다. 어댑터에 ``show_menu``\\ 가 있는 툴킷에서 동작합니다."
+
+#: ../../guide/context-menu.rst:10
+msgid "Toolkit"
+msgstr "툴킷"
+
+#: ../../guide/context-menu.rst:11
+msgid "Menu"
+msgstr "메뉴"
+
+#: ../../guide/context-menu.rst:12
+msgid "GTK 3"
+msgstr "GTK 3"
+
+#: ../../guide/context-menu.rst:13
+msgid "``Gtk.Menu``"
+msgstr "``Gtk.Menu``"
+
+#: ../../guide/context-menu.rst:14
+msgid "Qt"
+msgstr "Qt"
+
+#: ../../guide/context-menu.rst:15
+msgid "``QMenu``"
+msgstr "``QMenu``"
+
+#: ../../guide/context-menu.rst:16
+msgid "Tk"
+msgstr "Tk"
+
+#: ../../guide/context-menu.rst:17
+msgid "``tkinter.Menu``"
+msgstr "``tkinter.Menu``"
+
+#: ../../guide/context-menu.rst:18
+msgid "wxPython"
+msgstr "wxPython"
+
+#: ../../guide/context-menu.rst:19
+msgid "``wx.Menu``"
+msgstr "``wx.Menu``"
+
+#: ../../guide/context-menu.rst:20
+msgid "SDL2, Kivy"
+msgstr "SDL2, Kivy"
+
+#: ../../guide/context-menu.rst:21
+msgid "none (see :doc:`toolkits`)"
+msgstr "없음 (:doc:`toolkits` 참조)"
+
+#: ../../guide/context-menu.rst:24
+msgid "Who runs an item"
+msgstr "항목을 실행하는 주체"
+
+#: ../../guide/context-menu.rst:26
+msgid ""
+"Most items are standard commands defined by CEF (back, forward, copy, paste, spelling "
+"suggestions, ...). Which items appear depends on where you clicked: whether text is selected, an "
+"input field, a link or a misspelled word. The labels follow the locale (``뒤로(B)`` in Korean)."
+msgstr ""
+"대부분의 항목은 CEF가 정의한 표준 명령(뒤로, 앞으로, 복사, 붙여넣기, 맞춤법 제안 등)입니다. 어떤 항목이 나타나는지는 클릭한 곳, 즉 텍스트가 선택되었는지, 입력 "
+"필드인지, 링크인지, 철자가 틀린 단어인지에 따라 다릅니다. 레이블은 로캘을 따릅니다(한국어에서는 ``뒤로(B)``)."
+
+#: ../../guide/context-menu.rst:28
+msgid ""
+"The one that runs the chosen item depends on the item, because while the menu is open the menu of"
+" the toolkit takes the keyboard focus, and some commands do nothing when CEF is told afterwards."
+msgstr ""
+"선택한 항목을 실행하는 주체는 항목마다 다릅니다. 메뉴가 열려 있는 동안에는 툴킷의 메뉴가 키보드 포커스를 가져가고, 일부 명령은 그 뒤에 CEF에 알려도 아무 일도 하지 "
+"않기 때문입니다."
+
+#: ../../guide/context-menu.rst:34
+msgid "Item"
+msgstr "항목"
+
+#: ../../guide/context-menu.rst:35
+msgid "Run by"
+msgstr "실행 주체"
+
+#: ../../guide/context-menu.rst:36
+msgid "Copy, cut, paste, paste as plain text"
+msgstr "복사, 잘라내기, 붙여넣기, 일반 텍스트로 붙여넣기"
+
+#: ../../guide/context-menu.rst:37
+msgid ""
+"The view, through **the clipboard of the toolkit** (the same path as Ctrl+C and so on). On "
+"Wayland the clipboard of CEF belongs to the compositor and does not reach the toolkit."
+msgstr "뷰가 **툴킷의 클립보드**\\ 를 통해 실행합니다(Ctrl+C 등과 같은 경로). Wayland에서는 CEF의 클립보드가 컴포지터에 속해 있어 툴킷까지 전달되지 않습니다."
+
+#: ../../guide/context-menu.rst:38
+msgid "Undo, redo, delete, select all"
+msgstr "실행 취소, 다시 실행, 삭제, 모두 선택"
+
+#: ../../guide/context-menu.rst:39
+msgid "The view, directly through the edit API of the clicked frame."
+msgstr "뷰가 클릭된 frame의 편집 API를 통해 직접 실행합니다."
+
+#: ../../guide/context-menu.rst:40
+msgid "Spelling suggestions, add to dictionary"
+msgstr "맞춤법 제안, 사전에 추가"
+
+#: ../../guide/context-menu.rst:41
+msgid "The view, with ``BrowserHost.replace_misspelling()`` and ``add_word_to_dictionary()``."
+msgstr "뷰가 ``BrowserHost.replace_misspelling()``\\ 과 ``add_word_to_dictionary()``\\ 로 실행합니다."
+
+#: ../../guide/context-menu.rst:42
+msgid "Other standard commands (back, forward, reload, ...)"
+msgstr "그 밖의 표준 명령(뒤로, 앞으로, 새로 고침 등)"
+
+#: ../../guide/context-menu.rst:43
+msgid "CEF, handed over with ``continue_``."
+msgstr "CEF가 실행하며, ``continue_``\\ 로 넘겨집니다."
+
+#: ../../guide/context-menu.rst:44
+msgid "Items the application added"
+msgstr "애플리케이션이 추가한 항목"
+
+#: ../../guide/context-menu.rst:45
+msgid "The function the application gave (``action``)."
+msgstr "애플리케이션이 준 함수(``action``)."
+
+#: ../../guide/context-menu.rst:48
+msgid "Changing the menu from the application"
+msgstr "애플리케이션에서 메뉴 바꾸기"
+
+#: ../../guide/context-menu.rst:50
+msgid "Hang a hook on ``view.on_context_menu`` to remove or add items."
+msgstr "``view.on_context_menu``\\ 에 훅을 걸어 항목을 제거하거나 추가합니다."
+
+#: ../../guide/context-menu.rst:65
+msgid ""
+"``info`` describes where you clicked: ``x`` and ``y`` (view coordinates), ``link_url``, "
+"``source_url``, ``page_url``, ``selection_text``, ``is_editable``, ``misspelled_word``, "
+"``dictionary_suggestions`` and the original ``params`` of CEF."
+msgstr ""
+"``info``\\ 는 클릭한 위치를 설명합니다. ``x``\\ 와 ``y``\\ (뷰 좌표), ``link_url``, ``source_url``, ``page_url``,"
+" ``selection_text``, ``is_editable``, ``misspelled_word``, ``dictionary_suggestions``, 그리고 CEF의 "
+"원본 ``params``\\ 가 있습니다."
+
+#: ../../guide/context-menu.rst:66
+msgid ""
+"``items`` is a list of ``ui.menu.MenuItem``. An item has ``kind`` (``command``, ``check``, "
+"``radio``, ``separator`` or ``submenu``), ``label``, ``enabled``, ``checked``, ``children`` and "
+"``command_id``. Separators at the start, at the end and in a row are cleaned up in the list the "
+"hook returns."
+msgstr ""
+"``items``\\ 는 ``ui.menu.MenuItem``\\ 의 목록입니다. 항목에는 ``kind``\\ (``command``, ``check``, ``radio``,"
+" ``separator``, ``submenu``), ``label``, ``enabled``, ``checked``, ``children``, ``command_id``\\"
+" 가 있습니다. 훅이 반환하는 목록에서는 처음과 끝에 있는 구분선과 연속된 구분선이 정리됩니다."
+
+#: ../../guide/context-menu.rst:67
+msgid ""
+"``MenuItem(\"label\", action=function)`` is an item of the application. When chosen only the "
+"function runs and CEF is not told."
+msgstr "``MenuItem(\"label\", action=function)``\\ 은 애플리케이션의 항목입니다. 선택되면 함수만 실행되고 CEF에는 알려지지 않습니다."
+
+#: ../../guide/context-menu.rst:68
+msgid ""
+"If the hook or the ``show_menu`` of the adapter raises, the menu is cancelled and the error goes "
+"to ``sys.excepthook``."
+msgstr "훅이나 어댑터의 ``show_menu``\\ 가 예외를 발생시키면 메뉴가 취소되고 오류는 ``sys.excepthook``\\ 으로 전달됩니다."
+
+#: ../../guide/context-menu.rst:71
+msgid "Adding a menu to a new toolkit"
+msgstr "새 툴킷에 메뉴 추가하기"
+
+#: ../../guide/context-menu.rst:73
+msgid ""
+"Implement ``show_menu(items, x, y, done)`` in the adapter. ``items`` is the list of ``MenuItem`` "
+"above and ``(x, y)`` are view coordinates. When the user picks an item call ``done(command_id of "
+"the item)``; when the menu just closes call ``done(None)``. Call it **exactly once**."
+msgstr ""
+"어댑터에 ``show_menu(items, x, y, done)``\\ 을 구현합니다. ``items``\\ 는 위의 ``MenuItem`` 목록이고 ``(x, y)``\\ "
+"는 뷰 좌표입니다. 사용자가 항목을 고르면 ``done(command_id of the item)``\\ 을 호출하고, 메뉴가 그냥 닫히면 ``done(None)``\\ 을 "
+"호출합니다. **정확히 한 번만** 호출합니다."
+
+#: ../../guide/context-menu.rst:75
+msgid "Some traps appeared only on a real desktop:"
+msgstr "일부 함정은 실제 데스크톱에서만 나타났습니다."
+
+#: ../../guide/context-menu.rst:77
+msgid ""
+"CEF asks for the menu at the moment the right button is **pressed**. In some toolkits (wx) a menu"
+" that appears with the button still down is closed by the release that follows. Wait until the "
+"button goes up before opening it. In GTK 3 show the menu from the real button event the widget "
+"got."
+msgstr ""
+"CEF는 오른쪽 단추를 **누르는** 순간에 메뉴를 요청합니다. 일부 툴킷(wx)에서는 단추를 누른 채로 나타난 메뉴가 뒤이어 단추를 놓는 동작으로 닫힙니다. 단추를 놓을 "
+"때까지 기다린 뒤에 메뉴를 엽니다. GTK 3에서는 위젯이 받은 실제 단추 이벤트로 메뉴를 보여 줍니다."
+
+#: ../../guide/context-menu.rst:78
+msgid ""
+"While the menu is open the widget can lose focus and CEF can be told \"no focus\". The view takes"
+" this into account when it runs commands, as in the table above, so the adapter has nothing to "
+"do."
+msgstr ""
+"메뉴가 열려 있는 동안 위젯이 포커스를 잃을 수 있고, CEF에는 \"포커스 없음\"이 전달될 수 있습니다. 뷰는 위 표처럼 명령을 실행할 때 이를 고려하므로 어댑터가 할 "
+"일은 없습니다."
+
+#: ../../guide/context-menu.rst:81
+msgid "Known limits"
+msgstr "알려진 한계"
+
+#: ../../guide/context-menu.rst:83
+msgid "The menu item ``Print`` is shown, but printing does not work (see :doc:`limitations`)."
+msgstr "메뉴 항목 ``Print``\\ 가 표시되지만 인쇄는 동작하지 않습니다(:doc:`limitations` 참조)."
+
+#: ../../guide/context-menu.rst:84
+msgid ""
+"A misspelled English word gets suggestions and an ``Add to dictionary`` item. Filter them with "
+"the hook above if you do not want them."
+msgstr "철자가 틀린 영어 단어에는 제안과 ``Add to dictionary`` 항목이 나타납니다. 원하지 않으면 위의 훅으로 걸러 냅니다."
+

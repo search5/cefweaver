@@ -115,7 +115,7 @@ def comment_docs(body, struct=False):
             found = re.match(r"^[A-Za-z_][\w ]*?[ *](\w+)\s*(?:\[[^\]]*\])?\s*;", line)
         else:
             found = re.match(r"^([A-Za-z_]\w*)\s*(?:=[^,]*)?,?\s*(?://.*)?$", line)
-        text = " ".join(t for t in buffer if t).strip()
+        text = "\n".join(buffer).strip()
         if found and text:
             docs.setdefault(found.group(1), text)
         buffer = []
@@ -494,7 +494,7 @@ class Model:
             used_names.add(py_name)
             names = _python_member_names([n for n, _ in members])
             values = [v for _, v in members]
-            doc = " ".join(l.strip().lstrip("/").strip() for l in comment.splitlines()).strip()
+            doc = "\n".join(l.strip().lstrip("/").strip() for l in comment.splitlines()).strip()
             raw_docs = comment_docs(body)
             raw_docs.update(self._macro_docs(body))
             member_docs = tuple((n, raw_docs[c]) for (c, _), n in zip(members, names) if c in raw_docs)
@@ -518,7 +518,7 @@ class Model:
                 continue
             found = re.match(r"%s\((\w+),\s*-?\w+\)" % macro.group(1), line)
             if found and buffer:
-                docs[macro.group(2) + found.group(1)] = " ".join(t for t in buffer if t).strip()
+                docs[macro.group(2) + found.group(1)] = "\n".join(buffer).strip()
             buffer = []
         return docs
 
@@ -581,7 +581,7 @@ class Model:
                 if fields:
                     raw_docs = comment_docs(bodies[cname], struct=True)
                     field_docs = tuple((f.name, raw_docs[f.cname]) for f in fields if f.cname in raw_docs)
-                    doc = " ".join(l.strip().lstrip("/").strip() for l in
+                    doc = "\n".join(l.strip().lstrip("/").strip() for l in
                                    struct_comments.get(cname, "").splitlines()).strip()
                     structs[cls] = StructInfo(cls, cname, fields, cls in raw, doc, field_docs)
                     progress = True

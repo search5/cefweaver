@@ -80,7 +80,7 @@ class Session:
         adapter (ToolkitAdapter): The toolkit adapter; only ``post`` and ``call_later`` are needed (and
             ``release``, if it has one).
         switches (iterable, optional): Chromium command line switches as ``(name, value)`` pairs. If
-            :func:`default_ozone_platform` returns a platform and neither ``ozone-platform`` nor
+            :func:`~cefweaver.ui.session.default_ozone_platform` returns a platform and neither ``ozone-platform`` nor
             ``ozone-platform-hint`` is given, ``("ozone-platform", platform)`` is added.
         cache_path (str, optional): The cache directory, passed to :meth:`~cefweaver.CefApp.set_cache_path`.
 

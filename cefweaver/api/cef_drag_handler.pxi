@@ -15,9 +15,9 @@ class DragHandler:
         the drag event.
 
         Args:
-            browser (Browser):
-            drag_data (DragData):
-            mask (DragOperationsMask):
+            browser (cefweaver.Browser):
+            drag_data (cefweaver.DragData):
+            mask (cefweaver.types.DragOperationsMask):
         Returns:
             bool
         """
@@ -32,8 +32,8 @@ class DragHandler:
         called with an empty vector.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             regions (list[DraggableRegion]):
         """
         return None

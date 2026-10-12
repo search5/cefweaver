@@ -176,7 +176,7 @@ application.run()
 
 // The run loop has ended and no browser is left. CefShutdown() should take a moment; in a Swift
 // executable that embeds Python it did not return here (it does in the python executable, see
-// docs/limitations.md), and Chromium's watchdog ended the process with an error after 10 s. So the
+// llm-wiki/pages/reference/known-constraints.md), and Chromium's watchdog ended the process with an error after 10 s. So the
 // process leaves after 3 s if CEF is not down by then. The browser is closed by then; only the
 // final flush of CEF's cache is cut short.
 DispatchQueue.global().asyncAfter(deadline: .now() + 3) { exit(0) }

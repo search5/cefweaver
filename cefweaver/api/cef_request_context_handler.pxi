@@ -12,7 +12,7 @@ class RequestContextHandler:
         """Called on the browser process UI thread immediately after the request context has been initialized.
 
         Args:
-            request_context (RequestContext):
+            request_context (cefweaver.RequestContext):
         """
         return None
 
@@ -20,31 +20,32 @@ class RequestContextHandler:
         """Called on the browser process IO thread before a resource request is initiated.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` represents the request contents and cannot be modified in this callback.
-        ``is_navigation`` will be ``True`` if the resource request is a navigation.
-        ``is_download`` will be ``True`` if the resource request is a download.
-        ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
-        request. Set ``disable_default_handling`` to ``True`` to disable default handling of
-        the request, in which case it will need to be handled via
-        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
-        the resource load to proceed with default handling return ``None``. To specify a
-        handler for the resource return a :class:`ResourceRequestHandler` object. This
-        method will not be called if the client associated with ``browser`` returns a
-        non-``None`` value from :meth:`RequestHandler.get_resource_request_handler` for the
-        same request (identified by :meth:`Request.get_identifier`). For worker requests
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` represents the request contents and
+        cannot be modified in this callback. ``is_navigation`` will be ``True`` if the
+        resource request is a navigation. ``is_download`` will be ``True`` if the resource
+        request is a download. ``request_initiator`` is the origin (scheme + domain) of the
+        page that initiated the request. Set ``disable_default_handling`` to ``True`` to
+        disable default handling of the request, in which case it will need to be handled
+        via :meth:`~cefweaver.ResourceRequestHandler.get_resource_handler` or it will be
+        canceled. To allow the resource load to proceed with default handling return
+        ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceRequestHandler` object. This method will not be called if
+        the client associated with ``browser`` returns a non-``None`` value from
+        :meth:`~cefweaver.RequestHandler.get_resource_request_handler` for the same request
+        (identified by :meth:`~cefweaver.Request.get_identifier`). For worker requests
         without an associated frame or process handler, an arbitrary non-``None`` handler
         from the contexts sharing the same storage will be used.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
             is_navigation (bool):
             is_download (bool):
-            request_initiator (str): The origin (scheme + domain)  of the page that initiated the request.
+            request_initiator (str): The origin (scheme + domain) of the page that initiated the request.
         Returns:
-            tuple[ResourceRequestHandler | None, bool]
+            tuple[cefweaver.ResourceRequestHandler | None, bool]
         """
         return None, False
 

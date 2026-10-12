@@ -16,11 +16,12 @@ cdef class ScrollView(View):
     def set_content_view(self, View view not None):
         """Set the content View.
 
-        The content View must have a specified size (e.g. via :meth:`View.set_bounds` or
-        :meth:`ViewDelegate.get_preferred_size`).
+        The content View must have a specified size (e.g. via
+        :meth:`~cefweaver.View.set_bounds` or
+        :meth:`~cefweaver.ViewDelegate.get_preferred_size`).
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         cdef CefRefPtr[CefView] _a0
         cdef CefScrollView* _p = self._ptr_CefScrollView()
@@ -33,7 +34,7 @@ cdef class ScrollView(View):
         """Return the content View.
 
         Returns:
-            View | None: The content View.
+            cefweaver.View | None: The content View.
         """
         cdef CefScrollView* _p = self._ptr_CefScrollView()
         cdef CefRefPtr[CefView] _r
@@ -106,9 +107,9 @@ cdef class ScrollView(View):
         """Create a new ScrollView.
 
         Args:
-            delegate (ViewDelegate | None):
+            delegate (cefweaver.ViewDelegate | None):
         Returns:
-            ScrollView | None
+            cefweaver.ScrollView | None
         """
         cdef CefRefPtr[CefViewDelegate] _a0
         cdef CefRefPtr[CefScrollView] _r

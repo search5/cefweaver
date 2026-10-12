@@ -89,7 +89,7 @@ cdef class PermissionPromptCallback:
         """Complete the permissions request with the specified ``result``.
 
         Args:
-            result (PermissionRequestResult | int):
+            result (cefweaver.types.PermissionRequestResult | int):
         """
         cdef CefPermissionPromptCallback* _p = self._ptr()
         with nogil:
@@ -135,19 +135,19 @@ class PermissionHandler:
         ``requesting_origin`` is the URL origin requesting permission.
         ``requested_permissions`` is a combination of values from
         cef_media_access_permission_types_t that represent the requested permissions. Return
-        ``True`` and call :class:`MediaAccessCallback` methods either in this method or at a
-        later time to continue or cancel the request. Return ``False`` to proceed with
-        default handling. With Chrome style, default handling will display the permission
-        request UI. With Alloy style, default handling will deny the request. This method
-        will not be called if the \"--enable-media-stream\" command-line switch is used to
-        grant all permissions.
+        ``True`` and call :class:`~cefweaver.MediaAccessCallback` methods either in this
+        method or at a later time to continue or cancel the request. Return ``False`` to
+        proceed with default handling. With Chrome style, default handling will display the
+        permission request UI. With Alloy style, default handling will deny the request.
+        This method will not be called if the \"--enable-media-stream\" command-line switch is
+        used to grant all permissions.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             requesting_origin (str): The URL origin requesting permission.
-            requested_permissions (int): A combination of values from  cef_media_access_permission_types_t that represent the requested  permissions.
-            callback (MediaAccessCallback):
+            requested_permissions (int): A combination of values from cef_media_access_permission_types_t that represent the requested permissions.
+            callback (cefweaver.MediaAccessCallback):
         Returns:
             bool
         """
@@ -159,18 +159,18 @@ class PermissionHandler:
         ``prompt_id`` uniquely identifies the prompt. ``requesting_origin`` is the URL
         origin requesting permission. ``requested_permissions`` is a combination of values
         from cef_permission_request_types_t that represent the requested permissions. Return
-        ``True`` and call :meth:`PermissionPromptCallback.continue_` either in this method
-        or at a later time to continue or cancel the request. Return ``False`` to proceed
-        with default handling. With Chrome style, default handling will display the
-        permission prompt UI. With Alloy style, default handling is
+        ``True`` and call :meth:`~cefweaver.PermissionPromptCallback.continue_` either in
+        this method or at a later time to continue or cancel the request. Return ``False``
+        to proceed with default handling. With Chrome style, default handling will display
+        the permission prompt UI. With Alloy style, default handling is
         CEF_PERMISSION_RESULT_IGNORE.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             prompt_id (int):
-            requesting_origin (str): The URL origin requesting  permission.
-            requested_permissions (int): A combination of values from  cef_permission_request_types_t that represent the requested permissions.
-            callback (PermissionPromptCallback):
+            requesting_origin (str): The URL origin requesting permission.
+            requested_permissions (int): A combination of values from cef_permission_request_types_t that represent the requested permissions.
+            callback (cefweaver.PermissionPromptCallback):
         Returns:
             bool
         """
@@ -180,15 +180,16 @@ class PermissionHandler:
         """Called when a permission prompt handled via OnShowPermissionPrompt is dismissed.
 
         ``prompt_id`` will match the value that was passed to OnShowPermissionPrompt.
-        ``result`` will be the value passed to :meth:`PermissionPromptCallback.continue_` or
+        ``result`` will be the value passed to
+        :meth:`~cefweaver.PermissionPromptCallback.continue_` or
         CEF_PERMISSION_RESULT_IGNORE if the dialog was dismissed for other reasons such as
         navigation, browser closure, etc. This method will not be called if
         OnShowPermissionPrompt returned ``False`` for ``prompt_id``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             prompt_id (int):
-            result (PermissionRequestResult):
+            result (cefweaver.types.PermissionRequestResult):
         """
         return None
 

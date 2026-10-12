@@ -20,7 +20,7 @@ class AlphaType(enum.IntEnum):
 
 
 class AxisAlignment(enum.IntEnum):
-    """Specifies where along the axis the :class:`BoxLayout` child views should be laid out.
+    """Specifies where along the axis the :class:`~cefweaver.BoxLayout` child views should be laid out.
 
     Should be kept in sync with Chromium's views::LayoutAlignment type.
     """
@@ -283,7 +283,7 @@ class ColorType(enum.IntEnum):
 
 
 class ColorVariant(enum.IntEnum):
-    """Specifies the color variants supported by :meth:`RequestContext.set_chrome_theme_color`."""
+    """Specifies the color variants supported by ``RequestContext.set_chrome_theme_color``."""
     SYSTEM = 0
     LIGHT = 1
     DARK = 2
@@ -311,8 +311,10 @@ class ComponentState(enum.IntEnum):
     """Component state values.
 
     These map to update_client::ComponentState values from
-    components/update_client/update_client.h A component is considered "installed" when
-    its state is one of: CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or
+    components/update_client/update_client.h
+
+    A component is considered "installed" when its state is one of:
+    CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or
     CEF_COMPONENT_STATE_RUN.
     """
     NEW = 0
@@ -534,8 +536,10 @@ class ContentSettingTypes(enum.IntEnum):
     This disables SameSite=Lax-by-default, SameSite=None requires Secure, and Schemeful
     Same-Site, forcing the legacy behavior wherein 1) cookies that don't specify
     SameSite are treated as SameSite=None, 2) SameSite=None cookies are not required to
-    be Secure, and 3) schemeful same-site is not active. This will also be used to
-    revert to legacy behavior when future changes in cookie handling are introduced.
+    be Secure, and 3) schemeful same-site is not active.
+
+    This will also be used to revert to legacy behavior when future changes in cookie
+    handling are introduced.
     """
     FILE_SYSTEM_WRITE_GUARD = 48
     """Content settings which stores whether to allow sites to ask for permission to save changes to an original file selected by the user through the File System Access API."""
@@ -654,7 +658,7 @@ class ContentSettingTypes(enum.IntEnum):
     HTTPS_ENFORCED = 86
     """Used to indicate whether HTTPS-First Mode is enabled on the hostname."""
     ALL_SCREEN_CAPTURE = 87
-    """Setting for enabling the `getAllScreensMedia` API.
+    """Setting for enabling the ``getAllScreensMedia`` API.
 
     Spec link: https://github.com/screen-share/capture-all-screens
     """
@@ -705,10 +709,10 @@ class ContentSettingTypes(enum.IntEnum):
     """Website setting which is used for RevokedPermissionsService to store auto-revoked notification permissions from abusive sites."""
     TRACKING_PROTECTION_DEPRECATED = 108
     DISPLAY_MEDIA_SYSTEM_AUDIO = 109
-    """With this permission, when the application calls `getDisplayMedia()`, a system audio track can be returned without showing the display media selection picker.
+    """With this permission, when the application calls ``getDisplayMedia()``, a system audio track can be returned without showing the display media selection picker.
 
-    The application can explicitly specify `systemAudio: 'exclude'` or `video: true` to
-    still show the display media selection picker if needed. Please note that the
+    The application can explicitly specify ``systemAudio: 'exclude'`` or ``video: true``
+    to still show the display media selection picker if needed. Please note that the
     setting only works for WebUI.
     """
     JAVASCRIPT_OPTIMIZER = 110
@@ -716,7 +720,7 @@ class ContentSettingTypes(enum.IntEnum):
     STORAGE_ACCESS_HEADER_ORIGIN_TRIAL = 111
     """Content Setting for the Storage Access Headers persistent origin trial that allows origins to opt into the storage access header behavior.
 
-    Should be scoped to `REQUESTING_ORIGIN_AND_TOP_SCHEMEFUL_SITE_SCOPE` in order to
+    Should be scoped to ``REQUESTING_ORIGIN_AND_TOP_SCHEMEFUL_SITE_SCOPE`` in order to
     correspond to the design of persistent origin trials. See also:
     https://github.com/cfredric/storage-access-headers ALLOW: storage access request
     headers will be attached to cross-site requests, and url requests will look for
@@ -962,7 +966,7 @@ class CursorType(enum.IntEnum):
 
 
 class DockingMode(enum.IntEnum):
-    """Docking modes supported by :meth:`Window.add_overlay`."""
+    """Docking modes supported by ``Window.add_overlay``."""
     TOP_LEFT = 0
     TOP_RIGHT = 1
     BOTTOM_LEFT = 2
@@ -1112,15 +1116,18 @@ class DownloadInterruptReason(enum.IntEnum):
     NETWORK_INVALID_REQUEST = 24
     """The network request was invalid.
 
-    This may be due to the original URL or a redirected URL: - Having an unsupported
-    scheme. - Being an invalid URL. - Being disallowed by policy.
+    This may be due to the original URL or a redirected URL:
+
+    - Having an unsupported scheme.
+    - Being an invalid URL.
+    - Being disallowed by policy.
     """
     SERVER_FAILED = 30
     """The server indicates that the operation has failed (generic)."""
     SERVER_NO_RANGE = 31
     """The server does not support range requests.
 
-    Internal use only: must restart from the beginning.
+    Internal use only:  must restart from the beginning.
     """
     SERVER_BAD_CONTENT = 33
     """The server does not have the requested data."""
@@ -1149,12 +1156,12 @@ class DownloadInterruptReason(enum.IntEnum):
     USER_SHUTDOWN = 41
     """The user shut down the browser.
 
-    Internal use only: resume pending downloads if possible.
+    Internal use only:  resume pending downloads if possible.
     """
     CRASH = 50
     """The browser crashed.
 
-    Internal use only: resume pending downloads if possible.
+    Internal use only:  resume pending downloads if possible.
     """
 
 
@@ -1194,9 +1201,9 @@ class ErrorCode(enum.IntEnum):
     IO_PENDING = (-1)
     """An asynchronous IO operation is not yet complete.
 
-    This usually does not indicate a fatal error. Typically this error will be generated
-    as a notification to wait for some external notification that the IO operation
-    finally completed.
+    This usually does not indicate a fatal error.  Typically this error will be
+    generated as a notification to wait for some external notification that the IO
+    operation finally completed.
     """
     FAILED = (-2)
     """A generic failure occurred."""
@@ -1273,10 +1280,11 @@ class ErrorCode(enum.IntEnum):
     specifically for a CORS error code.
     """
     STRICT_ECH_REQUIRED = (-37)
-    """The request was blocked because ECH is strictly required, but: - The client could not obtain a valid ECH configuration.
+    """The request was blocked because ECH is strictly required, but:
 
+    - The client could not obtain a valid ECH configuration.
     - The server rejected the ECH, and the client failed to establish a new ECH
-    connection after retrying with retry_configs.
+      connection after retrying with retry_configs.
     """
     CONNECTION_CLOSED = (-100)
     """A connection was closed (corresponding to a TCP FIN)."""
@@ -1488,8 +1496,9 @@ class ErrorCode(enum.IntEnum):
 
     This is an internal error code to account for a backwards-compatibility issue with
     early data and TLS 1.2. It will be received before any data is returned from the
-    socket. The request should be retried with early data disabled. See
-    https://tools.ietf.org/html/rfc8446#appendix-D.3 for details.
+    socket. The request should be retried with early data disabled.
+
+    See https://tools.ietf.org/html/rfc8446#appendix-D.3 for details.
     """
     TLS13_DOWNGRADE_DETECTED = (-180)
     """TLS 1.3 was enabled, but a lower version was negotiated and the server returned a value indicating it supported TLS 1.3.
@@ -1522,7 +1531,13 @@ class ErrorCode(enum.IntEnum):
     marked as bad.
     """
     PROXY_DELEGATE_CANCELED_CONNECT_REQUEST = (-187)
-    """Some implementations of ProxyDelegate query a separate entity to know whether it should cancel tunnel prior to: - The HTTP CONNECT requests being sent out - The HTTP CONNECT response being parsed by //net An example is CronetProxyDelegate: Cronet allows developers to decide whether the tunnel being established should be canceled."""
+    """Some implementations of ProxyDelegate query a separate entity to know whether it should cancel tunnel prior to:
+
+    - The HTTP CONNECT requests being sent out
+    - The HTTP CONNECT response being parsed by //net An example is CronetProxyDelegate:
+      Cronet allows developers to decide whether the tunnel being established should be
+      canceled.
+    """
     PROXY_DELEGATE_CANCELED_CONNECT_RESPONSE = (-188)
     CONTROL_MSG_TOO_BIG = (-189)
     """The control message was too large for the transport.
@@ -1534,35 +1549,46 @@ class ErrorCode(enum.IntEnum):
     CERT_COMMON_NAME_INVALID = (-200)
     """The server responded with a certificate whose common name did not match the host name.
 
-    This could mean: 1. An attacker has redirected our traffic to their server and is
-    presenting a certificate for which they know the private key. 2. The server is
-    misconfigured and responding with the wrong cert. 3. The user is on a wireless
-    network and is being redirected to the network's login page. 4. The OS has used a
-    DNS search suffix and the server doesn't have a certificate for the abbreviated name
-    in the address bar.
+    This could mean:
+
+    1. An attacker has redirected our traffic to their server and is presenting a
+       certificate for which they know the private key.
+    2. The server is misconfigured and responding with the wrong cert.
+    3. The user is on a wireless network and is being redirected to the network's login
+       page.
+    4. The OS has used a DNS search suffix and the server doesn't have a certificate for
+       the abbreviated name in the address bar.
     """
     CERT_DATE_INVALID = (-201)
     """The server responded with a certificate that, by our clock, appears to either not yet be valid or to have expired.
 
-    This could mean: 1. An attacker is presenting an old certificate for which they have
-    managed to obtain the private key. 2. The server is misconfigured and is not
-    presenting a valid cert. 3. Our clock is wrong.
+    This could mean:
+
+    1. An attacker is presenting an old certificate for which they have managed to
+       obtain the private key.
+    2. The server is misconfigured and is not presenting a valid cert.
+    3. Our clock is wrong.
     """
     CERT_AUTHORITY_INVALID = (-202)
     """The server responded with a certificate that is signed by an authority we don't trust.
 
-    The could mean: 1. An attacker has substituted the real certificate for a cert that
-    contains their public key and is signed by their cousin. 2. The server operator has
-    a legitimate certificate from a CA we don't know about, but should trust. 3. The
-    server is presenting a self-signed certificate, providing no defense against active
-    attackers (but foiling passive attackers).
+    The could mean:
+
+    1. An attacker has substituted the real certificate for a cert that contains their
+       public key and is signed by their cousin.
+    2. The server operator has a legitimate certificate from a CA we don't know about,
+       but should trust.
+    3. The server is presenting a self-signed certificate, providing no defense against
+       active attackers (but foiling passive attackers).
     """
     CERT_CONTAINS_ERRORS = (-203)
     """The server responded with a certificate that contains errors.
 
-    This error is not recoverable. MSDN describes this error as follows: "The SSL
-    certificate contains errors." NOTE: It's unclear how this differs from
-    ERR_CERT_INVALID. For consistency, use that code instead of this one from now on.
+    This error is not recoverable.
+
+    MSDN describes this error as follows: "The SSL certificate contains errors." NOTE:
+    It's unclear how this differs from ERR_CERT_INVALID. For consistency, use that code
+    instead of this one from now on.
     """
     CERT_NO_REVOCATION_MECHANISM = (-204)
     """The certificate has no mechanism for determining if it is revoked.
@@ -1572,9 +1598,11 @@ class ErrorCode(enum.IntEnum):
     CERT_UNABLE_TO_CHECK_REVOCATION = (-205)
     """Revocation information for the security certificate for this site is not available.
 
-    This could mean: 1. An attacker has compromised the private key in the certificate
-    and is blocking our attempt to find out that the cert was revoked. 2. The
-    certificate is unrevoked, but the revocation server is busy or unavailable.
+    This could mean:
+
+    1. An attacker has compromised the private key in the certificate and is blocking
+       our attempt to find out that the cert was revoked.
+    2. The certificate is unrevoked, but the revocation server is busy or unavailable.
     """
     CERT_REVOKED = (-206)
     """The server responded with a certificate has been revoked.
@@ -1584,8 +1612,9 @@ class ErrorCode(enum.IntEnum):
     CERT_INVALID = (-207)
     """The server responded with a certificate that is invalid.
 
-    This error is not recoverable. MSDN describes this error as follows: "The SSL
-    certificate is invalid."
+    This error is not recoverable.
+
+    MSDN describes this error as follows: "The SSL certificate is invalid."
     """
     CERT_WEAK_SIGNATURE_ALGORITHM = (-208)
     """The server responded with a certificate that is signed using a weak signature algorithm."""
@@ -1686,7 +1715,7 @@ class ErrorCode(enum.IntEnum):
     HTTP2_SERVER_REFUSED_STREAM = (-351)
     """HTTP/2 server refused the request without processing, and sent either a GOAWAY frame with error code NO_ERROR and Last-Stream-ID lower than the stream id corresponding to the request indicating that this request has not been processed yet, or a RST_STREAM frame with error code REFUSED_STREAM.
 
-    Client MAY retry (on a different connection). See RFC7540 Section 8.1.4.
+    Client MAY retry (on a different connection).  See RFC7540 Section 8.1.4.
     """
     HTTP2_PING_FAILED = (-352)
     """HTTP/2 server didn't respond to the PING message."""
@@ -1846,9 +1875,10 @@ class ErrorCode(enum.IntEnum):
     used), org.chromium.net.NetworkException#getCronetInternalErrorCode is not supported
     (android.net.http.NetworkException#getCronetInternalErrorCode does not exist). In
     this scenario, getCronetInternalErrorCode will always return this error. This is a
-    first step towards the deprecation of getCronetInternalErrorCode. Temporarily
-    terminate, then restart, ITTT to avoid unsupported nesting. LINT.ThenChange(
-    //tools/metrics/histograms/enums.xml:HTTPResponseAndNetErrorCodes,
+    first step towards the deprecation of getCronetInternalErrorCode.
+
+    Temporarily terminate, then restart, ITTT to avoid unsupported nesting.
+    LINT.ThenChange( //tools/metrics/histograms/enums.xml:HTTPResponseAndNetErrorCodes,
     //tools/metrics/histograms/enums.xml:NetErrorCodes, )
     LINT.IfChange(HTTPENGINE_PROVIDER_IN_USE)
     """
@@ -1930,8 +1960,14 @@ class ErrorCode(enum.IntEnum):
     DNS_OTHER_FAILURE = (-820)
     """The DNS server responded with an rcode indicating that the request failed, but the rcode is not one that we have a specific error code for.
 
-    In other words, the rcode was not one of the following: - NOERR - FORMERR - SERVFAIL
-    - NXDOMAIN - NOTIMP - REFUSED
+    In other words, the rcode was not one of the following:
+
+    - NOERR
+    - FORMERR
+    - SERVFAIL
+    - NXDOMAIN
+    - NOTIMP
+    - REFUSED
     """
     DNS_DIRECT_ONLY = (-821)
     """Declined to call DNS for a direct_only request of a hostname whose traffic would be routed through a proxy."""
@@ -2137,7 +2173,7 @@ class MediaRouteConnectionState(enum.IntEnum):
 
 
 class MediaRouteCreateResult(enum.IntEnum):
-    """Result codes for :meth:`MediaRouter.create_route`.
+    """Result codes for :meth:`~cefweaver.MediaRouter.create_route`.
 
     Should be kept in sync with Chromium's media_router::mojom::RouteRequestResultCode
     type.
@@ -2201,7 +2237,7 @@ class MenuColorType(enum.IntEnum):
 class MenuId(enum.IntEnum):
     """Supported menu IDs.
 
-    Non-English translations can be provided for the IDS_MENU_* strings in
+    Non-English translations can be provided for the ``IDS_MENU_*`` strings in
     ``CefResourceBundleHandler::GetLocalizedString()``.
     """
     BACK = 100
@@ -2324,7 +2360,7 @@ class PdfPrintMarginType(enum.IntEnum):
     NONE = 1
     """No margins."""
     CUSTOM = 2
-    """Custom margins using the |margin_*| values from cef_pdf_print_settings_t."""
+    """Custom margins using the ``margin_*`` values from cef_pdf_print_settings_t."""
 
 
 class PermissionRequestResult(enum.IntEnum):
@@ -2404,7 +2440,7 @@ class PreferencesType(enum.IntEnum):
     GLOBAL = 0
     """Global preferences registered a single time at application startup."""
     REQUEST_CONTEXT = 1
-    """Request context preferences registered each time a new :class:`RequestContext` is created."""
+    """Request context preferences registered each time a new :class:`~cefweaver.RequestContext` is created."""
     NUM_VALUES = 2
 
 
@@ -2428,8 +2464,8 @@ class QuickMenuEditStateFlags(enum.IntFlag):
 class ReferrerPolicy(enum.IntEnum):
     """Policy for how the Referrer HTTP header value will be sent during navigation.
 
-    If the `--no-referrers` command-line flag is specified then the policy value will be
-    ignored and the Referrer value will never be sent. Must be kept synchronized with
+    If the ``--no-referrers`` command-line flag is specified then the policy value will
+    be ignored and the Referrer value will never be sent. Must be kept synchronized with
     net::URLRequest::ReferrerPolicy from Chromium.
     """
     CLEAR_REFERRER_ON_TRANSITION_FROM_SECURE_TO_INSECURE = 0
@@ -2514,7 +2550,7 @@ class ResourceType(enum.IntEnum):
 
 
 class ResponseFilterStatus(enum.IntEnum):
-    """Return values for :meth:`ResponseFilter.filter`."""
+    """Return values for :meth:`~cefweaver.ResponseFilter.filter`."""
     NEED_MORE_DATA = 0
     """Some or all of the pre-filter data was read successfully but more data is needed in order to continue filtering (filtered output is pending)."""
     DONE = 1
@@ -2616,17 +2652,18 @@ class RuntimeStyle(enum.IntEnum):
     callbacks and support for windowless (off-screen) rendering. The style type is
     individually configured for each window/browser at creation time and different
     styles can be mixed during runtime. For additional comparative details on runtime
-    styles see https://chromiumembedded.github.io/cef/architecture#cef3 Windowless
-    rendering will always use Alloy style. Windowed rendering with a default window or
-    client-provided parent window can configure the style via
+    styles see https://chromiumembedded.github.io/cef/architecture#cef3
+
+    Windowless rendering will always use Alloy style. Windowed rendering with a default
+    window or client-provided parent window can configure the style via
     ``CefWindowInfo``.runtime_style. Windowed rendering with the Views framework can
-    configure the style via :meth:`WindowDelegate.get_window_runtime_style` and
-    :meth:`BrowserViewDelegate.get_browser_runtime_style`. Alloy style Windows with the
-    Views framework can host only Alloy style BrowserViews but Chrome style Windows can
-    host both style BrowserViews. Additionally, a Chrome style Window can host at most
-    one Chrome style BrowserView but potentially multiple Alloy style BrowserViews. See
-    ``CefWindowInfo``.runtime_style documentation for any additional platform-specific
-    limitations.
+    configure the style via :meth:`~cefweaver.WindowDelegate.get_window_runtime_style`
+    and :meth:`~cefweaver.BrowserViewDelegate.get_browser_runtime_style`. Alloy style
+    Windows with the Views framework can host only Alloy style BrowserViews but Chrome
+    style Windows can host both style BrowserViews. Additionally, a Chrome style Window
+    can host at most one Chrome style BrowserView but potentially multiple Alloy style
+    BrowserViews. See ``CefWindowInfo``.runtime_style documentation for any additional
+    platform-specific limitations.
     """
     DEFAULT = 0
     """Use the default style.
@@ -2666,8 +2703,9 @@ class SchemeOptions(enum.IntFlag):
 
     Standard schemes are subject to URL canonicalization and parsing rules as defined in
     the Common Internet Scheme Syntax RFC 1738 Section 3.1 available at
-    http://www.ietf.org/rfc/rfc1738.txt In particular, the syntax for standard scheme
-    URLs must be of the form: <pre>
+    http://www.ietf.org/rfc/rfc1738.txt
+
+    In particular, the syntax for standard scheme URLs must be of the form:
     [scheme]://[username]:[password]@[host]:[port]/[url-path] </pre> Standard scheme
     URLs must have a host component that is a fully qualified domain name as defined in
     Section 3.5 of RFC 1034 [13] and Section 2.1 of RFC 1123. These URLs will be
@@ -2675,11 +2713,12 @@ class SchemeOptions(enum.IntFlag):
     "scheme://username:password@host:port/path" in the most explicit case. For example,
     "scheme:host/path" and "scheme:///host/path" will both be canonicalized to
     "scheme://host/path". The origin of a standard scheme URL is the combination of
-    scheme, host and port (i.e., "scheme://host:port" in the most explicit case). For
-    non-standard scheme URLs only the "scheme:" component is parsed and canonicalized.
-    The remainder of the URL will be passed to the handler as- is. For example,
-    "scheme:///some%20text" will remain the same. Non-standard scheme URLs cannot be
-    used as a target for form submission.
+    scheme, host and port (i.e., "scheme://host:port" in the most explicit case).
+
+    For non-standard scheme URLs only the "scheme:" component is parsed and
+    canonicalized. The remainder of the URL will be passed to the handler as- is. For
+    example, "scheme:///some%20text" will remain the same. Non-standard scheme URLs
+    cannot be used as a target for form submission.
     """
     LOCAL = 2
     """If CEF_SCHEME_OPTION_LOCAL is set the scheme will be treated with the same security rules as those applied to "file" URLs.
@@ -2720,7 +2759,7 @@ class SchemeOptions(enum.IntFlag):
 
 
 class ShowState(enum.IntEnum):
-    """Show states supported by :meth:`WindowDelegate.get_initial_show_state`."""
+    """Show states supported by :meth:`~cefweaver.WindowDelegate.get_initial_show_state`."""
     NORMAL = 0
     """Show the window as normal."""
     MINIMIZED = 1
@@ -2781,7 +2820,7 @@ class StorageType(enum.IntEnum):
 
 
 class TaskType(enum.IntEnum):
-    """Specifies the task type variants supported by :class:`TaskManager`.
+    """Specifies the task type variants supported by :class:`~cefweaver.TaskManager`.
 
     Should be kept in sync with Chromium's task_manager::Task::Type type.
     """
@@ -2836,7 +2875,7 @@ class TestCertType(enum.IntEnum):
     """Certificate types supported by ``CefTestServer::CreateAndStart``.
 
     The matching certificate file must exist in the "net/data/ssl/certificates"
-    directory. See ``CefSetDataDirectoryForTests``() for related configuration.
+    directory. See ``CefSetDataDirectoryForTests`` () for related configuration.
     """
     OK_IP = 0
     """Valid certificate using the IP (127.0.0.1).
@@ -2909,32 +2948,33 @@ class ThreadId(enum.IntEnum):
     UI = 0
     """The main thread in the browser.
 
-    This will be the same as the main application thread if ``CefInitialize``() is
+    This will be the same as the main application thread if ``CefInitialize`` () is
     called with a ``CefSettings``.multi_threaded_message_loop value of ``False``. Do not
     perform blocking tasks on this thread. All tasks posted after
-    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown``()
+    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown`` ()
     are guaranteed to run. This thread will outlive all other CEF threads.
     """
     FILE_BACKGROUND = 1
     """Used for blocking tasks like file system access where the user won't notice if the task takes an arbitrarily long time to complete.
 
     All tasks posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and
-    before ``CefShutdown``() are guaranteed to run.
+    before ``CefShutdown`` () are guaranteed to run.
     """
     FILE_USER_VISIBLE = 2
     """Used for blocking tasks like file system access that affect UI or responsiveness of future user interactions.
 
     Do not use if an immediate response to a user interaction is expected. All tasks
     posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and before
-    ``CefShutdown``() are guaranteed to run. Examples: - Updating the UI to reflect
-    progress on a long task. - Loading data that might be shown in the UI after a future
-    user interaction.
+    ``CefShutdown`` () are guaranteed to run. Examples:
+
+    - Updating the UI to reflect progress on a long task.
+    - Loading data that might be shown in the UI after a future user interaction.
     """
     FILE_USER_BLOCKING = 3
     """Used for blocking tasks like file system access that affect UI immediately after a user interaction.
 
     All tasks posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and
-    before ``CefShutdown``() are guaranteed to run. Example: Generating data shown in
+    before ``CefShutdown`` () are guaranteed to run. Example: Generating data shown in
     the UI immediately after a click.
     """
     PROCESS_LAUNCHER = 4
@@ -2943,7 +2983,7 @@ class ThreadId(enum.IntEnum):
     """Used to process IPC and network messages.
 
     Do not perform blocking tasks on this thread. All tasks posted after
-    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown``()
+    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown`` ()
     are guaranteed to run.
     """
     RENDERER = 6
@@ -3034,7 +3074,7 @@ class TransitionType(enum.IntEnum):
     AUTO_TOPLEVEL = 6
     """This is a toplevel navigation.
 
-    This is any content that is automatically loaded in a toplevel frame. For example,
+    This is any content that is automatically loaded in a toplevel frame.  For example,
     opening a tab to show the ASH screen saver, opening the devtools window, opening the
     NTP after the safe browsing warning, opening web-based dialog boxes are examples of
     AUTO_TOPLEVEL navigations. Chrome style only.
@@ -3104,7 +3144,7 @@ class TransitionType(enum.IntEnum):
 
 
 class URLRequestStatus(enum.IntEnum):
-    """Flags that represent :class:`URLRequest` status."""
+    """Flags that represent :class:`~cefweaver.URLRequest` status."""
     UNKNOWN = 0
     """Unknown status."""
     SUCCESS = 1
@@ -3119,7 +3159,7 @@ class URLRequestStatus(enum.IntEnum):
 
 
 class UriUnescapeRule(enum.IntFlag):
-    """URI unescape rules passed to ``CefURIDecode``()."""
+    """URI unescape rules passed to ``CefURIDecode`` ()."""
     NONE = 0
     """Don't unescape anything at all."""
     NORMAL = 1
@@ -3161,7 +3201,7 @@ class UriUnescapeRule(enum.IntFlag):
 
 
 class UrlrequestFlags(enum.IntFlag):
-    """Flags used to customize the behavior of :class:`URLRequest`."""
+    """Flags used to customize the behavior of :class:`~cefweaver.URLRequest`."""
     NONE = 0
     """Default behavior."""
     SKIP_CACHE = 1
@@ -3190,7 +3230,7 @@ class UrlrequestFlags(enum.IntFlag):
     REPORT_UPLOAD_PROGRESS = 16
     """If set upload progress events will be generated when a request has a body."""
     NO_DOWNLOAD_DATA = 32
-    """If set the :meth:`URLRequestClient.on_download_data` method will not be called."""
+    """If set the :meth:`~cefweaver.URLRequestClient.on_download_data` method will not be called."""
     NO_RETRY_ON_5XX = 64
     """If set 5XX redirect errors will be propagated to the observer instead of automatically re-tried.
 
@@ -3302,7 +3342,7 @@ class XmlNodeType(enum.IntEnum):
 
 
 class ZoomCommand(enum.IntEnum):
-    """Specifies the zoom commands supported by :meth:`BrowserHost.zoom`."""
+    """Specifies the zoom commands supported by :meth:`~cefweaver.BrowserHost.zoom`."""
     OUT = 0
     RESET = 1
     IN = 2

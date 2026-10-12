@@ -1,0 +1,53 @@
+# Korean translation of the cefweaver documentation.
+# The same license as the cefweaver package.
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: cefweaver contributors\n"
+"Language: ko\n"
+"Language-Team: Korean\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../index.rst:27
+msgid "Guide"
+msgstr "안내"
+
+#: ../../index.rst:45
+msgid "Reference"
+msgstr "레퍼런스"
+
+#: ../../index.rst:2
+msgid "cefweaver"
+msgstr "cefweaver"
+
+#: ../../index.rst:4
+msgid ""
+"Python bindings for the Chromium Embedded Framework (CEF) with an optional layer that puts the "
+"browser into the widgets of GUI toolkits (Qt, GTK 3, Tk, SDL2, wxPython, Kivy, pywin32)."
+msgstr ""
+"Chromium Embedded Framework(CEF)의 Python 바인딩이며, 브라우저를 GUI 툴킷(Qt, GTK 3, Tk, SDL2, wxPython, Kivy,"
+" pywin32)의 위젯 안에 넣는 선택적 계층을 포함합니다."
+
+#: ../../index.rst:7
+msgid "The CEF API is generated from the CEF headers; its descriptions are the comments of those headers."
+msgstr "CEF API는 CEF 헤더에서 생성하며, 설명은 해당 헤더의 주석입니다."
+
+#: ../../index.rst:8
+msgid ""
+":mod:`cefweaver.ui` shows an offscreen browser in a toolkit widget and handles mouse, keyboard, "
+"input method, clipboard and drag and drop."
+msgstr ":mod:`cefweaver.ui`\\ 는 오프스크린 브라우저를 툴킷 위젯 안에 보여 주고 마우스, 키보드, 입력기, 클립보드, 끌어서 놓기를 처리합니다."
+
+#: ../../index.rst:10
+msgid ""
+"The guide explains how to use it; the reference is generated from the docstrings of the source "
+"code."
+msgstr "사용 방법은 가이드에서 설명하고, 레퍼런스는 소스 코드의 docstring에서 생성합니다."
+

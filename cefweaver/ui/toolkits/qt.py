@@ -498,15 +498,14 @@ class CefWidget(ui.BrowserWidget, QWidget):
         image (QImage): The latest view frame, or None.
         popup_image (QImage): The latest popup frame, or None.
         cursor_rect (QRect): The cursor rectangle reported to the input method.
-        title_changed (Signal): Emitted with the page title (``str``).
-        address_changed (Signal): Emitted with the page URL (``str``).
-        loading_changed (Signal): Emitted with ``loading``, ``can_go_back`` and ``can_go_forward`` (``bool``
-            each).
-        browser_ready_signal (Signal): Emitted when the browser has been created.
     """
+    #: Signal emitted with the page title (``str``).
     title_changed = Signal(str)
+    #: Signal emitted with the page URL (``str``).
     address_changed = Signal(str)
+    #: Signal emitted with ``loading``, ``can_go_back`` and ``can_go_forward`` (``bool`` each).
     loading_changed = Signal(bool, bool, bool)
+    #: Signal emitted when the browser has been created.
     browser_ready_signal = Signal()
 
     def __init__(self, runtime, parent=None, audio=None):
@@ -549,7 +548,7 @@ class CefWidget(ui.BrowserWidget, QWidget):
         """Store a frame as a ``QImage`` and schedule a repaint of the changed area.
 
         Args:
-            frame (Frame): The frame to show.
+            frame (cefweaver.ui.Frame): The frame to show.
         """
         change, store = frame.change, self.view.store
         ratio = self.devicePixelRatioF()

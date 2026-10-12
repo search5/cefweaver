@@ -32,17 +32,14 @@ None, as in C++). Both are exported here: `types.MouseButtonType`, `types.Rect`.
 
 def _docstring(text, indent, known=frozenset()):
     """A docstring from comment text: the CEF names as Python's, the summary alone on its line, wrapped."""
-    text = docs._words(re.sub(r"\s+", " ", text).strip(), known)
-    text = text.replace("\\", "\\\\").replace('"""', "'''")
-    if not text:
+    body, _ = docs.convert(text.split("\n"), known)
+    if not body:
         return []
     pad = " " * indent
-    parts = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)
-    summary = docs._imperative(parts[0].split(" ", 1)[0]) + (" " + parts[0].split(" ", 1)[1] if " " in parts[0] else "")
-    if len(parts) == 1:
-        return ['%s"""%s"""' % (pad, summary)]
-    rest = textwrap.wrap(parts[1], docs.WIDTH, break_long_words=False, break_on_hyphens=False)
-    return ['%s"""%s' % (pad, summary), ""] + [pad + l for l in rest] + [pad + '"""']
+    body = [l.replace("\\", "\\\\").replace('"""', "'''") for l in body]
+    if len(body) == 1:
+        return ['%s"""%s"""' % (pad, body[0])]
+    return ['%s"""%s' % (pad, body[0])] + [(pad + l) if l else "" for l in body[1:]] + [pad + '"""']
 
 
 def _all_list(names):

@@ -8,7 +8,7 @@ class FindHandler:
     """
 
     def on_find_result(self, browser, identifier, count, selection_rect, active_match_ordinal, final_update):
-        """Called to report find results returned by :meth:`BrowserHost.find`.
+        """Called to report find results returned by :meth:`~cefweaver.BrowserHost.find`.
 
         ``identifer`` is a unique incremental identifier for the currently active search,
         ``count`` is the number of matches currently identified, ``selection_rect`` is the
@@ -17,7 +17,7 @@ class FindHandler:
         ``final_update`` is ``True`` if this is the last find notification.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             identifier (int):
             count (int):
             selection_rect (Rect):

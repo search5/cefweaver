@@ -13,7 +13,7 @@ class RenderHandler:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            AccessibilityHandler | None: The handler for accessibility notifications.
+            cefweaver.AccessibilityHandler | None: The handler for accessibility notifications.
         """
         return None
 
@@ -24,7 +24,7 @@ class RenderHandler:
         rectangle from GetViewRect will be used.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, Rect | tuple[int, int, int, int]]
         """
@@ -36,7 +36,7 @@ class RenderHandler:
         This method must always provide a non-empty rectangle.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             Rect | tuple[int, int, int, int]
         """
@@ -50,7 +50,7 @@ class RenderHandler:
         provided.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             view_x (int):
             view_y (int):
         Returns:
@@ -67,7 +67,7 @@ class RenderHandler:
         used. If the rectangle is still empty or invalid popups may not be drawn correctly.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]
         """
@@ -80,7 +80,7 @@ class RenderHandler:
         ``False``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             show (bool): True and hidden if ``show`` is ``False``.
         """
         return None
@@ -91,7 +91,7 @@ class RenderHandler:
         ``rect`` contains the new location and size in view coordinates.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             rect (Rect):
         """
         return None
@@ -104,13 +104,13 @@ class RenderHandler:
         ``type`` indicates whether the element is the view or the popup widget. ``buffer``
         contains the pixel data for the whole image. ``dirty_rects`` contains the set of
         rectangles in pixel coordinates that need to be repainted. ``buffer`` will be
-        ``width``*``height``*4 bytes in size and represents a BGRA image with an upper-left
-        origin. This method is only called when ``CefWindowInfo::shared_texture_enabled`` is
-        set to ``False``.
+        ``width````*````height````*4`` bytes in size and represents a BGRA image with an
+        upper-left origin. This method is only called when
+        ``CefWindowInfo::shared_texture_enabled`` is set to ``False``.
 
         Args:
-            browser (Browser):
-            type (PaintElementType):
+            browser (cefweaver.Browser):
+            type (cefweaver.types.PaintElementType):
             dirty_rects (list[Rect]):
             buffer (memoryview):
             width (int):
@@ -137,8 +137,8 @@ class RenderHandler:
         back to the pool after this callback returns.
 
         Args:
-            browser (Browser):
-            type (PaintElementType):
+            browser (cefweaver.Browser):
+            type (cefweaver.types.PaintElementType):
             dirty_rects (list[Rect]):
             info (AcceleratedPaintInfo):
         """
@@ -148,8 +148,8 @@ class RenderHandler:
         """Called to retrieve the size of the touch handle for the specified ``orientation``.
 
         Args:
-            browser (Browser):
-            orientation (HorizontalAlignment):
+            browser (cefweaver.Browser):
+            orientation (cefweaver.types.HorizontalAlignment):
         Returns:
             Size | tuple[int, int]
         """
@@ -161,7 +161,7 @@ class RenderHandler:
         The client is responsible for rendering the touch handles.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             state (TouchHandleState):
         """
         return None
@@ -174,17 +174,17 @@ class RenderHandler:
         system message loop may be used within the StartDragging call.
 
         Return ``False`` to abort the drag operation. Don't call any of
-        :meth:`BrowserHost.drag_source`*Ended* methods after returning ``False``.
+        ``CefBrowserHost::DragSource*Ended*`` methods after returning ``False``.
 
         Return ``True`` to handle the drag operation. Call
-        :meth:`BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded either
-        synchronously or asynchronously to inform the web view that the drag operation has
-        ended.
+        :meth:`~cefweaver.BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded
+        either synchronously or asynchronously to inform the web view that the drag
+        operation has ended.
 
         Args:
-            browser (Browser):
-            drag_data (DragData):
-            allowed_ops (DragOperationsMask):
+            browser (cefweaver.Browser):
+            drag_data (cefweaver.DragData):
+            allowed_ops (cefweaver.types.DragOperationsMask):
             x (int):
             y (int):
         Returns:
@@ -198,8 +198,8 @@ class RenderHandler:
         ``operation`` describes the allowed operation (none, move, copy, link).
 
         Args:
-            browser (Browser):
-            operation (DragOperationsMask):
+            browser (cefweaver.Browser):
+            operation (cefweaver.types.DragOperationsMask):
         """
         return None
 
@@ -207,7 +207,7 @@ class RenderHandler:
         """Called when the scroll offset has changed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             x (float):
             y (float):
         """
@@ -220,9 +220,9 @@ class RenderHandler:
         ``character_bounds`` is the bounds of each character in view coordinates.
 
         Args:
-            browser (Browser):
-            selected_range (Range): The  range of characters that have been selected.
-            character_bounds (list[Rect]): The  bounds of each character in view coordinates.
+            browser (cefweaver.Browser):
+            selected_range (Range): The range of characters that have been selected.
+            character_bounds (list[Rect]): The bounds of each character in view coordinates.
         """
         return None
 
@@ -233,8 +233,8 @@ class RenderHandler:
         character range.
 
         Args:
-            browser (Browser):
-            selected_text (str): The currently selected text and ``selected_range`` is  the character range.
+            browser (cefweaver.Browser):
+            selected_text (str): The currently selected text and ``selected_range`` is the character range.
             selected_range (Range):
         """
         return None
@@ -247,8 +247,8 @@ class RenderHandler:
         hidden.
 
         Args:
-            browser (Browser):
-            input_mode (TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any  existing keyboard for this browser should be hidden.
+            browser (cefweaver.Browser):
+            input_mode (cefweaver.types.TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any existing keyboard for this browser should be hidden.
         """
         return None
 

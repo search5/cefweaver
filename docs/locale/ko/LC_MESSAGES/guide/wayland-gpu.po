@@ -1,0 +1,164 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/wayland-gpu.rst:2
+msgid "Wayland and GPU"
+msgstr "Wayland와 GPU"
+
+#: ../../guide/wayland-gpu.rst:4
+msgid ""
+"On Linux Chromium works on either X11 or Wayland (the ``ozone-platform`` switch). CEFWeaver picks"
+" a different default depending on the use."
+msgstr ""
+"Linux에서 Chromium은 X11과 Wayland 어느 쪽에서도 동작합니다(``ozone-platform`` 스위치). CEFWeaver는 용도에 따라 다른 기본값을 "
+"고릅니다."
+
+#: ../../guide/wayland-gpu.rst:10
+msgid "Use"
+msgstr "용도"
+
+#: ../../guide/wayland-gpu.rst:11
+msgid "Default"
+msgstr "기본값"
+
+#: ../../guide/wayland-gpu.rst:12
+msgid "Reason"
+msgstr "이유"
+
+#: ../../guide/wayland-gpu.rst:13
+msgid ":mod:`cefweaver.ui` (offscreen, ``ui.Session``)"
+msgstr ":mod:`cefweaver.ui`\\ (오프스크린, ``ui.Session``)"
+
+#: ../../guide/wayland-gpu.rst:14
+msgid "``wayland`` if a Wayland compositor exists, otherwise Chromium chooses"
+msgstr "Wayland 컴포지터가 있으면 ``wayland``, 없으면 Chromium이 선택"
+
+#: ../../guide/wayland-gpu.rst:15
+msgid "Offscreen is fine on Wayland, and on some machines the GPU dies on X11 and no video appears."
+msgstr "오프스크린은 Wayland에서도 문제가 없고, 일부 컴퓨터에서는 X11에서 GPU가 죽어 영상이 나오지 않습니다."
+
+#: ../../guide/wayland-gpu.rst:16
+msgid ":class:`cefweaver.CefApp` (window mode)"
+msgstr ":class:`cefweaver.CefApp`\\ (창 모드)"
+
+#: ../../guide/wayland-gpu.rst:17
+msgid "``x11`` if ``DISPLAY`` is set (XWayland on a Wayland desktop)"
+msgstr "``DISPLAY``\\ 가 설정되어 있으면 ``x11``\\ (Wayland 데스크톱에서는 XWayland)"
+
+#: ../../guide/wayland-gpu.rst:18
+msgid "A window in window mode cannot be closed from code on Wayland."
+msgstr "창 모드의 창은 Wayland에서 코드로 닫을 수 없습니다."
+
+#: ../../guide/wayland-gpu.rst:20
+msgid ""
+"\"A Wayland compositor exists\" means that the socket ``WAYLAND_DISPLAY`` points to really "
+"exists. If the application gives ``ozone-platform`` or ``ozone-platform-hint`` itself, that is "
+"followed as given."
+msgstr ""
+"\"Wayland 컴포지터가 있다\"는 ``WAYLAND_DISPLAY``\\ 가 가리키는 소켓이 실제로 존재한다는 뜻입니다. 애플리케이션이 ``ozone-"
+"platform``\\ 이나 ``ozone-platform-hint``\\ 를 직접 주면 그 값을 그대로 따릅니다."
+
+#: ../../guide/wayland-gpu.rst:27
+msgid "Offscreen and Wayland"
+msgstr "오프스크린과 Wayland"
+
+#: ../../guide/wayland-gpu.rst:29
+msgid ""
+"With the GPU on, video (YouTube), sound and WebGL work on Wayland. It was the same in the "
+"offscreen browsers of GTK 3, Qt, Tk, SDL2, wxPython and Kivy. An offscreen browser has no native "
+"window, so the window-mode problem below does not occur."
+msgstr ""
+"GPU를 켜면 Wayland에서 영상(YouTube), 소리, WebGL이 동작합니다. GTK 3, Qt, Tk, SDL2, wxPython, Kivy의 오프스크린 "
+"브라우저에서도 같았습니다. 오프스크린 브라우저에는 네이티브 창이 없으므로 아래의 창 모드 문제는 생기지 않습니다."
+
+#: ../../guide/wayland-gpu.rst:32
+msgid "When the GPU is on with X11"
+msgstr "X11에서 GPU를 켰을 때"
+
+#: ../../guide/wayland-gpu.rst:34
+msgid ""
+"On some machines the GPU process dies again and again on X11 (XWayland) and video playback fails "
+"(``error.code`` of ``<video>`` is 3, and the log has ``gbm_bo_import`` and ``could not create "
+"backing``). The environment was a laptop (GNOME) with an AMD integrated GPU and an NVIDIA "
+"discrete GPU. On the same machine the installed Chrome works on X11 too, and the example "
+"application of CEF (``cefsimple``) gives the same error, so it is a problem of the X11 path of "
+"CEF and not of CEFWeaver. The cause was not found."
+msgstr ""
+"일부 컴퓨터에서는 X11(XWayland)에서 GPU 프로세스가 계속 죽고 영상 재생이 실패합니다(``<video>``\\ 의 ``error.code``\\ 가 3이고 로그에"
+" ``gbm_bo_import``\\ 와 ``could not create backing``\\ 이 있습니다). 환경은 AMD 내장 GPU와 NVIDIA 외장 GPU가 있는 "
+"노트북(GNOME)이었습니다. 같은 컴퓨터에서 설치된 Chrome은 X11에서도 동작하고, CEF의 예제 애플리케이션(``cefsimple``)도 같은 오류를 내므로, "
+"CEFWeaver의 문제가 아니라 CEF의 X11 경로 문제입니다. 원인은 찾지 못했습니다."
+
+#: ../../guide/wayland-gpu.rst:36
+msgid "If you must use X11, these are workarounds:"
+msgstr "X11을 꼭 써야 한다면 다음과 같은 우회 방법이 있습니다."
+
+#: ../../guide/wayland-gpu.rst:42
+msgid "Switch"
+msgstr "스위치"
+
+#: ../../guide/wayland-gpu.rst:43
+msgid "Effect"
+msgstr "효과"
+
+#: ../../guide/wayland-gpu.rst:44
+msgid "``disable-gpu``"
+msgstr "``disable-gpu``"
+
+#: ../../guide/wayland-gpu.rst:45
+msgid "Video plays. **WebGL is gone** (there is no software fallback)."
+msgstr "영상이 재생됩니다. **WebGL이 사라집니다** (소프트웨어 대체 경로가 없습니다)."
+
+#: ../../guide/wayland-gpu.rst:46
+msgid "``disable-accelerated-video-decode``"
+msgstr "``disable-accelerated-video-decode``"
+
+#: ../../guide/wayland-gpu.rst:47
+msgid "In window mode all 3 runs passed; offscreen 2 of 3 passed. Not a complete fix."
+msgstr "창 모드에서는 3번 모두 통과했고, 오프스크린에서는 3번 중 2번 통과했습니다. 완전한 해결책은 아닙니다."
+
+#: ../../guide/wayland-gpu.rst:51
+msgid ""
+"Only one machine was tested. A machine with a single GPU, or another compositor (KDE, Sway and so"
+" on), was not verified. If you hit the problem, switch the ``ozone-platform`` switch between "
+"``x11`` and ``wayland``."
+msgstr ""
+"컴퓨터 한 대에서만 시험했습니다. GPU가 하나뿐인 컴퓨터나 다른 컴포지터(KDE, Sway 등)는 확인하지 못했습니다. 이 문제가 생기면 ``ozone-platform`` "
+"스위치를 ``x11``\\ 과 ``wayland`` 사이에서 바꿔 봅니다."
+
+#: ../../guide/wayland-gpu.rst:54
+msgid "Window mode and Wayland"
+msgstr "창 모드와 Wayland"
+
+#: ../../guide/wayland-gpu.rst:56
+msgid ""
+"A window made by ``CefApp`` appears on Wayland and the page runs well. The problem is **closing "
+"from code**. ``close_browser()`` does not finish, and calling ``shutdown()`` in that state ends "
+"the process abnormally inside ``CefShutdown()``. Adding the close call to an example of CEF "
+"without the wrapper (``cefsimple --use-native``) makes X11 exit normally and Wayland never "
+"finish, so this is a limit of CEF. Closing with the close button of the window was not tested. "
+"That is why window mode uses X11 by default."
+msgstr ""
+"``CefApp``\\ 이 만든 창은 Wayland에 나타나고 페이지도 잘 동작합니다. 문제는 **코드로 닫는 것**\\ 입니다. ``close_browser()``\\ 가 "
+"끝나지 않고, 그 상태에서 ``shutdown()``\\ 을 호출하면 ``CefShutdown()`` 안에서 프로세스가 비정상 종료합니다. 래퍼 없는 CEF "
+"예제(``cefsimple --use-native``)에 닫기 호출을 더하면 X11은 정상 종료하고 Wayland는 끝나지 않으므로, 이것은 CEF의 한계입니다. 창의 닫기 "
+"단추로 닫는 경우는 시험하지 않았습니다. 그래서 창 모드는 기본으로 X11을 씁니다."
+

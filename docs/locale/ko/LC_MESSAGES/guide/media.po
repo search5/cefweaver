@@ -1,0 +1,161 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/media.rst:2
+msgid "Sound, microphone and camera"
+msgstr "소리, 마이크, 카메라"
+
+#: ../../guide/media.rst:5
+msgid "Playing the sound of a page"
+msgstr "페이지의 소리 재생하기"
+
+#: ../../guide/media.rst:7
+msgid ""
+"By default CEF (Chromium) plays the sound directly on the system audio. If the application wants "
+"to receive and handle the sound, it gives the view ``audio=``."
+msgstr "기본적으로 CEF(Chromium)는 소리를 시스템 오디오로 직접 재생합니다. 애플리케이션이 소리를 받아 처리하려면 뷰에 ``audio=``\\ 를 줍니다."
+
+#: ../../guide/media.rst:17
+msgid "``audio=``"
+msgstr "``audio=``"
+
+#: ../../guide/media.rst:18
+msgid "Meaning"
+msgstr "의미"
+
+#: ../../guide/media.rst:19
+msgid "not given (``None``)"
+msgstr "주지 않음(``None``)"
+
+#: ../../guide/media.rst:20
+msgid "CEF plays the sound."
+msgstr "CEF가 소리를 재생합니다."
+
+#: ../../guide/media.rst:21
+msgid "``\"auto\"``"
+msgstr "``\"auto\"``"
+
+#: ../../guide/media.rst:22
+msgid "The sink of the toolkit if there is one, otherwise pygame. If neither exists, CEF plays."
+msgstr "툴킷의 sink가 있으면 그것을, 없으면 pygame을 사용합니다. 둘 다 없으면 CEF가 재생합니다."
+
+#: ../../guide/media.rst:23
+msgid "a sink object"
+msgstr "sink 객체"
+
+#: ../../guide/media.rst:24
+msgid "Your own sink is used."
+msgstr "직접 만든 sink를 사용합니다."
+
+#: ../../guide/media.rst:26
+msgid ""
+"**Sinks of toolkits**: Qt has ``QtSink`` (QtMultimedia) and SDL2 has ``SdlSink``. GTK 3, Tk, wx "
+"and Kivy have no playback API, so they use pygame (``cefweaver[pygame]``)."
+msgstr ""
+"**툴킷의 sink**: Qt에는 ``QtSink``\\ (QtMultimedia)가, SDL2에는 ``SdlSink``\\ 가 있습니다. GTK 3, Tk, wx, "
+"Kivy에는 재생 API가 없으므로 pygame(``cefweaver[pygame]``)을 사용합니다."
+
+#: ../../guide/media.rst:27
+msgid ""
+"**The shape of a sink**: three methods, ``start(sample_rate, channels)``, ``write(samples, "
+"frames)`` and ``stop()``. ``samples`` holds ``frames * channels`` little-endian float32 values "
+"with the channels interleaved. ``write`` is called on the audio thread of CEF, so it must not "
+"block."
+msgstr ""
+"**sink의 형태**: 메서드 세 개, ``start(sample_rate, channels)``, ``write(samples, frames)``, ``stop()``\\"
+" 입니다. ``samples``\\ 에는 채널이 인터리브된 ``frames * channels``\\ 개의 little-endian float32 값이 들어 있습니다. "
+"``write``\\ 는 CEF의 오디오 스레드에서 호출되므로 블로킹되어서는 안 됩니다."
+
+#: ../../guide/media.rst:28
+msgid ""
+"**Errors**: if a sink raises, the sink is detached and ``view.on_audio_error(message)`` is called"
+" once. CEF does not play after that, so there is no sound."
+msgstr ""
+"**오류**: sink가 예외를 발생시키면 sink가 분리되고 ``view.on_audio_error(message)``\\ 가 한 번 호출됩니다. 그 뒤에는 CEF가 "
+"재생하지 않으므로 소리가 나지 않습니다."
+
+#: ../../guide/media.rst:29
+msgid "**Muting**: ``view.audio_muted = True``."
+msgstr "**음소거**: ``view.audio_muted = True``."
+
+#: ../../guide/media.rst:30
+msgid "To control loudness, adjust the ``volume`` of the sink (0.0 to 1.0)."
+msgstr "음량을 조절하려면 sink의 ``volume``\\ (0.0에서 1.0)을 조정합니다."
+
+#: ../../guide/media.rst:34
+msgid ""
+"When the application plays the sound instead of CEF, video and sound can drift apart by the "
+"latency of the sink (tens of milliseconds up to about 100 ms). In the tests a YouTube video "
+"played at the speed of the clock without breaks."
+msgstr ""
+"CEF 대신 애플리케이션이 소리를 재생하면 비디오와 소리가 sink의 지연 시간(수십 밀리초에서 약 100 ms)만큼 어긋날 수 있습니다. 시험에서 YouTube 비디오는 "
+"끊김 없이 시계와 같은 속도로 재생되었습니다."
+
+#: ../../guide/media.rst:37
+msgid "Microphone and camera"
+msgstr "마이크와 카메라"
+
+#: ../../guide/media.rst:39
+msgid ""
+"When a page asks for the microphone or the camera with ``getUserMedia``, the application decides "
+"with a **policy**. Without a policy the answer is the default of CEF: **deny**."
+msgstr ""
+"페이지가 ``getUserMedia``\\ 로 마이크나 카메라를 요청하면 애플리케이션이 **정책**\\ 으로 결정합니다. 정책이 없으면 응답은 CEF의 기본값인 "
+"**거부**\\ 입니다."
+
+#: ../../guide/media.rst:48
+msgid ""
+"``allow_origins(...)`` gives the microphone and the camera to the listed origins only, and never "
+"screen capture. For finer decisions write the policy as a function:"
+msgstr ""
+"``allow_origins(...)``\\ 는 나열한 origin에만 마이크와 카메라를 허용하며, 화면 캡처는 절대 허용하지 않습니다. 더 세밀한 결정이 필요하면 정책을 "
+"함수로 작성합니다:"
+
+#: ../../guide/media.rst:61
+msgid "You may answer **now** or **later** (after asking the user). An answer counts once."
+msgstr "**지금** 응답해도 되고 (사용자에게 물은 뒤) **나중에** 응답해도 됩니다. 응답은 한 번만 인정됩니다."
+
+#: ../../guide/media.rst:62
+msgid "If the policy raises, the request is denied and the error is reported."
+msgstr "정책이 예외를 발생시키면 요청은 거부되고 오류가 보고됩니다."
+
+#: ../../guide/media.rst:63
+msgid ""
+"When allowed, Chromium receives sound and video **directly from the system devices**. In the "
+"tests a microphone (48 kHz) and a USB webcam (640x480, about 30 fps) opened and delivered data."
+msgstr ""
+"허용되면 Chromium은 소리와 비디오를 **시스템 장치에서 직접** 받습니다. 시험에서 마이크(48 kHz)와 USB 웹캠(640x480, 약 30 fps)이 열려 "
+"데이터를 전달했습니다."
+
+#: ../../guide/media.rst:64
+msgid ""
+"There is not yet a way for the application to supply sound or video in place of the device (a "
+"file, a virtual device, another mixer)."
+msgstr "애플리케이션이 장치 대신 소리나 비디오를 제공하는 방법(파일, 가상 장치, 다른 믹서)은 아직 없습니다."
+
+#: ../../guide/media.rst:68
+msgid ""
+"If the microphone is muted in the system, the device opens but the track is ``muted`` and no "
+"sound arrives. When no sound arrives, check the input mute of the system first."
+msgstr ""
+"마이크가 시스템에서 음소거되어 있으면 장치는 열리지만 트랙이 ``muted``\\ 이고 소리가 들어오지 않습니다. 소리가 들어오지 않으면 먼저 시스템의 입력 음소거를 "
+"확인합니다."
+

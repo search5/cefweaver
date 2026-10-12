@@ -105,7 +105,7 @@ cdef class Frame:
         """Retrieve this frame's HTML source as a string sent to the specified visitor.
 
         Args:
-            visitor (StringVisitor):
+            visitor (cefweaver.StringVisitor):
         """
         cdef CefRefPtr[CefStringVisitor] _a0
         cdef CefFrame* _p = self._ptr()
@@ -120,7 +120,7 @@ cdef class Frame:
         """Retrieve this frame's display text as a string sent to the specified visitor.
 
         Args:
-            visitor (StringVisitor):
+            visitor (cefweaver.StringVisitor):
         """
         cdef CefRefPtr[CefStringVisitor] _a0
         cdef CefFrame* _p = self._ptr()
@@ -139,7 +139,7 @@ cdef class Frame:
         some other mechanism (LoadURL, link click, etc).
 
         Args:
-            request (Request):
+            request (cefweaver.Request):
         """
         cdef CefRefPtr[CefRequest] _a0
         cdef CefFrame* _p = self._ptr()
@@ -172,7 +172,7 @@ cdef class Frame:
         Args:
             code (str):
             script_url (str | None): The URL where the script in question can be found, if any.
-            start_line (int): The base line number to use for  error reporting.
+            start_line (int): The base line number to use for error reporting.
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -229,7 +229,7 @@ cdef class Frame:
         """Return the globally unique identifier for this frame or empty if the underlying frame does not yet exist.
 
         Returns:
-            str: The globally unique identifier for this frame or empty if the  underlying frame does not yet exist.
+            str: The globally unique identifier for this frame or empty if the underlying frame does not yet exist.
         """
         cdef CefFrame* _p = self._ptr()
         cdef CefString _r
@@ -241,7 +241,7 @@ cdef class Frame:
         """Return the parent of this frame or ``None`` if this is the main (top-level) frame.
 
         Returns:
-            Frame | None: The parent of this frame or ``None`` if this is the main (top-level)  frame.
+            cefweaver.Frame | None: The parent of this frame or ``None`` if this is the main (top-level) frame.
         """
         cdef CefFrame* _p = self._ptr()
         cdef CefRefPtr[CefFrame] _r
@@ -265,7 +265,7 @@ cdef class Frame:
         """Return the browser that this frame belongs to.
 
         Returns:
-            Browser | None: The browser that this frame belongs to.
+            cefweaver.Browser | None: The browser that this frame belongs to.
         """
         cdef CefFrame* _p = self._ptr()
         cdef CefRefPtr[CefBrowser] _r
@@ -274,24 +274,25 @@ cdef class Frame:
         return _wrap_Browser(_r)
 
     def create_url_request(self, Request request not None, client):
-        """ Create a new URL request that will be treated as originating from this
-         frame and the associated browser. Use :meth:`URLRequest.create` instead if you
-         do not want the request to have this association, in which case it may be
-         handled differently (see documentation on that method). A request created
-         with this method may only originate from the browser process, and will
-         behave as follows:
-           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
-             :class:`SchemeHandlerFactory`.
-           - POST data may only contain a single element of type PDE_TYPE_FILE or
-             PDE_TYPE_BYTES.
+        """Create a new URL request that will be treated as originating from this frame and the associated browser.
+
+        Use :meth:`~cefweaver.URLRequest.create` instead if you do not want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only originate
+        from the browser process, and will behave as follows:
+
+        - It may be intercepted by the client via :class:`~cefweaver.ResourceRequestHandler`
+          or :class:`~cefweaver.SchemeHandlerFactory`.
+        - POST data may only contain a single element of type PDE_TYPE_FILE or
+          PDE_TYPE_BYTES.
 
         The ``request`` object will be marked as read-only after calling this method.
 
         Args:
-            request (Request):
-            client (URLRequestClient):
+            request (cefweaver.Request):
+            client (cefweaver.URLRequestClient):
         Returns:
-            URLRequest | None
+            cefweaver.URLRequest | None
         """
         cdef CefRefPtr[CefRequest] _a0
         cdef CefRefPtr[CefURLRequestClient] _a1
@@ -314,8 +315,8 @@ cdef class Frame:
         ACK message back from the target process if confirmation is required.
 
         Args:
-            target_process (ProcessId | int):
-            message (ProcessMessage):
+            target_process (cefweaver.types.ProcessId | int):
+            message (cefweaver.ProcessMessage):
         """
         cdef CefRefPtr[CefProcessMessage] _a1
         cdef CefFrame* _p = self._ptr()

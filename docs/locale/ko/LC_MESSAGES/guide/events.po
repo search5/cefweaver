@@ -1,0 +1,184 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/events.rst:2
+msgid "Handlers and events"
+msgstr "핸들러와 이벤트"
+
+#: ../../guide/events.rst:4
+msgid ""
+"The events and startup hooks that CEF reports and that were verified by tests. The complete "
+"signatures are in ``cefweaver/_cefweaver.pyi``. The environment was Linux x86_64 and CEF 154."
+msgstr ""
+"CEF가 보고하며 시험으로 확인한 이벤트와 시작 훅입니다. 전체 시그니처는 ``cefweaver/_cefweaver.pyi``\\ 에 있습니다. 환경은 Linux "
+"x86_64와 CEF 154였습니다."
+
+#: ../../guide/events.rst:7
+msgid "Events of the renderer process"
+msgstr "렌더러 프로세스의 이벤트"
+
+#: ../../guide/events.rst:9
+msgid ""
+"The renderer is C++, so Python code cannot run in the renderer. Instead, when you switch on "
+"``enable_renderer_events()`` the renderer tells the browser process what happened, and "
+"``RendererEvents`` decodes it and calls Python methods."
+msgstr ""
+"렌더러는 C++이므로 Python 코드를 렌더러에서 실행할 수 없습니다. 대신 ``enable_renderer_events()``\\ 를 켜면 렌더러가 브라우저 프로세스에 "
+"일어난 일을 알려 주고, ``RendererEvents``\\ 가 이를 해독해서 Python 메서드를 호출합니다."
+
+#: ../../guide/events.rst:25
+msgid "If you do not switch it on, the renderer sends nothing."
+msgstr "켜지 않으면 렌더러는 아무것도 보내지 않습니다."
+
+#: ../../guide/events.rst:26
+msgid ""
+"When the main frame navigates to another page, no release notice came for the previous context "
+"(it does come when an iframe is removed)."
+msgstr "메인 frame이 다른 페이지로 이동할 때 이전 컨텍스트에 대한 해제 알림은 오지 않았습니다(iframe이 제거될 때는 옵니다)."
+
+#: ../../guide/events.rst:29
+msgid "Startup hooks (``AppHandler``)"
+msgstr "시작 훅 (``AppHandler``)"
+
+#: ../../guide/events.rst:41
+msgid ""
+"Read and change a registered preference with ``request_context.has_preference()``, "
+"``get_preference()`` and ``set_preference()``."
+msgstr ""
+"등록된 환경설정은 ``request_context.has_preference()``, ``get_preference()``, ``set_preference()``\\ 로 읽고"
+" 바꿉니다."
+
+#: ../../guide/events.rst:44
+msgid "Handlers the client returns"
+msgstr "클라이언트가 반환하는 핸들러"
+
+#: ../../guide/events.rst:50
+msgid "Handler"
+msgstr "핸들러"
+
+#: ../../guide/events.rst:51
+msgid "What it receives"
+msgstr "받는 것"
+
+#: ../../guide/events.rst:52
+msgid "``FindHandler``"
+msgstr "``FindHandler``"
+
+#: ../../guide/events.rst:53
+msgid ""
+"The results of ``browser.get_host().find(...)`` (``on_find_result``). The ordinal of the first "
+"result is 0."
+msgstr "``browser.get_host().find(...)``\\ 의 결과(``on_find_result``). 첫 번째 결과의 순번은 0입니다."
+
+#: ../../guide/events.rst:54
+msgid "``FrameHandler``"
+msgstr "``FrameHandler``"
+
+#: ../../guide/events.rst:55
+msgid "Frames being created and destroyed, and the replacement of the main frame."
+msgstr "frame의 생성과 소멸, 그리고 메인 frame의 교체."
+
+#: ../../guide/events.rst:56
+msgid "``AccessibilityHandler``"
+msgstr "``AccessibilityHandler``"
+
+#: ../../guide/events.rst:57
+msgid "The accessibility tree after ``set_accessibility_state(ENABLED)``."
+msgstr "``set_accessibility_state(ENABLED)`` 뒤의 접근성 트리."
+
+#: ../../guide/events.rst:58
+msgid "``RequestHandler.on_select_client_certificate``"
+msgstr "``RequestHandler.on_select_client_certificate``"
+
+#: ../../guide/events.rst:59
+msgid "The choice of the client certificate that a server asks for."
+msgstr "서버가 요구하는 클라이언트 인증서의 선택."
+
+#: ../../guide/events.rst:61
+msgid ""
+"The find and frame handlers are returned by ``get_find_handler()`` and ``get_frame_handler()`` of"
+" the ``Client``. Read certificate information not from ``on_certificate_error`` but with "
+"``browser.get_host().get_visible_navigation_entry().get_ssl_status()``."
+msgstr ""
+"찾기 핸들러와 frame 핸들러는 ``Client``\\ 의 ``get_find_handler()``\\ 와 ``get_frame_handler()``\\ 가 반환합니다. "
+"인증서 정보는 ``on_certificate_error``\\ 가 아니라 "
+"``browser.get_host().get_visible_navigation_entry().get_ssl_status()``\\ 로 읽습니다."
+
+#: ../../guide/events.rst:64
+msgid "What else is open"
+msgstr "그 밖에 열려 있는 것"
+
+#: ../../guide/events.rst:66
+msgid "**HTTP server**: with ``Server`` and ``ServerHandler`` Python answers the HTTP server of CEF."
+msgstr "**HTTP 서버**: ``Server``\\ 와 ``ServerHandler``\\ 로 Python이 CEF의 HTTP 서버에 응답합니다."
+
+#: ../../guide/events.rst:67
+msgid ""
+"**Changing a response body**: ``ResponseFilter`` (returned by "
+"``ResourceRequestHandler.get_resource_response_filter``)."
+msgstr ""
+"**응답 본문 바꾸기**: ``ResponseFilter``\\ (``ResourceRequestHandler.get_resource_response_filter``\\ 가 "
+"반환합니다)."
+
+#: ../../guide/events.rst:68
+msgid ""
+"**Developer tools**: ``browser.get_host().show_dev_tools()`` opens a window of its own. Opening "
+"again right after closing is ignored, so run ``do_message_loop_work()`` for a moment first."
+msgstr ""
+"**개발자 도구**: ``browser.get_host().show_dev_tools()``\\ 는 자체 창을 엽니다. 닫은 직후에 다시 열면 무시되므로, 먼저 "
+"``do_message_loop_work()``\\ 를 잠시 실행합니다."
+
+#: ../../guide/events.rst:69
+msgid ""
+"**Shared-memory messages**: ``SharedProcessMessageBuilder.write()`` and "
+"``SharedMemoryRegion.to_bytes()`` exchange bytes by copying."
+msgstr ""
+"**공유 메모리 메시지**: ``SharedProcessMessageBuilder.write()``\\ 와 ``SharedMemoryRegion.to_bytes()``\\ 는"
+" 복사로 바이트를 주고받습니다."
+
+#: ../../guide/events.rst:70
+msgid "**Tracing**: ``begin_tracing()`` and ``end_tracing(file, callback)``."
+msgstr "**트레이싱**: ``begin_tracing()``\\ 과 ``end_tracing(file, callback)``."
+
+#: ../../guide/events.rst:71
+msgid ""
+"**Media router and component updater**: ``request_context.get_media_router()`` and "
+"``ComponentUpdater`` (the easy way to use Cast devices is :doc:`cast`). The tests assume an "
+"environment without Cast devices (zero sinks and routes). Separately, a real Chromecast (a Google"
+" Nest Hub and so on) was used once to check finding sinks, device information, creating and "
+"ending routes, sending and receiving route messages and media playback (``PLAYING`` and "
+"``FINISHED`` after ``LOAD``); this is not an automated test and needs a device. Mirroring a tab "
+"was not verified."
+msgstr ""
+"**미디어 라우터와 컴포넌트 업데이터**: ``request_context.get_media_router()``\\ 와 ``ComponentUpdater``\\ (Cast "
+"기기를 쉽게 쓰는 방법은 :doc:`cast`\\ 입니다). 시험은 Cast 기기가 없는 환경(sink와 route가 0개)을 가정합니다. 이와 별도로 실제 "
+"Chromecast(Google Nest Hub 등)를 한 번 사용해서 sink 찾기, 기기 정보, route 생성과 종료, route 메시지 송수신, 미디어 "
+"재생(``LOAD`` 뒤의 ``PLAYING``\\ 과 ``FINISHED``)을 확인했습니다. 이는 자동화된 시험이 아니며 기기가 필요합니다. 탭 미러링은 확인하지 "
+"못했습니다."
+
+#: ../../guide/events.rst:73
+msgid ""
+"A function like ``is_rtl()`` (``CefIsRTL``), which kills the process when called before CEF "
+"starts, raises ``RuntimeError`` when called before the start."
+msgstr ""
+"CEF가 시작되기 전에 호출하면 프로세스를 죽이는 ``is_rtl()``\\ (``CefIsRTL``) 같은 함수는 시작 전에 호출하면 ``RuntimeError``\\ 를 "
+"발생시킵니다."
+

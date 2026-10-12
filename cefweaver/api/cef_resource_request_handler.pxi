@@ -12,14 +12,15 @@ class CookieAccessFilter:
         """Called on the IO thread before a resource request is sent.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Return ``True`` if the specified
-        cookie can be sent with the request or ``False`` otherwise.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback.
+        Return ``True`` if the specified cookie can be sent with the request or ``False``
+        otherwise.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
             cookie (Cookie):
         Returns:
             bool
@@ -30,15 +31,16 @@ class CookieAccessFilter:
         """Called on the IO thread after a resource response is received.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Return ``True`` if the specified
-        cookie returned with the response can be saved or ``False`` otherwise.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback.
+        Return ``True`` if the specified cookie returned with the response can be saved or
+        ``False`` otherwise.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
             cookie (Cookie):
         Returns:
             bool
@@ -116,16 +118,17 @@ class ResourceRequestHandler:
         """Called on the IO thread before a resource request is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        optionally filter cookies for the request return a :class:`CookieAccessFilter`
-        object. The ``request`` object cannot not be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To optionally filter cookies for the request return
+        a :class:`~cefweaver.CookieAccessFilter` object. The ``request`` object cannot not
+        be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
-            CookieAccessFilter | None
+            cefweaver.CookieAccessFilter | None
         """
         return None
 
@@ -133,20 +136,20 @@ class ResourceRequestHandler:
         """Called on the IO thread before a resource request is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        redirect or change the resource load optionally modify ``request``. Modification of
-        the request URL will be treated as a redirect. Return RV_CONTINUE to continue the
-        request immediately. Return RV_CONTINUE_ASYNC and call :class:`Callback` methods at
-        a later time to continue or cancel the request asynchronously. Return RV_CANCEL to
-        cancel the request immediately.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To redirect or change the resource load optionally
+        modify ``request``. Modification of the request URL will be treated as a redirect.
+        Return RV_CONTINUE to continue the request immediately. Return RV_CONTINUE_ASYNC and
+        call :class:`~cefweaver.Callback` methods at a later time to continue or cancel the
+        request asynchronously. Return RV_CANCEL to cancel the request immediately.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            callback (Callback):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         Returns:
-            ReturnValue | int
+            cefweaver.types.ReturnValue | int
         """
         return 0
 
@@ -154,17 +157,18 @@ class ResourceRequestHandler:
         """Called on the IO thread before a resource is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        allow the resource to load using the default network loader return ``None``. To
-        specify a handler for the resource return a :class:`ResourceHandler` object. The
-        ``request`` object cannot not be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To allow the resource to load using the default
+        network loader return ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceHandler` object. The ``request`` object cannot not be
+        modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
-            ResourceHandler | None
+            cefweaver.ResourceHandler | None
         """
         return None
 
@@ -172,18 +176,18 @@ class ResourceRequestHandler:
         """Called on the IO thread when a resource load is redirected.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. The
-        ``request`` parameter will contain the old URL and other request-related
-        information. The ``response`` parameter will contain the response that resulted in
-        the redirect. The ``new_url`` parameter will contain the new URL and can be changed
-        if desired. The ``request`` and ``response`` objects cannot be modified in this
-        callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. The ``request`` parameter will contain the old URL
+        and other request-related information. The ``response`` parameter will contain the
+        response that resulted in the redirect. The ``new_url`` parameter will contain the
+        new URL and can be changed if desired. The ``request`` and ``response`` objects
+        cannot be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
             new_url (str):
         Returns:
             str
@@ -194,21 +198,22 @@ class ResourceRequestHandler:
         """Called on the IO thread when a resource response is received.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        allow the resource load to proceed without modification return ``False``. To
-        redirect or retry the resource load optionally modify ``request`` and return
-        ``True``. Modification of the request URL will be treated as a redirect. Requests
-        handled using the default network loader cannot be redirected in this callback. The
-        ``response`` object cannot be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To allow the resource load to proceed without
+        modification return ``False``. To redirect or retry the resource load optionally
+        modify ``request`` and return ``True``. Modification of the request URL will be
+        treated as a redirect. Requests handled using the default network loader cannot be
+        redirected in this callback. The ``response`` object cannot be modified in this
+        callback.
 
         WARNING: Redirecting using this method is deprecated. Use OnBeforeResourceLoad or
         GetResourceHandler to perform redirects.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
         Returns:
             bool
         """
@@ -218,17 +223,17 @@ class ResourceRequestHandler:
         """Called on the IO thread to optionally filter resource response content.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` and ``response`` represent the request and response respectively and
-        cannot be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` and ``response`` represent the request
+        and response respectively and cannot be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
         Returns:
-            ResponseFilter | None
+            cefweaver.ResponseFilter | None
         """
         return None
 
@@ -236,25 +241,25 @@ class ResourceRequestHandler:
         """Called on the IO thread when a resource load has completed.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` and ``response`` represent the request and response respectively and
-        cannot be modified in this callback. ``status`` indicates the load completion
-        status. ``received_content_length`` is the number of response bytes actually read.
-        This method will be called for all requests, including requests that are aborted due
-        to CEF shutdown or destruction of the associated browser. In cases where the
-        associated browser is destroyed this callback may arrive after the
-        :meth:`LifeSpanHandler.on_before_close` callback for that browser. The
-        :meth:`Frame.is_valid` method can be used to test for this situation, and care
-        should be taken not to call ``browser`` or ``frame`` methods that modify state (like
-        LoadURL, SendProcessMessage, etc.) if the frame is invalid.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` and ``response`` represent the request
+        and response respectively and cannot be modified in this callback. ``status``
+        indicates the load completion status. ``received_content_length`` is the number of
+        response bytes actually read. This method will be called for all requests, including
+        requests that are aborted due to CEF shutdown or destruction of the associated
+        browser. In cases where the associated browser is destroyed this callback may arrive
+        after the :meth:`~cefweaver.LifeSpanHandler.on_before_close` callback for that
+        browser. The :meth:`~cefweaver.Frame.is_valid` method can be used to test for this
+        situation, and care should be taken not to call ``browser`` or ``frame`` methods
+        that modify state (like LoadURL, SendProcessMessage, etc.) if the frame is invalid.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
-            status (URLRequestStatus):
-            received_content_length (int): The number of response bytes actually  read.
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
+            status (cefweaver.types.URLRequestStatus):
+            received_content_length (int): The number of response bytes actually read.
         """
         return None
 
@@ -262,16 +267,17 @@ class ResourceRequestHandler:
         """Called on the IO thread to handle requests for URLs with an unknown protocol component.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Set ``allow_os_execution`` to
-        ``True`` to attempt execution via the registered OS protocol handler, if any.
-        SECURITY WARNING: YOU SHOULD USE THIS METHOD TO ENFORCE RESTRICTIONS BASED ON
-        SCHEME, HOST OR OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback. Set
+        ``allow_os_execution`` to ``True`` to attempt execution via the registered OS
+        protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD TO ENFORCE
+        RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE ALLOWING OS
+        EXECUTION.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
             bool
         """

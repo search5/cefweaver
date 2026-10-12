@@ -11,8 +11,8 @@ class DisplayHandler:
         """Called when a frame's address has changed.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             url (str):
         """
         return None
@@ -21,7 +21,7 @@ class DisplayHandler:
         """Called when the page title changes.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             title (str):
         """
         return None
@@ -30,7 +30,7 @@ class DisplayHandler:
         """Called when the page icon changes.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             icon_urls (list[str]):
         """
         return None
@@ -42,14 +42,14 @@ class DisplayHandler:
         browser content area. If ``fullscreen`` is ``False`` the content will automatically
         return to its original size and position. With Alloy style the client is responsible
         for triggering the fullscreen transition (for example, by calling
-        :meth:`Window.set_fullscreen` when using Views). With Chrome style the fullscreen
-        transition will be triggered automatically. The
-        :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called during
-        the fullscreen transition for notification purposes.
+        :meth:`~cefweaver.Window.set_fullscreen` when using Views). With Chrome style the
+        fullscreen transition will be triggered automatically. The
+        :meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` method will be
+        called during the fullscreen transition for notification purposes.
 
         Args:
-            browser (Browser):
-            fullscreen (bool): False the content will  automatically return to its original size and position.
+            browser (cefweaver.Browser):
+            fullscreen (bool): False the content will automatically return to its original size and position.
         """
         return None
 
@@ -63,7 +63,7 @@ class DisplayHandler:
         drawing tooltips and the return value is ignored.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, str]
         """
@@ -75,7 +75,7 @@ class DisplayHandler:
         ``value`` contains the text that will be displayed in the status message.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             value (str):
         """
         return None
@@ -86,8 +86,8 @@ class DisplayHandler:
         Return ``True`` to stop the message from being output to the console.
 
         Args:
-            browser (Browser):
-            level (LogSeverity):
+            browser (cefweaver.Browser):
+            level (cefweaver.types.LogSeverity):
             message (str):
             source (str):
             line (int):
@@ -97,13 +97,13 @@ class DisplayHandler:
         return False
 
     def on_auto_resize(self, browser, new_size):
-        """Called when auto-resize is enabled via :meth:`BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
+        """Called when auto-resize is enabled via :meth:`~cefweaver.BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
 
         ``new_size`` will be the desired size in DIP coordinates. Return ``True`` if the
         resize was handled or ``False`` for default handling.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             new_size (Size):
         Returns:
             bool
@@ -116,7 +116,7 @@ class DisplayHandler:
         ``progress`` ranges from 0.0 to 1.0.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             progress (float):
         """
         return None
@@ -129,8 +129,8 @@ class DisplayHandler:
         ``False`` for default handling.
 
         Args:
-            browser (Browser):
-            type (CursorType): CT_CUSTOM then  ``custom_cursor_info`` will be populated with the custom cursor information.
+            browser (cefweaver.Browser):
+            type (cefweaver.types.CursorType): CT_CUSTOM then ``custom_cursor_info`` will be populated with the custom cursor information.
         Returns:
             bool
         """
@@ -140,7 +140,7 @@ class DisplayHandler:
         """Called when the browser's access to an audio and/or video source has changed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             has_video_access (bool):
             has_audio_access (bool):
         """
@@ -152,22 +152,23 @@ class DisplayHandler:
         ``new_bounds`` are in DIP screen coordinates.
 
         With Views-hosted browsers ``new_bounds`` are the desired bounds for the containing
-        :class:`Window` and may be passed directly to :meth:`Window.set_bounds`. With
-        external (client-provided) parent on macOS and Windows ``new_bounds`` are the
-        desired frame bounds for the containing root window. With other non-Views browsers
-        ``new_bounds`` are the desired bounds for the browser content only unless the client
-        implements either :meth:`DisplayHandler.get_root_window_screen_rect` for windowed
-        browsers or :meth:`RenderHandler.get_window_screen_rect` for windowless browsers.
-        Clients may expand browser content bounds to window bounds using OS-specific or
-        :class:`Display` methods.
+        :class:`~cefweaver.Window` and may be passed directly to
+        :meth:`~cefweaver.View.set_bounds`. With external (client-provided) parent on macOS
+        and Windows ``new_bounds`` are the desired frame bounds for the containing root
+        window. With other non-Views browsers ``new_bounds`` are the desired bounds for the
+        browser content only unless the client implements either
+        :meth:`~cefweaver.DisplayHandler.get_root_window_screen_rect` for windowed browsers
+        or ``RenderHandler.get_window_screen_rect`` for windowless browsers. Clients may
+        expand browser content bounds to window bounds using OS-specific or
+        :class:`~cefweaver.Display` methods.
 
         Return ``True`` if this method was handled or ``False`` for default handling.
         Default move/resize behavior is only provided with Views-hosted Chrome style
         browsers.
 
         Args:
-            browser (Browser):
-            new_bounds (Rect): The desired bounds  for the browser content only unless the client implements either  ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or  ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
+            browser (cefweaver.Browser):
+            new_bounds (Rect): The desired bounds for the browser content only unless the client implements either ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
         Returns:
             bool
         """
@@ -179,10 +180,10 @@ class DisplayHandler:
         Only called for windowed browsers on Windows and Linux. Return ``True`` if the
         rectangle was provided. Return ``False`` to use the root window bounds on Windows or
         the browser content bounds on Linux. For additional usage details see
-        :meth:`BrowserHost.notify_screen_info_changed`.
+        :meth:`~cefweaver.BrowserHost.notify_screen_info_changed`.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, Rect | tuple[int, int, int, int]]
         """

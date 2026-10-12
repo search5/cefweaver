@@ -53,9 +53,9 @@ cdef class BinaryValue:
         """Return ``True`` if this object and ``that`` object have the same underlying data.
 
         Args:
-            that (BinaryValue):
+            that (cefweaver.BinaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         cdef CefRefPtr[CefBinaryValue] _a0
         cdef CefBinaryValue* _p = self._ptr()
@@ -69,9 +69,9 @@ cdef class BinaryValue:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (BinaryValue):
+            that (cefweaver.BinaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         cdef CefRefPtr[CefBinaryValue] _a0
         cdef CefBinaryValue* _p = self._ptr()
@@ -87,7 +87,7 @@ cdef class BinaryValue:
         The data in this object will also be copied.
 
         Returns:
-            BinaryValue | None: A copy of this object.
+            cefweaver.BinaryValue | None: A copy of this object.
         """
         cdef CefBinaryValue* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -138,7 +138,7 @@ cdef class BinaryValue:
         Args:
             data (bytes | bytearray | memoryview):
         Returns:
-            BinaryValue | None
+            cefweaver.BinaryValue | None
         """
         cdef const unsigned char[::1] _v0
         cdef const void* _a0 = NULL
@@ -250,9 +250,9 @@ cdef class DictionaryValue:
         vice-versa.
 
         Args:
-            that (DictionaryValue):
+            that (cefweaver.DictionaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         cdef CefRefPtr[CefDictionaryValue] _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -266,9 +266,9 @@ cdef class DictionaryValue:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (DictionaryValue):
+            that (cefweaver.DictionaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         cdef CefRefPtr[CefDictionaryValue] _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -287,7 +287,7 @@ cdef class DictionaryValue:
         Args:
             exclude_empty_children (bool): True any empty dictionaries or lists will be excluded from the copy.
         Returns:
-            DictionaryValue | None: A writable copy of this object.
+            cefweaver.DictionaryValue | None: A writable copy of this object.
         """
         cdef CefDictionaryValue* _p = self._ptr()
         cdef CefRefPtr[CefDictionaryValue] _r
@@ -374,7 +374,7 @@ cdef class DictionaryValue:
         Args:
             key (str):
         Returns:
-            ValueType: The value type for the specified key.
+            cefweaver.types.ValueType: The value type for the specified key.
         """
         cdef CefString _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -395,7 +395,7 @@ cdef class DictionaryValue:
         Args:
             key (str):
         Returns:
-            Value | None: The value at the specified key.
+            cefweaver.Value | None: The value at the specified key.
         """
         cdef CefString _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -477,7 +477,7 @@ cdef class DictionaryValue:
         Args:
             key (str):
         Returns:
-            BinaryValue | None: The value at the specified key as type binary.
+            cefweaver.BinaryValue | None: The value at the specified key as type binary.
         """
         cdef CefString _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -496,7 +496,7 @@ cdef class DictionaryValue:
         Args:
             key (str):
         Returns:
-            DictionaryValue | None: The value at the specified key as type dictionary.
+            cefweaver.DictionaryValue | None: The value at the specified key as type dictionary.
         """
         cdef CefString _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -515,7 +515,7 @@ cdef class DictionaryValue:
         Args:
             key (str):
         Returns:
-            ListValue | None: The value at the specified key as type list.
+            cefweaver.ListValue | None: The value at the specified key as type list.
         """
         cdef CefString _a0
         cdef CefDictionaryValue* _p = self._ptr()
@@ -536,7 +536,7 @@ cdef class DictionaryValue:
 
         Args:
             key (str):
-            value (Value):
+            value (cefweaver.Value):
         Returns:
             bool
         """
@@ -657,7 +657,7 @@ cdef class DictionaryValue:
 
         Args:
             key (str):
-            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.BinaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -681,7 +681,7 @@ cdef class DictionaryValue:
 
         Args:
             key (str):
-            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.DictionaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -705,7 +705,7 @@ cdef class DictionaryValue:
 
         Args:
             key (str):
-            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.ListValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -724,7 +724,7 @@ cdef class DictionaryValue:
         """Create a new object that is not owned by any other object.
 
         Returns:
-            DictionaryValue
+            cefweaver.DictionaryValue
         """
         cdef CefRefPtr[CefDictionaryValue] _r
         with nogil:
@@ -827,9 +827,9 @@ cdef class ListValue:
         vice-versa.
 
         Args:
-            that (ListValue):
+            that (cefweaver.ListValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         cdef CefRefPtr[CefListValue] _a0
         cdef CefListValue* _p = self._ptr()
@@ -843,9 +843,9 @@ cdef class ListValue:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (ListValue):
+            that (cefweaver.ListValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         cdef CefRefPtr[CefListValue] _a0
         cdef CefListValue* _p = self._ptr()
@@ -859,7 +859,7 @@ cdef class ListValue:
         """Return a writable copy of this object.
 
         Returns:
-            ListValue | None: A writable copy of this object.
+            cefweaver.ListValue | None: A writable copy of this object.
         """
         cdef CefListValue* _p = self._ptr()
         cdef CefRefPtr[CefListValue] _r
@@ -930,7 +930,7 @@ cdef class ListValue:
         Args:
             index (int):
         Returns:
-            ValueType: The value type at the specified index.
+            cefweaver.types.ValueType: The value type at the specified index.
         """
         cdef CefListValue* _p = self._ptr()
         cdef cef_value_type_t _r
@@ -949,7 +949,7 @@ cdef class ListValue:
         Args:
             index (int):
         Returns:
-            Value | None: The value at the specified index.
+            cefweaver.Value | None: The value at the specified index.
         """
         cdef CefListValue* _p = self._ptr()
         cdef CefRefPtr[CefValue] _r
@@ -1021,7 +1021,7 @@ cdef class ListValue:
         Args:
             index (int):
         Returns:
-            BinaryValue | None: The value at the specified index as type binary.
+            cefweaver.BinaryValue | None: The value at the specified index as type binary.
         """
         cdef CefListValue* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -1038,7 +1038,7 @@ cdef class ListValue:
         Args:
             index (int):
         Returns:
-            DictionaryValue | None: The value at the specified index as type dictionary.
+            cefweaver.DictionaryValue | None: The value at the specified index as type dictionary.
         """
         cdef CefListValue* _p = self._ptr()
         cdef CefRefPtr[CefDictionaryValue] _r
@@ -1055,7 +1055,7 @@ cdef class ListValue:
         Args:
             index (int):
         Returns:
-            ListValue | None: The value at the specified index as type list.
+            cefweaver.ListValue | None: The value at the specified index as type list.
         """
         cdef CefListValue* _p = self._ptr()
         cdef CefRefPtr[CefListValue] _r
@@ -1074,7 +1074,7 @@ cdef class ListValue:
 
         Args:
             index (int):
-            value (Value):
+            value (cefweaver.Value):
         Returns:
             bool
         """
@@ -1183,7 +1183,7 @@ cdef class ListValue:
 
         Args:
             index (int):
-            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.BinaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -1205,7 +1205,7 @@ cdef class ListValue:
 
         Args:
             index (int):
-            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.DictionaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -1227,7 +1227,7 @@ cdef class ListValue:
 
         Args:
             index (int):
-            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.ListValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -1244,7 +1244,7 @@ cdef class ListValue:
         """Create a new object that is not owned by any other object.
 
         Returns:
-            ListValue
+            cefweaver.ListValue
         """
         cdef CefRefPtr[CefListValue] _r
         with nogil:
@@ -1349,9 +1349,9 @@ cdef class Value:
         vice-versa.
 
         Args:
-            that (Value):
+            that (cefweaver.Value):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         cdef CefRefPtr[CefValue] _a0
         cdef CefValue* _p = self._ptr()
@@ -1365,9 +1365,9 @@ cdef class Value:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (Value):
+            that (cefweaver.Value):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         cdef CefRefPtr[CefValue] _a0
         cdef CefValue* _p = self._ptr()
@@ -1383,7 +1383,7 @@ cdef class Value:
         The underlying data will also be copied.
 
         Returns:
-            Value | None: A copy of this object.
+            cefweaver.Value | None: A copy of this object.
         """
         cdef CefValue* _p = self._ptr()
         cdef CefRefPtr[CefValue] _r
@@ -1395,7 +1395,7 @@ cdef class Value:
         """Return the underlying value type.
 
         Returns:
-            ValueType: The underlying value type.
+            cefweaver.types.ValueType: The underlying value type.
         """
         cdef CefValue* _p = self._ptr()
         cdef cef_value_type_t _r
@@ -1460,7 +1460,7 @@ cdef class Value:
         the SetValue() method instead of passing the returned reference to SetBinary().
 
         Returns:
-            BinaryValue | None: The underlying value as type binary.
+            cefweaver.BinaryValue | None: The underlying value as type binary.
         """
         cdef CefValue* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -1477,7 +1477,7 @@ cdef class Value:
         the SetValue() method instead of passing the returned reference to SetDictionary().
 
         Returns:
-            DictionaryValue | None: The underlying value as type dictionary.
+            cefweaver.DictionaryValue | None: The underlying value as type dictionary.
         """
         cdef CefValue* _p = self._ptr()
         cdef CefRefPtr[CefDictionaryValue] _r
@@ -1494,7 +1494,7 @@ cdef class Value:
         the SetValue() method instead of passing the returned reference to SetList().
 
         Returns:
-            ListValue | None: The underlying value as type list.
+            cefweaver.ListValue | None: The underlying value as type list.
         """
         cdef CefValue* _p = self._ptr()
         cdef CefRefPtr[CefListValue] _r
@@ -1590,7 +1590,7 @@ cdef class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (BinaryValue):
+            value (cefweaver.BinaryValue):
         Returns:
             bool
         """
@@ -1609,7 +1609,7 @@ cdef class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (DictionaryValue):
+            value (cefweaver.DictionaryValue):
         Returns:
             bool
         """
@@ -1628,7 +1628,7 @@ cdef class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (ListValue):
+            value (cefweaver.ListValue):
         Returns:
             bool
         """
@@ -1645,7 +1645,7 @@ cdef class Value:
         """Create a new object.
 
         Returns:
-            Value
+            cefweaver.Value
         """
         cdef CefRefPtr[CefValue] _r
         with nogil:

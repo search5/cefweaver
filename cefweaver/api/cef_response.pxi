@@ -39,7 +39,7 @@ cdef class Response:
         Returns ERR_NONE if there was no error.
 
         Returns:
-            ErrorCode
+            cefweaver.types.ErrorCode
         """
         cdef CefResponse* _p = self._ptr()
         cdef cef_errorcode_t _r
@@ -54,7 +54,7 @@ cdef class Response:
         processing.
 
         Args:
-            error (ErrorCode | int):
+            error (cefweaver.types.ErrorCode | int):
         """
         cdef CefResponse* _p = self._ptr()
         with nogil:
@@ -187,7 +187,7 @@ cdef class Response:
         Args:
             name (str):
             value (str | None):
-            overwrite (bool): False any  existing values will not be overwritten.
+            overwrite (bool): False any existing values will not be overwritten.
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -252,10 +252,10 @@ cdef class Response:
 
     @staticmethod
     def create():
-        """Create a new :class:`Response` object.
+        """Create a new :class:`~cefweaver.Response` object.
 
         Returns:
-            Response
+            cefweaver.Response
         """
         cdef CefRefPtr[CefResponse] _r
         with nogil:

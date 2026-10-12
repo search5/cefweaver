@@ -15,7 +15,7 @@ class ViewDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -25,7 +25,7 @@ class ViewDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -35,7 +35,7 @@ class ViewDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -49,7 +49,7 @@ class ViewDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -65,9 +65,9 @@ class ViewDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         return None
 
@@ -81,17 +81,17 @@ class ViewDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         return None
 
     def on_window_changed(self, view, added):
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         return None
@@ -100,7 +100,7 @@ class ViewDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         return None
@@ -109,7 +109,7 @@ class ViewDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -117,7 +117,7 @@ class ViewDelegate:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -129,19 +129,19 @@ class ViewDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 

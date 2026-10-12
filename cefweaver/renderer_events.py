@@ -96,7 +96,7 @@ class RendererEventHandler:
 
         Args:
             browser (Browser): The browser.
-            frame (Frame): The frame.
+            frame (cefweaver.Frame): The frame.
             exception (UncaughtException): The error.
         """
 
@@ -105,7 +105,7 @@ class RendererEventHandler:
 
         Args:
             browser (Browser): The browser.
-            frame (Frame): The frame.
+            frame (cefweaver.Frame): The frame.
             node (FocusedNode or None): The focused node, or ``None`` if no node of the page
                 has the focus.
         """
@@ -115,7 +115,7 @@ class RendererEventHandler:
 
         Args:
             browser (Browser): The browser.
-            frame (Frame): The frame the context was created for.
+            frame (cefweaver.Frame): The frame the context was created for.
             is_main (bool): Whether the frame is the main frame.
             url (str): The URL of the frame.
         """
@@ -127,7 +127,7 @@ class RendererEventHandler:
 
         Args:
             browser (Browser): The browser.
-            frame (Frame): The main frame of the browser, not the frame whose context was
+            frame (cefweaver.Frame): The main frame of the browser, not the frame whose context was
                 released.
             is_main (bool): Whether the frame whose context was released is a main frame.
             url (str): The URL of the frame whose context was released.
@@ -157,7 +157,7 @@ class RendererEvents:
 
         Args:
             browser (Browser): The browser.
-            frame (Frame): The frame.
+            frame (cefweaver.Frame): The frame.
             source_process (ProcessId): The process that sent the message.
             message (ProcessMessage): The message.
 

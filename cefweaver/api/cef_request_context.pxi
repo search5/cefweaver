@@ -5,17 +5,17 @@ cdef class RequestContext:
     """A request context provides request handling for a set of related browser or URL request objects.
 
     A request context can be specified when creating a new browser via the
-    :class:`BrowserHost` static factory methods or when creating a new URL request via
-    the :class:`URLRequest` static factory methods. Browser objects with different
-    request contexts will never be hosted in the same render process. Browser objects
-    with the same request context may or may not be hosted in the same render process
-    depending on the process model. Browser objects created indirectly via the
-    JavaScript window.open function or targeted links will share the same render process
-    and the same request context as the source browser. When running in single-process
-    mode there is only a single render process (the main process) and so all browsers
-    created in single-process mode will share the same request context. This will be the
-    first request context passed into a :class:`BrowserHost` static factory method and
-    all other request context objects will be ignored.
+    :class:`~cefweaver.BrowserHost` static factory methods or when creating a new URL
+    request via the :class:`~cefweaver.URLRequest` static factory methods. Browser
+    objects with different request contexts will never be hosted in the same render
+    process. Browser objects with the same request context may or may not be hosted in
+    the same render process depending on the process model. Browser objects created
+    indirectly via the JavaScript window.open function or targeted links will share the
+    same render process and the same request context as the source browser. When running
+    in single-process mode there is only a single render process (the main process) and
+    so all browsers created in single-process mode will share the same request context.
+    This will be the first request context passed into a :class:`~cefweaver.BrowserHost`
+    static factory method and all other request context objects will be ignored.
     """
     cdef CefRefPtr[CefRequestContext] _ref
 
@@ -61,7 +61,7 @@ cdef class RequestContext:
         Args:
             name (str):
         Returns:
-            Value | None: The value for the preference with the specified ``name``.
+            cefweaver.Value | None: The value for the preference with the specified ``name``.
         """
         cdef CefString _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -81,9 +81,9 @@ cdef class RequestContext:
         thread.
 
         Args:
-            include_defaults (bool): True  then preferences currently at their default value will be included.
+            include_defaults (bool): True then preferences currently at their default value will be included.
         Returns:
-            DictionaryValue | None: All preferences as a dictionary.
+            cefweaver.DictionaryValue | None: All preferences as a dictionary.
         """
         cdef CefRequestContext* _p = self._ptr()
         cdef CefRefPtr[CefDictionaryValue] _r
@@ -100,7 +100,7 @@ cdef class RequestContext:
         Args:
             name (str):
         Returns:
-            bool: ``True`` if the preference with the specified ``name`` can be modified  using SetPreference.
+            bool: ``True`` if the preference with the specified ``name`` can be modified using SetPreference.
         """
         cdef CefString _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -121,7 +121,7 @@ cdef class RequestContext:
 
         Args:
             name (str):
-            value (Value | None): ``None`` the  preference will be restored to its default value.
+            value (cefweaver.Value | None): ``None`` the preference will be restored to its default value.
         Returns:
             tuple[bool, str]
         """
@@ -147,10 +147,10 @@ cdef class RequestContext:
         called on the browser process UI thread.
 
         Args:
-            name (str | None): Empty then all preferences will  be observed.
-            observer (PreferenceObserver):
+            name (str | None): Empty then all preferences will be observed.
+            observer (cefweaver.PreferenceObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         cdef CefString _a0
         cdef CefRefPtr[CefPreferenceObserver] _a1
@@ -169,9 +169,9 @@ cdef class RequestContext:
         """Return ``True`` if this object is pointing to the same context as ``that`` object.
 
         Args:
-            other (RequestContext):
+            other (cefweaver.RequestContext):
         Returns:
-            bool: ``True`` if this object is pointing to the same context as ``that``  object.
+            bool: ``True`` if this object is pointing to the same context as ``that`` object.
         """
         cdef CefRefPtr[CefRequestContext] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -185,7 +185,7 @@ cdef class RequestContext:
         """Return ``True`` if this object is sharing the same storage as ``that`` object.
 
         Args:
-            other (RequestContext):
+            other (cefweaver.RequestContext):
         Returns:
             bool: ``True`` if this object is sharing the same storage as ``that`` object.
         """
@@ -216,7 +216,7 @@ cdef class RequestContext:
         """Return the handler for this context if any.
 
         Returns:
-            RequestContextHandler | None: The handler for this context if any.
+            cefweaver.RequestContextHandler | None: The handler for this context if any.
         """
         cdef CefRequestContext* _p = self._ptr()
         cdef CefRefPtr[CefRequestContextHandler] _r
@@ -245,9 +245,9 @@ cdef class RequestContext:
         after the manager's storage has been initialized.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the manager's  storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            CookieManager | None: The cookie manager for this object.
+            cefweaver.CookieManager | None: The cookie manager for this object.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -271,9 +271,9 @@ cdef class RequestContext:
         This function may be called on any thread in the browser process.
 
         Args:
-            scheme_name (str): A custom scheme then  you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in  all processes.
+            scheme_name (str): A custom scheme then you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
             domain_name (str | None):
-            factory (SchemeHandlerFactory | None):
+            factory (cefweaver.SchemeHandlerFactory | None):
         Returns:
             bool
         """
@@ -306,14 +306,14 @@ cdef class RequestContext:
         return _r
 
     def clear_certificate_exceptions(self, callback):
-        """Clear all certificate exceptions that were added as part of handling :meth:`RequestHandler.on_certificate_error`.
+        """Clear all certificate exceptions that were added as part of handling :meth:`~cefweaver.RequestHandler.on_certificate_error`.
 
         If you call this it is recommended that you also call CloseAllConnections() or you
         risk not being prompted again for server certificates if you reconnect quickly. If
         ``callback`` is non-``None`` it will be executed on the UI thread after completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed on the UI thread after  completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -329,7 +329,7 @@ cdef class RequestContext:
         completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed on  the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -345,7 +345,7 @@ cdef class RequestContext:
         completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed  on the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -358,11 +358,11 @@ cdef class RequestContext:
         """Clear all active and idle connections that Chromium currently has.
 
         This is only recommended if you have released all other CEF objects but don't yet
-        want to call ``CefShutdown``(). If ``callback`` is non-``None`` it will be executed
+        want to call ``CefShutdown`` (). If ``callback`` is non-``None`` it will be executed
         on the UI thread after completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be  executed on the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -378,7 +378,7 @@ cdef class RequestContext:
 
         Args:
             origin (str):
-            callback (ResolveCallback):
+            callback (cefweaver.ResolveCallback):
         """
         cdef CefString _a0
         cdef CefRefPtr[CefResolveCallback] _a1
@@ -398,9 +398,9 @@ cdef class RequestContext:
         after the manager's context has been initialized.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's context has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's context has been initialized.
         Returns:
-            MediaRouter | None: The MediaRouter object associated with this context.
+            cefweaver.MediaRouter | None: The MediaRouter object associated with this context.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -419,9 +419,9 @@ cdef class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
         Returns:
-            Value | None: The current value for ``content_type`` that applies for the  specified URLs.
+            cefweaver.Value | None: The current value for ``content_type`` that applies for the specified URLs.
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -451,8 +451,8 @@ cdef class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
-            value (Value | None):
+            content_type (cefweaver.types.ContentSettingTypes | int):
+            value (cefweaver.Value | None):
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -478,9 +478,9 @@ cdef class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
         Returns:
-            ContentSettingValues: The current value for ``content_type`` that applies for the  specified URLs.
+            cefweaver.types.ContentSettingValues: The current value for ``content_type`` that applies for the specified URLs.
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -511,8 +511,8 @@ cdef class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
-            value (ContentSettingValues | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
+            value (cefweaver.types.ContentSettingValues | int):
         """
         cdef CefString _a0
         cdef CefString _a1
@@ -532,9 +532,9 @@ cdef class RequestContext:
         destroyed. This method must be called on the browser process UI thread.
 
         Args:
-            observer (SettingObserver):
+            observer (cefweaver.SettingObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         cdef CefRefPtr[CefSettingObserver] _a0
         cdef CefRequestContext* _p = self._ptr()
@@ -555,7 +555,7 @@ cdef class RequestContext:
         color will be used.
 
         Args:
-            variant (ColorVariant | int):
+            variant (cefweaver.types.ColorVariant | int):
             user_color (int): Transparent (0) the default color will be used.
         """
         cdef CefRequestContext* _p = self._ptr()
@@ -569,7 +569,7 @@ cdef class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            ColorVariant: The current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
+            cefweaver.types.ColorVariant: The current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
         """
         cdef CefRequestContext* _p = self._ptr()
         cdef cef_color_variant_t _r
@@ -583,7 +583,7 @@ cdef class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            int: The current Chrome color scheme color, or transparent (0) for the  default color.
+            int: The current Chrome color scheme color, or transparent (0) for the default color.
         """
         cdef CefRequestContext* _p = self._ptr()
         cdef cef_color_t _r
@@ -597,7 +597,7 @@ cdef class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            ColorVariant: The current Chrome color scheme variant.
+            cefweaver.types.ColorVariant: The current Chrome color scheme variant.
         """
         cdef CefRequestContext* _p = self._ptr()
         cdef cef_color_variant_t _r
@@ -610,7 +610,7 @@ cdef class RequestContext:
         """Return the global context object.
 
         Returns:
-            RequestContext | None: The global context object.
+            cefweaver.RequestContext | None: The global context object.
         """
         cdef CefRefPtr[CefRequestContext] _r
         with nogil:
@@ -623,9 +623,9 @@ cdef class RequestContext:
 
         Args:
             settings (RequestContextSettings | tuple[str, int, str, str, int]):
-            handler (RequestContextHandler | None):
+            handler (cefweaver.RequestContextHandler | None):
         Returns:
-            RequestContext | None
+            cefweaver.RequestContext | None
         """
         cdef CefRequestContextSettings _a0
         cdef CefRefPtr[CefRequestContextHandler] _a1
@@ -664,7 +664,7 @@ cdef inline CefRequestContext* _g_ref_RequestContext(object obj) except? NULL:
 
 
 class ResolveCallback:
-    """Callback interface for :meth:`RequestContext.resolve_host`."""
+    """Callback interface for :meth:`~cefweaver.RequestContext.resolve_host`."""
 
     def on_resolve_completed(self, result, resolved_ips):
         """Called on the UI thread after the ResolveHost request has completed.
@@ -673,7 +673,7 @@ class ResolveCallback:
         addresses or empty if the resolution failed.
 
         Args:
-            result (ErrorCode):
+            result (cefweaver.types.ErrorCode):
             resolved_ips (list[str]):
         """
         return None
@@ -725,7 +725,7 @@ cdef object _g_unexport_ResolveCallback(CefRefPtr[CefResolveCallback] ref):
 
 
 class SettingObserver:
-    """Implemented by the client to observe content and website setting changes and registered via :meth:`RequestContext.add_setting_observer`.
+    """Implemented by the client to observe content and website setting changes and registered via :meth:`~cefweaver.RequestContext.add_setting_observer`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -733,13 +733,14 @@ class SettingObserver:
     def on_setting_changed(self, requesting_url, top_level_url, content_type):
         """Called when a content or website setting has changed.
 
-        The new value can be retrieved using :meth:`RequestContext.get_content_setting` or
-        :meth:`RequestContext.get_website_setting`.
+        The new value can be retrieved using
+        :meth:`~cefweaver.RequestContext.get_content_setting` or
+        :meth:`~cefweaver.RequestContext.get_website_setting`.
 
         Args:
             requesting_url (str):
             top_level_url (str):
-            content_type (ContentSettingTypes):
+            content_type (cefweaver.types.ContentSettingTypes):
         """
         return None
 

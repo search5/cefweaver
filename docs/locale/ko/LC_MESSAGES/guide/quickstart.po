@@ -1,0 +1,162 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/quickstart.rst:2
+msgid "Quick start"
+msgstr "빠른 시작"
+
+#: ../../guide/quickstart.rst:4
+msgid ""
+"There are two ways to use CEFWeaver. Putting the browser inside the window of a GUI toolkit "
+"(:mod:`cefweaver.ui`) is the usual one. You can also use the window that CEF itself creates "
+"(:class:`cefweaver.CefApp`)."
+msgstr ""
+"CEFWeaver를 사용하는 방법은 두 가지입니다. 브라우저를 GUI 툴킷의 창 안에 넣는 방법(:mod:`cefweaver.ui`)이 일반적입니다. CEF가 직접 만드는 "
+"창(:class:`cefweaver.CefApp`)을 사용할 수도 있습니다."
+
+#: ../../guide/quickstart.rst:7
+msgid "In a widget of a GUI toolkit"
+msgstr "GUI 툴킷의 위젯에서"
+
+#: ../../guide/quickstart.rst:9
+msgid "The smallest program that shows a page in Tk:"
+msgstr "Tk에서 페이지를 표시하는 가장 작은 프로그램입니다:"
+
+#: ../../guide/quickstart.rst:14
+msgid "The other toolkits have the same shape in ``examples/<toolkit>/quickstart.py``. What the lines do:"
+msgstr "다른 툴킷도 ``examples/<toolkit>/quickstart.py``\\ 에 같은 형태로 있습니다. 각 줄이 하는 일은 다음과 같습니다:"
+
+#: ../../guide/quickstart.rst:20
+msgid "Line"
+msgstr "줄"
+
+#: ../../guide/quickstart.rst:21
+msgid "What it does"
+msgstr "하는 일"
+
+#: ../../guide/quickstart.rst:22
+msgid "``ui.Session(TkLoop(root))``"
+msgstr "``ui.Session(TkLoop(root))``"
+
+#: ../../guide/quickstart.rst:23
+msgid "The Tk event loop runs CEF. There is no extra thread and no polling."
+msgstr "Tk 이벤트 루프가 CEF를 실행합니다. 별도의 스레드도 폴링도 없습니다."
+
+#: ../../guide/quickstart.rst:24
+msgid "``CefCanvas(root, session, ...)``"
+msgstr "``CefCanvas(root, session, ...)``"
+
+#: ../../guide/quickstart.rst:25
+msgid "The widget that draws the browser. You size it like any Tk widget."
+msgstr "브라우저를 그리는 위젯입니다. 다른 Tk 위젯처럼 크기를 지정합니다."
+
+#: ../../guide/quickstart.rst:26
+msgid "``canvas.on_ready``"
+msgstr "``canvas.on_ready``"
+
+#: ../../guide/quickstart.rst:27
+msgid "Called once the browser exists; ``load_url()`` works from then on."
+msgstr "브라우저가 생기면 한 번 호출됩니다. 그때부터 ``load_url()``\\ 이 동작합니다."
+
+#: ../../guide/quickstart.rst:28
+msgid "``canvas.on_title``"
+msgstr "``canvas.on_title``"
+
+#: ../../guide/quickstart.rst:29
+msgid "Called when the title of the page changes. ``on_address`` and ``on_loading`` exist too."
+msgstr "페이지의 제목이 바뀔 때 호출됩니다. ``on_address``\\ 와 ``on_loading``\\ 도 있습니다."
+
+#: ../../guide/quickstart.rst:30
+msgid "``session.shutdown(root.destroy)``"
+msgstr "``session.shutdown(root.destroy)``"
+
+#: ../../guide/quickstart.rst:31
+msgid "Closes the browser first and destroys the window when that is done."
+msgstr "먼저 브라우저를 닫고, 닫기가 끝나면 창을 파괴합니다."
+
+#: ../../guide/quickstart.rst:33
+msgid ""
+"With any toolkit three steps are the same: create the session, create the widget, call "
+"``session.start(widget)``. See :doc:`embedding` for the structure."
+msgstr ""
+"어떤 툴킷이든 세 단계는 같습니다. 세션을 만들고, 위젯을 만들고, ``session.start(widget)``\\ 을 호출합니다. 구조는 :doc:`embedding`\\"
+" 을 참고합니다."
+
+#: ../../guide/quickstart.rst:36
+msgid "Attaching to a Cocoa window (macOS)"
+msgstr "Cocoa 창에 붙이기(macOS)"
+
+#: ../../guide/quickstart.rst:38
+msgid ""
+"If a macOS application builds its window with Cocoa or SwiftUI (``NSViewRepresentable``), the "
+"browser can become a child of that ``NSView``. CEF draws the view, so GPU compositing, input and "
+"the input method are native. Pass the address of the view as ``parent_view``:"
+msgstr ""
+"macOS 애플리케이션이 Cocoa나 SwiftUI(``NSViewRepresentable``)로 창을 만든다면, 브라우저를 그 ``NSView``\\ 의 자식으로 만들 수 "
+"있습니다. CEF가 뷰를 그리므로 GPU 합성, 입력, 입력기가 네이티브입니다. 뷰의 주소를 ``parent_view``\\ 로 전달합니다:"
+
+#: ../../guide/quickstart.rst:51
+msgid ""
+"The browser follows when the view grows or shrinks. A complete example is "
+"``examples/cocoa/quickstart.py`` (PyObjC is required). To close the window, return ``False`` from"
+" ``windowShouldClose_`` and call ``app.shutdown()`` from a timer (the wrapper detaches the view "
+"of the browser from the window and finishes the close; ``shutdown()`` completes within 0.1 "
+"seconds). A block for ``NSTimer`` must return ``None``. This works on macOS only and for browsers"
+" that are not offscreen. ``examples/swiftui/`` embeds Python in a Swift app; Python's GIL must be"
+" held only during calls (see the README in that folder)."
+msgstr ""
+"뷰가 커지거나 작아지면 브라우저가 따라갑니다. 전체 예제는 ``examples/cocoa/quickstart.py``\\ 입니다(PyObjC가 필요합니다). 창을 닫으려면 "
+"``windowShouldClose_``\\ 에서 ``False``\\ 를 반환하고 타이머에서 ``app.shutdown()``\\ 을 호출합니다(래퍼가 브라우저의 뷰를 "
+"창에서 분리하고 닫기를 마칩니다. ``shutdown()``\\ 은 0.1초 안에 끝납니다). ``NSTimer``\\ 의 블록은 ``None``\\ 을 반환해야 합니다. "
+"이는 macOS에서만, 그리고 오프스크린이 아닌 브라우저에서만 동작합니다. ``examples/swiftui/``\\ 는 Swift 앱에 Python을 내장합니다. "
+"Python의 GIL은 호출하는 동안에만 잡고 있어야 합니다(해당 폴더의 README를 참고합니다)."
+
+#: ../../guide/quickstart.rst:54
+msgid "With the window of CEF"
+msgstr "CEF의 창으로"
+
+#: ../../guide/quickstart.rst:67
+msgid "A page can also come from memory, without a network:"
+msgstr "페이지를 네트워크 없이 메모리에서 가져올 수도 있습니다:"
+
+#: ../../guide/quickstart.rst:74
+msgid ""
+"Events of the browser (load, life span, display) arrive in the handlers of a ``Client``. Set it "
+"before ``initialize()``:"
+msgstr "브라우저의 이벤트(로드, 수명 주기, 표시)는 ``Client``\\ 의 핸들러로 전달됩니다. ``initialize()`` 전에 설정합니다:"
+
+#: ../../guide/quickstart.rst:91
+msgid ""
+"Window mode uses X11 on Linux (XWayland on a Wayland desktop); the reason is in :doc:`wayland-"
+"gpu`."
+msgstr "창 모드는 Linux에서 X11을 사용합니다(Wayland 데스크톱에서는 XWayland). 이유는 :doc:`wayland-gpu`\\ 에 있습니다."
+
+#: ../../guide/quickstart.rst:93
+msgid ""
+"The CEF classes come as generated wrappers in PEP 8 style (``cefweaver.Request``, "
+"``cefweaver.ResourceHandler``, ...). Enumerations and value types are in ``cefweaver.types`` "
+"(``types.MouseButtonType.LEFT``, ``types.Rect(0, 0, 640, 480)``); plain integers and tuples are "
+"accepted wherever they are expected."
+msgstr ""
+"CEF 클래스는 PEP 8 스타일로 생성된 래퍼로 제공됩니다(``cefweaver.Request``, ``cefweaver.ResourceHandler`` 등). 열거형과 값"
+" 타입은 ``cefweaver.types``\\ 에 있으며(``types.MouseButtonType.LEFT``, ``types.Rect(0, 0, 640, 480)``),"
+" 이들이 쓰이는 자리에는 어디서나 일반 정수와 튜플도 받습니다."
+

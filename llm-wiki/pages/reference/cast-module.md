@@ -5,12 +5,12 @@ sources:
   - cefweaver/cast.py
   - cefweaver/__init__.py
   - tests/test_cast.py
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # cefweaver.cast
 
-CEF의 미디어 라우터(`MediaRouter`, `MediaSink`, `MediaRoute`, `MediaObserver`) 위에 얹은 순수 Python 계층입니다. 생성된 바인딩이나 C++은 건드리지 않습니다(`JavascriptBridge`와 같은 방식). 사용자가 Cast 장치의 검색, 연결, 끊기, 재생 단추에 해당하는 API가 있어야 하지 않느냐고 해서 2026-10-11에 만들었습니다. 실제 장치로 확인한 사실은 [F114](verified-findings-opened.md)에 있습니다. 사람이 읽는 설명은 `docs/cast.md`입니다.
+CEF의 미디어 라우터(`MediaRouter`, `MediaSink`, `MediaRoute`, `MediaObserver`) 위에 얹은 순수 Python 계층입니다. 생성된 바인딩이나 C++은 건드리지 않습니다(`JavascriptBridge`와 같은 방식). 사용자가 Cast 장치의 검색, 연결, 끊기, 재생 단추에 해당하는 API가 있어야 하지 않느냐고 해서 2026-10-11에 만들었습니다. 실제 장치로 확인한 사실은 [F114](verified-findings-opened.md)에 있습니다. 설명은 `cefweaver/cast.py`의 docstring(Sphinx 문서의 Core 쪽)입니다.
 
 ## 구성
 

@@ -51,11 +51,11 @@ class BrowserSettings(NamedTuple):
     too.
     """
     windowless_frame_rate: int = 0
-    """The maximum rate in frames per second (fps) that :meth:`RenderHandler.on_paint` will be called for a windowless browser.
+    """The maximum rate in frames per second (fps) that :meth:`~cefweaver.RenderHandler.on_paint` will be called for a windowless browser.
 
     The actual fps may be lower if the browser cannot generate frames at the requested
     rate. The minimum value is 1 and the default value is 30. This value can also be
-    changed dynamically via :meth:`BrowserHost.set_windowless_frame_rate`.
+    changed dynamically via :meth:`~cefweaver.BrowserHost.set_windowless_frame_rate`.
     """
     standard_font_family: str = ""
     """Font settings."""
@@ -255,9 +255,9 @@ class KeyEvent(NamedTuple):
 class LinuxWindowProperties(NamedTuple):
     """Linux window properties, such as X11's WM_CLASS or Wayland's app_id.
 
-    Those are passed to :class:`WindowDelegate`, so the client can set them for the
-    :class:`Window`'s top-level. Thus, allowing window managers to correctly display the
-    application's information (e.g., icons). The CEF value type
+    Those are passed to :class:`~cefweaver.WindowDelegate`, so the client can set them
+    for the :class:`~cefweaver.Window`'s top-level. Thus, allowing window managers to
+    correctly display the application's information (e.g., icons). The CEF value type
     ``CefLinuxWindowProperties``. Anywhere one is expected, a tuple with the same fields
     works too.
     """
@@ -359,10 +359,15 @@ class PdfPrintSettings(NamedTuple):
     """HTML template for the print header.
 
     Only displayed if ``display_header_footer`` is ``True`` (1). Should be valid HTML
-    markup with the following classes used to inject printing values into them: - date:
-    formatted print date - title: document title - url: document location - pageNumber:
-    current page number - totalPages: total pages in the document For example, "<span
-    class=title></span>" would generate a span containing the title.
+    markup with the following classes used to inject printing values into them:
+
+    - date: formatted print date
+    - title: document title
+    - url: document location
+    - pageNumber: current page number
+    - totalPages: total pages in the document
+
+    For example, "<span class=title></span>" would generate a span containing the title.
     """
     footer_template: str = ""
     """HTML template for the print footer.
@@ -461,7 +466,7 @@ class RequestContextSettings(NamedTuple):
     ``cache_path`` matches the ``CefSettings``.cache_path value.
     """
     cookieable_schemes_list: str = ""
-    """Comma delimited list of schemes supported by the associated :class:`CookieManager`.
+    """Comma delimited list of schemes supported by the associated :class:`~cefweaver.CookieManager`.
 
     If ``cookieable_schemes_exclude_defaults`` is ``False`` (0) the default schemes
     ("http", "https", "ws" and "wss") will also be supported. Not specifying a
@@ -476,9 +481,10 @@ class RequestContextSettings(NamedTuple):
 class ScreenInfo(NamedTuple):
     """Screen information used when window rendering is disabled.
 
-    This structure is passed as a parameter to :meth:`RenderHandler.get_screen_info` and
-    should be filled in by the client. The CEF value type ``CefScreenInfo``. Anywhere
-    one is expected, a tuple with the same fields works too.
+    This structure is passed as a parameter to
+    :meth:`~cefweaver.RenderHandler.get_screen_info` and should be filled in by the
+    client. The CEF value type ``CefScreenInfo``. Anywhere one is expected, a tuple with
+    the same fields works too.
     """
     device_scale_factor: float = 0.0
     """Device scale factor.
@@ -498,8 +504,10 @@ class ScreenInfo(NamedTuple):
     """This is set from the rcMonitor member of MONITORINFOEX, to whit: "A RECT structure that specifies the display monitor rectangle, expressed in virtual-screen coordinates.
 
     Note that if the monitor is not the primary display monitor, some of the rectangle's
-    coordinates may be negative values." The ``rect`` and ``available_rect`` properties
-    are used to determine the available surface for rendering popup views.
+    coordinates may be negative values."
+
+    The ``rect`` and ``available_rect`` properties are used to determine the available
+    surface for rendering popup views.
     """
     available_rect: Rect = Rect()
     """This is set from the rcWork member of MONITORINFOEX, to whit: "A RECT structure that specifies the work area rectangle of the display monitor that can be used by applications, expressed in virtual-screen coordinates.
@@ -507,8 +515,10 @@ class ScreenInfo(NamedTuple):
     Windows uses this rectangle to maximize an application on the monitor. The rest of
     the area in rcMonitor contains system windows such as the task bar and side bars.
     Note that if the monitor is not the primary display monitor, some of the rectangle's
-    coordinates may be negative values". The ``rect`` and ``available_rect`` properties
-    are used to determine the available surface for rendering popup views.
+    coordinates may be negative values".
+
+    The ``rect`` and ``available_rect`` properties are used to determine the available
+    surface for rendering popup views.
     """
 
 
@@ -523,7 +533,7 @@ class Size(NamedTuple):
 
 
 class TaskInfo(NamedTuple):
-    """Structure representing task information provided by :class:`TaskManager`.
+    """Structure representing task information provided by :class:`~cefweaver.TaskManager`.
 
     The CEF value type ``CefTaskInfo``. Anywhere one is expected, a tuple with the same
     fields works too.
@@ -539,7 +549,7 @@ class TaskInfo(NamedTuple):
     cpu_usage: float = 0.0
     """The CPU usage of the process on which the task is running.
 
-    The value is in the range zero to number_of_processors * 100%.
+    The value is in the range zero to number_of_processors ``*`` 100%.
     """
     number_of_processors: int = 0
     """The number of processors available on the system."""
@@ -700,7 +710,7 @@ class AcceleratedPaintInfoCommon(NamedTuple):
     source_size: Size = Size()
     """Full size of the source frame."""
     capture_update_rect: Rect = Rect()
-    """Updated area of frame, can be considered as the `dirty` area."""
+    """Updated area of frame, can be considered as the ``dirty`` area."""
     region_capture_rect: Rect = Rect()
     """May reflects where the frame's contents originate from if region capture is used internally."""
     capture_counter: int = 0
@@ -716,7 +726,7 @@ class AcceleratedPaintInfoCommon(NamedTuple):
 
 
 class BoxLayoutSettings(NamedTuple):
-    """Settings used when initializing a :class:`BoxLayout`.
+    """Settings used when initializing a :class:`~cefweaver.BoxLayout`.
 
     The CEF value type ``CefBoxLayoutSettings``. Anywhere one is expected, a tuple with
     the same fields works too.
@@ -738,7 +748,7 @@ class BoxLayoutSettings(NamedTuple):
     minimum_cross_axis_size: int = 0
     """Minimum cross axis size."""
     default_flex: int = 0
-    """Default flex for views when none is specified via :class:`BoxLayout` methods.
+    """Default flex for views when none is specified via :class:`~cefweaver.BoxLayout` methods.
 
     Using the preferred size as the basis, free space along the main axis is distributed
     to views in the ratio of their flex weights. Similarly, if the views will overflow

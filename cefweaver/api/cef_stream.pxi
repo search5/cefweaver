@@ -92,7 +92,7 @@ cdef class StreamReader:
         Used as a hint for determining the thread to access the reader from.
 
         Returns:
-            bool: ``True`` if this reader performs work like accessing the file system  which may block.
+            bool: ``True`` if this reader performs work like accessing the file system which may block.
         """
         cdef CefStreamReader* _p = self._ptr()
         cdef cpp_bool _r
@@ -102,12 +102,12 @@ cdef class StreamReader:
 
     @staticmethod
     def create_for_file(file_name):
-        """Create a new :class:`StreamReader` object from a file.
+        """Create a new :class:`~cefweaver.StreamReader` object from a file.
 
         Args:
             file_name (str):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         cdef CefString _a0
         cdef CefRefPtr[CefStreamReader] _r
@@ -118,12 +118,12 @@ cdef class StreamReader:
 
     @staticmethod
     def create_for_data(data):
-        """Create a new :class:`StreamReader` object from data.
+        """Create a new :class:`~cefweaver.StreamReader` object from data.
 
         Args:
             data (bytes | bytearray | memoryview):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         cdef const unsigned char[::1] _v0
         cdef const void* _a0 = NULL
@@ -141,12 +141,12 @@ cdef class StreamReader:
 
     @staticmethod
     def create_for_handler(handler):
-        """Create a new :class:`StreamReader` object from a custom handler.
+        """Create a new :class:`~cefweaver.StreamReader` object from a custom handler.
 
         Args:
-            handler (ReadHandler):
+            handler (cefweaver.ReadHandler):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         cdef CefRefPtr[CefReadHandler] _a0
         cdef CefRefPtr[CefStreamReader] _r
@@ -280,7 +280,7 @@ cdef class StreamWriter:
         Used as a hint for determining the thread to access the writer from.
 
         Returns:
-            bool: ``True`` if this writer performs work like accessing the file system  which may block.
+            bool: ``True`` if this writer performs work like accessing the file system which may block.
         """
         cdef CefStreamWriter* _p = self._ptr()
         cdef cpp_bool _r
@@ -290,12 +290,12 @@ cdef class StreamWriter:
 
     @staticmethod
     def create_for_file(file_name):
-        """Create a new :class:`StreamWriter` object for a file.
+        """Create a new :class:`~cefweaver.StreamWriter` object for a file.
 
         Args:
             file_name (str):
         Returns:
-            StreamWriter | None
+            cefweaver.StreamWriter | None
         """
         cdef CefString _a0
         cdef CefRefPtr[CefStreamWriter] _r
@@ -306,12 +306,12 @@ cdef class StreamWriter:
 
     @staticmethod
     def create_for_handler(handler):
-        """Create a new :class:`StreamWriter` object for a custom handler.
+        """Create a new :class:`~cefweaver.StreamWriter` object for a custom handler.
 
         Args:
-            handler (WriteHandler):
+            handler (cefweaver.WriteHandler):
         Returns:
-            StreamWriter | None
+            cefweaver.StreamWriter | None
         """
         cdef CefRefPtr[CefWriteHandler] _a0
         cdef CefRefPtr[CefStreamWriter] _r
@@ -402,7 +402,7 @@ class ReadHandler:
         Used as a hint for determining the thread to access the handler from.
 
         Returns:
-            bool: ``True`` if this handler performs work like accessing the file system  which may block.
+            bool: ``True`` if this handler performs work like accessing the file system which may block.
         """
         return False
 
@@ -559,7 +559,7 @@ class WriteHandler:
         Used as a hint for determining the thread to access the handler from.
 
         Returns:
-            bool: ``True`` if this handler performs work like accessing the file system  which may block.
+            bool: ``True`` if this handler performs work like accessing the file system which may block.
         """
         return False
 

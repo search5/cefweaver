@@ -156,7 +156,7 @@ cdef class X509Certificate:
         the subject should match the host name of the web server.
 
         Returns:
-            X509CertPrincipal | None: The subject of the X.509 certificate.
+            cefweaver.X509CertPrincipal | None: The subject of the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefX509CertPrincipal] _r
@@ -168,7 +168,7 @@ cdef class X509Certificate:
         """Return the issuer of the X.509 certificate.
 
         Returns:
-            X509CertPrincipal | None: The issuer of the X.509 certificate.
+            cefweaver.X509CertPrincipal | None: The issuer of the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefX509CertPrincipal] _r
@@ -182,7 +182,7 @@ cdef class X509Certificate:
         The value possibly includes a leading 00 byte.
 
         Returns:
-            BinaryValue | None: The DER encoded serial number for the X.509 certificate.
+            cefweaver.BinaryValue | None: The DER encoded serial number for the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -222,7 +222,7 @@ cdef class X509Certificate:
         """Return the DER encoded data for the X.509 certificate.
 
         Returns:
-            BinaryValue | None: The DER encoded data for the X.509 certificate.
+            cefweaver.BinaryValue | None: The DER encoded data for the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -234,7 +234,7 @@ cdef class X509Certificate:
         """Return the PEM encoded data for the X.509 certificate.
 
         Returns:
-            BinaryValue | None: The PEM encoded data for the X.509 certificate.
+            cefweaver.BinaryValue | None: The PEM encoded data for the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -263,7 +263,7 @@ cdef class X509Certificate:
         but is an empty string.
 
         Returns:
-            list[BinaryValue]: The DER encoded data for the certificate issuer chain.
+            list[cefweaver.BinaryValue]: The DER encoded data for the certificate issuer chain.
         """
         cdef vector[CefRefPtr[CefBinaryValue]] _a0
         cdef CefX509Certificate* _p = self._ptr()
@@ -278,7 +278,7 @@ cdef class X509Certificate:
         but is an empty string.
 
         Returns:
-            list[BinaryValue]: The PEM encoded data for the certificate issuer chain.
+            list[cefweaver.BinaryValue]: The PEM encoded data for the certificate issuer chain.
         """
         cdef vector[CefRefPtr[CefBinaryValue]] _a0
         cdef CefX509Certificate* _p = self._ptr()

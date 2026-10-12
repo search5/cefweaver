@@ -23,7 +23,8 @@ _THIRD_PERSON = {
     "returns.", "begins", "ends", "performs", "releases", "resolves", "queries", "parses", "copies",
     "pastes", "cuts", "deletes", "undoes", "redoes", "selects", "toggles", "uses", "makes", "takes",
 }
-_LITERAL = re.compile(r"^(\s{2,}|[-*+] |\d+[.)] |//|#)")
+_ITEM = re.compile(r"^(\s*)(?:([-*+])|(\d+)[.)]|\((\d+)\))\s+(\S.*)$")
+_LITERAL_SPAN = re.compile(r"(``[^`]*``|:\w+:`[^`]*`)")
 
 
 def _imperative(word):
@@ -34,45 +35,133 @@ def _imperative(word):
     return base
 
 
-def _paragraphs(lines):
-    """The comment as paragraphs: a list of (is_literal, [lines])."""
-    out, current = [], []
+def _blocks(lines):
+    """The comment lines as blocks: ("p", text), ("l", [(depth, marker, text)]) and ("c", [code lines])."""
+    blocks, prose, items, code = [], [], [], []
+    seen_blank = False
+
+    def flush():
+        nonlocal prose, items, code
+        if prose:
+            blocks.append(("p", " ".join(prose)))
+        if items:
+            blocks.append(("l", _nest(items)))
+        if code:
+            blocks.append(("c", code))
+        prose, items, code = [], [], []
+
     for raw in lines:
         line = raw.rstrip()
+        if re.match(r"^\s*</?pre>\s*$", line):
+            continue
         if not line.strip():
-            if current:
-                out.append(current)
-                current = []
+            if prose or code:
+                flush()
+            seen_blank = True
+            continue
+        indent = len(line) - len(line.lstrip())
+        found = _ITEM.match(line)
+        if found:
+            if prose or code:
+                flush()
+            marker = ("%s." % (found.group(3) or found.group(4))) if (found.group(3) or found.group(4)) else "-"
+            items.append([indent, marker, [found.group(5).strip()]])
+        elif items and (indent > items[-1][0] or not seen_blank):
+            items[-1][2].append(line.strip())
+        elif indent >= 2 and not items:
+            if prose:
+                blocks.append(("p", " ".join(prose)))
+                prose = []
+            code.append(line)
         else:
-            current.append(line)
-    if current:
-        out.append(current)
-    result = []
-    for paragraph in out:
-        literal = any(_LITERAL.match(l) for l in paragraph[1:]) or _LITERAL.match(paragraph[0]) is not None
-        result.append((literal, paragraph))
-    return result
+            if items or code:
+                flush()
+            prose.append(line.strip())
+        seen_blank = False
+    flush()
+    return blocks
+
+
+def _nest(items):
+    """[(indent, marker, lines)] -> [(depth, marker, text)]: a bullet that has the indent of a numbered item
+    belongs under it."""
+    out, stack, numbered = [], [], set()
+    for indent, marker, text in items:
+        level = float(indent)
+        if marker == "-" and indent in numbered:
+            level = indent + 0.5
+        elif marker != "-":
+            numbered.add(indent)
+        while stack and stack[-1] > level:
+            stack.pop()
+        if not stack or stack[-1] < level:
+            stack.append(level)
+        out.append((len(stack) - 1, marker, " ".join(text)))
+    return out
+
+
+# {class: {method: the class that declares it}} (nearest ancestor first), filled by `set_owners`
+OWNERS = {}
+
+
+def set_owners(model, known):
+    """Find the declaring class of every method, so that `:meth:` points where Sphinx documents the method."""
+    own = {}
+    for name in known:
+        cls = model.classes.get(name)
+        funcs = (cls.get_virtual_funcs() + cls.get_static_funcs()) if cls is not None else []
+        own[name] = {py_method_name(f.get_name()) for f in funcs}
+    OWNERS.clear()
+    for name in known:
+        table, current = {}, name
+        while current in own:
+            for method in own[current]:
+                table.setdefault(method, current)
+            cls = model.classes.get(current)
+            current = cls.get_parent_name() if cls is not None else None
+        OWNERS[name] = table
 
 
 def _words(text, known):
     """CEF's spelling of names and constants in a prose sentence, as Python's."""
     def method(m):
         name = "Cef" + m.group(1)
-        if name in known:
-            return ":meth:`%s.%s`" % (py_class_name(name), py_method_name(m.group(2)))
+        if name in known and "*" not in m.group(2):
+            owner = OWNERS.get(name, {}).get(py_method_name(m.group(2)))
+            if owner:
+                return ":meth:`~cefweaver.%s.%s`" % (py_class_name(owner), py_method_name(m.group(2)))
+            return "``%s.%s``" % (py_class_name(name), py_method_name(m.group(2)))
         return "``%s``" % m.group(0)
 
     def klass(m):
         name = "Cef" + m.group(1)
-        return ":class:`%s`" % py_class_name(name) if name in known else "``%s``" % name
+        return ":class:`~cefweaver.%s`" % py_class_name(name) if name in known else "``%s%s``" % (name, m.group(2) or "")
 
-    text = re.sub(r"\bCef(\w+)::(\w+)(?:\(\))?", method, text)
-    text = re.sub(r"(?<![`:\w])Cef([A-Z]\w+)\b(?!`)", klass, text)
-    text = re.sub(r"\|(\w+)\|", lambda m: "``%s``" % py_param_name(m.group(1)), text)
+    text = re.sub(r"(?<!`)`([^`\n]+)`(?!`)", r"``\1``", text)      # Markdown code -> literal
+    text = re.sub(r"<code>(.*?)</code>", r"``\1``", text)
+    text = re.sub(r"<(?:b|strong)>(.*?)</(?:b|strong)>", r"**\1**", text)
+    text = re.sub(r"<(?:i|em)>(.*?)</(?:i|em)>", r"*\1*", text)
+    text = re.sub(r"\bCef(\w+)::([\w*]+)(?:\([^()]*\))?", method, text)
+    text = re.sub(r"(?<![`:\w])Cef([A-Z]\w+)(\(\))?(?!`)\b", klass, text)
+    text = re.sub(r"\|([\w*]+)\|", lambda m: "``%s``" % py_param_name(m.group(1)), text)
     text = re.sub(r"(?<![`\w])true(?![`\w])", "``True``", text)
     text = re.sub(r"(?<![`\w])false(?![`\w])", "``False``", text)
     text = re.sub(r"(?<![`\w])(NULL|nullptr)(?![`\w])", "``None``", text)
-    return text
+    # a wildcard is no emphasis: "text/*", "*.png"
+    parts = _LITERAL_SPAN.split(text)
+    for index in range(0, len(parts), 2):
+        parts[index] = re.sub(r"(?<![`\w*])([\w./-]*\*[\w./*-]*?)(?=[\"')\]]*[.,;:]?[\"')\]]*(?:\s|$))", r"``\1``", parts[index])
+    text = "".join(parts)
+    parts = _LITERAL_SPAN.split(text)
+    for index in range(1, len(parts), 2):
+        if index + 1 < len(parts) and re.match(r"[\w(]", parts[index + 1]):
+            parts[index] += " "
+    return "".join(parts)
+
+
+def _wrap(text, initial="", subsequent=""):
+    return textwrap.wrap(text, WIDTH, initial_indent=initial, subsequent_indent=subsequent,
+                         break_long_words=False, break_on_hyphens=False)
 
 
 def convert(lines, known):
@@ -80,36 +169,59 @@ def convert(lines, known):
 
     Returns a pair (body_lines, raw): `raw` is the prose before the conversion, for `_argument_notes`.
     """
-    paragraphs = _paragraphs(lines)
-    if not paragraphs:
+    blocks = _blocks(lines)
+    if not blocks:
         return [], ""
-    raw = " ".join(" ".join(p) for literal, p in paragraphs if not literal)
-    body = []
-    for index, (literal, paragraph) in enumerate(paragraphs):
-        if literal:
-            body += [""] + [_words(l, known) for l in paragraph]
-            continue
-        text = _words(" ".join(l.strip() for l in paragraph), known)
-        if index == 0:
-            first = text.split(" ", 1)
-            text = _imperative(first[0]) + (" " + first[1] if len(first) > 1 else "")
-            parts = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)
-            body += [parts[0]]
-            if len(parts) > 1:
-                body += [""] + textwrap.wrap(parts[1], WIDTH, break_long_words=False, break_on_hyphens=False)
+    raw = " ".join(value for kind, value in blocks if kind == "p")
+    body, first = [], True
+    for kind, value in blocks:
+        if kind == "p":
+            text = _words(value, known)
+            if first:
+                head = text.split(" ", 1)
+                text = _imperative(head[0]) + (" " + head[1] if len(head) > 1 else "")
+                parts = re.split(r"(?<=[.!?])\s+", text, maxsplit=1)
+                body += [parts[0]]
+                if len(parts) > 1:
+                    body += [""] + _wrap(parts[1])
+            else:
+                if body and body[-1] != "":
+                    body.append("")
+                body += _wrap(text)
+        elif kind == "l":
+            if body and body[-1] != "":
+                body.append("")
+            widths, previous = [], None
+            for depth, marker, text in value:
+                if previous is not None and depth != previous:
+                    body.append("")
+                previous = depth
+                del widths[depth:]
+                pad = " " * sum(widths)
+                widths.append(len(marker) + 1)
+                body += _wrap(_words(text, known), pad + marker + " ", pad + " " * (len(marker) + 1))
         else:
-            body += [""] + textwrap.wrap(text, WIDTH, break_long_words=False, break_on_hyphens=False)
+            if body and body[-1] != "":
+                body.append("")
+            if body and body[-1] == "" and len(body) > 1 and body[-2].endswith(":"):
+                body[-2] += ":"
+            else:
+                body.append("::")
+                body.append("")
+            width = min(len(l) - len(l.lstrip()) for l in value)
+            body += ["    " + l[width:] for l in value]
+        first = False
     return body, raw
 
 
 def _argument_notes(raw):
     """`|name| is the address.` in the prose -> {"name": "The address."}"""
     notes = {}
-    for m in re.finditer(r"\|(\w+)\|\s+(?:is|are)\s+([^.]*)\.", raw):
+    for m in re.finditer(r"\|(\w+)\|\s+(?:is|are)\s+(.*?)\.(?:\s|$)", raw):
         sentence = m.group(2).strip()
         if sentence:
             notes[py_param_name(m.group(1))] = _words(sentence[0].upper() + sentence[1:] + ".", set())
-    for m in re.finditer(r"[Tt]he\s+\|(\w+)\|\s+(?:parameter|argument)\s+(?:is|specifies|represents)\s+([^.]*)\.", raw):
+    for m in re.finditer(r"[Tt]he\s+\|(\w+)\|\s+(?:parameter|argument)\s+(?:is|specifies|represents)\s+(.*?)\.(?:\s|$)", raw):
         sentence = m.group(2).strip()
         if sentence and py_param_name(m.group(1)) not in notes:
             notes[py_param_name(m.group(1))] = _words(sentence[0].upper() + sentence[1:] + ".", set())
@@ -130,6 +242,20 @@ def class_doc(model, cls, known):
     return body
 
 
+def _qualified(model, known, kind):
+    """The type of a stub annotation with the names of the classes and of the enumerations and value types
+    qualified, so that Sphinx finds them wherever the docstring is shown (`Frame` is also a class of `ui`)."""
+    classes = {py_class_name(c) for c in known}
+    types = set(info.py_name for info in model.enum_defs.values()) | set(model.structs)
+
+    def name(m):
+        word = m.group(0)
+        if word in classes:
+            return "cefweaver." + word
+        return "cefweaver.types." + word if word in types else word
+    return re.sub(r"(?<![\w.])[A-Za-z_]\w*", name, kind)
+
+
 def method_doc(model, plan, known, params, returns):
     """The docstring body of a method: the converted comment and the Args: and Returns: sections.
 
@@ -143,13 +269,13 @@ def method_doc(model, plan, known, params, returns):
     if params:
         sections.append("Args:")
         for name, kind in params:
-            text = "    %s (%s):" % (name, kind)
+            text = "    %s (%s):" % (name, _qualified(model, known, kind))
             if name in notes:
                 text += " " + notes[name]
             sections.append(text)
     if returns and returns != "None":
         value = _first_sentence_value(raw)
-        sections += ["Returns:", "    %s%s" % (returns, ": " + value if value else "")]
+        sections += ["Returns:", "    %s%s" % (_qualified(model, known, returns), ": " + value if value else "")]
     if sections:
         body = (body + [""] if body else []) + sections
     return body

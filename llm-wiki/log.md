@@ -751,3 +751,15 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-12] ingest | Sphinx용 영어 docstring 작성
 손으로 쓴 Python(`ui/`, 툴킷, `cast.py` 등), `_cefweaver.pyx`와 `handwritten.pyi`의 docstring을 Google 스타일 영어로 썼다(코드는 AST 비교로 그대로임을 확인). 생성기에 `tools/gen/docs.py`를 더해 헤더의 주석을 같은 스타일로 바꾸고 `Args:`/`Returns:`를 붙이게 했으며(`emit_pyi`, `emit_cython`, `emit_types`, `model`), 열거형 멤버와 값 타입 필드의 주석도 옮긴다. `tests/test_docstrings.py`가 누락을 막는다. 관련 페이지 갱신.
+
+## [2026-10-13] ingest | Jekyll 사이트를 지우고 Sphinx 문서(영어, 한국어)로 교체
+`docs/`의 Jekyll 사이트(13쪽, 한국어)를 지우고 docstring에서 만드는 Sphinx 문서로 바꿨다(`conf.py`, `index.rst`, `api/*.rst`, `Makefile`, `requirements.txt`, 테마 `sphinx_rtd_theme`, 번역 `sphinx-intl`의 `locale/ko`). 번역하지 않고 소스 코드를 원문으로 삼았다. 처음 빌드에서 생성된 docstring의 RST 오류 약 50개가 나와 생성기(`docs.py`의 블록 분석과 중첩 목록, `model.comment_docs`의 줄바꿈 보존 등)를 고쳤고, wheel을 다시 빌드해 영어와 한국어 모두 `-W`로 경고 없이 만들었다. 한국어는 쪽 제목과 첫 쪽만 번역했다(24개, 나머지 약 5,400개는 영어로 나옴). `tests/test_docs.py`를 새 구성에 맞게 다시 썼다. GitHub Pages 설정(`/docs`)은 의미를 잃었고 호스팅은 정하지 않았다. `docstring-coverage.md`, `write-docstrings.md`, `repo-metadata.md`, `known-constraints.md`, `generator-modules.md` 등 갱신.
+
+## [2026-10-13] ingest | 끊어진 참조 확인과 한국어 번역 완료
+사용자가 "끊어진 참조 확인과 한국어 번역 포함"을 지시했는데 앞서 `ref.python` 경고를 끄고 번역을 24개로 멈춘 채 보고한 것을 바로잡았다. `nitpicky`로 확인해 약 400개 경고의 원인을 고쳤고(쪽이 `cefweaver.ui`, `cefweaver.types` 이름공간을 문서화, 생성기가 `:meth:`를 선언한 클래스로 연결하고 이름을 한정, 열거형 속성 docstring의 콜론 문제, 손으로 쓴 참조 7개), 외부 툴킷의 타입만 `nitpick_ignore_regex`로 남겼다. 한국어 카탈로그 5개의 5,167항목을 모두 번역했다(서브에이전트 23개, 리터럴과 역할 보존을 기계적으로 확인, 정확성은 표본만 읽음). 영어와 한국어 모두 `-W`로 통과. `docstring-coverage.md`, `write-docstrings.md`, `repo-metadata.md` 갱신.
+
+## [2026-10-13] ingest | 한국어 번역 전수 검수
+사용자 요청으로 번역 5,114개 고유 항목을 서브에이전트 23개가 원문과 대조해 506개를 고쳤다(용어집 위반이 대부분, 조건이 뒤집힌 2건 포함). 이어서 용어를 코드 표기 밖에서 일괄 통일하고 카탈로그를 다시 만들어 영어와 한국어를 `-W`로 빌드했다. `docstring-coverage.md` 갱신.
+
+## [2026-10-13] ingest | 사용 안내(guide)와 쿡북
+사용자가 API 레퍼런스 외에 Jekyll 때처럼 사용 방법을 설명하는 문서(가이드와 쿡북)를 요청했다. `docs/guide/`에 영어 원문 13쪽을 새로 썼다(설치, 시작하기, 쿡북, GUI 툴킷에 넣기, Views, 툴킷별 상태, 소리와 권한, 컨텍스트 메뉴, Cast, 핸들러와 이벤트, Wayland와 GPU, 한계, 개발하기). 이전 Jekyll 쪽의 사실을 옮기되 소스와 `examples/`로 이름을 대조했고, 쿡북의 스크립트는 wheel로 실제 실행해 확인했다. `write-docstrings.md`와 `CLAUDE.md`, `tests/test_docs.py` 갱신. 한국어는 449개 고유 문장을 서브에이전트가 번역하고 다른 서브에이전트가 대조해 10개를 고쳤다. 검수가 미진하다는 지적으로 문장마다 판정을 남기게 한 엄격한 재검수를 서브에이전트 15개가 했고(449개 모두 판정, 70개 수정) 반영했다(모델 검수만, 사람의 감수 없음). 영어와 한국어 `-W` 빌드 통과.

@@ -12,9 +12,9 @@ class MenuModelDelegate:
         """Perform the action associated with the specified ``command_id`` and optional ``event_flags``.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         """
         return None
 
@@ -22,7 +22,7 @@ class MenuModelDelegate:
         """Called when the user moves the mouse outside the menu and over the owning window.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point):
         """
         return None
@@ -33,7 +33,7 @@ class MenuModelDelegate:
         ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             is_rtl (bool):
         """
         return None
@@ -44,7 +44,7 @@ class MenuModelDelegate:
         ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             is_rtl (bool):
         """
         return None
@@ -53,7 +53,7 @@ class MenuModelDelegate:
         """The menu is about to show.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         """
         return None
 
@@ -61,7 +61,7 @@ class MenuModelDelegate:
         """The menu has closed.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         """
         return None
 
@@ -71,7 +71,7 @@ class MenuModelDelegate:
         Return ``True`` if ``label`` was modified.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         Returns:
             tuple[bool, str]
         """

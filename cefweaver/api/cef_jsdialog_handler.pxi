@@ -87,12 +87,12 @@ class JSDialogHandler:
         ``callback`` once the custom dialog is dismissed.
 
         Args:
-            browser (Browser):
-            origin_url (str): Non-empty it can be  passed to the ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure  and user-friendly display string.
-            dialog_type (JSDialogType):
+            browser (cefweaver.Browser):
+            origin_url (str): Non-empty it can be passed to the ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure and user-friendly display string.
+            dialog_type (cefweaver.types.JSDialogType):
             message_text (str):
             default_prompt_text (str):
-            callback (JSDialogCallback):
+            callback (cefweaver.JSDialogCallback):
         Returns:
             tuple[bool, bool]
         """
@@ -107,10 +107,10 @@ class JSDialogHandler:
         used the application must execute ``callback`` once the custom dialog is dismissed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             message_text (str):
             is_reload (bool):
-            callback (JSDialogCallback):
+            callback (cefweaver.JSDialogCallback):
         Returns:
             bool
         """
@@ -123,7 +123,7 @@ class JSDialogHandler:
         dialogs are currently pending.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
@@ -131,7 +131,7 @@ class JSDialogHandler:
         """Called when the dialog is closed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 

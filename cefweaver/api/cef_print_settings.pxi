@@ -225,7 +225,7 @@ cdef class PrintSettings:
         """Set the color model.
 
         Args:
-            model (ColorModel | int):
+            model (cefweaver.types.ColorModel | int):
         """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
@@ -236,7 +236,7 @@ cdef class PrintSettings:
         """Get the color model.
 
         Returns:
-            ColorModel
+            cefweaver.types.ColorModel
         """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cef_color_model_t _r
@@ -271,7 +271,7 @@ cdef class PrintSettings:
         """Set the duplex mode.
 
         Args:
-            mode (DuplexMode | int):
+            mode (cefweaver.types.DuplexMode | int):
         """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
@@ -282,7 +282,7 @@ cdef class PrintSettings:
         """Get the duplex mode.
 
         Returns:
-            DuplexMode
+            cefweaver.types.DuplexMode
         """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cef_duplex_mode_t _r
@@ -292,10 +292,10 @@ cdef class PrintSettings:
 
     @staticmethod
     def create():
-        """Create a new :class:`PrintSettings` object.
+        """Create a new :class:`~cefweaver.PrintSettings` object.
 
         Returns:
-            PrintSettings
+            cefweaver.PrintSettings
         """
         cdef CefRefPtr[CefPrintSettings] _r
         with nogil:

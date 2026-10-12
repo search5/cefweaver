@@ -4,10 +4,11 @@
 cdef class URLRequest:
     """Class used to make a URL request.
 
-    URL requests are not associated with a browser instance so no :class:`Client`
-    callbacks will be executed. URL requests can be created on any valid CEF thread in
-    either the browser or render process. Once created the methods of the URL request
-    object must be accessed on the same thread that created it.
+    URL requests are not associated with a browser instance so no
+    :class:`~cefweaver.Client` callbacks will be executed. URL requests can be created
+    on any valid CEF thread in either the browser or render process. Once created the
+    methods of the URL request object must be accessed on the same thread that created
+    it.
     """
     cdef CefRefPtr[CefURLRequest] _ref
 
@@ -30,7 +31,7 @@ cdef class URLRequest:
         The returned object is read-only and should not be modified.
 
         Returns:
-            Request | None: The request object used to create this URL request.
+            cefweaver.Request | None: The request object used to create this URL request.
         """
         cdef CefURLRequest* _p = self._ptr()
         cdef CefRefPtr[CefRequest] _r
@@ -42,7 +43,7 @@ cdef class URLRequest:
         """Return the client.
 
         Returns:
-            URLRequestClient | None: The client.
+            cefweaver.URLRequestClient | None: The client.
         """
         cdef CefURLRequest* _p = self._ptr()
         cdef CefRefPtr[CefURLRequestClient] _r
@@ -54,7 +55,7 @@ cdef class URLRequest:
         """Return the request status.
 
         Returns:
-            URLRequestStatus: The request status.
+            cefweaver.types.URLRequestStatus: The request status.
         """
         cdef CefURLRequest* _p = self._ptr()
         cdef cef_urlrequest_status_t _r
@@ -66,7 +67,7 @@ cdef class URLRequest:
         """Return the request error if status is UR_CANCELED or UR_FAILED, or 0 otherwise.
 
         Returns:
-            ErrorCode: The request error if status is UR_CANCELED or UR_FAILED, or 0  otherwise.
+            cefweaver.types.ErrorCode: The request error if status is UR_CANCELED or UR_FAILED, or 0 otherwise.
         """
         cdef CefURLRequest* _p = self._ptr()
         cdef cef_errorcode_t _r
@@ -81,7 +82,7 @@ cdef class URLRequest:
         returned object is read-only and should not be modified.
 
         Returns:
-            Response | None: The response, or ``None`` if no response information is available.
+            cefweaver.Response | None: The response, or ``None`` if no response information is available.
         """
         cdef CefURLRequest* _p = self._ptr()
         cdef CefRefPtr[CefResponse] _r
@@ -112,25 +113,27 @@ cdef class URLRequest:
 
     @staticmethod
     def create(Request request not None, client, RequestContext request_context):
-        """ Create a new URL request that is not associated with a specific browser or
-         frame. Use :meth:`Frame.create_url_request` instead if you want the request to
-         have this association, in which case it may be handled differently (see
-         documentation on that method). A request created with this method may only
-         originate from the browser process, and will behave as follows:
-           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
-             :class:`SchemeHandlerFactory`.
-           - POST data may only contain only a single element of type PDE_TYPE_FILE
-             or PDE_TYPE_BYTES.
-           - If ``request_context`` is empty the global request context will be used.
+        """Create a new URL request that is not associated with a specific browser or frame.
+
+        Use :meth:`~cefweaver.Frame.create_url_request` instead if you want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only originate
+        from the browser process, and will behave as follows:
+
+        - It may be intercepted by the client via :class:`~cefweaver.ResourceRequestHandler`
+          or :class:`~cefweaver.SchemeHandlerFactory`.
+        - POST data may only contain only a single element of type PDE_TYPE_FILE or
+          PDE_TYPE_BYTES.
+        - If ``request_context`` is empty the global request context will be used.
 
         The ``request`` object will be marked as read-only after calling this method.
 
         Args:
-            request (Request):
-            client (URLRequestClient):
-            request_context (RequestContext | None):
+            request (cefweaver.Request):
+            client (cefweaver.URLRequestClient):
+            request_context (cefweaver.RequestContext | None):
         Returns:
-            URLRequest
+            cefweaver.URLRequest
         """
         cdef CefRefPtr[CefRequest] _a0
         cdef CefRefPtr[CefURLRequestClient] _a1
@@ -174,7 +177,7 @@ cdef inline CefURLRequest* _g_ref_URLRequest(object obj) except? NULL:
 
 
 class URLRequestClient:
-    """Interface that should be implemented by the :class:`URLRequest` client.
+    """Interface that should be implemented by the :class:`~cefweaver.URLRequest` client.
 
     The methods of this class will be called on the same thread that created the request
     unless otherwise documented.
@@ -183,11 +186,11 @@ class URLRequestClient:
     def on_request_complete(self, request):
         """Notify the client that the request has completed.
 
-        Use the :meth:`URLRequest.get_request_status` method to determine if the request was
-        successful or not.
+        Use the :meth:`~cefweaver.URLRequest.get_request_status` method to determine if the
+        request was successful or not.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
         """
         return None
 
@@ -199,9 +202,9 @@ class URLRequestClient:
         called if the UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             current (int):
-            total (int): The total size of uploading data (or -1  if chunked upload is enabled).
+            total (int): The total size of uploading data (or -1 if chunked upload is enabled).
         """
         return None
 
@@ -212,9 +215,9 @@ class URLRequestClient:
         expected total size of the response (or -1 if not determined).
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             current (int):
-            total (int): The expected total size of  the response (or -1 if not determined).
+            total (int): The expected total size of the response (or -1 if not determined).
         """
         return None
 
@@ -225,7 +228,7 @@ class URLRequestClient:
         not be called if the UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             data (memoryview):
         """
         return None
@@ -235,12 +238,12 @@ class URLRequestClient:
 
         ``is_proxy`` indicates whether the host is a proxy server. ``host`` contains the
         hostname and ``port`` contains the port number. Return ``True`` to continue the
-        request and call :meth:`AuthCallback.continue_` when the authentication information
-        is available. If the request has an associated browser/frame then returning
-        ``False`` will result in a call to GetAuthCredentials on the :class:`RequestHandler`
-        associated with that browser, if any. Otherwise, returning ``False`` will cancel the
-        request immediately. This method will only be called for requests initiated from the
-        browser process.
+        request and call :meth:`~cefweaver.AuthCallback.continue_` when the authentication
+        information is available. If the request has an associated browser/frame then
+        returning ``False`` will result in a call to GetAuthCredentials on the
+        :class:`~cefweaver.RequestHandler` associated with that browser, if any. Otherwise,
+        returning ``False`` will cancel the request immediately. This method will only be
+        called for requests initiated from the browser process.
 
         Args:
             is_proxy (bool):
@@ -248,7 +251,7 @@ class URLRequestClient:
             port (int):
             realm (str):
             scheme (str):
-            callback (AuthCallback):
+            callback (cefweaver.AuthCallback):
         Returns:
             bool
         """

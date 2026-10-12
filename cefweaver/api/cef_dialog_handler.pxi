@@ -82,12 +82,12 @@ class DialogHandler:
         depending on the mode). ``default_file_path`` is the path with optional directory
         and/or file name component that should be initially selected in the dialog.
         ``accept_filters`` are used to restrict the selectable file types and may be any
-        combination of valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\") and
+        combination of valid lower-cased MIME types (e.g. \"``text/*``\" or \"``image/*``\") and
         individual file extensions (e.g. \".txt\" or \".png\"). ``accept_extensions`` provides
         the semicolon-delimited expansion of MIME types to file extensions (if known, or
         empty string otherwise). ``accept_descriptions`` provides the descriptions for MIME
-        types (if known, or empty string otherwise). For example, the \"image/*\" mime type
-        might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        types (if known, or empty string otherwise). For example, the \"``image/*``\" mime
+        type might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
         ``accept_filters``, ``accept_extensions`` and ``accept_descriptions`` will all be
         the same size. To display a custom dialog return ``True`` and execute ``callback``
         either inline or at a later time. To display the default dialog return ``False``. If
@@ -95,14 +95,14 @@ class DialogHandler:
         dialog (both before and after MIME type expansion).
 
         Args:
-            browser (Browser):
-            mode (FileDialogMode):
+            browser (cefweaver.Browser):
+            mode (cefweaver.types.FileDialogMode):
             title (str):
-            default_file_path (str): The path with optional directory and/or file name  component that should be initially selected in the dialog.
-            accept_filters (list[str]): Used to restrict the selectable file types and may be  any combination of valid lower-cased MIME types (e.
+            default_file_path (str): The path with optional directory and/or file name component that should be initially selected in the dialog.
+            accept_filters (list[str]): Used to restrict the selectable file types and may be any combination of valid lower-cased MIME types (e.g.
             accept_extensions (list[str]):
             accept_descriptions (list[str]):
-            callback (FileDialogCallback):
+            callback (cefweaver.FileDialogCallback):
         Returns:
             bool
         """

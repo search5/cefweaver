@@ -16,7 +16,7 @@ class KeyboardHandler:
         shortcut set ``is_keyboard_shortcut`` to ``True`` and return ``False``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             event (KeyEvent):
         Returns:
             tuple[bool, bool]
@@ -31,7 +31,7 @@ class KeyboardHandler:
         handled or ``False`` otherwise.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             event (KeyEvent):
         Returns:
             bool

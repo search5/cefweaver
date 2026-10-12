@@ -53,7 +53,7 @@ cdef class ContextMenuParams:
         """Return flags representing the type of node that the context menu was invoked on.
 
         Returns:
-            ContextMenuTypeFlags: Flags representing the type of node that the context menu was  invoked on.
+            cefweaver.types.ContextMenuTypeFlags: Flags representing the type of node that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cef_context_menu_type_flags_t _r
@@ -65,7 +65,7 @@ cdef class ContextMenuParams:
         """Return the URL of the link, if any, that encloses the node that the context menu was invoked on.
 
         Returns:
-            str: The URL of the link, if any, that encloses the node that the  context menu was invoked on.
+            str: The URL of the link, if any, that encloses the node that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -93,7 +93,7 @@ cdef class ContextMenuParams:
         Example of elements with source URLs are img, audio, and video.
 
         Returns:
-            str: The source URL, if any, for the element that the context menu was  invoked on.
+            str: The source URL, if any, for the element that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -105,7 +105,7 @@ cdef class ContextMenuParams:
         """Return ``True`` if the context menu was invoked on an image which has non-empty contents.
 
         Returns:
-            bool: ``True`` if the context menu was invoked on an image which has  non-empty contents.
+            bool: ``True`` if the context menu was invoked on an image which has non-empty contents.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cpp_bool _r
@@ -117,7 +117,7 @@ cdef class ContextMenuParams:
         """Return the title text or the alt text if the context menu was invoked on an image.
 
         Returns:
-            str: The title text or the alt text if the context menu was invoked on  an image.
+            str: The title text or the alt text if the context menu was invoked on an image.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -129,7 +129,7 @@ cdef class ContextMenuParams:
         """Return the URL of the top level page that the context menu was invoked on.
 
         Returns:
-            str: The URL of the top level page that the context menu was invoked  on.
+            str: The URL of the top level page that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -153,7 +153,7 @@ cdef class ContextMenuParams:
         """Return the character encoding of the subframe that the context menu was invoked on.
 
         Returns:
-            str: The character encoding of the subframe that the context menu was  invoked on.
+            str: The character encoding of the subframe that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -165,7 +165,7 @@ cdef class ContextMenuParams:
         """Return the type of context node that the context menu was invoked on.
 
         Returns:
-            ContextMenuMediaType: The type of context node that the context menu was invoked on.
+            cefweaver.types.ContextMenuMediaType: The type of context node that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cef_context_menu_media_type_t _r
@@ -177,7 +177,7 @@ cdef class ContextMenuParams:
         """Return flags representing the actions supported by the media element, if any, that the context menu was invoked on.
 
         Returns:
-            ContextMenuMediaStateFlags: Flags representing the actions supported by the media element, if  any, that the context menu was invoked on.
+            cefweaver.types.ContextMenuMediaStateFlags: Flags representing the actions supported by the media element, if any, that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cef_context_menu_media_state_flags_t _r
@@ -189,7 +189,7 @@ cdef class ContextMenuParams:
         """Return the text of the selection, if any, that the context menu was invoked on.
 
         Returns:
-            str: The text of the selection, if any, that the context menu was  invoked on.
+            str: The text of the selection, if any, that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -201,7 +201,7 @@ cdef class ContextMenuParams:
         """Return the text of the misspelled word, if any, that the context menu was invoked on.
 
         Returns:
-            str: The text of the misspelled word, if any, that the context menu was  invoked on.
+            str: The text of the misspelled word, if any, that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef CefString _r
@@ -241,7 +241,7 @@ cdef class ContextMenuParams:
         """Return ``True`` if the context menu was invoked on an editable node where spell-check is enabled.
 
         Returns:
-            bool: ``True`` if the context menu was invoked on an editable node where  spell-check is enabled.
+            bool: ``True`` if the context menu was invoked on an editable node where spell-check is enabled.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cpp_bool _r
@@ -253,7 +253,7 @@ cdef class ContextMenuParams:
         """Return flags representing the actions supported by the editable node, if any, that the context menu was invoked on.
 
         Returns:
-            ContextMenuEditStateFlags: Flags representing the actions supported by the editable node, if  any, that the context menu was invoked on.
+            cefweaver.types.ContextMenuEditStateFlags: Flags representing the actions supported by the editable node, if any, that the context menu was invoked on.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cef_context_menu_edit_state_flags_t _r
@@ -265,7 +265,7 @@ cdef class ContextMenuParams:
         """Return ``True`` if the context menu contains items specified by the renderer process.
 
         Returns:
-            bool: ``True`` if the context menu contains items specified by the renderer  process.
+            bool: ``True`` if the context menu contains items specified by the renderer process.
         """
         cdef CefContextMenuParams* _p = self._ptr()
         cdef cpp_bool _r
@@ -322,7 +322,7 @@ cdef class RunContextMenuCallback:
 
         Args:
             command_id (int):
-            event_flags (EventFlags | int):
+            event_flags (cefweaver.types.EventFlags | int):
         """
         cdef CefRunContextMenuCallback* _p = self._ptr()
         with nogil:
@@ -385,7 +385,7 @@ cdef class RunQuickMenuCallback:
 
         Args:
             command_id (int):
-            event_flags (EventFlags | int):
+            event_flags (cefweaver.types.EventFlags | int):
         """
         cdef CefRunQuickMenuCallback* _p = self._ptr()
         with nogil:
@@ -441,10 +441,10 @@ class ContextMenuHandler:
         ``model`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
-            model (MenuModel):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
+            model (cefweaver.MenuModel):
         """
         return None
 
@@ -458,11 +458,11 @@ class ContextMenuHandler:
         ``params`` or ``model`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
-            model (MenuModel):
-            callback (RunContextMenuCallback):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
+            model (cefweaver.MenuModel):
+            callback (cefweaver.RunContextMenuCallback):
         Returns:
             bool
         """
@@ -479,11 +479,11 @@ class ContextMenuHandler:
         callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         Returns:
             bool
         """
@@ -493,8 +493,8 @@ class ContextMenuHandler:
         """Called when the context menu is dismissed irregardless of whether the menu was canceled or a command was selected.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         return None
 
@@ -508,12 +508,12 @@ class ContextMenuHandler:
         Return ``False`` to cancel the menu.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             location (Point): The top left corner of the selected region.
-            size (Size): The  size of the selected region.
-            edit_state_flags (QuickMenuEditStateFlags): A combination of flags  that represent the state of the quick menu.
-            callback (RunQuickMenuCallback):
+            size (Size): The size of the selected region.
+            edit_state_flags (cefweaver.types.QuickMenuEditStateFlags): A combination of flags that represent the state of the quick menu.
+            callback (cefweaver.RunQuickMenuCallback):
         Returns:
             bool
         """
@@ -526,10 +526,10 @@ class ContextMenuHandler:
         implementation. See cef_menu_id_t for command IDs that have default implementations.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         Returns:
             bool
         """
@@ -539,8 +539,8 @@ class ContextMenuHandler:
         """Called when the quick menu for a windowless browser is dismissed irregardless of whether the menu was canceled or a command was selected.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         return None
 

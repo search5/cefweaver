@@ -200,15 +200,15 @@ cdef class ZipReader:
 
     @staticmethod
     def create(StreamReader stream not None):
-        """Create a new :class:`ZipReader` object.
+        """Create a new :class:`~cefweaver.ZipReader` object.
 
         The returned object's methods can only be called from the thread that created the
         object.
 
         Args:
-            stream (StreamReader):
+            stream (cefweaver.StreamReader):
         Returns:
-            ZipReader
+            cefweaver.ZipReader
         """
         cdef CefRefPtr[CefStreamReader] _a0
         cdef CefRefPtr[CefZipReader] _r

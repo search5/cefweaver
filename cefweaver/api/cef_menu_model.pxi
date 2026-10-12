@@ -143,7 +143,7 @@ cdef class MenuModel:
             command_id (int):
             label (str):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         cdef CefString _a1
         cdef CefMenuModel* _p = self._ptr()
@@ -241,7 +241,7 @@ cdef class MenuModel:
             command_id (int):
             label (str):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         cdef CefString _a2
         cdef CefMenuModel* _p = self._ptr()
@@ -289,7 +289,7 @@ cdef class MenuModel:
         Args:
             command_id (int):
         Returns:
-            int: The index associated with the specified ``command_id`` or -1 if not  found due to the command id not existing in the menu.
+            int: The index associated with the specified ``command_id`` or -1 if not found due to the command id not existing in the menu.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef int _r
@@ -303,7 +303,7 @@ cdef class MenuModel:
         Args:
             index (int):
         Returns:
-            int: The command id at the specified ``index`` or -1 if not found due to  invalid range or the index being a separator.
+            int: The command id at the specified ``index`` or -1 if not found due to invalid range or the index being a separator.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef int _r
@@ -348,7 +348,7 @@ cdef class MenuModel:
         Args:
             index (int):
         Returns:
-            str: The label at the specified ``index`` or empty if not found due to  invalid range or the index being a separator.
+            str: The label at the specified ``index`` or empty if not found due to invalid range or the index being a separator.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef CefString _r
@@ -400,7 +400,7 @@ cdef class MenuModel:
         Args:
             command_id (int):
         Returns:
-            MenuItemType: The item type for the specified ``command_id``.
+            cefweaver.types.MenuItemType: The item type for the specified ``command_id``.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef cef_menu_item_type_t _r
@@ -414,7 +414,7 @@ cdef class MenuModel:
         Args:
             index (int):
         Returns:
-            MenuItemType: The item type at the specified ``index``.
+            cefweaver.types.MenuItemType: The item type at the specified ``index``.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef cef_menu_item_type_t _r
@@ -490,7 +490,7 @@ cdef class MenuModel:
         Args:
             command_id (int):
         Returns:
-            MenuModel | None: The submenu for the specified ``command_id`` or empty if invalid.
+            cefweaver.MenuModel | None: The submenu for the specified ``command_id`` or empty if invalid.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef CefRefPtr[CefMenuModel] _r
@@ -504,7 +504,7 @@ cdef class MenuModel:
         Args:
             index (int):
         Returns:
-            MenuModel | None: The submenu at the specified ``index`` or empty if invalid.
+            cefweaver.MenuModel | None: The submenu at the specified ``index`` or empty if invalid.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef CefRefPtr[CefMenuModel] _r
@@ -708,7 +708,7 @@ cdef class MenuModel:
         Args:
             command_id (int):
         Returns:
-            bool: ``True`` if the specified ``command_id`` has a keyboard accelerator  assigned.
+            bool: ``True`` if the specified ``command_id`` has a keyboard accelerator assigned.
         """
         cdef CefMenuModel* _p = self._ptr()
         cdef cpp_bool _r
@@ -859,7 +859,7 @@ cdef class MenuModel:
 
         Args:
             command_id (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
             color (int):
         Returns:
             bool
@@ -880,7 +880,7 @@ cdef class MenuModel:
 
         Args:
             index (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
             color (int):
         Returns:
             bool
@@ -899,9 +899,9 @@ cdef class MenuModel:
 
         Args:
             command_id (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
         Returns:
-            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
         """
         cdef cef_color_t _a2
         cdef CefMenuModel* _p = self._ptr()
@@ -919,9 +919,9 @@ cdef class MenuModel:
 
         Args:
             index (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
         Returns:
-            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
         """
         cdef cef_color_t _a2
         cdef CefMenuModel* _p = self._ptr()
@@ -932,20 +932,24 @@ cdef class MenuModel:
         return (_r, _a2)
 
     def set_font_list(self, int command_id, font_list):
-        """ Sets the font list for the specified ``command_id``. If ``font_list`` is empty
-         the system font will be used. Returns ``True`` on success. The format is
-         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list for the specified ``command_id``.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        If ``font_list`` is empty the system font will be used. Returns ``True`` on success.
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             command_id (int):
-            font_list (str | None):
+            font_list (str | None): Empty the system font will be used.
         Returns:
             bool
         """
@@ -959,21 +963,25 @@ cdef class MenuModel:
         return _r
 
     def set_font_list_at(self, int index, font_list):
-        """ Sets the font list for the specified ``index``. Specify an ``index`` value of
-         -1 to set the default font. If ``font_list`` is empty the system font will
-         be used. Returns ``True`` on success. The format is
-         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list for the specified ``index``.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        Specify an ``index`` value of -1 to set the default font. If ``font_list`` is empty
+        the system font will be used. Returns ``True`` on success. The format is
+        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             index (int):
-            font_list (str | None):
+            font_list (str | None): Empty the system font will be used.
         Returns:
             bool
         """
@@ -991,9 +999,9 @@ cdef class MenuModel:
         """Create a new MenuModel with the specified ``delegate``.
 
         Args:
-            delegate (MenuModelDelegate):
+            delegate (cefweaver.MenuModelDelegate):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         cdef CefRefPtr[CefMenuModelDelegate] _a0
         cdef CefRefPtr[CefMenuModel] _r

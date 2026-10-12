@@ -4,9 +4,9 @@
 cdef class Component:
     """Class representing a snapshot of a component's state at the time of retrieval.
 
-    To get updated information, retrieve a new :class:`Component` object via
-    :meth:`ComponentUpdater.get_component_by_id` or GetComponents. The methods of this
-    class may be called on any thread.
+    To get updated information, retrieve a new :class:`~cefweaver.Component` object via
+    :meth:`~cefweaver.ComponentUpdater.get_component_by_id` or GetComponents. The
+    methods of this class may be called on any thread.
     """
     cdef CefRefPtr[CefComponent] _ref
 
@@ -71,7 +71,7 @@ cdef class Component:
         CEF_COMPONENT_STATE_RUN.
 
         Returns:
-            ComponentState: The state of this component at the time this object was created.
+            cefweaver.types.ComponentState: The state of this component at the time this object was created.
         """
         cdef CefComponent* _p = self._ptr()
         cdef cef_component_state_t _r
@@ -132,7 +132,7 @@ cdef class ComponentUpdater:
         """Return the number of registered components, or 0 if the service is not available.
 
         Returns:
-            int: The number of registered components, or 0 if the service is not  available.
+            int: The number of registered components, or 0 if the service is not available.
         """
         cdef CefComponentUpdater* _p = self._ptr()
         cdef size_t _r
@@ -146,7 +146,7 @@ cdef class ComponentUpdater:
         Any existing contents will be cleared first.
 
         Returns:
-            list[Component]
+            list[cefweaver.Component]
         """
         cdef vector[CefRefPtr[CefComponent]] _a0
         cdef CefComponentUpdater* _p = self._ptr()
@@ -160,7 +160,7 @@ cdef class ComponentUpdater:
         Args:
             component_id (str):
         Returns:
-            Component | None: The component with the specified ``component_id``, or ``None`` if  not found or the service is not available.
+            cefweaver.Component | None: The component with the specified ``component_id``, or ``None`` if not found or the service is not available.
         """
         cdef CefString _a0
         cdef CefComponentUpdater* _p = self._ptr()
@@ -185,8 +185,8 @@ cdef class ComponentUpdater:
 
         Args:
             component_id (str):
-            priority (ComponentUpdatePriority | int):
-            callback (ComponentUpdateCallback | None):
+            priority (cefweaver.types.ComponentUpdatePriority | int):
+            callback (cefweaver.ComponentUpdateCallback | None):
         """
         cdef CefString _a0
         cdef CefRefPtr[CefComponentUpdateCallback] _a2
@@ -199,12 +199,12 @@ cdef class ComponentUpdater:
 
     @staticmethod
     def get_component_updater():
-        """Return the global :class:`ComponentUpdater` singleton.
+        """Return the global :class:`~cefweaver.ComponentUpdater` singleton.
 
         Returns ``None`` if called from the incorrect thread.
 
         Returns:
-            ComponentUpdater | None: The global ``CefComponentUpdater`` singleton.
+            cefweaver.ComponentUpdater | None: The global ``CefComponentUpdater`` singleton.
         """
         cdef CefRefPtr[CefComponentUpdater] _r
         with nogil:
@@ -249,7 +249,7 @@ class ComponentUpdateCallback:
 
         Args:
             component_id (str): The ID of the component that was updated.
-            error (ComponentUpdateError):
+            error (cefweaver.types.ComponentUpdateError):
         """
         return None
 

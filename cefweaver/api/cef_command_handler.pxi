@@ -15,12 +15,13 @@ class CommandHandler:
         values. ``disposition`` provides information about the intended command target.
         Return ``True`` if the command was handled or ``False`` for the default
         implementation. For context menu commands this will be called after
-        :meth:`ContextMenuHandler.on_context_menu_command`. Only used with Chrome style.
+        :meth:`~cefweaver.ContextMenuHandler.on_context_menu_command`. Only used with Chrome
+        style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
-            disposition (WindowOpenDisposition):
+            disposition (cefweaver.types.WindowOpenDisposition):
         Returns:
             bool
         """
@@ -35,7 +36,7 @@ class CommandHandler:
         Chrome style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
         Returns:
             bool
@@ -51,7 +52,7 @@ class CommandHandler:
         Chrome style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
         Returns:
             bool
@@ -64,7 +65,7 @@ class CommandHandler:
         Only called for icons that would be visible by default. Only used with Chrome style.
 
         Args:
-            icon_type (ChromePageActionIconType):
+            icon_type (cefweaver.types.ChromePageActionIconType):
         Returns:
             bool
         """
@@ -77,7 +78,7 @@ class CommandHandler:
         style.
 
         Args:
-            button_type (ChromeToolbarButtonType):
+            button_type (cefweaver.types.ChromeToolbarButtonType):
         Returns:
             bool
         """

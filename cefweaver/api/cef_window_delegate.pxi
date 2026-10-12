@@ -14,7 +14,7 @@ class WindowDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -24,7 +24,7 @@ class WindowDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -34,7 +34,7 @@ class WindowDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -48,7 +48,7 @@ class WindowDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -64,9 +64,9 @@ class WindowDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         return None
 
@@ -80,17 +80,17 @@ class WindowDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         return None
 
     def on_window_changed(self, view, added):
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         return None
@@ -99,7 +99,7 @@ class WindowDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         return None
@@ -108,7 +108,7 @@ class WindowDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -116,7 +116,7 @@ class WindowDelegate:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -128,19 +128,19 @@ class WindowDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         return None
 
@@ -148,7 +148,7 @@ class WindowDelegate:
         """Called when ``window`` is created.
 
         Args:
-            window (Window): Created.
+            window (cefweaver.Window): Created.
         """
         return None
 
@@ -156,7 +156,7 @@ class WindowDelegate:
         """Called when ``window`` is closing.
 
         Args:
-            window (Window): Closing.
+            window (cefweaver.Window): Closing.
         """
         return None
 
@@ -167,7 +167,7 @@ class WindowDelegate:
         ``window`` after this callback returns.
 
         Args:
-            window (Window): Destroyed.
+            window (cefweaver.Window): Destroyed.
         """
         return None
 
@@ -175,7 +175,7 @@ class WindowDelegate:
         """Called when ``window`` is activated or deactivated.
 
         Args:
-            window (Window): Activated or deactivated.
+            window (cefweaver.Window): Activated or deactivated.
             active (bool):
         """
         return None
@@ -186,7 +186,7 @@ class WindowDelegate:
         ``new_bounds`` will be in DIP screen coordinates.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             new_bounds (Rect):
         """
         return None
@@ -198,11 +198,11 @@ class WindowDelegate:
         when the transition starts and ``True`` after the transition completes. On other
         platforms the transition occurs synchronously with ``is_completed`` set to ``True``
         after the transition completes. With Alloy style you must also implement
-        :meth:`DisplayHandler.on_fullscreen_mode_change` to handle fullscreen transitions
-        initiated by browser content.
+        :meth:`~cefweaver.DisplayHandler.on_fullscreen_mode_change` to handle fullscreen
+        transitions initiated by browser content.
 
         Args:
-            window (Window): Transitioning to or from fullscreen mode.
+            window (cefweaver.Window): Transitioning to or from fullscreen mode.
             is_completed (bool):
         """
         return None
@@ -217,9 +217,9 @@ class WindowDelegate:
         displayed.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            tuple[Window | None, bool, bool]: The parent for ``window`` or ``None`` if the ``window`` does not have a  parent.
+            tuple[cefweaver.Window | None, bool, bool]: The parent for ``window`` or ``None`` if the ``window`` does not have a parent.
         """
         return None, False, False
 
@@ -229,11 +229,11 @@ class WindowDelegate:
         Only called when a Window is returned via GetParentWindow() with ``is_menu`` set to
         ``False``. All controls in the parent Window will be disabled while ``window`` is
         visible. This functionality is not supported by all Linux window managers.
-        Alternately, use :meth:`Window.show_as_browser_modal_dialog` for a browser modal
-        dialog that works on all platforms.
+        Alternately, use :meth:`~cefweaver.Window.show_as_browser_modal_dialog` for a
+        browser modal dialog that works on all platforms.
 
         Args:
-            window (Window): Visible.
+            window (cefweaver.Window): Visible.
         Returns:
             bool: ``True`` if ``window`` should be created as a window modal dialog.
         """
@@ -244,13 +244,13 @@ class WindowDelegate:
 
         If this method returns an empty ``CefRect`` then GetPreferredSize() will be called
         to retrieve the size, and the window will be placed on the screen with origin (0,0).
-        This method can be used in combination with :meth:`View.get_bounds_in_screen` to
-        restore the previous window bounds.
+        This method can be used in combination with
+        :meth:`~cefweaver.View.get_bounds_in_screen` to restore the previous window bounds.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            Rect | tuple[int, int, int, int]: The initial bounds for ``window`` in density independent pixel (DIP)  coordinates.
+            Rect | tuple[int, int, int, int]: The initial bounds for ``window`` in density independent pixel (DIP) coordinates.
         """
         return Rect()
 
@@ -258,9 +258,9 @@ class WindowDelegate:
         """Return the initial show state for ``window``.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            ShowState | int: The initial show state for ``window``.
+            cefweaver.types.ShowState | int: The initial show state for ``window``.
         """
         return 0
 
@@ -268,10 +268,10 @@ class WindowDelegate:
         """Return ``True`` if ``window`` should be created without a frame or title bar.
 
         The window will be resizable if CanResize() returns ``True``. Use
-        :meth:`Window.set_draggable_regions` to specify draggable regions.
+        :meth:`~cefweaver.Window.set_draggable_regions` to specify draggable regions.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` should be created without a frame or title bar.
         """
@@ -283,9 +283,9 @@ class WindowDelegate:
         This method is only supported on macOS.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            bool: ``True`` if ``window`` should be created with standard window buttons  like close, minimize and zoom.
+            bool: ``True`` if ``window`` should be created with standard window buttons like close, minimize and zoom.
         """
         return False
 
@@ -297,9 +297,9 @@ class WindowDelegate:
         titlebar at a height of ``titlebar_height`` / 2.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            tuple[bool, float]: Whether the titlebar height should be overridden, and sets the  height of the titlebar in ``titlebar_height``.
+            tuple[bool, float]: Whether the titlebar height should be overridden, and sets the height of the titlebar in ``titlebar_height``.
         """
         return False, 0.0
 
@@ -314,9 +314,9 @@ class WindowDelegate:
         of acceptsFirstMouse.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            State | int: Whether the view should accept the initial mouse-down event,  allowing it to respond to click-through behavior.
+            cefweaver.types.State | int: Whether the view should accept the initial mouse-down event, allowing it to respond to click-through behavior.
         """
         return 0
 
@@ -324,7 +324,7 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be resized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be resized.
         """
@@ -334,7 +334,7 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be maximized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be maximized.
         """
@@ -344,7 +344,7 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be minimized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be minimized.
         """
@@ -354,22 +354,22 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be closed.
 
         This will be called for user- initiated window close actions and when
-        :meth:`Window.close` is called.
+        :meth:`~cefweaver.Window.close` is called.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be closed.
         """
         return False
 
     def on_accelerator(self, window, command_id):
-        """Called when a keyboard accelerator registered with :meth:`Window.set_accelerator` is triggered.
+        """Called when a keyboard accelerator registered with :meth:`~cefweaver.Window.set_accelerator` is triggered.
 
         Return ``True`` if the accelerator was handled or ``False`` otherwise.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             command_id (int):
         Returns:
             bool
@@ -383,7 +383,7 @@ class WindowDelegate:
         keyboard event was handled or ``False`` otherwise.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             event (KeyEvent):
         Returns:
             bool
@@ -398,29 +398,29 @@ class WindowDelegate:
         Native/OS theme colors are configured globally and do not need to be customized for
         each Window individually. An example of a native/OS theme change that triggers this
         callback is when the user switches between dark and light mode during application
-        lifespan. Native/OS theme changes can be disabled by passing the `--force-dark-mode`
-        or `--force-light-mode` command-line flag.
+        lifespan. Native/OS theme changes can be disabled by passing the
+        ``--force-dark-mode`` or ``--force-light-mode`` command-line flag.
 
         Chrome theme colors will be applied and this callback will be triggered if/when a
         BrowserView is added to the Window's component hierarchy. Chrome theme colors can be
         configured on a per-RequestContext basis using
-        :meth:`RequestContext.set_chrome_color_scheme` or (Chrome style only) by visiting
-        chrome://settings/manageProfile. Any theme changes using those mechanisms will also
-        trigger this callback. Chrome theme colors will be persisted and restored from disk
-        cache.
+        :meth:`~cefweaver.RequestContext.set_chrome_color_scheme` or (Chrome style only) by
+        visiting chrome://settings/manageProfile. Any theme changes using those mechanisms
+        will also trigger this callback. Chrome theme colors will be persisted and restored
+        from disk cache.
 
         This callback is not triggered on Window creation so clients that wish to customize
-        the initial native/OS theme must call :meth:`Window.set_theme_color` and
-        :meth:`Window.theme_changed` before showing the first Window.
+        the initial native/OS theme must call :meth:`~cefweaver.Window.set_theme_color` and
+        :meth:`~cefweaver.Window.theme_changed` before showing the first Window.
 
         Theme colors will be reset to standard values before this callback is called for the
-        first affected Window. Call :meth:`Window.set_theme_color` from inside this callback
-        to override a standard color or add a custom color.
-        :meth:`ViewDelegate.on_theme_changed` will be called after this callback for the
-        complete ``window`` component hierarchy.
+        first affected Window. Call :meth:`~cefweaver.Window.set_theme_color` from inside
+        this callback to override a standard color or add a custom color.
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed` will be called after this callback
+        for the complete ``window`` component hierarchy.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             chrome_theme (bool):
         """
         return None
@@ -431,7 +431,7 @@ class WindowDelegate:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle | int
+            cefweaver.types.RuntimeStyle | int
         """
         return 0
 
@@ -439,7 +439,7 @@ class WindowDelegate:
         """Return Linux-specific window properties for correctly handling by window managers
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]
         """

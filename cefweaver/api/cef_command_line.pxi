@@ -11,7 +11,7 @@ cdef class CommandLine:
     regardless of prefix, being interpreted as non-switch arguments. Switch names should
     be lowercase ASCII and will be converted to such if necessary. Switch values will
     retain the original case and UTF8 encoding. This class can be used before
-    ``CefInitialize``() is called.
+    ``CefInitialize`` () is called.
     """
     cdef CefRefPtr[CefCommandLine] _ref
 
@@ -60,7 +60,7 @@ cdef class CommandLine:
         """Return a writable copy of this object.
 
         Returns:
-            CommandLine | None: A writable copy of this object.
+            cefweaver.CommandLine | None: A writable copy of this object.
         """
         cdef CefCommandLine* _p = self._ptr()
         cdef CefRefPtr[CefCommandLine] _r
@@ -93,7 +93,7 @@ cdef class CommandLine:
     def get_argv(self):
         """Retrieve the original command line string as a vector of strings.
 
-        The argv array: `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+        The argv array: ``{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }``
 
         Returns:
             list[str]
@@ -303,10 +303,10 @@ cdef class CommandLine:
 
     @staticmethod
     def create_command_line():
-        """Create a new :class:`CommandLine` instance.
+        """Create a new :class:`~cefweaver.CommandLine` instance.
 
         Returns:
-            CommandLine | None
+            cefweaver.CommandLine | None
         """
         cdef CefRefPtr[CefCommandLine] _r
         with nogil:
@@ -315,12 +315,12 @@ cdef class CommandLine:
 
     @staticmethod
     def get_global_command_line():
-        """Return the singleton global :class:`CommandLine` object.
+        """Return the singleton global :class:`~cefweaver.CommandLine` object.
 
         The returned object will be read-only.
 
         Returns:
-            CommandLine | None: The singleton global ``CefCommandLine`` object.
+            cefweaver.CommandLine | None: The singleton global ``CefCommandLine`` object.
         """
         cdef CefRefPtr[CefCommandLine] _r
         with nogil:

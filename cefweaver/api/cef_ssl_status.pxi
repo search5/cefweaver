@@ -34,7 +34,7 @@ cdef class SSLStatus:
         """Return a bitmask containing any and all problems verifying the server certificate.
 
         Returns:
-            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
+            cefweaver.types.CertStatus: A bitmask containing any and all problems verifying the server certificate.
         """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_cert_status_t _r
@@ -46,7 +46,7 @@ cdef class SSLStatus:
         """Return the SSL version used for the SSL connection.
 
         Returns:
-            SslVersion: The SSL version used for the SSL connection.
+            cefweaver.types.SslVersion: The SSL version used for the SSL connection.
         """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_ssl_version_t _r
@@ -58,7 +58,7 @@ cdef class SSLStatus:
         """Return a bitmask containing the page security content status.
 
         Returns:
-            SslContentStatus: A bitmask containing the page security content status.
+            cefweaver.types.SslContentStatus: A bitmask containing the page security content status.
         """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_ssl_content_status_t _r
@@ -70,7 +70,7 @@ cdef class SSLStatus:
         """Return the X.509 certificate.
 
         Returns:
-            X509Certificate | None: The X.509 certificate.
+            cefweaver.X509Certificate | None: The X.509 certificate.
         """
         cdef CefSSLStatus* _p = self._ptr()
         cdef CefRefPtr[CefX509Certificate] _r

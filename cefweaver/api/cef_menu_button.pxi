@@ -21,12 +21,12 @@ cdef class MenuButton(LabelButton):
         ``screen_point`` specifies the menu position in screen coordinates.
         ``anchor_position`` specifies how the menu will be anchored relative to
         ``screen_point``. This method should be called from
-        :meth:`MenuButtonDelegate.on_menu_button_pressed`.
+        :meth:`~cefweaver.MenuButtonDelegate.on_menu_button_pressed`.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point | tuple[int, int]):
-            anchor_position (MenuAnchorPosition | int):
+            anchor_position (cefweaver.types.MenuAnchorPosition | int):
         """
         cdef CefRefPtr[CefMenuModel] _a0
         cdef CefPoint _a1
@@ -40,7 +40,7 @@ cdef class MenuButton(LabelButton):
     def trigger_menu(self):
         """Show the menu for this button.
 
-        Results in a call to :meth:`MenuButtonDelegate.on_menu_button_pressed`.
+        Results in a call to :meth:`~cefweaver.MenuButtonDelegate.on_menu_button_pressed`.
         """
         cdef CefMenuButton* _p = self._ptr_CefMenuButton()
         with nogil:
@@ -59,10 +59,10 @@ cdef class MenuButton(LabelButton):
         hover/press, left alignment, less padding and no default minimum size.
 
         Args:
-            delegate (MenuButtonDelegate):
+            delegate (cefweaver.MenuButtonDelegate):
             text (str | None):
         Returns:
-            MenuButton | None
+            cefweaver.MenuButton | None
         """
         cdef CefRefPtr[CefMenuButtonDelegate] _a0
         cdef CefString _a1

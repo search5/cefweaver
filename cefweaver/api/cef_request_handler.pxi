@@ -24,7 +24,7 @@ cdef class SelectClientCertificateCallback:
         ``None`` value means that no client certificate should be used.
 
         Args:
-            cert (X509Certificate | None):
+            cert (cefweaver.X509Certificate | None):
         """
         cdef CefRefPtr[CefX509Certificate] _a0
         cdef CefSelectClientCertificateCallback* _p = self._ptr()
@@ -72,18 +72,18 @@ class RequestHandler:
 
         Return ``True`` to cancel the navigation or ``False`` to allow the navigation to
         proceed. The ``request`` object cannot be modified in this callback.
-        :meth:`LoadHandler.on_loading_state_change` will be called twice in all cases. If
-        the navigation is allowed :meth:`LoadHandler.on_load_start` and
-        :meth:`LoadHandler.on_load_end` will be called. If the navigation is canceled
-        :meth:`LoadHandler.on_load_error` will be called with an ``error_code`` value of
-        ERR_ABORTED. The ``user_gesture`` value will be ``True`` if the browser navigated
-        via explicit user gesture (e.g. clicking a link) or ``False`` if it navigated
-        automatically (e.g. via the DomContentLoaded event).
+        :meth:`~cefweaver.LoadHandler.on_loading_state_change` will be called twice in all
+        cases. If the navigation is allowed :meth:`~cefweaver.LoadHandler.on_load_start` and
+        :meth:`~cefweaver.LoadHandler.on_load_end` will be called. If the navigation is
+        canceled :meth:`~cefweaver.LoadHandler.on_load_error` will be called with an
+        ``error_code`` value of ERR_ABORTED. The ``user_gesture`` value will be ``True`` if
+        the browser navigated via explicit user gesture (e.g. clicking a link) or ``False``
+        if it navigated automatically (e.g. via the DomContentLoaded event).
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            request (Request):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            request (cefweaver.Request):
             user_gesture (bool):
             is_redirect (bool):
         Returns:
@@ -107,10 +107,10 @@ class RequestHandler:
         top-level frame.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             target_url (str):
-            target_disposition (WindowOpenDisposition):
+            target_disposition (cefweaver.types.WindowOpenDisposition):
             user_gesture (bool):
         Returns:
             bool
@@ -127,21 +127,22 @@ class RequestHandler:
         ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
         request. Set ``disable_default_handling`` to ``True`` to disable default handling of
         the request, in which case it will need to be handled via
-        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
-        the resource load to proceed with default handling return ``None``. To specify a
-        handler for the resource return a :class:`ResourceRequestHandler` object. If this
-        callback returns ``None`` the same method will be called on the associated
-        :class:`RequestContextHandler`, if any.
+        :meth:`~cefweaver.ResourceRequestHandler.get_resource_handler` or it will be
+        canceled. To allow the resource load to proceed with default handling return
+        ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceRequestHandler` object. If this callback returns ``None``
+        the same method will be called on the associated
+        :class:`~cefweaver.RequestContextHandler`, if any.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            request (Request):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            request (cefweaver.Request):
             is_navigation (bool):
             is_download (bool):
-            request_initiator (str): The origin (scheme + domain) of the page  that initiated the request.
+            request_initiator (str): The origin (scheme + domain) of the page that initiated the request.
         Returns:
-            tuple[ResourceRequestHandler | None, bool]
+            tuple[cefweaver.ResourceRequestHandler | None, bool]
         """
         return None, False
 
@@ -153,19 +154,19 @@ class RequestHandler:
         ``port`` contains the port number. ``realm`` is the realm of the challenge and may
         be empty. ``scheme`` is the authentication scheme used, such as \"basic\" or \"digest\",
         and will be empty if the source of the request is an FTP server. Return ``True`` to
-        continue the request and call :meth:`AuthCallback.continue_` either in this method
-        or at a later time when the authentication information is available. Return
-        ``False`` to cancel the request immediately.
+        continue the request and call :meth:`~cefweaver.AuthCallback.continue_` either in
+        this method or at a later time when the authentication information is available.
+        Return ``False`` to cancel the request immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             origin_url (str): The origin making this authentication request.
             is_proxy (bool):
             host (str):
             port (int):
-            realm (str): The realm of the challenge  and may be empty.
-            scheme (str): The authentication scheme used, such as  \"basic\" or \"digest\", and will be empty if the source of the request is an  FTP server.
-            callback (AuthCallback):
+            realm (str): The realm of the challenge and may be empty.
+            scheme (str): The authentication scheme used, such as \"basic\" or \"digest\", and will be empty if the source of the request is an FTP server.
+            callback (cefweaver.AuthCallback):
         Returns:
             bool
         """
@@ -174,16 +175,16 @@ class RequestHandler:
     def on_certificate_error(self, browser, cert_error, request_url, callback):
         """Called on the UI thread to handle requests for URLs with an invalid SSL certificate.
 
-        Return ``True`` and call :class:`Callback` methods either in this method or at a
-        later time to continue or cancel the request. Return ``False`` to cancel the request
-        immediately. If cef_settings_t.ignore_certificate_errors is set all invalid
+        Return ``True`` and call :class:`~cefweaver.Callback` methods either in this method
+        or at a later time to continue or cancel the request. Return ``False`` to cancel the
+        request immediately. If cef_settings_t.ignore_certificate_errors is set all invalid
         certificates will be accepted without calling this method.
 
         Args:
-            browser (Browser):
-            cert_error (ErrorCode):
+            browser (cefweaver.Browser):
+            cert_error (cefweaver.types.ErrorCode):
             request_url (str):
-            callback (Callback):
+            callback (cefweaver.Callback):
         Returns:
             bool
         """
@@ -196,21 +197,21 @@ class RequestHandler:
         empty the default behavior will be to display a dialog for certificate selection. If
         the ``certificates`` list is empty then the default behavior will be not to show a
         dialog and it will continue without using any certificate. Return ``True`` and call
-        :meth:`SelectClientCertificateCallback.select` either in this method or at a later
-        time to select a certificate. Do not call Select or call it with ``None`` to
-        continue without using any certificate. ``is_proxy`` indicates whether the host is
-        an HTTPS proxy or the origin server. ``host`` and ``port`` contains the hostname and
-        port of the SSL server. ``certificates`` is the list of certificates to choose from;
-        this list has already been pruned by Chromium so that it only contains certificates
-        from issuers that the server trusts.
+        :meth:`~cefweaver.SelectClientCertificateCallback.select` either in this method or
+        at a later time to select a certificate. Do not call Select or call it with ``None``
+        to continue without using any certificate. ``is_proxy`` indicates whether the host
+        is an HTTPS proxy or the origin server. ``host`` and ``port`` contains the hostname
+        and port of the SSL server. ``certificates`` is the list of certificates to choose
+        from; this list has already been pruned by Chromium so that it only contains
+        certificates from issuers that the server trusts.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             is_proxy (bool):
             host (str):
             port (int):
-            certificates (list[X509Certificate]): The  list of certificates to choose from; this list has already been pruned by  Chromium so that it only contains certificates from issuers that the  server trusts.
-            callback (SelectClientCertificateCallback):
+            certificates (list[cefweaver.X509Certificate]): The list of certificates to choose from; this list has already been pruned by Chromium so that it only contains certificates from issuers that the server trusts.
+            callback (cefweaver.SelectClientCertificateCallback):
         Returns:
             bool
         """
@@ -220,7 +221,7 @@ class RequestHandler:
         """Called on the browser process UI thread when the render view associated with ``browser`` is ready to receive/handle IPC messages in the render process.
 
         Args:
-            browser (Browser): Ready to receive/handle IPC messages in the render  process.
+            browser (cefweaver.Browser): Ready to receive/handle IPC messages in the render process.
         """
         return None
 
@@ -231,19 +232,19 @@ class RequestHandler:
         style or display of the \"Page unresponsive\" dialog with Chrome style. Return
         ``True`` and don't execute the callback to continue waiting without display of the
         Chrome style dialog. Return ``True`` and call
-        :meth:`UnresponsiveProcessCallback.wait` either in this method or at a later time to
-        reset the wait timer. In cases where you continue waiting there may be another call
-        to this method if the process remains unresponsive. Return ``True`` and call
-        :meth:`UnresponsiveProcessCallback.terminate` either in this method or at a later
-        time to terminate the unresponsive process, resulting in a call to
+        :meth:`~cefweaver.UnresponsiveProcessCallback.wait` either in this method or at a
+        later time to reset the wait timer. In cases where you continue waiting there may be
+        another call to this method if the process remains unresponsive. Return ``True`` and
+        call :meth:`~cefweaver.UnresponsiveProcessCallback.terminate` either in this method
+        or at a later time to terminate the unresponsive process, resulting in a call to
         OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the process
         becomes responsive after this method is called. This functionality depends on the
-        hang monitor which can be disabled by passing the `--disable-hang-monitor`
+        hang monitor which can be disabled by passing the ``--disable-hang-monitor``
         command-line flag.
 
         Args:
-            browser (Browser):
-            callback (UnresponsiveProcessCallback):
+            browser (cefweaver.Browser):
+            callback (cefweaver.UnresponsiveProcessCallback):
         Returns:
             bool
         """
@@ -255,7 +256,7 @@ class RequestHandler:
         See documentation on OnRenderProcessUnresponsive.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
@@ -269,8 +270,8 @@ class RequestHandler:
         exception).
 
         Args:
-            browser (Browser):
-            status (TerminationStatus):
+            browser (cefweaver.Browser):
+            status (cefweaver.types.TerminationStatus):
             error_code (int):
             error_string (str):
         """
@@ -280,7 +281,7 @@ class RequestHandler:
         """Called on the browser process UI thread when the window.document object of the main frame has been created.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 

@@ -7,7 +7,7 @@ sources:
   - native/cefwrapper/CMakeLists.txt
   - tools/gen/generate.py
   - .gitignore
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 소스 트리 지도
@@ -62,7 +62,7 @@ cefweaver/
     egl_dmabuf.py, playback_check.py   시험이 부르는 보조 스크립트
   examples/                   툴킷별 예제(gtk3, qt, tk, sdl2, wx, kivy), common/, views/(툴킷 없이 CEF의 Views), cocoa, swiftui, print   [toolkit-examples]
   llm-wiki/                   이 위키 (저장소 루트. 게시하지 않음)
-  docs/                       사람이 읽는 Jekyll 사이트 (_config.yml, index.md 등 12쪽)
+  docs/                       Sphinx 문서 (conf.py, index.rst, api/*.rst, locale/ko)
   third_party/cef/            CEF 배포본 내려받는 곳(README.txt만 커밋)
   build/                      빌드 산출물(git 제외)
     native/                   CMake 빌드, build/native/cef 링크, cef_index.json, prepare.json

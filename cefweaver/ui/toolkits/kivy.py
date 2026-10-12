@@ -153,7 +153,7 @@ class CefView(ui.BrowserWidget, Widget):
 
     Args:
         runtime: The runtime (as returned by ``initialize()``) that makes the browser; stored as
-            :attr:`runtime`.
+            ``runtime``.
         audio (optional): The audio handler options passed to the :class:`~cefweaver.ui.BrowserView`.
             Default None.
         **kwargs: Passed to ``Widget``.

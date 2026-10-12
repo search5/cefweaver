@@ -55,7 +55,7 @@ cdef class ProcessMessage:
         Returns ``None`` when message contains a shared memory region.
 
         Returns:
-            ProcessMessage | None: A writable copy of this object.
+            cefweaver.ProcessMessage | None: A writable copy of this object.
         """
         cdef CefProcessMessage* _p = self._ptr()
         cdef CefRefPtr[CefProcessMessage] _r
@@ -81,7 +81,7 @@ cdef class ProcessMessage:
         Returns ``None`` when message contains a shared memory region.
 
         Returns:
-            ListValue | None: The list of arguments.
+            cefweaver.ListValue | None: The list of arguments.
         """
         cdef CefProcessMessage* _p = self._ptr()
         cdef CefRefPtr[CefListValue] _r
@@ -95,7 +95,7 @@ cdef class ProcessMessage:
         Returns ``None`` when message contains an argument list.
 
         Returns:
-            SharedMemoryRegion | None: The shared memory region.
+            cefweaver.SharedMemoryRegion | None: The shared memory region.
         """
         cdef CefProcessMessage* _p = self._ptr()
         cdef CefRefPtr[CefSharedMemoryRegion] _r
@@ -105,12 +105,12 @@ cdef class ProcessMessage:
 
     @staticmethod
     def create(name):
-        """Create a new :class:`ProcessMessage` object with the specified name.
+        """Create a new :class:`~cefweaver.ProcessMessage` object with the specified name.
 
         Args:
             name (str):
         Returns:
-            ProcessMessage
+            cefweaver.ProcessMessage
         """
         cdef CefString _a0
         cdef CefRefPtr[CefProcessMessage] _r

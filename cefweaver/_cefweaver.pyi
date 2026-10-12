@@ -885,18 +885,18 @@ class BinaryValue:
         """Return ``True`` if this object and ``that`` object have the same underlying data.
 
         Args:
-            that (BinaryValue):
+            that (cefweaver.BinaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         ...
     def is_equal(self, that: BinaryValue) -> bool:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (BinaryValue):
+            that (cefweaver.BinaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> BinaryValue | None:
@@ -905,7 +905,7 @@ class BinaryValue:
         The data in this object will also be copied.
 
         Returns:
-            BinaryValue | None: A copy of this object.
+            cefweaver.BinaryValue | None: A copy of this object.
         """
         ...
     def get_size(self) -> int:
@@ -937,7 +937,7 @@ class BinaryValue:
         Args:
             data (bytes | bytearray | memoryview):
         Returns:
-            BinaryValue | None
+            cefweaver.BinaryValue | None
         """
         ...
 
@@ -952,7 +952,8 @@ class Browser:
     def is_valid(self) -> bool:
         """True if this object is currently valid.
 
-        This will return ``False`` after :meth:`LifeSpanHandler.on_before_close` is called.
+        This will return ``False`` after :meth:`~cefweaver.LifeSpanHandler.on_before_close`
+        is called.
 
         Returns:
             bool
@@ -964,7 +965,7 @@ class Browser:
         This method can only be called in the browser process.
 
         Returns:
-            BrowserHost | None: The browser host object.
+            cefweaver.BrowserHost | None: The browser host object.
         """
         ...
     def can_go_back(self) -> bool:
@@ -1016,9 +1017,9 @@ class Browser:
         """Return ``True`` if this object is pointing to the same handle as ``that`` object.
 
         Args:
-            that (Browser):
+            that (cefweaver.Browser):
         Returns:
-            bool: ``True`` if this object is pointing to the same handle as ``that``  object.
+            bool: ``True`` if this object is pointing to the same handle as ``that`` object.
         """
         ...
     def is_popup(self) -> bool:
@@ -1039,21 +1040,21 @@ class Browser:
         """Return the main (top-level) frame for the browser.
 
         In the browser process this will return a valid object until after
-        :meth:`LifeSpanHandler.on_before_close` is called. In the renderer process this will
-        return ``None`` if the main frame is hosted in a different renderer process (e.g.
-        for cross-origin sub-frames). The main frame object will change during cross-origin
-        navigation or re-navigation after renderer process termination (due to crashes,
-        etc).
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` is called. In the renderer
+        process this will return ``None`` if the main frame is hosted in a different
+        renderer process (e.g. for cross-origin sub-frames). The main frame object will
+        change during cross-origin navigation or re-navigation after renderer process
+        termination (due to crashes, etc).
 
         Returns:
-            Frame | None: The main (top-level) frame for the browser.
+            cefweaver.Frame | None: The main (top-level) frame for the browser.
         """
         ...
     def get_focused_frame(self) -> Frame | None:
         """Return the focused frame for the browser.
 
         Returns:
-            Frame | None: The focused frame for the browser.
+            cefweaver.Frame | None: The focused frame for the browser.
         """
         ...
     def get_frame_by_identifier(self, identifier: str) -> Frame | None:
@@ -1062,7 +1063,7 @@ class Browser:
         Args:
             identifier (str):
         Returns:
-            Frame | None: The frame with the specified identifier, or ``None`` if not found.
+            cefweaver.Frame | None: The frame with the specified identifier, or ``None`` if not found.
         """
         ...
     def get_frame_by_name(self, name: str | None) -> Frame | None:
@@ -1071,7 +1072,7 @@ class Browser:
         Args:
             name (str | None):
         Returns:
-            Frame | None: The frame with the specified name, or ``None`` if not found.
+            cefweaver.Frame | None: The frame with the specified name, or ``None`` if not found.
         """
         ...
     def get_frame_count(self) -> int:
@@ -1107,19 +1108,21 @@ class BrowserHost:
         """Return the hosted browser object.
 
         Returns:
-            Browser | None: The hosted browser object.
+            cefweaver.Browser | None: The hosted browser object.
         """
         ...
     def close_browser(self, force_close: bool) -> None:
         """Request that the browser close.
 
         Closing a browser is a multi-stage process that may complete either synchronously or
-        asynchronously, and involves callbacks such as :meth:`LifeSpanHandler.do_close`
-        (Alloy style only), :meth:`LifeSpanHandler.on_before_close`, and a top-level window
-        close handler such as :meth:`WindowDelegate.can_close` (or platform-specific
+        asynchronously, and involves callbacks such as
+        :meth:`~cefweaver.LifeSpanHandler.do_close` (Alloy style only),
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close`, and a top-level window close
+        handler such as :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific
         equivalent). In some cases a close request may be delayed or canceled by the user.
         Using TryCloseBrowser() instead of CloseBrowser() is recommended for most use cases.
-        See :meth:`LifeSpanHandler.do_close` documentation for detailed usage and examples.
+        See :meth:`~cefweaver.LifeSpanHandler.do_close` documentation for detailed usage and
+        examples.
 
         If ``force_close`` is ``False`` then JavaScript unload handlers, if any, may be
         fired and the close may be delayed or canceled by the user. If ``force_close`` is
@@ -1127,12 +1130,12 @@ class BrowserHost:
         (possibly asynchronously). If browser close is delayed and not canceled the default
         behavior is to call the top-level window close handler once the browser is ready to
         be closed. This default behavior can be changed for Alloy style browsers by
-        implementing :meth:`LifeSpanHandler.do_close`. IsReadyToBeClosed() can be used to
-        detect mandatory browser close events when customizing close behavior on the browser
-        process UI thread.
+        implementing :meth:`~cefweaver.LifeSpanHandler.do_close`. IsReadyToBeClosed() can be
+        used to detect mandatory browser close events when customizing close behavior on the
+        browser process UI thread.
 
         Args:
-            force_close (bool): True then the user will not be prompted and the close  will proceed immediately (possibly asynchronously).
+            force_close (bool): True then the user will not be prompted and the close will proceed immediately (possibly asynchronously).
         """
         ...
     def try_close_browser(self) -> bool:
@@ -1140,13 +1143,13 @@ class BrowserHost:
 
         This is similar in behavior to CLoseBrowser(``False``) but returns a boolean to
         reflect the immediate close status. Call this method from a top-level window close
-        handler such as :meth:`WindowDelegate.can_close` (or platform-specific equivalent)
-        to request that the browser close, and return the result to indicate if the window
-        close should proceed. Returns ``False`` if the close will be delayed (JavaScript
-        unload handlers triggered but still pending) or ``True`` if the close will proceed
-        immediately (possibly asynchronously). See CloseBrowser() documentation for
-        additional usage information. This method must be called on the browser process UI
-        thread.
+        handler such as :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific
+        equivalent) to request that the browser close, and return the result to indicate if
+        the window close should proceed. Returns ``False`` if the close will be delayed
+        (JavaScript unload handlers triggered but still pending) or ``True`` if the close
+        will proceed immediately (possibly asynchronously). See CloseBrowser() documentation
+        for additional usage information. This method must be called on the browser process
+        UI thread.
 
         Returns:
             bool
@@ -1156,18 +1159,18 @@ class BrowserHost:
         """Return ``True`` if the browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
 
         This can be used from a top-level window close handler such as
-        :meth:`WindowDelegate.can_close` (or platform-specific equivalent) to distringuish
-        between potentially cancelable browser close events (like the user clicking the
-        top-level window close button before browser close has started) and mandatory
-        browser close events (like JavaScript `window.close()` or after browser close has
-        started in response to [Try]CloseBrowser()). Not completing the browser close for
-        mandatory close events (when this method returns ``True``) will leave the browser in
-        a partially closed state that interferes with proper functioning. See CloseBrowser()
-        documentation for additional usage information. This method must be called on the
-        browser process UI thread.
+        :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific equivalent) to
+        distringuish between potentially cancelable browser close events (like the user
+        clicking the top-level window close button before browser close has started) and
+        mandatory browser close events (like JavaScript ``window.close()`` or after browser
+        close has started in response to [Try]CloseBrowser()). Not completing the browser
+        close for mandatory close events (when this method returns ``True``) will leave the
+        browser in a partially closed state that interferes with proper functioning. See
+        CloseBrowser() documentation for additional usage information. This method must be
+        called on the browser process UI thread.
 
         Returns:
-            bool: ``True`` if the browser is ready to be closed, meaning that the close  has already been initiated and that JavaScript unload handlers have  already executed or should be ignored.
+            bool: ``True`` if the browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
         """
         ...
     def set_focus(self, focus: bool) -> None:
@@ -1180,9 +1183,9 @@ class BrowserHost:
     def get_window_handle(self) -> int:
         """Retrieve the window handle (if any) for this browser.
 
-        If this browser is wrapped in a :class:`BrowserView` this method should be called on
-        the browser process UI thread and it will return the handle for the top-level native
-        window.
+        If this browser is wrapped in a :class:`~cefweaver.BrowserView` this method should
+        be called on the browser process UI thread and it will return the handle for the
+        top-level native window.
 
         Returns:
             int
@@ -1192,8 +1195,8 @@ class BrowserHost:
         """Retrieve the window handle (if any) of the browser that opened this browser.
 
         Will return ``None`` for non-popup browsers or if this browser is wrapped in a
-        :class:`BrowserView`. This method can be used in combination with custom handling of
-        modal windows.
+        :class:`~cefweaver.BrowserView`. This method can be used in combination with custom
+        handling of modal windows.
 
         Returns:
             int
@@ -1209,7 +1212,7 @@ class BrowserHost:
         """
         ...
     def has_view(self) -> bool:
-        """Return ``True`` if this browser is wrapped in a :class:`BrowserView`.
+        """Return ``True`` if this browser is wrapped in a :class:`~cefweaver.BrowserView`.
 
         Returns:
             bool: ``True`` if this browser is wrapped in a ``CefBrowserView``.
@@ -1219,14 +1222,14 @@ class BrowserHost:
         """Return the client for this browser.
 
         Returns:
-            Client | None: The client for this browser.
+            cefweaver.Client | None: The client for this browser.
         """
         ...
     def get_request_context(self) -> RequestContext | None:
         """Return the request context for this browser.
 
         Returns:
-            RequestContext | None: The request context for this browser.
+            cefweaver.RequestContext | None: The request context for this browser.
         """
         ...
     def can_zoom(self, command: ZoomCommand | int) -> bool:
@@ -1235,7 +1238,7 @@ class BrowserHost:
         This method can only be called on the UI thread.
 
         Args:
-            command (ZoomCommand | int):
+            command (cefweaver.types.ZoomCommand | int):
         Returns:
             bool: ``True`` if this browser can execute the specified zoom command.
         """
@@ -1247,7 +1250,7 @@ class BrowserHost:
         change will be applied asynchronously on the UI thread.
 
         Args:
-            command (ZoomCommand | int):
+            command (cefweaver.types.ZoomCommand | int):
         """
         ...
     def get_default_zoom_level(self) -> float:
@@ -1289,22 +1292,22 @@ class BrowserHost:
         mode). ``default_file_path`` is the path with optional directory and/or file name
         component that will be initially selected in the dialog. ``accept_filters`` are used
         to restrict the selectable file types and may any combination of (a) valid
-        lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b) individual file extensions
-        (e.g. \".txt\" or \".png\"), or (c) combined description and file extension delimited
-        using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\"). ``callback`` will be executed
-        after the dialog is dismissed or immediately if another dialog is already pending.
-        The dialog will be initiated asynchronously on the UI thread.
+        lower-cased MIME types (e.g. \"``text/*``\" or \"``image/*``\"), (b) individual file
+        extensions (e.g. \".txt\" or \".png\"), or (c) combined description and file extension
+        delimited using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\"). ``callback`` will
+        be executed after the dialog is dismissed or immediately if another dialog is
+        already pending. The dialog will be initiated asynchronously on the UI thread.
 
         Args:
-            mode (FileDialogMode | int):
+            mode (cefweaver.types.FileDialogMode | int):
             title (str | None):
-            default_file_path (str | None): The path with optional directory and/or file name  component that will be initially selected in the dialog.
-            accept_filters (Sequence[str]): Used to restrict the selectable file types and may any combination of  (a) valid lower-cased MIME types (e.
-            callback (RunFileDialogCallback):
+            default_file_path (str | None): The path with optional directory and/or file name component that will be initially selected in the dialog.
+            accept_filters (Sequence[str]): Used to restrict the selectable file types and may any combination of (a) valid lower-cased MIME types (e.g.
+            callback (cefweaver.RunFileDialogCallback):
         """
         ...
     def start_download(self, url: str) -> None:
-        """Download the file at ``url`` using :class:`DownloadHandler`.
+        """Download the file at ``url`` using :class:`~cefweaver.DownloadHandler`.
 
         Args:
             url (str):
@@ -1324,10 +1327,10 @@ class BrowserHost:
 
         Args:
             image_url (str):
-            is_favicon (bool): True then cookies are not  sent and not accepted during download.
-            max_image_size (int): Filtered out from the  image results.
-            bypass_cache (bool): True then ``image_url`` is requested  from the server even if it is present in the browser cache.
-            callback (DownloadImageCallback):
+            is_favicon (bool): True then cookies are not sent and not accepted during download.
+            max_image_size (int): Filtered out from the image results.
+            bypass_cache (bool): True then ``image_url`` is requested from the server even if it is present in the browser cache.
+            callback (cefweaver.DownloadImageCallback):
         """
         ...
     def print(self) -> None:
@@ -1337,12 +1340,13 @@ class BrowserHost:
         """Print the current browser contents to the PDF file specified by ``path`` and execute ``callback`` on completion.
 
         The caller is responsible for deleting ``path`` when done. For PDF printing to work
-        on Linux you must implement the :meth:`PrintHandler.get_pdf_paper_size` method.
+        on Linux you must implement the :meth:`~cefweaver.PrintHandler.get_pdf_paper_size`
+        method.
 
         Args:
             path (str):
-            settings (PdfPrintSettings | tuple[int, int, float, float, float, int, PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int]):
-            callback (PdfPrintCallback | None):
+            settings (PdfPrintSettings | tuple[int, int, float, float, float, int, cefweaver.types.PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int]):
+            callback (cefweaver.PdfPrintCallback | None):
         """
         ...
     def find(self, search_text: str, forward: bool, match_case: bool, find_next: bool) -> None:
@@ -1352,8 +1356,9 @@ class BrowserHost:
         ``match_case`` indicates whether the search should be case-sensitive. ``find_next``
         indicates whether this is the first request or a follow-up. The search will be
         restarted if ``search_text`` or ``match_case`` change. The search will be stopped if
-        ``search_text`` is empty. The :class:`FindHandler` instance, if any, returned via
-        :meth:`Client.get_find_handler` will be called to report find results.
+        ``search_text`` is empty. The :class:`~cefweaver.FindHandler` instance, if any,
+        returned via :meth:`~cefweaver.Client.get_find_handler` will be called to report
+        find results.
 
         Args:
             search_text (str): Empty.
@@ -1400,8 +1405,8 @@ class BrowserHost:
         notifications are enabled (for example, between method calls for \"Page.enable\" and
         \"Page.disable\"). All received messages will be delivered to the observer(s)
         registered with AddDevToolsMessageObserver. See
-        :meth:`DevToolsMessageObserver.on_dev_tools_message` documentation for details of
-        received message contents.
+        :meth:`~cefweaver.DevToolsMessageObserver.on_dev_tools_message` documentation for
+        details of received message contents.
 
         Usage of the SendDevToolsMessage, ExecuteDevToolsMethod and
         AddDevToolsMessageObserver methods does not require an active DevTools front-end or
@@ -1410,7 +1415,7 @@ class BrowserHost:
         not be reflected in the UI of other sessions.
 
         Communication with the DevTools front-end (when displayed) can be logged for
-        development purposes by passing the `--devtools-protocol-log-file=<path>`
+        development purposes by passing the ``--devtools-protocol-log-file=<path>``
         command-line flag.
 
         Args:
@@ -1433,9 +1438,9 @@ class BrowserHost:
         usage information.
 
         Args:
-            message_id (int): An incremental  number that uniquely identifies the message (pass 0 to have the next  number assigned automatically based on previous values).
-            method (str): The  method name.
-            params (DictionaryValue | None): The method parameters, which may be empty.
+            message_id (int): An incremental number that uniquely identifies the message (pass 0 to have the next number assigned automatically based on previous values).
+            method (str): The method name.
+            params (cefweaver.DictionaryValue | None): The method parameters, which may be empty.
         Returns:
             int
         """
@@ -1448,9 +1453,9 @@ class BrowserHost:
         information.
 
         Args:
-            observer (DevToolsMessageObserver):
+            observer (cefweaver.DevToolsMessageObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         ...
     def get_navigation_entries(self, visitor: NavigationEntryVisitor, current_only: bool) -> None:
@@ -1460,8 +1465,8 @@ class BrowserHost:
         otherwise all navigation entries will be sent.
 
         Args:
-            visitor (NavigationEntryVisitor):
-            current_only (bool): True only the current navigation  entry will be sent, otherwise all navigation entries will be sent.
+            visitor (cefweaver.NavigationEntryVisitor):
+            current_only (bool): True only the current navigation entry will be sent, otherwise all navigation entries will be sent.
         """
         ...
     def replace_misspelling(self, word: str) -> None:
@@ -1488,16 +1493,17 @@ class BrowserHost:
     def was_resized(self) -> None:
         """Notify the browser that the widget has been resized.
 
-        The browser will first call :meth:`RenderHandler.get_view_rect` to get the new size
-        and then call :meth:`RenderHandler.on_paint` asynchronously with the updated
-        regions. This method is only used when window rendering is disabled.
+        The browser will first call :meth:`~cefweaver.RenderHandler.get_view_rect` to get
+        the new size and then call :meth:`~cefweaver.RenderHandler.on_paint` asynchronously
+        with the updated regions. This method is only used when window rendering is
+        disabled.
         """
         ...
     def was_hidden(self, hidden: bool) -> None:
         """Notify the browser that it has been hidden or shown.
 
-        Layouting and :meth:`RenderHandler.on_paint` notification will stop when the browser
-        is hidden. This method is only used when window rendering is disabled.
+        Layouting and :meth:`~cefweaver.RenderHandler.on_paint` notification will stop when
+        the browser is hidden. This method is only used when window rendering is disabled.
 
         Args:
             hidden (bool):
@@ -1515,24 +1521,25 @@ class BrowserHost:
         external (client-provided) root window.
 
         With windowless rendering the browser will call
-        :meth:`RenderHandler.get_screen_info`, :meth:`RenderHandler.get_root_screen_rect`
-        and :meth:`RenderHandler.get_view_rect`. This simulates moving or resizing the root
-        window in the current display, moving the root window from one display to another,
-        or changing the properties of the current display.
+        :meth:`~cefweaver.RenderHandler.get_screen_info`,
+        :meth:`~cefweaver.RenderHandler.get_root_screen_rect` and
+        :meth:`~cefweaver.RenderHandler.get_view_rect`. This simulates moving or resizing
+        the root window in the current display, moving the root window from one display to
+        another, or changing the properties of the current display.
 
         With windowed rendering the browser will call
-        :meth:`DisplayHandler.get_root_window_screen_rect` and use the associated display
-        properties.
+        :meth:`~cefweaver.DisplayHandler.get_root_window_screen_rect` and use the associated
+        display properties.
         """
         ...
     def invalidate(self, type: PaintElementType | int) -> None:
         """Invalidate the view.
 
-        The browser will call :meth:`RenderHandler.on_paint` asynchronously. This method is
-        only used when window rendering is disabled.
+        The browser will call :meth:`~cefweaver.RenderHandler.on_paint` asynchronously. This
+        method is only used when window rendering is disabled.
 
         Args:
-            type (PaintElementType | int):
+            type (cefweaver.types.PaintElementType | int):
         """
         ...
     def send_external_begin_frame(self) -> None:
@@ -1545,7 +1552,7 @@ class BrowserHost:
         """Send a key event to the browser.
 
         Args:
-            event (KeyEvent | tuple[KeyEventType, int, int, int, int, int, int, int]):
+            event (KeyEvent | tuple[cefweaver.types.KeyEventType, int, int, int, int, int, int, int]):
         """
         ...
     def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: MouseButtonType | int, mouse_up: bool, click_count: int) -> None:
@@ -1555,7 +1562,7 @@ class BrowserHost:
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
-            type (MouseButtonType | int):
+            type (cefweaver.types.MouseButtonType | int):
             mouse_up (bool):
             click_count (int):
         """
@@ -1576,8 +1583,8 @@ class BrowserHost:
         The ``x`` and ``y`` coordinates are relative to the upper-left corner of the view.
         The ``delta_x`` and ``delta_y`` values represent the movement delta in the X and Y
         directions respectively. In order to scroll inside select popups with window
-        rendering disabled :meth:`RenderHandler.get_screen_point` should be implemented
-        properly.
+        rendering disabled :meth:`~cefweaver.RenderHandler.get_screen_point` should be
+        implemented properly.
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
@@ -1589,7 +1596,7 @@ class BrowserHost:
         """Send a touch event to the browser for a windowless browser.
 
         Args:
-            event (TouchEvent | tuple[int, float, float, float, float, float, float, TouchEventType, int, PointerType]):
+            event (TouchEvent | tuple[int, float, float, float, float, float, float, cefweaver.types.TouchEventType, int, cefweaver.types.PointerType]):
         """
         ...
     def send_capture_lost_event(self) -> None:
@@ -1602,18 +1609,18 @@ class BrowserHost:
         """
         ...
     def get_windowless_frame_rate(self) -> int:
-        """Return the maximum rate in frames per second (fps) that :meth:`RenderHandler.on_paint` will be called for a windowless browser.
+        """Return the maximum rate in frames per second (fps) that :meth:`~cefweaver.RenderHandler.on_paint` will be called for a windowless browser.
 
         The actual fps may be lower if the browser cannot generate frames at the requested
         rate. The minimum value is 1 and the default value is 30. This method can only be
         called on the UI thread.
 
         Returns:
-            int: The maximum rate in frames per second (fps) that  ``CefRenderHandler::OnPaint`` will be called for a windowless browser.
+            int: The maximum rate in frames per second (fps) that ``CefRenderHandler::OnPaint`` will be called for a windowless browser.
         """
         ...
     def set_windowless_frame_rate(self, frame_rate: int) -> None:
-        """Set the maximum rate in frames per second (fps) that :class:`RenderHandler`:: OnPaint will be called for a windowless browser.
+        """Set the maximum rate in frames per second (fps) that :class:`~cefweaver.RenderHandler`:: OnPaint will be called for a windowless browser.
 
         The actual fps may be lower if the browser cannot generate frames at the requested
         rate. The minimum value is 1 and the default value is 30. Can also be set at browser
@@ -1639,18 +1646,18 @@ class BrowserHost:
         cancel the composition call ImeCancelComposition. To complete the composition call
         either ImeCommitText or ImeFinishComposingText. Completion is usually signaled when:
 
-         1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
-            flag (on Windows), or;
-         2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
-         3. insertText of NSTextInput is called (on Mac).
+        1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR flag (on
+           Windows), or;
+        2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
+        3. insertText of NSTextInput is called (on Mac).
 
         This method is only used when window rendering is disabled.
 
         Args:
-            text (str | None): The optional text that  will be inserted into the composition node.
-            underlines (Sequence[CompositionUnderline | tuple[Range, int, int, int, CompositionUnderlineStyle]]): An optional  set of ranges that will be underlined in the resulting text.
-            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be  replaced.
-            selection_range (Range | tuple[int, int]): An optional range of the resulting text  that will be selected after insertion or replacement.
+            text (str | None): The optional text that will be inserted into the composition node.
+            underlines (Sequence[CompositionUnderline | tuple[Range, int, int, int, cefweaver.types.CompositionUnderlineStyle]]): An optional set of ranges that will be underlined in the resulting text.
+            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be replaced.
+            selection_range (Range | tuple[int, int]): An optional range of the resulting text that will be selected after insertion or replacement.
         """
         ...
     def ime_commit_text(self, text: str | None, replacement_range: Range | tuple[int, int], relative_cursor_pos: int) -> None:
@@ -1664,8 +1671,8 @@ class BrowserHost:
 
         Args:
             text (str | None):
-            replacement_range (Range | tuple[int, int]): An optional range  of the existing text that will be replaced.
-            relative_cursor_pos (int): Where  the cursor will be positioned relative to the current cursor position.
+            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be replaced.
+            relative_cursor_pos (int): Where the cursor will be positioned relative to the current cursor position.
         """
         ...
     def ime_finish_composing_text(self, keep_selection: bool) -> None:
@@ -1676,7 +1683,7 @@ class BrowserHost:
         rendering is disabled.
 
         Args:
-            keep_selection (bool): False the current selection, if any,  will be discarded.
+            keep_selection (bool): False the current selection, if any, will be discarded.
         """
         ...
     def ime_cancel_composition(self) -> None:
@@ -1691,14 +1698,14 @@ class BrowserHost:
 
         ``drag_data`` should not contain file contents as this type of data is not allowed
         to be dragged into the web view. File contents can be removed using
-        :meth:`DragData.reset_file_contents` (for example, if ``drag_data`` comes from
-        :meth:`RenderHandler.start_dragging`). This method is only used when window
-        rendering is disabled.
+        :meth:`~cefweaver.DragData.reset_file_contents` (for example, if ``drag_data`` comes
+        from :meth:`~cefweaver.RenderHandler.start_dragging`). This method is only used when
+        window rendering is disabled.
 
         Args:
-            drag_data (DragData):
+            drag_data (cefweaver.DragData):
             event (MouseEvent | tuple[int, int, int]):
-            allowed_ops (DragOperationsMask | int):
+            allowed_ops (cefweaver.types.DragOperationsMask | int):
         """
         ...
     def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
@@ -1708,7 +1715,7 @@ class BrowserHost:
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
-            allowed_ops (DragOperationsMask | int):
+            allowed_ops (cefweaver.types.DragOperationsMask | int):
         """
         ...
     def drag_target_drag_leave(self) -> None:
@@ -1729,26 +1736,26 @@ class BrowserHost:
         """
         ...
     def drag_source_ended_at(self, x: int, y: int, op: DragOperationsMask | int) -> None:
-        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has ended either in a drop or by being cancelled.
+        """Call this method when the drag operation started by a :meth:`~cefweaver.RenderHandler.start_dragging` call has ended either in a drop or by being cancelled.
 
         ``x`` and ``y`` are mouse coordinates relative to the upper-left corner of the view.
-        If the web view is both the drag source and the drag target then all DragTarget*
-        methods should be called before DragSource* mthods. This method is only used when
-        window rendering is disabled.
+        If the web view is both the drag source and the drag target then all ``DragTarget*``
+        methods should be called before ``DragSource*`` mthods. This method is only used
+        when window rendering is disabled.
 
         Args:
             x (int):
-            y (int): Mouse coordinates relative to the  upper-left corner of the view.
-            op (DragOperationsMask | int):
+            y (int): Mouse coordinates relative to the upper-left corner of the view.
+            op (cefweaver.types.DragOperationsMask | int):
         """
         ...
     def drag_source_system_drag_ended(self) -> None:
-        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has completed.
+        """Call this method when the drag operation started by a :meth:`~cefweaver.RenderHandler.start_dragging` call has completed.
 
         This method may be called immediately without first calling DragSourceEndedAt to
         cancel a drag operation. If the web view is both the drag source and the drag target
-        then all DragTarget* methods should be called before DragSource* mthods. This method
-        is only used when window rendering is disabled.
+        then all ``DragTarget*`` methods should be called before ``DragSource*`` mthods.
+        This method is only used when window rendering is disabled.
         """
         ...
     def get_visible_navigation_entry(self) -> NavigationEntry | None:
@@ -1757,7 +1764,7 @@ class BrowserHost:
         This method can only be called on the UI thread.
 
         Returns:
-            NavigationEntry | None: The current visible navigation entry for this browser.
+            cefweaver.NavigationEntry | None: The current visible navigation entry for this browser.
         """
         ...
     def set_accessibility_state(self, accessibility_state: State | int) -> None:
@@ -1788,11 +1795,11 @@ class BrowserHost:
         callbacks if desired.
 
         Args:
-            accessibility_state (State | int): STATE_DISABLED then accessibility will be  completely disabled.
+            accessibility_state (cefweaver.types.State | int): STATE_DISABLED then accessibility will be completely disabled.
         """
         ...
     def set_auto_resize_enabled(self, enabled: bool, min_size: Size | tuple[int, int], max_size: Size | tuple[int, int]) -> None:
-        """Enable notifications of auto resize via :meth:`DisplayHandler.on_auto_resize`.
+        """Enable notifications of auto resize via :meth:`~cefweaver.DisplayHandler.on_auto_resize`.
 
         Notifications are disabled by default. ``min_size`` and ``max_size`` define the
         range of allowed sizes.
@@ -1837,11 +1844,11 @@ class BrowserHost:
         In most cases exiting window fullscreen should also exit browser fullscreen. With
         Alloy style this method should be called in response to a user action such as
         clicking the green traffic light button on MacOS
-        (:meth:`WindowDelegate.on_window_fullscreen_transition` callback) or pressing the
-        \"ESC\" key (:meth:`KeyboardHandler.on_pre_key_event` callback). With Chrome style
-        these standard exit actions are handled internally but new/additional user actions
-        can use this method. Set ``will_cause_resize`` to ``True`` if exiting browser
-        fullscreen will cause a view resize.
+        (:meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` callback) or
+        pressing the \"ESC\" key (:meth:`~cefweaver.KeyboardHandler.on_pre_key_event`
+        callback). With Chrome style these standard exit actions are handled internally but
+        new/additional user actions can use this method. Set ``will_cause_resize`` to
+        ``True`` if exiting browser fullscreen will cause a view resize.
 
         Args:
             will_cause_resize (bool):
@@ -1871,7 +1878,7 @@ class BrowserHost:
 
         Args:
             command_id (int):
-            disposition (WindowOpenDisposition | int):
+            disposition (cefweaver.types.WindowOpenDisposition | int):
         """
         ...
     def is_render_process_unresponsive(self) -> bool:
@@ -1879,11 +1886,11 @@ class BrowserHost:
 
         To receive associated state change notifications and optionally handle an
         unresponsive render process implement
-        :meth:`RequestHandler.on_render_process_unresponsive`. This method can only be
-        called on the UI thread.
+        :meth:`~cefweaver.RequestHandler.on_render_process_unresponsive`. This method can
+        only be called on the UI thread.
 
         Returns:
-            bool: ``True`` if the render process associated with this browser is  currently unresponsive as indicated by a lack of input event processing  for at least 15 seconds.
+            bool: ``True`` if the render process associated with this browser is currently unresponsive as indicated by a lack of input event processing for at least 15 seconds.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
@@ -1892,7 +1899,7 @@ class BrowserHost:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle: The runtime style for this browser (ALLOY or CHROME).
+            cefweaver.types.RuntimeStyle: The runtime style for this browser (ALLOY or CHROME).
         """
         ...
     def set_ax_viewport_collapse(self, enabled: bool) -> None:
@@ -1918,7 +1925,7 @@ class BrowserHost:
         Args:
             browser_id (int):
         Returns:
-            Browser | None: The browser (if any) with the specified identifier.
+            cefweaver.Browser | None: The browser (if any) with the specified identifier.
         """
         ...
     def show_dev_tools(self, inspect_x: int = -1, inspect_y: int = -1) -> None:
@@ -1947,7 +1954,7 @@ class CommandLine:
     regardless of prefix, being interpreted as non-switch arguments. Switch names should
     be lowercase ASCII and will be converted to such if necessary. Switch values will
     retain the original case and UTF8 encoding. This class can be used before
-    ``CefInitialize``() is called.
+    ``CefInitialize`` () is called.
     """
     def is_valid(self) -> bool:
         """Return ``True`` if this object is valid.
@@ -1971,7 +1978,7 @@ class CommandLine:
         """Return a writable copy of this object.
 
         Returns:
-            CommandLine | None: A writable copy of this object.
+            cefweaver.CommandLine | None: A writable copy of this object.
         """
         ...
     def init_from_string(self, command_line: str) -> None:
@@ -1989,7 +1996,7 @@ class CommandLine:
     def get_argv(self) -> list[str]:
         """Retrieve the original command line string as a vector of strings.
 
-        The argv array: `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+        The argv array: ``{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }``
 
         Returns:
             list[str]
@@ -2112,20 +2119,20 @@ class CommandLine:
         ...
     @staticmethod
     def create_command_line() -> CommandLine | None:
-        """Create a new :class:`CommandLine` instance.
+        """Create a new :class:`~cefweaver.CommandLine` instance.
 
         Returns:
-            CommandLine | None
+            cefweaver.CommandLine | None
         """
         ...
     @staticmethod
     def get_global_command_line() -> CommandLine | None:
-        """Return the singleton global :class:`CommandLine` object.
+        """Return the singleton global :class:`~cefweaver.CommandLine` object.
 
         The returned object will be read-only.
 
         Returns:
-            CommandLine | None: The singleton global ``CefCommandLine`` object.
+            cefweaver.CommandLine | None: The singleton global ``CefCommandLine`` object.
         """
         ...
 
@@ -2133,9 +2140,9 @@ class CommandLine:
 class Component:
     """Class representing a snapshot of a component's state at the time of retrieval.
 
-    To get updated information, retrieve a new :class:`Component` object via
-    :meth:`ComponentUpdater.get_component_by_id` or GetComponents. The methods of this
-    class may be called on any thread.
+    To get updated information, retrieve a new :class:`~cefweaver.Component` object via
+    :meth:`~cefweaver.ComponentUpdater.get_component_by_id` or GetComponents. The
+    methods of this class may be called on any thread.
     """
     def get_id(self) -> str:
         """Return the unique identifier for this component.
@@ -2170,7 +2177,7 @@ class Component:
         CEF_COMPONENT_STATE_RUN.
 
         Returns:
-            ComponentState: The state of this component at the time this object was created.
+            cefweaver.types.ComponentState: The state of this component at the time this object was created.
         """
         ...
 
@@ -2186,7 +2193,7 @@ class ComponentUpdater:
         """Return the number of registered components, or 0 if the service is not available.
 
         Returns:
-            int: The number of registered components, or 0 if the service is not  available.
+            int: The number of registered components, or 0 if the service is not available.
         """
         ...
     def get_components(self) -> list[Component]:
@@ -2195,7 +2202,7 @@ class ComponentUpdater:
         Any existing contents will be cleared first.
 
         Returns:
-            list[Component]
+            list[cefweaver.Component]
         """
         ...
     def get_component_by_id(self, component_id: str) -> Component | None:
@@ -2204,7 +2211,7 @@ class ComponentUpdater:
         Args:
             component_id (str):
         Returns:
-            Component | None: The component with the specified ``component_id``, or ``None`` if  not found or the service is not available.
+            cefweaver.Component | None: The component with the specified ``component_id``, or ``None`` if not found or the service is not available.
         """
         ...
     def update(self, component_id: str, priority: ComponentUpdatePriority | int, callback: ComponentUpdateCallback | None) -> None:
@@ -2222,18 +2229,18 @@ class ComponentUpdater:
 
         Args:
             component_id (str):
-            priority (ComponentUpdatePriority | int):
-            callback (ComponentUpdateCallback | None):
+            priority (cefweaver.types.ComponentUpdatePriority | int):
+            callback (cefweaver.ComponentUpdateCallback | None):
         """
         ...
     @staticmethod
     def get_component_updater() -> ComponentUpdater | None:
-        """Return the global :class:`ComponentUpdater` singleton.
+        """Return the global :class:`~cefweaver.ComponentUpdater` singleton.
 
         Returns ``None`` if called from the incorrect thread.
 
         Returns:
-            ComponentUpdater | None: The global ``CefComponentUpdater`` singleton.
+            cefweaver.ComponentUpdater | None: The global ``CefComponentUpdater`` singleton.
         """
         ...
 
@@ -2265,14 +2272,14 @@ class ContextMenuParams:
         """Return flags representing the type of node that the context menu was invoked on.
 
         Returns:
-            ContextMenuTypeFlags: Flags representing the type of node that the context menu was  invoked on.
+            cefweaver.types.ContextMenuTypeFlags: Flags representing the type of node that the context menu was invoked on.
         """
         ...
     def get_link_url(self) -> str:
         """Return the URL of the link, if any, that encloses the node that the context menu was invoked on.
 
         Returns:
-            str: The URL of the link, if any, that encloses the node that the  context menu was invoked on.
+            str: The URL of the link, if any, that encloses the node that the context menu was invoked on.
         """
         ...
     def get_unfiltered_link_url(self) -> str:
@@ -2290,28 +2297,28 @@ class ContextMenuParams:
         Example of elements with source URLs are img, audio, and video.
 
         Returns:
-            str: The source URL, if any, for the element that the context menu was  invoked on.
+            str: The source URL, if any, for the element that the context menu was invoked on.
         """
         ...
     def has_image_contents(self) -> bool:
         """Return ``True`` if the context menu was invoked on an image which has non-empty contents.
 
         Returns:
-            bool: ``True`` if the context menu was invoked on an image which has  non-empty contents.
+            bool: ``True`` if the context menu was invoked on an image which has non-empty contents.
         """
         ...
     def get_title_text(self) -> str:
         """Return the title text or the alt text if the context menu was invoked on an image.
 
         Returns:
-            str: The title text or the alt text if the context menu was invoked on  an image.
+            str: The title text or the alt text if the context menu was invoked on an image.
         """
         ...
     def get_page_url(self) -> str:
         """Return the URL of the top level page that the context menu was invoked on.
 
         Returns:
-            str: The URL of the top level page that the context menu was invoked  on.
+            str: The URL of the top level page that the context menu was invoked on.
         """
         ...
     def get_frame_url(self) -> str:
@@ -2325,35 +2332,35 @@ class ContextMenuParams:
         """Return the character encoding of the subframe that the context menu was invoked on.
 
         Returns:
-            str: The character encoding of the subframe that the context menu was  invoked on.
+            str: The character encoding of the subframe that the context menu was invoked on.
         """
         ...
     def get_media_type(self) -> ContextMenuMediaType:
         """Return the type of context node that the context menu was invoked on.
 
         Returns:
-            ContextMenuMediaType: The type of context node that the context menu was invoked on.
+            cefweaver.types.ContextMenuMediaType: The type of context node that the context menu was invoked on.
         """
         ...
     def get_media_state_flags(self) -> ContextMenuMediaStateFlags:
         """Return flags representing the actions supported by the media element, if any, that the context menu was invoked on.
 
         Returns:
-            ContextMenuMediaStateFlags: Flags representing the actions supported by the media element, if  any, that the context menu was invoked on.
+            cefweaver.types.ContextMenuMediaStateFlags: Flags representing the actions supported by the media element, if any, that the context menu was invoked on.
         """
         ...
     def get_selection_text(self) -> str:
         """Return the text of the selection, if any, that the context menu was invoked on.
 
         Returns:
-            str: The text of the selection, if any, that the context menu was  invoked on.
+            str: The text of the selection, if any, that the context menu was invoked on.
         """
         ...
     def get_misspelled_word(self) -> str:
         """Return the text of the misspelled word, if any, that the context menu was invoked on.
 
         Returns:
-            str: The text of the misspelled word, if any, that the context menu was  invoked on.
+            str: The text of the misspelled word, if any, that the context menu was invoked on.
         """
         ...
     def get_dictionary_suggestions(self) -> tuple[bool, list[str]]:
@@ -2377,21 +2384,21 @@ class ContextMenuParams:
         """Return ``True`` if the context menu was invoked on an editable node where spell-check is enabled.
 
         Returns:
-            bool: ``True`` if the context menu was invoked on an editable node where  spell-check is enabled.
+            bool: ``True`` if the context menu was invoked on an editable node where spell-check is enabled.
         """
         ...
     def get_edit_state_flags(self) -> ContextMenuEditStateFlags:
         """Return flags representing the actions supported by the editable node, if any, that the context menu was invoked on.
 
         Returns:
-            ContextMenuEditStateFlags: Flags representing the actions supported by the editable node, if  any, that the context menu was invoked on.
+            cefweaver.types.ContextMenuEditStateFlags: Flags representing the actions supported by the editable node, if any, that the context menu was invoked on.
         """
         ...
     def is_custom_menu(self) -> bool:
         """Return ``True`` if the context menu contains items specified by the renderer process.
 
         Returns:
-            bool: ``True`` if the context menu contains items specified by the renderer  process.
+            bool: ``True`` if the context menu contains items specified by the renderer process.
         """
         ...
 
@@ -2408,7 +2415,7 @@ class CookieManager:
         Returns ``False`` if cookies cannot be accessed.
 
         Args:
-            visitor (CookieVisitor):
+            visitor (cefweaver.CookieVisitor):
         Returns:
             bool
         """
@@ -2423,8 +2430,8 @@ class CookieManager:
 
         Args:
             url (str):
-            include_http_only (bool): True  HTTP-only cookies will also be included in the results.
-            visitor (CookieVisitor):
+            include_http_only (bool): True HTTP-only cookies will also be included in the results.
+            visitor (cefweaver.CookieVisitor):
         Returns:
             bool
         """
@@ -2441,8 +2448,8 @@ class CookieManager:
 
         Args:
             url (str):
-            cookie (Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, CookieSameSite, CookiePriority]):
-            callback (SetCookieCallback | None): Non-``None`` it will be executed  asnychronously on the UI thread after the cookie has been set.
+            cookie (Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, cefweaver.types.CookieSameSite, cefweaver.types.CookiePriority]):
+            callback (cefweaver.SetCookieCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the cookie has been set.
         Returns:
             bool
         """
@@ -2460,9 +2467,9 @@ class CookieManager:
         methods.
 
         Args:
-            url (str | None): Empty  all cookies for all hosts and domains will be deleted.
+            url (str | None): Empty all cookies for all hosts and domains will be deleted.
             cookie_name (str | None):
-            callback (DeleteCookiesCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the  cookies have been deleted.
+            callback (cefweaver.DeleteCookiesCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the cookies have been deleted.
         Returns:
             bool
         """
@@ -2474,7 +2481,7 @@ class CookieManager:
         after the flush is complete. Returns ``False`` if cookies cannot be accessed.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the flush is  complete.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the flush is complete.
         Returns:
             bool
         """
@@ -2487,12 +2494,12 @@ class CookieManager:
         memory otherwise. If ``callback`` is non-``None`` it will be executed asnychronously
         on the UI thread after the manager's storage has been initialized. Using this method
         is equivalent to calling
-        :meth:`RequestContext.get_global_context`->GetDefaultCookieManager().
+        :meth:`~cefweaver.RequestContext.get_global_context`->GetDefaultCookieManager().
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            CookieManager | None: The global cookie manager.
+            cefweaver.CookieManager | None: The global cookie manager.
         """
         ...
 
@@ -2536,18 +2543,18 @@ class DictionaryValue:
         vice-versa.
 
         Args:
-            that (DictionaryValue):
+            that (cefweaver.DictionaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         ...
     def is_equal(self, that: DictionaryValue) -> bool:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (DictionaryValue):
+            that (cefweaver.DictionaryValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         ...
     def copy(self, exclude_empty_children: bool) -> DictionaryValue | None:
@@ -2559,7 +2566,7 @@ class DictionaryValue:
         Args:
             exclude_empty_children (bool): True any empty dictionaries or lists will be excluded from the copy.
         Returns:
-            DictionaryValue | None: A writable copy of this object.
+            cefweaver.DictionaryValue | None: A writable copy of this object.
         """
         ...
     def get_size(self) -> int:
@@ -2611,7 +2618,7 @@ class DictionaryValue:
         Args:
             key (str):
         Returns:
-            ValueType: The value type for the specified key.
+            cefweaver.types.ValueType: The value type for the specified key.
         """
         ...
     def get_value(self, key: str) -> Value | None:
@@ -2625,7 +2632,7 @@ class DictionaryValue:
         Args:
             key (str):
         Returns:
-            Value | None: The value at the specified key.
+            cefweaver.Value | None: The value at the specified key.
         """
         ...
     def get_bool(self, key: str) -> bool:
@@ -2672,7 +2679,7 @@ class DictionaryValue:
         Args:
             key (str):
         Returns:
-            BinaryValue | None: The value at the specified key as type binary.
+            cefweaver.BinaryValue | None: The value at the specified key as type binary.
         """
         ...
     def get_dictionary(self, key: str) -> DictionaryValue | None:
@@ -2684,7 +2691,7 @@ class DictionaryValue:
         Args:
             key (str):
         Returns:
-            DictionaryValue | None: The value at the specified key as type dictionary.
+            cefweaver.DictionaryValue | None: The value at the specified key as type dictionary.
         """
         ...
     def get_list(self, key: str) -> ListValue | None:
@@ -2696,7 +2703,7 @@ class DictionaryValue:
         Args:
             key (str):
         Returns:
-            ListValue | None: The value at the specified key as type list.
+            cefweaver.ListValue | None: The value at the specified key as type list.
         """
         ...
     def set_value(self, key: str, value: Value) -> bool:
@@ -2710,7 +2717,7 @@ class DictionaryValue:
 
         Args:
             key (str):
-            value (Value):
+            value (cefweaver.Value):
         Returns:
             bool
         """
@@ -2784,7 +2791,7 @@ class DictionaryValue:
 
         Args:
             key (str):
-            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.BinaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -2799,7 +2806,7 @@ class DictionaryValue:
 
         Args:
             key (str):
-            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.DictionaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -2814,7 +2821,7 @@ class DictionaryValue:
 
         Args:
             key (str):
-            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.ListValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -2824,7 +2831,7 @@ class DictionaryValue:
         """Create a new object that is not owned by any other object.
 
         Returns:
-            DictionaryValue
+            cefweaver.DictionaryValue
         """
         ...
 
@@ -2853,7 +2860,7 @@ class Display:
         This specifies how much the UI should be scaled when the actual output has more
         pixels than standard displays (which is around 100~120dpi). The potential return
         values differ by platform. Windowed browsers with 1.0 zoom will have a JavaScript
-        `window.devicePixelRatio` value matching the associated Display's
+        ``window.devicePixelRatio`` value matching the associated Display's
         GetDeviceScaleFactor() value.
 
         Returns:
@@ -2909,7 +2916,7 @@ class Display:
         """Return the primary Display.
 
         Returns:
-            Display | None: The primary Display.
+            cefweaver.Display | None: The primary Display.
         """
         ...
     @staticmethod
@@ -2923,7 +2930,7 @@ class Display:
             point (Point | tuple[int, int]): In pixel screen coordinates instead of DIP screen coordinates.
             input_pixel_coords (bool):
         Returns:
-            Display | None: The Display nearest ``point``.
+            cefweaver.Display | None: The Display nearest ``point``.
         """
         ...
     @staticmethod
@@ -2934,10 +2941,10 @@ class Display:
         instead of DIP screen coordinates.
 
         Args:
-            bounds (Rect | tuple[int, int, int, int]): In pixel screen coordinates  instead of DIP screen coordinates.
+            bounds (Rect | tuple[int, int, int, int]): In pixel screen coordinates instead of DIP screen coordinates.
             input_pixel_coords (bool):
         Returns:
-            Display | None: The Display that most closely intersects ``bounds``.
+            cefweaver.Display | None: The Display that most closely intersects ``bounds``.
         """
         ...
     @staticmethod
@@ -2959,7 +2966,7 @@ class Display:
         displays.
 
         Returns:
-            list[Display]: All Displays.
+            list[cefweaver.Display]: All Displays.
         """
         ...
     @staticmethod
@@ -3062,7 +3069,7 @@ class DownloadItem:
         """Return the most recent interrupt reason.
 
         Returns:
-            DownloadInterruptReason: The most recent interrupt reason.
+            cefweaver.types.DownloadInterruptReason: The most recent interrupt reason.
         """
         ...
     def get_current_speed(self) -> int:
@@ -3076,7 +3083,7 @@ class DownloadItem:
         """Return the rough percent complete or -1 if the receive total size is unknown.
 
         Returns:
-            int: The rough percent complete or -1 if the receive total size is  unknown.
+            int: The rough percent complete or -1 if the receive total size is unknown.
         """
         ...
     def get_total_bytes(self) -> int:
@@ -3180,7 +3187,7 @@ class DragData:
         """Return a copy of the current object.
 
         Returns:
-            DragData | None: A copy of the current object.
+            cefweaver.DragData | None: A copy of the current object.
         """
         ...
     def is_read_only(self) -> bool:
@@ -3270,7 +3277,7 @@ class DragData:
         a suggested name for the file.
 
         Args:
-            writer (StreamWriter | None): ``None`` this method will return the size of the file contents in bytes.
+            writer (cefweaver.StreamWriter | None): ``None`` this method will return the size of the file contents in bytes.
         Returns:
             int
         """
@@ -3334,8 +3341,9 @@ class DragData:
     def reset_file_contents(self) -> None:
         """Reset the file contents.
 
-        You should do this before calling :meth:`BrowserHost.drag_target_drag_enter` as the
-        web view does not allow us to drag in this kind of data.
+        You should do this before calling
+        :meth:`~cefweaver.BrowserHost.drag_target_drag_enter` as the web view does not allow
+        us to drag in this kind of data.
         """
         ...
     def add_file(self, path: str, display_name: str | None) -> None:
@@ -3355,7 +3363,7 @@ class DragData:
         May return ``None`` if no image representation is available.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         ...
     def get_image_hotspot(self) -> Point:
@@ -3374,10 +3382,10 @@ class DragData:
         ...
     @staticmethod
     def create() -> DragData:
-        """Create a new :class:`DragData` object.
+        """Create a new :class:`~cefweaver.DragData` object.
 
         Returns:
-            DragData
+            cefweaver.DragData
         """
         ...
 
@@ -3447,14 +3455,14 @@ class Frame:
         """Retrieve this frame's HTML source as a string sent to the specified visitor.
 
         Args:
-            visitor (StringVisitor):
+            visitor (cefweaver.StringVisitor):
         """
         ...
     def get_text(self, visitor: StringVisitor) -> None:
         """Retrieve this frame's display text as a string sent to the specified visitor.
 
         Args:
-            visitor (StringVisitor):
+            visitor (cefweaver.StringVisitor):
         """
         ...
     def load_request(self, request: Request) -> None:
@@ -3465,7 +3473,7 @@ class Frame:
         some other mechanism (LoadURL, link click, etc).
 
         Args:
-            request (Request):
+            request (cefweaver.Request):
         """
         ...
     def load_url(self, url: str) -> None:
@@ -3486,7 +3494,7 @@ class Frame:
         Args:
             code (str):
             script_url (str | None): The URL where the script in question can be found, if any.
-            start_line (int): The base line number to use for  error reporting.
+            start_line (int): The base line number to use for error reporting.
         """
         ...
     def is_main(self) -> bool:
@@ -3519,14 +3527,14 @@ class Frame:
         """Return the globally unique identifier for this frame or empty if the underlying frame does not yet exist.
 
         Returns:
-            str: The globally unique identifier for this frame or empty if the  underlying frame does not yet exist.
+            str: The globally unique identifier for this frame or empty if the underlying frame does not yet exist.
         """
         ...
     def get_parent(self) -> Frame | None:
         """Return the parent of this frame or ``None`` if this is the main (top-level) frame.
 
         Returns:
-            Frame | None: The parent of this frame or ``None`` if this is the main (top-level)  frame.
+            cefweaver.Frame | None: The parent of this frame or ``None`` if this is the main (top-level) frame.
         """
         ...
     def get_url(self) -> str:
@@ -3540,28 +3548,29 @@ class Frame:
         """Return the browser that this frame belongs to.
 
         Returns:
-            Browser | None: The browser that this frame belongs to.
+            cefweaver.Browser | None: The browser that this frame belongs to.
         """
         ...
     def create_url_request(self, request: Request, client: URLRequestClient) -> URLRequest | None:
-        """ Create a new URL request that will be treated as originating from this
-         frame and the associated browser. Use :meth:`URLRequest.create` instead if you
-         do not want the request to have this association, in which case it may be
-         handled differently (see documentation on that method). A request created
-         with this method may only originate from the browser process, and will
-         behave as follows:
-           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
-             :class:`SchemeHandlerFactory`.
-           - POST data may only contain a single element of type PDE_TYPE_FILE or
-             PDE_TYPE_BYTES.
+        """Create a new URL request that will be treated as originating from this frame and the associated browser.
+
+        Use :meth:`~cefweaver.URLRequest.create` instead if you do not want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only originate
+        from the browser process, and will behave as follows:
+
+        - It may be intercepted by the client via :class:`~cefweaver.ResourceRequestHandler`
+          or :class:`~cefweaver.SchemeHandlerFactory`.
+        - POST data may only contain a single element of type PDE_TYPE_FILE or
+          PDE_TYPE_BYTES.
 
         The ``request`` object will be marked as read-only after calling this method.
 
         Args:
-            request (Request):
-            client (URLRequestClient):
+            request (cefweaver.Request):
+            client (cefweaver.URLRequestClient):
         Returns:
-            URLRequest | None
+            cefweaver.URLRequest | None
         """
         ...
     def send_process_message(self, target_process: ProcessId | int, message: ProcessMessage) -> None:
@@ -3573,8 +3582,8 @@ class Frame:
         ACK message back from the target process if confirmation is required.
 
         Args:
-            target_process (ProcessId | int):
-            message (ProcessMessage):
+            target_process (cefweaver.types.ProcessId | int):
+            message (cefweaver.ProcessMessage):
         """
         ...
 
@@ -3601,9 +3610,9 @@ class Image:
         Will also return ``True`` if both images are empty.
 
         Args:
-            that (Image):
+            that (cefweaver.Image):
         Returns:
-            bool: ``True`` if this Image and ``that`` Image share the same underlying  storage.
+            bool: ``True`` if this Image and ``that`` Image share the same underlying storage.
         """
         ...
     def add_bitmap(self, scale_factor: float, pixel_width: int, pixel_height: int, color_type: ColorType | int, alpha_type: AlphaType | int, pixel_data: bytes | bytearray | memoryview) -> bool:
@@ -3617,10 +3626,10 @@ class Image:
         Args:
             scale_factor (float):
             pixel_width (int):
-            pixel_height (int): The  bitmap representation size in pixel coordinates.
-            color_type (ColorType | int):
-            alpha_type (AlphaType | int):
-            pixel_data (bytes | bytearray | memoryview): The array  of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in  size.
+            pixel_height (int): The bitmap representation size in pixel coordinates.
+            color_type (cefweaver.types.ColorType | int):
+            alpha_type (cefweaver.types.AlphaType | int):
+            pixel_data (bytes | bytearray | memoryview): The array of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in size.
         Returns:
             bool
         """
@@ -3633,7 +3642,7 @@ class Image:
 
         Args:
             scale_factor (float):
-            png_data (bytes | bytearray | memoryview): The image  data of size ``png_data_size``.
+            png_data (bytes | bytearray | memoryview): The image data of size ``png_data_size``.
         Returns:
             bool
         """
@@ -3646,7 +3655,7 @@ class Image:
 
         Args:
             scale_factor (float):
-            jpeg_data (bytes | bytearray | memoryview): The  image data of size ``jpeg_data_size``.
+            jpeg_data (bytes | bytearray | memoryview): The image data of size ``jpeg_data_size``.
         Returns:
             bool
         """
@@ -3695,7 +3704,7 @@ class Image:
         Args:
             scale_factor (float):
         Returns:
-            tuple[bool, float, int, int]: Information for the representation that most closely matches  ``scale_factor``.
+            tuple[bool, float, int, int]: Information for the representation that most closely matches ``scale_factor``.
         """
         ...
     def get_as_bitmap(self, scale_factor: float, color_type: ColorType | int, alpha_type: AlphaType | int) -> tuple[BinaryValue | None, int, int]:
@@ -3704,14 +3713,15 @@ class Image:
         Only 32-bit RGBA/BGRA formats are supported. ``color_type`` and ``alpha_type``
         values specify the desired output pixel format. ``pixel_width`` and ``pixel_height``
         are the output representation size in pixel coordinates. Returns a
-        :class:`BinaryValue` containing the pixel data on success or ``None`` on failure.
+        :class:`~cefweaver.BinaryValue` containing the pixel data on success or ``None`` on
+        failure.
 
         Args:
             scale_factor (float):
-            color_type (ColorType | int):
-            alpha_type (AlphaType | int):
+            color_type (cefweaver.types.ColorType | int):
+            alpha_type (cefweaver.types.AlphaType | int):
         Returns:
-            tuple[BinaryValue | None, int, int]: The bitmap representation that most closely matches  ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The bitmap representation that most closely matches ``scale_factor``.
         """
         ...
     def get_as_png(self, scale_factor: float, with_transparency: bool) -> tuple[BinaryValue | None, int, int]:
@@ -3719,14 +3729,15 @@ class Image:
 
         If ``with_transparency`` is ``True`` any alpha transparency in the image will be
         represented in the resulting PNG data. ``pixel_width`` and ``pixel_height`` are the
-        output representation size in pixel coordinates. Returns a :class:`BinaryValue`
-        containing the PNG image data on success or ``None`` on failure.
+        output representation size in pixel coordinates. Returns a
+        :class:`~cefweaver.BinaryValue` containing the PNG image data on success or ``None``
+        on failure.
 
         Args:
             scale_factor (float):
-            with_transparency (bool): True any alpha transparency in the image will be  represented in the resulting PNG data.
+            with_transparency (bool): True any alpha transparency in the image will be represented in the resulting PNG data.
         Returns:
-            tuple[BinaryValue | None, int, int]: The PNG representation that most closely matches ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The PNG representation that most closely matches ``scale_factor``.
         """
         ...
     def get_as_jpeg(self, scale_factor: float, quality: int) -> tuple[BinaryValue | None, int, int]:
@@ -3735,25 +3746,25 @@ class Image:
         ``quality`` determines the compression level with 0 == lowest and 100 == highest.
         The JPEG format does not support alpha transparency and the alpha channel, if any,
         will be discarded. ``pixel_width`` and ``pixel_height`` are the output
-        representation size in pixel coordinates. Returns a :class:`BinaryValue` containing
-        the JPEG image data on success or ``None`` on failure.
+        representation size in pixel coordinates. Returns a :class:`~cefweaver.BinaryValue`
+        containing the JPEG image data on success or ``None`` on failure.
 
         Args:
             scale_factor (float):
             quality (int):
         Returns:
-            tuple[BinaryValue | None, int, int]: The JPEG representation that most closely matches ``scale_factor``.
+            tuple[cefweaver.BinaryValue | None, int, int]: The JPEG representation that most closely matches ``scale_factor``.
         """
         ...
     @staticmethod
     def create_image() -> Image | None:
-        """Create a new :class:`Image`.
+        """Create a new :class:`~cefweaver.Image`.
 
         It will initially be empty. Use the Add*() methods to add representations at
         different scale factors.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         ...
 
@@ -3782,14 +3793,14 @@ class Layout:
         """Return this Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
 
         Returns:
-            BoxLayout | None: This Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
+            cefweaver.BoxLayout | None: This Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
         """
         ...
     def as_fill_layout(self) -> FillLayout | None:
         """Return this Layout as a FillLayout or ``None`` if this is not a FillLayout.
 
         Returns:
-            FillLayout | None: This Layout as a FillLayout or ``None`` if this is not a FillLayout.
+            cefweaver.FillLayout | None: This Layout as a FillLayout or ``None`` if this is not a FillLayout.
         """
         ...
     def is_valid(self) -> bool:
@@ -3840,25 +3851,25 @@ class ListValue:
         vice-versa.
 
         Args:
-            that (ListValue):
+            that (cefweaver.ListValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         ...
     def is_equal(self, that: ListValue) -> bool:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (ListValue):
+            that (cefweaver.ListValue):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> ListValue | None:
         """Return a writable copy of this object.
 
         Returns:
-            ListValue | None: A writable copy of this object.
+            cefweaver.ListValue | None: A writable copy of this object.
         """
         ...
     def set_size(self, size: int) -> bool:
@@ -3904,7 +3915,7 @@ class ListValue:
         Args:
             index (int):
         Returns:
-            ValueType: The value type at the specified index.
+            cefweaver.types.ValueType: The value type at the specified index.
         """
         ...
     def get_value(self, index: int) -> Value | None:
@@ -3918,7 +3929,7 @@ class ListValue:
         Args:
             index (int):
         Returns:
-            Value | None: The value at the specified index.
+            cefweaver.Value | None: The value at the specified index.
         """
         ...
     def get_bool(self, index: int) -> bool:
@@ -3965,7 +3976,7 @@ class ListValue:
         Args:
             index (int):
         Returns:
-            BinaryValue | None: The value at the specified index as type binary.
+            cefweaver.BinaryValue | None: The value at the specified index as type binary.
         """
         ...
     def get_dictionary(self, index: int) -> DictionaryValue | None:
@@ -3977,7 +3988,7 @@ class ListValue:
         Args:
             index (int):
         Returns:
-            DictionaryValue | None: The value at the specified index as type dictionary.
+            cefweaver.DictionaryValue | None: The value at the specified index as type dictionary.
         """
         ...
     def get_list(self, index: int) -> ListValue | None:
@@ -3989,7 +4000,7 @@ class ListValue:
         Args:
             index (int):
         Returns:
-            ListValue | None: The value at the specified index as type list.
+            cefweaver.ListValue | None: The value at the specified index as type list.
         """
         ...
     def set_value(self, index: int, value: Value) -> bool:
@@ -4003,7 +4014,7 @@ class ListValue:
 
         Args:
             index (int):
-            value (Value):
+            value (cefweaver.Value):
         Returns:
             bool
         """
@@ -4077,7 +4088,7 @@ class ListValue:
 
         Args:
             index (int):
-            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.BinaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -4092,7 +4103,7 @@ class ListValue:
 
         Args:
             index (int):
-            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.DictionaryValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -4107,7 +4118,7 @@ class ListValue:
 
         Args:
             index (int):
-            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+            value (cefweaver.ListValue): Currently owned by another object then the value will be copied and the ``value`` reference will not change.
         Returns:
             bool
         """
@@ -4117,7 +4128,7 @@ class ListValue:
         """Create a new object that is not owned by any other object.
 
         Returns:
-            ListValue
+            cefweaver.ListValue
         """
         ...
 
@@ -4144,10 +4155,10 @@ class MediaAccessCallback:
 class MediaRoute:
     """Represents the route between a media source and sink.
 
-    Instances of this object are created via :meth:`MediaRouter.create_route` and
-    retrieved via :meth:`MediaObserver.on_routes`. Contains the status and metadata of a
-    routing operation. The methods of this class may be called on any browser process
-    thread unless otherwise indicated.
+    Instances of this object are created via :meth:`~cefweaver.MediaRouter.create_route`
+    and retrieved via :meth:`~cefweaver.MediaObserver.on_routes`. Contains the status
+    and metadata of a routing operation. The methods of this class may be called on any
+    browser process thread unless otherwise indicated.
     """
     def get_id(self) -> str:
         """Return the ID for this route.
@@ -4160,14 +4171,14 @@ class MediaRoute:
         """Return the source associated with this route.
 
         Returns:
-            MediaSource | None: The source associated with this route.
+            cefweaver.MediaSource | None: The source associated with this route.
         """
         ...
     def get_sink(self) -> MediaSink | None:
         """Return the sink associated with this route.
 
         Returns:
-            MediaSink | None: The sink associated with this route.
+            cefweaver.MediaSink | None: The sink associated with this route.
         """
         ...
     def send_route_message(self, message: bytes | bytearray | memoryview) -> None:
@@ -4182,8 +4193,8 @@ class MediaRoute:
     def terminate(self) -> None:
         """Terminate this route.
 
-        Will result in an asynchronous call to :meth:`MediaObserver.on_routes` on all
-        registered observers.
+        Will result in an asynchronous call to :meth:`~cefweaver.MediaObserver.on_routes` on
+        all registered observers.
         """
         ...
 
@@ -4201,9 +4212,9 @@ class MediaRouter:
         destroyed.
 
         Args:
-            observer (MediaObserver):
+            observer (cefweaver.MediaObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         ...
     def get_source(self, urn: str) -> MediaSource | None:
@@ -4215,29 +4226,29 @@ class MediaRouter:
         Args:
             urn (str):
         Returns:
-            MediaSource | None: A MediaSource object for the specified media source URN.
+            cefweaver.MediaSource | None: A MediaSource object for the specified media source URN.
         """
         ...
     def notify_current_sinks(self) -> None:
-        """Trigger an asynchronous call to :meth:`MediaObserver.on_sinks` on all registered observers."""
+        """Trigger an asynchronous call to :meth:`~cefweaver.MediaObserver.on_sinks` on all registered observers."""
         ...
     def create_route(self, source: MediaSource, sink: MediaSink, callback: MediaRouteCreateCallback) -> None:
         """Create a new route between ``source`` and ``sink``.
 
         Source and sink must be valid, compatible (as reported by
-        :meth:`MediaSink.is_compatible_with`), and a route between them must not already
-        exist. ``callback`` will be executed on success or failure. If route creation
-        succeeds it will also trigger an asynchronous call to
-        :meth:`MediaObserver.on_routes` on all registered observers.
+        :meth:`~cefweaver.MediaSink.is_compatible_with`), and a route between them must not
+        already exist. ``callback`` will be executed on success or failure. If route
+        creation succeeds it will also trigger an asynchronous call to
+        :meth:`~cefweaver.MediaObserver.on_routes` on all registered observers.
 
         Args:
-            source (MediaSource):
-            sink (MediaSink):
-            callback (MediaRouteCreateCallback):
+            source (cefweaver.MediaSource):
+            sink (cefweaver.MediaSink):
+            callback (cefweaver.MediaRouteCreateCallback):
         """
         ...
     def notify_current_routes(self) -> None:
-        """Trigger an asynchronous call to :meth:`MediaObserver.on_routes` on all registered observers."""
+        """Trigger an asynchronous call to :meth:`~cefweaver.MediaObserver.on_routes` on all registered observers."""
         ...
     @staticmethod
     def get_global_media_router(callback: CompletionCallback | None) -> MediaRouter | None:
@@ -4245,12 +4256,12 @@ class MediaRouter:
 
         If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
         after the manager's storage has been initialized. Equivalent to calling
-        :meth:`RequestContext.get_global_context`->GetMediaRouter().
+        :meth:`~cefweaver.RequestContext.get_global_context`->GetMediaRouter().
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI  thread after the manager's storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            MediaRouter | None: The MediaRouter object associated with the global request context.
+            cefweaver.MediaRouter | None: The MediaRouter object associated with the global request context.
         """
         ...
 
@@ -4258,9 +4269,9 @@ class MediaRouter:
 class MediaSink:
     """Represents a sink to which media can be routed.
 
-    Instances of this object are retrieved via :meth:`MediaObserver.on_sinks`. The
-    methods of this class may be called on any browser process thread unless otherwise
-    indicated.
+    Instances of this object are retrieved via
+    :meth:`~cefweaver.MediaObserver.on_sinks`. The methods of this class may be called
+    on any browser process thread unless otherwise indicated.
     """
     def get_id(self) -> str:
         """Return the ID for this sink.
@@ -4280,14 +4291,14 @@ class MediaSink:
         """Return the icon type for this sink.
 
         Returns:
-            MediaSinkIconType: The icon type for this sink.
+            cefweaver.types.MediaSinkIconType: The icon type for this sink.
         """
         ...
     def get_device_info(self, callback: MediaSinkDeviceInfoCallback) -> None:
         """Asynchronously retrieves device info.
 
         Args:
-            callback (MediaSinkDeviceInfoCallback):
+            callback (cefweaver.MediaSinkDeviceInfoCallback):
         """
         ...
     def is_cast_sink(self) -> bool:
@@ -4308,7 +4319,7 @@ class MediaSink:
         """Return ``True`` if this sink is compatible with ``source``.
 
         Args:
-            source (MediaSource):
+            source (cefweaver.MediaSource):
         Returns:
             bool: ``True`` if this sink is compatible with ``source``.
         """
@@ -4318,9 +4329,9 @@ class MediaSink:
 class MediaSource:
     """Represents a source from which media can be routed.
 
-    Instances of this object are retrieved via :meth:`MediaRouter.get_source`. The
-    methods of this class may be called on any browser process thread unless otherwise
-    indicated.
+    Instances of this object are retrieved via
+    :meth:`~cefweaver.MediaRouter.get_source`. The methods of this class may be called
+    on any browser process thread unless otherwise indicated.
     """
     def get_id(self) -> str:
         """Return the ID (media source URN or URL) for this source.
@@ -4435,7 +4446,7 @@ class MenuModel:
             command_id (int):
             label (str):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         ...
     def insert_separator_at(self, index: int) -> bool:
@@ -4500,7 +4511,7 @@ class MenuModel:
             command_id (int):
             label (str):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         ...
     def remove(self, command_id: int) -> bool:
@@ -4531,7 +4542,7 @@ class MenuModel:
         Args:
             command_id (int):
         Returns:
-            int: The index associated with the specified ``command_id`` or -1 if not  found due to the command id not existing in the menu.
+            int: The index associated with the specified ``command_id`` or -1 if not found due to the command id not existing in the menu.
         """
         ...
     def get_command_id_at(self, index: int) -> int:
@@ -4540,7 +4551,7 @@ class MenuModel:
         Args:
             index (int):
         Returns:
-            int: The command id at the specified ``index`` or -1 if not found due to  invalid range or the index being a separator.
+            int: The command id at the specified ``index`` or -1 if not found due to invalid range or the index being a separator.
         """
         ...
     def set_command_id_at(self, index: int, command_id: int) -> bool:
@@ -4570,7 +4581,7 @@ class MenuModel:
         Args:
             index (int):
         Returns:
-            str: The label at the specified ``index`` or empty if not found due to  invalid range or the index being a separator.
+            str: The label at the specified ``index`` or empty if not found due to invalid range or the index being a separator.
         """
         ...
     def set_label(self, command_id: int, label: str) -> bool:
@@ -4603,7 +4614,7 @@ class MenuModel:
         Args:
             command_id (int):
         Returns:
-            MenuItemType: The item type for the specified ``command_id``.
+            cefweaver.types.MenuItemType: The item type for the specified ``command_id``.
         """
         ...
     def get_type_at(self, index: int) -> MenuItemType:
@@ -4612,7 +4623,7 @@ class MenuModel:
         Args:
             index (int):
         Returns:
-            MenuItemType: The item type at the specified ``index``.
+            cefweaver.types.MenuItemType: The item type at the specified ``index``.
         """
         ...
     def get_group_id(self, command_id: int) -> int:
@@ -4663,7 +4674,7 @@ class MenuModel:
         Args:
             command_id (int):
         Returns:
-            MenuModel | None: The submenu for the specified ``command_id`` or empty if invalid.
+            cefweaver.MenuModel | None: The submenu for the specified ``command_id`` or empty if invalid.
         """
         ...
     def get_sub_menu_at(self, index: int) -> MenuModel | None:
@@ -4672,7 +4683,7 @@ class MenuModel:
         Args:
             index (int):
         Returns:
-            MenuModel | None: The submenu at the specified ``index`` or empty if invalid.
+            cefweaver.MenuModel | None: The submenu at the specified ``index`` or empty if invalid.
         """
         ...
     def is_visible(self, command_id: int) -> bool:
@@ -4811,7 +4822,7 @@ class MenuModel:
         Args:
             command_id (int):
         Returns:
-            bool: ``True`` if the specified ``command_id`` has a keyboard accelerator  assigned.
+            bool: ``True`` if the specified ``command_id`` has a keyboard accelerator assigned.
         """
         ...
     def has_accelerator_at(self, index: int) -> bool:
@@ -4906,7 +4917,7 @@ class MenuModel:
 
         Args:
             command_id (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
             color (int):
         Returns:
             bool
@@ -4922,7 +4933,7 @@ class MenuModel:
 
         Args:
             index (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
             color (int):
         Returns:
             bool
@@ -4936,9 +4947,9 @@ class MenuModel:
 
         Args:
             command_id (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
         Returns:
-            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
         """
         ...
     def get_color_at(self, index: int, color_type: MenuColorType | int) -> tuple[bool, int]:
@@ -4949,46 +4960,54 @@ class MenuModel:
 
         Args:
             index (int):
-            color_type (MenuColorType | int):
+            color_type (cefweaver.types.MenuColorType | int):
         Returns:
-            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
         """
         ...
     def set_font_list(self, command_id: int, font_list: str | None) -> bool:
-        """ Sets the font list for the specified ``command_id``. If ``font_list`` is empty
-         the system font will be used. Returns ``True`` on success. The format is
-         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list for the specified ``command_id``.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        If ``font_list`` is empty the system font will be used. Returns ``True`` on success.
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             command_id (int):
-            font_list (str | None):
+            font_list (str | None): Empty the system font will be used.
         Returns:
             bool
         """
         ...
     def set_font_list_at(self, index: int, font_list: str | None) -> bool:
-        """ Sets the font list for the specified ``index``. Specify an ``index`` value of
-         -1 to set the default font. If ``font_list`` is empty the system font will
-         be used. Returns ``True`` on success. The format is
-         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list for the specified ``index``.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        Specify an ``index`` value of -1 to set the default font. If ``font_list`` is empty
+        the system font will be used. Returns ``True`` on success. The format is
+        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             index (int):
-            font_list (str | None):
+            font_list (str | None): Empty the system font will be used.
         Returns:
             bool
         """
@@ -4998,9 +5017,9 @@ class MenuModel:
         """Create a new MenuModel with the specified ``delegate``.
 
         Args:
-            delegate (MenuModelDelegate):
+            delegate (cefweaver.MenuModelDelegate):
         Returns:
-            MenuModel | None
+            cefweaver.MenuModel | None
         """
         ...
 
@@ -5037,7 +5056,7 @@ class NavigationEntry:
         """Return the original URL that was entered by the user before any redirects.
 
         Returns:
-            str: The original URL that was entered by the user before any  redirects.
+            str: The original URL that was entered by the user before any redirects.
         """
         ...
     def get_title(self) -> str:
@@ -5053,7 +5072,7 @@ class NavigationEntry:
         """Return the transition type which indicates what the user did to move to this page from the previous page.
 
         Returns:
-            TransitionType: The transition type which indicates what the user did to move to  this page from the previous page.
+            cefweaver.types.TransitionType: The transition type which indicates what the user did to move to this page from the previous page.
         """
         ...
     def has_post_data(self) -> bool:
@@ -5080,20 +5099,20 @@ class NavigationEntry:
         completed.
 
         Returns:
-            int: The HTTP status code for the last known successful navigation  response.
+            int: The HTTP status code for the last known successful navigation response.
         """
         ...
     def get_ssl_status(self) -> SSLStatus | None:
         """Return the SSL information for this navigation entry.
 
         Returns:
-            SSLStatus | None: The SSL information for this navigation entry.
+            cefweaver.SSLStatus | None: The SSL information for this navigation entry.
         """
         ...
 
 
 class OverlayController:
-    """Controller for an overlay that contains a contents View added via :meth:`Window.add_overlay_view`.
+    """Controller for an overlay that contains a contents View added via :meth:`~cefweaver.Window.add_overlay_view`.
 
     Methods exposed by this controller should be called in preference to methods of the
     same name exposed by the contents View unless otherwise indicated. Methods must be
@@ -5110,7 +5129,7 @@ class OverlayController:
         """Return ``True`` if this object is the same as ``that`` object.
 
         Args:
-            that (OverlayController):
+            that (cefweaver.OverlayController):
         Returns:
             bool: ``True`` if this object is the same as ``that`` object.
         """
@@ -5119,7 +5138,7 @@ class OverlayController:
         """Return the contents View for this overlay.
 
         Returns:
-            View | None: The contents View for this overlay.
+            cefweaver.View | None: The contents View for this overlay.
         """
         ...
     def get_window(self) -> Window | None:
@@ -5128,14 +5147,14 @@ class OverlayController:
         Use this method instead of calling GetWindow() on the contents View.
 
         Returns:
-            Window | None: The top-level Window hosting this overlay.
+            cefweaver.Window | None: The top-level Window hosting this overlay.
         """
         ...
     def get_docking_mode(self) -> DockingMode:
         """Return the docking mode for this overlay.
 
         Returns:
-            DockingMode: The docking mode for this overlay.
+            cefweaver.types.DockingMode: The docking mode for this overlay.
         """
         ...
     def destroy(self) -> None:
@@ -5152,21 +5171,21 @@ class OverlayController:
         instead to calculate the new size and re-position the overlay if necessary.
 
         Args:
-            bounds (Rect | tuple[int, int, int, int]): In parent coordinates and any insets configured on this  overlay will be ignored.
+            bounds (Rect | tuple[int, int, int, int]): In parent coordinates and any insets configured on this overlay will be ignored.
         """
         ...
     def get_bounds(self) -> Rect:
         """Return the bounds (size and position) of this overlay in parent coordinates.
 
         Returns:
-            Rect: The bounds (size and position) of this overlay in parent  coordinates.
+            Rect: The bounds (size and position) of this overlay in parent coordinates.
         """
         ...
     def get_bounds_in_screen(self) -> Rect:
         """Return the bounds (size and position) of this overlay in DIP screen coordinates.
 
         Returns:
-            Rect: The bounds (size and position) of this overlay in DIP screen  coordinates.
+            Rect: The bounds (size and position) of this overlay in DIP screen coordinates.
         """
         ...
     def set_size(self, size: Size | tuple[int, int]) -> None:
@@ -5180,7 +5199,7 @@ class OverlayController:
         instead to calculate the new size and re-position the overlay if necessary.
 
         Args:
-            size (Size | tuple[int, int]): In parent coordinates and any insets configured on  this overlay will be ignored.
+            size (Size | tuple[int, int]): In parent coordinates and any insets configured on this overlay will be ignored.
         """
         ...
     def get_size(self) -> Size:
@@ -5200,7 +5219,7 @@ class OverlayController:
         calculate the new size and re-position the overlay if necessary.
 
         Args:
-            position (Point | tuple[int, int]): In parent coordinates and any insets configured on this overlay will  be ignored.
+            position (Point | tuple[int, int]): In parent coordinates and any insets configured on this overlay will be ignored.
         """
         ...
     def get_position(self) -> Point:
@@ -5276,7 +5295,7 @@ class PermissionPromptCallback:
         """Complete the permissions request with the specified ``result``.
 
         Args:
-            result (PermissionRequestResult | int):
+            result (cefweaver.types.PermissionRequestResult | int):
         """
         ...
 
@@ -5294,13 +5313,13 @@ class PostData:
         """
         ...
     def has_excluded_elements(self) -> bool:
-        """Return ``True`` if the underlying POST data includes elements that are not represented by this :class:`PostData` object (for example, multi-part file upload data).
+        """Return ``True`` if the underlying POST data includes elements that are not represented by this :class:`~cefweaver.PostData` object (for example, multi-part file upload data).
 
-        Modifying :class:`PostData` objects with excluded elements may result in the request
-        failing.
+        Modifying :class:`~cefweaver.PostData` objects with excluded elements may result in
+        the request failing.
 
         Returns:
-            bool: ``True`` if the underlying POST data includes elements that are not  represented by this ``CefPostData`` object (for example, multi-part file  upload data).
+            bool: ``True`` if the underlying POST data includes elements that are not represented by this ``CefPostData`` object (for example, multi-part file upload data).
         """
         ...
     def get_element_count(self) -> int:
@@ -5314,7 +5333,7 @@ class PostData:
         """Retrieve the post data elements.
 
         Returns:
-            list[PostDataElement]
+            list[cefweaver.PostDataElement]
         """
         ...
     def remove_element(self, element: PostDataElement) -> bool:
@@ -5323,7 +5342,7 @@ class PostData:
         Returns ``True`` if the removal succeeds.
 
         Args:
-            element (PostDataElement):
+            element (cefweaver.PostDataElement):
         Returns:
             bool
         """
@@ -5334,7 +5353,7 @@ class PostData:
         Returns ``True`` if the add succeeds.
 
         Args:
-            element (PostDataElement):
+            element (cefweaver.PostDataElement):
         Returns:
             bool
         """
@@ -5344,10 +5363,10 @@ class PostData:
         ...
     @staticmethod
     def create() -> PostData:
-        """Create a new :class:`PostData` object.
+        """Create a new :class:`~cefweaver.PostData` object.
 
         Returns:
-            PostData
+            cefweaver.PostData
         """
         ...
 
@@ -5387,7 +5406,7 @@ class PostDataElement:
         """Return the type of this post data element.
 
         Returns:
-            PostdataelementType: The type of this post data element.
+            cefweaver.types.PostdataelementType: The type of this post data element.
         """
         ...
     def get_file(self) -> str:
@@ -5415,10 +5434,10 @@ class PostDataElement:
         ...
     @staticmethod
     def create() -> PostDataElement:
-        """Create a new :class:`PostDataElement` object.
+        """Create a new :class:`~cefweaver.PostDataElement` object.
 
         Returns:
-            PostDataElement
+            cefweaver.PostDataElement
         """
         ...
 
@@ -5429,7 +5448,7 @@ class PrintDialogCallback:
         """Continue printing with the specified ``settings``.
 
         Args:
-            settings (PrintSettings):
+            settings (cefweaver.PrintSettings):
         """
         ...
     def cancel(self) -> None:
@@ -5571,14 +5590,14 @@ class PrintSettings:
         """Set the color model.
 
         Args:
-            model (ColorModel | int):
+            model (cefweaver.types.ColorModel | int):
         """
         ...
     def get_color_model(self) -> ColorModel:
         """Get the color model.
 
         Returns:
-            ColorModel
+            cefweaver.types.ColorModel
         """
         ...
     def set_copies(self, copies: int) -> None:
@@ -5599,22 +5618,22 @@ class PrintSettings:
         """Set the duplex mode.
 
         Args:
-            mode (DuplexMode | int):
+            mode (cefweaver.types.DuplexMode | int):
         """
         ...
     def get_duplex_mode(self) -> DuplexMode:
         """Get the duplex mode.
 
         Returns:
-            DuplexMode
+            cefweaver.types.DuplexMode
         """
         ...
     @staticmethod
     def create() -> PrintSettings:
-        """Create a new :class:`PrintSettings` object.
+        """Create a new :class:`~cefweaver.PrintSettings` object.
 
         Returns:
-            PrintSettings
+            cefweaver.PrintSettings
         """
         ...
 
@@ -5648,7 +5667,7 @@ class ProcessMessage:
         Returns ``None`` when message contains a shared memory region.
 
         Returns:
-            ProcessMessage | None: A writable copy of this object.
+            cefweaver.ProcessMessage | None: A writable copy of this object.
         """
         ...
     def get_name(self) -> str:
@@ -5664,7 +5683,7 @@ class ProcessMessage:
         Returns ``None`` when message contains a shared memory region.
 
         Returns:
-            ListValue | None: The list of arguments.
+            cefweaver.ListValue | None: The list of arguments.
         """
         ...
     def get_shared_memory_region(self) -> SharedMemoryRegion | None:
@@ -5673,17 +5692,17 @@ class ProcessMessage:
         Returns ``None`` when message contains an argument list.
 
         Returns:
-            SharedMemoryRegion | None: The shared memory region.
+            cefweaver.SharedMemoryRegion | None: The shared memory region.
         """
         ...
     @staticmethod
     def create(name: str) -> ProcessMessage:
-        """Create a new :class:`ProcessMessage` object with the specified name.
+        """Create a new :class:`~cefweaver.ProcessMessage` object with the specified name.
 
         Args:
             name (str):
         Returns:
-            ProcessMessage
+            cefweaver.ProcessMessage
         """
         ...
 
@@ -5742,7 +5761,7 @@ class Request:
 
         Args:
             referrer_url (str | None):
-            policy (ReferrerPolicy | int):
+            policy (cefweaver.types.ReferrerPolicy | int):
         """
         ...
     def get_referrer_url(self) -> str:
@@ -5756,21 +5775,21 @@ class Request:
         """Get the referrer policy.
 
         Returns:
-            ReferrerPolicy
+            cefweaver.types.ReferrerPolicy
         """
         ...
     def get_post_data(self) -> PostData | None:
         """Get the post data.
 
         Returns:
-            PostData | None
+            cefweaver.PostData | None
         """
         ...
     def set_post_data(self, post_data: PostData) -> None:
         """Set the post data.
 
         Args:
-            post_data (PostData):
+            post_data (cefweaver.PostData):
         """
         ...
     def get_header_map(self) -> dict[str, str]:
@@ -5813,7 +5832,7 @@ class Request:
         Args:
             name (str):
             value (str | None):
-            overwrite (bool): False any  existing values will not be overwritten.
+            overwrite (bool): False any existing values will not be overwritten.
         """
         ...
     def set(self, url: str, method: str, post_data: PostData | None, header_map: dict[str, str]) -> None:
@@ -5822,12 +5841,12 @@ class Request:
         Args:
             url (str):
             method (str):
-            post_data (PostData | None):
+            post_data (cefweaver.PostData | None):
             header_map (dict[str, str]):
         """
         ...
     def get_flags(self) -> int:
-        """Get the flags used in combination with :class:`URLRequest`.
+        """Get the flags used in combination with :class:`~cefweaver.URLRequest`.
 
         See cef_urlrequest_flags_t for supported values.
 
@@ -5836,7 +5855,7 @@ class Request:
         """
         ...
     def set_flags(self, flags: int) -> None:
-        """Set the flags used in combination with :class:`URLRequest`.
+        """Set the flags used in combination with :class:`~cefweaver.URLRequest`.
 
         See cef_urlrequest_flags_t for supported values.
 
@@ -5845,14 +5864,14 @@ class Request:
         """
         ...
     def get_first_party_for_cookies(self) -> str:
-        """Get the URL to the first party for cookies used in combination with :class:`URLRequest`.
+        """Get the URL to the first party for cookies used in combination with :class:`~cefweaver.URLRequest`.
 
         Returns:
             str
         """
         ...
     def set_first_party_for_cookies(self, url: str | None) -> None:
-        """Set the URL to the first party for cookies used in combination with :class:`URLRequest`.
+        """Set the URL to the first party for cookies used in combination with :class:`~cefweaver.URLRequest`.
 
         Args:
             url (str | None):
@@ -5864,7 +5883,7 @@ class Request:
         Only available in the browser process.
 
         Returns:
-            ResourceType
+            cefweaver.types.ResourceType
         """
         ...
     def get_transition_type(self) -> TransitionType:
@@ -5874,25 +5893,25 @@ class Request:
         main frame or sub-frame navigation.
 
         Returns:
-            TransitionType
+            cefweaver.types.TransitionType
         """
         ...
     def get_identifier(self) -> int:
         """Return the globally unique identifier for this request or 0 if not specified.
 
-        Can be used by :class:`ResourceRequestHandler` implementations in the browser
-        process to track a single request across multiple callbacks.
+        Can be used by :class:`~cefweaver.ResourceRequestHandler` implementations in the
+        browser process to track a single request across multiple callbacks.
 
         Returns:
-            int: The globally unique identifier for this request or 0 if not  specified.
+            int: The globally unique identifier for this request or 0 if not specified.
         """
         ...
     @staticmethod
     def create() -> Request:
-        """Create a new :class:`Request` object.
+        """Create a new :class:`~cefweaver.Request` object.
 
         Returns:
-            Request
+            cefweaver.Request
         """
         ...
 
@@ -5901,17 +5920,17 @@ class RequestContext:
     """A request context provides request handling for a set of related browser or URL request objects.
 
     A request context can be specified when creating a new browser via the
-    :class:`BrowserHost` static factory methods or when creating a new URL request via
-    the :class:`URLRequest` static factory methods. Browser objects with different
-    request contexts will never be hosted in the same render process. Browser objects
-    with the same request context may or may not be hosted in the same render process
-    depending on the process model. Browser objects created indirectly via the
-    JavaScript window.open function or targeted links will share the same render process
-    and the same request context as the source browser. When running in single-process
-    mode there is only a single render process (the main process) and so all browsers
-    created in single-process mode will share the same request context. This will be the
-    first request context passed into a :class:`BrowserHost` static factory method and
-    all other request context objects will be ignored.
+    :class:`~cefweaver.BrowserHost` static factory methods or when creating a new URL
+    request via the :class:`~cefweaver.URLRequest` static factory methods. Browser
+    objects with different request contexts will never be hosted in the same render
+    process. Browser objects with the same request context may or may not be hosted in
+    the same render process depending on the process model. Browser objects created
+    indirectly via the JavaScript window.open function or targeted links will share the
+    same render process and the same request context as the source browser. When running
+    in single-process mode there is only a single render process (the main process) and
+    so all browsers created in single-process mode will share the same request context.
+    This will be the first request context passed into a :class:`~cefweaver.BrowserHost`
+    static factory method and all other request context objects will be ignored.
     """
     def has_preference(self, name: str) -> bool:
         """Return ``True`` if a preference with the specified ``name`` exists.
@@ -5935,7 +5954,7 @@ class RequestContext:
         Args:
             name (str):
         Returns:
-            Value | None: The value for the preference with the specified ``name``.
+            cefweaver.Value | None: The value for the preference with the specified ``name``.
         """
         ...
     def get_all_preferences(self, include_defaults: bool) -> DictionaryValue | None:
@@ -5948,9 +5967,9 @@ class RequestContext:
         thread.
 
         Args:
-            include_defaults (bool): True  then preferences currently at their default value will be included.
+            include_defaults (bool): True then preferences currently at their default value will be included.
         Returns:
-            DictionaryValue | None: All preferences as a dictionary.
+            cefweaver.DictionaryValue | None: All preferences as a dictionary.
         """
         ...
     def can_set_preference(self, name: str) -> bool:
@@ -5962,7 +5981,7 @@ class RequestContext:
         Args:
             name (str):
         Returns:
-            bool: ``True`` if the preference with the specified ``name`` can be modified  using SetPreference.
+            bool: ``True`` if the preference with the specified ``name`` can be modified using SetPreference.
         """
         ...
     def set_preference(self, name: str, value: Value | None) -> tuple[bool, str]:
@@ -5976,7 +5995,7 @@ class RequestContext:
 
         Args:
             name (str):
-            value (Value | None): ``None`` the  preference will be restored to its default value.
+            value (cefweaver.Value | None): ``None`` the preference will be restored to its default value.
         Returns:
             tuple[bool, str]
         """
@@ -5991,26 +6010,26 @@ class RequestContext:
         called on the browser process UI thread.
 
         Args:
-            name (str | None): Empty then all preferences will  be observed.
-            observer (PreferenceObserver):
+            name (str | None): Empty then all preferences will be observed.
+            observer (cefweaver.PreferenceObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         ...
     def is_same(self, other: RequestContext) -> bool:
         """Return ``True`` if this object is pointing to the same context as ``that`` object.
 
         Args:
-            other (RequestContext):
+            other (cefweaver.RequestContext):
         Returns:
-            bool: ``True`` if this object is pointing to the same context as ``that``  object.
+            bool: ``True`` if this object is pointing to the same context as ``that`` object.
         """
         ...
     def is_sharing_with(self, other: RequestContext) -> bool:
         """Return ``True`` if this object is sharing the same storage as ``that`` object.
 
         Args:
-            other (RequestContext):
+            other (cefweaver.RequestContext):
         Returns:
             bool: ``True`` if this object is sharing the same storage as ``that`` object.
         """
@@ -6029,7 +6048,7 @@ class RequestContext:
         """Return the handler for this context if any.
 
         Returns:
-            RequestContextHandler | None: The handler for this context if any.
+            cefweaver.RequestContextHandler | None: The handler for this context if any.
         """
         ...
     def get_cache_path(self) -> str:
@@ -6048,9 +6067,9 @@ class RequestContext:
         after the manager's storage has been initialized.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the manager's  storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            CookieManager | None: The cookie manager for this object.
+            cefweaver.CookieManager | None: The cookie manager for this object.
         """
         ...
     def register_scheme_handler_factory(self, scheme_name: str, domain_name: str | None, factory: SchemeHandlerFactory | None) -> bool:
@@ -6067,9 +6086,9 @@ class RequestContext:
         This function may be called on any thread in the browser process.
 
         Args:
-            scheme_name (str): A custom scheme then  you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in  all processes.
+            scheme_name (str): A custom scheme then you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
             domain_name (str | None):
-            factory (SchemeHandlerFactory | None):
+            factory (cefweaver.SchemeHandlerFactory | None):
         Returns:
             bool
         """
@@ -6085,14 +6104,14 @@ class RequestContext:
         """
         ...
     def clear_certificate_exceptions(self, callback: CompletionCallback | None) -> None:
-        """Clear all certificate exceptions that were added as part of handling :meth:`RequestHandler.on_certificate_error`.
+        """Clear all certificate exceptions that were added as part of handling :meth:`~cefweaver.RequestHandler.on_certificate_error`.
 
         If you call this it is recommended that you also call CloseAllConnections() or you
         risk not being prompted again for server certificates if you reconnect quickly. If
         ``callback`` is non-``None`` it will be executed on the UI thread after completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed on the UI thread after  completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         ...
     def clear_http_cache(self, callback: CompletionCallback | None) -> None:
@@ -6102,7 +6121,7 @@ class RequestContext:
         completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed on  the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         ...
     def clear_http_auth_credentials(self, callback: CompletionCallback | None) -> None:
@@ -6112,18 +6131,18 @@ class RequestContext:
         completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed  on the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         ...
     def close_all_connections(self, callback: CompletionCallback | None) -> None:
         """Clear all active and idle connections that Chromium currently has.
 
         This is only recommended if you have released all other CEF objects but don't yet
-        want to call ``CefShutdown``(). If ``callback`` is non-``None`` it will be executed
+        want to call ``CefShutdown`` (). If ``callback`` is non-``None`` it will be executed
         on the UI thread after completion.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be  executed on the UI thread after completion.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed on the UI thread after completion.
         """
         ...
     def resolve_host(self, origin: str, callback: ResolveCallback) -> None:
@@ -6133,7 +6152,7 @@ class RequestContext:
 
         Args:
             origin (str):
-            callback (ResolveCallback):
+            callback (cefweaver.ResolveCallback):
         """
         ...
     def get_media_router(self, callback: CompletionCallback | None) -> MediaRouter | None:
@@ -6143,9 +6162,9 @@ class RequestContext:
         after the manager's context has been initialized.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's context has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's context has been initialized.
         Returns:
-            MediaRouter | None: The MediaRouter object associated with this context.
+            cefweaver.MediaRouter | None: The MediaRouter object associated with this context.
         """
         ...
     def get_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> Value | None:
@@ -6157,9 +6176,9 @@ class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
         Returns:
-            Value | None: The current value for ``content_type`` that applies for the  specified URLs.
+            cefweaver.Value | None: The current value for ``content_type`` that applies for the specified URLs.
         """
         ...
     def set_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: Value | None) -> None:
@@ -6178,8 +6197,8 @@ class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
-            value (Value | None):
+            content_type (cefweaver.types.ContentSettingTypes | int):
+            value (cefweaver.Value | None):
         """
         ...
     def get_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> ContentSettingValues:
@@ -6192,9 +6211,9 @@ class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
         Returns:
-            ContentSettingValues: The current value for ``content_type`` that applies for the  specified URLs.
+            cefweaver.types.ContentSettingValues: The current value for ``content_type`` that applies for the specified URLs.
         """
         ...
     def set_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: ContentSettingValues | int) -> None:
@@ -6214,8 +6233,8 @@ class RequestContext:
         Args:
             requesting_url (str | None):
             top_level_url (str | None):
-            content_type (ContentSettingTypes | int):
-            value (ContentSettingValues | int):
+            content_type (cefweaver.types.ContentSettingTypes | int):
+            value (cefweaver.types.ContentSettingValues | int):
         """
         ...
     def add_setting_observer(self, observer: SettingObserver) -> Registration | None:
@@ -6225,9 +6244,9 @@ class RequestContext:
         destroyed. This method must be called on the browser process UI thread.
 
         Args:
-            observer (SettingObserver):
+            observer (cefweaver.SettingObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         ...
     def set_chrome_color_scheme(self, variant: ColorVariant | int, user_color: int) -> None:
@@ -6239,7 +6258,7 @@ class RequestContext:
         color will be used.
 
         Args:
-            variant (ColorVariant | int):
+            variant (cefweaver.types.ColorVariant | int):
             user_color (int): Transparent (0) the default color will be used.
         """
         ...
@@ -6249,7 +6268,7 @@ class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            ColorVariant: The current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
+            cefweaver.types.ColorVariant: The current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
         """
         ...
     def get_chrome_color_scheme_color(self) -> int:
@@ -6258,7 +6277,7 @@ class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            int: The current Chrome color scheme color, or transparent (0) for the  default color.
+            int: The current Chrome color scheme color, or transparent (0) for the default color.
         """
         ...
     def get_chrome_color_scheme_variant(self) -> ColorVariant:
@@ -6267,7 +6286,7 @@ class RequestContext:
         Must be called on the browser process UI thread.
 
         Returns:
-            ColorVariant: The current Chrome color scheme variant.
+            cefweaver.types.ColorVariant: The current Chrome color scheme variant.
         """
         ...
     @staticmethod
@@ -6275,7 +6294,7 @@ class RequestContext:
         """Return the global context object.
 
         Returns:
-            RequestContext | None: The global context object.
+            cefweaver.RequestContext | None: The global context object.
         """
         ...
     @staticmethod
@@ -6284,15 +6303,15 @@ class RequestContext:
 
         Args:
             settings (RequestContextSettings | tuple[str, int, str, str, int]):
-            handler (RequestContextHandler | None):
+            handler (cefweaver.RequestContextHandler | None):
         Returns:
-            RequestContext | None
+            cefweaver.RequestContext | None
         """
         ...
 
 
 class ResourceReadCallback:
-    """Callback for asynchronous continuation of :meth:`ResourceHandler.read`."""
+    """Callback for asynchronous continuation of :meth:`~cefweaver.ResourceHandler.read`."""
     def continue_(self, bytes_read: int) -> None:
         """Callback for asynchronous continuation of Read().
 
@@ -6308,7 +6327,7 @@ class ResourceReadCallback:
 
 
 class ResourceSkipCallback:
-    """Callback for asynchronous continuation of :meth:`ResourceHandler.skip`."""
+    """Callback for asynchronous continuation of :meth:`~cefweaver.ResourceHandler.skip`."""
     def continue_(self, bytes_skipped: int) -> None:
         """Callback for asynchronous continuation of Skip().
 
@@ -6340,7 +6359,7 @@ class Response:
         Returns ERR_NONE if there was no error.
 
         Returns:
-            ErrorCode
+            cefweaver.types.ErrorCode
         """
         ...
     def set_error(self, error: ErrorCode | int) -> None:
@@ -6350,7 +6369,7 @@ class Response:
         processing.
 
         Args:
-            error (ErrorCode | int):
+            error (cefweaver.types.ErrorCode | int):
         """
         ...
     def get_status(self) -> int:
@@ -6427,7 +6446,7 @@ class Response:
         Args:
             name (str):
             value (str | None):
-            overwrite (bool): False any  existing values will not be overwritten.
+            overwrite (bool): False any existing values will not be overwritten.
         """
         ...
     def get_header_map(self) -> dict[str, str]:
@@ -6460,10 +6479,10 @@ class Response:
         ...
     @staticmethod
     def create() -> Response:
-        """Create a new :class:`Response` object.
+        """Create a new :class:`~cefweaver.Response` object.
 
         Returns:
-            Response
+            cefweaver.Response
         """
         ...
 
@@ -6475,7 +6494,7 @@ class RunContextMenuCallback:
 
         Args:
             command_id (int):
-            event_flags (EventFlags | int):
+            event_flags (cefweaver.types.EventFlags | int):
         """
         ...
     def cancel(self) -> None:
@@ -6490,7 +6509,7 @@ class RunQuickMenuCallback:
 
         Args:
             command_id (int):
-            event_flags (EventFlags | int):
+            event_flags (cefweaver.types.EventFlags | int):
         """
         ...
     def cancel(self) -> None:
@@ -6504,14 +6523,14 @@ class SSLInfo:
         """Return a bitmask containing any and all problems verifying the server certificate.
 
         Returns:
-            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
+            cefweaver.types.CertStatus: A bitmask containing any and all problems verifying the server certificate.
         """
         ...
     def get_x509_certificate(self) -> X509Certificate | None:
         """Return the X.509 certificate.
 
         Returns:
-            X509Certificate | None: The X.509 certificate.
+            cefweaver.X509Certificate | None: The X.509 certificate.
         """
         ...
 
@@ -6529,28 +6548,28 @@ class SSLStatus:
         """Return a bitmask containing any and all problems verifying the server certificate.
 
         Returns:
-            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
+            cefweaver.types.CertStatus: A bitmask containing any and all problems verifying the server certificate.
         """
         ...
     def get_ssl_version(self) -> SslVersion:
         """Return the SSL version used for the SSL connection.
 
         Returns:
-            SslVersion: The SSL version used for the SSL connection.
+            cefweaver.types.SslVersion: The SSL version used for the SSL connection.
         """
         ...
     def get_content_status(self) -> SslContentStatus:
         """Return a bitmask containing the page security content status.
 
         Returns:
-            SslContentStatus: A bitmask containing the page security content status.
+            cefweaver.types.SslContentStatus: A bitmask containing the page security content status.
         """
         ...
     def get_x509_certificate(self) -> X509Certificate | None:
         """Return the X.509 certificate.
 
         Returns:
-            X509Certificate | None: The X.509 certificate.
+            cefweaver.X509Certificate | None: The X.509 certificate.
         """
         ...
 
@@ -6563,7 +6582,7 @@ class SelectClientCertificateCallback:
         ``None`` value means that no client certificate should be used.
 
         Args:
-            cert (X509Certificate | None):
+            cert (cefweaver.X509Certificate | None):
         """
         ...
 
@@ -6579,18 +6598,19 @@ class Server:
     def shutdown(self) -> None:
         """Stop the server and shut down the dedicated server thread.
 
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan.
+        See :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a
+        description of server lifespan.
         """
         ...
     def is_running(self) -> bool:
         """Return ``True`` if the server is currently running and accepting incoming connections.
 
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan. This method must be called on the dedicated server thread.
+        See :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a
+        description of server lifespan. This method must be called on the dedicated server
+        thread.
 
         Returns:
-            bool: ``True`` if the server is currently running and accepting incoming  connections.
+            bool: ``True`` if the server is currently running and accepting incoming connections.
         """
         ...
     def get_address(self) -> str:
@@ -6630,8 +6650,8 @@ class Server:
 
         Args:
             connection_id (int):
-            content_type (str): The response content type (e.
-            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size  of ``data`` in bytes.
+            content_type (str): The response content type (e.g.
+            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size of ``data`` in bytes.
         """
         ...
     def send_http404_response(self, connection_id: int) -> None:
@@ -6651,7 +6671,7 @@ class Server:
 
         Args:
             connection_id (int):
-            error_message (str): The associated error  message.
+            error_message (str): The associated error message.
         """
         ...
     def send_http_response(self, connection_id: int, response_code: int, content_type: str, content_length: int, extra_headers: dict[str, str] | None) -> None:
@@ -6670,9 +6690,9 @@ class Server:
 
         Args:
             connection_id (int):
-            response_code (int): The HTTP response code sent in the  status line (e.
-            content_type (str): The response content type sent  as the \"Content-Type\" header (e.
-            content_length (int): < 0 then no \"Content-Length\" header will be sent and  the client will continue reading until the connection is closed.
+            response_code (int): The HTTP response code sent in the status line (e.g.
+            content_type (str): The response content type sent as the \"Content-Type\" header (e.g.
+            content_length (int): < 0 then no \"Content-Length\" header will be sent and the client will continue reading until the connection is closed.
             extra_headers (dict[str, str] | None):
         """
         ...
@@ -6687,7 +6707,7 @@ class Server:
 
         Args:
             connection_id (int):
-            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount  indicated by the \"Content-Length\" header, if specified.
+            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount indicated by the \"Content-Length\" header, if specified.
         """
         ...
     def close_connection(self, connection_id: int) -> None:
@@ -6704,11 +6724,12 @@ class Server:
 
         ``data`` is the response content and ``data_size`` is the size of ``data`` in bytes.
         The contents of ``data`` will be copied. See
-        :meth:`ServerHandler.on_web_socket_request` documentation for intended usage.
+        :meth:`~cefweaver.ServerHandler.on_web_socket_request` documentation for intended
+        usage.
 
         Args:
             connection_id (int):
-            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in  bytes.
+            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in bytes.
         """
         ...
     @staticmethod
@@ -6719,18 +6740,19 @@ class Server:
         ``port`` must be a port number outside of the reserved range (e.g. between 1025 and
         65535 on most platforms). ``backlog`` is the maximum number of pending connections.
         A new thread will be created for each CreateServer call (the \"dedicated server
-        thread\"). It is therefore recommended to use a different :class:`ServerHandler`
-        instance for each CreateServer call to avoid thread safety issues in the
-        :class:`ServerHandler` implementation. The :meth:`ServerHandler.on_server_created`
-        method will be called on the dedicated server thread to report success or failure.
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan.
+        thread\"). It is therefore recommended to use a different
+        :class:`~cefweaver.ServerHandler` instance for each CreateServer call to avoid
+        thread safety issues in the :class:`~cefweaver.ServerHandler` implementation. The
+        :meth:`~cefweaver.ServerHandler.on_server_created` method will be called on the
+        dedicated server thread to report success or failure. See
+        :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a description
+        of server lifespan.
 
         Args:
             address (str):
             port (int):
             backlog (int): The maximum number of pending connections.
-            handler (ServerHandler):
+            handler (cefweaver.ServerHandler):
         """
         ...
 
@@ -6759,7 +6781,7 @@ class SharedMemoryRegion:
 
 
 class SharedProcessMessageBuilder:
-    """Class that builds a :class:`ProcessMessage` containing a shared memory region.
+    """Class that builds a :class:`~cefweaver.ProcessMessage` containing a shared memory region.
 
     This class is not thread-safe but may be used exclusively on a different thread from
     the one which constructed it.
@@ -6781,23 +6803,23 @@ class SharedProcessMessageBuilder:
         """
         ...
     def build(self) -> ProcessMessage | None:
-        """Create a new :class:`ProcessMessage` from the data provided to the builder.
+        """Create a new :class:`~cefweaver.ProcessMessage` from the data provided to the builder.
 
         Returns ``None`` for invalid instances. Invalidates the builder instance.
 
         Returns:
-            ProcessMessage | None
+            cefweaver.ProcessMessage | None
         """
         ...
     @staticmethod
     def create(name: str, byte_size: int) -> SharedProcessMessageBuilder:
-        """Create a new :class:`SharedProcessMessageBuilder` with the specified ``name`` and shared memory region of specified ``byte_size``.
+        """Create a new :class:`~cefweaver.SharedProcessMessageBuilder` with the specified ``name`` and shared memory region of specified ``byte_size``.
 
         Args:
             name (str):
             byte_size (int):
         Returns:
-            SharedProcessMessageBuilder
+            cefweaver.SharedProcessMessageBuilder
         """
         ...
     def write(self, offset: int, data: bytes | bytearray | memoryview) -> bool:
@@ -6853,37 +6875,37 @@ class StreamReader:
         Used as a hint for determining the thread to access the reader from.
 
         Returns:
-            bool: ``True`` if this reader performs work like accessing the file system  which may block.
+            bool: ``True`` if this reader performs work like accessing the file system which may block.
         """
         ...
     @staticmethod
     def create_for_file(file_name: str) -> StreamReader | None:
-        """Create a new :class:`StreamReader` object from a file.
+        """Create a new :class:`~cefweaver.StreamReader` object from a file.
 
         Args:
             file_name (str):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         ...
     @staticmethod
     def create_for_data(data: bytes | bytearray | memoryview) -> StreamReader | None:
-        """Create a new :class:`StreamReader` object from data.
+        """Create a new :class:`~cefweaver.StreamReader` object from data.
 
         Args:
             data (bytes | bytearray | memoryview):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         ...
     @staticmethod
     def create_for_handler(handler: ReadHandler) -> StreamReader | None:
-        """Create a new :class:`StreamReader` object from a custom handler.
+        """Create a new :class:`~cefweaver.StreamReader` object from a custom handler.
 
         Args:
-            handler (ReadHandler):
+            handler (cefweaver.ReadHandler):
         Returns:
-            StreamReader | None
+            cefweaver.StreamReader | None
         """
         ...
 
@@ -6936,27 +6958,27 @@ class StreamWriter:
         Used as a hint for determining the thread to access the writer from.
 
         Returns:
-            bool: ``True`` if this writer performs work like accessing the file system  which may block.
+            bool: ``True`` if this writer performs work like accessing the file system which may block.
         """
         ...
     @staticmethod
     def create_for_file(file_name: str) -> StreamWriter | None:
-        """Create a new :class:`StreamWriter` object for a file.
+        """Create a new :class:`~cefweaver.StreamWriter` object for a file.
 
         Args:
             file_name (str):
         Returns:
-            StreamWriter | None
+            cefweaver.StreamWriter | None
         """
         ...
     @staticmethod
     def create_for_handler(handler: WriteHandler) -> StreamWriter | None:
-        """Create a new :class:`StreamWriter` object for a custom handler.
+        """Create a new :class:`~cefweaver.StreamWriter` object for a custom handler.
 
         Args:
-            handler (WriteHandler):
+            handler (cefweaver.WriteHandler):
         Returns:
-            StreamWriter | None
+            cefweaver.StreamWriter | None
         """
         ...
 
@@ -6998,8 +7020,8 @@ class TaskManager:
         thread.
 
         Args:
-            task_id (int): Invalid or the method was called  from the incorrect thread.
-            info (TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]):
+            task_id (int): Invalid or the method was called from the incorrect thread.
+            info (TaskInfo | tuple[int, cefweaver.types.TaskType, int, str, float, int, int, int, int]):
         Returns:
             tuple[bool, TaskInfo]
         """
@@ -7011,21 +7033,21 @@ class TaskManager:
         thread, or if the task cannot be terminated.
 
         Args:
-            task_id (int): Invalid, the call is made from an  incorrect thread, or if the task cannot be terminated.
+            task_id (int): Invalid, the call is made from an incorrect thread, or if the task cannot be terminated.
         Returns:
             bool
         """
         ...
     def get_task_id_for_browser_id(self, browser_id: int) -> int:
-        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`Browser.get_identifier`).
+        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`~cefweaver.Browser.get_identifier`).
 
         Returns -1 if ``browser_id`` is invalid, does not currently have an associated task,
         or the method was called from the incorrect thread.
 
         Args:
-            browser_id (int): Invalid, does not currently have an associated task, or the method was  called from the incorrect thread.
+            browser_id (int): Invalid, does not currently have an associated task, or the method was called from the incorrect thread.
         Returns:
-            int: The task ID associated with the main task for ``browser_id``  (value from ``CefBrowser::GetIdentifier``).
+            int: The task ID associated with the main task for ``browser_id`` (value from ``CefBrowser::GetIdentifier``).
         """
         ...
     @staticmethod
@@ -7035,7 +7057,7 @@ class TaskManager:
         Returns ``None`` if the method was called from the incorrect thread.
 
         Returns:
-            TaskManager | None: The global task manager object.
+            cefweaver.TaskManager | None: The global task manager object.
         """
         ...
 
@@ -7043,10 +7065,11 @@ class TaskManager:
 class URLRequest:
     """Class used to make a URL request.
 
-    URL requests are not associated with a browser instance so no :class:`Client`
-    callbacks will be executed. URL requests can be created on any valid CEF thread in
-    either the browser or render process. Once created the methods of the URL request
-    object must be accessed on the same thread that created it.
+    URL requests are not associated with a browser instance so no
+    :class:`~cefweaver.Client` callbacks will be executed. URL requests can be created
+    on any valid CEF thread in either the browser or render process. Once created the
+    methods of the URL request object must be accessed on the same thread that created
+    it.
     """
     def get_request(self) -> Request | None:
         """Return the request object used to create this URL request.
@@ -7054,28 +7077,28 @@ class URLRequest:
         The returned object is read-only and should not be modified.
 
         Returns:
-            Request | None: The request object used to create this URL request.
+            cefweaver.Request | None: The request object used to create this URL request.
         """
         ...
     def get_client(self) -> URLRequestClient | None:
         """Return the client.
 
         Returns:
-            URLRequestClient | None: The client.
+            cefweaver.URLRequestClient | None: The client.
         """
         ...
     def get_request_status(self) -> URLRequestStatus:
         """Return the request status.
 
         Returns:
-            URLRequestStatus: The request status.
+            cefweaver.types.URLRequestStatus: The request status.
         """
         ...
     def get_request_error(self) -> ErrorCode:
         """Return the request error if status is UR_CANCELED or UR_FAILED, or 0 otherwise.
 
         Returns:
-            ErrorCode: The request error if status is UR_CANCELED or UR_FAILED, or 0  otherwise.
+            cefweaver.types.ErrorCode: The request error if status is UR_CANCELED or UR_FAILED, or 0 otherwise.
         """
         ...
     def get_response(self) -> Response | None:
@@ -7085,7 +7108,7 @@ class URLRequest:
         returned object is read-only and should not be modified.
 
         Returns:
-            Response | None: The response, or ``None`` if no response information is available.
+            cefweaver.Response | None: The response, or ``None`` if no response information is available.
         """
         ...
     def response_was_cached(self) -> bool:
@@ -7102,25 +7125,27 @@ class URLRequest:
         ...
     @staticmethod
     def create(request: Request, client: URLRequestClient, request_context: RequestContext | None) -> URLRequest:
-        """ Create a new URL request that is not associated with a specific browser or
-         frame. Use :meth:`Frame.create_url_request` instead if you want the request to
-         have this association, in which case it may be handled differently (see
-         documentation on that method). A request created with this method may only
-         originate from the browser process, and will behave as follows:
-           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
-             :class:`SchemeHandlerFactory`.
-           - POST data may only contain only a single element of type PDE_TYPE_FILE
-             or PDE_TYPE_BYTES.
-           - If ``request_context`` is empty the global request context will be used.
+        """Create a new URL request that is not associated with a specific browser or frame.
+
+        Use :meth:`~cefweaver.Frame.create_url_request` instead if you want the request to
+        have this association, in which case it may be handled differently (see
+        documentation on that method). A request created with this method may only originate
+        from the browser process, and will behave as follows:
+
+        - It may be intercepted by the client via :class:`~cefweaver.ResourceRequestHandler`
+          or :class:`~cefweaver.SchemeHandlerFactory`.
+        - POST data may only contain only a single element of type PDE_TYPE_FILE or
+          PDE_TYPE_BYTES.
+        - If ``request_context`` is empty the global request context will be used.
 
         The ``request`` object will be marked as read-only after calling this method.
 
         Args:
-            request (Request):
-            client (URLRequestClient):
-            request_context (RequestContext | None):
+            request (cefweaver.Request):
+            client (cefweaver.URLRequestClient):
+            request_context (cefweaver.RequestContext | None):
         Returns:
-            URLRequest
+            cefweaver.URLRequest
         """
         ...
 
@@ -7176,18 +7201,18 @@ class Value:
         vice-versa.
 
         Args:
-            that (Value):
+            that (cefweaver.Value):
         Returns:
-            bool: ``True`` if this object and ``that`` object have the same underlying  data.
+            bool: ``True`` if this object and ``that`` object have the same underlying data.
         """
         ...
     def is_equal(self, that: Value) -> bool:
         """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
 
         Args:
-            that (Value):
+            that (cefweaver.Value):
         Returns:
-            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
+            bool: ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> Value | None:
@@ -7196,14 +7221,14 @@ class Value:
         The underlying data will also be copied.
 
         Returns:
-            Value | None: A copy of this object.
+            cefweaver.Value | None: A copy of this object.
         """
         ...
     def get_type(self) -> ValueType:
         """Return the underlying value type.
 
         Returns:
-            ValueType: The underlying value type.
+            cefweaver.types.ValueType: The underlying value type.
         """
         ...
     def get_bool(self) -> bool:
@@ -7243,7 +7268,7 @@ class Value:
         the SetValue() method instead of passing the returned reference to SetBinary().
 
         Returns:
-            BinaryValue | None: The underlying value as type binary.
+            cefweaver.BinaryValue | None: The underlying value as type binary.
         """
         ...
     def get_dictionary(self) -> DictionaryValue | None:
@@ -7255,7 +7280,7 @@ class Value:
         the SetValue() method instead of passing the returned reference to SetDictionary().
 
         Returns:
-            DictionaryValue | None: The underlying value as type dictionary.
+            cefweaver.DictionaryValue | None: The underlying value as type dictionary.
         """
         ...
     def get_list(self) -> ListValue | None:
@@ -7267,7 +7292,7 @@ class Value:
         the SetValue() method instead of passing the returned reference to SetList().
 
         Returns:
-            ListValue | None: The underlying value as type list.
+            cefweaver.ListValue | None: The underlying value as type list.
         """
         ...
     def set_null(self) -> bool:
@@ -7330,7 +7355,7 @@ class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (BinaryValue):
+            value (cefweaver.BinaryValue):
         Returns:
             bool
         """
@@ -7342,7 +7367,7 @@ class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (DictionaryValue):
+            value (cefweaver.DictionaryValue):
         Returns:
             bool
         """
@@ -7354,7 +7379,7 @@ class Value:
         ``value`` and ownership of the underlying data remains unchanged.
 
         Args:
-            value (ListValue):
+            value (cefweaver.ListValue):
         Returns:
             bool
         """
@@ -7364,7 +7389,7 @@ class Value:
         """Create a new object.
 
         Returns:
-            Value
+            cefweaver.Value
         """
         ...
 
@@ -7380,35 +7405,35 @@ class View:
         """Return this View as a BrowserView or ``None`` if this is not a BrowserView.
 
         Returns:
-            BrowserView | None: This View as a BrowserView or ``None`` if this is not a BrowserView.
+            cefweaver.BrowserView | None: This View as a BrowserView or ``None`` if this is not a BrowserView.
         """
         ...
     def as_button(self) -> Button | None:
         """Return this View as a Button or ``None`` if this is not a Button.
 
         Returns:
-            Button | None: This View as a Button or ``None`` if this is not a Button.
+            cefweaver.Button | None: This View as a Button or ``None`` if this is not a Button.
         """
         ...
     def as_panel(self) -> Panel | None:
         """Return this View as a Panel or ``None`` if this is not a Panel.
 
         Returns:
-            Panel | None: This View as a Panel or ``None`` if this is not a Panel.
+            cefweaver.Panel | None: This View as a Panel or ``None`` if this is not a Panel.
         """
         ...
     def as_scroll_view(self) -> ScrollView | None:
         """Return this View as a ScrollView or ``None`` if this is not a ScrollView.
 
         Returns:
-            ScrollView | None: This View as a ScrollView or ``None`` if this is not a ScrollView.
+            cefweaver.ScrollView | None: This View as a ScrollView or ``None`` if this is not a ScrollView.
         """
         ...
     def as_textfield(self) -> Textfield | None:
         """Return this View as a Textfield or ``None`` if this is not a Textfield.
 
         Returns:
-            Textfield | None: This View as a Textfield or ``None`` if this is not a Textfield.
+            cefweaver.Textfield | None: This View as a Textfield or ``None`` if this is not a Textfield.
         """
         ...
     def get_type_string(self) -> str:
@@ -7429,7 +7454,7 @@ class View:
         Args:
             include_children (bool): True any child Views will also be included.
         Returns:
-            str: A string representation of this View which includes the type and  various type-specific identifying attributes.
+            str: A string representation of this View which includes the type and various type-specific identifying attributes.
         """
         ...
     def is_valid(self) -> bool:
@@ -7452,7 +7477,7 @@ class View:
         """Return ``True`` if this View is the same as ``that`` View.
 
         Args:
-            that (View):
+            that (cefweaver.View):
         Returns:
             bool: ``True`` if this View is the same as ``that`` View.
         """
@@ -7461,14 +7486,14 @@ class View:
         """Return the delegate associated with this View, if any.
 
         Returns:
-            ViewDelegate | None: The delegate associated with this View, if any.
+            cefweaver.ViewDelegate | None: The delegate associated with this View, if any.
         """
         ...
     def get_window(self) -> Window | None:
         """Return the top-level Window hosting this View, if any.
 
         Returns:
-            Window | None: The top-level Window hosting this View, if any.
+            cefweaver.Window | None: The top-level Window hosting this View, if any.
         """
         ...
     def get_id(self) -> int:
@@ -7509,7 +7534,7 @@ class View:
         """Return the View that contains this View, if any.
 
         Returns:
-            View | None: The View that contains this View, if any.
+            cefweaver.View | None: The View that contains this View, if any.
         """
         ...
     def get_view_for_id(self, id: int) -> View | None:
@@ -7520,7 +7545,7 @@ class View:
         Args:
             id (int):
         Returns:
-            View | None
+            cefweaver.View | None
         """
         ...
     def set_bounds(self, bounds: Rect | tuple[int, int, int, int]) -> None:
@@ -7530,21 +7555,21 @@ class View:
         parent.
 
         Args:
-            bounds (Rect | tuple[int, int, int, int]): In parent  coordinates, or DIP screen coordinates if there is no parent.
+            bounds (Rect | tuple[int, int, int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_bounds(self) -> Rect:
         """Return the bounds (size and position) of this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Rect: The bounds (size and position) of this View in parent coordinates,  or DIP screen coordinates if there is no parent.
+            Rect: The bounds (size and position) of this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_bounds_in_screen(self) -> Rect:
         """Return the bounds (size and position) of this View in DIP screen coordinates.
 
         Returns:
-            Rect: The bounds (size and position) of this View in DIP screen  coordinates.
+            Rect: The bounds (size and position) of this View in DIP screen coordinates.
         """
         ...
     def set_size(self, size: Size | tuple[int, int]) -> None:
@@ -7560,7 +7585,7 @@ class View:
         """Return the size of this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Size: The size of this View in parent coordinates, or DIP screen  coordinates if there is no parent.
+            Size: The size of this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def set_position(self, position: Point | tuple[int, int]) -> None:
@@ -7570,7 +7595,7 @@ class View:
         parent.
 
         Args:
-            position (Point | tuple[int, int]): In  parent coordinates, or DIP screen coordinates if there is no parent.
+            position (Point | tuple[int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_position(self) -> Point:
@@ -7589,14 +7614,14 @@ class View:
         parent.
 
         Args:
-            insets (Insets | tuple[int, int, int, int]): In parent coordinates, or DIP  screen coordinates if there is no parent.
+            insets (Insets | tuple[int, int, int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_insets(self) -> Insets:
         """Return the insets for this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Insets: The insets for this View in parent coordinates, or DIP screen  coordinates if there is no parent.
+            Insets: The insets for this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_preferred_size(self) -> Size:
@@ -7726,17 +7751,17 @@ class View:
         """Return whether this View is focusable when the user requires full keyboard access, even though it may not be normally focusable.
 
         Returns:
-            bool: Whether this View is focusable when the user requires full keyboard  access, even though it may not be normally focusable.
+            bool: Whether this View is focusable when the user requires full keyboard access, even though it may not be normally focusable.
         """
         ...
     def has_focus(self) -> bool:
         """Return ``True`` if this View has focus in the context of the containing Window.
 
-        Check both this method and :meth:`Window.is_active` to determine global keyboard
-        focus.
+        Check both this method and :meth:`~cefweaver.Window.is_active` to determine global
+        keyboard focus.
 
         Returns:
-            bool: ``True`` if this View has focus in the context of the containing  Window.
+            bool: ``True`` if this View has focus in the context of the containing Window.
         """
         ...
     def request_focus(self) -> None:
@@ -7750,7 +7775,7 @@ class View:
         """Set the background color for this View.
 
         The background color will be automatically reset when
-        :meth:`ViewDelegate.on_theme_changed` is called.
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed` is called.
 
         Args:
             color (int):
@@ -7760,9 +7785,9 @@ class View:
         """Return the background color for this View.
 
         If the background color is unset then the current
-        `GetThemeColor(CEF_ColorPrimaryBackground)` value will be returned. If this View
-        belongs to an overlay (created with :meth:`Window.add_overlay_view`), and the
-        background color is unset, then a value of transparent (0) will be returned.
+        ``GetThemeColor(CEF_ColorPrimaryBackground)`` value will be returned. If this View
+        belongs to an overlay (created with :meth:`~cefweaver.Window.add_overlay_view`), and
+        the background color is unset, then a value of transparent (0) will be returned.
 
         Returns:
             int: The background color for this View.
@@ -7772,12 +7797,12 @@ class View:
         """Return the current theme color associated with ``color_id``, or the placeholder color (red) if unset.
 
         See cef_color_ids.h for standard ID values. Standard colors can be overridden and
-        custom colors can be added using :meth:`Window.set_theme_color`.
+        custom colors can be added using :meth:`~cefweaver.Window.set_theme_color`.
 
         Args:
             color_id (int):
         Returns:
-            int: The current theme color associated with ``color_id``, or the  placeholder color (red) if unset.
+            int: The current theme color associated with ``color_id``, or the placeholder color (red) if unset.
         """
         ...
     def convert_point_to_screen(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
@@ -7785,8 +7810,8 @@ class View:
 
         This View must belong to a Window when calling this method. Returns ``True`` if the
         conversion is successful or ``False`` otherwise. Use
-        :meth:`Display.convert_point_to_pixels` after calling this method if further
-        conversion to display-specific pixel coordinates is desired.
+        :meth:`~cefweaver.Display.convert_point_to_pixels` after calling this method if
+        further conversion to display-specific pixel coordinates is desired.
 
         Args:
             point (Point | tuple[int, int]):
@@ -7799,8 +7824,8 @@ class View:
 
         This View must belong to a Window when calling this method. Returns ``True`` if the
         conversion is successful or ``False`` otherwise. Use
-        :meth:`Display.convert_point_from_pixels` before calling this method if conversion
-        from display-specific pixel coordinates is necessary.
+        :meth:`~cefweaver.Display.convert_point_from_pixels` before calling this method if
+        conversion from display-specific pixel coordinates is necessary.
 
         Args:
             point (Point | tuple[int, int]):
@@ -7839,7 +7864,7 @@ class View:
         Returns ``True`` if the conversion is successful or ``False`` otherwise.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             point (Point | tuple[int, int]):
         Returns:
             tuple[bool, Point]
@@ -7852,7 +7877,7 @@ class View:
         Returns ``True`` if the conversion is successful or ``False`` otherwise.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             point (Point | tuple[int, int]):
         Returns:
             tuple[bool, Point]
@@ -7925,14 +7950,14 @@ class X509Certificate:
         the subject should match the host name of the web server.
 
         Returns:
-            X509CertPrincipal | None: The subject of the X.509 certificate.
+            cefweaver.X509CertPrincipal | None: The subject of the X.509 certificate.
         """
         ...
     def get_issuer(self) -> X509CertPrincipal | None:
         """Return the issuer of the X.509 certificate.
 
         Returns:
-            X509CertPrincipal | None: The issuer of the X.509 certificate.
+            cefweaver.X509CertPrincipal | None: The issuer of the X.509 certificate.
         """
         ...
     def get_serial_number(self) -> BinaryValue | None:
@@ -7941,7 +7966,7 @@ class X509Certificate:
         The value possibly includes a leading 00 byte.
 
         Returns:
-            BinaryValue | None: The DER encoded serial number for the X.509 certificate.
+            cefweaver.BinaryValue | None: The DER encoded serial number for the X.509 certificate.
         """
         ...
     def get_valid_start(self) -> datetime.datetime | None:
@@ -7966,14 +7991,14 @@ class X509Certificate:
         """Return the DER encoded data for the X.509 certificate.
 
         Returns:
-            BinaryValue | None: The DER encoded data for the X.509 certificate.
+            cefweaver.BinaryValue | None: The DER encoded data for the X.509 certificate.
         """
         ...
     def get_pem_encoded(self) -> BinaryValue | None:
         """Return the PEM encoded data for the X.509 certificate.
 
         Returns:
-            BinaryValue | None: The PEM encoded data for the X.509 certificate.
+            cefweaver.BinaryValue | None: The PEM encoded data for the X.509 certificate.
         """
         ...
     def get_issuer_chain_size(self) -> int:
@@ -7992,7 +8017,7 @@ class X509Certificate:
         but is an empty string.
 
         Returns:
-            list[BinaryValue]: The DER encoded data for the certificate issuer chain.
+            list[cefweaver.BinaryValue]: The DER encoded data for the certificate issuer chain.
         """
         ...
     def get_pem_encoded_issuer_chain(self) -> list[BinaryValue]:
@@ -8002,7 +8027,7 @@ class X509Certificate:
         but is an empty string.
 
         Returns:
-            list[BinaryValue]: The PEM encoded data for the certificate issuer chain.
+            list[cefweaver.BinaryValue]: The PEM encoded data for the certificate issuer chain.
         """
         ...
 
@@ -8120,15 +8145,15 @@ class ZipReader:
         ...
     @staticmethod
     def create(stream: StreamReader) -> ZipReader:
-        """Create a new :class:`ZipReader` object.
+        """Create a new :class:`~cefweaver.ZipReader` object.
 
         The returned object's methods can only be called from the thread that created the
         object.
 
         Args:
-            stream (StreamReader):
+            stream (cefweaver.StreamReader):
         Returns:
-            ZipReader
+            cefweaver.ZipReader
         """
         ...
 
@@ -8150,7 +8175,7 @@ class BoxLayout(Layout):
         resized. Flex values must not be negative.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             flex (int):
         """
         ...
@@ -8158,54 +8183,56 @@ class BoxLayout(Layout):
         """Clear the flex for the given ``view``, causing it to use the default flex specified via ``CefBoxLayoutSettings``.default_flex.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
 
 
 class BrowserView(View):
-    """A View hosting a :class:`Browser` instance.
+    """A View hosting a :class:`~cefweaver.Browser` instance.
 
     Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def get_browser(self) -> Browser | None:
-        """Return the :class:`Browser` hosted by this BrowserView.
+        """Return the :class:`~cefweaver.Browser` hosted by this BrowserView.
 
         Will return ``None`` if the browser has not yet been created or has already been
         destroyed.
 
         Returns:
-            Browser | None: The ``CefBrowser`` hosted by this BrowserView.
+            cefweaver.Browser | None: The ``CefBrowser`` hosted by this BrowserView.
         """
         ...
     def get_chrome_toolbar(self) -> View | None:
         """Return the Chrome toolbar associated with this BrowserView.
 
-        Only supported when using Chrome style. The :class:`BrowserViewDelegate`::
-        GetChromeToolbarType() method must return a value other than CEF_CTT_NONE and the
-        toolbar will not be available until after this BrowserView is added to a
-        :class:`Window` and :meth:`ViewDelegate.on_window_changed` has been called.
+        Only supported when using Chrome style. The
+        :class:`~cefweaver.BrowserViewDelegate`:: GetChromeToolbarType() method must return
+        a value other than CEF_CTT_NONE and the toolbar will not be available until after
+        this BrowserView is added to a :class:`~cefweaver.Window` and
+        :meth:`~cefweaver.ViewDelegate.on_window_changed` has been called.
 
         Returns:
-            View | None: The Chrome toolbar associated with this BrowserView.
+            cefweaver.View | None: The Chrome toolbar associated with this BrowserView.
         """
         ...
     def set_prefer_accelerators(self, prefer_accelerators: bool) -> None:
-        """Set whether normal priority accelerators are first forwarded to the web content (`keydown` event handler) or :class:`KeyboardHandler`.
+        """Set whether normal priority accelerators are first forwarded to the web content (``keydown`` event handler) or :class:`~cefweaver.KeyboardHandler`.
 
-        Normal priority accelerators can be registered via :meth:`Window.set_accelerator`
-        (with ``high_priority``=``False``) or internally for standard accelerators supported
-        by Chrome style. If ``prefer_accelerators`` is ``True`` then the matching
-        accelerator will be triggered immediately (calling
-        :meth:`WindowDelegate.on_accelerator` or :meth:`CommandHandler.on_chrome_command`
-        respectively) and the event will not be forwarded to the web content or
-        :class:`KeyboardHandler` first. If ``prefer_accelerators`` is ``False`` then the
-        matching accelerator will only be triggered if the event is not handled by web
-        content (`keydown` event handler that calls `event.preventDefault()`) or by
-        :class:`KeyboardHandler`. The default value is ``False``.
+        Normal priority accelerators can be registered via
+        :meth:`~cefweaver.Window.set_accelerator` (with ``high_priority``=``False``) or
+        internally for standard accelerators supported by Chrome style. If
+        ``prefer_accelerators`` is ``True`` then the matching accelerator will be triggered
+        immediately (calling :meth:`~cefweaver.WindowDelegate.on_accelerator` or
+        :meth:`~cefweaver.CommandHandler.on_chrome_command` respectively) and the event will
+        not be forwarded to the web content or :class:`~cefweaver.KeyboardHandler` first. If
+        ``prefer_accelerators`` is ``False`` then the matching accelerator will only be
+        triggered if the event is not handled by web content (``keydown`` event handler that
+        calls ``event.preventDefault()``) or by :class:`~cefweaver.KeyboardHandler`. The
+        default value is ``False``.
 
         Args:
-            prefer_accelerators (bool): False then the  matching accelerator will only be triggered if the event is not handled by  web content (`keydown` event handler that calls `event.
+            prefer_accelerators (bool): False then the matching accelerator will only be triggered if the event is not handled by web content (``keydown`` event handler that calls ``event.preventDefault()``) or by ``CefKeyboardHandler``.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
@@ -8214,27 +8241,27 @@ class BrowserView(View):
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle: The runtime style for this BrowserView (ALLOY or CHROME).
+            cefweaver.types.RuntimeStyle: The runtime style for this BrowserView (ALLOY or CHROME).
         """
         ...
     @staticmethod
     def create_browser_view(client: Client | None, url: str | None, settings: BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, State, State, State, State, State, State, State, State, State, State, State, int, State, State], extra_info: DictionaryValue | None, request_context: RequestContext | None, delegate: BrowserViewDelegate | None) -> BrowserView | None:
         """Create a new BrowserView.
 
-        The underlying :class:`Browser` will not be created until this view is added to the
-        views hierarchy. The optional ``extra_info`` parameter provides an opportunity to
-        specify extra information specific to the created browser that will be passed to
-        ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
+        The underlying :class:`~cefweaver.Browser` will not be created until this view is
+        added to the views hierarchy. The optional ``extra_info`` parameter provides an
+        opportunity to specify extra information specific to the created browser that will
+        be passed to ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
 
         Args:
-            client (Client | None):
+            client (cefweaver.Client | None):
             url (str | None):
-            settings (BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, State, State, State, State, State, State, State, State, State, State, State, int, State, State]):
-            extra_info (DictionaryValue | None):
-            request_context (RequestContext | None):
-            delegate (BrowserViewDelegate | None):
+            settings (BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, cefweaver.types.State, int, cefweaver.types.State, cefweaver.types.State]):
+            extra_info (cefweaver.DictionaryValue | None):
+            request_context (cefweaver.RequestContext | None):
+            delegate (cefweaver.BrowserViewDelegate | None):
         Returns:
-            BrowserView | None
+            cefweaver.BrowserView | None
         """
         ...
     @staticmethod
@@ -8242,9 +8269,9 @@ class BrowserView(View):
         """Return the BrowserView associated with ``browser``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
-            BrowserView | None: The BrowserView associated with ``browser``.
+            cefweaver.BrowserView | None: The BrowserView associated with ``browser``.
         """
         ...
 
@@ -8260,21 +8287,21 @@ class Button(View):
         """Return this Button as a LabelButton or ``None`` if this is not a LabelButton.
 
         Returns:
-            LabelButton | None: This Button as a LabelButton or ``None`` if this is not a LabelButton.
+            cefweaver.LabelButton | None: This Button as a LabelButton or ``None`` if this is not a LabelButton.
         """
         ...
     def set_state(self, state: ButtonState | int) -> None:
         """Set the current display state of the Button.
 
         Args:
-            state (ButtonState | int):
+            state (cefweaver.types.ButtonState | int):
         """
         ...
     def get_state(self) -> ButtonState:
         """Return the current display state of the Button.
 
         Returns:
-            ButtonState: The current display state of the Button.
+            cefweaver.types.ButtonState: The current display state of the Button.
         """
         ...
     def set_ink_drop_enabled(self, enabled: bool) -> None:
@@ -8316,30 +8343,30 @@ class Panel(View):
         """Return this Panel as a Window or ``None`` if this is not a Window.
 
         Returns:
-            Window | None: This Panel as a Window or ``None`` if this is not a Window.
+            cefweaver.Window | None: This Panel as a Window or ``None`` if this is not a Window.
         """
         ...
     def set_to_fill_layout(self) -> FillLayout | None:
         """Set this Panel's Layout to FillLayout and return the FillLayout object.
 
         Returns:
-            FillLayout | None
+            cefweaver.FillLayout | None
         """
         ...
     def set_to_box_layout(self, settings: BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]) -> BoxLayout | None:
         """Set this Panel's Layout to BoxLayout and return the BoxLayout object.
 
         Args:
-            settings (BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]):
+            settings (BoxLayoutSettings | tuple[int, int, int, Insets, int, cefweaver.types.AxisAlignment, cefweaver.types.AxisAlignment, int, int]):
         Returns:
-            BoxLayout | None
+            cefweaver.BoxLayout | None
         """
         ...
     def get_layout(self) -> Layout | None:
         """Get the Layout.
 
         Returns:
-            Layout | None
+            cefweaver.Layout | None
         """
         ...
     def layout(self) -> None:
@@ -8349,7 +8376,7 @@ class Panel(View):
         """Add a child View.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def add_child_view_at(self, view: View, index: int) -> None:
@@ -8359,7 +8386,7 @@ class Panel(View):
         the end.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             index (int):
         """
         ...
@@ -8369,7 +8396,7 @@ class Panel(View):
         A negative value for ``index`` will move the View to the end.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             index (int):
         """
         ...
@@ -8379,7 +8406,7 @@ class Panel(View):
         The View can then be added to another Panel.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def remove_all_child_views(self) -> None:
@@ -8401,7 +8428,7 @@ class Panel(View):
         Args:
             index (int):
         Returns:
-            View | None: The child View at the specified ``index``.
+            cefweaver.View | None: The child View at the specified ``index``.
         """
         ...
     @staticmethod
@@ -8409,9 +8436,9 @@ class Panel(View):
         """Create a new Panel.
 
         Args:
-            delegate (PanelDelegate | None):
+            delegate (cefweaver.PanelDelegate | None):
         Returns:
-            Panel | None
+            cefweaver.Panel | None
         """
         ...
 
@@ -8424,18 +8451,19 @@ class ScrollView(View):
     def set_content_view(self, view: View) -> None:
         """Set the content View.
 
-        The content View must have a specified size (e.g. via :meth:`View.set_bounds` or
-        :meth:`ViewDelegate.get_preferred_size`).
+        The content View must have a specified size (e.g. via
+        :meth:`~cefweaver.View.set_bounds` or
+        :meth:`~cefweaver.ViewDelegate.get_preferred_size`).
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def get_content_view(self) -> View | None:
         """Return the content View.
 
         Returns:
-            View | None: The content View.
+            cefweaver.View | None: The content View.
         """
         ...
     def get_visible_content_rect(self) -> Rect:
@@ -8478,9 +8506,9 @@ class ScrollView(View):
         """Create a new ScrollView.
 
         Args:
-            delegate (ViewDelegate | None):
+            delegate (cefweaver.ViewDelegate | None):
         Returns:
-            ScrollView | None
+            cefweaver.ScrollView | None
         """
         ...
 
@@ -8571,7 +8599,7 @@ class Textfield(View):
         this generally shows the leading portion of text that overflows its display area.
 
         Args:
-            reversed (bool): True the range will end at the logical  beginning of the text; this generally shows the leading portion of text  that overflows its display area.
+            reversed (bool): True the range will end at the logical beginning of the text; this generally shows the leading portion of text that overflows its display area.
         """
         ...
     def clear_selection(self) -> None:
@@ -8599,15 +8627,19 @@ class Textfield(View):
         """
         ...
     def set_font_list(self, font_list: str) -> None:
-        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-         where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             font_list (str):
@@ -8620,7 +8652,7 @@ class Textfield(View):
 
         Args:
             color (int):
-            range (Range | tuple[int, int]): Empty the color will be set on the complete text  contents.
+            range (Range | tuple[int, int]): Empty the color will be set on the complete text contents.
         """
         ...
     def apply_text_style(self, style: TextStyle | int, add: bool, range: Range | tuple[int, int]) -> None:
@@ -8630,9 +8662,9 @@ class Textfield(View):
         If ``range`` is empty the style will be set on the complete text contents.
 
         Args:
-            style (TextStyle | int):
-            add (bool): True the style will be added, otherwise the style will  be removed.
-            range (Range | tuple[int, int]): Empty the style will be set on the complete text  contents.
+            style (cefweaver.types.TextStyle | int):
+            add (bool): True the style will be added, otherwise the style will be removed.
+            range (Range | tuple[int, int]): Empty the style will be set on the complete text contents.
         """
         ...
     def is_command_enabled(self, command_id: TextFieldCommands | int) -> bool:
@@ -8641,16 +8673,16 @@ class Textfield(View):
         See additional comments on ExecuteCommand().
 
         Args:
-            command_id (TextFieldCommands | int):
+            command_id (cefweaver.types.TextFieldCommands | int):
         Returns:
-            bool: ``True`` if the action associated with the specified command id is  enabled.
+            bool: ``True`` if the action associated with the specified command id is enabled.
         """
         ...
     def execute_command(self, command_id: TextFieldCommands | int) -> None:
         """Perform the action associated with the specified command id.
 
         Args:
-            command_id (TextFieldCommands | int):
+            command_id (cefweaver.types.TextFieldCommands | int):
         """
         ...
     def clear_edit_history(self) -> None:
@@ -8667,7 +8699,7 @@ class Textfield(View):
         """Return the placeholder text that will be displayed when the Textfield is empty.
 
         Returns:
-            str: The placeholder text that will be displayed when the Textfield is  empty.
+            str: The placeholder text that will be displayed when the Textfield is empty.
         """
         ...
     def set_accessible_name(self, name: str) -> None:
@@ -8682,9 +8714,9 @@ class Textfield(View):
         """Create a new Textfield.
 
         Args:
-            delegate (TextfieldDelegate | None):
+            delegate (cefweaver.TextfieldDelegate | None):
         Returns:
-            Textfield | None
+            cefweaver.Textfield | None
         """
         ...
 
@@ -8698,7 +8730,7 @@ class LabelButton(Button):
         """Return this LabelButton as a MenuButton or ``None`` if this is not a MenuButton.
 
         Returns:
-            MenuButton | None: This LabelButton as a MenuButton or ``None`` if this is not a  MenuButton.
+            cefweaver.MenuButton | None: This LabelButton as a MenuButton or ``None`` if this is not a MenuButton.
         """
         ...
     def set_text(self, text: str) -> None:
@@ -8724,8 +8756,8 @@ class LabelButton(Button):
         for CEF_BUTTON_STATE_NORMAL, if any, will be shown.
 
         Args:
-            button_state (ButtonState | int):
-            image (Image | None):
+            button_state (cefweaver.types.ButtonState | int):
+            image (cefweaver.Image | None):
         """
         ...
     def get_image(self, button_state: ButtonState | int) -> Image | None:
@@ -8735,16 +8767,16 @@ class LabelButton(Button):
         returned.
 
         Args:
-            button_state (ButtonState | int):
+            button_state (cefweaver.types.ButtonState | int):
         Returns:
-            Image | None: The image shown for ``button_state``.
+            cefweaver.Image | None: The image shown for ``button_state``.
         """
         ...
     def set_text_color(self, for_state: ButtonState | int, color: int) -> None:
         """Set the text color shown for the specified button ``for_state`` to ``color``.
 
         Args:
-            for_state (ButtonState | int):
+            for_state (cefweaver.types.ButtonState | int):
             color (int):
         """
         ...
@@ -8756,15 +8788,19 @@ class LabelButton(Button):
         """
         ...
     def set_font_list(self, font_list: str) -> None:
-        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-         where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             font_list (str):
@@ -8776,7 +8812,7 @@ class LabelButton(Button):
         Default is CEF_HORIZONTAL_ALIGNMENT_CENTER.
 
         Args:
-            alignment (HorizontalAlignment | int):
+            alignment (cefweaver.types.HorizontalAlignment | int):
         """
         ...
     def set_minimum_size(self, size: Size | tuple[int, int]) -> None:
@@ -8801,10 +8837,10 @@ class LabelButton(Button):
         on the LabelButton and used as the default accessible name.
 
         Args:
-            delegate (ButtonDelegate):
+            delegate (cefweaver.ButtonDelegate):
             text (str | None):
         Returns:
-            LabelButton | None
+            cefweaver.LabelButton | None
         """
         ...
 
@@ -8823,16 +8859,17 @@ class Window(Panel):
     def show_as_browser_modal_dialog(self, browser_view: BrowserView) -> None:
         """Show the Window as a browser modal dialog relative to ``browser_view``.
 
-        A parent Window must be returned via :meth:`WindowDelegate.get_parent_window` and
-        ``browser_view`` must belong to that parent Window. While this Window is visible,
-        ``browser_view`` will be disabled while other controls in the parent Window remain
-        enabled. Navigating or destroying the ``browser_view`` will close this Window
-        automatically. Alternately, use Show() and return ``True`` from
-        :meth:`WindowDelegate.is_window_modal_dialog` for a window modal dialog where all
-        controls in the parent Window are disabled.
+        A parent Window must be returned via
+        :meth:`~cefweaver.WindowDelegate.get_parent_window` and ``browser_view`` must belong
+        to that parent Window. While this Window is visible, ``browser_view`` will be
+        disabled while other controls in the parent Window remain enabled. Navigating or
+        destroying the ``browser_view`` will close this Window automatically. Alternately,
+        use Show() and return ``True`` from
+        :meth:`~cefweaver.WindowDelegate.is_window_modal_dialog` for a window modal dialog
+        where all controls in the parent Window are disabled.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         """
         ...
     def hide(self) -> None:
@@ -8882,7 +8919,7 @@ class Window(Panel):
         """Return whether the Window has been set to be on top of other Windows in the Windowing system.
 
         Returns:
-            bool: Whether the Window has been set to be on top of other Windows in  the Windowing system.
+            bool: Whether the Window has been set to be on top of other Windows in the Windowing system.
         """
         ...
     def maximize(self) -> None:
@@ -8897,8 +8934,8 @@ class Window(Panel):
     def set_fullscreen(self, fullscreen: bool) -> None:
         """Set fullscreen Window state.
 
-        The :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called
-        during the fullscreen transition for notification purposes.
+        The :meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` method will be
+        called during the fullscreen transition for notification purposes.
 
         Args:
             fullscreen (bool):
@@ -8933,7 +8970,7 @@ class Window(Panel):
         active.
 
         Returns:
-            View | None: The View that currently has focus in this Window, or ``None`` if no  View currently has focus.
+            cefweaver.View | None: The View that currently has focus in this Window, or ``None`` if no View currently has focus.
         """
         ...
     def set_title(self, title: str | None) -> None:
@@ -8956,14 +8993,14 @@ class Window(Panel):
         This should be a 16x16 icon suitable for use in the Windows's title bar.
 
         Args:
-            image (Image):
+            image (cefweaver.Image):
         """
         ...
     def get_window_icon(self) -> Image | None:
         """Get the Window icon.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         ...
     def set_window_app_icon(self, image: Image) -> None:
@@ -8974,14 +9011,14 @@ class Window(Panel):
         icon will be used by default if no Window App icon is specified.
 
         Args:
-            image (Image):
+            image (cefweaver.Image):
         """
         ...
     def get_window_app_icon(self) -> Image | None:
         """Get the Window App icon.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         ...
     def add_overlay_view(self, view: View, docking_mode: DockingMode | int, can_activate: bool) -> OverlayController | None:
@@ -8989,26 +9026,27 @@ class Window(Panel):
 
         Positioning is controlled by ``docking_mode`` as described below. Setting
         ``can_activate`` to ``True`` will allow the overlay view to receive input focus. The
-        returned :class:`OverlayController` object is used to control the overlay. Overlays
-        are hidden by default.
+        returned :class:`~cefweaver.OverlayController` object is used to control the
+        overlay. Overlays are hidden by default.
 
-         With CEF_DOCKING_MODE_CUSTOM:
-           1. The overlay is initially hidden, sized to ``view``'s preferred size,
-              and positioned in the top-left corner.
-           2. Optionally change the overlay position and/or size by calling
-              :class:`OverlayController` methods.
-           3. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
-           4. The overlay will be automatically re-sized if ``view``'s layout
-              changes. Optionally change the overlay position and/or size when
-              OnLayoutChanged is called on the Window's delegate to indicate a
-              change in Window bounds.
+        With CEF_DOCKING_MODE_CUSTOM:
 
-         With other docking modes:
-           1. The overlay is initially hidden, sized to ``view``'s preferred size,
-              and positioned based on ``docking_mode``.
-           2. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
-           3. The overlay will be automatically re-sized if ``view``'s layout changes
-              and re-positioned as appropriate when the Window resizes.
+        1. The overlay is initially hidden, sized to ``view``'s preferred size, and
+           positioned in the top-left corner.
+        2. Optionally change the overlay position and/or size by calling
+           :class:`~cefweaver.OverlayController` methods.
+        3. Call :meth:`~cefweaver.OverlayController.set_visible` to show the overlay.
+        4. The overlay will be automatically re-sized if ``view``'s layout changes.
+           Optionally change the overlay position and/or size when OnLayoutChanged is called
+           on the Window's delegate to indicate a change in Window bounds.
+
+        With other docking modes:
+
+        1. The overlay is initially hidden, sized to ``view``'s preferred size, and
+           positioned based on ``docking_mode``.
+        2. Call :meth:`~cefweaver.OverlayController.set_visible` to show the overlay.
+        3. The overlay will be automatically re-sized if ``view``'s layout changes and
+           re-positioned as appropriate when the Window resizes.
 
         Overlays created by this method will receive a higher z-order then any child Views
         added previously. It is therefore recommended to call this method last after all
@@ -9016,11 +9054,11 @@ class Window(Panel):
         of the Window.
 
         Args:
-            view (View):
-            docking_mode (DockingMode | int):
+            view (cefweaver.View):
+            docking_mode (cefweaver.types.DockingMode | int):
             can_activate (bool):
         Returns:
-            OverlayController | None
+            cefweaver.OverlayController | None
         """
         ...
     def show_menu(self, menu_model: MenuModel, screen_point: Point | tuple[int, int], anchor_position: MenuAnchorPosition | int) -> None:
@@ -9031,9 +9069,9 @@ class Window(Panel):
         ``screen_point``.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point | tuple[int, int]):
-            anchor_position (MenuAnchorPosition | int):
+            anchor_position (cefweaver.types.MenuAnchorPosition | int):
         """
         ...
     def cancel_menu(self) -> None:
@@ -9045,7 +9083,7 @@ class Window(Panel):
         May return ``None`` if this Window is not currently displayed.
 
         Returns:
-            Display | None: The Display that most closely intersects the bounds of this  Window.
+            cefweaver.Display | None: The Display that most closely intersects the bounds of this Window.
         """
         ...
     def get_client_area_bounds_in_screen(self) -> Rect:
@@ -9077,14 +9115,14 @@ class Window(Panel):
     def send_key_press(self, key_code: int, event_flags: int) -> None:
         """Simulate a key press.
 
-        ``key_code`` is the VKEY_* value from Chromium's ui/events/keycodes/keyboard_codes.h
-        header (VK_* values on Windows). ``event_flags`` is some combination of
-        EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN. This method
-        is exposed primarily for testing purposes.
+        ``key_code`` is the ``VKEY_*`` value from Chromium's
+        ui/events/keycodes/keyboard_codes.h header (``VK_*`` values on Windows).
+        ``event_flags`` is some combination of EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN
+        and/or EVENTFLAG_ALT_DOWN. This method is exposed primarily for testing purposes.
 
         Args:
-            key_code (int): The VKEY_* value from Chromium's  ui/events/keycodes/keyboard_codes.
-            event_flags (int): Some combination of EVENTFLAG_SHIFT_DOWN,  EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN.
+            key_code (int): The ``VKEY_*`` value from Chromium's ui/events/keycodes/keyboard_codes.h header (``VK_*`` values on Windows).
+            event_flags (int): Some combination of EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN.
         """
         ...
     def send_mouse_move(self, screen_x: int, screen_y: int) -> None:
@@ -9109,7 +9147,7 @@ class Window(Panel):
         This method is exposed primarily for testing purposes.
 
         Args:
-            button (MouseButtonType | int): The mouse button  type.
+            button (cefweaver.types.MouseButtonType | int): The mouse button type.
             mouse_down (bool): True a mouse down event will be sent.
             mouse_up (bool): True a mouse up event will be sent.
         """
@@ -9119,15 +9157,16 @@ class Window(Panel):
 
         ``key_code`` can be any virtual key or character value. Required modifier keys are
         specified by ``shift_pressed``, ``ctrl_pressed`` and/or ``alt_pressed``.
-        :meth:`WindowDelegate.on_accelerator` will be called if the keyboard combination is
-        triggered while this window has focus.
+        :meth:`~cefweaver.WindowDelegate.on_accelerator` will be called if the keyboard
+        combination is triggered while this window has focus.
 
-        The ``high_priority`` value will be considered if a child :class:`BrowserView` has
-        focus when the keyboard combination is triggered. If ``high_priority`` is ``True``
-        then the key event will not be forwarded to the web content (`keydown` event
-        handler) or :class:`KeyboardHandler` first. If ``high_priority`` is ``False`` then
-        the behavior will depend on the :meth:`BrowserView.set_prefer_accelerators`
-        configuration.
+        The ``high_priority`` value will be considered if a child
+        :class:`~cefweaver.BrowserView` has focus when the keyboard combination is
+        triggered. If ``high_priority`` is ``True`` then the key event will not be forwarded
+        to the web content (``keydown`` event handler) or
+        :class:`~cefweaver.KeyboardHandler` first. If ``high_priority`` is ``False`` then
+        the behavior will depend on the
+        :meth:`~cefweaver.BrowserView.set_prefer_accelerators` configuration.
 
         Args:
             command_id (int):
@@ -9135,7 +9174,7 @@ class Window(Panel):
             shift_pressed (bool):
             ctrl_pressed (bool):
             alt_pressed (bool):
-            high_priority (bool): False then the behavior will depend on the  ``CefBrowserView::SetPreferAccelerators`` configuration.
+            high_priority (bool): False then the behavior will depend on the ``CefBrowserView::SetPreferAccelerators`` configuration.
         """
         ...
     def remove_accelerator(self, command_id: int) -> None:
@@ -9153,19 +9192,19 @@ class Window(Panel):
 
         See cef_color_ids.h for standard ID values. Recommended usage is as follows:
 
-         1. Customize the default native/OS theme by calling SetThemeColor before
-            showing the first Window. When done setting colors call
-            :meth:`Window.theme_changed` to trigger :meth:`ViewDelegate.on_theme_changed`
-            notifications.
-         2. Customize the current native/OS or Chrome theme after it changes by
-            calling SetThemeColor from the :meth:`WindowDelegate.on_theme_colors_changed`
-            callback. :meth:`ViewDelegate.on_theme_changed` notifications will then be
-            triggered automatically.
+        1. Customize the default native/OS theme by calling SetThemeColor before showing the
+           first Window. When done setting colors call
+           :meth:`~cefweaver.Window.theme_changed` to trigger
+           :meth:`~cefweaver.ViewDelegate.on_theme_changed` notifications.
+        2. Customize the current native/OS or Chrome theme after it changes by calling
+           SetThemeColor from the :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed`
+           callback. :meth:`~cefweaver.ViewDelegate.on_theme_changed` notifications will
+           then be triggered automatically.
 
-        The configured color will be available immediately via :meth:`View.get_theme_color`
-        and will be applied to each View in this Window's component hierarchy when
-        :meth:`ViewDelegate.on_theme_changed` is called. See OnThemeColorsChanged
-        documentation for additional details.
+        The configured color will be available immediately via
+        :meth:`~cefweaver.View.get_theme_color` and will be applied to each View in this
+        Window's component hierarchy when :meth:`~cefweaver.ViewDelegate.on_theme_changed`
+        is called. See OnThemeColorsChanged documentation for additional details.
 
         Clients wishing to add custom colors should use ``color_id`` values >=
         CEF_ChromeColorsEnd.
@@ -9176,14 +9215,15 @@ class Window(Panel):
         """
         ...
     def theme_changed(self) -> None:
-        """Trigger :meth:`ViewDelegate.on_theme_changed` callbacks for each View in this Window's component hierarchy.
+        """Trigger :meth:`~cefweaver.ViewDelegate.on_theme_changed` callbacks for each View in this Window's component hierarchy.
 
         Unlike a native/OS or Chrome theme change this method does not reset theme colors to
         standard values and does not result in a call to
-        :meth:`WindowDelegate.on_theme_colors_changed`.
+        :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed`.
 
-        Do not call this method from :meth:`WindowDelegate.on_theme_colors_changed` or
-        :meth:`ViewDelegate.on_theme_changed`.
+        Do not call this method from
+        :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` or
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed`.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
@@ -9192,7 +9232,7 @@ class Window(Panel):
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle: The runtime style for this Window (ALLOY or CHROME).
+            cefweaver.types.RuntimeStyle: The runtime style for this Window (ALLOY or CHROME).
         """
         ...
     @staticmethod
@@ -9200,9 +9240,9 @@ class Window(Panel):
         """Create a new Window.
 
         Args:
-            delegate (WindowDelegate | None):
+            delegate (cefweaver.WindowDelegate | None):
         Returns:
-            Window | None
+            cefweaver.Window | None
         """
         ...
 
@@ -9220,18 +9260,18 @@ class MenuButton(LabelButton):
         ``screen_point`` specifies the menu position in screen coordinates.
         ``anchor_position`` specifies how the menu will be anchored relative to
         ``screen_point``. This method should be called from
-        :meth:`MenuButtonDelegate.on_menu_button_pressed`.
+        :meth:`~cefweaver.MenuButtonDelegate.on_menu_button_pressed`.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point | tuple[int, int]):
-            anchor_position (MenuAnchorPosition | int):
+            anchor_position (cefweaver.types.MenuAnchorPosition | int):
         """
         ...
     def trigger_menu(self) -> None:
         """Show the menu for this button.
 
-        Results in a call to :meth:`MenuButtonDelegate.on_menu_button_pressed`.
+        Results in a call to :meth:`~cefweaver.MenuButtonDelegate.on_menu_button_pressed`.
         """
         ...
     @staticmethod
@@ -9246,10 +9286,10 @@ class MenuButton(LabelButton):
         hover/press, left alignment, less padding and no default minimum size.
 
         Args:
-            delegate (MenuButtonDelegate):
+            delegate (cefweaver.MenuButtonDelegate):
             text (str | None):
         Returns:
-            MenuButton | None
+            cefweaver.MenuButton | None
         """
         ...
 
@@ -9263,14 +9303,14 @@ class AccessibilityHandler:
         """Called after renderer process sends accessibility tree changes to the browser process.
 
         Args:
-            value (Value):
+            value (cefweaver.Value):
         """
         ...
     def on_accessibility_location_change(self, value: Value) -> None:
         """Called after renderer process sends accessibility location changes to the browser process.
 
         Args:
-            value (Value):
+            value (cefweaver.Value):
         """
         ...
 
@@ -9285,9 +9325,9 @@ class AudioHandler:
         pre-filled with some sensible defaults.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
-            tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]
+            tuple[bool, AudioParameters | tuple[cefweaver.types.ChannelLayout, int, int]]
         """
         ...
     def on_audio_stream_started(self, browser: Browser, params: AudioParameters, channels: int) -> None:
@@ -9299,7 +9339,7 @@ class AudioHandler:
         channels.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             params (AudioParameters):
             channels (int): The number of channels.
         """
@@ -9315,9 +9355,9 @@ class AudioHandler:
         calculate the size of the ``data`` array in bytes.
 
         Args:
-            browser (Browser):
-            data (list[memoryview]): An array representing the raw PCM data as a floating  point type, i.
-            pts (int): The presentation timestamp (in milliseconds since the  Unix Epoch) and represents the time at which the decompressed packet  should be presented to the user.
+            browser (cefweaver.Browser):
+            data (list[memoryview]): An array representing the raw PCM data as a floating point type, i.e.
+            pts (int): The presentation timestamp (in milliseconds since the Unix Epoch) and represents the time at which the decompressed packet should be presented to the user.
         """
         ...
     def on_audio_stream_stopped(self, browser: Browser) -> None:
@@ -9327,7 +9367,7 @@ class AudioHandler:
         may be called multiple times for the same stream.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def on_audio_stream_error(self, browser: Browser, message: str) -> None:
@@ -9338,7 +9378,7 @@ class AudioHandler:
         be stopped immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             message (str):
         """
         ...
@@ -9356,7 +9396,7 @@ class BrowserViewDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -9365,7 +9405,7 @@ class BrowserViewDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -9374,7 +9414,7 @@ class BrowserViewDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -9387,7 +9427,7 @@ class BrowserViewDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -9402,9 +9442,9 @@ class BrowserViewDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -9417,16 +9457,16 @@ class BrowserViewDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -9434,7 +9474,7 @@ class BrowserViewDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -9442,14 +9482,14 @@ class BrowserViewDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -9460,31 +9500,31 @@ class BrowserViewDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_browser_created(self, browser_view: BrowserView, browser: Browser) -> None:
         """Called when ``browser`` associated with ``browser_view`` is created.
 
-        This method will be called after :meth:`LifeSpanHandler.on_after_created` is called
-        for ``browser`` and before OnPopupBrowserViewCreated() is called for ``browser``'s
-        parent delegate if ``browser`` is a popup.
+        This method will be called after :meth:`~cefweaver.LifeSpanHandler.on_after_created`
+        is called for ``browser`` and before OnPopupBrowserViewCreated() is called for
+        ``browser``'s parent delegate if ``browser`` is a popup.
 
         Args:
-            browser_view (BrowserView): Created.
-            browser (Browser): A popup.
+            browser_view (cefweaver.BrowserView): Created.
+            browser (cefweaver.Browser): A popup.
         """
         ...
     def on_browser_destroyed(self, browser_view: BrowserView, browser: Browser) -> None:
@@ -9492,57 +9532,57 @@ class BrowserViewDelegate:
 
         Release all references to ``browser`` and do not attempt to execute any methods on
         ``browser`` after this callback returns. This method will be called before
-        :meth:`LifeSpanHandler.on_before_close` is called for ``browser``.
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` is called for ``browser``.
 
         Args:
-            browser_view (BrowserView): Destroyed.
-            browser (Browser):
+            browser_view (cefweaver.BrowserView): Destroyed.
+            browser (cefweaver.Browser):
         """
         ...
     def get_delegate_for_popup_browser_view(self, browser_view: BrowserView, settings: BrowserSettings, client: Client | None, is_devtools: bool) -> BrowserViewDelegate | None:
         """Called before a new popup BrowserView is created.
 
         The popup originated from ``browser_view``. ``settings`` and ``client`` are the
-        values returned from :meth:`LifeSpanHandler.on_before_popup`. ``is_devtools`` will
-        be ``True`` if the popup will be a DevTools browser. Return the delegate that will
-        be used for the new popup BrowserView.
+        values returned from :meth:`~cefweaver.LifeSpanHandler.on_before_popup`.
+        ``is_devtools`` will be ``True`` if the popup will be a DevTools browser. Return the
+        delegate that will be used for the new popup BrowserView.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
             settings (BrowserSettings):
-            client (Client | None): The values returned from  ``CefLifeSpanHandler::OnBeforePopup()``.
+            client (cefweaver.Client | None): The values returned from ``CefLifeSpanHandler::OnBeforePopup()``.
             is_devtools (bool):
         Returns:
-            BrowserViewDelegate | None
+            cefweaver.BrowserViewDelegate | None
         """
         ...
     def on_popup_browser_view_created(self, browser_view: BrowserView, popup_browser_view: BrowserView, is_devtools: bool) -> bool:
         """Called after ``popup_browser_view`` is created.
 
-        This method will be called after :meth:`LifeSpanHandler.on_after_created` and
-        OnBrowserCreated() are called for the new popup browser. The popup originated from
-        ``browser_view``. ``is_devtools`` will be ``True`` if the popup is a DevTools
+        This method will be called after :meth:`~cefweaver.LifeSpanHandler.on_after_created`
+        and OnBrowserCreated() are called for the new popup browser. The popup originated
+        from ``browser_view``. ``is_devtools`` will be ``True`` if the popup is a DevTools
         browser. Optionally add ``popup_browser_view`` to the views hierarchy yourself and
-        return ``True``. Otherwise return ``False`` and a default :class:`Window` will be
-        created for the popup.
+        return ``True``. Otherwise return ``False`` and a default :class:`~cefweaver.Window`
+        will be created for the popup.
 
         Args:
-            browser_view (BrowserView):
-            popup_browser_view (BrowserView): Created.
+            browser_view (cefweaver.BrowserView):
+            popup_browser_view (cefweaver.BrowserView): Created.
             is_devtools (bool):
         Returns:
             bool
         """
         ...
     def get_chrome_toolbar_type(self, browser_view: BrowserView) -> ChromeToolbarType | int:
-        """Return the Chrome toolbar type that will be available via :meth:`BrowserView.get_chrome_toolbar`.
+        """Return the Chrome toolbar type that will be available via :meth:`~cefweaver.BrowserView.get_chrome_toolbar`.
 
         See that method for related documentation.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            ChromeToolbarType | int: The Chrome toolbar type that will be available via  ``CefBrowserView::GetChromeToolbar()``.
+            cefweaver.types.ChromeToolbarType | int: The Chrome toolbar type that will be available via ``CefBrowserView::GetChromeToolbar()``.
         """
         ...
     def use_frameless_window_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
@@ -9552,18 +9592,18 @@ class BrowserViewDelegate:
         \"-webkit-app-region: drag\" CSS.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to create frameless windows for Document picture-in-picture  popups.
+            bool: ``True`` to create frameless windows for Document picture-in-picture popups.
         """
         ...
     def allow_move_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
         """Return ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By() (without user activation) with Document picture-in-picture popups.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By()  (without user activation) with Document picture-in-picture popups.
+            bool: ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By() (without user activation) with Document picture-in-picture popups.
         """
         ...
     def allow_picture_in_picture_without_user_activation(self, browser_view: BrowserView) -> bool:
@@ -9572,9 +9612,9 @@ class BrowserViewDelegate:
         Default is ``False`` (user activation required).
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         Returns:
-            bool: ``True`` to allow opening Document picture-in-picture without  user activation.
+            bool: ``True`` to allow opening Document picture-in-picture without user activation.
         """
         ...
     def on_gesture_command(self, browser_view: BrowserView, gesture_command: GestureCommand) -> bool:
@@ -9582,11 +9622,12 @@ class BrowserViewDelegate:
 
         Return ``True`` to handle (or disable) a ``gesture_command`` or ``False`` to
         propagate the gesture to the browser for default handling. With Chrome style these
-        commands can also be handled via :meth:`CommandHandler.on_chrome_command`.
+        commands can also be handled via
+        :meth:`~cefweaver.CommandHandler.on_chrome_command`.
 
         Args:
-            browser_view (BrowserView):
-            gesture_command (GestureCommand):
+            browser_view (cefweaver.BrowserView):
+            gesture_command (cefweaver.types.GestureCommand):
         Returns:
             bool
         """
@@ -9597,7 +9638,7 @@ class BrowserViewDelegate:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle | int
+            cefweaver.types.RuntimeStyle | int
         """
         ...
 
@@ -9614,7 +9655,7 @@ class ButtonDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -9623,7 +9664,7 @@ class ButtonDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -9632,7 +9673,7 @@ class ButtonDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -9645,7 +9686,7 @@ class ButtonDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -9660,9 +9701,9 @@ class ButtonDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -9675,16 +9716,16 @@ class ButtonDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -9692,7 +9733,7 @@ class ButtonDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -9700,14 +9741,14 @@ class ButtonDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -9718,33 +9759,33 @@ class ButtonDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_button_pressed(self, button: Button) -> None:
         """Called when ``button`` is pressed.
 
         Args:
-            button (Button): Pressed.
+            button (cefweaver.Button): Pressed.
         """
         ...
     def on_button_state_changed(self, button: Button) -> None:
         """Called when the state of ``button`` changes.
 
         Args:
-            button (Button):
+            button (cefweaver.Button):
         """
         ...
 
@@ -9755,7 +9796,7 @@ class Client:
         """Return the handler for audio rendering events.
 
         Returns:
-            AudioHandler | None: The handler for audio rendering events.
+            cefweaver.AudioHandler | None: The handler for audio rendering events.
         """
         ...
     def get_command_handler(self) -> CommandHandler | None:
@@ -9764,7 +9805,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            CommandHandler | None: The handler for commands.
+            cefweaver.CommandHandler | None: The handler for commands.
         """
         ...
     def get_context_menu_handler(self) -> ContextMenuHandler | None:
@@ -9773,7 +9814,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            ContextMenuHandler | None: The handler for context menus.
+            cefweaver.ContextMenuHandler | None: The handler for context menus.
         """
         ...
     def get_dialog_handler(self) -> DialogHandler | None:
@@ -9782,14 +9823,14 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            DialogHandler | None: The handler for dialogs.
+            cefweaver.DialogHandler | None: The handler for dialogs.
         """
         ...
     def get_display_handler(self) -> DisplayHandler | None:
         """Return the handler for browser display state events.
 
         Returns:
-            DisplayHandler | None: The handler for browser display state events.
+            cefweaver.DisplayHandler | None: The handler for browser display state events.
         """
         ...
     def get_download_handler(self) -> DownloadHandler | None:
@@ -9799,45 +9840,45 @@ class Client:
         proceed with default handling with Chrome style.
 
         Returns:
-            DownloadHandler | None: The handler for download events.
+            cefweaver.DownloadHandler | None: The handler for download events.
         """
         ...
     def get_drag_handler(self) -> DragHandler | None:
         """Return the handler for drag events.
 
         Returns:
-            DragHandler | None: The handler for drag events.
+            cefweaver.DragHandler | None: The handler for drag events.
         """
         ...
     def get_find_handler(self) -> FindHandler | None:
         """Return the handler for find result events.
 
         Returns:
-            FindHandler | None: The handler for find result events.
+            cefweaver.FindHandler | None: The handler for find result events.
         """
         ...
     def get_focus_handler(self) -> FocusHandler | None:
         """Return the handler for focus events.
 
         Returns:
-            FocusHandler | None: The handler for focus events.
+            cefweaver.FocusHandler | None: The handler for focus events.
         """
         ...
     def get_frame_handler(self) -> FrameHandler | None:
-        """Return the handler for events related to :class:`Frame` lifespan.
+        """Return the handler for events related to :class:`~cefweaver.Frame` lifespan.
 
-        This method will be called once during :class:`Browser` creation and the result will
-        be cached for performance reasons.
+        This method will be called once during :class:`~cefweaver.Browser` creation and the
+        result will be cached for performance reasons.
 
         Returns:
-            FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
+            cefweaver.FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
         """
         ...
     def get_permission_handler(self) -> PermissionHandler | None:
         """Return the handler for permission requests.
 
         Returns:
-            PermissionHandler | None: The handler for permission requests.
+            cefweaver.PermissionHandler | None: The handler for permission requests.
         """
         ...
     def get_js_dialog_handler(self) -> JSDialogHandler | None:
@@ -9846,28 +9887,28 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            JSDialogHandler | None: The handler for JavaScript dialogs.
+            cefweaver.JSDialogHandler | None: The handler for JavaScript dialogs.
         """
         ...
     def get_keyboard_handler(self) -> KeyboardHandler | None:
         """Return the handler for keyboard events.
 
         Returns:
-            KeyboardHandler | None: The handler for keyboard events.
+            cefweaver.KeyboardHandler | None: The handler for keyboard events.
         """
         ...
     def get_life_span_handler(self) -> LifeSpanHandler | None:
         """Return the handler for browser life span events.
 
         Returns:
-            LifeSpanHandler | None: The handler for browser life span events.
+            cefweaver.LifeSpanHandler | None: The handler for browser life span events.
         """
         ...
     def get_load_handler(self) -> LoadHandler | None:
         """Return the handler for browser load status events.
 
         Returns:
-            LoadHandler | None: The handler for browser load status events.
+            cefweaver.LoadHandler | None: The handler for browser load status events.
         """
         ...
     def get_print_handler(self) -> PrintHandler | None:
@@ -9877,21 +9918,21 @@ class Client:
         platform.
 
         Returns:
-            PrintHandler | None: The handler for printing on Linux.
+            cefweaver.PrintHandler | None: The handler for printing on Linux.
         """
         ...
     def get_render_handler(self) -> RenderHandler | None:
         """Return the handler for off-screen rendering events.
 
         Returns:
-            RenderHandler | None: The handler for off-screen rendering events.
+            cefweaver.RenderHandler | None: The handler for off-screen rendering events.
         """
         ...
     def get_request_handler(self) -> RequestHandler | None:
         """Return the handler for browser request events.
 
         Returns:
-            RequestHandler | None: The handler for browser request events.
+            cefweaver.RequestHandler | None: The handler for browser request events.
         """
         ...
     def on_process_message_received(self, browser: Browser, frame: Frame, source_process: ProcessId, message: ProcessMessage) -> bool:
@@ -9901,10 +9942,10 @@ class Client:
         keep a reference to ``message`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            source_process (ProcessId):
-            message (ProcessMessage):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            source_process (cefweaver.types.ProcessId):
+            message (cefweaver.ProcessMessage):
         Returns:
             bool
         """
@@ -9924,12 +9965,13 @@ class CommandHandler:
         values. ``disposition`` provides information about the intended command target.
         Return ``True`` if the command was handled or ``False`` for the default
         implementation. For context menu commands this will be called after
-        :meth:`ContextMenuHandler.on_context_menu_command`. Only used with Chrome style.
+        :meth:`~cefweaver.ContextMenuHandler.on_context_menu_command`. Only used with Chrome
+        style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
-            disposition (WindowOpenDisposition):
+            disposition (cefweaver.types.WindowOpenDisposition):
         Returns:
             bool
         """
@@ -9943,7 +9985,7 @@ class CommandHandler:
         Chrome style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
         Returns:
             bool
@@ -9958,7 +10000,7 @@ class CommandHandler:
         Chrome style.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             command_id (int):
         Returns:
             bool
@@ -9970,7 +10012,7 @@ class CommandHandler:
         Only called for icons that would be visible by default. Only used with Chrome style.
 
         Args:
-            icon_type (ChromePageActionIconType):
+            icon_type (cefweaver.types.ChromePageActionIconType):
         Returns:
             bool
         """
@@ -9982,7 +10024,7 @@ class CommandHandler:
         style.
 
         Args:
-            button_type (ChromeToolbarButtonType):
+            button_type (cefweaver.types.ChromeToolbarButtonType):
         Returns:
             bool
         """
@@ -10006,7 +10048,7 @@ class ComponentUpdateCallback:
 
         Args:
             component_id (str): The ID of the component that was updated.
-            error (ComponentUpdateError):
+            error (cefweaver.types.ComponentUpdateError):
         """
         ...
 
@@ -10025,10 +10067,10 @@ class ContextMenuHandler:
         ``model`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
-            model (MenuModel):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
+            model (cefweaver.MenuModel):
         """
         ...
     def run_context_menu(self, browser: Browser, frame: Frame, params: ContextMenuParams, model: MenuModel, callback: RunContextMenuCallback) -> bool:
@@ -10041,11 +10083,11 @@ class ContextMenuHandler:
         ``params`` or ``model`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
-            model (MenuModel):
-            callback (RunContextMenuCallback):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
+            model (cefweaver.MenuModel):
+            callback (cefweaver.RunContextMenuCallback):
         Returns:
             bool
         """
@@ -10061,11 +10103,11 @@ class ContextMenuHandler:
         callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            params (ContextMenuParams):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            params (cefweaver.ContextMenuParams):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         Returns:
             bool
         """
@@ -10074,8 +10116,8 @@ class ContextMenuHandler:
         """Called when the context menu is dismissed irregardless of whether the menu was canceled or a command was selected.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         ...
     def run_quick_menu(self, browser: Browser, frame: Frame, location: Point, size: Size, edit_state_flags: QuickMenuEditStateFlags, callback: RunQuickMenuCallback) -> bool:
@@ -10088,12 +10130,12 @@ class ContextMenuHandler:
         Return ``False`` to cancel the menu.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             location (Point): The top left corner of the selected region.
-            size (Size): The  size of the selected region.
-            edit_state_flags (QuickMenuEditStateFlags): A combination of flags  that represent the state of the quick menu.
-            callback (RunQuickMenuCallback):
+            size (Size): The size of the selected region.
+            edit_state_flags (cefweaver.types.QuickMenuEditStateFlags): A combination of flags that represent the state of the quick menu.
+            callback (cefweaver.RunQuickMenuCallback):
         Returns:
             bool
         """
@@ -10105,10 +10147,10 @@ class ContextMenuHandler:
         implementation. See cef_menu_id_t for command IDs that have default implementations.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         Returns:
             bool
         """
@@ -10117,8 +10159,8 @@ class ContextMenuHandler:
         """Called when the quick menu for a windowless browser is dismissed irregardless of whether the menu was canceled or a command was selected.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         ...
 
@@ -10133,14 +10175,15 @@ class CookieAccessFilter:
         """Called on the IO thread before a resource request is sent.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Return ``True`` if the specified
-        cookie can be sent with the request or ``False`` otherwise.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback.
+        Return ``True`` if the specified cookie can be sent with the request or ``False``
+        otherwise.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
             cookie (Cookie):
         Returns:
             bool
@@ -10150,15 +10193,16 @@ class CookieAccessFilter:
         """Called on the IO thread after a resource response is received.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Return ``True`` if the specified
-        cookie returned with the response can be saved or ``False`` otherwise.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback.
+        Return ``True`` if the specified cookie returned with the response can be saved or
+        ``False`` otherwise.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
             cookie (Cookie):
         Returns:
             bool
@@ -10181,7 +10225,7 @@ class CookieVisitor:
 
         Args:
             cookie (Cookie):
-            count (int): The 0-based  index for the current cookie.
+            count (int): The 0-based index for the current cookie.
             total (int): The total number of cookies.
         Returns:
             tuple[bool, bool]
@@ -10190,7 +10234,7 @@ class CookieVisitor:
 
 
 class DeleteCookiesCallback:
-    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.delete_cookies`."""
+    """Interface to implement to be notified of asynchronous completion via :meth:`~cefweaver.CookieManager.delete_cookies`."""
     def on_complete(self, num_deleted: int) -> None:
         """Method that will be called upon completion.
 
@@ -10203,7 +10247,7 @@ class DeleteCookiesCallback:
 
 
 class DevToolsMessageObserver:
-    """Callback interface for :meth:`BrowserHost.add_dev_tools_message_observer`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.add_dev_tools_message_observer`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -10218,11 +10262,12 @@ class DevToolsMessageObserver:
         appropriate.
 
         Method result dictionaries include an \"id\" (int) value that identifies the
-        orginating method call sent from :meth:`BrowserHost.send_dev_tools_message`, and
-        optionally either a \"result\" (dictionary) or \"error\" (dictionary) value. The \"error\"
-        dictionary will contain \"code\" (int) and \"message\" (string) values. Event
-        dictionaries include a \"method\" (string) value and optionally a \"params\"
-        (dictionary) value. See the DevTools protocol documentation at
+        orginating method call sent from
+        :meth:`~cefweaver.BrowserHost.send_dev_tools_message`, and optionally either a
+        \"result\" (dictionary) or \"error\" (dictionary) value. The \"error\" dictionary will
+        contain \"code\" (int) and \"message\" (string) values. Event dictionaries include a
+        \"method\" (string) value and optionally a \"params\" (dictionary) value. See the
+        DevTools protocol documentation at
         https://chromedevtools.github.io/devtools-protocol/ for details of supported method
         calls and the expected \"result\" or \"params\" dictionary contents. JSON dictionaries
         can be parsed using the ``CefParseJSON`` function if desired, however be aware of
@@ -10230,8 +10275,8 @@ class DevToolsMessageObserver:
         in size).
 
         Args:
-            browser (Browser): The originating browser instance.
-            message (memoryview): Only valid for the scope of this callback and should be copied if  necessary.
+            browser (cefweaver.Browser): The originating browser instance.
+            message (memoryview): Only valid for the scope of this callback and should be copied if necessary.
         Returns:
             bool
         """
@@ -10249,10 +10294,10 @@ class DevToolsMessageObserver:
         ``result`` contents.
 
         Args:
-            browser (Browser): The originating browser instance.
-            message_id (int): The \"id\" value that identifies the originating method call  message.
+            browser (cefweaver.Browser): The originating browser instance.
+            message_id (int): The \"id\" value that identifies the originating method call message.
             success (bool):
-            result (memoryview): Only valid for the  scope of this callback and should be copied if necessary.
+            result (memoryview): Only valid for the scope of this callback and should be copied if necessary.
         """
         ...
     def on_dev_tools_event(self, browser: Browser, method: str, params: memoryview) -> None:
@@ -10265,9 +10310,9 @@ class DevToolsMessageObserver:
         ``params`` contents.
 
         Args:
-            browser (Browser): The originating browser instance.
-            method (str): The \"method\"  value.
-            params (memoryview): Only valid for the scope of this callback and  should be copied if necessary.
+            browser (cefweaver.Browser): The originating browser instance.
+            method (str): The \"method\" value.
+            params (memoryview): Only valid for the scope of this callback and should be copied if necessary.
         """
         ...
     def on_dev_tools_agent_attached(self, browser: Browser) -> None:
@@ -10277,7 +10322,7 @@ class DevToolsMessageObserver:
         response to the first message sent while the agent is detached.
 
         Args:
-            browser (Browser): The originating browser instance.
+            browser (cefweaver.Browser): The originating browser instance.
         """
         ...
     def on_dev_tools_agent_detached(self, browser: Browser) -> None:
@@ -10288,7 +10333,7 @@ class DevToolsMessageObserver:
         subscriptions will be canceled.
 
         Args:
-            browser (Browser): The originating browser instance.
+            browser (cefweaver.Browser): The originating browser instance.
         """
         ...
 
@@ -10306,12 +10351,12 @@ class DialogHandler:
         depending on the mode). ``default_file_path`` is the path with optional directory
         and/or file name component that should be initially selected in the dialog.
         ``accept_filters`` are used to restrict the selectable file types and may be any
-        combination of valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\") and
+        combination of valid lower-cased MIME types (e.g. \"``text/*``\" or \"``image/*``\") and
         individual file extensions (e.g. \".txt\" or \".png\"). ``accept_extensions`` provides
         the semicolon-delimited expansion of MIME types to file extensions (if known, or
         empty string otherwise). ``accept_descriptions`` provides the descriptions for MIME
-        types (if known, or empty string otherwise). For example, the \"image/*\" mime type
-        might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        types (if known, or empty string otherwise). For example, the \"``image/*``\" mime
+        type might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
         ``accept_filters``, ``accept_extensions`` and ``accept_descriptions`` will all be
         the same size. To display a custom dialog return ``True`` and execute ``callback``
         either inline or at a later time. To display the default dialog return ``False``. If
@@ -10319,14 +10364,14 @@ class DialogHandler:
         dialog (both before and after MIME type expansion).
 
         Args:
-            browser (Browser):
-            mode (FileDialogMode):
+            browser (cefweaver.Browser):
+            mode (cefweaver.types.FileDialogMode):
             title (str):
-            default_file_path (str): The path with optional directory and/or file name  component that should be initially selected in the dialog.
-            accept_filters (list[str]): Used to restrict the selectable file types and may be  any combination of valid lower-cased MIME types (e.
+            default_file_path (str): The path with optional directory and/or file name component that should be initially selected in the dialog.
+            accept_filters (list[str]): Used to restrict the selectable file types and may be any combination of valid lower-cased MIME types (e.g.
             accept_extensions (list[str]):
             accept_descriptions (list[str]):
-            callback (FileDialogCallback):
+            callback (cefweaver.FileDialogCallback):
         Returns:
             bool
         """
@@ -10342,8 +10387,8 @@ class DisplayHandler:
         """Called when a frame's address has changed.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             url (str):
         """
         ...
@@ -10351,7 +10396,7 @@ class DisplayHandler:
         """Called when the page title changes.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             title (str):
         """
         ...
@@ -10359,7 +10404,7 @@ class DisplayHandler:
         """Called when the page icon changes.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             icon_urls (list[str]):
         """
         ...
@@ -10370,14 +10415,14 @@ class DisplayHandler:
         browser content area. If ``fullscreen`` is ``False`` the content will automatically
         return to its original size and position. With Alloy style the client is responsible
         for triggering the fullscreen transition (for example, by calling
-        :meth:`Window.set_fullscreen` when using Views). With Chrome style the fullscreen
-        transition will be triggered automatically. The
-        :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called during
-        the fullscreen transition for notification purposes.
+        :meth:`~cefweaver.Window.set_fullscreen` when using Views). With Chrome style the
+        fullscreen transition will be triggered automatically. The
+        :meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` method will be
+        called during the fullscreen transition for notification purposes.
 
         Args:
-            browser (Browser):
-            fullscreen (bool): False the content will  automatically return to its original size and position.
+            browser (cefweaver.Browser):
+            fullscreen (bool): False the content will automatically return to its original size and position.
         """
         ...
     def on_tooltip(self, browser: Browser) -> tuple[bool, str]:
@@ -10390,7 +10435,7 @@ class DisplayHandler:
         drawing tooltips and the return value is ignored.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, str]
         """
@@ -10401,7 +10446,7 @@ class DisplayHandler:
         ``value`` contains the text that will be displayed in the status message.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             value (str):
         """
         ...
@@ -10411,8 +10456,8 @@ class DisplayHandler:
         Return ``True`` to stop the message from being output to the console.
 
         Args:
-            browser (Browser):
-            level (LogSeverity):
+            browser (cefweaver.Browser):
+            level (cefweaver.types.LogSeverity):
             message (str):
             source (str):
             line (int):
@@ -10421,13 +10466,13 @@ class DisplayHandler:
         """
         ...
     def on_auto_resize(self, browser: Browser, new_size: Size) -> bool:
-        """Called when auto-resize is enabled via :meth:`BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
+        """Called when auto-resize is enabled via :meth:`~cefweaver.BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
 
         ``new_size`` will be the desired size in DIP coordinates. Return ``True`` if the
         resize was handled or ``False`` for default handling.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             new_size (Size):
         Returns:
             bool
@@ -10439,7 +10484,7 @@ class DisplayHandler:
         ``progress`` ranges from 0.0 to 1.0.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             progress (float):
         """
         ...
@@ -10451,8 +10496,8 @@ class DisplayHandler:
         ``False`` for default handling.
 
         Args:
-            browser (Browser):
-            type (CursorType): CT_CUSTOM then  ``custom_cursor_info`` will be populated with the custom cursor information.
+            browser (cefweaver.Browser):
+            type (cefweaver.types.CursorType): CT_CUSTOM then ``custom_cursor_info`` will be populated with the custom cursor information.
         Returns:
             bool
         """
@@ -10461,7 +10506,7 @@ class DisplayHandler:
         """Called when the browser's access to an audio and/or video source has changed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             has_video_access (bool):
             has_audio_access (bool):
         """
@@ -10472,22 +10517,23 @@ class DisplayHandler:
         ``new_bounds`` are in DIP screen coordinates.
 
         With Views-hosted browsers ``new_bounds`` are the desired bounds for the containing
-        :class:`Window` and may be passed directly to :meth:`Window.set_bounds`. With
-        external (client-provided) parent on macOS and Windows ``new_bounds`` are the
-        desired frame bounds for the containing root window. With other non-Views browsers
-        ``new_bounds`` are the desired bounds for the browser content only unless the client
-        implements either :meth:`DisplayHandler.get_root_window_screen_rect` for windowed
-        browsers or :meth:`RenderHandler.get_window_screen_rect` for windowless browsers.
-        Clients may expand browser content bounds to window bounds using OS-specific or
-        :class:`Display` methods.
+        :class:`~cefweaver.Window` and may be passed directly to
+        :meth:`~cefweaver.View.set_bounds`. With external (client-provided) parent on macOS
+        and Windows ``new_bounds`` are the desired frame bounds for the containing root
+        window. With other non-Views browsers ``new_bounds`` are the desired bounds for the
+        browser content only unless the client implements either
+        :meth:`~cefweaver.DisplayHandler.get_root_window_screen_rect` for windowed browsers
+        or ``RenderHandler.get_window_screen_rect`` for windowless browsers. Clients may
+        expand browser content bounds to window bounds using OS-specific or
+        :class:`~cefweaver.Display` methods.
 
         Return ``True`` if this method was handled or ``False`` for default handling.
         Default move/resize behavior is only provided with Views-hosted Chrome style
         browsers.
 
         Args:
-            browser (Browser):
-            new_bounds (Rect): The desired bounds  for the browser content only unless the client implements either  ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or  ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
+            browser (cefweaver.Browser):
+            new_bounds (Rect): The desired bounds for the browser content only unless the client implements either ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
         Returns:
             bool
         """
@@ -10498,10 +10544,10 @@ class DisplayHandler:
         Only called for windowed browsers on Windows and Linux. Return ``True`` if the
         rectangle was provided. Return ``False`` to use the root window bounds on Windows or
         the browser content bounds on Linux. For additional usage details see
-        :meth:`BrowserHost.notify_screen_info_changed`.
+        :meth:`~cefweaver.BrowserHost.notify_screen_info_changed`.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, Rect | tuple[int, int, int, int]]
         """
@@ -10516,15 +10562,15 @@ class DownloadHandler:
     def can_download(self, browser: Browser, url: str, request_method: str) -> bool:
         """Called before a download begins in response to a user-initiated action (e.g.
 
-        alt + link click or link click that returns a `Content-Disposition: attachment`
+        alt + link click or link click that returns a ``Content-Disposition: attachment``
         response from the server). ``url`` is the target download URL and ``request_method``
         is the target method (GET, POST, etc). Return ``True`` to proceed with the download
         or ``False`` to cancel the download. This method is not called for downloads
-        initiated by :meth:`BrowserHost.start_download`.
+        initiated by :meth:`~cefweaver.BrowserHost.start_download`.
 
         Args:
-            browser (Browser):
-            url (str): The target download URL  and ``request_method`` is the target method (GET, POST, etc).
+            browser (cefweaver.Browser):
+            url (str): The target download URL and ``request_method`` is the target method (GET, POST, etc).
             request_method (str):
         Returns:
             bool
@@ -10543,10 +10589,10 @@ class DownloadHandler:
         method.
 
         Args:
-            browser (Browser):
-            download_item (DownloadItem):
-            suggested_name (str): The suggested name  for the download file.
-            callback (BeforeDownloadCallback): Destroyed without being executed, the download will  be canceled.
+            browser (cefweaver.Browser):
+            download_item (cefweaver.DownloadItem):
+            suggested_name (str): The suggested name for the download file.
+            callback (cefweaver.BeforeDownloadCallback): Destroyed without being executed, the download will be canceled.
         Returns:
             bool
         """
@@ -10559,15 +10605,15 @@ class DownloadHandler:
         desired. Do not keep a reference to ``download_item`` outside of this method.
 
         Args:
-            browser (Browser):
-            download_item (DownloadItem):
-            callback (DownloadItemCallback):
+            browser (cefweaver.Browser):
+            download_item (cefweaver.DownloadItem):
+            callback (cefweaver.DownloadItemCallback):
         """
         ...
 
 
 class DownloadImageCallback:
-    """Callback interface for :meth:`BrowserHost.download_image`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.download_image`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -10579,9 +10625,9 @@ class DownloadImageCallback:
         scale factors, or empty if the download failed.
 
         Args:
-            image_url (str): The URL that was downloaded and ``http_status_code`` is the  resulting HTTP status code.
+            image_url (str): The URL that was downloaded and ``http_status_code`` is the resulting HTTP status code.
             http_status_code (int):
-            image (Image | None): The resulting image, possibly at  multiple scale factors, or empty if the download failed.
+            image (cefweaver.Image | None): The resulting image, possibly at multiple scale factors, or empty if the download failed.
         """
         ...
 
@@ -10599,9 +10645,9 @@ class DragHandler:
         the drag event.
 
         Args:
-            browser (Browser):
-            drag_data (DragData):
-            mask (DragOperationsMask):
+            browser (cefweaver.Browser):
+            drag_data (cefweaver.DragData):
+            mask (cefweaver.types.DragOperationsMask):
         Returns:
             bool
         """
@@ -10615,8 +10661,8 @@ class DragHandler:
         called with an empty vector.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             regions (list[DraggableRegion]):
         """
         ...
@@ -10645,7 +10691,7 @@ class FindHandler:
     The methods of this class will be called on the UI thread.
     """
     def on_find_result(self, browser: Browser, identifier: int, count: int, selection_rect: Rect, active_match_ordinal: int, final_update: bool) -> None:
-        """Called to report find results returned by :meth:`BrowserHost.find`.
+        """Called to report find results returned by :meth:`~cefweaver.BrowserHost.find`.
 
         ``identifer`` is a unique incremental identifier for the currently active search,
         ``count`` is the number of matches currently identified, ``selection_rect`` is the
@@ -10654,7 +10700,7 @@ class FindHandler:
         ``final_update`` is ``True`` if this is the last find notification.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             identifier (int):
             count (int):
             selection_rect (Rect):
@@ -10677,7 +10723,7 @@ class FocusHandler:
         and ``False`` if the browser is giving focus to the previous component.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             next (bool):
         """
         ...
@@ -10688,8 +10734,8 @@ class FocusHandler:
         to allow the focus to be set or ``True`` to cancel setting the focus.
 
         Args:
-            browser (Browser):
-            source (FocusSource):
+            browser (cefweaver.Browser):
+            source (cefweaver.types.FocusSource):
         Returns:
             bool
         """
@@ -10698,59 +10744,68 @@ class FocusHandler:
         """Called when the browser component has received focus.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
 
 
 class FrameHandler:
-    """Implement this interface to handle events related to :class:`Frame` life span.
+    """Implement this interface to handle events related to :class:`~cefweaver.Frame` life span.
 
     The order of callbacks is:
 
-     (1) During initial :class:`BrowserHost` creation and navigation of the main frame:
-     - :meth:`FrameHandler.on_frame_created` => The initial main frame object has been
-       created. Any commands will be queued until the frame is attached.
-     - :meth:`FrameHandler.on_main_frame_changed` => The initial main frame object has
-       been assigned to the browser.
-     - :meth:`LifeSpanHandler.on_after_created` => The browser is now valid and can be
-       used.
-     - :meth:`FrameHandler.on_frame_attached` => The initial main frame object is now
-       connected to its peer in the renderer process. Commands can be routed.
+    1. During initial :class:`~cefweaver.BrowserHost` creation and navigation of the
+       main frame:
 
-     (2) During further :class:`BrowserHost` navigation/loading of the main frame
-         and/or sub-frames:
-     - :meth:`FrameHandler.on_frame_created` => A new main frame or sub-frame object
-       has been created. Any commands will be queued until the frame is attached.
-     - :meth:`FrameHandler.on_frame_attached` => A new main frame or sub-frame object
-       is now connected to its peer in the renderer process. Commands can be
-       routed.
-     - :meth:`FrameHandler.on_frame_detached` => An existing main frame or sub-frame
-       object has lost its connection to the renderer process. If multiple
-       objects are detached at the same time then notifications will be sent for
-       any sub-frame objects before the main frame object. Commands can no longer
-       be routed and will be discarded.
-     - ``CefFremeHadler::OnFrameDestroyed`` => An existing main frame or sub-frame
-       object has been destroyed.
-     - :meth:`FrameHandler.on_main_frame_changed` => A new main frame object has been
-       assigned to the browser. This will only occur with cross-origin navigation
-       or re-navigation after renderer process termination (due to crashes, etc).
+       - :meth:`~cefweaver.FrameHandler.on_frame_created` => The initial main frame
+         object has been created. Any commands will be queued until the frame is
+         attached.
+       - :meth:`~cefweaver.FrameHandler.on_main_frame_changed` => The initial main frame
+         object has been assigned to the browser.
+       - :meth:`~cefweaver.LifeSpanHandler.on_after_created` => The browser is now valid
+         and can be used.
+       - :meth:`~cefweaver.FrameHandler.on_frame_attached` => The initial main frame
+         object is now connected to its peer in the renderer process. Commands can be
+         routed.
 
-     (3) During final :class:`BrowserHost` destruction of the main frame:
-     - :meth:`FrameHandler.on_frame_detached` => Any sub-frame objects have lost their
-       connection to the renderer process. Commands can no longer be routed and
-       will be discarded.
-     - ``CefFreameHandler::OnFrameDestroyed`` => Any sub-frame objects have been
-       destroyed.
-     - :meth:`LifeSpanHandler.on_before_close` => The browser has been destroyed.
-     - :meth:`FrameHandler.on_frame_detached` => The main frame object have lost its
-       connection to the renderer process. Notifications will be sent for any
-       sub-frame objects before the main frame object. Commands can no longer be
-       routed and will be discarded.
-     - ``CefFreameHandler::OnFrameDestroyed`` => The main frame object has been
-       destroyed.
-     - :meth:`FrameHandler.on_main_frame_changed` => The final main frame object has
-       been removed from the browser.
+    2. During further :class:`~cefweaver.BrowserHost` navigation/loading of the main
+       frame and/or sub-frames:
+
+       - :meth:`~cefweaver.FrameHandler.on_frame_created` => A new main frame or
+         sub-frame object has been created. Any commands will be queued until the frame
+         is attached.
+       - :meth:`~cefweaver.FrameHandler.on_frame_attached` => A new main frame or
+         sub-frame object is now connected to its peer in the renderer process. Commands
+         can be routed.
+       - :meth:`~cefweaver.FrameHandler.on_frame_detached` => An existing main frame or
+         sub-frame object has lost its connection to the renderer process. If multiple
+         objects are detached at the same time then notifications will be sent for any
+         sub-frame objects before the main frame object. Commands can no longer be
+         routed and will be discarded.
+       - ``CefFremeHadler::OnFrameDestroyed`` => An existing main frame or sub-frame
+         object has been destroyed.
+       - :meth:`~cefweaver.FrameHandler.on_main_frame_changed` => A new main frame
+         object has been assigned to the browser. This will only occur with cross-origin
+         navigation or re-navigation after renderer process termination (due to crashes,
+         etc).
+
+    3. During final :class:`~cefweaver.BrowserHost` destruction of the main frame:
+
+       - :meth:`~cefweaver.FrameHandler.on_frame_detached` => Any sub-frame objects have
+         lost their connection to the renderer process. Commands can no longer be routed
+         and will be discarded.
+       - ``CefFreameHandler::OnFrameDestroyed`` => Any sub-frame objects have been
+         destroyed.
+       - :meth:`~cefweaver.LifeSpanHandler.on_before_close` => The browser has been
+         destroyed.
+       - :meth:`~cefweaver.FrameHandler.on_frame_detached` => The main frame object have
+         lost its connection to the renderer process. Notifications will be sent for any
+         sub-frame objects before the main frame object. Commands can no longer be
+         routed and will be discarded.
+       - ``CefFreameHandler::OnFrameDestroyed`` => The main frame object has been
+         destroyed.
+       - :meth:`~cefweaver.FrameHandler.on_main_frame_changed` => The final main frame
+         object has been removed from the browser.
 
     Special handling applies for cross-origin loading on creation/navigation of
     sub-frames, and cross-origin loading on creation of new popup browsers. A temporary
@@ -10767,7 +10822,7 @@ class FrameHandler:
 
     Callbacks will not be executed for placeholders that may be created during
     pre-commit navigation for sub-frames that do not yet exist in the renderer process.
-    Placeholders will have :meth:`Frame.get_identifier` == -4.
+    Placeholders will have :meth:`~cefweaver.Frame.get_identifier` == -4.
 
     The methods of this class will be called on the UI thread unless otherwise
     indicated.
@@ -10782,22 +10837,23 @@ class FrameHandler:
         attaches.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         ...
     def on_frame_destroyed(self, browser: Browser, frame: Frame) -> None:
         """Called when an existing frame is destroyed.
 
         This will be the last notification that references ``frame`` and
-        :meth:`Frame.is_valid` will return ``False`` for ``frame``. If called during browser
-        destruction and after :meth:`LifeSpanHandler.on_before_close` then
-        :meth:`Browser.is_valid` will return ``False`` for ``browser``. Any queued commands
-        that have not been sent will be discarded before this callback.
+        :meth:`~cefweaver.Frame.is_valid` will return ``False`` for ``frame``. If called
+        during browser destruction and after
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` then
+        :meth:`~cefweaver.Browser.is_valid` will return ``False`` for ``browser``. Any
+        queued commands that have not been sent will be discarded before this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         ...
     def on_frame_attached(self, browser: Browser, frame: Frame, reattached: bool) -> None:
@@ -10809,8 +10865,8 @@ class FrameHandler:
         frames created during cross-origin navigation.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             reattached (bool):
         """
         ...
@@ -10820,17 +10876,18 @@ class FrameHandler:
         This may occur when a frame is destroyed, enters the BackForwardCache, or encounters
         a rare connection error. In the case of frame destruction this call will be followed
         by a (potentially async) call to OnFrameDestroyed. If frame destruction is occuring
-        synchronously then :meth:`Frame.is_valid` will return ``False`` for ``frame``. If
-        called during browser destruction and after :meth:`LifeSpanHandler.on_before_close`
-        then :meth:`Browser.is_valid` will return ``False`` for ``browser``. If, in the
-        non-destruction case, the same frame later exits the BackForwardCache or recovers
-        from a connection error then there will be a follow-up call to OnFrameAttached. This
-        method will not be called for temporary frames created during cross-origin
-        navigation.
+        synchronously then :meth:`~cefweaver.Frame.is_valid` will return ``False`` for
+        ``frame``. If called during browser destruction and after
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` then
+        :meth:`~cefweaver.Browser.is_valid` will return ``False`` for ``browser``. If, in
+        the non-destruction case, the same frame later exits the BackForwardCache or
+        recovers from a connection error then there will be a follow-up call to
+        OnFrameAttached. This method will not be called for temporary frames created during
+        cross-origin navigation.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
         """
         ...
     def on_main_frame_changed(self, browser: Browser, old_frame: Frame | None, new_frame: Frame | None) -> None:
@@ -10843,13 +10900,13 @@ class FrameHandler:
         non-``None`` for cross-origin navigations or re-navigation after renderer process
         termination. This method will be called after OnFrameCreated() for ``new_frame``
         and/or after OnFrameDestroyed() for ``old_frame``. If called during browser
-        destruction and after :meth:`LifeSpanHandler.on_before_close` then
-        :meth:`Browser.is_valid` will return ``False`` for ``browser``.
+        destruction and after :meth:`~cefweaver.LifeSpanHandler.on_before_close` then
+        :meth:`~cefweaver.Browser.is_valid` will return ``False`` for ``browser``.
 
         Args:
-            browser (Browser):
-            old_frame (Frame | None):
-            new_frame (Frame | None):
+            browser (cefweaver.Browser):
+            old_frame (cefweaver.Frame | None):
+            new_frame (cefweaver.Frame | None):
         """
         ...
 
@@ -10877,12 +10934,12 @@ class JSDialogHandler:
         ``callback`` once the custom dialog is dismissed.
 
         Args:
-            browser (Browser):
-            origin_url (str): Non-empty it can be  passed to the ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure  and user-friendly display string.
-            dialog_type (JSDialogType):
+            browser (cefweaver.Browser):
+            origin_url (str): Non-empty it can be passed to the ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure and user-friendly display string.
+            dialog_type (cefweaver.types.JSDialogType):
             message_text (str):
             default_prompt_text (str):
-            callback (JSDialogCallback):
+            callback (cefweaver.JSDialogCallback):
         Returns:
             tuple[bool, bool]
         """
@@ -10896,10 +10953,10 @@ class JSDialogHandler:
         used the application must execute ``callback`` once the custom dialog is dismissed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             message_text (str):
             is_reload (bool):
-            callback (JSDialogCallback):
+            callback (cefweaver.JSDialogCallback):
         Returns:
             bool
         """
@@ -10911,14 +10968,14 @@ class JSDialogHandler:
         dialogs are currently pending.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def on_dialog_closed(self, browser: Browser) -> None:
         """Called when the dialog is closed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
 
@@ -10937,7 +10994,7 @@ class KeyboardHandler:
         shortcut set ``is_keyboard_shortcut`` to ``True`` and return ``False``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             event (KeyEvent):
         Returns:
             tuple[bool, bool]
@@ -10951,7 +11008,7 @@ class KeyboardHandler:
         handled or ``False`` otherwise.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             event (KeyEvent):
         Returns:
             bool
@@ -10984,9 +11041,9 @@ class LifeSpanHandler:
         source browser's values. If the ``no_javascript_access`` value is set to ``False``
         the new browser will not be scriptable and may not be hosted in the same renderer
         process as the source browser. Any modifications to ``window_info`` will be ignored
-        if the parent browser is wrapped in a :class:`BrowserView`. The ``extra_info``
-        parameter provides an opportunity to specify extra information specific to the
-        created popup browser that will be passed to
+        if the parent browser is wrapped in a :class:`~cefweaver.BrowserView`. The
+        ``extra_info`` parameter provides an opportunity to specify extra information
+        specific to the created popup browser that will be passed to
         ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
 
         If popup browser creation succeeds then OnAfterCreated will be called for the new
@@ -10994,21 +11051,21 @@ class LifeSpanHandler:
         yet been destroyed, then OnBeforePopupAborted will be called for the opener browser.
         See OnBeforePopupAborted documentation for additional details.
 
-         A default popup window is created if this method returns ``False`` without
-         setting a parent window handle via ``CefWindowInfo`` (for native-hosted
-         popups), or without implementing
-         :meth:`BrowserViewDelegate.on_popup_browser_view_created` (for Views-hosted
-         popups). The default popup window type depends on the parent browser
-         configuration:
-         - Views-hosted parent: Creates a Views-hosted popup window.
-         - Native-hosted Alloy style parent: Creates a native popup window.
-         - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
-           default; set ``CefSettings``.use_views_default_popup to ``True`` to instead
-           create a Views-hosted popup window.
+        A default popup window is created if this method returns ``False`` without setting a
+        parent window handle via ``CefWindowInfo`` (for native-hosted popups), or without
+        implementing :meth:`~cefweaver.BrowserViewDelegate.on_popup_browser_view_created`
+        (for Views-hosted popups). The default popup window type depends on the parent
+        browser configuration:
+
+        - Views-hosted parent: Creates a Views-hosted popup window.
+        - Native-hosted Alloy style parent: Creates a native popup window.
+        - Native-hosted Chrome style parent: Creates a Chrome UI popup window by default;
+          set ``CefSettings``.use_views_default_popup to ``True`` to instead create a
+          Views-hosted popup window.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             target_url (str):
             target_frame_name (str):
         Returns:
@@ -11028,37 +11085,39 @@ class LifeSpanHandler:
         OnBeforePopupAborted, OnAfterCreated of the popup browser, or OnBeforeClose of the
         opener browser. OnBeforeClose of the opener browser may be called before this method
         in cases where the opener is closing during popup creation, in which case
-        :meth:`BrowserHost.is_valid` will return ``False`` in this method.
+        ``BrowserHost.is_valid`` will return ``False`` in this method.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             popup_id (int):
         """
         ...
     def on_after_created(self, browser: Browser) -> None:
         """Called after a new browser is created.
 
-        It is now safe to begin performing actions with ``browser``. :class:`FrameHandler`
-        callbacks related to initial main frame creation will arrive before this callback.
-        See :class:`FrameHandler` documentation for additional usage information.
+        It is now safe to begin performing actions with ``browser``.
+        :class:`~cefweaver.FrameHandler` callbacks related to initial main frame creation
+        will arrive before this callback. See :class:`~cefweaver.FrameHandler` documentation
+        for additional usage information.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def do_close(self, browser: Browser) -> bool:
         """Called when an Alloy style browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
 
-        This may result directly from a call to :class:`BrowserHost`::[Try]CloseBrowser() or
-        indirectly if the browser's top-level parent window was created by CEF and the user
-        attempts to close that window (by clicking the 'X', for example). DoClose() will not
-        be called if the browser's host window/view has already been destroyed (via parent
-        window/view hierarchy tear-down, for example), as it is no longer possible to
-        customize the close behavior at that point.
+        This may result directly from a call to
+        :class:`~cefweaver.BrowserHost`::[Try]CloseBrowser() or indirectly if the browser's
+        top-level parent window was created by CEF and the user attempts to close that
+        window (by clicking the 'X', for example). DoClose() will not be called if the
+        browser's host window/view has already been destroyed (via parent window/view
+        hierarchy tear-down, for example), as it is no longer possible to customize the
+        close behavior at that point.
 
         An application should handle top-level parent window close notifications by calling
-        :meth:`BrowserHost.try_close_browser` or
-        :meth:`BrowserHost.close_browser`(``False``) instead of allowing the window to close
+        :meth:`~cefweaver.BrowserHost.try_close_browser` or
+        :meth:`~cefweaver.BrowserHost.close_browser` instead of allowing the window to close
         immediately (see the examples below). This gives CEF an opportunity to process
         JavaScript unload handlers and optionally cancel the close before DoClose() is
         called.
@@ -11067,7 +11126,7 @@ class LifeSpanHandler:
         host the browser. In that case returning ``False`` from DoClose() will send the
         standard close notification to the browser's top-level parent window (e.g. WM_CLOSE
         on Windows, performClose: on OS X, \"delete_event\" on Linux or
-        :meth:`WindowDelegate.can_close` callback from Views).
+        :meth:`~cefweaver.WindowDelegate.can_close` callback from Views).
 
         When windowed rendering is disabled there is no internal window/view and returning
         ``False`` from DoClose() will cause the browser object to be destroyed immediately.
@@ -11078,77 +11137,74 @@ class LifeSpanHandler:
         [Try]CloseBrowser() or by proceeding with window/view hierarchy tear-down),
         otherwise the browser will be left in a partially closed state that interferes with
         proper functioning. Top-level windows created on the browser process UI thread can
-        alternately call :meth:`BrowserHost.is_ready_to_be_closed` in the close handler to
-        check close status instead of relying on custom DoClose() handling. See
+        alternately call :meth:`~cefweaver.BrowserHost.is_ready_to_be_closed` in the close
+        handler to check close status instead of relying on custom DoClose() handling. See
         documentation on that method for additional details.
 
-        The :meth:`LifeSpanHandler.on_before_close` method will be called after DoClose()
-        (if DoClose() is called) and immediately before the browser object is destroyed. The
-        application should only exit after OnBeforeClose() has been called for all existing
-        browsers.
+        The :meth:`~cefweaver.LifeSpanHandler.on_before_close` method will be called after
+        DoClose() (if DoClose() is called) and immediately before the browser object is
+        destroyed. The application should only exit after OnBeforeClose() has been called
+        for all existing browsers.
 
         The below examples describe what should happen during window close when the browser
         is parented to an application-provided top-level window.
 
-         Example 1: Using :meth:`BrowserHost.try_close_browser`. This is recommended
-         for clients using standard close handling and windows created on the
-         browser process UI thread.
-         1.  User clicks the window close button which sends a close notification
-             to the application's top-level window.
-         2.  Application's top-level window receives the close notification and
-             calls TryCloseBrowser() (similar to calling CloseBrowser(``False``)).
-             TryCloseBrowser() returns ``False`` so the client cancels the window
-             close.
-         3.  JavaScript 'onbeforeunload' handler executes and shows the close
-             confirmation dialog (which can be overridden via
-             :meth:`JSDialogHandler.on_before_unload_dialog`).
-         4.  User approves the close.
-         5.  JavaScript 'onunload' handler executes.
-         6.  Application's DoClose() handler is called and returns ``False`` by
-             default.
-         7.  CEF sends a close notification to the application's top-level window
-             (because DoClose() returned ``False``).
-         8.  Application's top-level window receives the close notification and
-             calls TryCloseBrowser(). TryCloseBrowser() returns ``True`` so the client
-             allows the window close.
-         9.  Application's top-level window is destroyed, triggering destruction
-             of the child browser window.
-         10. Application's OnBeforeClose() handler is called and the browser object
-             is destroyed.
-         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
-             exist.
+        Example 1: Using :meth:`~cefweaver.BrowserHost.try_close_browser`. This is
+        recommended for clients using standard close handling and windows created on the
+        browser process UI thread.
 
-         Example 2: Using :meth:`BrowserHost.close_browser`(``False``) and implementing the
-         DoClose() callback. This is recommended for clients using non-standard
-         close handling or windows that were not created on the browser process UI
-         thread.
-         1.  User clicks the window close button which sends a close notification
-             to the application's top-level window.
-         2.  Application's top-level window receives the close notification and:
-             A. Calls :meth:`BrowserHost.close_browser`(``False``).
-             B. Cancels the window close.
-         3.  JavaScript 'onbeforeunload' handler executes and shows the close
-             confirmation dialog (which can be overridden via
-             :meth:`JSDialogHandler.on_before_unload_dialog`).
-         4.  User approves the close.
-         5.  JavaScript 'onunload' handler executes.
-         6.  Application's DoClose() handler is called. Application will:
-             A. Set a flag to indicate that the next top-level window close attempt
-                will be allowed.
-             B. Return ``False``.
-         7.  CEF sends a close notification to the application's top-level window
-             (because DoClose() returned ``False``).
-         8.  Application's top-level window receives the close notification and
-             allows the window to close based on the flag from #6A.
-         9.  Application's top-level window is destroyed, triggering destruction
-             of the child browser window.
-         10. Application's OnBeforeClose() handler is called and the browser object
-             is destroyed.
-         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
-             exist.
+        1. User clicks the window close button which sends a close notification to the
+           application's top-level window.
+        2. Application's top-level window receives the close notification and calls
+           TryCloseBrowser() (similar to calling CloseBrowser(``False``)). TryCloseBrowser()
+           returns ``False`` so the client cancels the window close.
+        3. JavaScript 'onbeforeunload' handler executes and shows the close confirmation
+           dialog (which can be overridden via
+           :meth:`~cefweaver.JSDialogHandler.on_before_unload_dialog`).
+        4. User approves the close.
+        5. JavaScript 'onunload' handler executes.
+        6. Application's DoClose() handler is called and returns ``False`` by default.
+        7. CEF sends a close notification to the application's top-level window (because
+           DoClose() returned ``False``).
+        8. Application's top-level window receives the close notification and calls
+           TryCloseBrowser(). TryCloseBrowser() returns ``True`` so the client allows the
+           window close.
+        9. Application's top-level window is destroyed, triggering destruction of the child
+           browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object is
+            destroyed.
+        11. Application exits by calling ``CefQuitMessageLoop`` () if no other browsers
+            exist.
+
+        Example 2: Using :meth:`~cefweaver.BrowserHost.close_browser` and implementing the
+        DoClose() callback. This is recommended for clients using non-standard close
+        handling or windows that were not created on the browser process UI thread.
+
+        1. User clicks the window close button which sends a close notification to the
+           application's top-level window.
+        2. Application's top-level window receives the close notification and: A. Calls
+           :meth:`~cefweaver.BrowserHost.close_browser`. B. Cancels the window close.
+        3. JavaScript 'onbeforeunload' handler executes and shows the close confirmation
+           dialog (which can be overridden via
+           :meth:`~cefweaver.JSDialogHandler.on_before_unload_dialog`).
+        4. User approves the close.
+        5. JavaScript 'onunload' handler executes.
+        6. Application's DoClose() handler is called. Application will: A. Set a flag to
+           indicate that the next top-level window close attempt will be allowed. B. Return
+           ``False``.
+        7. CEF sends a close notification to the application's top-level window (because
+           DoClose() returned ``False``).
+        8. Application's top-level window receives the close notification and allows the
+           window to close based on the flag from #6A.
+        9. Application's top-level window is destroyed, triggering destruction of the child
+           browser window.
+        10. Application's OnBeforeClose() handler is called and the browser object is
+            destroyed.
+        11. Application exits by calling ``CefQuitMessageLoop`` () if no other browsers
+            exist.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             bool
         """
@@ -11158,16 +11214,18 @@ class LifeSpanHandler:
 
         Release all references to the browser object and do not attempt to execute any
         methods on the browser object (other than IsValid, GetIdentifier or IsSame) after
-        this callback returns. :class:`FrameHandler` callbacks related to final main frame
-        destruction, and OnBeforePopupAborted callbacks for any pending popups, will arrive
-        after this callback and :meth:`Browser.is_valid` will return ``False`` at that time.
-        Any in-progress network requests associated with ``browser`` will be aborted when
-        the browser is destroyed, and :class:`ResourceRequestHandler` callbacks related to
-        those requests may still arrive on the IO thread after this callback. See
-        :class:`FrameHandler` and DoClose() documentation for additional usage information.
+        this callback returns. :class:`~cefweaver.FrameHandler` callbacks related to final
+        main frame destruction, and OnBeforePopupAborted callbacks for any pending popups,
+        will arrive after this callback and :meth:`~cefweaver.Browser.is_valid` will return
+        ``False`` at that time. Any in-progress network requests associated with ``browser``
+        will be aborted when the browser is destroyed, and
+        :class:`~cefweaver.ResourceRequestHandler` callbacks related to those requests may
+        still arrive on the IO thread after this callback. See
+        :class:`~cefweaver.FrameHandler` and DoClose() documentation for additional usage
+        information.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
 
@@ -11187,7 +11245,7 @@ class LoadHandler:
         OnLoadStart and after all calls to OnLoadError and/or OnLoadEnd.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             is_loading (bool):
             can_go_back (bool):
             can_go_forward (bool):
@@ -11206,9 +11264,9 @@ class LoadHandler:
         OnLoadingStateChange instead.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            transition_type (TransitionType):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            transition_type (cefweaver.types.TransitionType):
         """
         ...
     def on_load_end(self, browser: Browser, frame: Frame, http_status_code: int) -> None:
@@ -11222,8 +11280,8 @@ class LoadHandler:
         browser load status use OnLoadingStateChange instead.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             http_status_code (int):
         """
         ...
@@ -11236,9 +11294,9 @@ class LoadHandler:
         See net\\base\\net_error_list.h for complete descriptions of the error codes.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            error_code (ErrorCode): The error code number, ``error_text`` is the  error text and ``failed_url`` is the URL that failed to load.
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            error_code (cefweaver.types.ErrorCode): The error code number, ``error_text`` is the error text and ``failed_url`` is the URL that failed to load.
             error_text (str):
             failed_url (str):
         """
@@ -11246,30 +11304,30 @@ class LoadHandler:
 
 
 class MediaObserver:
-    """Implemented by the client to observe MediaRouter events and registered via :meth:`MediaRouter.add_observer`.
+    """Implemented by the client to observe MediaRouter events and registered via :meth:`~cefweaver.MediaRouter.add_observer`.
 
     The methods of this class will be called on the browser process UI thread.
     """
     def on_sinks(self, sinks: list[MediaSink]) -> None:
-        """The list of available media sinks has changed or :meth:`MediaRouter.notify_current_sinks` was called.
+        """The list of available media sinks has changed or :meth:`~cefweaver.MediaRouter.notify_current_sinks` was called.
 
         Args:
-            sinks (list[MediaSink]):
+            sinks (list[cefweaver.MediaSink]):
         """
         ...
     def on_routes(self, routes: list[MediaRoute]) -> None:
-        """The list of available media routes has changed or :meth:`MediaRouter.notify_current_routes` was called.
+        """The list of available media routes has changed or :meth:`~cefweaver.MediaRouter.notify_current_routes` was called.
 
         Args:
-            routes (list[MediaRoute]):
+            routes (list[cefweaver.MediaRoute]):
         """
         ...
     def on_route_state_changed(self, route: MediaRoute, state: MediaRouteConnectionState) -> None:
         """The connection state of ``route`` has changed.
 
         Args:
-            route (MediaRoute):
-            state (MediaRouteConnectionState):
+            route (cefweaver.MediaRoute):
+            state (cefweaver.types.MediaRouteConnectionState):
         """
         ...
     def on_route_message_received(self, route: MediaRoute, message: memoryview) -> None:
@@ -11279,14 +11337,14 @@ class MediaObserver:
         necessary.
 
         Args:
-            route (MediaRoute):
-            message (memoryview): Only valid for  the scope of this callback and should be copied if necessary.
+            route (cefweaver.MediaRoute):
+            message (memoryview): Only valid for the scope of this callback and should be copied if necessary.
         """
         ...
 
 
 class MediaRouteCreateCallback:
-    """Callback interface for :meth:`MediaRouter.create_route`.
+    """Callback interface for :meth:`~cefweaver.MediaRouter.create_route`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -11298,15 +11356,15 @@ class MediaRouteCreateCallback:
         route, or empty if the route creation failed.
 
         Args:
-            result (MediaRouteCreateResult):
+            result (cefweaver.types.MediaRouteCreateResult):
             error (str):
-            route (MediaRoute | None): The  resulting route, or empty if the route creation failed.
+            route (cefweaver.MediaRoute | None): The resulting route, or empty if the route creation failed.
         """
         ...
 
 
 class MediaSinkDeviceInfoCallback:
-    """Callback interface for :meth:`MediaSink.get_device_info`.
+    """Callback interface for :meth:`~cefweaver.MediaSink.get_device_info`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -11331,7 +11389,7 @@ class MenuButtonDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -11340,7 +11398,7 @@ class MenuButtonDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -11349,7 +11407,7 @@ class MenuButtonDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -11362,7 +11420,7 @@ class MenuButtonDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -11377,9 +11435,9 @@ class MenuButtonDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -11392,16 +11450,16 @@ class MenuButtonDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -11409,7 +11467,7 @@ class MenuButtonDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -11417,14 +11475,14 @@ class MenuButtonDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -11435,46 +11493,47 @@ class MenuButtonDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_button_pressed(self, button: Button) -> None:
         """Called when ``button`` is pressed.
 
         Args:
-            button (Button): Pressed.
+            button (cefweaver.Button): Pressed.
         """
         ...
     def on_button_state_changed(self, button: Button) -> None:
         """Called when the state of ``button`` changes.
 
         Args:
-            button (Button):
+            button (cefweaver.Button):
         """
         ...
     def on_menu_button_pressed(self, menu_button: MenuButton, screen_point: Point, button_pressed_lock: MenuButtonPressedLock) -> None:
         """Called when ``button`` is pressed.
 
-        Call :meth:`MenuButton.show_menu` to show a popup menu at ``screen_point``. When
-        showing a custom popup such as a window keep a reference to ``button_pressed_lock``
-        until the popup is hidden to maintain the pressed button state.
+        Call :meth:`~cefweaver.MenuButton.show_menu` to show a popup menu at
+        ``screen_point``. When showing a custom popup such as a window keep a reference to
+        ``button_pressed_lock`` until the popup is hidden to maintain the pressed button
+        state.
 
         Args:
-            menu_button (MenuButton):
+            menu_button (cefweaver.MenuButton):
             screen_point (Point):
-            button_pressed_lock (MenuButtonPressedLock):
+            button_pressed_lock (cefweaver.MenuButtonPressedLock):
         """
         ...
 
@@ -11489,16 +11548,16 @@ class MenuModelDelegate:
         """Perform the action associated with the specified ``command_id`` and optional ``event_flags``.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             command_id (int):
-            event_flags (EventFlags):
+            event_flags (cefweaver.types.EventFlags):
         """
         ...
     def mouse_outside_menu(self, menu_model: MenuModel, screen_point: Point) -> None:
         """Called when the user moves the mouse outside the menu and over the owning window.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point):
         """
         ...
@@ -11508,7 +11567,7 @@ class MenuModelDelegate:
         ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             is_rtl (bool):
         """
         ...
@@ -11518,7 +11577,7 @@ class MenuModelDelegate:
         ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             is_rtl (bool):
         """
         ...
@@ -11526,14 +11585,14 @@ class MenuModelDelegate:
         """The menu is about to show.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         """
         ...
     def menu_closed(self, menu_model: MenuModel) -> None:
         """The menu has closed.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         """
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
@@ -11542,7 +11601,7 @@ class MenuModelDelegate:
         Return ``True`` if ``label`` was modified.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
         Returns:
             tuple[bool, str]
         """
@@ -11550,7 +11609,7 @@ class MenuModelDelegate:
 
 
 class NavigationEntryVisitor:
-    """Callback interface for :meth:`BrowserHost.get_navigation_entries`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.get_navigation_entries`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -11563,9 +11622,9 @@ class NavigationEntryVisitor:
         this entry and ``total`` is the total number of entries.
 
         Args:
-            entry (NavigationEntry):
-            current (bool): True if this entry is the currently loaded navigation  entry.
-            index (int): The 0-based index of this entry and ``total`` is the total  number of entries.
+            entry (cefweaver.NavigationEntry):
+            current (bool): True if this entry is the currently loaded navigation entry.
+            index (int): The 0-based index of this entry and ``total`` is the total number of entries.
             total (int):
         Returns:
             bool
@@ -11585,7 +11644,7 @@ class PanelDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -11594,7 +11653,7 @@ class PanelDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -11603,7 +11662,7 @@ class PanelDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -11616,7 +11675,7 @@ class PanelDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -11631,9 +11690,9 @@ class PanelDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -11646,16 +11705,16 @@ class PanelDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -11663,7 +11722,7 @@ class PanelDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -11671,14 +11730,14 @@ class PanelDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -11689,25 +11748,25 @@ class PanelDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
 
 
 class PdfPrintCallback:
-    """Callback interface for :meth:`BrowserHost.print_to_pdf`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.print_to_pdf`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -11735,19 +11794,19 @@ class PermissionHandler:
         ``requesting_origin`` is the URL origin requesting permission.
         ``requested_permissions`` is a combination of values from
         cef_media_access_permission_types_t that represent the requested permissions. Return
-        ``True`` and call :class:`MediaAccessCallback` methods either in this method or at a
-        later time to continue or cancel the request. Return ``False`` to proceed with
-        default handling. With Chrome style, default handling will display the permission
-        request UI. With Alloy style, default handling will deny the request. This method
-        will not be called if the \"--enable-media-stream\" command-line switch is used to
-        grant all permissions.
+        ``True`` and call :class:`~cefweaver.MediaAccessCallback` methods either in this
+        method or at a later time to continue or cancel the request. Return ``False`` to
+        proceed with default handling. With Chrome style, default handling will display the
+        permission request UI. With Alloy style, default handling will deny the request.
+        This method will not be called if the \"--enable-media-stream\" command-line switch is
+        used to grant all permissions.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             requesting_origin (str): The URL origin requesting permission.
-            requested_permissions (int): A combination of values from  cef_media_access_permission_types_t that represent the requested  permissions.
-            callback (MediaAccessCallback):
+            requested_permissions (int): A combination of values from cef_media_access_permission_types_t that represent the requested permissions.
+            callback (cefweaver.MediaAccessCallback):
         Returns:
             bool
         """
@@ -11758,18 +11817,18 @@ class PermissionHandler:
         ``prompt_id`` uniquely identifies the prompt. ``requesting_origin`` is the URL
         origin requesting permission. ``requested_permissions`` is a combination of values
         from cef_permission_request_types_t that represent the requested permissions. Return
-        ``True`` and call :meth:`PermissionPromptCallback.continue_` either in this method
-        or at a later time to continue or cancel the request. Return ``False`` to proceed
-        with default handling. With Chrome style, default handling will display the
-        permission prompt UI. With Alloy style, default handling is
+        ``True`` and call :meth:`~cefweaver.PermissionPromptCallback.continue_` either in
+        this method or at a later time to continue or cancel the request. Return ``False``
+        to proceed with default handling. With Chrome style, default handling will display
+        the permission prompt UI. With Alloy style, default handling is
         CEF_PERMISSION_RESULT_IGNORE.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             prompt_id (int):
-            requesting_origin (str): The URL origin requesting  permission.
-            requested_permissions (int): A combination of values from  cef_permission_request_types_t that represent the requested permissions.
-            callback (PermissionPromptCallback):
+            requesting_origin (str): The URL origin requesting permission.
+            requested_permissions (int): A combination of values from cef_permission_request_types_t that represent the requested permissions.
+            callback (cefweaver.PermissionPromptCallback):
         Returns:
             bool
         """
@@ -11778,15 +11837,16 @@ class PermissionHandler:
         """Called when a permission prompt handled via OnShowPermissionPrompt is dismissed.
 
         ``prompt_id`` will match the value that was passed to OnShowPermissionPrompt.
-        ``result`` will be the value passed to :meth:`PermissionPromptCallback.continue_` or
+        ``result`` will be the value passed to
+        :meth:`~cefweaver.PermissionPromptCallback.continue_` or
         CEF_PERMISSION_RESULT_IGNORE if the dialog was dismissed for other reasons such as
         navigation, browser closure, etc. This method will not be called if
         OnShowPermissionPrompt returned ``False`` for ``prompt_id``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             prompt_id (int):
-            result (PermissionRequestResult):
+            result (cefweaver.types.PermissionRequestResult):
         """
         ...
 
@@ -11817,11 +11877,11 @@ class PrintHandler:
         """Called when printing has started for the specified ``browser``.
 
         This method will be called before the other OnPrint*() methods and irrespective of
-        how printing was initiated (e.g. :meth:`BrowserHost.print`, JavaScript
+        how printing was initiated (e.g. :meth:`~cefweaver.BrowserHost.print`, JavaScript
         window.print() or PDF extension print button).
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def on_print_settings(self, browser: Browser, settings: PrintSettings, get_defaults: bool) -> None:
@@ -11831,9 +11891,9 @@ class PrintHandler:
         settings. Do not keep a reference to ``settings`` outside of this callback.
 
         Args:
-            browser (Browser):
-            settings (PrintSettings):
-            get_defaults (bool): True then  populate ``settings`` with the default print settings.
+            browser (cefweaver.Browser):
+            settings (cefweaver.PrintSettings):
+            get_defaults (bool): True then populate ``settings`` with the default print settings.
         """
         ...
     def on_print_dialog(self, browser: Browser, has_selection: bool, callback: PrintDialogCallback) -> bool:
@@ -11843,9 +11903,9 @@ class PrintHandler:
         will be displayed or ``False`` to cancel the printing immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             has_selection (bool):
-            callback (PrintDialogCallback):
+            callback (cefweaver.PrintDialogCallback):
         Returns:
             bool
         """
@@ -11857,10 +11917,10 @@ class PrintHandler:
         proceed or ``False`` to cancel the job immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             document_name (str):
             pdf_file_path (str):
-            callback (PrintJobCallback):
+            callback (cefweaver.PrintJobCallback):
         Returns:
             bool
         """
@@ -11869,16 +11929,16 @@ class PrintHandler:
         """Reset client state related to printing.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def get_pdf_paper_size(self, browser: Browser, device_units_per_inch: int) -> Size | tuple[int, int]:
         """Return the PDF paper size in device units.
 
-        Used in combination with :meth:`BrowserHost.print_to_pdf`.
+        Used in combination with :meth:`~cefweaver.BrowserHost.print_to_pdf`.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             device_units_per_inch (int):
         Returns:
             Size | tuple[int, int]: The PDF paper size in device units.
@@ -11934,7 +11994,7 @@ class ReadHandler:
         Used as a hint for determining the thread to access the handler from.
 
         Returns:
-            bool: ``True`` if this handler performs work like accessing the file system  which may block.
+            bool: ``True`` if this handler performs work like accessing the file system which may block.
         """
         ...
 
@@ -11950,7 +12010,7 @@ class RenderHandler:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            AccessibilityHandler | None: The handler for accessibility notifications.
+            cefweaver.AccessibilityHandler | None: The handler for accessibility notifications.
         """
         ...
     def get_root_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
@@ -11960,7 +12020,7 @@ class RenderHandler:
         rectangle from GetViewRect will be used.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, Rect | tuple[int, int, int, int]]
         """
@@ -11971,7 +12031,7 @@ class RenderHandler:
         This method must always provide a non-empty rectangle.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             Rect | tuple[int, int, int, int]
         """
@@ -11984,7 +12044,7 @@ class RenderHandler:
         provided.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             view_x (int):
             view_y (int):
         Returns:
@@ -12000,7 +12060,7 @@ class RenderHandler:
         used. If the rectangle is still empty or invalid popups may not be drawn correctly.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
             tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]
         """
@@ -12012,7 +12072,7 @@ class RenderHandler:
         ``False``.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             show (bool): True and hidden if ``show`` is ``False``.
         """
         ...
@@ -12022,7 +12082,7 @@ class RenderHandler:
         ``rect`` contains the new location and size in view coordinates.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             rect (Rect):
         """
         ...
@@ -12034,13 +12094,13 @@ class RenderHandler:
         ``type`` indicates whether the element is the view or the popup widget. ``buffer``
         contains the pixel data for the whole image. ``dirty_rects`` contains the set of
         rectangles in pixel coordinates that need to be repainted. ``buffer`` will be
-        ``width``*``height``*4 bytes in size and represents a BGRA image with an upper-left
-        origin. This method is only called when ``CefWindowInfo::shared_texture_enabled`` is
-        set to ``False``.
+        ``width````*````height````*4`` bytes in size and represents a BGRA image with an
+        upper-left origin. This method is only called when
+        ``CefWindowInfo::shared_texture_enabled`` is set to ``False``.
 
         Args:
-            browser (Browser):
-            type (PaintElementType):
+            browser (cefweaver.Browser):
+            type (cefweaver.types.PaintElementType):
             dirty_rects (list[Rect]):
             buffer (memoryview):
             width (int):
@@ -12066,8 +12126,8 @@ class RenderHandler:
         back to the pool after this callback returns.
 
         Args:
-            browser (Browser):
-            type (PaintElementType):
+            browser (cefweaver.Browser):
+            type (cefweaver.types.PaintElementType):
             dirty_rects (list[Rect]):
             info (AcceleratedPaintInfo):
         """
@@ -12076,8 +12136,8 @@ class RenderHandler:
         """Called to retrieve the size of the touch handle for the specified ``orientation``.
 
         Args:
-            browser (Browser):
-            orientation (HorizontalAlignment):
+            browser (cefweaver.Browser):
+            orientation (cefweaver.types.HorizontalAlignment):
         Returns:
             Size | tuple[int, int]
         """
@@ -12088,7 +12148,7 @@ class RenderHandler:
         The client is responsible for rendering the touch handles.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             state (TouchHandleState):
         """
         ...
@@ -12100,17 +12160,17 @@ class RenderHandler:
         system message loop may be used within the StartDragging call.
 
         Return ``False`` to abort the drag operation. Don't call any of
-        :meth:`BrowserHost.drag_source`*Ended* methods after returning ``False``.
+        ``CefBrowserHost::DragSource*Ended*`` methods after returning ``False``.
 
         Return ``True`` to handle the drag operation. Call
-        :meth:`BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded either
-        synchronously or asynchronously to inform the web view that the drag operation has
-        ended.
+        :meth:`~cefweaver.BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded
+        either synchronously or asynchronously to inform the web view that the drag
+        operation has ended.
 
         Args:
-            browser (Browser):
-            drag_data (DragData):
-            allowed_ops (DragOperationsMask):
+            browser (cefweaver.Browser):
+            drag_data (cefweaver.DragData):
+            allowed_ops (cefweaver.types.DragOperationsMask):
             x (int):
             y (int):
         Returns:
@@ -12123,15 +12183,15 @@ class RenderHandler:
         ``operation`` describes the allowed operation (none, move, copy, link).
 
         Args:
-            browser (Browser):
-            operation (DragOperationsMask):
+            browser (cefweaver.Browser):
+            operation (cefweaver.types.DragOperationsMask):
         """
         ...
     def on_scroll_offset_changed(self, browser: Browser, x: float, y: float) -> None:
         """Called when the scroll offset has changed.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             x (float):
             y (float):
         """
@@ -12143,9 +12203,9 @@ class RenderHandler:
         ``character_bounds`` is the bounds of each character in view coordinates.
 
         Args:
-            browser (Browser):
-            selected_range (Range): The  range of characters that have been selected.
-            character_bounds (list[Rect]): The  bounds of each character in view coordinates.
+            browser (cefweaver.Browser):
+            selected_range (Range): The range of characters that have been selected.
+            character_bounds (list[Rect]): The bounds of each character in view coordinates.
         """
         ...
     def on_text_selection_changed(self, browser: Browser, selected_text: str, selected_range: Range) -> None:
@@ -12155,8 +12215,8 @@ class RenderHandler:
         character range.
 
         Args:
-            browser (Browser):
-            selected_text (str): The currently selected text and ``selected_range`` is  the character range.
+            browser (cefweaver.Browser):
+            selected_text (str): The currently selected text and ``selected_range`` is the character range.
             selected_range (Range):
         """
         ...
@@ -12168,8 +12228,8 @@ class RenderHandler:
         hidden.
 
         Args:
-            browser (Browser):
-            input_mode (TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any  existing keyboard for this browser should be hidden.
+            browser (cefweaver.Browser):
+            input_mode (cefweaver.types.TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any existing keyboard for this browser should be hidden.
         """
         ...
 
@@ -12184,38 +12244,39 @@ class RequestContextHandler:
         """Called on the browser process UI thread immediately after the request context has been initialized.
 
         Args:
-            request_context (RequestContext):
+            request_context (cefweaver.RequestContext):
         """
         ...
     def get_resource_request_handler(self, browser: Browser | None, frame: Frame | None, request: Request, is_navigation: bool, is_download: bool, request_initiator: str) -> tuple[ResourceRequestHandler | None, bool]:
         """Called on the browser process IO thread before a resource request is initiated.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` represents the request contents and cannot be modified in this callback.
-        ``is_navigation`` will be ``True`` if the resource request is a navigation.
-        ``is_download`` will be ``True`` if the resource request is a download.
-        ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
-        request. Set ``disable_default_handling`` to ``True`` to disable default handling of
-        the request, in which case it will need to be handled via
-        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
-        the resource load to proceed with default handling return ``None``. To specify a
-        handler for the resource return a :class:`ResourceRequestHandler` object. This
-        method will not be called if the client associated with ``browser`` returns a
-        non-``None`` value from :meth:`RequestHandler.get_resource_request_handler` for the
-        same request (identified by :meth:`Request.get_identifier`). For worker requests
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` represents the request contents and
+        cannot be modified in this callback. ``is_navigation`` will be ``True`` if the
+        resource request is a navigation. ``is_download`` will be ``True`` if the resource
+        request is a download. ``request_initiator`` is the origin (scheme + domain) of the
+        page that initiated the request. Set ``disable_default_handling`` to ``True`` to
+        disable default handling of the request, in which case it will need to be handled
+        via :meth:`~cefweaver.ResourceRequestHandler.get_resource_handler` or it will be
+        canceled. To allow the resource load to proceed with default handling return
+        ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceRequestHandler` object. This method will not be called if
+        the client associated with ``browser`` returns a non-``None`` value from
+        :meth:`~cefweaver.RequestHandler.get_resource_request_handler` for the same request
+        (identified by :meth:`~cefweaver.Request.get_identifier`). For worker requests
         without an associated frame or process handler, an arbitrary non-``None`` handler
         from the contexts sharing the same storage will be used.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
             is_navigation (bool):
             is_download (bool):
-            request_initiator (str): The origin (scheme + domain)  of the page that initiated the request.
+            request_initiator (str): The origin (scheme + domain) of the page that initiated the request.
         Returns:
-            tuple[ResourceRequestHandler | None, bool]
+            tuple[cefweaver.ResourceRequestHandler | None, bool]
         """
         ...
 
@@ -12230,18 +12291,18 @@ class RequestHandler:
 
         Return ``True`` to cancel the navigation or ``False`` to allow the navigation to
         proceed. The ``request`` object cannot be modified in this callback.
-        :meth:`LoadHandler.on_loading_state_change` will be called twice in all cases. If
-        the navigation is allowed :meth:`LoadHandler.on_load_start` and
-        :meth:`LoadHandler.on_load_end` will be called. If the navigation is canceled
-        :meth:`LoadHandler.on_load_error` will be called with an ``error_code`` value of
-        ERR_ABORTED. The ``user_gesture`` value will be ``True`` if the browser navigated
-        via explicit user gesture (e.g. clicking a link) or ``False`` if it navigated
-        automatically (e.g. via the DomContentLoaded event).
+        :meth:`~cefweaver.LoadHandler.on_loading_state_change` will be called twice in all
+        cases. If the navigation is allowed :meth:`~cefweaver.LoadHandler.on_load_start` and
+        :meth:`~cefweaver.LoadHandler.on_load_end` will be called. If the navigation is
+        canceled :meth:`~cefweaver.LoadHandler.on_load_error` will be called with an
+        ``error_code`` value of ERR_ABORTED. The ``user_gesture`` value will be ``True`` if
+        the browser navigated via explicit user gesture (e.g. clicking a link) or ``False``
+        if it navigated automatically (e.g. via the DomContentLoaded event).
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            request (Request):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            request (cefweaver.Request):
             user_gesture (bool):
             is_redirect (bool):
         Returns:
@@ -12264,10 +12325,10 @@ class RequestHandler:
         top-level frame.
 
         Args:
-            browser (Browser):
-            frame (Frame):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
             target_url (str):
-            target_disposition (WindowOpenDisposition):
+            target_disposition (cefweaver.types.WindowOpenDisposition):
             user_gesture (bool):
         Returns:
             bool
@@ -12283,21 +12344,22 @@ class RequestHandler:
         ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
         request. Set ``disable_default_handling`` to ``True`` to disable default handling of
         the request, in which case it will need to be handled via
-        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
-        the resource load to proceed with default handling return ``None``. To specify a
-        handler for the resource return a :class:`ResourceRequestHandler` object. If this
-        callback returns ``None`` the same method will be called on the associated
-        :class:`RequestContextHandler`, if any.
+        :meth:`~cefweaver.ResourceRequestHandler.get_resource_handler` or it will be
+        canceled. To allow the resource load to proceed with default handling return
+        ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceRequestHandler` object. If this callback returns ``None``
+        the same method will be called on the associated
+        :class:`~cefweaver.RequestContextHandler`, if any.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            request (Request):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            request (cefweaver.Request):
             is_navigation (bool):
             is_download (bool):
-            request_initiator (str): The origin (scheme + domain) of the page  that initiated the request.
+            request_initiator (str): The origin (scheme + domain) of the page that initiated the request.
         Returns:
-            tuple[ResourceRequestHandler | None, bool]
+            tuple[cefweaver.ResourceRequestHandler | None, bool]
         """
         ...
     def get_auth_credentials(self, browser: Browser, origin_url: str, is_proxy: bool, host: str, port: int, realm: str, scheme: str, callback: AuthCallback) -> bool:
@@ -12308,19 +12370,19 @@ class RequestHandler:
         ``port`` contains the port number. ``realm`` is the realm of the challenge and may
         be empty. ``scheme`` is the authentication scheme used, such as \"basic\" or \"digest\",
         and will be empty if the source of the request is an FTP server. Return ``True`` to
-        continue the request and call :meth:`AuthCallback.continue_` either in this method
-        or at a later time when the authentication information is available. Return
-        ``False`` to cancel the request immediately.
+        continue the request and call :meth:`~cefweaver.AuthCallback.continue_` either in
+        this method or at a later time when the authentication information is available.
+        Return ``False`` to cancel the request immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             origin_url (str): The origin making this authentication request.
             is_proxy (bool):
             host (str):
             port (int):
-            realm (str): The realm of the challenge  and may be empty.
-            scheme (str): The authentication scheme used, such as  \"basic\" or \"digest\", and will be empty if the source of the request is an  FTP server.
-            callback (AuthCallback):
+            realm (str): The realm of the challenge and may be empty.
+            scheme (str): The authentication scheme used, such as \"basic\" or \"digest\", and will be empty if the source of the request is an FTP server.
+            callback (cefweaver.AuthCallback):
         Returns:
             bool
         """
@@ -12328,16 +12390,16 @@ class RequestHandler:
     def on_certificate_error(self, browser: Browser, cert_error: ErrorCode, request_url: str, callback: Callback) -> bool:
         """Called on the UI thread to handle requests for URLs with an invalid SSL certificate.
 
-        Return ``True`` and call :class:`Callback` methods either in this method or at a
-        later time to continue or cancel the request. Return ``False`` to cancel the request
-        immediately. If cef_settings_t.ignore_certificate_errors is set all invalid
+        Return ``True`` and call :class:`~cefweaver.Callback` methods either in this method
+        or at a later time to continue or cancel the request. Return ``False`` to cancel the
+        request immediately. If cef_settings_t.ignore_certificate_errors is set all invalid
         certificates will be accepted without calling this method.
 
         Args:
-            browser (Browser):
-            cert_error (ErrorCode):
+            browser (cefweaver.Browser):
+            cert_error (cefweaver.types.ErrorCode):
             request_url (str):
-            callback (Callback):
+            callback (cefweaver.Callback):
         Returns:
             bool
         """
@@ -12349,21 +12411,21 @@ class RequestHandler:
         empty the default behavior will be to display a dialog for certificate selection. If
         the ``certificates`` list is empty then the default behavior will be not to show a
         dialog and it will continue without using any certificate. Return ``True`` and call
-        :meth:`SelectClientCertificateCallback.select` either in this method or at a later
-        time to select a certificate. Do not call Select or call it with ``None`` to
-        continue without using any certificate. ``is_proxy`` indicates whether the host is
-        an HTTPS proxy or the origin server. ``host`` and ``port`` contains the hostname and
-        port of the SSL server. ``certificates`` is the list of certificates to choose from;
-        this list has already been pruned by Chromium so that it only contains certificates
-        from issuers that the server trusts.
+        :meth:`~cefweaver.SelectClientCertificateCallback.select` either in this method or
+        at a later time to select a certificate. Do not call Select or call it with ``None``
+        to continue without using any certificate. ``is_proxy`` indicates whether the host
+        is an HTTPS proxy or the origin server. ``host`` and ``port`` contains the hostname
+        and port of the SSL server. ``certificates`` is the list of certificates to choose
+        from; this list has already been pruned by Chromium so that it only contains
+        certificates from issuers that the server trusts.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             is_proxy (bool):
             host (str):
             port (int):
-            certificates (list[X509Certificate]): The  list of certificates to choose from; this list has already been pruned by  Chromium so that it only contains certificates from issuers that the  server trusts.
-            callback (SelectClientCertificateCallback):
+            certificates (list[cefweaver.X509Certificate]): The list of certificates to choose from; this list has already been pruned by Chromium so that it only contains certificates from issuers that the server trusts.
+            callback (cefweaver.SelectClientCertificateCallback):
         Returns:
             bool
         """
@@ -12372,7 +12434,7 @@ class RequestHandler:
         """Called on the browser process UI thread when the render view associated with ``browser`` is ready to receive/handle IPC messages in the render process.
 
         Args:
-            browser (Browser): Ready to receive/handle IPC messages in the render  process.
+            browser (cefweaver.Browser): Ready to receive/handle IPC messages in the render process.
         """
         ...
     def on_render_process_unresponsive(self, browser: Browser, callback: UnresponsiveProcessCallback) -> bool:
@@ -12382,19 +12444,19 @@ class RequestHandler:
         style or display of the \"Page unresponsive\" dialog with Chrome style. Return
         ``True`` and don't execute the callback to continue waiting without display of the
         Chrome style dialog. Return ``True`` and call
-        :meth:`UnresponsiveProcessCallback.wait` either in this method or at a later time to
-        reset the wait timer. In cases where you continue waiting there may be another call
-        to this method if the process remains unresponsive. Return ``True`` and call
-        :meth:`UnresponsiveProcessCallback.terminate` either in this method or at a later
-        time to terminate the unresponsive process, resulting in a call to
+        :meth:`~cefweaver.UnresponsiveProcessCallback.wait` either in this method or at a
+        later time to reset the wait timer. In cases where you continue waiting there may be
+        another call to this method if the process remains unresponsive. Return ``True`` and
+        call :meth:`~cefweaver.UnresponsiveProcessCallback.terminate` either in this method
+        or at a later time to terminate the unresponsive process, resulting in a call to
         OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the process
         becomes responsive after this method is called. This functionality depends on the
-        hang monitor which can be disabled by passing the `--disable-hang-monitor`
+        hang monitor which can be disabled by passing the ``--disable-hang-monitor``
         command-line flag.
 
         Args:
-            browser (Browser):
-            callback (UnresponsiveProcessCallback):
+            browser (cefweaver.Browser):
+            callback (cefweaver.UnresponsiveProcessCallback):
         Returns:
             bool
         """
@@ -12405,7 +12467,7 @@ class RequestHandler:
         See documentation on OnRenderProcessUnresponsive.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
     def on_render_process_terminated(self, browser: Browser, status: TerminationStatus, error_code: int, error_string: str) -> None:
@@ -12418,8 +12480,8 @@ class RequestHandler:
         exception).
 
         Args:
-            browser (Browser):
-            status (TerminationStatus):
+            browser (cefweaver.Browser):
+            status (cefweaver.types.TerminationStatus):
             error_code (int):
             error_string (str):
         """
@@ -12428,13 +12490,13 @@ class RequestHandler:
         """Called on the browser process UI thread when the window.document object of the main frame has been created.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         ...
 
 
 class ResolveCallback:
-    """Callback interface for :meth:`RequestContext.resolve_host`."""
+    """Callback interface for :meth:`~cefweaver.RequestContext.resolve_host`."""
     def on_resolve_completed(self, result: ErrorCode, resolved_ips: list[str]) -> None:
         """Called on the UI thread after the ResolveHost request has completed.
 
@@ -12442,7 +12504,7 @@ class ResolveCallback:
         addresses or empty if the resolution failed.
 
         Args:
-            result (ErrorCode):
+            result (cefweaver.types.ErrorCode):
             resolved_ips (list[str]):
         """
         ...
@@ -12466,8 +12528,8 @@ class ResourceHandler:
         ProcessRequest method will be called.
 
         Args:
-            request (Request):
-            callback (Callback):
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         Returns:
             tuple[bool, bool]
         """
@@ -12475,16 +12537,17 @@ class ResourceHandler:
     def process_request(self, request: Request, callback: Callback) -> bool:
         """Begin processing the request.
 
-        To handle the request return ``True`` and call :meth:`Callback.continue_` once the
-        response header information is available (:meth:`Callback.continue_` can also be
-        called from inside this method if header information is available immediately). To
-        cancel the request return ``False``.
+        To handle the request return ``True`` and call :meth:`~cefweaver.Callback.continue_`
+        once the response header information is available
+        (:meth:`~cefweaver.Callback.continue_` can also be called from inside this method if
+        header information is available immediately). To cancel the request return
+        ``False``.
 
         WARNING: This method is deprecated. Use Open instead.
 
         Args:
-            request (Request):
-            callback (Callback):
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         Returns:
             bool
         """
@@ -12506,7 +12569,7 @@ class ResourceHandler:
         condition.
 
         Args:
-            response (Response):
+            response (cefweaver.Response):
         Returns:
             tuple[int, str]
         """
@@ -12523,7 +12586,7 @@ class ResourceHandler:
 
         Args:
             bytes_to_skip (int):
-            callback (ResourceSkipCallback):
+            callback (cefweaver.ResourceSkipCallback):
         Returns:
             tuple[bool, int]
         """
@@ -12544,7 +12607,7 @@ class ResourceHandler:
 
         Args:
             data_out (memoryview):
-            callback (ResourceReadCallback):
+            callback (cefweaver.ResourceReadCallback):
         Returns:
             tuple[bool, int]
         """
@@ -12555,14 +12618,14 @@ class ResourceHandler:
         If data is available immediately copy up to ``bytes_to_read`` bytes into
         ``data_out``, set ``bytes_read`` to the number of bytes copied, and return ``True``.
         To read the data at a later time set ``bytes_read`` to 0, return ``True`` and call
-        :meth:`Callback.continue_` when the data is available. To indicate response
-        completion return ``False``.
+        :meth:`~cefweaver.Callback.continue_` when the data is available. To indicate
+        response completion return ``False``.
 
         WARNING: This method is deprecated. Use Skip and Read instead.
 
         Args:
             data_out (memoryview):
-            callback (Callback):
+            callback (cefweaver.Callback):
         Returns:
             tuple[bool, int]
         """
@@ -12582,71 +12645,73 @@ class ResourceRequestHandler:
         """Called on the IO thread before a resource request is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        optionally filter cookies for the request return a :class:`CookieAccessFilter`
-        object. The ``request`` object cannot not be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To optionally filter cookies for the request return
+        a :class:`~cefweaver.CookieAccessFilter` object. The ``request`` object cannot not
+        be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
-            CookieAccessFilter | None
+            cefweaver.CookieAccessFilter | None
         """
         ...
     def on_before_resource_load(self, browser: Browser | None, frame: Frame | None, request: Request, callback: Callback) -> ReturnValue | int:
         """Called on the IO thread before a resource request is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        redirect or change the resource load optionally modify ``request``. Modification of
-        the request URL will be treated as a redirect. Return RV_CONTINUE to continue the
-        request immediately. Return RV_CONTINUE_ASYNC and call :class:`Callback` methods at
-        a later time to continue or cancel the request asynchronously. Return RV_CANCEL to
-        cancel the request immediately.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To redirect or change the resource load optionally
+        modify ``request``. Modification of the request URL will be treated as a redirect.
+        Return RV_CONTINUE to continue the request immediately. Return RV_CONTINUE_ASYNC and
+        call :class:`~cefweaver.Callback` methods at a later time to continue or cancel the
+        request asynchronously. Return RV_CANCEL to cancel the request immediately.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            callback (Callback):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         Returns:
-            ReturnValue | int
+            cefweaver.types.ReturnValue | int
         """
         ...
     def get_resource_handler(self, browser: Browser | None, frame: Frame | None, request: Request) -> ResourceHandler | None:
         """Called on the IO thread before a resource is loaded.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        allow the resource to load using the default network loader return ``None``. To
-        specify a handler for the resource return a :class:`ResourceHandler` object. The
-        ``request`` object cannot not be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To allow the resource to load using the default
+        network loader return ``None``. To specify a handler for the resource return a
+        :class:`~cefweaver.ResourceHandler` object. The ``request`` object cannot not be
+        modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
-            ResourceHandler | None
+            cefweaver.ResourceHandler | None
         """
         ...
     def on_resource_redirect(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, new_url: str) -> str:
         """Called on the IO thread when a resource load is redirected.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. The
-        ``request`` parameter will contain the old URL and other request-related
-        information. The ``response`` parameter will contain the response that resulted in
-        the redirect. The ``new_url`` parameter will contain the new URL and can be changed
-        if desired. The ``request`` and ``response`` objects cannot be modified in this
-        callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. The ``request`` parameter will contain the old URL
+        and other request-related information. The ``response`` parameter will contain the
+        response that resulted in the redirect. The ``new_url`` parameter will contain the
+        new URL and can be changed if desired. The ``request`` and ``response`` objects
+        cannot be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
             new_url (str):
         Returns:
             str
@@ -12656,21 +12721,22 @@ class ResourceRequestHandler:
         """Called on the IO thread when a resource response is received.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`. To
-        allow the resource load to proceed without modification return ``False``. To
-        redirect or retry the resource load optionally modify ``request`` and return
-        ``True``. Modification of the request URL will be treated as a redirect. Requests
-        handled using the default network loader cannot be redirected in this callback. The
-        ``response`` object cannot be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. To allow the resource load to proceed without
+        modification return ``False``. To redirect or retry the resource load optionally
+        modify ``request`` and return ``True``. Modification of the request URL will be
+        treated as a redirect. Requests handled using the default network loader cannot be
+        redirected in this callback. The ``response`` object cannot be modified in this
+        callback.
 
         WARNING: Redirecting using this method is deprecated. Use OnBeforeResourceLoad or
         GetResourceHandler to perform redirects.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
         Returns:
             bool
         """
@@ -12679,58 +12745,59 @@ class ResourceRequestHandler:
         """Called on the IO thread to optionally filter resource response content.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` and ``response`` represent the request and response respectively and
-        cannot be modified in this callback.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` and ``response`` represent the request
+        and response respectively and cannot be modified in this callback.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
         Returns:
-            ResponseFilter | None
+            cefweaver.ResponseFilter | None
         """
         ...
     def on_resource_load_complete(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, status: URLRequestStatus, received_content_length: int) -> None:
         """Called on the IO thread when a resource load has completed.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` and ``response`` represent the request and response respectively and
-        cannot be modified in this callback. ``status`` indicates the load completion
-        status. ``received_content_length`` is the number of response bytes actually read.
-        This method will be called for all requests, including requests that are aborted due
-        to CEF shutdown or destruction of the associated browser. In cases where the
-        associated browser is destroyed this callback may arrive after the
-        :meth:`LifeSpanHandler.on_before_close` callback for that browser. The
-        :meth:`Frame.is_valid` method can be used to test for this situation, and care
-        should be taken not to call ``browser`` or ``frame`` methods that modify state (like
-        LoadURL, SendProcessMessage, etc.) if the frame is invalid.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` and ``response`` represent the request
+        and response respectively and cannot be modified in this callback. ``status``
+        indicates the load completion status. ``received_content_length`` is the number of
+        response bytes actually read. This method will be called for all requests, including
+        requests that are aborted due to CEF shutdown or destruction of the associated
+        browser. In cases where the associated browser is destroyed this callback may arrive
+        after the :meth:`~cefweaver.LifeSpanHandler.on_before_close` callback for that
+        browser. The :meth:`~cefweaver.Frame.is_valid` method can be used to test for this
+        situation, and care should be taken not to call ``browser`` or ``frame`` methods
+        that modify state (like LoadURL, SendProcessMessage, etc.) if the frame is invalid.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
-            response (Response):
-            status (URLRequestStatus):
-            received_content_length (int): The number of response bytes actually  read.
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
+            response (cefweaver.Response):
+            status (cefweaver.types.URLRequestStatus):
+            received_content_length (int): The number of response bytes actually read.
         """
         ...
     def on_protocol_execution(self, browser: Browser | None, frame: Frame | None, request: Request) -> bool:
         """Called on the IO thread to handle requests for URLs with an unknown protocol component.
 
         The ``browser`` and ``frame`` values represent the source of the request, and may be
-        ``None`` for requests originating from service workers or :class:`URLRequest`.
-        ``request`` cannot be modified in this callback. Set ``allow_os_execution`` to
-        ``True`` to attempt execution via the registered OS protocol handler, if any.
-        SECURITY WARNING: YOU SHOULD USE THIS METHOD TO ENFORCE RESTRICTIONS BASED ON
-        SCHEME, HOST OR OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
+        ``None`` for requests originating from service workers or
+        :class:`~cefweaver.URLRequest`. ``request`` cannot be modified in this callback. Set
+        ``allow_os_execution`` to ``True`` to attempt execution via the registered OS
+        protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD TO ENFORCE
+        RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE ALLOWING OS
+        EXECUTION.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
-            request (Request):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
+            request (cefweaver.Request):
         Returns:
             bool
         """
@@ -12757,15 +12824,15 @@ class ResponseFilter:
 
         Expected usage is as follows:
 
-          1. Read input data from ``data_in`` and set ``data_in_read`` to the number of
-             bytes that were read up to a maximum of ``data_in_size``. ``data_in`` will
-             be ``None`` if ``data_in_size`` is zero.
-          2. Write filtered output data to ``data_out`` and set ``data_out_written`` to
-             the number of bytes that were written up to a maximum of
-             ``data_out_size``. If no output data was written then all data must be
-             read from ``data_in`` (user must set ``data_in_read`` = ``data_in_size``).
-          3. Return RESPONSE_FILTER_DONE if all output data was written or
-             RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
+        1. Read input data from ``data_in`` and set ``data_in_read`` to the number of bytes
+           that were read up to a maximum of ``data_in_size``. ``data_in`` will be ``None``
+           if ``data_in_size`` is zero.
+        2. Write filtered output data to ``data_out`` and set ``data_out_written`` to the
+           number of bytes that were written up to a maximum of ``data_out_size``. If no
+           output data was written then all data must be read from ``data_in`` (user must
+           set ``data_in_read`` = ``data_in_size``).
+        3. Return RESPONSE_FILTER_DONE if all output data was written or
+           RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
 
         This method will be called repeatedly until the input buffer has been fully read
         (user sets ``data_in_read`` = ``data_in_size``) and there is no more input data to
@@ -12776,10 +12843,10 @@ class ResponseFilter:
 
         Calls to this method will stop when one of the following conditions is met:
 
-          1. There is no more input data to filter (the resource response is
-             complete) and the user sets ``data_out_written`` = 0 or returns
-             RESPONSE_FILTER_DONE to indicate that all data has been written, or;
-          2. The user returns RESPONSE_FILTER_ERROR to indicate an error.
+        1. There is no more input data to filter (the resource response is complete) and the
+           user sets ``data_out_written`` = 0 or returns RESPONSE_FILTER_DONE to indicate
+           that all data has been written, or;
+        2. The user returns RESPONSE_FILTER_ERROR to indicate an error.
 
         Do not keep a reference to the buffers passed to this method.
 
@@ -12787,13 +12854,13 @@ class ResponseFilter:
             data_in (memoryview):
             data_out (memoryview):
         Returns:
-            tuple[ResponseFilterStatus | int, int, int]
+            tuple[cefweaver.types.ResponseFilterStatus | int, int, int]
         """
         ...
 
 
 class RunFileDialogCallback:
-    """Callback interface for :meth:`BrowserHost.run_file_dialog`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.run_file_dialog`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -12810,7 +12877,7 @@ class RunFileDialogCallback:
 
 
 class SchemeHandlerFactory:
-    """Class that creates :class:`ResourceHandler` instances for handling scheme requests.
+    """Class that creates :class:`~cefweaver.ResourceHandler` instances for handling scheme requests.
 
     The methods of this class will always be called on the IO thread.
     """
@@ -12819,16 +12886,16 @@ class SchemeHandlerFactory:
 
         ``browser`` and ``frame`` will be the browser window and frame respectively that
         originated the request or ``None`` if the request did not originate from a browser
-        window (for example, if the request came from :class:`URLRequest`). The ``request``
-        object passed to this method cannot be modified.
+        window (for example, if the request came from :class:`~cefweaver.URLRequest`). The
+        ``request`` object passed to this method cannot be modified.
 
         Args:
-            browser (Browser | None):
-            frame (Frame | None):
+            browser (cefweaver.Browser | None):
+            frame (cefweaver.Frame | None):
             scheme_name (str):
-            request (Request):
+            request (cefweaver.Request):
         Returns:
-            ResourceHandler | None: A new resource handler instance to handle the request or an empty  reference to allow default handling of the request.
+            cefweaver.ResourceHandler | None: A new resource handler instance to handle the request or an empty reference to allow default handling of the request.
         """
         ...
 
@@ -12836,22 +12903,24 @@ class SchemeHandlerFactory:
 class ServerHandler:
     """Implement this interface to handle HTTP server requests.
 
-    A new thread will be created for each :meth:`Server.create_server` call (the
-    \"dedicated server thread\"), and the methods of this class will be called on that
-    thread. It is therefore recommended to use a different :class:`ServerHandler`
-    instance for each :meth:`Server.create_server` call to avoid thread safety issues in
-    the :class:`ServerHandler` implementation.
+    A new thread will be created for each :meth:`~cefweaver.Server.create_server` call
+    (the \"dedicated server thread\"), and the methods of this class will be called on
+    that thread. It is therefore recommended to use a different
+    :class:`~cefweaver.ServerHandler` instance for each
+    :meth:`~cefweaver.Server.create_server` call to avoid thread safety issues in the
+    :class:`~cefweaver.ServerHandler` implementation.
     """
     def on_server_created(self, server: Server) -> None:
         """Called when ``server`` is created.
 
-        If the server was started successfully then :meth:`Server.is_running` will return
-        ``True``. The server will continue running until :meth:`Server.shutdown` is called,
-        after which time OnServerDestroyed will be called. If the server failed to start
-        then OnServerDestroyed will be called immediately after this method returns.
+        If the server was started successfully then :meth:`~cefweaver.Server.is_running`
+        will return ``True``. The server will continue running until
+        :meth:`~cefweaver.Server.shutdown` is called, after which time OnServerDestroyed
+        will be called. If the server failed to start then OnServerDestroyed will be called
+        immediately after this method returns.
 
         Args:
-            server (Server): Created.
+            server (cefweaver.Server): Created.
         """
         ...
     def on_server_destroyed(self, server: Server) -> None:
@@ -12862,7 +12931,7 @@ class ServerHandler:
         documentation for a description of server lifespan.
 
         Args:
-            server (Server): Destroyed.
+            server (cefweaver.Server): Destroyed.
         """
         ...
     def on_client_connected(self, server: Server, connection_id: int) -> None:
@@ -12872,7 +12941,7 @@ class ServerHandler:
         have a matching call to OnClientDisconnected.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         ...
@@ -12881,13 +12950,13 @@ class ServerHandler:
 
         ``connection_id`` uniquely identifies the connection. The client should release any
         data associated with ``connection_id`` when this method is called and
-        ``connection_id`` should no longer be passed to :class:`Server` methods. Disconnects
-        can originate from either the client or the server. For example, the server will
-        disconnect automatically after a :meth:`Server.send_http_xxx_response` method is
-        called.
+        ``connection_id`` should no longer be passed to :class:`~cefweaver.Server` methods.
+        Disconnects can originate from either the client or the server. For example, the
+        server will disconnect automatically after a ``Server.send_http_xxx_response``
+        method is called.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         ...
@@ -12897,13 +12966,14 @@ class ServerHandler:
         ``connection_id`` uniquely identifies the connection, ``client_address`` is the
         requesting IPv4 or IPv6 client address including port number, and ``request``
         contains the request contents (URL, method, headers and optional POST data). Call
-        :class:`Server` methods either synchronously or asynchronusly to send a response.
+        :class:`~cefweaver.Server` methods either synchronously or asynchronusly to send a
+        response.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            client_address (str): The requesting IPv4 or IPv6  client address including port number, and ``request`` contains the request  contents (URL, method, headers and optional POST data).
-            request (Request):
+            client_address (str): The requesting IPv4 or IPv6 client address including port number, and ``request`` contains the request contents (URL, method, headers and optional POST data).
+            request (cefweaver.Request):
         """
         ...
     def on_web_socket_request(self, server: Server, connection_id: int, client_address: str, request: Request, callback: Callback) -> None:
@@ -12917,15 +12987,15 @@ class ServerHandler:
         called after the WebSocket has connected and incoming messages will be delivered to
         the OnWebSocketMessage callback. If the request is declined then the client will be
         disconnected and OnClientDisconnected will be called. Call the
-        :meth:`Server.send_web_socket_message` method after receiving the
+        :meth:`~cefweaver.Server.send_web_socket_message` method after receiving the
         OnWebSocketConnected callback to respond with WebSocket messages.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            client_address (str): The requesting  IPv4 or IPv6 client address including port number, and ``request`` contains  the request contents (URL, method, headers and optional POST data).
-            request (Request):
-            callback (Callback):
+            client_address (str): The requesting IPv4 or IPv6 client address including port number, and ``request`` contains the request contents (URL, method, headers and optional POST data).
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         """
         ...
     def on_web_socket_connected(self, server: Server, connection_id: int) -> None:
@@ -12934,7 +13004,7 @@ class ServerHandler:
         See OnWebSocketRequest documentation for intended usage.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         ...
@@ -12947,15 +13017,15 @@ class ServerHandler:
         intended usage.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            data (memoryview): The message content and  ``data_size`` is the size of ``data`` in bytes.
+            data (memoryview): The message content and ``data_size`` is the size of ``data`` in bytes.
         """
         ...
 
 
 class SetCookieCallback:
-    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.set_cookie`."""
+    """Interface to implement to be notified of asynchronous completion via :meth:`~cefweaver.CookieManager.set_cookie`."""
     def on_complete(self, success: bool) -> None:
         """Method that will be called upon completion.
 
@@ -12968,20 +13038,21 @@ class SetCookieCallback:
 
 
 class SettingObserver:
-    """Implemented by the client to observe content and website setting changes and registered via :meth:`RequestContext.add_setting_observer`.
+    """Implemented by the client to observe content and website setting changes and registered via :meth:`~cefweaver.RequestContext.add_setting_observer`.
 
     The methods of this class will be called on the browser process UI thread.
     """
     def on_setting_changed(self, requesting_url: str, top_level_url: str, content_type: ContentSettingTypes) -> None:
         """Called when a content or website setting has changed.
 
-        The new value can be retrieved using :meth:`RequestContext.get_content_setting` or
-        :meth:`RequestContext.get_website_setting`.
+        The new value can be retrieved using
+        :meth:`~cefweaver.RequestContext.get_content_setting` or
+        :meth:`~cefweaver.RequestContext.get_website_setting`.
 
         Args:
             requesting_url (str):
             top_level_url (str):
-            content_type (ContentSettingTypes):
+            content_type (cefweaver.types.ContentSettingTypes):
         """
         ...
 
@@ -13023,7 +13094,7 @@ class TextfieldDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -13032,7 +13103,7 @@ class TextfieldDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -13041,7 +13112,7 @@ class TextfieldDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -13054,7 +13125,7 @@ class TextfieldDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -13069,9 +13140,9 @@ class TextfieldDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -13084,16 +13155,16 @@ class TextfieldDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -13101,7 +13172,7 @@ class TextfieldDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -13109,14 +13180,14 @@ class TextfieldDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -13127,19 +13198,19 @@ class TextfieldDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_key_event(self, textfield: Textfield, event: KeyEvent) -> bool:
@@ -13149,7 +13220,7 @@ class TextfieldDelegate:
         keyboard event was handled or ``False`` otherwise for default handling.
 
         Args:
-            textfield (Textfield):
+            textfield (cefweaver.Textfield):
             event (KeyEvent):
         Returns:
             bool
@@ -13159,13 +13230,13 @@ class TextfieldDelegate:
         """Called after performing a user action that may change ``textfield``.
 
         Args:
-            textfield (Textfield):
+            textfield (cefweaver.Textfield):
         """
         ...
 
 
 class URLRequestClient:
-    """Interface that should be implemented by the :class:`URLRequest` client.
+    """Interface that should be implemented by the :class:`~cefweaver.URLRequest` client.
 
     The methods of this class will be called on the same thread that created the request
     unless otherwise documented.
@@ -13173,11 +13244,11 @@ class URLRequestClient:
     def on_request_complete(self, request: URLRequest) -> None:
         """Notify the client that the request has completed.
 
-        Use the :meth:`URLRequest.get_request_status` method to determine if the request was
-        successful or not.
+        Use the :meth:`~cefweaver.URLRequest.get_request_status` method to determine if the
+        request was successful or not.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
         """
         ...
     def on_upload_progress(self, request: URLRequest, current: int, total: int) -> None:
@@ -13188,9 +13259,9 @@ class URLRequestClient:
         called if the UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             current (int):
-            total (int): The total size of uploading data (or -1  if chunked upload is enabled).
+            total (int): The total size of uploading data (or -1 if chunked upload is enabled).
         """
         ...
     def on_download_progress(self, request: URLRequest, current: int, total: int) -> None:
@@ -13200,9 +13271,9 @@ class URLRequestClient:
         expected total size of the response (or -1 if not determined).
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             current (int):
-            total (int): The expected total size of  the response (or -1 if not determined).
+            total (int): The expected total size of the response (or -1 if not determined).
         """
         ...
     def on_download_data(self, request: URLRequest, data: memoryview) -> None:
@@ -13212,7 +13283,7 @@ class URLRequestClient:
         not be called if the UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
 
         Args:
-            request (URLRequest):
+            request (cefweaver.URLRequest):
             data (memoryview):
         """
         ...
@@ -13221,12 +13292,12 @@ class URLRequestClient:
 
         ``is_proxy`` indicates whether the host is a proxy server. ``host`` contains the
         hostname and ``port`` contains the port number. Return ``True`` to continue the
-        request and call :meth:`AuthCallback.continue_` when the authentication information
-        is available. If the request has an associated browser/frame then returning
-        ``False`` will result in a call to GetAuthCredentials on the :class:`RequestHandler`
-        associated with that browser, if any. Otherwise, returning ``False`` will cancel the
-        request immediately. This method will only be called for requests initiated from the
-        browser process.
+        request and call :meth:`~cefweaver.AuthCallback.continue_` when the authentication
+        information is available. If the request has an associated browser/frame then
+        returning ``False`` will result in a call to GetAuthCredentials on the
+        :class:`~cefweaver.RequestHandler` associated with that browser, if any. Otherwise,
+        returning ``False`` will cancel the request immediately. This method will only be
+        called for requests initiated from the browser process.
 
         Args:
             is_proxy (bool):
@@ -13234,7 +13305,7 @@ class URLRequestClient:
             port (int):
             realm (str):
             scheme (str):
-            callback (AuthCallback):
+            callback (cefweaver.AuthCallback):
         Returns:
             bool
         """
@@ -13254,7 +13325,7 @@ class ViewDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -13263,7 +13334,7 @@ class ViewDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -13272,7 +13343,7 @@ class ViewDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -13285,7 +13356,7 @@ class ViewDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -13300,9 +13371,9 @@ class ViewDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -13315,16 +13386,16 @@ class ViewDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -13332,7 +13403,7 @@ class ViewDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -13340,14 +13411,14 @@ class ViewDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -13358,19 +13429,19 @@ class ViewDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
 
@@ -13387,7 +13458,7 @@ class WindowDelegate:
         The Layout will use this information to determine the display size.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The preferred size for ``view``.
         """
@@ -13396,7 +13467,7 @@ class WindowDelegate:
         """Return the minimum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The minimum size for ``view``.
         """
@@ -13405,7 +13476,7 @@ class WindowDelegate:
         """Return the maximum size for ``view``.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         Returns:
             Size | tuple[int, int]: The maximum size for ``view``.
         """
@@ -13418,7 +13489,7 @@ class WindowDelegate:
         Labels).
 
         Args:
-            view (View):
+            view (cefweaver.View):
             width (int):
         Returns:
             int: The height necessary to display ``view`` with the provided ``width``.
@@ -13433,9 +13504,9 @@ class WindowDelegate:
         notification. Do not modify the view hierarchy in this callback.
 
         Args:
-            view (View): Being reparented the  remove notification will be sent before the add notification.
+            view (cefweaver.View): Being reparented the remove notification will be sent before the add notification.
             added (bool):
-            parent (View):
+            parent (cefweaver.View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
@@ -13448,16 +13519,16 @@ class WindowDelegate:
         hierarchy in this callback.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             added (bool):
-            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
+            child (cefweaver.View): Being reparented the remove notification will be sent to the old parent before the add notification is sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when ``view`` is added or removed from the :class:`Window`.
+        """Called when ``view`` is added or removed from the :class:`~cefweaver.Window`.
 
         Args:
-            view (View): Added or removed from the ``CefWindow``.
+            view (cefweaver.View): Added or removed from the ``CefWindow``.
             added (bool):
         """
         ...
@@ -13465,7 +13536,7 @@ class WindowDelegate:
         """Called when the layout of ``view`` has changed.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             new_bounds (Rect):
         """
         ...
@@ -13473,14 +13544,14 @@ class WindowDelegate:
         """Called when ``view`` gains focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_blur(self, view: View) -> None:
         """Called when ``view`` loses focus.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_theme_changed(self, view: View) -> None:
@@ -13491,33 +13562,33 @@ class WindowDelegate:
 
         This will be called in the following cases:
 
-         1. When ``view``, or a parent of ``view``, is added to a Window.
-         2. When the native/OS or Chrome theme changes for the Window that contains
-            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
-         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
-            that contains ``view``.
+        1. When ``view``, or a parent of ``view``, is added to a Window.
+        2. When the native/OS or Chrome theme changes for the Window that contains ``view``.
+           See :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` documentation.
+        3. When the client explicitly calls :meth:`~cefweaver.Window.theme_changed` on the
+           Window that contains ``view``.
 
         Optionally use this callback to override the new per-View theme colors by calling
-        :meth:`View.set_background_color` or the appropriate component-specific method. See
-        :meth:`Window.set_theme_color` documentation for how to customize additional Window
-        theme colors.
+        :meth:`~cefweaver.View.set_background_color` or the appropriate component-specific
+        method. See :meth:`~cefweaver.Window.set_theme_color` documentation for how to
+        customize additional Window theme colors.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         ...
     def on_window_created(self, window: Window) -> None:
         """Called when ``window`` is created.
 
         Args:
-            window (Window): Created.
+            window (cefweaver.Window): Created.
         """
         ...
     def on_window_closing(self, window: Window) -> None:
         """Called when ``window`` is closing.
 
         Args:
-            window (Window): Closing.
+            window (cefweaver.Window): Closing.
         """
         ...
     def on_window_destroyed(self, window: Window) -> None:
@@ -13527,14 +13598,14 @@ class WindowDelegate:
         ``window`` after this callback returns.
 
         Args:
-            window (Window): Destroyed.
+            window (cefweaver.Window): Destroyed.
         """
         ...
     def on_window_activation_changed(self, window: Window, active: bool) -> None:
         """Called when ``window`` is activated or deactivated.
 
         Args:
-            window (Window): Activated or deactivated.
+            window (cefweaver.Window): Activated or deactivated.
             active (bool):
         """
         ...
@@ -13544,7 +13615,7 @@ class WindowDelegate:
         ``new_bounds`` will be in DIP screen coordinates.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             new_bounds (Rect):
         """
         ...
@@ -13555,11 +13626,11 @@ class WindowDelegate:
         when the transition starts and ``True`` after the transition completes. On other
         platforms the transition occurs synchronously with ``is_completed`` set to ``True``
         after the transition completes. With Alloy style you must also implement
-        :meth:`DisplayHandler.on_fullscreen_mode_change` to handle fullscreen transitions
-        initiated by browser content.
+        :meth:`~cefweaver.DisplayHandler.on_fullscreen_mode_change` to handle fullscreen
+        transitions initiated by browser content.
 
         Args:
-            window (Window): Transitioning to or from fullscreen mode.
+            window (cefweaver.Window): Transitioning to or from fullscreen mode.
             is_completed (bool):
         """
         ...
@@ -13573,9 +13644,9 @@ class WindowDelegate:
         displayed.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            tuple[Window | None, bool, bool]: The parent for ``window`` or ``None`` if the ``window`` does not have a  parent.
+            tuple[cefweaver.Window | None, bool, bool]: The parent for ``window`` or ``None`` if the ``window`` does not have a parent.
         """
         ...
     def is_window_modal_dialog(self, window: Window) -> bool:
@@ -13584,11 +13655,11 @@ class WindowDelegate:
         Only called when a Window is returned via GetParentWindow() with ``is_menu`` set to
         ``False``. All controls in the parent Window will be disabled while ``window`` is
         visible. This functionality is not supported by all Linux window managers.
-        Alternately, use :meth:`Window.show_as_browser_modal_dialog` for a browser modal
-        dialog that works on all platforms.
+        Alternately, use :meth:`~cefweaver.Window.show_as_browser_modal_dialog` for a
+        browser modal dialog that works on all platforms.
 
         Args:
-            window (Window): Visible.
+            window (cefweaver.Window): Visible.
         Returns:
             bool: ``True`` if ``window`` should be created as a window modal dialog.
         """
@@ -13598,32 +13669,32 @@ class WindowDelegate:
 
         If this method returns an empty ``CefRect`` then GetPreferredSize() will be called
         to retrieve the size, and the window will be placed on the screen with origin (0,0).
-        This method can be used in combination with :meth:`View.get_bounds_in_screen` to
-        restore the previous window bounds.
+        This method can be used in combination with
+        :meth:`~cefweaver.View.get_bounds_in_screen` to restore the previous window bounds.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            Rect | tuple[int, int, int, int]: The initial bounds for ``window`` in density independent pixel (DIP)  coordinates.
+            Rect | tuple[int, int, int, int]: The initial bounds for ``window`` in density independent pixel (DIP) coordinates.
         """
         ...
     def get_initial_show_state(self, window: Window) -> ShowState | int:
         """Return the initial show state for ``window``.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            ShowState | int: The initial show state for ``window``.
+            cefweaver.types.ShowState | int: The initial show state for ``window``.
         """
         ...
     def is_frameless(self, window: Window) -> bool:
         """Return ``True`` if ``window`` should be created without a frame or title bar.
 
         The window will be resizable if CanResize() returns ``True``. Use
-        :meth:`Window.set_draggable_regions` to specify draggable regions.
+        :meth:`~cefweaver.Window.set_draggable_regions` to specify draggable regions.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` should be created without a frame or title bar.
         """
@@ -13634,9 +13705,9 @@ class WindowDelegate:
         This method is only supported on macOS.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            bool: ``True`` if ``window`` should be created with standard window buttons  like close, minimize and zoom.
+            bool: ``True`` if ``window`` should be created with standard window buttons like close, minimize and zoom.
         """
         ...
     def get_titlebar_height(self, window: Window) -> tuple[bool, float]:
@@ -13647,9 +13718,9 @@ class WindowDelegate:
         titlebar at a height of ``titlebar_height`` / 2.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            tuple[bool, float]: Whether the titlebar height should be overridden, and sets the  height of the titlebar in ``titlebar_height``.
+            tuple[bool, float]: Whether the titlebar height should be overridden, and sets the height of the titlebar in ``titlebar_height``.
         """
         ...
     def accepts_first_mouse(self, window: Window) -> State | int:
@@ -13663,16 +13734,16 @@ class WindowDelegate:
         of acceptsFirstMouse.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
-            State | int: Whether the view should accept the initial mouse-down event,  allowing it to respond to click-through behavior.
+            cefweaver.types.State | int: Whether the view should accept the initial mouse-down event, allowing it to respond to click-through behavior.
         """
         ...
     def can_resize(self, window: Window) -> bool:
         """Return ``True`` if ``window`` can be resized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be resized.
         """
@@ -13681,7 +13752,7 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be maximized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be maximized.
         """
@@ -13690,7 +13761,7 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be minimized.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be minimized.
         """
@@ -13699,21 +13770,21 @@ class WindowDelegate:
         """Return ``True`` if ``window`` can be closed.
 
         This will be called for user- initiated window close actions and when
-        :meth:`Window.close` is called.
+        :meth:`~cefweaver.Window.close` is called.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             bool: ``True`` if ``window`` can be closed.
         """
         ...
     def on_accelerator(self, window: Window, command_id: int) -> bool:
-        """Called when a keyboard accelerator registered with :meth:`Window.set_accelerator` is triggered.
+        """Called when a keyboard accelerator registered with :meth:`~cefweaver.Window.set_accelerator` is triggered.
 
         Return ``True`` if the accelerator was handled or ``False`` otherwise.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             command_id (int):
         Returns:
             bool
@@ -13726,7 +13797,7 @@ class WindowDelegate:
         keyboard event was handled or ``False`` otherwise.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             event (KeyEvent):
         Returns:
             bool
@@ -13740,29 +13811,29 @@ class WindowDelegate:
         Native/OS theme colors are configured globally and do not need to be customized for
         each Window individually. An example of a native/OS theme change that triggers this
         callback is when the user switches between dark and light mode during application
-        lifespan. Native/OS theme changes can be disabled by passing the `--force-dark-mode`
-        or `--force-light-mode` command-line flag.
+        lifespan. Native/OS theme changes can be disabled by passing the
+        ``--force-dark-mode`` or ``--force-light-mode`` command-line flag.
 
         Chrome theme colors will be applied and this callback will be triggered if/when a
         BrowserView is added to the Window's component hierarchy. Chrome theme colors can be
         configured on a per-RequestContext basis using
-        :meth:`RequestContext.set_chrome_color_scheme` or (Chrome style only) by visiting
-        chrome://settings/manageProfile. Any theme changes using those mechanisms will also
-        trigger this callback. Chrome theme colors will be persisted and restored from disk
-        cache.
+        :meth:`~cefweaver.RequestContext.set_chrome_color_scheme` or (Chrome style only) by
+        visiting chrome://settings/manageProfile. Any theme changes using those mechanisms
+        will also trigger this callback. Chrome theme colors will be persisted and restored
+        from disk cache.
 
         This callback is not triggered on Window creation so clients that wish to customize
-        the initial native/OS theme must call :meth:`Window.set_theme_color` and
-        :meth:`Window.theme_changed` before showing the first Window.
+        the initial native/OS theme must call :meth:`~cefweaver.Window.set_theme_color` and
+        :meth:`~cefweaver.Window.theme_changed` before showing the first Window.
 
         Theme colors will be reset to standard values before this callback is called for the
-        first affected Window. Call :meth:`Window.set_theme_color` from inside this callback
-        to override a standard color or add a custom color.
-        :meth:`ViewDelegate.on_theme_changed` will be called after this callback for the
-        complete ``window`` component hierarchy.
+        first affected Window. Call :meth:`~cefweaver.Window.set_theme_color` from inside
+        this callback to override a standard color or add a custom color.
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed` will be called after this callback
+        for the complete ``window`` component hierarchy.
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
             chrome_theme (bool):
         """
         ...
@@ -13772,14 +13843,14 @@ class WindowDelegate:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle | int
+            cefweaver.types.RuntimeStyle | int
         """
         ...
     def get_linux_window_properties(self, window: Window) -> tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]:
         """Return Linux-specific window properties for correctly handling by window managers
 
         Args:
-            window (Window):
+            window (cefweaver.Window):
         Returns:
             tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]
         """
@@ -13834,7 +13905,7 @@ class WriteHandler:
         Used as a hint for determining the thread to access the handler from.
 
         Returns:
-            bool: ``True`` if this handler performs work like accessing the file system  which may block.
+            bool: ``True`` if this handler performs work like accessing the file system which may block.
         """
         ...
 
@@ -13852,12 +13923,12 @@ def register_scheme_handler_factory(scheme_name: str, domain_name: str | None, f
     ``scheme_name`` and optional ``domain_name``. Returns ``False`` if an error occurs.
     This function may be called on any thread in the browser process. Using this
     function is equivalent to calling
-    :meth:`RequestContext.get_global_context`->RegisterSchemeHandlerFactory().
+    :meth:`~cefweaver.RequestContext.get_global_context`->RegisterSchemeHandlerFactory().
 
     Args:
-        scheme_name (str): A custom scheme then you must also implement the  ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
+        scheme_name (str): A custom scheme then you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
         domain_name (str | None):
-        factory (SchemeHandlerFactory | None):
+        factory (cefweaver.SchemeHandlerFactory | None):
     Returns:
         bool
     """
@@ -13869,7 +13940,7 @@ def clear_scheme_handler_factories() -> bool:
 
     Returns ``False`` on error. This function may be called on any thread in the browser
     process. Using this function is equivalent to calling
-    :meth:`RequestContext.get_global_context`->ClearSchemeHandlerFactories().
+    :meth:`~cefweaver.RequestContext.get_global_context`->ClearSchemeHandlerFactories().
 
     Returns:
         bool
@@ -13883,7 +13954,7 @@ def get_mime_type(extension: str) -> str:
     Args:
         extension (str):
     Returns:
-        str: The mime type for the specified file extension or an empty string if  unknown.
+        str: The mime type for the specified file extension or an empty string if unknown.
     """
     ...
 
@@ -13891,11 +13962,11 @@ def get_mime_type(extension: str) -> str:
 def post_task(thread_id: ThreadId | int, task: Task) -> bool:
     """Post a task for execution on the specified thread.
 
-    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostTask(task).
+    Equivalent to using ``CefTaskRunner::GetForThread(threadId)``->PostTask(task).
 
     Args:
-        thread_id (ThreadId | int):
-        task (Task):
+        thread_id (cefweaver.types.ThreadId | int):
+        task (cefweaver.Task):
     Returns:
         bool
     """
@@ -13905,12 +13976,12 @@ def post_task(thread_id: ThreadId | int, task: Task) -> bool:
 def post_delayed_task(thread_id: ThreadId | int, task: Task, delay_ms: int) -> bool:
     """Post a task for delayed execution on the specified thread.
 
-    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostDelayedTask(task,
+    Equivalent to using ``CefTaskRunner::GetForThread(threadId)``->PostDelayedTask(task,
     delay_ms).
 
     Args:
-        thread_id (ThreadId | int):
-        task (Task):
+        thread_id (cefweaver.types.ThreadId | int):
+        task (cefweaver.Task):
         delay_ms (int):
     Returns:
         bool
@@ -13922,10 +13993,10 @@ def currently_on(thread_id: ThreadId | int) -> bool:
     """Return ``True`` if called on the specified thread.
 
     Equivalent to using
-    ``CefTaskRunner::GetForThread``(threadId)->BelongsToCurrentThread().
+    ``CefTaskRunner::GetForThread(threadId)``->BelongsToCurrentThread().
 
     Args:
-        thread_id (ThreadId | int):
+        thread_id (cefweaver.types.ThreadId | int):
     Returns:
         bool: ``True`` if called on the specified thread.
     """
@@ -13968,7 +14039,7 @@ def add_cross_origin_whitelist_entry(source_origin: str, target_protocol: str, t
     Args:
         source_origin (str): Invalid or the whitelist cannot be accessed.
         target_protocol (str):
-        target_domain (str | None): Empty and  ``allow_target_subdomains`` if ``True`` all domains and IP addresses will be  allowed.
+        target_domain (str | None): Empty and ``allow_target_subdomains`` if ``True`` all domains and IP addresses will be allowed.
         allow_target_subdomains (bool): True sub-domain matches will be allowed.
     Returns:
         bool
@@ -14008,7 +14079,7 @@ def is_cert_status_error(status: CertStatus | int) -> bool:
     """Return ``True`` if the certificate status represents an error.
 
     Args:
-        status (CertStatus | int):
+        status (cefweaver.types.CertStatus | int):
     Returns:
         bool: ``True`` if the certificate status represents an error.
     """
@@ -14035,8 +14106,8 @@ def get_extensions_for_mime_type(mime_type: str) -> list[str]:
     """Get the extensions associated with the given mime type.
 
     This should be passed in lower case. There could be multiple extensions for a given
-    mime type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"text/*\". Any
-    existing elements in the provided vector will not be erased.
+    mime type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"``text/*``\".
+    Any existing elements in the provided vector will not be erased.
 
     Args:
         mime_type (str):
@@ -14074,14 +14145,17 @@ def begin_tracing(categories: str | None, callback: CompletionCallback | None) -
     an optional '-' prefix to make it an excluded category. Having both included and
     excluded categories in the same list is not supported.
 
-    Examples: - \"test_MyTest*\" - \"test_MyTest*,test_OtherStuff\" -
-    \"-excluded_category1,-excluded_category2\"
+    Examples:
+
+    - \"``test_MyTest*``\"
+    - \"test_MyTest*,test_OtherStuff\"
+    - \"-excluded_category1,-excluded_category2\"
 
     This function must be called on the browser process UI thread.
 
     Args:
         categories (str | None): A comma-delimited list of category wildcards.
-        callback (CompletionCallback | None):
+        callback (cefweaver.CompletionCallback | None):
     Returns:
         bool
     """
@@ -14102,8 +14176,8 @@ def end_tracing(tracing_file: str | None, callback: EndTracingCallback | None) -
     This function must be called on the browser process UI thread.
 
     Args:
-        tracing_file (str | None): Empty a new temporary file path  will be used.
-        callback (EndTracingCallback | None): Empty no trace data will be written.
+        tracing_file (str | None): Empty a new temporary file path will be used.
+        callback (cefweaver.EndTracingCallback | None): Empty no trace data will be written.
     Returns:
         bool
     """
@@ -14125,36 +14199,38 @@ def crash_reporting_enabled() -> bool:
 
     On Windows and Linux this file must be placed next to the main application
     executable. On macOS this file must be placed in the top-level app bundle Resources
-    directory (e.g. \"<appname>.app/Contents/Resources\"). File contents are as follows:
+    directory (e.g. \"<appname>.app/Contents/Resources\"). File contents are as follows::
 
-     <pre>
-      # Comments start with a hash character and must be on their own line.
+        # Comments start with a hash character and must be on their own line.
 
-      [Config]
-      ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
-      ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
-      AppName=<Windows only; App-specific folder name component for storing crash
-               information; default to \"CEF\">
-      ExternalHandler=<Windows only; Name of the external handler exe to use
-                       instead of re-launching the main exe; default to empty>
-      BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
-                                     should be forwarded to the system crash
-                                     reporter; default to ``False``>
-      ServerURL=<crash server URL; default to empty>
-      RateLimitEnabled=<True if uploads should be rate limited; default to ``True``>
-      MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
-                        default to 5>
-      MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
-                           will cause older reports to be deleted; default to 20>
-      MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
-                            default to 5>
+    ::
 
-      [CrashKeys]
-      my_key1=<small``medium``large>
-      my_key2=<small``medium``large>
-     </pre>
+        [Config]
+        ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
+        ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
+        AppName=<Windows only; App-specific folder name component for storing crash
+                 information; default to \"CEF\">
+        ExternalHandler=<Windows only; Name of the external handler exe to use
+                         instead of re-launching the main exe; default to empty>
+        BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
+                                       should be forwarded to the system crash
+                                       reporter; default to false>
+        ServerURL=<crash server URL; default to empty>
+        RateLimitEnabled=<True if uploads should be rate limited; default to true>
+        MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
+                          default to 5>
+        MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
+                             will cause older reports to be deleted; default to 20>
+        MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
+                              default to 5>
 
-    <b>Config section:</b>
+    ::
+
+        [CrashKeys]
+        my_key1=<small|medium|large>
+        my_key2=<small|medium|large>
+
+    ``**Config`` section:``**``
 
     If \"ProductName\" and/or \"ProductVersion\" are set then the specified values will be
     included in the crash dump metadata. On macOS if these values are set to empty then
@@ -14181,18 +14257,17 @@ def crash_reporting_enabled() -> bool:
     If \"ServerURL\" is set then crashes will be uploaded as a multi-part POST request to
     the specified URL. Otherwise, reports will only be stored locally on disk.
 
-     If \"RateLimitEnabled\" is set to ``True`` then crash report uploads will be rate
-     limited as follows:
-      1. If \"MaxUploadsPerDay\" is set to a positive value then at most the
-         specified number of crashes will be uploaded in each 24 hour period.
-      2. If crash upload fails due to a network or server error then an
-         incremental backoff delay up to a maximum of 24 hours will be applied
-         for retries.
-      3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
-         \"MaxUploadsPerDay\" value will be reduced to 1 until the client is
-         restarted. This helps to avoid an upload flood when the network or
-         server error is resolved.
-     Rate limiting is not supported on Linux.
+    If \"RateLimitEnabled\" is set to ``True`` then crash report uploads will be rate
+    limited as follows:
+
+    1. If \"MaxUploadsPerDay\" is set to a positive value then at most the specified
+       number of crashes will be uploaded in each 24 hour period.
+    2. If crash upload fails due to a network or server error then an incremental
+       backoff delay up to a maximum of 24 hours will be applied for retries.
+    3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
+       \"MaxUploadsPerDay\" value will be reduced to 1 until the client is restarted. This
+       helps to avoid an upload flood when the network or server error is resolved. Rate
+       limiting is not supported on Linux.
 
     If \"MaxDatabaseSizeInMb\" is set to a positive value then crash report storage on
     disk will be limited to that size in megabytes. For example, on Windows each dump is
@@ -14202,7 +14277,7 @@ def crash_reporting_enabled() -> bool:
     If \"MaxDatabaseAgeInDays\" is set to a positive value then crash reports older than
     the specified age in days will be deleted. Not supported on Linux.
 
-    <b>CrashKeys section:</b>
+    ``**CrashKeys`` section:``**``
 
     A maximum of 26 crash keys of each size can be specified for use by the application.
     Crash key values will be truncated based on the specified size (small = 64 bytes,
@@ -14231,7 +14306,7 @@ def get_path(key: PathKey | int) -> tuple[bool, str]:
     Returns ``True`` on success. Can be called on any thread in the browser process.
 
     Args:
-        key (PathKey | int):
+        key (cefweaver.types.PathKey | int):
     Returns:
         tuple[bool, str]
     """
@@ -14244,6 +14319,6 @@ def now_from_system_trace_time() -> int:
     Can be used by clients to synchronize with the time information in trace events.
 
     Returns:
-        int: The current system trace time or, if none is defined, the current  high-res time.
+        int: The current system trace time or, if none is defined, the current high-res time.
     """
     ...

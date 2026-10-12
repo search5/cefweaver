@@ -7,7 +7,7 @@ sources:
   - tools/gen/scope.py
   - native/cefwrapper/cef_wrapper_browser_process_handler.cc
   - examples/print/printing.py
-updated: 2026-10-10
+updated: 2026-10-13
 ---
 
 # java-cef를 바닥으로 보았을 때 어디까지 왔는가
@@ -36,7 +36,7 @@ updated: 2026-10-10
 | 인쇄 | 대화상자는 Java 쪽(Swing) | PDF 인쇄와 `PrintHandler` 전부, **앱이 직접 만드는 CUPS 대화상자 예제**(`examples/print`, F94) |
 | 배포 | 없음 | PyInstaller와 cx_Freeze로 묶기를 Linux의 두 빌드에서 확인(F93), Windows에서는 PyInstaller(onedir, onefile), cx_Freeze, py2exe로 묶어 통과(F120, py2exe는 런타임 파일을 손으로 복사) |
 | 시험 | JUnit 10개 안팎(`java/tests/junittests`) | **497개**(통합 194, UI 164, 생성기 122, 문서 15, 위키 2) |
-| 문서 | 위키 | 위키 + 사람이 읽는 Jekyll 사이트(GitHub Pages) |
+| 문서 | 위키 | 위키 + docstring에서 생성하는 Sphinx 문서(영어, 한국어) |
 
 (java-cef의 시험 수는 `@Test`와 `public void test`를 센 값이고 시험 하나의 크기는 다릅니다. 시험 수의 비교는 규모를 가늠하는 용도입니다. [시험 비교](java-cef-test-comparison.md)에 자세한 대조가 있습니다.)
 

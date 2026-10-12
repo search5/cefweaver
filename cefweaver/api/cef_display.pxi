@@ -45,7 +45,7 @@ cdef class Display:
         This specifies how much the UI should be scaled when the actual output has more
         pixels than standard displays (which is around 100~120dpi). The potential return
         values differ by platform. Windowed browsers with 1.0 zoom will have a JavaScript
-        `window.devicePixelRatio` value matching the associated Display's
+        ``window.devicePixelRatio`` value matching the associated Display's
         GetDeviceScaleFactor() value.
 
         Returns:
@@ -133,7 +133,7 @@ cdef class Display:
         """Return the primary Display.
 
         Returns:
-            Display | None: The primary Display.
+            cefweaver.Display | None: The primary Display.
         """
         cdef CefRefPtr[CefDisplay] _r
         with nogil:
@@ -151,7 +151,7 @@ cdef class Display:
             point (Point | tuple[int, int]): In pixel screen coordinates instead of DIP screen coordinates.
             input_pixel_coords (bool):
         Returns:
-            Display | None: The Display nearest ``point``.
+            cefweaver.Display | None: The Display nearest ``point``.
         """
         cdef CefPoint _a0
         cdef CefRefPtr[CefDisplay] _r
@@ -168,10 +168,10 @@ cdef class Display:
         instead of DIP screen coordinates.
 
         Args:
-            bounds (Rect | tuple[int, int, int, int]): In pixel screen coordinates  instead of DIP screen coordinates.
+            bounds (Rect | tuple[int, int, int, int]): In pixel screen coordinates instead of DIP screen coordinates.
             input_pixel_coords (bool):
         Returns:
-            Display | None: The Display that most closely intersects ``bounds``.
+            cefweaver.Display | None: The Display that most closely intersects ``bounds``.
         """
         cdef CefRect _a0
         cdef CefRefPtr[CefDisplay] _r
@@ -203,7 +203,7 @@ cdef class Display:
         displays.
 
         Returns:
-            list[Display]: All Displays.
+            list[cefweaver.Display]: All Displays.
         """
         cdef vector[CefRefPtr[CefDisplay]] _a0
         with nogil:

@@ -64,8 +64,8 @@ cdef class TaskManager:
         thread.
 
         Args:
-            task_id (int): Invalid or the method was called  from the incorrect thread.
-            info (TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]):
+            task_id (int): Invalid or the method was called from the incorrect thread.
+            info (TaskInfo | tuple[int, cefweaver.types.TaskType, int, str, float, int, int, int, int]):
         Returns:
             tuple[bool, TaskInfo]
         """
@@ -84,7 +84,7 @@ cdef class TaskManager:
         thread, or if the task cannot be terminated.
 
         Args:
-            task_id (int): Invalid, the call is made from an  incorrect thread, or if the task cannot be terminated.
+            task_id (int): Invalid, the call is made from an incorrect thread, or if the task cannot be terminated.
         Returns:
             bool
         """
@@ -95,15 +95,15 @@ cdef class TaskManager:
         return _r
 
     def get_task_id_for_browser_id(self, int browser_id):
-        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`Browser.get_identifier`).
+        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`~cefweaver.Browser.get_identifier`).
 
         Returns -1 if ``browser_id`` is invalid, does not currently have an associated task,
         or the method was called from the incorrect thread.
 
         Args:
-            browser_id (int): Invalid, does not currently have an associated task, or the method was  called from the incorrect thread.
+            browser_id (int): Invalid, does not currently have an associated task, or the method was called from the incorrect thread.
         Returns:
-            int: The task ID associated with the main task for ``browser_id``  (value from ``CefBrowser::GetIdentifier``).
+            int: The task ID associated with the main task for ``browser_id`` (value from ``CefBrowser::GetIdentifier``).
         """
         cdef CefTaskManager* _p = self._ptr()
         cdef int64_t _r
@@ -118,7 +118,7 @@ cdef class TaskManager:
         Returns ``None`` if the method was called from the incorrect thread.
 
         Returns:
-            TaskManager | None: The global task manager object.
+            cefweaver.TaskManager | None: The global task manager object.
         """
         cdef CefRefPtr[CefTaskManager] _r
         with nogil:

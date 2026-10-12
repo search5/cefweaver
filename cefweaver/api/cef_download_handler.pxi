@@ -138,15 +138,15 @@ class DownloadHandler:
     def can_download(self, browser, url, request_method):
         """Called before a download begins in response to a user-initiated action (e.g.
 
-        alt + link click or link click that returns a `Content-Disposition: attachment`
+        alt + link click or link click that returns a ``Content-Disposition: attachment``
         response from the server). ``url`` is the target download URL and ``request_method``
         is the target method (GET, POST, etc). Return ``True`` to proceed with the download
         or ``False`` to cancel the download. This method is not called for downloads
-        initiated by :meth:`BrowserHost.start_download`.
+        initiated by :meth:`~cefweaver.BrowserHost.start_download`.
 
         Args:
-            browser (Browser):
-            url (str): The target download URL  and ``request_method`` is the target method (GET, POST, etc).
+            browser (cefweaver.Browser):
+            url (str): The target download URL and ``request_method`` is the target method (GET, POST, etc).
             request_method (str):
         Returns:
             bool
@@ -166,10 +166,10 @@ class DownloadHandler:
         method.
 
         Args:
-            browser (Browser):
-            download_item (DownloadItem):
-            suggested_name (str): The suggested name  for the download file.
-            callback (BeforeDownloadCallback): Destroyed without being executed, the download will  be canceled.
+            browser (cefweaver.Browser):
+            download_item (cefweaver.DownloadItem):
+            suggested_name (str): The suggested name for the download file.
+            callback (cefweaver.BeforeDownloadCallback): Destroyed without being executed, the download will be canceled.
         Returns:
             bool
         """
@@ -183,9 +183,9 @@ class DownloadHandler:
         desired. Do not keep a reference to ``download_item`` outside of this method.
 
         Args:
-            browser (Browser):
-            download_item (DownloadItem):
-            callback (DownloadItemCallback):
+            browser (cefweaver.Browser):
+            download_item (cefweaver.DownloadItem):
+            callback (cefweaver.DownloadItemCallback):
         """
         return None
 

@@ -8,7 +8,7 @@ class Client:
         """Return the handler for audio rendering events.
 
         Returns:
-            AudioHandler | None: The handler for audio rendering events.
+            cefweaver.AudioHandler | None: The handler for audio rendering events.
         """
         return None
 
@@ -18,7 +18,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            CommandHandler | None: The handler for commands.
+            cefweaver.CommandHandler | None: The handler for commands.
         """
         return None
 
@@ -28,7 +28,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            ContextMenuHandler | None: The handler for context menus.
+            cefweaver.ContextMenuHandler | None: The handler for context menus.
         """
         return None
 
@@ -38,7 +38,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            DialogHandler | None: The handler for dialogs.
+            cefweaver.DialogHandler | None: The handler for dialogs.
         """
         return None
 
@@ -46,7 +46,7 @@ class Client:
         """Return the handler for browser display state events.
 
         Returns:
-            DisplayHandler | None: The handler for browser display state events.
+            cefweaver.DisplayHandler | None: The handler for browser display state events.
         """
         return None
 
@@ -57,7 +57,7 @@ class Client:
         proceed with default handling with Chrome style.
 
         Returns:
-            DownloadHandler | None: The handler for download events.
+            cefweaver.DownloadHandler | None: The handler for download events.
         """
         return None
 
@@ -65,7 +65,7 @@ class Client:
         """Return the handler for drag events.
 
         Returns:
-            DragHandler | None: The handler for drag events.
+            cefweaver.DragHandler | None: The handler for drag events.
         """
         return None
 
@@ -73,7 +73,7 @@ class Client:
         """Return the handler for find result events.
 
         Returns:
-            FindHandler | None: The handler for find result events.
+            cefweaver.FindHandler | None: The handler for find result events.
         """
         return None
 
@@ -81,18 +81,18 @@ class Client:
         """Return the handler for focus events.
 
         Returns:
-            FocusHandler | None: The handler for focus events.
+            cefweaver.FocusHandler | None: The handler for focus events.
         """
         return None
 
     def get_frame_handler(self):
-        """Return the handler for events related to :class:`Frame` lifespan.
+        """Return the handler for events related to :class:`~cefweaver.Frame` lifespan.
 
-        This method will be called once during :class:`Browser` creation and the result will
-        be cached for performance reasons.
+        This method will be called once during :class:`~cefweaver.Browser` creation and the
+        result will be cached for performance reasons.
 
         Returns:
-            FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
+            cefweaver.FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
         """
         return None
 
@@ -100,7 +100,7 @@ class Client:
         """Return the handler for permission requests.
 
         Returns:
-            PermissionHandler | None: The handler for permission requests.
+            cefweaver.PermissionHandler | None: The handler for permission requests.
         """
         return None
 
@@ -110,7 +110,7 @@ class Client:
         If no handler is provided the default implementation will be used.
 
         Returns:
-            JSDialogHandler | None: The handler for JavaScript dialogs.
+            cefweaver.JSDialogHandler | None: The handler for JavaScript dialogs.
         """
         return None
 
@@ -118,7 +118,7 @@ class Client:
         """Return the handler for keyboard events.
 
         Returns:
-            KeyboardHandler | None: The handler for keyboard events.
+            cefweaver.KeyboardHandler | None: The handler for keyboard events.
         """
         return None
 
@@ -126,7 +126,7 @@ class Client:
         """Return the handler for browser life span events.
 
         Returns:
-            LifeSpanHandler | None: The handler for browser life span events.
+            cefweaver.LifeSpanHandler | None: The handler for browser life span events.
         """
         return None
 
@@ -134,7 +134,7 @@ class Client:
         """Return the handler for browser load status events.
 
         Returns:
-            LoadHandler | None: The handler for browser load status events.
+            cefweaver.LoadHandler | None: The handler for browser load status events.
         """
         return None
 
@@ -145,7 +145,7 @@ class Client:
         platform.
 
         Returns:
-            PrintHandler | None: The handler for printing on Linux.
+            cefweaver.PrintHandler | None: The handler for printing on Linux.
         """
         return None
 
@@ -153,7 +153,7 @@ class Client:
         """Return the handler for off-screen rendering events.
 
         Returns:
-            RenderHandler | None: The handler for off-screen rendering events.
+            cefweaver.RenderHandler | None: The handler for off-screen rendering events.
         """
         return None
 
@@ -161,7 +161,7 @@ class Client:
         """Return the handler for browser request events.
 
         Returns:
-            RequestHandler | None: The handler for browser request events.
+            cefweaver.RequestHandler | None: The handler for browser request events.
         """
         return None
 
@@ -172,10 +172,10 @@ class Client:
         keep a reference to ``message`` outside of this callback.
 
         Args:
-            browser (Browser):
-            frame (Frame):
-            source_process (ProcessId):
-            message (ProcessMessage):
+            browser (cefweaver.Browser):
+            frame (cefweaver.Frame):
+            source_process (cefweaver.types.ProcessId):
+            message (cefweaver.ProcessMessage):
         Returns:
             bool
         """

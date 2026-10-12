@@ -12,9 +12,9 @@ class AudioHandler:
         pre-filled with some sensible defaults.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         Returns:
-            tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]
+            tuple[bool, AudioParameters | tuple[cefweaver.types.ChannelLayout, int, int]]
         """
         return False, AudioParameters()
 
@@ -27,7 +27,7 @@ class AudioHandler:
         channels.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             params (AudioParameters):
             channels (int): The number of channels.
         """
@@ -44,9 +44,9 @@ class AudioHandler:
         calculate the size of the ``data`` array in bytes.
 
         Args:
-            browser (Browser):
-            data (list[memoryview]): An array representing the raw PCM data as a floating  point type, i.
-            pts (int): The presentation timestamp (in milliseconds since the  Unix Epoch) and represents the time at which the decompressed packet  should be presented to the user.
+            browser (cefweaver.Browser):
+            data (list[memoryview]): An array representing the raw PCM data as a floating point type, i.e.
+            pts (int): The presentation timestamp (in milliseconds since the Unix Epoch) and represents the time at which the decompressed packet should be presented to the user.
         """
         return None
 
@@ -57,7 +57,7 @@ class AudioHandler:
         may be called multiple times for the same stream.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
@@ -69,7 +69,7 @@ class AudioHandler:
         be stopped immediately.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             message (str):
         """
         return None

@@ -17,7 +17,7 @@ cdef class Panel(View):
         """Return this Panel as a Window or ``None`` if this is not a Window.
 
         Returns:
-            Window | None: This Panel as a Window or ``None`` if this is not a Window.
+            cefweaver.Window | None: This Panel as a Window or ``None`` if this is not a Window.
         """
         cdef CefPanel* _p = self._ptr_CefPanel()
         cdef CefRefPtr[CefWindow] _r
@@ -29,7 +29,7 @@ cdef class Panel(View):
         """Set this Panel's Layout to FillLayout and return the FillLayout object.
 
         Returns:
-            FillLayout | None
+            cefweaver.FillLayout | None
         """
         cdef CefPanel* _p = self._ptr_CefPanel()
         cdef CefRefPtr[CefFillLayout] _r
@@ -41,9 +41,9 @@ cdef class Panel(View):
         """Set this Panel's Layout to BoxLayout and return the BoxLayout object.
 
         Args:
-            settings (BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]):
+            settings (BoxLayoutSettings | tuple[int, int, int, Insets, int, cefweaver.types.AxisAlignment, cefweaver.types.AxisAlignment, int, int]):
         Returns:
-            BoxLayout | None
+            cefweaver.BoxLayout | None
         """
         cdef CefBoxLayoutSettings _a0
         cdef CefPanel* _p = self._ptr_CefPanel()
@@ -57,7 +57,7 @@ cdef class Panel(View):
         """Get the Layout.
 
         Returns:
-            Layout | None
+            cefweaver.Layout | None
         """
         cdef CefPanel* _p = self._ptr_CefPanel()
         cdef CefRefPtr[CefLayout] _r
@@ -76,7 +76,7 @@ cdef class Panel(View):
         """Add a child View.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         cdef CefRefPtr[CefView] _a0
         cdef CefPanel* _p = self._ptr_CefPanel()
@@ -92,7 +92,7 @@ cdef class Panel(View):
         the end.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             index (int):
         """
         cdef CefRefPtr[CefView] _a0
@@ -108,7 +108,7 @@ cdef class Panel(View):
         A negative value for ``index`` will move the View to the end.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             index (int):
         """
         cdef CefRefPtr[CefView] _a0
@@ -124,7 +124,7 @@ cdef class Panel(View):
         The View can then be added to another Panel.
 
         Args:
-            view (View):
+            view (cefweaver.View):
         """
         cdef CefRefPtr[CefView] _a0
         cdef CefPanel* _p = self._ptr_CefPanel()
@@ -161,7 +161,7 @@ cdef class Panel(View):
         Args:
             index (int):
         Returns:
-            View | None: The child View at the specified ``index``.
+            cefweaver.View | None: The child View at the specified ``index``.
         """
         cdef CefPanel* _p = self._ptr_CefPanel()
         cdef CefRefPtr[CefView] _r
@@ -174,9 +174,9 @@ cdef class Panel(View):
         """Create a new Panel.
 
         Args:
-            delegate (PanelDelegate | None):
+            delegate (cefweaver.PanelDelegate | None):
         Returns:
-            Panel | None
+            cefweaver.Panel | None
         """
         cdef CefRefPtr[CefPanelDelegate] _a0
         cdef CefRefPtr[CefPanel] _r

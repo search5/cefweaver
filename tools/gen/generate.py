@@ -129,6 +129,7 @@ def build_all(cef_root):
 
     # The docstrings (Google style) from the comments of the headers.
     known = {c.get_name() for c in scope.library_classes + scope.client_classes}
+    docs.set_owners(model, known)
     model.class_doc_body = {}
     for cls in scope.library_classes + scope.client_classes:
         model.class_doc_body[cls.get_name()] = docs.class_doc(model, cls, known)

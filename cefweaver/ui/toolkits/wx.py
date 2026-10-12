@@ -339,19 +339,19 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
     # -- the browser -----------------------------------------------------------------------------
 
     def browser_title(self, title):
-        """Call :attr:`on_title` with the page title."""
+        """Call ``on_title`` with the page title."""
         self.on_title(title)
 
     def browser_address(self, url):
-        """Call :attr:`on_address` with the page URL."""
+        """Call ``on_address`` with the page URL."""
         self.on_address(url)
 
     def browser_loading(self, loading, can_back, can_forward):
-        """Call :attr:`on_loading` with the loading state and the navigation flags."""
+        """Call ``on_loading`` with the loading state and the navigation flags."""
         self.on_loading(loading, can_back, can_forward)
 
     def browser_ready(self):
-        """Pass the panel's focus state to the view and call :attr:`on_ready`."""
+        """Pass the panel's focus state to the view and call ``on_ready``."""
         self.view.focus(self.HasFocus())
         self.on_ready()
 
@@ -371,7 +371,7 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
         """Store a frame as a ``wx.Bitmap`` and refresh the panel.
 
         Args:
-            frame (Frame): The frame to show.
+            frame (cefweaver.ui.Frame): The frame to show.
         """
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self.popup_bitmap = None

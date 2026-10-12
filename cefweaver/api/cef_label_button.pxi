@@ -17,7 +17,7 @@ cdef class LabelButton(Button):
         """Return this LabelButton as a MenuButton or ``None`` if this is not a MenuButton.
 
         Returns:
-            MenuButton | None: This LabelButton as a MenuButton or ``None`` if this is not a  MenuButton.
+            cefweaver.MenuButton | None: This LabelButton as a MenuButton or ``None`` if this is not a MenuButton.
         """
         cdef CefLabelButton* _p = self._ptr_CefLabelButton()
         cdef CefRefPtr[CefMenuButton] _r
@@ -59,8 +59,8 @@ cdef class LabelButton(Button):
         for CEF_BUTTON_STATE_NORMAL, if any, will be shown.
 
         Args:
-            button_state (ButtonState | int):
-            image (Image | None):
+            button_state (cefweaver.types.ButtonState | int):
+            image (cefweaver.Image | None):
         """
         cdef CefRefPtr[CefImage] _a1
         cdef CefLabelButton* _p = self._ptr_CefLabelButton()
@@ -77,9 +77,9 @@ cdef class LabelButton(Button):
         returned.
 
         Args:
-            button_state (ButtonState | int):
+            button_state (cefweaver.types.ButtonState | int):
         Returns:
-            Image | None: The image shown for ``button_state``.
+            cefweaver.Image | None: The image shown for ``button_state``.
         """
         cdef CefLabelButton* _p = self._ptr_CefLabelButton()
         cdef CefRefPtr[CefImage] _r
@@ -91,7 +91,7 @@ cdef class LabelButton(Button):
         """Set the text color shown for the specified button ``for_state`` to ``color``.
 
         Args:
-            for_state (ButtonState | int):
+            for_state (cefweaver.types.ButtonState | int):
             color (int):
         """
         cdef CefLabelButton* _p = self._ptr_CefLabelButton()
@@ -111,15 +111,19 @@ cdef class LabelButton(Button):
         return None
 
     def set_font_list(self, font_list):
-        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-         where:
-         - FONT_FAMILY_LIST is a comma-separated list of font family names,
-         - STYLES is an optional space-separated list of style names
-           (case-sensitive \"Bold\" and \"Italic\" are supported), and
-         - SIZE is an integer font size in pixels with the suffix \"px\".
+        """Set the font list.
 
-        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
-        Italic 14px\" - \"Arial, 14px\"
+        The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+
+        - FONT_FAMILY_LIST is a comma-separated list of font family names,
+        - STYLES is an optional space-separated list of style names (case-sensitive \"Bold\"
+          and \"Italic\" are supported), and
+        - SIZE is an integer font size in pixels with the suffix \"px\".
+
+        Here are examples of valid font description strings:
+
+        - \"Arial, Helvetica, Bold Italic 14px\"
+        - \"Arial, 14px\"
 
         Args:
             font_list (str):
@@ -137,7 +141,7 @@ cdef class LabelButton(Button):
         Default is CEF_HORIZONTAL_ALIGNMENT_CENTER.
 
         Args:
-            alignment (HorizontalAlignment | int):
+            alignment (cefweaver.types.HorizontalAlignment | int):
         """
         cdef CefLabelButton* _p = self._ptr_CefLabelButton()
         with nogil:
@@ -178,10 +182,10 @@ cdef class LabelButton(Button):
         on the LabelButton and used as the default accessible name.
 
         Args:
-            delegate (ButtonDelegate):
+            delegate (cefweaver.ButtonDelegate):
             text (str | None):
         Returns:
-            LabelButton | None
+            cefweaver.LabelButton | None
         """
         cdef CefRefPtr[CefButtonDelegate] _a0
         cdef CefString _a1

@@ -1,0 +1,313 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 05:57+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/toolkits.rst:2
+msgid "Toolkit status"
+msgstr "툴킷 현황"
+
+#: ../../guide/toolkits.rst:4
+msgid ""
+"Seven toolkits have an adapter (pywin32 on Windows only). What follows was verified on "
+"2026-10-09; pywin32 was verified on Windows 11 on 2026-10-11."
+msgstr ""
+"툴킷 일곱 개에 어댑터가 있습니다(pywin32는 Windows 전용). 아래 내용은 2026-10-09에 확인했으며, pywin32는 2026-10-11에 Windows "
+"11에서 확인했습니다."
+
+#: ../../guide/toolkits.rst:6
+msgid "There are two ways of verifying."
+msgstr "확인 방법은 두 가지입니다."
+
+#: ../../guide/toolkits.rst:8
+msgid ""
+"**Smoke**: the example application runs on a virtual X server (Xvfb) and real X events "
+"(``xdotool``) drive mouse, keys, drag and drop, the clipboard and the context menu; the result is"
+" read back. This is the ``smoke.py`` of each example, and the number in parentheses is the number"
+" of checks."
+msgstr ""
+"**Smoke**: 예제 애플리케이션을 가상 X 서버(Xvfb)에서 실행하고, 실제 X 이벤트(``xdotool``)로 마우스, 키, 드래그 앤 드롭, 클립보드, 컨텍스트 "
+"메뉴를 구동한 뒤 결과를 다시 읽습니다. 각 예제의 ``smoke.py``\\ 이며, 괄호 안의 숫자는 점검 개수입니다."
+
+#: ../../guide/toolkits.rst:9
+msgid ""
+"**Real screen**: the developer used it on a real desktop. The window of the toolkit was X11 then "
+"and only CEF was Wayland. A toolkit used natively on Wayland was not tested."
+msgstr ""
+"**실제 화면**: 개발자가 실제 데스크톱에서 사용했습니다. 이때 툴킷의 창은 X11이었고 CEF만 Wayland였습니다. Wayland에서 네이티브로 사용하는 툴킷은 "
+"시험하지 않았습니다."
+
+#: ../../guide/toolkits.rst:12
+msgid "At a glance"
+msgstr "한눈에 보기"
+
+#: ../../guide/toolkits.rst:18
+msgid "Toolkit"
+msgstr "툴킷"
+
+#: ../../guide/toolkits.rst:19
+msgid "Sound"
+msgstr "소리"
+
+#: ../../guide/toolkits.rst:20
+msgid "Right-click menu"
+msgstr "오른쪽 클릭 메뉴"
+
+#: ../../guide/toolkits.rst:21
+msgid "Smoke"
+msgstr "Smoke"
+
+#: ../../guide/toolkits.rst:22
+msgid "Real screen"
+msgstr "실제 화면"
+
+#: ../../guide/toolkits.rst:23
+msgid "GTK 3"
+msgstr "GTK 3"
+
+#: ../../guide/toolkits.rst:24 ../../guide/toolkits.rst:34 ../../guide/toolkits.rst:44
+#: ../../guide/toolkits.rst:49 ../../guide/toolkits.rst:54
+msgid "pygame"
+msgstr "pygame"
+
+#: ../../guide/toolkits.rst:25
+msgid "``Gtk.Menu``"
+msgstr "``Gtk.Menu``"
+
+#: ../../guide/toolkits.rst:26
+msgid "passes (39)"
+msgstr "통과(39)"
+
+#: ../../guide/toolkits.rst:27 ../../guide/toolkits.rst:47
+msgid "verified"
+msgstr "확인했습니다"
+
+#: ../../guide/toolkits.rst:28
+msgid "Qt"
+msgstr "Qt"
+
+#: ../../guide/toolkits.rst:29
+msgid "``QtSink``"
+msgstr "``QtSink``"
+
+#: ../../guide/toolkits.rst:30
+msgid "``QMenu``"
+msgstr "``QMenu``"
+
+#: ../../guide/toolkits.rst:31
+msgid "PyQt6 and PySide6 pass (35 each)"
+msgstr "PyQt6과 PySide6 통과(각 35)"
+
+#: ../../guide/toolkits.rst:32
+msgid "both bindings verified"
+msgstr "두 바인딩 모두 확인했습니다"
+
+#: ../../guide/toolkits.rst:33
+msgid "Tk"
+msgstr "Tk"
+
+#: ../../guide/toolkits.rst:35
+msgid "``tkinter.Menu``"
+msgstr "``tkinter.Menu``"
+
+#: ../../guide/toolkits.rst:36
+msgid "passes (30)"
+msgstr "통과(30)"
+
+#: ../../guide/toolkits.rst:37
+msgid "verified (except switching between Korean and English)"
+msgstr "확인했습니다(한글과 영문 전환 제외)"
+
+#: ../../guide/toolkits.rst:38
+msgid "SDL2"
+msgstr "SDL2"
+
+#: ../../guide/toolkits.rst:39
+msgid "``SdlSink``"
+msgstr "``SdlSink``"
+
+#: ../../guide/toolkits.rst:40 ../../guide/toolkits.rst:50
+msgid "none"
+msgstr "없음"
+
+#: ../../guide/toolkits.rst:41
+msgid "passes (28)"
+msgstr "통과(28)"
+
+#: ../../guide/toolkits.rst:42 ../../guide/toolkits.rst:52
+msgid "sound verified"
+msgstr "소리를 확인했습니다"
+
+#: ../../guide/toolkits.rst:43
+msgid "wxPython"
+msgstr "wxPython"
+
+#: ../../guide/toolkits.rst:45
+msgid "``wx.Menu``"
+msgstr "``wx.Menu``"
+
+#: ../../guide/toolkits.rst:46
+msgid "passes (33)"
+msgstr "통과(33)"
+
+#: ../../guide/toolkits.rst:48
+msgid "Kivy"
+msgstr "Kivy"
+
+#: ../../guide/toolkits.rst:51 ../../guide/toolkits.rst:56
+msgid "passes (27)"
+msgstr "통과(27)"
+
+#: ../../guide/toolkits.rst:53
+msgid "pywin32 (Windows)"
+msgstr "pywin32 (Windows)"
+
+#: ../../guide/toolkits.rst:55
+msgid "``TrackPopupMenu``"
+msgstr "``TrackPopupMenu``"
+
+#: ../../guide/toolkits.rst:57
+#, python-format
+msgid "verified at 100% scaling; a real Korean input method and sound were not verified"
+msgstr "100% 배율에서 확인했습니다. 실제 한글 입력기와 소리는 확인하지 못했습니다"
+
+#: ../../guide/toolkits.rst:59
+msgid ""
+"\"Sound\" is how the sound of a page is played: the playback API of the toolkit when it has one, "
+"otherwise pygame (see :doc:`media`). A YouTube video was played and heard in six toolkits (Qt "
+"with both bindings); pywin32 was not tried."
+msgstr ""
+"\"소리\"는 페이지의 소리를 재생하는 방식입니다. 툴킷에 재생 API가 있으면 그것을, 없으면 pygame을 사용합니다(:doc:`media` 참고). 여섯 개 툴킷(Qt는"
+" 두 바인딩 모두)에서 YouTube 비디오를 재생하고 소리를 들었으며, pywin32는 시도하지 않았습니다."
+
+#: ../../guide/toolkits.rst:62
+msgid "Notes per toolkit"
+msgstr "툴킷별 참고"
+
+#: ../../guide/toolkits.rst:65
+msgid "GTK 3 (:mod:`cefweaver.ui.toolkits.gtk3`)"
+msgstr "GTK 3 (:mod:`cefweaver.ui.toolkits.gtk3`)"
+
+#: ../../guide/toolkits.rst:67
+msgid ""
+"``GlibLoop``, ``GtkAdapter`` and ``CefWidget``. Korean input through the input method, copy and "
+"paste and drag and drop were verified on a real screen; scale 2 (HiDPI) was verified by smoke. "
+"CEF asks for the menu at the moment the right button is pressed, so the widget shows the menu "
+"from the real button event it received."
+msgstr ""
+"``GlibLoop``, ``GtkAdapter``, ``CefWidget``. 입력기를 통한 한글 입력, 복사와 붙여넣기, 드래그 앤 드롭은 실제 화면에서 확인했고, 배율 "
+"2(HiDPI)는 점검으로 확인했습니다. CEF는 오른쪽 단추를 누르는 순간 메뉴를 요청하므로, 위젯은 받은 실제 단추 이벤트로 메뉴를 표시합니다."
+
+#: ../../guide/toolkits.rst:70
+msgid "Qt (:mod:`cefweaver.ui.toolkits.qt`)"
+msgstr "Qt (:mod:`cefweaver.ui.toolkits.qt`)"
+
+#: ../../guide/toolkits.rst:72
+msgid ""
+"``QtLoop``, ``QtAdapter``, ``CefWidget`` and ``QtSink``. PyQt6 is the default; choose PySide6 "
+"with the environment variable ``CEFQT_BINDING=pyside6``. Scale 2 was verified by smoke. Korean "
+"was not typed through a real input method (the smoke imitates the committed characters of an "
+"input method through the adapter)."
+msgstr ""
+"``QtLoop``, ``QtAdapter``, ``CefWidget``, ``QtSink``. PyQt6이 기본값이며, PySide6은 환경 변수 "
+"``CEFQT_BINDING=pyside6``\\ 으로 선택합니다. 배율 2는 점검으로 확인했습니다. 한글은 실제 입력기로 입력하지 않았습니다(점검은 입력기의 확정된 문자를 "
+"어댑터를 통해 흉내 냅니다)."
+
+#: ../../guide/toolkits.rst:75
+msgid "Tk (:mod:`cefweaver.ui.toolkits.tk`)"
+msgstr "Tk (:mod:`cefweaver.ui.toolkits.tk`)"
+
+#: ../../guide/toolkits.rst:77
+msgid ""
+"``TkLoop``, ``TkAdapter`` and ``CefCanvas``. Pictures are converted and drawn with Pillow. "
+"**Switching between Korean and English does not work** (Tk does not give the characters being "
+"composed by the input method; the cause was not found). GTK 3 is the toolkit where real input-"
+"method typing was verified."
+msgstr ""
+"``TkLoop``, ``TkAdapter``, ``CefCanvas``. 그림은 Pillow로 변환하여 그립니다. **한글과 영문 전환이 동작하지 않습니다**\\ (Tk가 "
+"입력기에서 조합 중인 문자를 주지 않습니다. 원인을 찾지 못했습니다). GTK 3은 실제 입력기 입력을 확인한 툴킷입니다."
+
+#: ../../guide/toolkits.rst:80
+msgid "SDL2 (:mod:`cefweaver.ui.toolkits.sdl2`)"
+msgstr "SDL2 (:mod:`cefweaver.ui.toolkits.sdl2`)"
+
+#: ../../guide/toolkits.rst:82
+msgid ""
+"One ``SdlBrowser`` holds the window, the browser and the event loop. There is no right-click "
+"menu: SDL2 has no function to build a menu (only message boxes such as ``SDL_ShowMessageBox``) "
+"and only flags that name a window kind (``SDL_WINDOW_POPUP_MENU`` and so on). In this toolkit "
+"``view.on_context_menu`` is not called either. If you need a menu, implement ``show_menu`` in the"
+" adapter yourself (see :doc:`context-menu`)."
+msgstr ""
+"``SdlBrowser`` 하나가 창, 브라우저, 이벤트 루프를 가집니다. 오른쪽 클릭 메뉴는 없습니다. SDL2에는 메뉴를 만드는 함수가 "
+"없고(``SDL_ShowMessageBox`` 같은 메시지 상자뿐입니다), 창 종류를 가리키는 플래그(``SDL_WINDOW_POPUP_MENU`` 등)만 있습니다. 이 "
+"툴킷에서도 ``view.on_context_menu``\\ 는 호출되지 않습니다. 메뉴가 필요하면 어댑터에서 ``show_menu``\\ 를 직접 구현합니다(:doc"
+":`context-menu` 참고)."
+
+#: ../../guide/toolkits.rst:85
+msgid "wxPython (:mod:`cefweaver.ui.toolkits.wx`)"
+msgstr "wxPython (:mod:`cefweaver.ui.toolkits.wx`)"
+
+#: ../../guide/toolkits.rst:87
+msgid ""
+"``WxLoop``, ``WxAdapter`` and ``CefPanel``. A wx menu runs an event loop of its own until it "
+"closes, so the menu is opened after the answer from CEF is complete and after the right button "
+"went up. Korean was not typed through a real input method."
+msgstr ""
+"``WxLoop``, ``WxAdapter``, ``CefPanel``. wx 메뉴는 닫힐 때까지 자체 이벤트 루프를 실행하므로, CEF의 응답이 완료되고 오른쪽 단추를 뗀 "
+"뒤에 메뉴를 엽니다. 한글은 실제 입력기로 입력하지 않았습니다."
+
+#: ../../guide/toolkits.rst:90
+msgid "Kivy (:mod:`cefweaver.ui.toolkits.kivy`)"
+msgstr "Kivy (:mod:`cefweaver.ui.toolkits.kivy`)"
+
+#: ../../guide/toolkits.rst:92
+msgid ""
+"``KivyLoop``, ``KivyAdapter`` and ``CefView``. There is no right-click menu: Kivy has no native "
+"context menu widget, and ``DropDown`` opens attached to a widget, which does not fit a click "
+"position. For the same reason ``view.on_context_menu`` is not called in this toolkit either."
+msgstr ""
+"``KivyLoop``, ``KivyAdapter``, ``CefView``. 오른쪽 클릭 메뉴는 없습니다. Kivy에는 네이티브 컨텍스트 메뉴 위젯이 없고, "
+"``DropDown``\\ 은 위젯에 붙어서 열리므로 클릭 위치에 맞지 않습니다. 같은 이유로 이 툴킷에서도 ``view.on_context_menu``\\ 는 호출되지 "
+"않습니다."
+
+#: ../../guide/toolkits.rst:95
+msgid "pywin32 (:mod:`cefweaver.ui.toolkits.pywin32`)"
+msgstr "pywin32 (:mod:`cefweaver.ui.toolkits.pywin32`)"
+
+#: ../../guide/toolkits.rst:97
+#, python-format
+msgid ""
+"One ``Win32Browser`` holds the window, the browser and the message loop (Windows only, "
+"``cefweaver[pywin32]``). pywin32 handles windows and messages, and pictures are drawn with GDI "
+"``StretchDIBits`` (a few calls that pywin32 lacks use ``ctypes``). The right-click menu is "
+"``TrackPopupMenu``. Files dropped from the Explorer arrive as ``WM_DROPFILES``; text drops and "
+"drags out of the page are not supported. The 27 checks of ``smoke.py`` send real mouse and "
+"keyboard input with ``SendInput``; they do not use a real Korean input method (the smoke imitates"
+" the committed characters through ``view``). The scale was verified at 100% only. The same checks"
+" passed when frozen with PyInstaller (onedir, onefile), cx_Freeze and py2exe (py2exe needs the "
+"CEF runtime files copied next to the executable by hand)."
+msgstr ""
+"``Win32Browser`` 하나가 창, 브라우저, 메시지 루프를 가집니다(Windows 전용, ``cefweaver[pywin32]``). 창과 메시지는 pywin32가 "
+"처리하고, 그림은 GDI ``StretchDIBits``\\ 로 그립니다(pywin32에 없는 몇몇 호출은 ``ctypes``\\ 를 씁니다). 오른쪽 클릭 메뉴는 "
+"``TrackPopupMenu``\\ 입니다. 탐색기에서 끌어다 놓은 파일은 ``WM_DROPFILES``\\ 로 도착하며, 텍스트 드롭과 페이지 밖으로 끌어내는 드래그는 "
+"지원하지 않습니다. ``smoke.py``\\ 의 27개 점검은 ``SendInput``\\ 으로 실제 마우스와 키보드 입력을 보내며, 실제 한글 입력기는 쓰지 "
+"않습니다(점검은 확정된 글자를 ``view``\\ 를 통해 흉내 냅니다). 배율은 100%에서만 확인했습니다. PyInstaller(onedir, onefile), "
+"cx_Freeze, py2exe로 묶었을 때도 같은 점검이 통과했습니다(py2exe는 CEF 런타임 파일을 실행 파일 옆에 손으로 복사해야 합니다)."
+

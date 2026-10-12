@@ -60,7 +60,7 @@ class Docstrings(unittest.TestCase):
 
     def test_the_generated_docstrings_say_parameters_the_python_way(self):
         text = (PACKAGE / "_cefweaver.pyi").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"\|[a-z_]+\|", text), [], "`|name|` of a header should be ``name``")
+        self.assertEqual(re.findall(r"(?<![<\w])\|[a-z_]+\|(?![>\w])", text), [], "`|name|` of a header should be ``name``")
 
     def test_every_public_name_has_a_docstring(self):
         problems = {}

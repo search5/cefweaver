@@ -28,7 +28,7 @@ cdef class CookieManager:
         Returns ``False`` if cookies cannot be accessed.
 
         Args:
-            visitor (CookieVisitor):
+            visitor (cefweaver.CookieVisitor):
         Returns:
             bool
         """
@@ -52,8 +52,8 @@ cdef class CookieManager:
 
         Args:
             url (str):
-            include_http_only (bool): True  HTTP-only cookies will also be included in the results.
-            visitor (CookieVisitor):
+            include_http_only (bool): True HTTP-only cookies will also be included in the results.
+            visitor (cefweaver.CookieVisitor):
         Returns:
             bool
         """
@@ -81,8 +81,8 @@ cdef class CookieManager:
 
         Args:
             url (str):
-            cookie (Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, CookieSameSite, CookiePriority]):
-            callback (SetCookieCallback | None): Non-``None`` it will be executed  asnychronously on the UI thread after the cookie has been set.
+            cookie (Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, cefweaver.types.CookieSameSite, cefweaver.types.CookiePriority]):
+            callback (cefweaver.SetCookieCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the cookie has been set.
         Returns:
             bool
         """
@@ -111,9 +111,9 @@ cdef class CookieManager:
         methods.
 
         Args:
-            url (str | None): Empty  all cookies for all hosts and domains will be deleted.
+            url (str | None): Empty all cookies for all hosts and domains will be deleted.
             cookie_name (str | None):
-            callback (DeleteCookiesCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the  cookies have been deleted.
+            callback (cefweaver.DeleteCookiesCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the cookies have been deleted.
         Returns:
             bool
         """
@@ -138,7 +138,7 @@ cdef class CookieManager:
         after the flush is complete. Returns ``False`` if cookies cannot be accessed.
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the flush is  complete.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the flush is complete.
         Returns:
             bool
         """
@@ -158,12 +158,12 @@ cdef class CookieManager:
         memory otherwise. If ``callback`` is non-``None`` it will be executed asnychronously
         on the UI thread after the manager's storage has been initialized. Using this method
         is equivalent to calling
-        :meth:`RequestContext.get_global_context`->GetDefaultCookieManager().
+        :meth:`~cefweaver.RequestContext.get_global_context`->GetDefaultCookieManager().
 
         Args:
-            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's storage has been initialized.
+            callback (cefweaver.CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the manager's storage has been initialized.
         Returns:
-            CookieManager | None: The global cookie manager.
+            cefweaver.CookieManager | None: The global cookie manager.
         """
         cdef CefRefPtr[CefCompletionCallback] _a0
         cdef CefRefPtr[CefCookieManager] _r
@@ -215,7 +215,7 @@ class CookieVisitor:
 
         Args:
             cookie (Cookie):
-            count (int): The 0-based  index for the current cookie.
+            count (int): The 0-based index for the current cookie.
             total (int): The total number of cookies.
         Returns:
             tuple[bool, bool]
@@ -273,7 +273,7 @@ cdef object _g_unexport_CookieVisitor(CefRefPtr[CefCookieVisitor] ref):
 
 
 class DeleteCookiesCallback:
-    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.delete_cookies`."""
+    """Interface to implement to be notified of asynchronous completion via :meth:`~cefweaver.CookieManager.delete_cookies`."""
 
     def on_complete(self, num_deleted):
         """Method that will be called upon completion.
@@ -332,7 +332,7 @@ cdef object _g_unexport_DeleteCookiesCallback(CefRefPtr[CefDeleteCookiesCallback
 
 
 class SetCookieCallback:
-    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.set_cookie`."""
+    """Interface to implement to be notified of asynchronous completion via :meth:`~cefweaver.CookieManager.set_cookie`."""
 
     def on_complete(self, success):
         """Method that will be called upon completion.

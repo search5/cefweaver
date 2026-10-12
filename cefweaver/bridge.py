@@ -146,7 +146,7 @@ class JavascriptBridge:
         Use :meth:`evaluate` to obtain a result.
 
         Args:
-            frame (Frame): The frame whose page defines the function.
+            frame (cefweaver.Frame): The frame whose page defines the function.
             path (str): The dotted path from ``window``, e.g. ``"api.greet"``.
             *args: The arguments; JSON-serializable values.
 
@@ -167,7 +167,7 @@ class JavascriptBridge:
         ``"TimeoutError: ..."`` and a later answer is ignored.
 
         Args:
-            frame (Frame): The frame to evaluate in.
+            frame (cefweaver.Frame): The frame to evaluate in.
             expression (str): The JavaScript expression.
             callback (callable): Called as ``callback(value, error)``. On success ``value`` is
                 the JSON value of the result and ``error`` is ``None``; on failure ``value`` is

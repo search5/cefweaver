@@ -22,7 +22,7 @@ cdef class SSLInfo:
         """Return a bitmask containing any and all problems verifying the server certificate.
 
         Returns:
-            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
+            cefweaver.types.CertStatus: A bitmask containing any and all problems verifying the server certificate.
         """
         cdef CefSSLInfo* _p = self._ptr()
         cdef cef_cert_status_t _r
@@ -34,7 +34,7 @@ cdef class SSLInfo:
         """Return the X.509 certificate.
 
         Returns:
-            X509Certificate | None: The X.509 certificate.
+            cefweaver.X509Certificate | None: The X.509 certificate.
         """
         cdef CefSSLInfo* _p = self._ptr()
         cdef CefRefPtr[CefX509Certificate] _r

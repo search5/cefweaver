@@ -27,7 +27,7 @@ cdef class View:
         """Return this View as a BrowserView or ``None`` if this is not a BrowserView.
 
         Returns:
-            BrowserView | None: This View as a BrowserView or ``None`` if this is not a BrowserView.
+            cefweaver.BrowserView | None: This View as a BrowserView or ``None`` if this is not a BrowserView.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefBrowserView] _r
@@ -39,7 +39,7 @@ cdef class View:
         """Return this View as a Button or ``None`` if this is not a Button.
 
         Returns:
-            Button | None: This View as a Button or ``None`` if this is not a Button.
+            cefweaver.Button | None: This View as a Button or ``None`` if this is not a Button.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefButton] _r
@@ -51,7 +51,7 @@ cdef class View:
         """Return this View as a Panel or ``None`` if this is not a Panel.
 
         Returns:
-            Panel | None: This View as a Panel or ``None`` if this is not a Panel.
+            cefweaver.Panel | None: This View as a Panel or ``None`` if this is not a Panel.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefPanel] _r
@@ -63,7 +63,7 @@ cdef class View:
         """Return this View as a ScrollView or ``None`` if this is not a ScrollView.
 
         Returns:
-            ScrollView | None: This View as a ScrollView or ``None`` if this is not a ScrollView.
+            cefweaver.ScrollView | None: This View as a ScrollView or ``None`` if this is not a ScrollView.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefScrollView] _r
@@ -75,7 +75,7 @@ cdef class View:
         """Return this View as a Textfield or ``None`` if this is not a Textfield.
 
         Returns:
-            Textfield | None: This View as a Textfield or ``None`` if this is not a Textfield.
+            cefweaver.Textfield | None: This View as a Textfield or ``None`` if this is not a Textfield.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefTextfield] _r
@@ -106,7 +106,7 @@ cdef class View:
         Args:
             include_children (bool): True any child Views will also be included.
         Returns:
-            str: A string representation of this View which includes the type and  various type-specific identifying attributes.
+            str: A string representation of this View which includes the type and various type-specific identifying attributes.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefString _r
@@ -144,7 +144,7 @@ cdef class View:
         """Return ``True`` if this View is the same as ``that`` View.
 
         Args:
-            that (View):
+            that (cefweaver.View):
         Returns:
             bool: ``True`` if this View is the same as ``that`` View.
         """
@@ -160,7 +160,7 @@ cdef class View:
         """Return the delegate associated with this View, if any.
 
         Returns:
-            ViewDelegate | None: The delegate associated with this View, if any.
+            cefweaver.ViewDelegate | None: The delegate associated with this View, if any.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefViewDelegate] _r
@@ -172,7 +172,7 @@ cdef class View:
         """Return the top-level Window hosting this View, if any.
 
         Returns:
-            Window | None: The top-level Window hosting this View, if any.
+            cefweaver.Window | None: The top-level Window hosting this View, if any.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefWindow] _r
@@ -236,7 +236,7 @@ cdef class View:
         """Return the View that contains this View, if any.
 
         Returns:
-            View | None: The View that contains this View, if any.
+            cefweaver.View | None: The View that contains this View, if any.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefView] _r
@@ -252,7 +252,7 @@ cdef class View:
         Args:
             id (int):
         Returns:
-            View | None
+            cefweaver.View | None
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRefPtr[CefView] _r
@@ -267,7 +267,7 @@ cdef class View:
         parent.
 
         Args:
-            bounds (Rect | tuple[int, int, int, int]): In parent  coordinates, or DIP screen coordinates if there is no parent.
+            bounds (Rect | tuple[int, int, int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefRect _a0
         cdef CefView* _p = self._ptr_CefView()
@@ -280,7 +280,7 @@ cdef class View:
         """Return the bounds (size and position) of this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Rect: The bounds (size and position) of this View in parent coordinates,  or DIP screen coordinates if there is no parent.
+            Rect: The bounds (size and position) of this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRect _r
@@ -292,7 +292,7 @@ cdef class View:
         """Return the bounds (size and position) of this View in DIP screen coordinates.
 
         Returns:
-            Rect: The bounds (size and position) of this View in DIP screen  coordinates.
+            Rect: The bounds (size and position) of this View in DIP screen coordinates.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefRect _r
@@ -319,7 +319,7 @@ cdef class View:
         """Return the size of this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Size: The size of this View in parent coordinates, or DIP screen  coordinates if there is no parent.
+            Size: The size of this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefSize _r
@@ -334,7 +334,7 @@ cdef class View:
         parent.
 
         Args:
-            position (Point | tuple[int, int]): In  parent coordinates, or DIP screen coordinates if there is no parent.
+            position (Point | tuple[int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefPoint _a0
         cdef CefView* _p = self._ptr_CefView()
@@ -364,7 +364,7 @@ cdef class View:
         parent.
 
         Args:
-            insets (Insets | tuple[int, int, int, int]): In parent coordinates, or DIP  screen coordinates if there is no parent.
+            insets (Insets | tuple[int, int, int, int]): In parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefInsets _a0
         cdef CefView* _p = self._ptr_CefView()
@@ -377,7 +377,7 @@ cdef class View:
         """Return the insets for this View in parent coordinates, or DIP screen coordinates if there is no parent.
 
         Returns:
-            Insets: The insets for this View in parent coordinates, or DIP screen  coordinates if there is no parent.
+            Insets: The insets for this View in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef CefInsets _r
@@ -572,7 +572,7 @@ cdef class View:
         """Return whether this View is focusable when the user requires full keyboard access, even though it may not be normally focusable.
 
         Returns:
-            bool: Whether this View is focusable when the user requires full keyboard  access, even though it may not be normally focusable.
+            bool: Whether this View is focusable when the user requires full keyboard access, even though it may not be normally focusable.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef cpp_bool _r
@@ -583,11 +583,11 @@ cdef class View:
     def has_focus(self):
         """Return ``True`` if this View has focus in the context of the containing Window.
 
-        Check both this method and :meth:`Window.is_active` to determine global keyboard
-        focus.
+        Check both this method and :meth:`~cefweaver.Window.is_active` to determine global
+        keyboard focus.
 
         Returns:
-            bool: ``True`` if this View has focus in the context of the containing  Window.
+            bool: ``True`` if this View has focus in the context of the containing Window.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef cpp_bool _r
@@ -610,7 +610,7 @@ cdef class View:
         """Set the background color for this View.
 
         The background color will be automatically reset when
-        :meth:`ViewDelegate.on_theme_changed` is called.
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed` is called.
 
         Args:
             color (int):
@@ -624,9 +624,9 @@ cdef class View:
         """Return the background color for this View.
 
         If the background color is unset then the current
-        `GetThemeColor(CEF_ColorPrimaryBackground)` value will be returned. If this View
-        belongs to an overlay (created with :meth:`Window.add_overlay_view`), and the
-        background color is unset, then a value of transparent (0) will be returned.
+        ``GetThemeColor(CEF_ColorPrimaryBackground)`` value will be returned. If this View
+        belongs to an overlay (created with :meth:`~cefweaver.Window.add_overlay_view`), and
+        the background color is unset, then a value of transparent (0) will be returned.
 
         Returns:
             int: The background color for this View.
@@ -641,12 +641,12 @@ cdef class View:
         """Return the current theme color associated with ``color_id``, or the placeholder color (red) if unset.
 
         See cef_color_ids.h for standard ID values. Standard colors can be overridden and
-        custom colors can be added using :meth:`Window.set_theme_color`.
+        custom colors can be added using :meth:`~cefweaver.Window.set_theme_color`.
 
         Args:
             color_id (int):
         Returns:
-            int: The current theme color associated with ``color_id``, or the  placeholder color (red) if unset.
+            int: The current theme color associated with ``color_id``, or the placeholder color (red) if unset.
         """
         cdef CefView* _p = self._ptr_CefView()
         cdef cef_color_t _r
@@ -659,8 +659,8 @@ cdef class View:
 
         This View must belong to a Window when calling this method. Returns ``True`` if the
         conversion is successful or ``False`` otherwise. Use
-        :meth:`Display.convert_point_to_pixels` after calling this method if further
-        conversion to display-specific pixel coordinates is desired.
+        :meth:`~cefweaver.Display.convert_point_to_pixels` after calling this method if
+        further conversion to display-specific pixel coordinates is desired.
 
         Args:
             point (Point | tuple[int, int]):
@@ -680,8 +680,8 @@ cdef class View:
 
         This View must belong to a Window when calling this method. Returns ``True`` if the
         conversion is successful or ``False`` otherwise. Use
-        :meth:`Display.convert_point_from_pixels` before calling this method if conversion
-        from display-specific pixel coordinates is necessary.
+        :meth:`~cefweaver.Display.convert_point_from_pixels` before calling this method if
+        conversion from display-specific pixel coordinates is necessary.
 
         Args:
             point (Point | tuple[int, int]):
@@ -741,7 +741,7 @@ cdef class View:
         Returns ``True`` if the conversion is successful or ``False`` otherwise.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             point (Point | tuple[int, int]):
         Returns:
             tuple[bool, Point]
@@ -763,7 +763,7 @@ cdef class View:
         Returns ``True`` if the conversion is successful or ``False`` otherwise.
 
         Args:
-            view (View):
+            view (cefweaver.View):
             point (Point | tuple[int, int]):
         Returns:
             tuple[bool, Point]

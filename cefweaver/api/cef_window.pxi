@@ -26,16 +26,17 @@ cdef class Window(Panel):
     def show_as_browser_modal_dialog(self, BrowserView browser_view not None):
         """Show the Window as a browser modal dialog relative to ``browser_view``.
 
-        A parent Window must be returned via :meth:`WindowDelegate.get_parent_window` and
-        ``browser_view`` must belong to that parent Window. While this Window is visible,
-        ``browser_view`` will be disabled while other controls in the parent Window remain
-        enabled. Navigating or destroying the ``browser_view`` will close this Window
-        automatically. Alternately, use Show() and return ``True`` from
-        :meth:`WindowDelegate.is_window_modal_dialog` for a window modal dialog where all
-        controls in the parent Window are disabled.
+        A parent Window must be returned via
+        :meth:`~cefweaver.WindowDelegate.get_parent_window` and ``browser_view`` must belong
+        to that parent Window. While this Window is visible, ``browser_view`` will be
+        disabled while other controls in the parent Window remain enabled. Navigating or
+        destroying the ``browser_view`` will close this Window automatically. Alternately,
+        use Show() and return ``True`` from
+        :meth:`~cefweaver.WindowDelegate.is_window_modal_dialog` for a window modal dialog
+        where all controls in the parent Window are disabled.
 
         Args:
-            browser_view (BrowserView):
+            browser_view (cefweaver.BrowserView):
         """
         cdef CefRefPtr[CefBrowserView] _a0
         cdef CefWindow* _p = self._ptr_CefWindow()
@@ -131,7 +132,7 @@ cdef class Window(Panel):
         """Return whether the Window has been set to be on top of other Windows in the Windowing system.
 
         Returns:
-            bool: Whether the Window has been set to be on top of other Windows in  the Windowing system.
+            bool: Whether the Window has been set to be on top of other Windows in the Windowing system.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef cpp_bool _r
@@ -163,8 +164,8 @@ cdef class Window(Panel):
     def set_fullscreen(self, bint fullscreen):
         """Set fullscreen Window state.
 
-        The :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called
-        during the fullscreen transition for notification purposes.
+        The :meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` method will be
+        called during the fullscreen transition for notification purposes.
 
         Args:
             fullscreen (bool):
@@ -218,7 +219,7 @@ cdef class Window(Panel):
         active.
 
         Returns:
-            View | None: The View that currently has focus in this Window, or ``None`` if no  View currently has focus.
+            cefweaver.View | None: The View that currently has focus in this Window, or ``None`` if no View currently has focus.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef CefRefPtr[CefView] _r
@@ -258,7 +259,7 @@ cdef class Window(Panel):
         This should be a 16x16 icon suitable for use in the Windows's title bar.
 
         Args:
-            image (Image):
+            image (cefweaver.Image):
         """
         cdef CefRefPtr[CefImage] _a0
         cdef CefWindow* _p = self._ptr_CefWindow()
@@ -271,7 +272,7 @@ cdef class Window(Panel):
         """Get the Window icon.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef CefRefPtr[CefImage] _r
@@ -287,7 +288,7 @@ cdef class Window(Panel):
         icon will be used by default if no Window App icon is specified.
 
         Args:
-            image (Image):
+            image (cefweaver.Image):
         """
         cdef CefRefPtr[CefImage] _a0
         cdef CefWindow* _p = self._ptr_CefWindow()
@@ -300,7 +301,7 @@ cdef class Window(Panel):
         """Get the Window App icon.
 
         Returns:
-            Image | None
+            cefweaver.Image | None
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef CefRefPtr[CefImage] _r
@@ -313,26 +314,27 @@ cdef class Window(Panel):
 
         Positioning is controlled by ``docking_mode`` as described below. Setting
         ``can_activate`` to ``True`` will allow the overlay view to receive input focus. The
-        returned :class:`OverlayController` object is used to control the overlay. Overlays
-        are hidden by default.
+        returned :class:`~cefweaver.OverlayController` object is used to control the
+        overlay. Overlays are hidden by default.
 
-         With CEF_DOCKING_MODE_CUSTOM:
-           1. The overlay is initially hidden, sized to ``view``'s preferred size,
-              and positioned in the top-left corner.
-           2. Optionally change the overlay position and/or size by calling
-              :class:`OverlayController` methods.
-           3. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
-           4. The overlay will be automatically re-sized if ``view``'s layout
-              changes. Optionally change the overlay position and/or size when
-              OnLayoutChanged is called on the Window's delegate to indicate a
-              change in Window bounds.
+        With CEF_DOCKING_MODE_CUSTOM:
 
-         With other docking modes:
-           1. The overlay is initially hidden, sized to ``view``'s preferred size,
-              and positioned based on ``docking_mode``.
-           2. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
-           3. The overlay will be automatically re-sized if ``view``'s layout changes
-              and re-positioned as appropriate when the Window resizes.
+        1. The overlay is initially hidden, sized to ``view``'s preferred size, and
+           positioned in the top-left corner.
+        2. Optionally change the overlay position and/or size by calling
+           :class:`~cefweaver.OverlayController` methods.
+        3. Call :meth:`~cefweaver.OverlayController.set_visible` to show the overlay.
+        4. The overlay will be automatically re-sized if ``view``'s layout changes.
+           Optionally change the overlay position and/or size when OnLayoutChanged is called
+           on the Window's delegate to indicate a change in Window bounds.
+
+        With other docking modes:
+
+        1. The overlay is initially hidden, sized to ``view``'s preferred size, and
+           positioned based on ``docking_mode``.
+        2. Call :meth:`~cefweaver.OverlayController.set_visible` to show the overlay.
+        3. The overlay will be automatically re-sized if ``view``'s layout changes and
+           re-positioned as appropriate when the Window resizes.
 
         Overlays created by this method will receive a higher z-order then any child Views
         added previously. It is therefore recommended to call this method last after all
@@ -340,11 +342,11 @@ cdef class Window(Panel):
         of the Window.
 
         Args:
-            view (View):
-            docking_mode (DockingMode | int):
+            view (cefweaver.View):
+            docking_mode (cefweaver.types.DockingMode | int):
             can_activate (bool):
         Returns:
-            OverlayController | None
+            cefweaver.OverlayController | None
         """
         cdef CefRefPtr[CefView] _a0
         cdef CefWindow* _p = self._ptr_CefWindow()
@@ -362,9 +364,9 @@ cdef class Window(Panel):
         ``screen_point``.
 
         Args:
-            menu_model (MenuModel):
+            menu_model (cefweaver.MenuModel):
             screen_point (Point | tuple[int, int]):
-            anchor_position (MenuAnchorPosition | int):
+            anchor_position (cefweaver.types.MenuAnchorPosition | int):
         """
         cdef CefRefPtr[CefMenuModel] _a0
         cdef CefPoint _a1
@@ -388,7 +390,7 @@ cdef class Window(Panel):
         May return ``None`` if this Window is not currently displayed.
 
         Returns:
-            Display | None: The Display that most closely intersects the bounds of this  Window.
+            cefweaver.Display | None: The Display that most closely intersects the bounds of this Window.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef CefRefPtr[CefDisplay] _r
@@ -441,14 +443,14 @@ cdef class Window(Panel):
     def send_key_press(self, int key_code, uint32_t event_flags):
         """Simulate a key press.
 
-        ``key_code`` is the VKEY_* value from Chromium's ui/events/keycodes/keyboard_codes.h
-        header (VK_* values on Windows). ``event_flags`` is some combination of
-        EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN. This method
-        is exposed primarily for testing purposes.
+        ``key_code`` is the ``VKEY_*`` value from Chromium's
+        ui/events/keycodes/keyboard_codes.h header (``VK_*`` values on Windows).
+        ``event_flags`` is some combination of EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN
+        and/or EVENTFLAG_ALT_DOWN. This method is exposed primarily for testing purposes.
 
         Args:
-            key_code (int): The VKEY_* value from Chromium's  ui/events/keycodes/keyboard_codes.
-            event_flags (int): Some combination of EVENTFLAG_SHIFT_DOWN,  EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN.
+            key_code (int): The ``VKEY_*`` value from Chromium's ui/events/keycodes/keyboard_codes.h header (``VK_*`` values on Windows).
+            event_flags (int): Some combination of EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         with nogil:
@@ -481,7 +483,7 @@ cdef class Window(Panel):
         This method is exposed primarily for testing purposes.
 
         Args:
-            button (MouseButtonType | int): The mouse button  type.
+            button (cefweaver.types.MouseButtonType | int): The mouse button type.
             mouse_down (bool): True a mouse down event will be sent.
             mouse_up (bool): True a mouse up event will be sent.
         """
@@ -495,15 +497,16 @@ cdef class Window(Panel):
 
         ``key_code`` can be any virtual key or character value. Required modifier keys are
         specified by ``shift_pressed``, ``ctrl_pressed`` and/or ``alt_pressed``.
-        :meth:`WindowDelegate.on_accelerator` will be called if the keyboard combination is
-        triggered while this window has focus.
+        :meth:`~cefweaver.WindowDelegate.on_accelerator` will be called if the keyboard
+        combination is triggered while this window has focus.
 
-        The ``high_priority`` value will be considered if a child :class:`BrowserView` has
-        focus when the keyboard combination is triggered. If ``high_priority`` is ``True``
-        then the key event will not be forwarded to the web content (`keydown` event
-        handler) or :class:`KeyboardHandler` first. If ``high_priority`` is ``False`` then
-        the behavior will depend on the :meth:`BrowserView.set_prefer_accelerators`
-        configuration.
+        The ``high_priority`` value will be considered if a child
+        :class:`~cefweaver.BrowserView` has focus when the keyboard combination is
+        triggered. If ``high_priority`` is ``True`` then the key event will not be forwarded
+        to the web content (``keydown`` event handler) or
+        :class:`~cefweaver.KeyboardHandler` first. If ``high_priority`` is ``False`` then
+        the behavior will depend on the
+        :meth:`~cefweaver.BrowserView.set_prefer_accelerators` configuration.
 
         Args:
             command_id (int):
@@ -511,7 +514,7 @@ cdef class Window(Panel):
             shift_pressed (bool):
             ctrl_pressed (bool):
             alt_pressed (bool):
-            high_priority (bool): False then the behavior will depend on the  ``CefBrowserView::SetPreferAccelerators`` configuration.
+            high_priority (bool): False then the behavior will depend on the ``CefBrowserView::SetPreferAccelerators`` configuration.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         with nogil:
@@ -541,19 +544,19 @@ cdef class Window(Panel):
 
         See cef_color_ids.h for standard ID values. Recommended usage is as follows:
 
-         1. Customize the default native/OS theme by calling SetThemeColor before
-            showing the first Window. When done setting colors call
-            :meth:`Window.theme_changed` to trigger :meth:`ViewDelegate.on_theme_changed`
-            notifications.
-         2. Customize the current native/OS or Chrome theme after it changes by
-            calling SetThemeColor from the :meth:`WindowDelegate.on_theme_colors_changed`
-            callback. :meth:`ViewDelegate.on_theme_changed` notifications will then be
-            triggered automatically.
+        1. Customize the default native/OS theme by calling SetThemeColor before showing the
+           first Window. When done setting colors call
+           :meth:`~cefweaver.Window.theme_changed` to trigger
+           :meth:`~cefweaver.ViewDelegate.on_theme_changed` notifications.
+        2. Customize the current native/OS or Chrome theme after it changes by calling
+           SetThemeColor from the :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed`
+           callback. :meth:`~cefweaver.ViewDelegate.on_theme_changed` notifications will
+           then be triggered automatically.
 
-        The configured color will be available immediately via :meth:`View.get_theme_color`
-        and will be applied to each View in this Window's component hierarchy when
-        :meth:`ViewDelegate.on_theme_changed` is called. See OnThemeColorsChanged
-        documentation for additional details.
+        The configured color will be available immediately via
+        :meth:`~cefweaver.View.get_theme_color` and will be applied to each View in this
+        Window's component hierarchy when :meth:`~cefweaver.ViewDelegate.on_theme_changed`
+        is called. See OnThemeColorsChanged documentation for additional details.
 
         Clients wishing to add custom colors should use ``color_id`` values >=
         CEF_ChromeColorsEnd.
@@ -568,14 +571,15 @@ cdef class Window(Panel):
         return None
 
     def theme_changed(self):
-        """Trigger :meth:`ViewDelegate.on_theme_changed` callbacks for each View in this Window's component hierarchy.
+        """Trigger :meth:`~cefweaver.ViewDelegate.on_theme_changed` callbacks for each View in this Window's component hierarchy.
 
         Unlike a native/OS or Chrome theme change this method does not reset theme colors to
         standard values and does not result in a call to
-        :meth:`WindowDelegate.on_theme_colors_changed`.
+        :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed`.
 
-        Do not call this method from :meth:`WindowDelegate.on_theme_colors_changed` or
-        :meth:`ViewDelegate.on_theme_changed`.
+        Do not call this method from
+        :meth:`~cefweaver.WindowDelegate.on_theme_colors_changed` or
+        :meth:`~cefweaver.ViewDelegate.on_theme_changed`.
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         with nogil:
@@ -588,7 +592,7 @@ cdef class Window(Panel):
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle: The runtime style for this Window (ALLOY or CHROME).
+            cefweaver.types.RuntimeStyle: The runtime style for this Window (ALLOY or CHROME).
         """
         cdef CefWindow* _p = self._ptr_CefWindow()
         cdef cef_runtime_style_t _r
@@ -601,9 +605,9 @@ cdef class Window(Panel):
         """Create a new Window.
 
         Args:
-            delegate (WindowDelegate | None):
+            delegate (cefweaver.WindowDelegate | None):
         Returns:
-            Window | None
+            cefweaver.Window | None
         """
         cdef CefRefPtr[CefWindowDelegate] _a0
         cdef CefRefPtr[CefWindow] _r

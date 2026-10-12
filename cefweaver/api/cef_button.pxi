@@ -19,7 +19,7 @@ cdef class Button(View):
         """Return this Button as a LabelButton or ``None`` if this is not a LabelButton.
 
         Returns:
-            LabelButton | None: This Button as a LabelButton or ``None`` if this is not a LabelButton.
+            cefweaver.LabelButton | None: This Button as a LabelButton or ``None`` if this is not a LabelButton.
         """
         cdef CefButton* _p = self._ptr_CefButton()
         cdef CefRefPtr[CefLabelButton] _r
@@ -31,7 +31,7 @@ cdef class Button(View):
         """Set the current display state of the Button.
 
         Args:
-            state (ButtonState | int):
+            state (cefweaver.types.ButtonState | int):
         """
         cdef CefButton* _p = self._ptr_CefButton()
         with nogil:
@@ -42,7 +42,7 @@ cdef class Button(View):
         """Return the current display state of the Button.
 
         Returns:
-            ButtonState: The current display state of the Button.
+            cefweaver.types.ButtonState: The current display state of the Button.
         """
         cdef CefButton* _p = self._ptr_CefButton()
         cdef cef_button_state_t _r

@@ -96,7 +96,7 @@ cdef class DownloadItem:
         """Return the most recent interrupt reason.
 
         Returns:
-            DownloadInterruptReason: The most recent interrupt reason.
+            cefweaver.types.DownloadInterruptReason: The most recent interrupt reason.
         """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cef_download_interrupt_reason_t _r
@@ -120,7 +120,7 @@ cdef class DownloadItem:
         """Return the rough percent complete or -1 if the receive total size is unknown.
 
         Returns:
-            int: The rough percent complete or -1 if the receive total size is  unknown.
+            int: The rough percent complete or -1 if the receive total size is unknown.
         """
         cdef CefDownloadItem* _p = self._ptr()
         cdef int _r

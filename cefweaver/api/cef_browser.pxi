@@ -26,7 +26,8 @@ cdef class Browser:
     def is_valid(self):
         """True if this object is currently valid.
 
-        This will return ``False`` after :meth:`LifeSpanHandler.on_before_close` is called.
+        This will return ``False`` after :meth:`~cefweaver.LifeSpanHandler.on_before_close`
+        is called.
 
         Returns:
             bool
@@ -43,7 +44,7 @@ cdef class Browser:
         This method can only be called in the browser process.
 
         Returns:
-            BrowserHost | None: The browser host object.
+            cefweaver.BrowserHost | None: The browser host object.
         """
         cdef CefBrowser* _p = self._ptr()
         cdef CefRefPtr[CefBrowserHost] _r
@@ -140,9 +141,9 @@ cdef class Browser:
         """Return ``True`` if this object is pointing to the same handle as ``that`` object.
 
         Args:
-            that (Browser):
+            that (cefweaver.Browser):
         Returns:
-            bool: ``True`` if this object is pointing to the same handle as ``that``  object.
+            bool: ``True`` if this object is pointing to the same handle as ``that`` object.
         """
         cdef CefRefPtr[CefBrowser] _a0
         cdef CefBrowser* _p = self._ptr()
@@ -180,14 +181,14 @@ cdef class Browser:
         """Return the main (top-level) frame for the browser.
 
         In the browser process this will return a valid object until after
-        :meth:`LifeSpanHandler.on_before_close` is called. In the renderer process this will
-        return ``None`` if the main frame is hosted in a different renderer process (e.g.
-        for cross-origin sub-frames). The main frame object will change during cross-origin
-        navigation or re-navigation after renderer process termination (due to crashes,
-        etc).
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close` is called. In the renderer
+        process this will return ``None`` if the main frame is hosted in a different
+        renderer process (e.g. for cross-origin sub-frames). The main frame object will
+        change during cross-origin navigation or re-navigation after renderer process
+        termination (due to crashes, etc).
 
         Returns:
-            Frame | None: The main (top-level) frame for the browser.
+            cefweaver.Frame | None: The main (top-level) frame for the browser.
         """
         cdef CefBrowser* _p = self._ptr()
         cdef CefRefPtr[CefFrame] _r
@@ -199,7 +200,7 @@ cdef class Browser:
         """Return the focused frame for the browser.
 
         Returns:
-            Frame | None: The focused frame for the browser.
+            cefweaver.Frame | None: The focused frame for the browser.
         """
         cdef CefBrowser* _p = self._ptr()
         cdef CefRefPtr[CefFrame] _r
@@ -213,7 +214,7 @@ cdef class Browser:
         Args:
             identifier (str):
         Returns:
-            Frame | None: The frame with the specified identifier, or ``None`` if not found.
+            cefweaver.Frame | None: The frame with the specified identifier, or ``None`` if not found.
         """
         cdef CefString _a0
         cdef CefBrowser* _p = self._ptr()
@@ -229,7 +230,7 @@ cdef class Browser:
         Args:
             name (str | None):
         Returns:
-            Frame | None: The frame with the specified name, or ``None`` if not found.
+            cefweaver.Frame | None: The frame with the specified name, or ``None`` if not found.
         """
         cdef CefString _a0
         cdef CefBrowser* _p = self._ptr()
@@ -328,7 +329,7 @@ cdef class BrowserHost:
         """Return the hosted browser object.
 
         Returns:
-            Browser | None: The hosted browser object.
+            cefweaver.Browser | None: The hosted browser object.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef CefRefPtr[CefBrowser] _r
@@ -340,12 +341,14 @@ cdef class BrowserHost:
         """Request that the browser close.
 
         Closing a browser is a multi-stage process that may complete either synchronously or
-        asynchronously, and involves callbacks such as :meth:`LifeSpanHandler.do_close`
-        (Alloy style only), :meth:`LifeSpanHandler.on_before_close`, and a top-level window
-        close handler such as :meth:`WindowDelegate.can_close` (or platform-specific
+        asynchronously, and involves callbacks such as
+        :meth:`~cefweaver.LifeSpanHandler.do_close` (Alloy style only),
+        :meth:`~cefweaver.LifeSpanHandler.on_before_close`, and a top-level window close
+        handler such as :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific
         equivalent). In some cases a close request may be delayed or canceled by the user.
         Using TryCloseBrowser() instead of CloseBrowser() is recommended for most use cases.
-        See :meth:`LifeSpanHandler.do_close` documentation for detailed usage and examples.
+        See :meth:`~cefweaver.LifeSpanHandler.do_close` documentation for detailed usage and
+        examples.
 
         If ``force_close`` is ``False`` then JavaScript unload handlers, if any, may be
         fired and the close may be delayed or canceled by the user. If ``force_close`` is
@@ -353,12 +356,12 @@ cdef class BrowserHost:
         (possibly asynchronously). If browser close is delayed and not canceled the default
         behavior is to call the top-level window close handler once the browser is ready to
         be closed. This default behavior can be changed for Alloy style browsers by
-        implementing :meth:`LifeSpanHandler.do_close`. IsReadyToBeClosed() can be used to
-        detect mandatory browser close events when customizing close behavior on the browser
-        process UI thread.
+        implementing :meth:`~cefweaver.LifeSpanHandler.do_close`. IsReadyToBeClosed() can be
+        used to detect mandatory browser close events when customizing close behavior on the
+        browser process UI thread.
 
         Args:
-            force_close (bool): True then the user will not be prompted and the close  will proceed immediately (possibly asynchronously).
+            force_close (bool): True then the user will not be prompted and the close will proceed immediately (possibly asynchronously).
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -370,13 +373,13 @@ cdef class BrowserHost:
 
         This is similar in behavior to CLoseBrowser(``False``) but returns a boolean to
         reflect the immediate close status. Call this method from a top-level window close
-        handler such as :meth:`WindowDelegate.can_close` (or platform-specific equivalent)
-        to request that the browser close, and return the result to indicate if the window
-        close should proceed. Returns ``False`` if the close will be delayed (JavaScript
-        unload handlers triggered but still pending) or ``True`` if the close will proceed
-        immediately (possibly asynchronously). See CloseBrowser() documentation for
-        additional usage information. This method must be called on the browser process UI
-        thread.
+        handler such as :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific
+        equivalent) to request that the browser close, and return the result to indicate if
+        the window close should proceed. Returns ``False`` if the close will be delayed
+        (JavaScript unload handlers triggered but still pending) or ``True`` if the close
+        will proceed immediately (possibly asynchronously). See CloseBrowser() documentation
+        for additional usage information. This method must be called on the browser process
+        UI thread.
 
         Returns:
             bool
@@ -391,18 +394,18 @@ cdef class BrowserHost:
         """Return ``True`` if the browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
 
         This can be used from a top-level window close handler such as
-        :meth:`WindowDelegate.can_close` (or platform-specific equivalent) to distringuish
-        between potentially cancelable browser close events (like the user clicking the
-        top-level window close button before browser close has started) and mandatory
-        browser close events (like JavaScript `window.close()` or after browser close has
-        started in response to [Try]CloseBrowser()). Not completing the browser close for
-        mandatory close events (when this method returns ``True``) will leave the browser in
-        a partially closed state that interferes with proper functioning. See CloseBrowser()
-        documentation for additional usage information. This method must be called on the
-        browser process UI thread.
+        :meth:`~cefweaver.WindowDelegate.can_close` (or platform-specific equivalent) to
+        distringuish between potentially cancelable browser close events (like the user
+        clicking the top-level window close button before browser close has started) and
+        mandatory browser close events (like JavaScript ``window.close()`` or after browser
+        close has started in response to [Try]CloseBrowser()). Not completing the browser
+        close for mandatory close events (when this method returns ``True``) will leave the
+        browser in a partially closed state that interferes with proper functioning. See
+        CloseBrowser() documentation for additional usage information. This method must be
+        called on the browser process UI thread.
 
         Returns:
-            bool: ``True`` if the browser is ready to be closed, meaning that the close  has already been initiated and that JavaScript unload handlers have  already executed or should be ignored.
+            bool: ``True`` if the browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef cpp_bool _r
@@ -424,9 +427,9 @@ cdef class BrowserHost:
     def get_window_handle(self):
         """Retrieve the window handle (if any) for this browser.
 
-        If this browser is wrapped in a :class:`BrowserView` this method should be called on
-        the browser process UI thread and it will return the handle for the top-level native
-        window.
+        If this browser is wrapped in a :class:`~cefweaver.BrowserView` this method should
+        be called on the browser process UI thread and it will return the handle for the
+        top-level native window.
 
         Returns:
             int
@@ -441,8 +444,8 @@ cdef class BrowserHost:
         """Retrieve the window handle (if any) of the browser that opened this browser.
 
         Will return ``None`` for non-popup browsers or if this browser is wrapped in a
-        :class:`BrowserView`. This method can be used in combination with custom handling of
-        modal windows.
+        :class:`~cefweaver.BrowserView`. This method can be used in combination with custom
+        handling of modal windows.
 
         Returns:
             int
@@ -468,7 +471,7 @@ cdef class BrowserHost:
         return _r
 
     def has_view(self):
-        """Return ``True`` if this browser is wrapped in a :class:`BrowserView`.
+        """Return ``True`` if this browser is wrapped in a :class:`~cefweaver.BrowserView`.
 
         Returns:
             bool: ``True`` if this browser is wrapped in a ``CefBrowserView``.
@@ -483,7 +486,7 @@ cdef class BrowserHost:
         """Return the client for this browser.
 
         Returns:
-            Client | None: The client for this browser.
+            cefweaver.Client | None: The client for this browser.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef CefRefPtr[CefClient] _r
@@ -495,7 +498,7 @@ cdef class BrowserHost:
         """Return the request context for this browser.
 
         Returns:
-            RequestContext | None: The request context for this browser.
+            cefweaver.RequestContext | None: The request context for this browser.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef CefRefPtr[CefRequestContext] _r
@@ -509,7 +512,7 @@ cdef class BrowserHost:
         This method can only be called on the UI thread.
 
         Args:
-            command (ZoomCommand | int):
+            command (cefweaver.types.ZoomCommand | int):
         Returns:
             bool: ``True`` if this browser can execute the specified zoom command.
         """
@@ -526,7 +529,7 @@ cdef class BrowserHost:
         change will be applied asynchronously on the UI thread.
 
         Args:
-            command (ZoomCommand | int):
+            command (cefweaver.types.ZoomCommand | int):
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -586,18 +589,18 @@ cdef class BrowserHost:
         mode). ``default_file_path`` is the path with optional directory and/or file name
         component that will be initially selected in the dialog. ``accept_filters`` are used
         to restrict the selectable file types and may any combination of (a) valid
-        lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b) individual file extensions
-        (e.g. \".txt\" or \".png\"), or (c) combined description and file extension delimited
-        using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\"). ``callback`` will be executed
-        after the dialog is dismissed or immediately if another dialog is already pending.
-        The dialog will be initiated asynchronously on the UI thread.
+        lower-cased MIME types (e.g. \"``text/*``\" or \"``image/*``\"), (b) individual file
+        extensions (e.g. \".txt\" or \".png\"), or (c) combined description and file extension
+        delimited using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\"). ``callback`` will
+        be executed after the dialog is dismissed or immediately if another dialog is
+        already pending. The dialog will be initiated asynchronously on the UI thread.
 
         Args:
-            mode (FileDialogMode | int):
+            mode (cefweaver.types.FileDialogMode | int):
             title (str | None):
-            default_file_path (str | None): The path with optional directory and/or file name  component that will be initially selected in the dialog.
-            accept_filters (Sequence[str]): Used to restrict the selectable file types and may any combination of  (a) valid lower-cased MIME types (e.
-            callback (RunFileDialogCallback):
+            default_file_path (str | None): The path with optional directory and/or file name component that will be initially selected in the dialog.
+            accept_filters (Sequence[str]): Used to restrict the selectable file types and may any combination of (a) valid lower-cased MIME types (e.g.
+            callback (cefweaver.RunFileDialogCallback):
         """
         cdef CefString _a1
         cdef CefString _a2
@@ -617,7 +620,7 @@ cdef class BrowserHost:
         return None
 
     def start_download(self, url):
-        """Download the file at ``url`` using :class:`DownloadHandler`.
+        """Download the file at ``url`` using :class:`~cefweaver.DownloadHandler`.
 
         Args:
             url (str):
@@ -643,10 +646,10 @@ cdef class BrowserHost:
 
         Args:
             image_url (str):
-            is_favicon (bool): True then cookies are not  sent and not accepted during download.
-            max_image_size (int): Filtered out from the  image results.
-            bypass_cache (bool): True then ``image_url`` is requested  from the server even if it is present in the browser cache.
-            callback (DownloadImageCallback):
+            is_favicon (bool): True then cookies are not sent and not accepted during download.
+            max_image_size (int): Filtered out from the image results.
+            bypass_cache (bool): True then ``image_url`` is requested from the server even if it is present in the browser cache.
+            callback (cefweaver.DownloadImageCallback):
         """
         cdef CefString _a0
         cdef CefRefPtr[CefDownloadImageCallback] _a4
@@ -670,12 +673,13 @@ cdef class BrowserHost:
         """Print the current browser contents to the PDF file specified by ``path`` and execute ``callback`` on completion.
 
         The caller is responsible for deleting ``path`` when done. For PDF printing to work
-        on Linux you must implement the :meth:`PrintHandler.get_pdf_paper_size` method.
+        on Linux you must implement the :meth:`~cefweaver.PrintHandler.get_pdf_paper_size`
+        method.
 
         Args:
             path (str):
-            settings (PdfPrintSettings | tuple[int, int, float, float, float, int, PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int]):
-            callback (PdfPrintCallback | None):
+            settings (PdfPrintSettings | tuple[int, int, float, float, float, int, cefweaver.types.PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int]):
+            callback (cefweaver.PdfPrintCallback | None):
         """
         cdef CefString _a0
         cdef CefPdfPrintSettings _a1
@@ -695,8 +699,9 @@ cdef class BrowserHost:
         ``match_case`` indicates whether the search should be case-sensitive. ``find_next``
         indicates whether this is the first request or a follow-up. The search will be
         restarted if ``search_text`` or ``match_case`` change. The search will be stopped if
-        ``search_text`` is empty. The :class:`FindHandler` instance, if any, returned via
-        :meth:`Client.get_find_handler` will be called to report find results.
+        ``search_text`` is empty. The :class:`~cefweaver.FindHandler` instance, if any,
+        returned via :meth:`~cefweaver.Client.get_find_handler` will be called to report
+        find results.
 
         Args:
             search_text (str): Empty.
@@ -762,8 +767,8 @@ cdef class BrowserHost:
         notifications are enabled (for example, between method calls for \"Page.enable\" and
         \"Page.disable\"). All received messages will be delivered to the observer(s)
         registered with AddDevToolsMessageObserver. See
-        :meth:`DevToolsMessageObserver.on_dev_tools_message` documentation for details of
-        received message contents.
+        :meth:`~cefweaver.DevToolsMessageObserver.on_dev_tools_message` documentation for
+        details of received message contents.
 
         Usage of the SendDevToolsMessage, ExecuteDevToolsMethod and
         AddDevToolsMessageObserver methods does not require an active DevTools front-end or
@@ -772,7 +777,7 @@ cdef class BrowserHost:
         not be reflected in the UI of other sessions.
 
         Communication with the DevTools front-end (when displayed) can be logged for
-        development purposes by passing the `--devtools-protocol-log-file=<path>`
+        development purposes by passing the ``--devtools-protocol-log-file=<path>``
         command-line flag.
 
         Args:
@@ -809,9 +814,9 @@ cdef class BrowserHost:
         usage information.
 
         Args:
-            message_id (int): An incremental  number that uniquely identifies the message (pass 0 to have the next  number assigned automatically based on previous values).
-            method (str): The  method name.
-            params (DictionaryValue | None): The method parameters, which may be empty.
+            message_id (int): An incremental number that uniquely identifies the message (pass 0 to have the next number assigned automatically based on previous values).
+            method (str): The method name.
+            params (cefweaver.DictionaryValue | None): The method parameters, which may be empty.
         Returns:
             int
         """
@@ -834,9 +839,9 @@ cdef class BrowserHost:
         information.
 
         Args:
-            observer (DevToolsMessageObserver):
+            observer (cefweaver.DevToolsMessageObserver):
         Returns:
-            Registration | None
+            cefweaver.Registration | None
         """
         cdef CefRefPtr[CefDevToolsMessageObserver] _a0
         cdef CefBrowserHost* _p = self._ptr()
@@ -855,8 +860,8 @@ cdef class BrowserHost:
         otherwise all navigation entries will be sent.
 
         Args:
-            visitor (NavigationEntryVisitor):
-            current_only (bool): True only the current navigation  entry will be sent, otherwise all navigation entries will be sent.
+            visitor (cefweaver.NavigationEntryVisitor):
+            current_only (bool): True only the current navigation entry will be sent, otherwise all navigation entries will be sent.
         """
         cdef CefRefPtr[CefNavigationEntryVisitor] _a0
         cdef CefBrowserHost* _p = self._ptr()
@@ -908,9 +913,10 @@ cdef class BrowserHost:
     def was_resized(self):
         """Notify the browser that the widget has been resized.
 
-        The browser will first call :meth:`RenderHandler.get_view_rect` to get the new size
-        and then call :meth:`RenderHandler.on_paint` asynchronously with the updated
-        regions. This method is only used when window rendering is disabled.
+        The browser will first call :meth:`~cefweaver.RenderHandler.get_view_rect` to get
+        the new size and then call :meth:`~cefweaver.RenderHandler.on_paint` asynchronously
+        with the updated regions. This method is only used when window rendering is
+        disabled.
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -920,8 +926,8 @@ cdef class BrowserHost:
     def was_hidden(self, bint hidden):
         """Notify the browser that it has been hidden or shown.
 
-        Layouting and :meth:`RenderHandler.on_paint` notification will stop when the browser
-        is hidden. This method is only used when window rendering is disabled.
+        Layouting and :meth:`~cefweaver.RenderHandler.on_paint` notification will stop when
+        the browser is hidden. This method is only used when window rendering is disabled.
 
         Args:
             hidden (bool):
@@ -943,14 +949,15 @@ cdef class BrowserHost:
         external (client-provided) root window.
 
         With windowless rendering the browser will call
-        :meth:`RenderHandler.get_screen_info`, :meth:`RenderHandler.get_root_screen_rect`
-        and :meth:`RenderHandler.get_view_rect`. This simulates moving or resizing the root
-        window in the current display, moving the root window from one display to another,
-        or changing the properties of the current display.
+        :meth:`~cefweaver.RenderHandler.get_screen_info`,
+        :meth:`~cefweaver.RenderHandler.get_root_screen_rect` and
+        :meth:`~cefweaver.RenderHandler.get_view_rect`. This simulates moving or resizing
+        the root window in the current display, moving the root window from one display to
+        another, or changing the properties of the current display.
 
         With windowed rendering the browser will call
-        :meth:`DisplayHandler.get_root_window_screen_rect` and use the associated display
-        properties.
+        :meth:`~cefweaver.DisplayHandler.get_root_window_screen_rect` and use the associated
+        display properties.
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -960,11 +967,11 @@ cdef class BrowserHost:
     def invalidate(self, long long type):
         """Invalidate the view.
 
-        The browser will call :meth:`RenderHandler.on_paint` asynchronously. This method is
-        only used when window rendering is disabled.
+        The browser will call :meth:`~cefweaver.RenderHandler.on_paint` asynchronously. This
+        method is only used when window rendering is disabled.
 
         Args:
-            type (PaintElementType | int):
+            type (cefweaver.types.PaintElementType | int):
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -985,7 +992,7 @@ cdef class BrowserHost:
         """Send a key event to the browser.
 
         Args:
-            event (KeyEvent | tuple[KeyEventType, int, int, int, int, int, int, int]):
+            event (KeyEvent | tuple[cefweaver.types.KeyEventType, int, int, int, int, int, int, int]):
         """
         cdef CefKeyEvent _a0
         cdef CefBrowserHost* _p = self._ptr()
@@ -1001,7 +1008,7 @@ cdef class BrowserHost:
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
-            type (MouseButtonType | int):
+            type (cefweaver.types.MouseButtonType | int):
             mouse_up (bool):
             click_count (int):
         """
@@ -1034,8 +1041,8 @@ cdef class BrowserHost:
         The ``x`` and ``y`` coordinates are relative to the upper-left corner of the view.
         The ``delta_x`` and ``delta_y`` values represent the movement delta in the X and Y
         directions respectively. In order to scroll inside select popups with window
-        rendering disabled :meth:`RenderHandler.get_screen_point` should be implemented
-        properly.
+        rendering disabled :meth:`~cefweaver.RenderHandler.get_screen_point` should be
+        implemented properly.
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
@@ -1053,7 +1060,7 @@ cdef class BrowserHost:
         """Send a touch event to the browser for a windowless browser.
 
         Args:
-            event (TouchEvent | tuple[int, float, float, float, float, float, float, TouchEventType, int, PointerType]):
+            event (TouchEvent | tuple[int, float, float, float, float, float, float, cefweaver.types.TouchEventType, int, cefweaver.types.PointerType]):
         """
         cdef CefTouchEvent _a0
         cdef CefBrowserHost* _p = self._ptr()
@@ -1080,14 +1087,14 @@ cdef class BrowserHost:
         return None
 
     def get_windowless_frame_rate(self):
-        """Return the maximum rate in frames per second (fps) that :meth:`RenderHandler.on_paint` will be called for a windowless browser.
+        """Return the maximum rate in frames per second (fps) that :meth:`~cefweaver.RenderHandler.on_paint` will be called for a windowless browser.
 
         The actual fps may be lower if the browser cannot generate frames at the requested
         rate. The minimum value is 1 and the default value is 30. This method can only be
         called on the UI thread.
 
         Returns:
-            int: The maximum rate in frames per second (fps) that  ``CefRenderHandler::OnPaint`` will be called for a windowless browser.
+            int: The maximum rate in frames per second (fps) that ``CefRenderHandler::OnPaint`` will be called for a windowless browser.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef int _r
@@ -1096,7 +1103,7 @@ cdef class BrowserHost:
         return _r
 
     def set_windowless_frame_rate(self, int frame_rate):
-        """Set the maximum rate in frames per second (fps) that :class:`RenderHandler`:: OnPaint will be called for a windowless browser.
+        """Set the maximum rate in frames per second (fps) that :class:`~cefweaver.RenderHandler`:: OnPaint will be called for a windowless browser.
 
         The actual fps may be lower if the browser cannot generate frames at the requested
         rate. The minimum value is 1 and the default value is 30. Can also be set at browser
@@ -1126,18 +1133,18 @@ cdef class BrowserHost:
         cancel the composition call ImeCancelComposition. To complete the composition call
         either ImeCommitText or ImeFinishComposingText. Completion is usually signaled when:
 
-         1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
-            flag (on Windows), or;
-         2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
-         3. insertText of NSTextInput is called (on Mac).
+        1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR flag (on
+           Windows), or;
+        2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
+        3. insertText of NSTextInput is called (on Mac).
 
         This method is only used when window rendering is disabled.
 
         Args:
-            text (str | None): The optional text that  will be inserted into the composition node.
-            underlines (Sequence[CompositionUnderline | tuple[Range, int, int, int, CompositionUnderlineStyle]]): An optional  set of ranges that will be underlined in the resulting text.
-            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be  replaced.
-            selection_range (Range | tuple[int, int]): An optional range of the resulting text  that will be selected after insertion or replacement.
+            text (str | None): The optional text that will be inserted into the composition node.
+            underlines (Sequence[CompositionUnderline | tuple[Range, int, int, int, cefweaver.types.CompositionUnderlineStyle]]): An optional set of ranges that will be underlined in the resulting text.
+            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be replaced.
+            selection_range (Range | tuple[int, int]): An optional range of the resulting text that will be selected after insertion or replacement.
         """
         cdef CefString _a0
         cdef vector[CefCompositionUnderline] _a1
@@ -1164,8 +1171,8 @@ cdef class BrowserHost:
 
         Args:
             text (str | None):
-            replacement_range (Range | tuple[int, int]): An optional range  of the existing text that will be replaced.
-            relative_cursor_pos (int): Where  the cursor will be positioned relative to the current cursor position.
+            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be replaced.
+            relative_cursor_pos (int): Where the cursor will be positioned relative to the current cursor position.
         """
         cdef CefString _a0
         cdef CefRange _a1
@@ -1185,7 +1192,7 @@ cdef class BrowserHost:
         rendering is disabled.
 
         Args:
-            keep_selection (bool): False the current selection, if any,  will be discarded.
+            keep_selection (bool): False the current selection, if any, will be discarded.
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -1208,14 +1215,14 @@ cdef class BrowserHost:
 
         ``drag_data`` should not contain file contents as this type of data is not allowed
         to be dragged into the web view. File contents can be removed using
-        :meth:`DragData.reset_file_contents` (for example, if ``drag_data`` comes from
-        :meth:`RenderHandler.start_dragging`). This method is only used when window
-        rendering is disabled.
+        :meth:`~cefweaver.DragData.reset_file_contents` (for example, if ``drag_data`` comes
+        from :meth:`~cefweaver.RenderHandler.start_dragging`). This method is only used when
+        window rendering is disabled.
 
         Args:
-            drag_data (DragData):
+            drag_data (cefweaver.DragData):
             event (MouseEvent | tuple[int, int, int]):
-            allowed_ops (DragOperationsMask | int):
+            allowed_ops (cefweaver.types.DragOperationsMask | int):
         """
         cdef CefRefPtr[CefDragData] _a0
         cdef CefMouseEvent _a1
@@ -1233,7 +1240,7 @@ cdef class BrowserHost:
 
         Args:
             event (MouseEvent | tuple[int, int, int]):
-            allowed_ops (DragOperationsMask | int):
+            allowed_ops (cefweaver.types.DragOperationsMask | int):
         """
         cdef CefMouseEvent _a0
         cdef CefBrowserHost* _p = self._ptr()
@@ -1270,17 +1277,17 @@ cdef class BrowserHost:
         return None
 
     def drag_source_ended_at(self, int x, int y, long long op):
-        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has ended either in a drop or by being cancelled.
+        """Call this method when the drag operation started by a :meth:`~cefweaver.RenderHandler.start_dragging` call has ended either in a drop or by being cancelled.
 
         ``x`` and ``y`` are mouse coordinates relative to the upper-left corner of the view.
-        If the web view is both the drag source and the drag target then all DragTarget*
-        methods should be called before DragSource* mthods. This method is only used when
-        window rendering is disabled.
+        If the web view is both the drag source and the drag target then all ``DragTarget*``
+        methods should be called before ``DragSource*`` mthods. This method is only used
+        when window rendering is disabled.
 
         Args:
             x (int):
-            y (int): Mouse coordinates relative to the  upper-left corner of the view.
-            op (DragOperationsMask | int):
+            y (int): Mouse coordinates relative to the upper-left corner of the view.
+            op (cefweaver.types.DragOperationsMask | int):
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -1288,12 +1295,12 @@ cdef class BrowserHost:
         return None
 
     def drag_source_system_drag_ended(self):
-        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has completed.
+        """Call this method when the drag operation started by a :meth:`~cefweaver.RenderHandler.start_dragging` call has completed.
 
         This method may be called immediately without first calling DragSourceEndedAt to
         cancel a drag operation. If the web view is both the drag source and the drag target
-        then all DragTarget* methods should be called before DragSource* mthods. This method
-        is only used when window rendering is disabled.
+        then all ``DragTarget*`` methods should be called before ``DragSource*`` mthods.
+        This method is only used when window rendering is disabled.
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -1306,7 +1313,7 @@ cdef class BrowserHost:
         This method can only be called on the UI thread.
 
         Returns:
-            NavigationEntry | None: The current visible navigation entry for this browser.
+            cefweaver.NavigationEntry | None: The current visible navigation entry for this browser.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef CefRefPtr[CefNavigationEntry] _r
@@ -1342,7 +1349,7 @@ cdef class BrowserHost:
         callbacks if desired.
 
         Args:
-            accessibility_state (State | int): STATE_DISABLED then accessibility will be  completely disabled.
+            accessibility_state (cefweaver.types.State | int): STATE_DISABLED then accessibility will be completely disabled.
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -1350,7 +1357,7 @@ cdef class BrowserHost:
         return None
 
     def set_auto_resize_enabled(self, bint enabled, min_size, max_size):
-        """Enable notifications of auto resize via :meth:`DisplayHandler.on_auto_resize`.
+        """Enable notifications of auto resize via :meth:`~cefweaver.DisplayHandler.on_auto_resize`.
 
         Notifications are disabled by default. ``min_size`` and ``max_size`` define the
         range of allowed sizes.
@@ -1417,11 +1424,11 @@ cdef class BrowserHost:
         In most cases exiting window fullscreen should also exit browser fullscreen. With
         Alloy style this method should be called in response to a user action such as
         clicking the green traffic light button on MacOS
-        (:meth:`WindowDelegate.on_window_fullscreen_transition` callback) or pressing the
-        \"ESC\" key (:meth:`KeyboardHandler.on_pre_key_event` callback). With Chrome style
-        these standard exit actions are handled internally but new/additional user actions
-        can use this method. Set ``will_cause_resize`` to ``True`` if exiting browser
-        fullscreen will cause a view resize.
+        (:meth:`~cefweaver.WindowDelegate.on_window_fullscreen_transition` callback) or
+        pressing the \"ESC\" key (:meth:`~cefweaver.KeyboardHandler.on_pre_key_event`
+        callback). With Chrome style these standard exit actions are handled internally but
+        new/additional user actions can use this method. Set ``will_cause_resize`` to
+        ``True`` if exiting browser fullscreen will cause a view resize.
 
         Args:
             will_cause_resize (bool):
@@ -1460,7 +1467,7 @@ cdef class BrowserHost:
 
         Args:
             command_id (int):
-            disposition (WindowOpenDisposition | int):
+            disposition (cefweaver.types.WindowOpenDisposition | int):
         """
         cdef CefBrowserHost* _p = self._ptr()
         with nogil:
@@ -1472,11 +1479,11 @@ cdef class BrowserHost:
 
         To receive associated state change notifications and optionally handle an
         unresponsive render process implement
-        :meth:`RequestHandler.on_render_process_unresponsive`. This method can only be
-        called on the UI thread.
+        :meth:`~cefweaver.RequestHandler.on_render_process_unresponsive`. This method can
+        only be called on the UI thread.
 
         Returns:
-            bool: ``True`` if the render process associated with this browser is  currently unresponsive as indicated by a lack of input event processing  for at least 15 seconds.
+            bool: ``True`` if the render process associated with this browser is currently unresponsive as indicated by a lack of input event processing for at least 15 seconds.
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef cpp_bool _r
@@ -1490,7 +1497,7 @@ cdef class BrowserHost:
         See cef_runtime_style_t documentation for details.
 
         Returns:
-            RuntimeStyle: The runtime style for this browser (ALLOY or CHROME).
+            cefweaver.types.RuntimeStyle: The runtime style for this browser (ALLOY or CHROME).
         """
         cdef CefBrowserHost* _p = self._ptr()
         cdef cef_runtime_style_t _r
@@ -1525,7 +1532,7 @@ cdef class BrowserHost:
         Args:
             browser_id (int):
         Returns:
-            Browser | None: The browser (if any) with the specified identifier.
+            cefweaver.Browser | None: The browser (if any) with the specified identifier.
         """
         cdef CefRefPtr[CefBrowser] _r
         with nogil:
@@ -1570,7 +1577,7 @@ cdef inline CefBrowserHost* _g_ref_BrowserHost(object obj) except? NULL:
 
 
 class DownloadImageCallback:
-    """Callback interface for :meth:`BrowserHost.download_image`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.download_image`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -1583,9 +1590,9 @@ class DownloadImageCallback:
         scale factors, or empty if the download failed.
 
         Args:
-            image_url (str): The URL that was downloaded and ``http_status_code`` is the  resulting HTTP status code.
+            image_url (str): The URL that was downloaded and ``http_status_code`` is the resulting HTTP status code.
             http_status_code (int):
-            image (Image | None): The resulting image, possibly at  multiple scale factors, or empty if the download failed.
+            image (cefweaver.Image | None): The resulting image, possibly at multiple scale factors, or empty if the download failed.
         """
         return None
 
@@ -1636,7 +1643,7 @@ cdef object _g_unexport_DownloadImageCallback(CefRefPtr[CefDownloadImageCallback
 
 
 class NavigationEntryVisitor:
-    """Callback interface for :meth:`BrowserHost.get_navigation_entries`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.get_navigation_entries`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -1650,9 +1657,9 @@ class NavigationEntryVisitor:
         this entry and ``total`` is the total number of entries.
 
         Args:
-            entry (NavigationEntry):
-            current (bool): True if this entry is the currently loaded navigation  entry.
-            index (int): The 0-based index of this entry and ``total`` is the total  number of entries.
+            entry (cefweaver.NavigationEntry):
+            current (bool): True if this entry is the currently loaded navigation entry.
+            index (int): The 0-based index of this entry and ``total`` is the total number of entries.
             total (int):
         Returns:
             bool
@@ -1709,7 +1716,7 @@ cdef object _g_unexport_NavigationEntryVisitor(CefRefPtr[CefNavigationEntryVisit
 
 
 class PdfPrintCallback:
-    """Callback interface for :meth:`BrowserHost.print_to_pdf`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.print_to_pdf`.
 
     The methods of this class will be called on the browser process UI thread.
     """
@@ -1773,7 +1780,7 @@ cdef object _g_unexport_PdfPrintCallback(CefRefPtr[CefPdfPrintCallback] ref):
 
 
 class RunFileDialogCallback:
-    """Callback interface for :meth:`BrowserHost.run_file_dialog`.
+    """Callback interface for :meth:`~cefweaver.BrowserHost.run_file_dialog`.
 
     The methods of this class will be called on the browser process UI thread.
     """

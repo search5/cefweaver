@@ -68,12 +68,8 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Jekyll site (docs/)
-docs/_site/
-docs/.jekyll-cache/
-docs/.sass-cache/
-.sass-cache/
-docs/Gemfile.lock
+# Sphinx documentation (docs/): built files (*.mo and *.pot are ignored above)
+docs/_build/
 
 # PyBuilder
 target/

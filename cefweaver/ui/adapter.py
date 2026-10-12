@@ -131,7 +131,7 @@ class ToolkitAdapter(Protocol):
         """Show a picture that CEF painted.
 
         Args:
-            frame (Frame): The picture. Its ``buffer`` is valid only during this call.
+            frame (cefweaver.ui.Frame): The picture. Its ``buffer`` is valid only during this call.
         """
         ...
 

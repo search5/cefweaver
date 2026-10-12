@@ -37,11 +37,11 @@ class PictureChange:
 
     Args:
         kind (str): The kind of change.
-        rects (iterable of Rect, optional): The changed rectangles.
+        rects (iterable of cefweaver.types.Rect, optional): The changed rectangles.
 
     Attributes:
         kind (str): ``PictureStore.NEW``, ``DIRTY``, ``POPUP`` or ``POPUP_HIDDEN``.
-        rects (list of Rect): For ``DIRTY``, the changed rectangles in device pixels, clipped
+        rects (list of cefweaver.types.Rect): For ``DIRTY``, the changed rectangles in device pixels, clipped
             to the picture; for ``NEW``, the whole picture; otherwise empty.
     """
 
@@ -65,7 +65,7 @@ class PictureStore:
         popup_pixels (bytearray or None): The popup pixels in BGRA, or ``None`` if no popup is
             shown.
         popup_size (tuple): ``(width, height)`` of the popup.
-        popup_rect (Rect or None): The position of the popup in the view.
+        popup_rect (cefweaver.types.Rect or None): The position of the popup in the view.
         NEW (str): Kind of change: new pixels were allocated.
         DIRTY (str): Kind of change: rectangles of ``pixels`` changed.
         POPUP (str): Kind of change: the popup was replaced.
@@ -99,7 +99,7 @@ class PictureStore:
         """Apply a painted frame to the stored pixels.
 
         Args:
-            frame (Frame): The frame, from ``ToolkitAdapter.present()``.
+            frame (cefweaver.ui.Frame): The frame, from ``ToolkitAdapter.present()``.
 
         Returns:
             PictureChange: What changed.

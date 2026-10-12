@@ -27,8 +27,8 @@ cdef class Server:
     def shutdown(self):
         """Stop the server and shut down the dedicated server thread.
 
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan.
+        See :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a
+        description of server lifespan.
         """
         cdef CefServer* _p = self._ptr()
         with nogil:
@@ -38,11 +38,12 @@ cdef class Server:
     def is_running(self):
         """Return ``True`` if the server is currently running and accepting incoming connections.
 
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan. This method must be called on the dedicated server thread.
+        See :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a
+        description of server lifespan. This method must be called on the dedicated server
+        thread.
 
         Returns:
-            bool: ``True`` if the server is currently running and accepting incoming  connections.
+            bool: ``True`` if the server is currently running and accepting incoming connections.
         """
         cdef CefServer* _p = self._ptr()
         cdef cpp_bool _r
@@ -102,8 +103,8 @@ cdef class Server:
 
         Args:
             connection_id (int):
-            content_type (str): The response content type (e.
-            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size  of ``data`` in bytes.
+            content_type (str): The response content type (e.g.
+            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size of ``data`` in bytes.
         """
         cdef CefString _a1
         cdef const unsigned char[::1] _v2
@@ -142,7 +143,7 @@ cdef class Server:
 
         Args:
             connection_id (int):
-            error_message (str): The associated error  message.
+            error_message (str): The associated error message.
         """
         cdef CefString _a1
         cdef CefServer* _p = self._ptr()
@@ -167,9 +168,9 @@ cdef class Server:
 
         Args:
             connection_id (int):
-            response_code (int): The HTTP response code sent in the  status line (e.
-            content_type (str): The response content type sent  as the \"Content-Type\" header (e.
-            content_length (int): < 0 then no \"Content-Length\" header will be sent and  the client will continue reading until the connection is closed.
+            response_code (int): The HTTP response code sent in the status line (e.g.
+            content_type (str): The response content type sent as the \"Content-Type\" header (e.g.
+            content_length (int): < 0 then no \"Content-Length\" header will be sent and the client will continue reading until the connection is closed.
             extra_headers (dict[str, str] | None):
         """
         cdef CefString _a2
@@ -192,7 +193,7 @@ cdef class Server:
 
         Args:
             connection_id (int):
-            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount  indicated by the \"Content-Length\" header, if specified.
+            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount indicated by the \"Content-Length\" header, if specified.
         """
         cdef const unsigned char[::1] _v1
         cdef const void* _a1 = NULL
@@ -226,11 +227,12 @@ cdef class Server:
 
         ``data`` is the response content and ``data_size`` is the size of ``data`` in bytes.
         The contents of ``data`` will be copied. See
-        :meth:`ServerHandler.on_web_socket_request` documentation for intended usage.
+        :meth:`~cefweaver.ServerHandler.on_web_socket_request` documentation for intended
+        usage.
 
         Args:
             connection_id (int):
-            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in  bytes.
+            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in bytes.
         """
         cdef const unsigned char[::1] _v1
         cdef const void* _a1 = NULL
@@ -254,18 +256,19 @@ cdef class Server:
         ``port`` must be a port number outside of the reserved range (e.g. between 1025 and
         65535 on most platforms). ``backlog`` is the maximum number of pending connections.
         A new thread will be created for each CreateServer call (the \"dedicated server
-        thread\"). It is therefore recommended to use a different :class:`ServerHandler`
-        instance for each CreateServer call to avoid thread safety issues in the
-        :class:`ServerHandler` implementation. The :meth:`ServerHandler.on_server_created`
-        method will be called on the dedicated server thread to report success or failure.
-        See :meth:`ServerHandler.on_server_created` documentation for a description of
-        server lifespan.
+        thread\"). It is therefore recommended to use a different
+        :class:`~cefweaver.ServerHandler` instance for each CreateServer call to avoid
+        thread safety issues in the :class:`~cefweaver.ServerHandler` implementation. The
+        :meth:`~cefweaver.ServerHandler.on_server_created` method will be called on the
+        dedicated server thread to report success or failure. See
+        :meth:`~cefweaver.ServerHandler.on_server_created` documentation for a description
+        of server lifespan.
 
         Args:
             address (str):
             port (int):
             backlog (int): The maximum number of pending connections.
-            handler (ServerHandler):
+            handler (cefweaver.ServerHandler):
         """
         cdef CefString _a0
         cdef CefRefPtr[CefServerHandler] _a3
@@ -307,23 +310,25 @@ cdef inline CefServer* _g_ref_Server(object obj) except? NULL:
 class ServerHandler:
     """Implement this interface to handle HTTP server requests.
 
-    A new thread will be created for each :meth:`Server.create_server` call (the
-    \"dedicated server thread\"), and the methods of this class will be called on that
-    thread. It is therefore recommended to use a different :class:`ServerHandler`
-    instance for each :meth:`Server.create_server` call to avoid thread safety issues in
-    the :class:`ServerHandler` implementation.
+    A new thread will be created for each :meth:`~cefweaver.Server.create_server` call
+    (the \"dedicated server thread\"), and the methods of this class will be called on
+    that thread. It is therefore recommended to use a different
+    :class:`~cefweaver.ServerHandler` instance for each
+    :meth:`~cefweaver.Server.create_server` call to avoid thread safety issues in the
+    :class:`~cefweaver.ServerHandler` implementation.
     """
 
     def on_server_created(self, server):
         """Called when ``server`` is created.
 
-        If the server was started successfully then :meth:`Server.is_running` will return
-        ``True``. The server will continue running until :meth:`Server.shutdown` is called,
-        after which time OnServerDestroyed will be called. If the server failed to start
-        then OnServerDestroyed will be called immediately after this method returns.
+        If the server was started successfully then :meth:`~cefweaver.Server.is_running`
+        will return ``True``. The server will continue running until
+        :meth:`~cefweaver.Server.shutdown` is called, after which time OnServerDestroyed
+        will be called. If the server failed to start then OnServerDestroyed will be called
+        immediately after this method returns.
 
         Args:
-            server (Server): Created.
+            server (cefweaver.Server): Created.
         """
         return None
 
@@ -335,7 +340,7 @@ class ServerHandler:
         documentation for a description of server lifespan.
 
         Args:
-            server (Server): Destroyed.
+            server (cefweaver.Server): Destroyed.
         """
         return None
 
@@ -346,7 +351,7 @@ class ServerHandler:
         have a matching call to OnClientDisconnected.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         return None
@@ -356,13 +361,13 @@ class ServerHandler:
 
         ``connection_id`` uniquely identifies the connection. The client should release any
         data associated with ``connection_id`` when this method is called and
-        ``connection_id`` should no longer be passed to :class:`Server` methods. Disconnects
-        can originate from either the client or the server. For example, the server will
-        disconnect automatically after a :meth:`Server.send_http_xxx_response` method is
-        called.
+        ``connection_id`` should no longer be passed to :class:`~cefweaver.Server` methods.
+        Disconnects can originate from either the client or the server. For example, the
+        server will disconnect automatically after a ``Server.send_http_xxx_response``
+        method is called.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         return None
@@ -373,13 +378,14 @@ class ServerHandler:
         ``connection_id`` uniquely identifies the connection, ``client_address`` is the
         requesting IPv4 or IPv6 client address including port number, and ``request``
         contains the request contents (URL, method, headers and optional POST data). Call
-        :class:`Server` methods either synchronously or asynchronusly to send a response.
+        :class:`~cefweaver.Server` methods either synchronously or asynchronusly to send a
+        response.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            client_address (str): The requesting IPv4 or IPv6  client address including port number, and ``request`` contains the request  contents (URL, method, headers and optional POST data).
-            request (Request):
+            client_address (str): The requesting IPv4 or IPv6 client address including port number, and ``request`` contains the request contents (URL, method, headers and optional POST data).
+            request (cefweaver.Request):
         """
         return None
 
@@ -394,15 +400,15 @@ class ServerHandler:
         called after the WebSocket has connected and incoming messages will be delivered to
         the OnWebSocketMessage callback. If the request is declined then the client will be
         disconnected and OnClientDisconnected will be called. Call the
-        :meth:`Server.send_web_socket_message` method after receiving the
+        :meth:`~cefweaver.Server.send_web_socket_message` method after receiving the
         OnWebSocketConnected callback to respond with WebSocket messages.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            client_address (str): The requesting  IPv4 or IPv6 client address including port number, and ``request`` contains  the request contents (URL, method, headers and optional POST data).
-            request (Request):
-            callback (Callback):
+            client_address (str): The requesting IPv4 or IPv6 client address including port number, and ``request`` contains the request contents (URL, method, headers and optional POST data).
+            request (cefweaver.Request):
+            callback (cefweaver.Callback):
         """
         return None
 
@@ -412,7 +418,7 @@ class ServerHandler:
         See OnWebSocketRequest documentation for intended usage.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
         """
         return None
@@ -426,9 +432,9 @@ class ServerHandler:
         intended usage.
 
         Args:
-            server (Server):
+            server (cefweaver.Server):
             connection_id (int):
-            data (memoryview): The message content and  ``data_size`` is the size of ``data`` in bytes.
+            data (memoryview): The message content and ``data_size`` is the size of ``data`` in bytes.
         """
         return None
 

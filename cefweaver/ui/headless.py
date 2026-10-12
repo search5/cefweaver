@@ -78,7 +78,7 @@ class HeadlessAdapter:
         """Store a painted picture in ``picture`` or ``popup``.
 
         Args:
-            frame (Frame): The picture; a ``POPUP_HIDDEN`` frame clears ``popup``.
+            frame (cefweaver.ui.Frame): The picture; a ``POPUP_HIDDEN`` frame clears ``popup``.
         """
         if frame.kind == Frame.VIEW:
             self.picture = (frame.width, frame.height, bytes(frame.buffer))

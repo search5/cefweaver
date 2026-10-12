@@ -11,7 +11,7 @@ sources:
   - cmake/CefweaverExtension.cmake
   - native/cefwrapper/platform_structs.h
   - tests/test_smoke.py
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 알려진 제약과 미검증 항목
@@ -96,7 +96,7 @@ updated: 2026-10-11
 | --- | --- | --- |
 | `README.rst` 소개 문단 | wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL, PyWin32의 예제가 있다고 씁니다. `examples/`에는 이제 wxPython, PyQt, PySide, Kivy, PyGObject(GTK 3)와 Tkinter, SDL2가 있고([툴킷 예제](toolkit-examples.md)), PyGame/PyOpenGL, PyWin32의 예제는 없습니다. cefpython의 README 문장을 바탕으로 한 것으로 보입니다. | 그대로 둠. 문장을 맞출지는 사람의 결정이 필요합니다. |
 | `pyproject.toml` | `numpy>=1.26.2`가 의존성에 있으나 코드에서 쓰지 않습니다. classifier의 Windows는 이제 확인했습니다(2026-10-11, Windows 11 x86_64. macOS는 arm64를 지원). classifier는 Python 3.11과 3.12만 적고 시험은 3.11~3.14에서 했습니다. | 그대로 둠 |
-| `docs/` | (2026-10-09) 비어 있던 Sphinx 골격을 제거하고 Jekyll 사이트를 만들었습니다. **Jekyll 3.10.0(GitHub Pages와 같은 버전)으로 로컬 빌드를 확인했습니다**(임시 gem 폴더, `ruby-dev` 설치는 사용자 허락): 10쪽이 `.html`로 나오고 `.md` 링크가 모두 바뀌고 깨진 링크가 없으며 헤드리스 Chrome 화면으로 모양을 봤습니다. 빌드가 찾은 것: 레이아웃이 없는 맨 HTML(GitHub Pages의 `jekyll-default-layout` 없이는 테마가 안 입혀짐 → `defaults`로 명시), 폭이 넓은 표가 잘림(→ `assets/css/style.scss`). 머리말과 설정의 YAML, 링크, 목차는 시험이 지킵니다. GitHub Pages는 `gh api`로 켰고(main 브랜치의 `/docs`) https://search5.github.io/cefweaver/ 에서 4쪽이 200으로 응답하고 스타일시트 경로(`/cefweaver/assets/css/style.css`)와 메뉴 링크가 기준 경로에 맞게 나옴을 확인했습니다. 모든 쪽을 훑은 것은 아니고, 실제 다크 설정에서의 모양은 보지 못했습니다. `CHANGELOG.rst`는 비어 있습니다. | GitHub Pages를 켜서 빌드 결과 보기 |
+| `docs/` | (2026-10-13) Jekyll 사이트를 지우고 Sphinx로 바꿨습니다. GitHub Pages는 저장소 설정에서 main 브랜치의 `/docs`로 켜져 있었는데(https://search5.github.io/cefweaver/), 이제 `/docs`에는 `.rst`와 `conf.py`뿐이라 **이 설정은 의미 있는 사이트를 만들지 못합니다**. 호스팅을 정하기 전까지 바꾸지 않았습니다(저장소 설정은 사용자의 몫). Read the Docs는 컴파일된 확장이 필요한 autodoc을 위해 wheel을 설치해야 하므로(CEF 배포본이 약 150MB) 빌드 방법이 정해져야 합니다. | 호스팅 방식 결정, GitHub Pages 설정 정리 |
 | `README.rst`의 `cefsubprocess/` 디렉터리 | 서브프로세스를 패키지 디렉터리 바로 아래 실행 파일로 옮긴 뒤에도 "디렉터리"라고 적혀 있었습니다. | 2026-10-08에 고침 |
 | `_cefweaver.pyx`의 `load_url` docstring | "브라우저는 첫 `do_message_loop_work()` 호출들에서 만들어진다"고 했으나 `initialize()` 직후에 이미 `True`였습니다. | 2026-10-08에 고침 |
 | `CLAUDE.md`와 `tests/test_smoke.py`의 시험 명령 | `-P` 없이 저장소 루트에서 실행하면 CEF 시험(당시 11개)이 조용히 건너뛰어졌습니다. | 2026-10-08에 고침 |

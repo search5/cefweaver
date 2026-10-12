@@ -63,7 +63,7 @@ cdef class NavigationEntry:
         """Return the original URL that was entered by the user before any redirects.
 
         Returns:
-            str: The original URL that was entered by the user before any  redirects.
+            str: The original URL that was entered by the user before any redirects.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefString _r
@@ -89,7 +89,7 @@ cdef class NavigationEntry:
         """Return the transition type which indicates what the user did to move to this page from the previous page.
 
         Returns:
-            TransitionType: The transition type which indicates what the user did to move to  this page from the previous page.
+            cefweaver.types.TransitionType: The transition type which indicates what the user did to move to this page from the previous page.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef cef_transition_type_t _r
@@ -131,7 +131,7 @@ cdef class NavigationEntry:
         completed.
 
         Returns:
-            int: The HTTP status code for the last known successful navigation  response.
+            int: The HTTP status code for the last known successful navigation response.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef int _r
@@ -143,7 +143,7 @@ cdef class NavigationEntry:
         """Return the SSL information for this navigation entry.
 
         Returns:
-            SSLStatus | None: The SSL information for this navigation entry.
+            cefweaver.SSLStatus | None: The SSL information for this navigation entry.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefRefPtr[CefSSLStatus] _r

@@ -15,7 +15,7 @@ class FocusHandler:
         and ``False`` if the browser is giving focus to the previous component.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
             next (bool):
         """
         return None
@@ -27,8 +27,8 @@ class FocusHandler:
         to allow the focus to be set or ``True`` to cancel setting the focus.
 
         Args:
-            browser (Browser):
-            source (FocusSource):
+            browser (cefweaver.Browser):
+            source (cefweaver.types.FocusSource):
         Returns:
             bool
         """
@@ -38,7 +38,7 @@ class FocusHandler:
         """Called when the browser component has received focus.
 
         Args:
-            browser (Browser):
+            browser (cefweaver.Browser):
         """
         return None
 
