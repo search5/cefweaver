@@ -7,7 +7,7 @@ on:
       platform:
         description: "Where to build"
         type: choice
-        options: [both, linux, linux-arm, macos, windows, all]
+        options: [both, linux, linux-arm, macos, macos-intel, windows, all]
         default: both
       python-version:
         description: "Python version (the examples use 3.13)"
@@ -34,8 +34,9 @@ jobs:
             linux) m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"}]' ;;
             linux-arm) m='[{"name":"linux","label":"linux-arm","os":"ubuntu-24.04-arm","arch":"aarch64"}]' ;;
             macos) m='[{"name":"macos","label":"macos","os":"macos-14"}]' ;;
+            macos-intel) m='[{"name":"macos","label":"macos-intel","os":"macos-15-intel"}]' ;;
             windows) m='[{"name":"windows","label":"windows","os":"windows-2025"}]' ;;
-            all)   m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"},{"name":"linux","label":"linux-arm","os":"ubuntu-24.04-arm","arch":"aarch64"},{"name":"macos","label":"macos","os":"macos-14"},{"name":"windows","label":"windows","os":"windows-2025"}]' ;;
+            all)   m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"},{"name":"linux","label":"linux-arm","os":"ubuntu-24.04-arm","arch":"aarch64"},{"name":"macos","label":"macos","os":"macos-14"},{"name":"macos","label":"macos-intel","os":"macos-15-intel"},{"name":"windows","label":"windows","os":"windows-2025"}]' ;;
             *)     m='[{"name":"linux","label":"linux","os":"ubuntu-24.04","arch":"x86_64"},{"name":"macos","label":"macos","os":"macos-14"}]' ;;
           esac
           echo "matrix=$m" >> "$GITHUB_OUTPUT"
