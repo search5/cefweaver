@@ -769,3 +769,6 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-13] ingest | add_javascript_binding docstring 수정
 새 wheel로 확인한 불일치를 고쳤다. docstring이 "다른 JavaScript 타입은 `None`으로 도착한다"고 했으나 실제로는 그 인자가 빠진다(`bind(1, [1], 2)`는 `(1, 2)`, `bind(null)`은 `()`로 도착. `javascript_python_binding_handler.h`가 건너뛴다). `_cefweaver.pyx`와 `tools/gen/handwritten.pyi`를 고치고 `generate.py`로 `_cefweaver.pyi`를 다시 만들었으며(`--check` 통과), wheel을 다시 빌드해 `update-po`로 `api/core.po`의 해당 문장을 다시 번역했다(`-w 100`으로 기존 줄바꿈 폭을 유지해 변경이 10줄로 그쳤다). 회귀 시험 `test_binding_leaves_out_arguments_of_other_types`를 더했고 새 wheel로 3회 통과했다. 영어와 한국어 `-E -W` 빌드, `test_docs`, `test_docstrings`, `test_wiki`, `test_generator` 통과.
+
+## [2026-10-13] ingest | GitHub Pages 배포
+사용자 요청으로 `.github/workflows/docs.yml`과 `docs/Makefile`의 `site` 대상을 더하고 저장소 Pages의 Source를 main `/docs`에서 GitHub Actions로 바꿨다. 첫 실행이 성공했고 영어와 한국어 사이트의 주요 주소가 200으로 응답한다. `known-constraints.md`의 `docs/` 항목과 `write-docstrings.md`를 갱신했다.
