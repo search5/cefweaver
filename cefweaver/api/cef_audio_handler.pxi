@@ -6,45 +6,71 @@ class AudioHandler:
 
     def get_audio_parameters(self, browser):
         """Called on the UI thread to allow configuration of audio stream parameters.
-        Return true to proceed with audio stream capture, or false to cancel it.
-        All members of |params| can optionally be configured here, but they are
-        also pre-filled with some sensible defaults.
+
+        Return ``True`` to proceed with audio stream capture, or ``False`` to cancel it. All
+        members of ``params`` can optionally be configured here, but they are also
+        pre-filled with some sensible defaults.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]
         """
         return False, AudioParameters()
 
     def on_audio_stream_started(self, browser, params, channels):
-        """Called on a browser audio capture thread when the browser starts
-        streaming audio. OnAudioStreamStopped will always be called after
-        OnAudioStreamStarted; both methods may be called multiple times
-        for the same browser. |params| contains the audio parameters like
-        sample rate and channel layout. |channels| is the number of channels.
+        """Called on a browser audio capture thread when the browser starts streaming audio.
+
+        OnAudioStreamStopped will always be called after OnAudioStreamStarted; both methods
+        may be called multiple times for the same browser. ``params`` contains the audio
+        parameters like sample rate and channel layout. ``channels`` is the number of
+        channels.
+
+        Args:
+            browser (Browser):
+            params (AudioParameters):
+            channels (int): The number of channels.
         """
         return None
 
     def on_audio_stream_packet(self, browser, data, pts):
-        """Called on the audio stream thread when a PCM packet is received for the
-        stream. |data| is an array representing the raw PCM data as a floating
-        point type, i.e. 4-byte value(s). |frames| is the number of frames in the
-        PCM packet. |pts| is the presentation timestamp (in milliseconds since the
-        Unix Epoch) and represents the time at which the decompressed packet
-        should be presented to the user. Based on |frames| and the
-        |channel_layout| value passed to OnAudioStreamStarted you can calculate
-        the size of the |data| array in bytes.
+        """Called on the audio stream thread when a PCM packet is received for the stream.
+
+        ``data`` is an array representing the raw PCM data as a floating point type, i.e.
+        4-byte value(s). ``frames`` is the number of frames in the PCM packet. ``pts`` is
+        the presentation timestamp (in milliseconds since the Unix Epoch) and represents the
+        time at which the decompressed packet should be presented to the user. Based on
+        ``frames`` and the ``channel_layout`` value passed to OnAudioStreamStarted you can
+        calculate the size of the ``data`` array in bytes.
+
+        Args:
+            browser (Browser):
+            data (list[memoryview]): An array representing the raw PCM data as a floating  point type, i.
+            pts (int): The presentation timestamp (in milliseconds since the  Unix Epoch) and represents the time at which the decompressed packet  should be presented to the user.
         """
         return None
 
     def on_audio_stream_stopped(self, browser):
-        """Called on the UI thread when the stream has stopped. OnAudioSteamStopped
-        will always be called after OnAudioStreamStarted; both methods may be
-        called multiple times for the same stream.
+        """Called on the UI thread when the stream has stopped.
+
+        OnAudioSteamStopped will always be called after OnAudioStreamStarted; both methods
+        may be called multiple times for the same stream.
+
+        Args:
+            browser (Browser):
         """
         return None
 
     def on_audio_stream_error(self, browser, message):
-        """Called on the UI or audio stream thread when an error occurred. During the
-        stream creation phase this callback will be called on the UI thread while
-        in the capturing phase it will be called on the audio stream thread. The
-        stream will be stopped immediately.
+        """Called on the UI or audio stream thread when an error occurred.
+
+        During the stream creation phase this callback will be called on the UI thread while
+        in the capturing phase it will be called on the audio stream thread. The stream will
+        be stopped immediately.
+
+        Args:
+            browser (Browser):
+            message (str):
         """
         return None
 

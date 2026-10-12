@@ -19,8 +19,12 @@ cdef class PrintSettings:
         return p
 
     def is_valid(self):
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cpp_bool _r
@@ -29,8 +33,12 @@ cdef class PrintSettings:
         return _r
 
     def is_read_only(self):
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cpp_bool _r
@@ -39,14 +47,22 @@ cdef class PrintSettings:
         return _r
 
     def set_orientation(self, bint landscape):
-        """Set the page orientation."""
+        """Set the page orientation.
+
+        Args:
+            landscape (bool):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetOrientation(landscape)
         return None
 
     def is_landscape(self):
-        """Returns true if the orientation is landscape."""
+        """Return ``True`` if the orientation is landscape.
+
+        Returns:
+            bool: ``True`` if the orientation is landscape.
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -55,8 +71,14 @@ cdef class PrintSettings:
 
     def set_printer_printable_area(self, physical_size_device_units, printable_area_device_units, bint landscape_needs_flip):
         """Set the printer printable area in device units.
-        Some platforms already provide flipped area. Set |landscape_needs_flip|
-        to false on those platforms to avoid double flipping.
+
+        Some platforms already provide flipped area. Set ``landscape_needs_flip`` to
+        ``False`` on those platforms to avoid double flipping.
+
+        Args:
+            physical_size_device_units (Size | tuple[int, int]):
+            printable_area_device_units (Rect | tuple[int, int, int, int]):
+            landscape_needs_flip (bool):
         """
         cdef CefSize _a0
         cdef CefRect _a1
@@ -68,7 +90,11 @@ cdef class PrintSettings:
         return None
 
     def set_device_name(self, name):
-        """Set the device name."""
+        """Set the device name.
+
+        Args:
+            name (str | None):
+        """
         cdef CefString _a0
         cdef CefPrintSettings* _p = self._ptr()
         if name is not None:
@@ -78,7 +104,11 @@ cdef class PrintSettings:
         return None
 
     def get_device_name(self):
-        """Get the device name."""
+        """Get the device name.
+
+        Returns:
+            str
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -86,14 +116,22 @@ cdef class PrintSettings:
         return _g_str(_r)
 
     def set_dpi(self, int dpi):
-        """Set the DPI (dots per inch)."""
+        """Set the DPI (dots per inch).
+
+        Args:
+            dpi (int):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetDPI(dpi)
         return None
 
     def get_dpi(self):
-        """Get the DPI (dots per inch)."""
+        """Get the DPI (dots per inch).
+
+        Returns:
+            int
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef int _r
         with nogil:
@@ -101,7 +139,11 @@ cdef class PrintSettings:
         return _r
 
     def set_page_ranges(self, ranges):
-        """Set the page ranges."""
+        """Set the page ranges.
+
+        Args:
+            ranges (Sequence[Range | tuple[int, int]]):
+        """
         cdef vector[CefRange] _a0
         cdef CefPrintSettings* _p = self._ptr()
         _g_vector_Range(ranges, _a0)
@@ -110,7 +152,11 @@ cdef class PrintSettings:
         return None
 
     def get_page_ranges_count(self):
-        """Returns the number of page ranges that currently exist."""
+        """Return the number of page ranges that currently exist.
+
+        Returns:
+            int: The number of page ranges that currently exist.
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef size_t _r
         with nogil:
@@ -118,7 +164,11 @@ cdef class PrintSettings:
         return _r
 
     def get_page_ranges(self):
-        """Retrieve the page ranges."""
+        """Retrieve the page ranges.
+
+        Returns:
+            list[Range]
+        """
         cdef vector[CefRange] _a0
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
@@ -126,14 +176,22 @@ cdef class PrintSettings:
         return _g_list_Range(&_a0)
 
     def set_selection_only(self, bint selection_only):
-        """Set whether only the selection will be printed."""
+        """Set whether only the selection will be printed.
+
+        Args:
+            selection_only (bool):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetSelectionOnly(selection_only)
         return None
 
     def is_selection_only(self):
-        """Returns true if only the selection will be printed."""
+        """Return ``True`` if only the selection will be printed.
+
+        Returns:
+            bool: ``True`` if only the selection will be printed.
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -141,14 +199,22 @@ cdef class PrintSettings:
         return _r
 
     def set_collate(self, bint collate):
-        """Set whether pages will be collated."""
+        """Set whether pages will be collated.
+
+        Args:
+            collate (bool):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetCollate(collate)
         return None
 
     def will_collate(self):
-        """Returns true if pages will be collated."""
+        """Return ``True`` if pages will be collated.
+
+        Returns:
+            bool: ``True`` if pages will be collated.
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -156,14 +222,22 @@ cdef class PrintSettings:
         return _r
 
     def set_color_model(self, long long model):
-        """Set the color model."""
+        """Set the color model.
+
+        Args:
+            model (ColorModel | int):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetColorModel(<cef_color_model_t>model)
         return None
 
     def get_color_model(self):
-        """Get the color model."""
+        """Get the color model.
+
+        Returns:
+            ColorModel
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cef_color_model_t _r
         with nogil:
@@ -171,14 +245,22 @@ cdef class PrintSettings:
         return _g_enum(_types.ColorModel, <int>_r)
 
     def set_copies(self, int copies):
-        """Set the number of copies."""
+        """Set the number of copies.
+
+        Args:
+            copies (int):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetCopies(copies)
         return None
 
     def get_copies(self):
-        """Get the number of copies."""
+        """Get the number of copies.
+
+        Returns:
+            int
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef int _r
         with nogil:
@@ -186,14 +268,22 @@ cdef class PrintSettings:
         return _r
 
     def set_duplex_mode(self, long long mode):
-        """Set the duplex mode."""
+        """Set the duplex mode.
+
+        Args:
+            mode (DuplexMode | int):
+        """
         cdef CefPrintSettings* _p = self._ptr()
         with nogil:
             _p.SetDuplexMode(<cef_duplex_mode_t>mode)
         return None
 
     def get_duplex_mode(self):
-        """Get the duplex mode."""
+        """Get the duplex mode.
+
+        Returns:
+            DuplexMode
+        """
         cdef CefPrintSettings* _p = self._ptr()
         cdef cef_duplex_mode_t _r
         with nogil:
@@ -202,7 +292,11 @@ cdef class PrintSettings:
 
     @staticmethod
     def create():
-        """Create a new CefPrintSettings object."""
+        """Create a new :class:`PrintSettings` object.
+
+        Returns:
+            PrintSettings
+        """
         cdef CefRefPtr[CefPrintSettings] _r
         with nogil:
             _r = CefPrintSettings.Create()

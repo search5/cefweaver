@@ -95,6 +95,31 @@ class StructInfo:
     cname: str  # the C struct it derives from, e.g. cef_rect_t
     fields: tuple
     raw: bool = False  # a plain C struct that has no C++ class (Cython gets an alias with `cls`)
+    doc: str = ""
+    field_docs: tuple = ()  # of (Python name, comment)
+
+
+def comment_docs(body, struct=False):
+    """{name: text} of the comment lines (`///` or `//`) above each enumerator (or struct member) of a body."""
+    docs, buffer = {}, []
+    for raw in body.splitlines():
+        line = raw.strip()
+        if line.startswith("//"):
+            buffer.append(line.lstrip("/").strip())
+            continue
+        if not line or line.startswith("#"):
+            if not line:
+                buffer = []
+            continue
+        if struct:
+            found = re.match(r"^[A-Za-z_][\w ]*?[ *](\w+)\s*(?:\[[^\]]*\])?\s*;", line)
+        else:
+            found = re.match(r"^([A-Za-z_]\w*)\s*(?:=[^,]*)?,?\s*(?://.*)?$", line)
+        text = " ".join(t for t in buffer if t).strip()
+        if found and text:
+            docs.setdefault(found.group(1), text)
+        buffer = []
+    return docs
 
 
 def _strip_comments(text):
@@ -232,6 +257,7 @@ class EnumInfo:
     members: tuple  # of (Python name, value)
     flag: bool  # bit flags (an IntFlag in Python)
     doc: str = ""
+    member_docs: tuple = ()  # of (Python name, comment)
 
 
 class EnumUnsupported(Exception):
@@ -469,9 +495,32 @@ class Model:
             names = _python_member_names([n for n, _ in members])
             values = [v for _, v in members]
             doc = " ".join(l.strip().lstrip("/").strip() for l in comment.splitlines()).strip()
+            raw_docs = comment_docs(body)
+            raw_docs.update(self._macro_docs(body))
+            member_docs = tuple((n, raw_docs[c]) for (c, _), n in zip(members, names) if c in raw_docs)
             defs[cname] = EnumInfo(cname, py_name, tuple(zip(names, values)),
-                                   _is_flag(cname, values), doc)
+                                   _is_flag(cname, values), doc, member_docs)
         return defs, skipped
+
+    def _macro_docs(self, body):
+        """{C name: comment} of the entries of an enum body that an `#include` of a macro list makes
+        (`ERR_` + label of `NET_ERROR(label, value)`), from the comment lines above each entry."""
+        macro = re.search(r"#\s*define\s+(\w+)\(label, value\)\s+(\w+)##label", body)
+        include = re.search(r'#\s*include\s+"([^"]+)"', body)
+        if not macro or not include:
+            return {}
+        with open(os.path.join(self.cef_root, include.group(1)), encoding="utf-8") as f:
+            text = f.read()
+        docs, buffer = {}, []
+        for line in (l.strip() for l in text.splitlines()):
+            if line.startswith("//"):
+                buffer.append(line.lstrip("/").strip())
+                continue
+            found = re.match(r"%s\((\w+),\s*-?\w+\)" % macro.group(1), line)
+            if found and buffer:
+                docs[macro.group(2) + found.group(1)] = " ".join(t for t in buffer if t).strip()
+            buffer = []
+        return docs
 
     def _find_structs(self):
         """The plain data structs CEF passes by value: `class CefRect : public cef_rect_t`."""
@@ -479,7 +528,7 @@ class Model:
         wrappers = os.path.join(internal, "cef_types_wrappers.h")
         if not os.path.isfile(wrappers):
             return {}
-        bodies, constants = {}, {}
+        bodies, constants, struct_comments = {}, {}, {}
         # Some structs differ by platform (cef_accelerated_paint_info_t): the later definition
         # wins and Linux, the platform of this binding, comes last.
         filenames = sorted(f for f in os.listdir(internal) if f.endswith(".h"))
@@ -487,8 +536,10 @@ class Model:
         has_linux = any(f.endswith("_linux.h") for f in filenames)
         for filename in filenames:
             text = self._read(os.path.join(internal, filename))
-            for match in re.finditer(r"typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;", text, re.S):
-                bodies[match.group(2)] = match.group(1)
+            for match in re.finditer(r"((?:^[ \t]*///[^\n]*\n)*)[ \t]*typedef\s+struct\s+_\w+\s*\{(.*?)\}\s*(\w+)\s*;",
+                                     text, re.S | re.M):
+                bodies[match.group(3)] = match.group(2)
+                struct_comments[match.group(3)] = match.group(1)
             constants.update((n, int(v)) for n, v in re.findall(r"^#define\s+(k\w+)\s+(\d+)\s*$", text, re.M))
         if not has_linux:  # a distribution of another platform: the Linux form is built in
             bodies.update(LINUX_STRUCT_BODIES)
@@ -528,7 +579,11 @@ class Model:
                 known = {cn: c for cn, c in by_cname.items() if c in structs}
                 fields = parse_struct_fields(bodies[cname], known, enum_names, constants)
                 if fields:
-                    structs[cls] = StructInfo(cls, cname, fields, cls in raw)
+                    raw_docs = comment_docs(bodies[cname], struct=True)
+                    field_docs = tuple((f.name, raw_docs[f.cname]) for f in fields if f.cname in raw_docs)
+                    doc = " ".join(l.strip().lstrip("/").strip() for l in
+                                   struct_comments.get(cname, "").splitlines()).strip()
+                    structs[cls] = StructInfo(cls, cname, fields, cls in raw, doc, field_docs)
                     progress = True
         return dict(sorted(structs.items()))
 

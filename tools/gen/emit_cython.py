@@ -73,11 +73,13 @@ def public_function_name(cef_name):
     return py_method_name(cef_name[3:] if cef_name.startswith("Cef") else cef_name)
 
 
-def _docstring(lines, indent):
+def _docstring(lines, indent, raw=False):
+    """A docstring from comment lines (one leading space each) or, with `raw`, from lines that are ready."""
     text = [re.sub(r"[\\\"]", lambda m: "\\" + m.group(0), line) for line in lines]
     while text and not text[0].strip():
         text.pop(0)
-    text = [t[1:] if t.startswith(" ") else t for t in text]
+    if not raw:
+        text = [t[1:] if t.startswith(" ") else t for t in text]
     while text and not text[-1].strip():
         text.pop()
     if not text:
@@ -808,7 +810,7 @@ def _library_method(plan, owner_py):
                  "def %s(%s):" % (name, ", ".join(sig)))
     base = "        " if plan.owner else "    "
     body = []
-    body += _docstring(plan.comment, len(base)) if getattr(plan, "comment", None) else []
+    body += _docstring(plan.doc_body, len(base), raw=True) if getattr(plan, "doc_body", None) else []
     for d in decls:
         body.append(base + d)
     if plan.static and (plan.owner, plan.cef_name) in NEEDS_CEF_RUNNING:
@@ -1032,11 +1034,11 @@ def _library_class_lines(model, scope, cls, plans):
         # A subclass: the object, its reference and the checks are those of the root class of the hierarchy;
         # this class only adds its own methods, which reach CEF through a pointer of this class.
         out.append("cdef class %s(%s):" % (py, py_class_name(parent)))
-        out += _docstring(model.comment(cls), 4)
+        out += _docstring(model.class_doc_body[cn], 4, raw=True)
         out.append("")
     else:
         out.append("cdef class %s:" % py)
-        out += _docstring(model.comment(cls), 4)
+        out += _docstring(model.class_doc_body[cn], 4, raw=True)
         out.append("    cdef CefRefPtr[%s] _ref" % cn)
         out.append("")
         out.append("    def __dealloc__(self):")
@@ -1055,7 +1057,6 @@ def _library_class_lines(model, scope, cls, plans):
     for plan in plans:
         if not plan.supported:
             continue
-        plan.comment = model.comment(plan.node)
         plan.accessor = accessor
         out += _library_method(plan, cn)
         out.append("")
@@ -1131,12 +1132,12 @@ def _client_class_lines(model, cls, plans_all):
     cn = cls.get_name()
     plans = [p for p in plans_all if p.supported and not p.static]
     out.append("class %s:" % py)
-    out += _docstring(model.comment(cls), 4)
+    out += _docstring(model.class_doc_body[cn], 4, raw=True)
     out.append("")
     for plan in plans:
         sig = ["self"] + [p.name for p in plan.ins]
         out.append("    def %s(%s):" % (plan.name, ", ".join(sig)))
-        out += _docstring(model.comment(plan.node), 8)
+        out += _docstring(plan.doc_body, 8, raw=True)
         results = [_py_default(k) for _, k in plan.results]
         out.append("        return %s" % (", ".join(results) if results else "None"))
         out.append("")
@@ -1245,7 +1246,6 @@ def emit_pxi(model, scope, plans_by_class, function_plans, banner):
     for plan in function_plans:
         if not plan.supported:
             continue
-        plan.comment = model.comment(plan.node)
         out += _library_method(plan, "")
         out.append("")
         out.append("")

@@ -10,24 +10,55 @@ from .enums import (AxisAlignment, ChannelLayout, ColorType, CompositionUnderlin
 
 
 class AcceleratedPaintNativePixmapPlane(NamedTuple):
-    """The CEF value type CefAcceleratedPaintNativePixmapPlane. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure containing the plane information of the shared texture.
+
+    Sync with native_pixmap_handle.h The CEF value type
+    ``CefAcceleratedPaintNativePixmapPlane``. Anywhere one is expected, a tuple with the
+    same fields works too.
+    """
     stride: int = 0
+    """The strides and offsets in bytes to be used when accessing the buffers via a memory mapping.
+
+    One per plane per entry. Size in bytes of the plane is necessary to map the buffers.
+    """
     offset: int = 0
     size: int = 0
     fd: int = 0
+    """File descriptor for the underlying memory object (usually dmabuf)."""
 
 
 class AudioParameters(NamedTuple):
-    """The CEF value type CefAudioParameters. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing the audio parameters for setting up the audio handler.
+
+    The CEF value type ``CefAudioParameters``. Anywhere one is expected, a tuple with
+    the same fields works too.
+    """
     channel_layout: ChannelLayout = 0
+    """Layout of the audio channels"""
     sample_rate: int = 0
+    """Sample rate"""
     frames_per_buffer: int = 0
+    """Number of frames per buffer"""
 
 
 class BrowserSettings(NamedTuple):
-    """The CEF value type CefBrowserSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    """Browser initialization settings.
+
+    Specify ``None`` or 0 to get the recommended default values. The consequences of
+    using custom values may not be well tested. Many of these and other settings can
+    also configured using command- line switches. The CEF value type
+    ``CefBrowserSettings``. Anywhere one is expected, a tuple with the same fields works
+    too.
+    """
     windowless_frame_rate: int = 0
+    """The maximum rate in frames per second (fps) that :meth:`RenderHandler.on_paint` will be called for a windowless browser.
+
+    The actual fps may be lower if the browser cannot generate frames at the requested
+    rate. The minimum value is 1 and the default value is 30. This value can also be
+    changed dynamically via :meth:`BrowserHost.set_windowless_frame_rate`.
+    """
     standard_font_family: str = ""
+    """Font settings."""
     fixed_font_family: str = ""
     serif_font_family: str = ""
     sans_serif_font_family: str = ""
@@ -38,40 +69,142 @@ class BrowserSettings(NamedTuple):
     minimum_font_size: int = 0
     minimum_logical_font_size: int = 0
     default_encoding: str = ""
+    """Default encoding for Web content.
+
+    If empty "ISO-8859-1" will be used. Also configurable using the "default-encoding"
+    command-line switch.
+    """
     remote_fonts: State = 0
+    """Controls the loading of fonts from remote sources.
+
+    Also configurable using the "disable-remote-fonts" command-line switch.
+    """
     javascript: State = 0
+    """Controls whether JavaScript can be executed.
+
+    Also configurable using the "disable-javascript" command-line switch.
+    """
     javascript_close_windows: State = 0
+    """Controls whether JavaScript can be used to close windows that were not opened via JavaScript.
+
+    JavaScript can still be used to close windows that were opened via JavaScript or
+    that have no back/forward history. Also configurable using the
+    "disable-javascript-close-windows" command-line switch.
+    """
     javascript_access_clipboard: State = 0
+    """Controls whether JavaScript can access the clipboard.
+
+    Also configurable using the "disable-javascript-access-clipboard" command-line
+    switch.
+    """
     javascript_dom_paste: State = 0
+    """Controls whether DOM pasting is supported in the editor via execCommand("paste").
+
+    The ``javascript_access_clipboard`` setting must also be enabled. Also configurable
+    using the "disable-javascript-dom-paste" command-line switch.
+    """
     image_loading: State = 0
+    """Controls whether image URLs will be loaded from the network.
+
+    A cached image will still be rendered if requested. Also configurable using the
+    "disable-image-loading" command-line switch.
+    """
     image_shrink_standalone_to_fit: State = 0
+    """Controls whether standalone images will be shrunk to fit the page.
+
+    Also configurable using the "image-shrink-standalone-to-fit" command-line switch.
+    """
     text_area_resize: State = 0
+    """Controls whether text areas can be resized.
+
+    Also configurable using the "disable-text-area-resize" command-line switch.
+    """
     tab_to_links: State = 0
+    """Controls whether the tab key can advance focus to links.
+
+    Also configurable using the "disable-tab-to-links" command-line switch.
+    """
     local_storage: State = 0
+    """Controls whether local storage can be used.
+
+    Also configurable using the "disable-local-storage" command-line switch.
+    """
     webgl: State = 0
+    """Controls whether WebGL can be used.
+
+    Note that WebGL requires hardware support and may not work on all systems even when
+    enabled. Also configurable using the "disable-webgl" command-line switch.
+    """
     background_color: int = 0
+    """Background color used for the browser before a document is loaded and when no document color is specified.
+
+    The alpha component must be either fully opaque (0xFF) or fully transparent (0x00).
+    If the alpha component is fully opaque then the RGB components will be used as the
+    background color. If the alpha component is fully transparent for a windowed browser
+    then the ``CefSettings``.background_color value will be used. If the alpha component
+    is fully transparent for a windowless (off-screen) browser then transparent painting
+    will be enabled.
+    """
     chrome_status_bubble: State = 0
+    """Controls whether the Chrome status bubble will be used.
+
+    Only supported with Chrome style. For details about the status bubble see
+    https://www.chromium.org/user-experience/status-bubble/
+    """
     chrome_zoom_bubble: State = 0
+    """Controls whether the Chrome zoom bubble will be shown when zooming.
+
+    Only supported with Chrome style.
+    """
 
 
 class Cookie(NamedTuple):
-    """The CEF value type CefCookie. Anywhere one is expected, a tuple with the same fields works too."""
+    """Cookie information.
+
+    The CEF value type ``CefCookie``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     name: str = ""
+    """The cookie name."""
     value: str = ""
+    """The cookie value."""
     domain: str = ""
+    """If ``domain`` is empty a host cookie will be created instead of a domain cookie.
+
+    Domain cookies are stored with a leading "." and are visible to sub-domains whereas
+    host cookies are not.
+    """
     path: str = ""
+    """If ``path`` is non-empty only URLs at or below the path will get the cookie value."""
     secure: int = 0
+    """If ``secure`` is ``True`` the cookie will only be sent for HTTPS requests."""
     httponly: int = 0
+    """If ``httponly`` is ``True`` the cookie will only be sent for HTTP requests."""
     creation: datetime.datetime | None = None
+    """The cookie creation date.
+
+    This is automatically populated by the system on cookie creation.
+    """
     last_access: datetime.datetime | None = None
+    """The cookie last access date.
+
+    This is automatically populated by the system on access.
+    """
     has_expires: int = 0
+    """The cookie expiration date is only valid if ``has_expires`` is ``True``."""
     expires: datetime.datetime | None = None
     same_site: CookieSameSite = 0
+    """Same site."""
     priority: CookiePriority = 0
+    """Priority."""
 
 
 class Insets(NamedTuple):
-    """The CEF value type CefInsets. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing insets.
+
+    The CEF value type ``CefInsets``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     top: int = 0
     left: int = 0
     bottom: int = 0
@@ -79,68 +212,186 @@ class Insets(NamedTuple):
 
 
 class KeyEvent(NamedTuple):
-    """The CEF value type CefKeyEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing keyboard event information.
+
+    The CEF value type ``CefKeyEvent``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     type: KeyEventType = 0
+    """The type of keyboard event."""
     modifiers: int = 0
+    """Bit flags describing any pressed modifier keys.
+
+    See cef_event_flags_t for values.
+    """
     windows_key_code: int = 0
+    """The Windows key code for the key event.
+
+    This value is used by the DOM specification. Sometimes it comes directly from the
+    event (i.e. on Windows) and sometimes it's determined using a mapping function. See
+    WebCore/platform/chromium/KeyboardCodes.h for the list of values.
+    """
     native_key_code: int = 0
+    """The actual key code genenerated by the platform."""
     is_system_key: int = 0
+    """Indicate whether the event is considered a "system key" event (see http://msdn.microsoft.com/en-us/library/ms646286(VS.85).aspx for details).
+
+    This value will always be ``False`` on non-Windows platforms.
+    """
     character: int = 0
+    """The character generated by the keystroke."""
     unmodified_character: int = 0
+    """Same as ``character`` but unmodified by any concurrently-held modifiers (except shift).
+
+    This is useful for working out shortcut keys.
+    """
     focus_on_editable_field: int = 0
+    """True if the focus is currently on an editable field on the page.
+
+    This is useful for determining if standard key events should be intercepted.
+    """
 
 
 class LinuxWindowProperties(NamedTuple):
-    """The CEF value type CefLinuxWindowProperties. Anywhere one is expected, a tuple with the same fields works too."""
+    """Linux window properties, such as X11's WM_CLASS or Wayland's app_id.
+
+    Those are passed to :class:`WindowDelegate`, so the client can set them for the
+    :class:`Window`'s top-level. Thus, allowing window managers to correctly display the
+    application's information (e.g., icons). The CEF value type
+    ``CefLinuxWindowProperties``. Anywhere one is expected, a tuple with the same fields
+    works too.
+    """
     wayland_app_id: str = ""
+    """Main window's Wayland's app_id"""
     wm_class_class: str = ""
+    """Main window's WM_CLASS_CLASS in X11"""
     wm_class_name: str = ""
+    """Main window's WM_CLASS_NAME in X11"""
     wm_role_name: str = ""
+    """Main window's WM_WINDOW_ROLE in X11"""
 
 
 class MediaSinkDeviceInfo(NamedTuple):
-    """The CEF value type CefMediaSinkDeviceInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    """Device information for a MediaSink object.
+
+    The CEF value type ``CefMediaSinkDeviceInfo``. Anywhere one is expected, a tuple
+    with the same fields works too.
+    """
     ip_address: str = ""
     port: int = 0
     model_name: str = ""
 
 
 class MouseEvent(NamedTuple):
-    """The CEF value type CefMouseEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing mouse event information.
+
+    The CEF value type ``CefMouseEvent``. Anywhere one is expected, a tuple with the
+    same fields works too.
+    """
     x: int = 0
+    """X coordinate relative to the left side of the view."""
     y: int = 0
+    """Y coordinate relative to the top side of the view."""
     modifiers: int = 0
+    """Bit flags describing any pressed modifier keys.
+
+    See cef_event_flags_t for values.
+    """
 
 
 class PdfPrintSettings(NamedTuple):
-    """The CEF value type CefPdfPrintSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing PDF print settings.
+
+    These values match the parameters supported by the DevTools Page.printToPDF
+    function. See
+    https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-printToPDF The
+    CEF value type ``CefPdfPrintSettings``. Anywhere one is expected, a tuple with the
+    same fields works too.
+    """
     landscape: int = 0
+    """Set to ``True`` (1) for landscape mode or ``False`` (0) for portrait mode."""
     print_background: int = 0
+    """Set to ``True`` (1) to print background graphics."""
     scale: float = 0.0
+    """The percentage to scale the PDF by before printing (e.g.
+
+    .5 is 50%). If this value is less than or equal to zero the default value of 1.0
+    will be used.
+    """
     paper_width: float = 0.0
+    """Output paper size in inches.
+
+    If either of these values is less than or equal to zero then the default paper size
+    (letter, 8.5 x 11 inches) will be used.
+    """
     paper_height: float = 0.0
     prefer_css_page_size: int = 0
+    """Set to ``True`` (1) to prefer page size as defined by css.
+
+    Defaults to ``False`` (0), in which case the content will be scaled to fit the paper
+    size.
+    """
     margin_type: PdfPrintMarginType = 0
+    """Margin type."""
     margin_top: float = 0.0
+    """Margins in inches.
+
+    Only used if ``margin_type`` is set to PDF_PRINT_MARGIN_CUSTOM.
+    """
     margin_right: float = 0.0
     margin_bottom: float = 0.0
     margin_left: float = 0.0
     page_ranges: str = ""
+    """Paper ranges to print, one based, e.g., '1-5, 8, 11-13'.
+
+    Pages are printed in the document order, not in the order specified, and no more
+    than once. Defaults to empty string, which implies the entire document is printed.
+    The page numbers are quietly capped to actual page count of the document, and ranges
+    beyond the end of the document are ignored. If this results in no pages to print, an
+    error is reported. It is an error to specify a range with start greater than end.
+    """
     display_header_footer: int = 0
+    """Set to ``True`` (1) to display the header and/or footer.
+
+    Modify ``header_template`` and/or ``footer_template`` to customize the display.
+    """
     header_template: str = ""
+    """HTML template for the print header.
+
+    Only displayed if ``display_header_footer`` is ``True`` (1). Should be valid HTML
+    markup with the following classes used to inject printing values into them: - date:
+    formatted print date - title: document title - url: document location - pageNumber:
+    current page number - totalPages: total pages in the document For example, "<span
+    class=title></span>" would generate a span containing the title.
+    """
     footer_template: str = ""
+    """HTML template for the print footer.
+
+    Only displayed if ``display_header_footer`` is ``True`` (1). Uses the same format as
+    ``header_template``.
+    """
     generate_tagged_pdf: int = 0
+    """Set to ``True`` (1) to generate tagged (accessible) PDF."""
     generate_document_outline: int = 0
+    """Set to ``True`` (1) to generate a document outline."""
 
 
 class Point(NamedTuple):
-    """The CEF value type CefPoint. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing a point.
+
+    The CEF value type ``CefPoint``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     x: int = 0
     y: int = 0
 
 
 class PopupFeatures(NamedTuple):
-    """The CEF value type CefPopupFeatures. Anywhere one is expected, a tuple with the same fields works too."""
+    """Popup window features.
+
+    The CEF value type ``CefPopupFeatures``. Anywhere one is expected, a tuple with the
+    same fields works too.
+    """
     x: int = 0
     x_set: int = 0
     y: int = 0
@@ -150,16 +401,25 @@ class PopupFeatures(NamedTuple):
     height: int = 0
     height_set: int = 0
     is_popup: int = 0
+    """True (1) if browser interface elements should be hidden."""
 
 
 class Range(NamedTuple):
-    """The CEF value type CefRange. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing a range.
+
+    The CEF value type ``CefRange``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     from_: int = 0
     to: int = 0
 
 
 class Rect(NamedTuple):
-    """The CEF value type CefRect. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing a rectangle.
+
+    The CEF value type ``CefRect``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     x: int = 0
     y: int = 0
     width: int = 0
@@ -167,133 +427,371 @@ class Rect(NamedTuple):
 
 
 class RequestContextSettings(NamedTuple):
-    """The CEF value type CefRequestContextSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    """Request context initialization settings.
+
+    Specify ``None`` or 0 to get the recommended default values. The CEF value type
+    ``CefRequestContextSettings``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     cache_path: str = ""
+    """The directory where cache data for this request context will be stored on disk.
+
+    If this value is non-empty then it must be an absolute path that is either equal to
+    or a child directory of ``CefSettings``.root_cache_path. If this value is empty then
+    browsers will be created in "incognito mode" where in-memory caches are used for
+    storage and no profile-specific data is persisted to disk (installation-specific
+    data will still be persisted in root_cache_path). HTML5 databases such as
+    localStorage will only persist across sessions if a cache path is specified. To
+    share the global browser cache and related configuration set this value to match the
+    ``CefSettings``.cache_path value.
+    """
     persist_session_cookies: int = 0
+    """To persist session cookies (cookies without an expiry date or validity interval) by default when using the global cookie manager set this value to ``True`` (1).
+
+    Session cookies are generally intended to be transient and most Web browsers do not
+    persist them. Can be set globally using the ``CefSettings``.persist_session_cookies
+    value. This value will be ignored if ``cache_path`` is empty or if it matches the
+    ``CefSettings``.cache_path value.
+    """
     accept_language_list: str = ""
+    """Comma delimited ordered list of language codes without any whitespace that will be used in the "Accept-Language" HTTP request header and "navigator.language" JS attribute.
+
+    Can be set globally using the ``CefSettings``.accept_language_list value. If all
+    values are empty then "en-US,en" will be used. This value will be ignored if
+    ``cache_path`` matches the ``CefSettings``.cache_path value.
+    """
     cookieable_schemes_list: str = ""
+    """Comma delimited list of schemes supported by the associated :class:`CookieManager`.
+
+    If ``cookieable_schemes_exclude_defaults`` is ``False`` (0) the default schemes
+    ("http", "https", "ws" and "wss") will also be supported. Not specifying a
+    ``cookieable_schemes_list`` value and setting
+    ``cookieable_schemes_exclude_defaults`` to ``True`` (1) will disable all loading and
+    saving of cookies. These values will be ignored if ``cache_path`` matches the
+    ``CefSettings``.cache_path value.
+    """
     cookieable_schemes_exclude_defaults: int = 0
 
 
 class ScreenInfo(NamedTuple):
-    """The CEF value type CefScreenInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    """Screen information used when window rendering is disabled.
+
+    This structure is passed as a parameter to :meth:`RenderHandler.get_screen_info` and
+    should be filled in by the client. The CEF value type ``CefScreenInfo``. Anywhere
+    one is expected, a tuple with the same fields works too.
+    """
     device_scale_factor: float = 0.0
+    """Device scale factor.
+
+    Specifies the ratio between physical and logical pixels.
+    """
     depth: int = 0
+    """The screen depth in bits per pixel."""
     depth_per_component: int = 0
+    """The bits per color component.
+
+    This assumes that the colors are balanced equally.
+    """
     is_monochrome: int = 0
+    """This can be ``True`` for black and white printers."""
     rect: Rect = Rect()
+    """This is set from the rcMonitor member of MONITORINFOEX, to whit: "A RECT structure that specifies the display monitor rectangle, expressed in virtual-screen coordinates.
+
+    Note that if the monitor is not the primary display monitor, some of the rectangle's
+    coordinates may be negative values." The ``rect`` and ``available_rect`` properties
+    are used to determine the available surface for rendering popup views.
+    """
     available_rect: Rect = Rect()
+    """This is set from the rcWork member of MONITORINFOEX, to whit: "A RECT structure that specifies the work area rectangle of the display monitor that can be used by applications, expressed in virtual-screen coordinates.
+
+    Windows uses this rectangle to maximize an application on the monitor. The rest of
+    the area in rcMonitor contains system windows such as the task bar and side bars.
+    Note that if the monitor is not the primary display monitor, some of the rectangle's
+    coordinates may be negative values". The ``rect`` and ``available_rect`` properties
+    are used to determine the available surface for rendering popup views.
+    """
 
 
 class Size(NamedTuple):
-    """The CEF value type CefSize. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing a size.
+
+    The CEF value type ``CefSize``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     width: int = 0
     height: int = 0
 
 
 class TaskInfo(NamedTuple):
-    """The CEF value type CefTaskInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing task information provided by :class:`TaskManager`.
+
+    The CEF value type ``CefTaskInfo``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     id: int = 0
+    """The task ID."""
     type: TaskType = 0
+    """The task type."""
     is_killable: int = 0
+    """Set to ``True`` (1) if the task is killable."""
     title: str = ""
+    """The task title."""
     cpu_usage: float = 0.0
+    """The CPU usage of the process on which the task is running.
+
+    The value is in the range zero to number_of_processors * 100%.
+    """
     number_of_processors: int = 0
+    """The number of processors available on the system."""
     memory: int = 0
+    """The memory footprint of the task in bytes.
+
+    A value of -1 means no valid value is currently available.
+    """
     gpu_memory: int = 0
+    """The GPU memory usage of the task in bytes.
+
+    A value of -1 means no valid value is currently available.
+    """
     is_gpu_memory_inflated: int = 0
+    """Set to ``True`` (1) if this task process' GPU resource count is inflated because it is counting other processes' resources (e.g, the GPU process has this value set to ``True`` because it is the aggregate of all processes)."""
 
 
 class TouchEvent(NamedTuple):
-    """The CEF value type CefTouchEvent. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing touch event information.
+
+    The CEF value type ``CefTouchEvent``. Anywhere one is expected, a tuple with the
+    same fields works too.
+    """
     id: int = 0
+    """Id of a touch point.
+
+    Must be unique per touch, can be any number except -1. Note that a maximum of 16
+    concurrent touches will be tracked; touches beyond that will be ignored.
+    """
     x: float = 0.0
+    """X coordinate relative to the left side of the view."""
     y: float = 0.0
+    """Y coordinate relative to the top side of the view."""
     radius_x: float = 0.0
+    """X radius in pixels.
+
+    Set to 0 if not applicable.
+    """
     radius_y: float = 0.0
+    """Y radius in pixels.
+
+    Set to 0 if not applicable.
+    """
     rotation_angle: float = 0.0
+    """Rotation angle in radians.
+
+    Set to 0 if not applicable.
+    """
     pressure: float = 0.0
+    """The normalized pressure of the pointer input in the range of [0,1].
+
+    Set to 0 if not applicable.
+    """
     type: TouchEventType = 0
+    """The state of the touch point.
+
+    Touches begin with one CEF_TET_PRESSED event followed by zero or more CEF_TET_MOVED
+    events and finally one CEF_TET_RELEASED or CEF_TET_CANCELLED event. Events not
+    respecting this order will be ignored.
+    """
     modifiers: int = 0
+    """Bit flags describing any pressed modifier keys.
+
+    See cef_event_flags_t for values.
+    """
     pointer_type: PointerType = 0
+    """The device type that caused the event."""
 
 
 class TouchHandleState(NamedTuple):
-    """The CEF value type CefTouchHandleState. Anywhere one is expected, a tuple with the same fields works too."""
+    """The CEF value type ``CefTouchHandleState``.
+
+    Anywhere one is expected, a tuple with the same fields works too.
+    """
     touch_handle_id: int = 0
+    """Touch handle id.
+
+    Increments for each new touch handle.
+    """
     flags: int = 0
+    """Combination of cef_touch_handle_state_flags_t values indicating what state is set."""
     enabled: int = 0
+    """Enabled state.
+
+    Only set if ``flags`` contains CEF_THS_FLAG_ENABLED.
+    """
     orientation: HorizontalAlignment = 0
+    """Orientation state.
+
+    Only set if ``flags`` contains CEF_THS_FLAG_ORIENTATION.
+    """
     mirror_vertical: int = 0
     mirror_horizontal: int = 0
     origin: Point = Point()
+    """Origin state.
+
+    Only set if ``flags`` contains CEF_THS_FLAG_ORIGIN.
+    """
     alpha: float = 0.0
+    """Alpha state.
+
+    Only set if ``flags`` contains CEF_THS_FLAG_ALPHA.
+    """
 
 
 class URLParts(NamedTuple):
-    """The CEF value type CefURLParts. Anywhere one is expected, a tuple with the same fields works too."""
+    """URL component parts.
+
+    The CEF value type ``CefURLParts``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     spec: str = ""
+    """The complete URL specification."""
     scheme: str = ""
+    """Scheme component not including the colon (e.g., "http")."""
     username: str = ""
+    """User name component."""
     password: str = ""
+    """Password component."""
     host: str = ""
+    """Host component.
+
+    This may be a hostname, an IPv4 address or an IPv6 literal surrounded by square
+    brackets (e.g., "[2001:db8::1]").
+    """
     port: str = ""
+    """Port number component."""
     origin: str = ""
+    """Origin contains just the scheme, host, and port from a URL.
+
+    Equivalent to clearing any username and password, replacing the path with a slash,
+    and clearing everything after that. This value will be empty for non-standard URLs.
+    """
     path: str = ""
+    """Path component including the first slash following the host."""
     query: str = ""
+    """Query string component (i.e., everything following the '?')."""
     fragment: str = ""
+    """Fragment (hash) identifier component (i.e., the string following the '#')."""
 
 
 class AcceleratedPaintInfoCommon(NamedTuple):
-    """The CEF value type CefAcceleratedPaintInfoCommon. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure containing shared texture common metadata.
+
+    For documentation on each field, please refer to
+    src/media/base/video_frame_metadata.h for actual details. The CEF value type
+    ``CefAcceleratedPaintInfoCommon``. Anywhere one is expected, a tuple with the same
+    fields works too.
+    """
     timestamp: int = 0
+    """Timestamp of the frame in microseconds since capture start."""
     coded_size: Size = Size()
+    """The full dimensions of the video frame."""
     visible_rect: Rect = Rect()
+    """The visible area of the video frame."""
     content_rect: Rect = Rect()
+    """The region of the video frame that capturer would like to populate."""
     source_size: Size = Size()
+    """Full size of the source frame."""
     capture_update_rect: Rect = Rect()
+    """Updated area of frame, can be considered as the `dirty` area."""
     region_capture_rect: Rect = Rect()
+    """May reflects where the frame's contents originate from if region capture is used internally."""
     capture_counter: int = 0
+    """The increamental counter of the frame."""
     has_capture_update_rect: int = 0
+    """Optional flag of capture_update_rect"""
     has_region_capture_rect: int = 0
+    """Optional flag of region_capture_rect"""
     has_source_size: int = 0
+    """Optional flag of source_size"""
     has_capture_counter: int = 0
+    """Optional flag of capture_counter"""
 
 
 class BoxLayoutSettings(NamedTuple):
-    """The CEF value type CefBoxLayoutSettings. Anywhere one is expected, a tuple with the same fields works too."""
+    """Settings used when initializing a :class:`BoxLayout`.
+
+    The CEF value type ``CefBoxLayoutSettings``. Anywhere one is expected, a tuple with
+    the same fields works too.
+    """
     horizontal: int = 0
+    """If ``True`` (1) the layout will be horizontal, otherwise the layout will be vertical."""
     inside_border_horizontal_spacing: int = 0
+    """Add additional horizontal space between the child view area and the host view border."""
     inside_border_vertical_spacing: int = 0
+    """Add additional vertical space between the child view area and the host view border."""
     inside_border_insets: Insets = Insets()
+    """Add additional space around the child view area."""
     between_child_spacing: int = 0
+    """Add additional space between child views."""
     main_axis_alignment: AxisAlignment = 0
+    """Specifies where along the main axis the child views should be laid out."""
     cross_axis_alignment: AxisAlignment = 0
+    """Specifies where along the cross axis the child views should be laid out."""
     minimum_cross_axis_size: int = 0
+    """Minimum cross axis size."""
     default_flex: int = 0
+    """Default flex for views when none is specified via :class:`BoxLayout` methods.
+
+    Using the preferred size as the basis, free space along the main axis is distributed
+    to views in the ratio of their flex weights. Similarly, if the views will overflow
+    the parent, space is subtracted in these ratios. A flex of 0 means this view is not
+    resized. Flex values must not be negative.
+    """
 
 
 class CompositionUnderline(NamedTuple):
-    """The CEF value type CefCompositionUnderline. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing IME composition underline information.
+
+    This is a thin wrapper around Blink's WebCompositionUnderline class and should be
+    kept in sync with that. The CEF value type ``CefCompositionUnderline``. Anywhere one
+    is expected, a tuple with the same fields works too.
+    """
     range: Range = Range()
+    """Underline character range."""
     color: int = 0
+    """Text color."""
     background_color: int = 0
+    """Background color."""
     thick: int = 0
+    """Set to ``True`` (1) for thick underline."""
     style: CompositionUnderlineStyle = 0
+    """Style."""
 
 
 class DraggableRegion(NamedTuple):
-    """The CEF value type CefDraggableRegion. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure representing a draggable region.
+
+    The CEF value type ``CefDraggableRegion``. Anywhere one is expected, a tuple with
+    the same fields works too.
+    """
     bounds: Rect = Rect()
+    """Bounds of the region."""
     draggable: int = 0
+    """True (1) this this region is draggable and ``False`` (0) otherwise."""
 
 
 class AcceleratedPaintInfo(NamedTuple):
-    """The CEF value type CefAcceleratedPaintInfo. Anywhere one is expected, a tuple with the same fields works too."""
+    """Structure containing shared texture information for the OnAcceleratedPaint callback.
+
+    Resources will be released to the underlying pool for reuse when the callback
+    returns from client code. The CEF value type ``CefAcceleratedPaintInfo``. Anywhere
+    one is expected, a tuple with the same fields works too.
+    """
     planes: tuple[AcceleratedPaintNativePixmapPlane, ...] = ()
     modifier: int = 0
+    """Modifier could be used with EGL driver."""
     format: ColorType = 0
+    """The pixel format of the texture."""
     extra: AcceleratedPaintInfoCommon = AcceleratedPaintInfoCommon()
+    """The extra common info."""
 
 
 __all__ = [

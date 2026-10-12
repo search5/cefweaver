@@ -18,6 +18,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import docs  # noqa: E402
 import emit_cpp  # noqa: E402
 import emit_cython  # noqa: E402
 import emit_pyi  # noqa: E402
@@ -126,6 +127,18 @@ def build_all(cef_root):
     function_plans = [plan_method(model, scope, "", model.functions[n], client_side=False,
                                   static=True) for n in scope.functions]
 
+    # The docstrings (Google style) from the comments of the headers.
+    known = {c.get_name() for c in scope.library_classes + scope.client_classes}
+    model.class_doc_body = {}
+    for cls in scope.library_classes + scope.client_classes:
+        model.class_doc_body[cls.get_name()] = docs.class_doc(model, cls, known)
+        for plan in plans_by_class[cls.get_name()]:
+            if plan.supported:
+                plan.doc_body = emit_pyi.plan_doc(model, known, plan, cls.is_client_side())
+    for plan in function_plans:
+        if plan.supported:
+            plan.doc_body = emit_pyi.plan_doc(model, known, plan, False)
+
     names = [py_class_name(c.get_name()) for c in scope.library_classes + scope.client_classes]
     names += [emit_cython.public_function_name(p.cef_name) for p in function_plans if p.supported]
     names += [py_class_name(cls) for cls in emit_cython.all_structs(model)]
@@ -144,7 +157,7 @@ def build_all(cef_root):
     pxi = emit_cython.emit_pxi(model, scope, plans_by_class, function_plans, banner)
     files["pxi"] = pxi.pop("index")
     files.update(("pxi:" + name, text) for name, text in pxi.items())
-    types = emit_types.emit(model, banner)
+    types = emit_types.emit(model, banner, known)
     files["types"] = types.pop("__init__.py")
     files.update(("types:" + name, text) for name, text in types.items())
     return files

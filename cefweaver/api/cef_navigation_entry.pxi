@@ -19,8 +19,12 @@ cdef class NavigationEntry:
         return p
 
     def is_valid(self):
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef cpp_bool _r
@@ -29,8 +33,13 @@ cdef class NavigationEntry:
         return _r
 
     def get_url(self):
-        """Returns the actual URL of the page. For some pages this may be data: URL
-        or similar. Use GetDisplayURL() to return a display-friendly version.
+        """Return the actual URL of the page.
+
+        For some pages this may be data: URL or similar. Use GetDisplayURL() to return a
+        display-friendly version.
+
+        Returns:
+            str: The actual URL of the page.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefString _r
@@ -39,7 +48,11 @@ cdef class NavigationEntry:
         return _g_str(_r)
 
     def get_display_url(self):
-        """Returns a display-friendly version of the URL."""
+        """Return a display-friendly version of the URL.
+
+        Returns:
+            str: A display-friendly version of the URL.
+        """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -47,8 +60,10 @@ cdef class NavigationEntry:
         return _g_str(_r)
 
     def get_original_url(self):
-        """Returns the original URL that was entered by the user before any
-        redirects.
+        """Return the original URL that was entered by the user before any redirects.
+
+        Returns:
+            str: The original URL that was entered by the user before any  redirects.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefString _r
@@ -57,7 +72,13 @@ cdef class NavigationEntry:
         return _g_str(_r)
 
     def get_title(self):
-        """Returns the title set by the page. This value may be empty."""
+        """Return the title set by the page.
+
+        This value may be empty.
+
+        Returns:
+            str: The title set by the page.
+        """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -65,8 +86,10 @@ cdef class NavigationEntry:
         return _g_str(_r)
 
     def get_transition_type(self):
-        """Returns the transition type which indicates what the user did to move to
-        this page from the previous page.
+        """Return the transition type which indicates what the user did to move to this page from the previous page.
+
+        Returns:
+            TransitionType: The transition type which indicates what the user did to move to  this page from the previous page.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef cef_transition_type_t _r
@@ -75,7 +98,11 @@ cdef class NavigationEntry:
         return _g_enum(_types.TransitionType, <int>_r)
 
     def has_post_data(self):
-        """Returns true if this navigation includes post data."""
+        """Return ``True`` if this navigation includes post data.
+
+        Returns:
+            bool: ``True`` if this navigation includes post data.
+        """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -83,9 +110,13 @@ cdef class NavigationEntry:
         return _r
 
     def get_completion_time(self):
-        """Returns the time for the last known successful navigation completion. A
-        navigation may be completed more than once if the page is reloaded. May be
-        0 if the navigation has not yet completed.
+        """Return the time for the last known successful navigation completion.
+
+        A navigation may be completed more than once if the page is reloaded. May be 0 if
+        the navigation has not yet completed.
+
+        Returns:
+            datetime.datetime | None: The time for the last known successful navigation completion.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefBaseTime _r
@@ -94,9 +125,13 @@ cdef class NavigationEntry:
         return _g_from_basetime(_r.val)
 
     def get_http_status_code(self):
-        """Returns the HTTP status code for the last known successful navigation
-        response. May be 0 if the response has not yet been received or if the
-        navigation has not yet completed.
+        """Return the HTTP status code for the last known successful navigation response.
+
+        May be 0 if the response has not yet been received or if the navigation has not yet
+        completed.
+
+        Returns:
+            int: The HTTP status code for the last known successful navigation  response.
         """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef int _r
@@ -105,7 +140,11 @@ cdef class NavigationEntry:
         return _r
 
     def get_ssl_status(self):
-        """Returns the SSL information for this navigation entry."""
+        """Return the SSL information for this navigation entry.
+
+        Returns:
+            SSLStatus | None: The SSL information for this navigation entry.
+        """
         cdef CefNavigationEntry* _p = self._ptr()
         cdef CefRefPtr[CefSSLStatus] _r
         with nogil:

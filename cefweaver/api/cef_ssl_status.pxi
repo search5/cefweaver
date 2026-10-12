@@ -19,7 +19,11 @@ cdef class SSLStatus:
         return p
 
     def is_secure_connection(self):
-        """Returns true if the status is related to a secure SSL/TLS connection."""
+        """Return ``True`` if the status is related to a secure SSL/TLS connection.
+
+        Returns:
+            bool: ``True`` if the status is related to a secure SSL/TLS connection.
+        """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -27,8 +31,10 @@ cdef class SSLStatus:
         return _r
 
     def get_cert_status(self):
-        """Returns a bitmask containing any and all problems verifying the server
-        certificate.
+        """Return a bitmask containing any and all problems verifying the server certificate.
+
+        Returns:
+            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
         """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_cert_status_t _r
@@ -37,7 +43,11 @@ cdef class SSLStatus:
         return _g_enum(_types.CertStatus, <int>_r)
 
     def get_ssl_version(self):
-        """Returns the SSL version used for the SSL connection."""
+        """Return the SSL version used for the SSL connection.
+
+        Returns:
+            SslVersion: The SSL version used for the SSL connection.
+        """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_ssl_version_t _r
         with nogil:
@@ -45,7 +55,11 @@ cdef class SSLStatus:
         return _g_enum(_types.SslVersion, <int>_r)
 
     def get_content_status(self):
-        """Returns a bitmask containing the page security content status."""
+        """Return a bitmask containing the page security content status.
+
+        Returns:
+            SslContentStatus: A bitmask containing the page security content status.
+        """
         cdef CefSSLStatus* _p = self._ptr()
         cdef cef_ssl_content_status_t _r
         with nogil:
@@ -53,7 +67,11 @@ cdef class SSLStatus:
         return _g_enum(_types.SslContentStatus, <int>_r)
 
     def get_x509_certificate(self):
-        """Returns the X.509 certificate."""
+        """Return the X.509 certificate.
+
+        Returns:
+            X509Certificate | None: The X.509 certificate.
+        """
         cdef CefSSLStatus* _p = self._ptr()
         cdef CefRefPtr[CefX509Certificate] _r
         with nogil:

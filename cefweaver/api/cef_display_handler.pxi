@@ -3,111 +3,188 @@
 
 class DisplayHandler:
     """Implement this interface to handle events related to browser display state.
+
     The methods of this class will be called on the UI thread.
     """
 
     def on_address_change(self, browser, frame, url):
-        """Called when a frame's address has changed."""
+        """Called when a frame's address has changed.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            url (str):
+        """
         return None
 
     def on_title_change(self, browser, title):
-        """Called when the page title changes."""
+        """Called when the page title changes.
+
+        Args:
+            browser (Browser):
+            title (str):
+        """
         return None
 
     def on_favicon_url_change(self, browser, icon_urls):
-        """Called when the page icon changes."""
+        """Called when the page icon changes.
+
+        Args:
+            browser (Browser):
+            icon_urls (list[str]):
+        """
         return None
 
     def on_fullscreen_mode_change(self, browser, fullscreen):
-        """Called when web content in the page has toggled fullscreen mode. If
-        |fullscreen| is true the content will automatically be sized to fill the
-        browser content area. If |fullscreen| is false the content will
-        automatically return to its original size and position. With Alloy style
-        the client is responsible for triggering the fullscreen transition (for
-        example, by calling CefWindow::SetFullscreen when using Views). With
-        Chrome style the fullscreen transition will be triggered automatically.
-        The CefWindowDelegate::OnWindowFullscreenTransition method will be called
-        during the fullscreen transition for notification purposes.
+        """Called when web content in the page has toggled fullscreen mode.
+
+        If ``fullscreen`` is ``True`` the content will automatically be sized to fill the
+        browser content area. If ``fullscreen`` is ``False`` the content will automatically
+        return to its original size and position. With Alloy style the client is responsible
+        for triggering the fullscreen transition (for example, by calling
+        :meth:`Window.set_fullscreen` when using Views). With Chrome style the fullscreen
+        transition will be triggered automatically. The
+        :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called during
+        the fullscreen transition for notification purposes.
+
+        Args:
+            browser (Browser):
+            fullscreen (bool): False the content will  automatically return to its original size and position.
         """
         return None
 
     def on_tooltip(self, browser):
-        """Called when the browser is about to display a tooltip. |text| contains the
-        text that will be displayed in the tooltip. To handle the display of the
-        tooltip yourself return true. Otherwise, you can optionally modify |text|
-        and then return false to allow the browser to display the tooltip.
-        When window rendering is disabled the application is responsible for
+        """Called when the browser is about to display a tooltip.
+
+        ``text`` contains the text that will be displayed in the tooltip. To handle the
+        display of the tooltip yourself return ``True``. Otherwise, you can optionally
+        modify ``text`` and then return ``False`` to allow the browser to display the
+        tooltip. When window rendering is disabled the application is responsible for
         drawing tooltips and the return value is ignored.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, str]
         """
         return False, ""
 
     def on_status_message(self, browser, value):
-        """Called when the browser receives a status message. |value| contains the
-        text that will be displayed in the status message.
+        """Called when the browser receives a status message.
+
+        ``value`` contains the text that will be displayed in the status message.
+
+        Args:
+            browser (Browser):
+            value (str):
         """
         return None
 
     def on_console_message(self, browser, level, message, source, line):
-        """Called to display a console message. Return true to stop the message from
-        being output to the console.
+        """Called to display a console message.
+
+        Return ``True`` to stop the message from being output to the console.
+
+        Args:
+            browser (Browser):
+            level (LogSeverity):
+            message (str):
+            source (str):
+            line (int):
+        Returns:
+            bool
         """
         return False
 
     def on_auto_resize(self, browser, new_size):
-        """Called when auto-resize is enabled via
-        CefBrowserHost::SetAutoResizeEnabled and the contents have auto-resized.
-        |new_size| will be the desired size in DIP coordinates. Return true if
-        the resize was handled or false for default handling.
+        """Called when auto-resize is enabled via :meth:`BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
+
+        ``new_size`` will be the desired size in DIP coordinates. Return ``True`` if the
+        resize was handled or ``False`` for default handling.
+
+        Args:
+            browser (Browser):
+            new_size (Size):
+        Returns:
+            bool
         """
         return False
 
     def on_loading_progress_change(self, browser, progress):
-        """Called when the overall page loading progress has changed. |progress|
-        ranges from 0.0 to 1.0.
+        """Called when the overall page loading progress has changed.
+
+        ``progress`` ranges from 0.0 to 1.0.
+
+        Args:
+            browser (Browser):
+            progress (float):
         """
         return None
 
     def on_cursor_change(self, browser, type):
-        """Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
-        |custom_cursor_info| will be populated with the custom cursor information.
-        Return true if the cursor change was handled or false for default
-        handling.
+        """Called when the browser's cursor has changed.
+
+        If ``type`` is CT_CUSTOM then ``custom_cursor_info`` will be populated with the
+        custom cursor information. Return ``True`` if the cursor change was handled or
+        ``False`` for default handling.
+
+        Args:
+            browser (Browser):
+            type (CursorType): CT_CUSTOM then  ``custom_cursor_info`` will be populated with the custom cursor information.
+        Returns:
+            bool
         """
         return False
 
     def on_media_access_change(self, browser, has_video_access, has_audio_access):
-        """Called when the browser's access to an audio and/or video source has
-        changed.
+        """Called when the browser's access to an audio and/or video source has changed.
+
+        Args:
+            browser (Browser):
+            has_video_access (bool):
+            has_audio_access (bool):
         """
         return None
 
     def on_contents_bounds_change(self, browser, new_bounds):
-        """Called when JavaScript is requesting new bounds via window.moveTo/By() or
-        window.resizeTo/By(). |new_bounds| are in DIP screen coordinates.
+        """Called when JavaScript is requesting new bounds via window.moveTo/By() or window.resizeTo/By().
 
-        With Views-hosted browsers |new_bounds| are the desired bounds for
-        the containing CefWindow and may be passed directly to
-        CefWindow::SetBounds. With external (client-provided) parent on macOS and
-        Windows |new_bounds| are the desired frame bounds for the containing root
-        window. With other non-Views browsers |new_bounds| are the desired bounds
-        for the browser content only unless the client implements either
-        CefDisplayHandler::GetRootWindowScreenRect for windowed browsers or
-        CefRenderHandler::GetWindowScreenRect for windowless browsers. Clients may
-        expand browser content bounds to window bounds using OS-specific or
-        CefDisplay methods.
+        ``new_bounds`` are in DIP screen coordinates.
 
-        Return true if this method was handled or false for default handling.
-        Default move/resize behavior is only provided with Views-hosted Chrome
-        style browsers.
+        With Views-hosted browsers ``new_bounds`` are the desired bounds for the containing
+        :class:`Window` and may be passed directly to :meth:`Window.set_bounds`. With
+        external (client-provided) parent on macOS and Windows ``new_bounds`` are the
+        desired frame bounds for the containing root window. With other non-Views browsers
+        ``new_bounds`` are the desired bounds for the browser content only unless the client
+        implements either :meth:`DisplayHandler.get_root_window_screen_rect` for windowed
+        browsers or :meth:`RenderHandler.get_window_screen_rect` for windowless browsers.
+        Clients may expand browser content bounds to window bounds using OS-specific or
+        :class:`Display` methods.
+
+        Return ``True`` if this method was handled or ``False`` for default handling.
+        Default move/resize behavior is only provided with Views-hosted Chrome style
+        browsers.
+
+        Args:
+            browser (Browser):
+            new_bounds (Rect): The desired bounds  for the browser content only unless the client implements either  ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or  ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
+        Returns:
+            bool
         """
         return False
 
     def get_root_window_screen_rect(self, browser):
-        """Called to retrieve the external (client-provided) root window rectangle in
-        screen DIP coordinates. Only called for windowed browsers on Windows and
-        Linux. Return true if the rectangle was provided. Return false to use the
-        root window bounds on Windows or the browser content bounds on Linux. For
-        additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
+        """Called to retrieve the external (client-provided) root window rectangle in screen DIP coordinates.
+
+        Only called for windowed browsers on Windows and Linux. Return ``True`` if the
+        rectangle was provided. Return ``False`` to use the root window bounds on Windows or
+        the browser content bounds on Linux. For additional usage details see
+        :meth:`BrowserHost.notify_screen_info_changed`.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, Rect | tuple[int, int, int, int]]
         """
         return False, Rect()
 

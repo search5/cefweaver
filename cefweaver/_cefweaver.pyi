@@ -15,12 +15,18 @@ from .version import Version
 def _cef_version_info(entry: int) -> int: ...
 
 class QueryHandler:
-    """Answers the queries a page sends with `window.cefQuery({request, persistent,
-    onSuccess, onFailure})` (CEF's message router, as in java-cef).
+    """Base class for handlers of the queries a page sends with ``window.cefQuery``.
 
-    Subclass it and add an instance with `CefApp.add_query_handler()` before
-    `initialize()`. All methods run on the thread that called `initialize()`, inside
-    `do_message_loop_work()`.
+    A page sends a query with ``window.cefQuery({request, persistent, onSuccess,
+    onFailure})`` (CEF's message router, as in java-cef). Subclass this class and
+    register an instance with :meth:`~cefweaver.CefApp.add_query_handler`. The names of
+    the two JavaScript functions can be changed with
+    :meth:`~cefweaver.CefApp.set_query_functions`.
+
+    Note:
+        All methods run on the thread that called :meth:`~cefweaver.CefApp.initialize`,
+        inside :meth:`~cefweaver.CefApp.do_message_loop_work`. An exception goes to
+        ``sys.excepthook`` and counts as "not handled".
     """
 
     def on_query(
@@ -32,111 +38,659 @@ class QueryHandler:
         persistent: bool,
         callback: QueryCallback,
     ) -> bool:
-        """Return True to take the query and answer it with `callback`, now or later;
-        False to leave it to the next handler (if none takes it, the page gets -1)."""
+        """Handle a query sent by a page.
+
+        Args:
+            browser (~cefweaver.Browser): The browser that holds the page.
+            frame (~cefweaver.Frame): The frame that sent the query.
+            query_id (int): The identifier of the query.
+            request (str | bytes): The request; ``bytes`` if the page sent an ``ArrayBuffer``.
+            persistent (bool): Whether the query stays open for further answers.
+            callback (~cefweaver.QueryCallback): Answers the query.
+
+        Returns:
+            bool: ``True`` to take the query and answer it with ``callback``, now or later
+            (from any thread); ``False`` to leave it to the next handler. If no handler
+            takes it, the ``onFailure`` of the page gets the error code -1. The default
+            implementation returns ``False``.
+        """
     def on_query_canceled(self, browser: Browser, frame: Frame, query_id: int) -> None:
-        """The page canceled a query this handler took, left the page, or went away."""
+        """Handle the end of a query this handler took.
+
+        Called when the page canceled the query (``cefQueryCancel``), left the page or went
+        away, or when the handler was removed. The callback of the query answers nothing any
+        more.
+
+        Args:
+            browser (~cefweaver.Browser): The browser that held the page.
+            frame (~cefweaver.Frame): The frame that sent the query.
+            query_id (int): The identifier of the query.
+        """
 
 class QueryCallback:
-    """The answer to one query; usable from any thread. A callback that is dropped without
-    an answer fails the query."""
+    """The answer to one query, given to :meth:`QueryHandler.on_query`.
 
-    def success(self, response: str | bytes | bytearray | memoryview) -> bool: ...
-    def failure(self, error_code: int, message: str = "") -> bool: ...
+    Instances are created by CEF; constructing one raises ``TypeError``. A query is
+    answered once (a persistent one many times, until it fails or is canceled). A
+    callback that is dropped without an answer fails the query with the error code -1.
+
+    Note:
+        It can be used from any thread.
+    """
+
+    def success(self, response: str | bytes | bytearray | memoryview) -> bool:
+        """Answer the ``onSuccess`` of the page.
+
+        Args:
+            response (str | bytes | bytearray | memoryview): The response; the page gets a
+                string for ``str`` and an ``ArrayBuffer`` for the other types.
+
+        Returns:
+            bool: Whether the answer was sent.
+
+        Raises:
+            TypeError: If ``response`` is none of the accepted types.
+        """
+        ...
+    def failure(self, error_code: int, message: str = "") -> bool:
+        """Answer the ``onFailure`` of the page.
+
+        Args:
+            error_code (int): The error code.
+            message (str, optional): The error message. Defaults to ``""``.
+
+        Returns:
+            bool: Whether the answer was sent.
+        """
+        ...
 
 class AppHandler:
-    """Hooks into the start of the application, as java-cef's `CefAppHandler`. Subclass it and
-    give an instance to `CefApp.set_app_handler()` before `initialize()`."""
+    """Base class for hooks into the start of the application.
+
+    Corresponds to java-cef's ``CefAppHandler``. Subclass it and give an instance to
+    :meth:`~cefweaver.CefApp.set_app_handler`. An exception raised by a method goes to
+    ``sys.excepthook``.
+
+    Note:
+        The methods run on the thread that called :meth:`~cefweaver.CefApp.initialize`,
+        except :meth:`on_schedule_message_pump_work`.
+    """
 
     def on_before_command_line_processing(self, process_type: str, command_line: CommandLine) -> None:
-        """The command line of the browser process (`process_type` is `""`)."""
+        """Change the command line of the browser process.
+
+        Called before the switches of :meth:`~cefweaver.CefApp.add_command_line_switch` are
+        added.
+
+        Args:
+            process_type (str): Always ``""`` (the browser process).
+            command_line (~cefweaver.CommandLine): The command line, which may be changed.
+        """
     def on_register_custom_schemes(self, registrar: SchemeRegistrar) -> None:
-        """Register custom schemes with `registrar.add_custom_scheme(name, options)`."""
+        """Register custom schemes.
+
+        The renderer processes get the same schemes.
+
+        Args:
+            registrar (~cefweaver.SchemeRegistrar): Registers a scheme with
+                ``add_custom_scheme(name, options)``, where ``options`` combines
+                :class:`~cefweaver.types.SchemeOptions` values. Valid during this call only.
+        """
     def on_before_child_process_launch(self, command_line: CommandLine) -> None:
-        """The command line of a child process (renderer, GPU, utility) before it starts."""
+        """Change the command line of a child process before it starts.
+
+        Called for the renderer, GPU and utility processes, after the switches of cefweaver
+        itself (the custom schemes, the JavaScript bridge) were added.
+
+        Args:
+            command_line (~cefweaver.CommandLine): The command line, which may be changed.
+                ``get_switch_value("type")`` gives the kind of process.
+        """
     def on_register_custom_preferences(self, type: PreferencesType, registrar: PreferenceRegistrar) -> None:
-        """Register preferences with `registrar.add_preference(name, default_value)`."""
+        """Register preferences of the application.
+
+        Args:
+            type (~cefweaver.types.PreferencesType): ``GLOBAL`` (called once, for the global
+                preferences) or ``REQUEST_CONTEXT`` (called for each request context).
+            registrar (~cefweaver.PreferenceRegistrar): Registers a preference with
+                ``add_preference(name, default_value)``. Valid during this call only.
+        """
     def on_context_initialized(self) -> None:
-        """CEF is ready for browsers."""
-    def on_schedule_message_pump_work(self, delay_ms: int) -> None: ...
+        """Handle the initialization of the CEF context.
+
+        The first browser is created right after this call.
+        """
+    def on_schedule_message_pump_work(self, delay_ms: int) -> None:
+        """Handle CEF's request to run the message loop later.
+
+        Called only when ``Settings.external_message_pump`` is ``True``. An implementation
+        should note the request and wake the event loop of the application, which then calls
+        :meth:`~cefweaver.CefApp.do_message_loop_work`.
+
+        Args:
+            delay_ms (int): The delay in milliseconds; 0 means now.
+
+        Note:
+            Unlike the other methods, this one is called on any thread of CEF.
+        """
+        ...
     def on_already_running_app_relaunch(self, command_line: CommandLine, current_directory: str) -> bool:
-        """A second start of the application with the same user data reached this one."""
+        """Handle a second start of the application with the same user data.
+
+        Called when a second process with the same ``cache_path`` reaches this one.
+
+        Args:
+            command_line (~cefweaver.CommandLine): The command line of the second start.
+            current_directory (str): The current directory of the second start.
+
+        Returns:
+            bool: ``True`` if the start was handled; ``False`` to let CEF open a new window.
+            The default implementation returns ``False``.
+        """
 
 class SchemeRegistrar:
-    """Valid only during `AppHandler.on_register_custom_schemes()`."""
+    """Registers custom schemes.
 
-    def add_custom_scheme(self, scheme_name: str, options: int) -> bool: ...
+    Instances are created by CEF and given to
+    :meth:`AppHandler.on_register_custom_schemes`; constructing one raises ``TypeError``.
+
+    Note:
+        Valid during that call only.
+    """
+
+    def add_custom_scheme(self, scheme_name: str, options: int) -> bool:
+        """Register a custom scheme.
+
+        Args:
+            scheme_name (str): The name of the scheme.
+            options (int): A combination of :class:`~cefweaver.types.SchemeOptions` values.
+
+        Returns:
+            bool: ``False`` if CEF refuses the scheme.
+
+        Raises:
+            RuntimeError: If called outside :meth:`AppHandler.on_register_custom_schemes`.
+        """
+        ...
 
 class PreferenceRegistrar:
-    """Valid only during `AppHandler.on_register_custom_preferences()`."""
+    """Registers preferences of the application.
 
-    def add_preference(self, name: str, default_value: Value) -> bool: ...
+    Instances are created by CEF and given to
+    :meth:`AppHandler.on_register_custom_preferences`; constructing one raises
+    ``TypeError``.
+
+    Note:
+        Valid during that call only.
+    """
+
+    def add_preference(self, name: str, default_value: Value) -> bool:
+        """Register a preference with its default value.
+
+        Args:
+            name (str): The name of the preference.
+            default_value (~cefweaver.Value): The default value; not ``None``.
+
+        Returns:
+            bool: ``False`` if CEF refuses the preference (the name is taken, or the value
+            has a type that a preference cannot have).
+
+        Raises:
+            RuntimeError: If called outside :meth:`AppHandler.on_register_custom_preferences`.
+        """
+        ...
 
 class CefApp:
     """An embedded Chromium (CEF) instance.
 
-    CEF can be initialized only once per process, also after `shutdown()`.
+    The constructor takes no arguments. Configure the instance, call :meth:`initialize`,
+    and run :meth:`do_message_loop_work` regularly until :attr:`is_running` is false.
+
+    Example:
+        ::
+
+            app = CefApp()
+            app.add_javascript_binding("hello", print)   # window.hello(...) in pages
+            app.initialize("https://example.com")
+            while app.is_running:
+                app.do_message_loop_work()
+            app.shutdown()
+
+    Note:
+        CEF can be initialized only once per process, also after :meth:`shutdown`. The
+        thread that calls :meth:`initialize` is the CEF UI thread, and every UI-thread
+        callback runs inside :meth:`do_message_loop_work`.
     """
 
     def __init__(self) -> None: ...
-    def set_subprocess_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
-    def set_cache_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
-    def set_resources_path(self, path: str | bytes | os.PathLike[str]) -> None: ...
-    def add_command_line_switch(self, name: str, value: str = "") -> None: ...
-    def set_client(self, client: Client | None) -> None: ...
+    def set_subprocess_path(self, path: str | bytes | os.PathLike[str]) -> None:
+        """Set the path of the ``cefsubprocess`` executable.
+
+        Args:
+            path (str | bytes | os.PathLike): The path.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
+    def set_cache_path(self, path: str | bytes | os.PathLike[str]) -> None:
+        """Set the directory for the browser cache and profile data.
+
+        Args:
+            path (str | bytes | os.PathLike): The directory.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
+    def set_resources_path(self, path: str | bytes | os.PathLike[str]) -> None:
+        """Set ``CefSettings.resources_dir_path`` (``locales/`` is looked up below it).
+
+        Optional.
+
+        Args:
+            path (str | bytes | os.PathLike): The directory.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            On Linux, CEF looks for ``icudtl.dat`` next to ``libcef.so`` regardless of this
+            setting, so the runtime files must be deployed together with ``libcef.so``.
+        """
+        ...
+    def add_command_line_switch(self, name: str, value: str = "") -> None:
+        """Add a Chromium command line switch.
+
+        Args:
+            name (str): The switch, for example ``"disable-gpu"``.
+            value (str, optional): The value of the switch. Defaults to ``""``, which adds a
+                bare switch.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
+    def set_client(self, client: Client | None) -> None:
+        """Set the client that receives the browser events.
+
+        ``client.get_load_handler()``, ``get_life_span_handler()`` and
+        ``get_display_handler()`` are asked each time CEF needs the handler, and the handlers
+        they return get the events (``on_load_end``, ``on_title_change``, ...). What the
+        wrapper does for itself (the ready flag, the error page, the JavaScript bindings)
+        keeps working.
+
+        Args:
+            client (~cefweaver.Client | None): The client; ``None`` removes it.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            The events arrive on the thread that called :meth:`initialize`, inside
+            :meth:`do_message_loop_work`.
+        """
+        ...
     @property
-    def devtools_menu(self) -> bool: ...
+    def devtools_menu(self) -> bool:
+        """bool: Whether the context menu has "Show DevTools", "Close DevTools" and "Inspect Element".
+
+        Off by default. It can be changed at any time and applies to the menus built
+        afterwards. The items come after what the handler of :meth:`set_client` put in the
+        menu; the handler gets the same events either way.
+        """
+        ...
     @devtools_menu.setter
     def devtools_menu(self, value: bool) -> None: ...
-    def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None: ...
+    def set_query_functions(self, query: str = "cefQuery", cancel: str = "cefQueryCancel") -> None:
+        """Set the names of the JavaScript functions of the message router.
+
+        ``window.<query>(...)`` sends a query and ``window.<cancel>(id)`` cancels it.
+
+        Args:
+            query (str, optional): The name of the query function. Defaults to
+                ``"cefQuery"``.
+            cancel (str, optional): The name of the cancel function. Defaults to
+                ``"cefQueryCancel"``.
+
+        Raises:
+            TypeError: If a name is not a ``str``.
+            ValueError: If a name is not a valid JavaScript identifier.
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
     def create_browser(self, url: str = "about:blank", offscreen: bool | None = None,
                        transparent: bool | None = None,
                        request_context: RequestContext | None = None,
                        settings: BrowserSettings | None = None,
                        shared_texture: bool | None = None,
-                       parent_view: int | None = None) -> Browser: ...
+                       parent_view: int | None = None) -> Browser:
+        """Create a further browser.
+
+        The browser uses the client, JavaScript bindings and message router of the app
+        (java-cef's ``CefClient.createBrowser()``). A windowed browser gets a window of its
+        own. :meth:`load_url` and :meth:`execute_javascript` address the first browser only;
+        use the frames of the returned browser for the others. Closing the browsers ends
+        :attr:`is_running`.
+
+        Args:
+            url (str, optional): The URL to load. Defaults to ``"about:blank"``.
+            offscreen (bool, optional): Whether this browser is offscreen; ``None`` takes
+                :attr:`offscreen`.
+            transparent (bool, optional): Whether this browser is transparent; ``None`` takes
+                :attr:`transparent`.
+            request_context (~cefweaver.RequestContext, optional): The request context of
+                the browser; ``None`` means the global one.
+            settings (~cefweaver.types.BrowserSettings, optional): The settings of this
+                browser; ``None`` takes :attr:`browser_settings`.
+            shared_texture (bool, optional): Whether this browser gives shared textures;
+                ``None`` takes :attr:`shared_texture`.
+            parent_view (int, optional): macOS only. The address of the ``NSView`` that this
+                windowed browser becomes a child of; ``0`` means a window of its own;
+                ``None`` takes :attr:`parent_view`.
+
+        Returns:
+            ~cefweaver.Browser: The new browser.
+
+        Raises:
+            TypeError: If an argument has the wrong type.
+            NotImplementedError: If ``parent_view`` is given on a platform other than macOS.
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down, or if
+                the browser cannot be created.
+
+        Note:
+            Call it on the thread that called :meth:`initialize`, after the first browser
+            exists.
+        """
+        ...
     @staticmethod
-    def get_version() -> Version: ...
+    def get_version() -> Version:
+        """Return the versions of cefweaver, CEF and Chromium.
+
+        Returns:
+            ~cefweaver.Version: The same value as :func:`cefweaver.get_version`.
+        """
+        ...
     @property
-    def browser_settings(self) -> BrowserSettings: ...
+    def browser_settings(self) -> BrowserSettings:
+        """~cefweaver.types.BrowserSettings: The settings of the browsers.
+
+        They apply to the first browser and to the browsers that :meth:`create_browser` makes
+        without settings of their own. A field left at its default is CEF's choice.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``RuntimeError`` after it;
+            ``TypeError`` for another type).
+        """
+        ...
     @browser_settings.setter
     def browser_settings(self, value: BrowserSettings) -> None: ...
     @property
-    def shared_texture(self) -> bool: ...
+    def shared_texture(self) -> bool:
+        """bool: Whether an offscreen browser gives shared textures instead of pixels.
+
+        If ``True``, CEF's shared textures (GPU memory; dmabuf file descriptors on Linux) go
+        to ``RenderHandler.on_accelerated_paint()`` instead of pixels to ``on_paint()``. Off
+        by default. Needs a GPU.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``TypeError`` for a value
+            that is not a ``bool``).
+        """
+        ...
     @shared_texture.setter
     def shared_texture(self, value: bool) -> None: ...
     @property
-    def transparent(self) -> bool: ...
+    def transparent(self) -> bool:
+        """bool: Whether an offscreen browser paints transparent pixels where the page draws nothing.
+
+        On by default (java-cef's ``isTransparent``). ``False`` paints them in the opaque
+        ``Settings.background_color``, white if there is none.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only.
+        """
+        ...
     @transparent.setter
     def transparent(self, value: bool) -> None: ...
     @property
-    def settings(self) -> Settings: ...
+    def settings(self) -> Settings:
+        """~cefweaver.Settings: The settings of CEF (java-cef's ``CefSettings``).
+
+        :meth:`initialize` reads them and freezes them.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``RuntimeError`` after it;
+            ``TypeError`` for another type).
+        """
+        ...
     @settings.setter
     def settings(self, value: Settings) -> None: ...
-    def set_request_context(self, context: RequestContext | None) -> None: ...
-    def set_app_handler(self, handler: AppHandler | None) -> None: ...
-    def enable_renderer_events(self, stack_size: int = 10) -> None: ...
-    def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None: ...
-    def remove_query_handler(self, handler: QueryHandler) -> bool: ...
-    def cancel_pending_queries(self, browser: Browser | None = None, handler: QueryHandler | None = None) -> None: ...
+    def set_request_context(self, context: RequestContext | None) -> None:
+        """Set the request context of the first browser.
+
+        Its ``RequestContextHandler`` is asked about the requests of that browser.
+
+        Args:
+            context (~cefweaver.RequestContext | None): A context, for example from
+                ``RequestContext.create_context()``; ``None`` clears it.
+
+        Raises:
+            RuntimeError: If CEF was shut down.
+
+        Note:
+            Call it from :meth:`AppHandler.on_context_initialized`, before the browser exists.
+        """
+        ...
+    def set_app_handler(self, handler: AppHandler | None) -> None:
+        """Set the hooks into the start of the application.
+
+        Args:
+            handler (AppHandler | None): The handler; ``None`` removes it.
+
+        Raises:
+            TypeError: If ``handler`` is neither an :class:`AppHandler` nor ``None``.
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
+    def enable_renderer_events(self, stack_size: int = 10) -> None:
+        """Make the renderer processes report what happens in them.
+
+        The browser process gets an uncaught JavaScript error, the node that has the focus,
+        and the V8 contexts that are created and released, as process messages that
+        :class:`cefweaver.RendererEvents` decodes.
+
+        Args:
+            stack_size (int, optional): The value for
+                ``Settings.uncaught_exception_stack_size`` (the frames of the stack of an
+                error; CEF sends no error with 0), unless the program set that setting.
+                Defaults to 10.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
+        ...
+    def add_query_handler(self, handler: QueryHandler, first: bool = False) -> None:
+        """Add a handler for the queries of pages.
+
+        The handlers are asked in the order they were added until one takes the query.
+
+        Args:
+            handler (QueryHandler): The handler.
+            first (bool, optional): Whether to put the handler in front of the others.
+                Defaults to ``False``.
+
+        Raises:
+            TypeError: If ``handler`` is not a :class:`QueryHandler`.
+            ValueError: If ``handler`` was added already.
+            RuntimeError: If called after :meth:`initialize` without a handler added before
+                it (the pages then have no ``window.cefQuery``), or after CEF was shut down.
+        """
+        ...
+    def remove_query_handler(self, handler: QueryHandler) -> bool:
+        """Remove a query handler.
+
+        The queries it took are canceled: :meth:`QueryHandler.on_query_canceled` is called
+        and the ``onFailure`` of the page gets -1.
+
+        Args:
+            handler (QueryHandler): The handler.
+
+        Returns:
+            bool: ``False`` if the handler was not added.
+        """
+        ...
+    def cancel_pending_queries(self, browser: Browser | None = None, handler: QueryHandler | None = None) -> None:
+        """Cancel pending queries.
+
+        :meth:`QueryHandler.on_query_canceled` is called and the ``onFailure`` of the page
+        gets -1.
+
+        Args:
+            browser (~cefweaver.Browser, optional): Cancel the queries of this browser.
+            handler (QueryHandler, optional): Cancel the queries of this handler. With neither
+                argument all pending queries are canceled.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+
+        Note:
+            Call it on the thread that called :meth:`initialize`.
+        """
+        ...
     @property
-    def parent_view(self) -> int: ...
+    def parent_view(self) -> int:
+        """int: macOS only. The address of the ``NSView`` that the windowed browser becomes a child of.
+
+        ``0`` (the default) lets CEF make a window of its own. The browser fills the view and
+        follows its size. The view is the content view of a Cocoa window, of SwiftUI's
+        ``NSViewRepresentable`` or of a toolkit (Qt's ``winId()`` is one). It is not used for
+        an offscreen browser.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only, and the view must exist
+            then, on the main thread. It raises ``NotImplementedError`` off macOS and
+            ``TypeError`` for a value that is not a non-negative ``int``.
+        """
+        ...
     @parent_view.setter
     def parent_view(self, value: int) -> None: ...
     @property
-    def offscreen(self) -> bool: ...
+    def offscreen(self) -> bool:
+        """bool: Whether the browser is rendered offscreen.
+
+        Off by default. An offscreen browser has no window; CEF draws into the buffer that
+        ``RenderHandler.on_paint()`` of the client receives, and the render handler of the
+        client must give the size with ``get_view_rect()``. Popups are blocked, as in
+        java-cef.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only.
+        """
+        ...
     @offscreen.setter
     def offscreen(self, value: bool) -> None: ...
     @property
-    def windowless_frame_rate(self) -> int: ...
+    def windowless_frame_rate(self) -> int:
+        """int: The frames per second of an offscreen browser, from 1 to 60.
+
+        Defaults to 30. It is the upper bound of the ``on_paint()`` calls.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``ValueError`` outside
+            1 to 60).
+        """
+        ...
     @windowless_frame_rate.setter
     def windowless_frame_rate(self, value: int) -> None: ...
-    def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None: ...
-    def initialize(self, start_url: str | None = "about:blank") -> None: ...
-    def do_message_loop_work(self) -> None: ...
-    def shutdown(self) -> None: ...
-    def load_url(self, url: str) -> bool: ...
-    def execute_javascript(self, code: str) -> bool: ...
+    def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None:
+        """Expose a Python callable to pages as ``window.<name>(...)``.
+
+        The arguments of the call are converted to ``int``, ``bool``, ``float`` or ``str``;
+        other JavaScript types arrive as ``None``. An exception raised by the callable goes
+        to ``sys.excepthook``.
+
+        Args:
+            name (str): The name of the JavaScript function.
+            callback (Callable[..., Any]): Called with the converted arguments.
+
+        Raises:
+            TypeError: If ``callback`` is not callable.
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            The callable runs inside :meth:`do_message_loop_work` on the thread that called
+            :meth:`initialize`.
+        """
+        ...
+    def initialize(self, start_url: str | None = "about:blank") -> None:
+        """Start CEF and create the first browser.
+
+        If ``start_url`` is ``None`` CEF starts without a first browser: the application makes
+        its own (a Views ``BrowserView`` in a ``Window``, :meth:`create_browser`), and
+        :attr:`is_running` stays true until :meth:`shutdown`. The first browser, if any, is
+        created inside this call and its handlers run before it returns.
+
+        On Linux with ``DISPLAY`` set, the browser uses X11 (XWayland on a Wayland desktop)
+        unless ``ozone-platform`` or ``ozone-platform-hint`` was given with
+        :meth:`add_command_line_switch`. If the request handler of the client overrides
+        ``get_auth_credentials``, the switch ``disable-chrome-login-prompt`` is added (unless
+        given) so that the handler is asked for credentials.
+
+        Args:
+            start_url (str | None, optional): The URL of the first browser. Defaults to
+                ``"about:blank"``.
+
+        Raises:
+            RuntimeError: If it was called already, if CEF was shut down earlier in this
+                process, or if ``CefInitialize()`` fails.
+        """
+        ...
+    def do_message_loop_work(self) -> None:
+        """Run one iteration of the CEF message loop.
+
+        Call it regularly. On macOS, when ``Settings.external_message_pump`` is not set, it
+        also handles the pending events of the application (the windows CEF made need them
+        for input, title and closing). An application with an event loop of its own uses
+        :class:`~cefweaver.MessagePump` and keeps its loop.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
+        ...
+    def shutdown(self) -> None:
+        """Shut CEF down.
+
+        Does nothing if CEF is not running.
+        """
+        ...
+    def load_url(self, url: str) -> bool:
+        """Navigate the first browser to a URL.
+
+        Args:
+            url (str): The URL.
+
+        Returns:
+            bool: ``False`` if the browser does not exist yet.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
+        ...
+    def execute_javascript(self, code: str) -> bool:
+        """Run JavaScript in the main frame of the first browser.
+
+        Args:
+            code (str): The JavaScript.
+
+        Returns:
+            bool: ``False`` if the code was not run because there is no browser yet or the
+            page is still loading.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
+        ...
     def add_resource(
         self,
         url: str,
@@ -145,14 +699,37 @@ class CefApp:
         headers: dict[str, str] | None = None,
         status: int = 200,
     ) -> None:
-        """Serve `content` for `url` (http or https) without a network access.
+        """Serve content for a URL without network access.
 
-        Call it after `initialize()`.
+        The query and fragment of a requested URL are ignored.
+
+        Args:
+            url (str): An absolute ``http`` or ``https`` URL.
+            content (str | bytes): The body; a ``str`` is encoded as UTF-8.
+            mime_type (str, optional): The MIME type. Defaults to ``"text/html"``.
+            headers (dict[str, str], optional): Further response headers.
+            status (int, optional): The HTTP status. Defaults to 200.
+
+        Raises:
+            ValueError: If ``url`` is not an absolute ``http`` or ``https`` URL.
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down, or if
+                CEF does not accept the scheme handler.
+
+        Note:
+            Call it after :meth:`initialize` and before the page is loaded.
         """
     @property
-    def is_running(self) -> bool: ...
+    def is_running(self) -> bool:
+        """bool: Whether CEF is running.
+
+        ``True`` from :meth:`initialize` until all browsers are closed or :meth:`shutdown`
+        is called (a popup closing alone leaves it running).
+        """
+        ...
     @property
-    def is_ready_to_execute_javascript(self) -> bool: ...
+    def is_ready_to_execute_javascript(self) -> bool:
+        """bool: Whether the first browser has finished loading and can run JavaScript."""
+        ...
 
 
 from .types import (
@@ -251,11 +828,14 @@ from .types import (
 
 
 class AuthCallback:
-    """Callback interface used for asynchronous continuation of authentication
-    requests.
-    """
+    """Callback interface used for asynchronous continuation of authentication requests."""
     def continue_(self, username: str | None, password: str | None) -> None:
-        """Continue the authentication request."""
+        """Continue the authentication request.
+
+        Args:
+            username (str | None):
+            password (str | None):
+        """
         ...
     def cancel(self) -> None:
         """Cancel the authentication request."""
@@ -265,87 +845,154 @@ class AuthCallback:
 class BeforeDownloadCallback:
     """Callback interface used to asynchronously continue a download."""
     def continue_(self, download_path: str | None, show_dialog: bool) -> None:
-        """Call to continue the download. Set |download_path| to the full file path
-        for the download including the file name or leave blank to use the
-        suggested name and the default temp directory. Set |show_dialog| to true
-        if you do wish to show the default \"Save As\" dialog.
+        """Call to continue the download.
+
+        Set ``download_path`` to the full file path for the download including the file name
+        or leave blank to use the suggested name and the default temp directory. Set
+        ``show_dialog`` to ``True`` if you do wish to show the default \"Save As\" dialog.
+
+        Args:
+            download_path (str | None):
+            show_dialog (bool):
         """
         ...
 
 
 class BinaryValue:
-    """Class representing a binary value. Can be used on any process and thread."""
+    """Class representing a binary value.
+
+    Can be used on any process and thread.
+    """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. This object may become invalid if
-        the underlying data is owned by another object (e.g. list or dictionary)
-        and that other object is then modified or destroyed. Do not call any other
-        methods if this method returns false.
+        """Return ``True`` if this object is valid.
+
+        This object may become invalid if the underlying data is owned by another object
+        (e.g. list or dictionary) and that other object is then modified or destroyed. Do
+        not call any other methods if this method returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_owned(self) -> bool:
-        """Returns true if this object is currently owned by another object."""
+        """Return ``True`` if this object is currently owned by another object.
+
+        Returns:
+            bool: ``True`` if this object is currently owned by another object.
+        """
         ...
     def is_same(self, that: BinaryValue) -> bool:
-        """Returns true if this object and |that| object have the same underlying
-        data.
+        """Return ``True`` if this object and ``that`` object have the same underlying data.
+
+        Args:
+            that (BinaryValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have the same underlying  data.
         """
         ...
     def is_equal(self, that: BinaryValue) -> bool:
-        """Returns true if this object and |that| object have an equivalent
-        underlying value but are not necessarily the same object.
+        """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
+
+        Args:
+            that (BinaryValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> BinaryValue | None:
-        """Returns a copy of this object. The data in this object will also be
-        copied.
+        """Return a copy of this object.
+
+        The data in this object will also be copied.
+
+        Returns:
+            BinaryValue | None: A copy of this object.
         """
         ...
     def get_size(self) -> int:
-        """Returns the data size."""
+        """Return the data size.
+
+        Returns:
+            int: The data size.
+        """
         ...
     def get_data(self, buffer_size: int, data_offset: int) -> bytes:
-        """Read up to |buffer_size| number of bytes into |buffer|. Reading begins at
-        the specified byte |data_offset|. Returns the number of bytes read.
+        """Read up to ``buffer_size`` number of bytes into ``buffer``.
+
+        Reading begins at the specified byte ``data_offset``. Returns the number of bytes
+        read.
+
+        Args:
+            buffer_size (int):
+            data_offset (int):
+        Returns:
+            bytes
         """
         ...
     @staticmethod
     def create(data: bytes | bytearray | memoryview) -> BinaryValue | None:
-        """Creates a new object that is not owned by any other object. The specified
-        |data| will be copied.
+        """Create a new object that is not owned by any other object.
+
+        The specified ``data`` will be copied.
+
+        Args:
+            data (bytes | bytearray | memoryview):
+        Returns:
+            BinaryValue | None
         """
         ...
 
 
 class Browser:
-    """Class used to represent a browser. When used in the browser process the
-    methods of this class may be called on any thread unless otherwise indicated
-    in the comments. When used in the render process the methods of this class
-    may only be called on the main thread.
+    """Class used to represent a browser.
+
+    When used in the browser process the methods of this class may be called on any
+    thread unless otherwise indicated in the comments. When used in the render process
+    the methods of this class may only be called on the main thread.
     """
     def is_valid(self) -> bool:
-        """True if this object is currently valid. This will return false after
-        CefLifeSpanHandler::OnBeforeClose is called.
+        """True if this object is currently valid.
+
+        This will return ``False`` after :meth:`LifeSpanHandler.on_before_close` is called.
+
+        Returns:
+            bool
         """
         ...
     def get_host(self) -> BrowserHost | None:
-        """Returns the browser host object. This method can only be called in the
-        browser process.
+        """Return the browser host object.
+
+        This method can only be called in the browser process.
+
+        Returns:
+            BrowserHost | None: The browser host object.
         """
         ...
     def can_go_back(self) -> bool:
-        """Returns true if the browser can navigate backwards."""
+        """Return ``True`` if the browser can navigate backwards.
+
+        Returns:
+            bool: ``True`` if the browser can navigate backwards.
+        """
         ...
     def go_back(self) -> None:
         """Navigate backwards."""
         ...
     def can_go_forward(self) -> bool:
-        """Returns true if the browser can navigate forwards."""
+        """Return ``True`` if the browser can navigate forwards.
+
+        Returns:
+            bool: ``True`` if the browser can navigate forwards.
+        """
         ...
     def go_forward(self) -> None:
         """Navigate forwards."""
         ...
     def is_loading(self) -> bool:
-        """Returns true if the browser is currently loading."""
+        """Return ``True`` if the browser is currently loading.
+
+        Returns:
+            bool: ``True`` if the browser is currently loading.
+        """
         ...
     def reload(self) -> None:
         """Reload the current page."""
@@ -357,612 +1004,922 @@ class Browser:
         """Stop loading the page."""
         ...
     def get_identifier(self) -> int:
-        """Returns the globally unique identifier for this browser. This value is
-        also used as the tabId for extension APIs.
+        """Return the globally unique identifier for this browser.
+
+        This value is also used as the tabId for extension APIs.
+
+        Returns:
+            int: The globally unique identifier for this browser.
         """
         ...
     def is_same(self, that: Browser) -> bool:
-        """Returns true if this object is pointing to the same handle as |that|
-        object.
+        """Return ``True`` if this object is pointing to the same handle as ``that`` object.
+
+        Args:
+            that (Browser):
+        Returns:
+            bool: ``True`` if this object is pointing to the same handle as ``that``  object.
         """
         ...
     def is_popup(self) -> bool:
-        """Returns true if the browser is a popup."""
+        """Return ``True`` if the browser is a popup.
+
+        Returns:
+            bool: ``True`` if the browser is a popup.
+        """
         ...
     def has_document(self) -> bool:
-        """Returns true if a document has been loaded in the browser."""
+        """Return ``True`` if a document has been loaded in the browser.
+
+        Returns:
+            bool: ``True`` if a document has been loaded in the browser.
+        """
         ...
     def get_main_frame(self) -> Frame | None:
-        """Returns the main (top-level) frame for the browser. In the browser process
-        this will return a valid object until after
-        CefLifeSpanHandler::OnBeforeClose is called. In the renderer process this
-        will return NULL if the main frame is hosted in a different renderer
-        process (e.g. for cross-origin sub-frames). The main frame object will
-        change during cross-origin navigation or re-navigation after renderer
-        process termination (due to crashes, etc).
+        """Return the main (top-level) frame for the browser.
+
+        In the browser process this will return a valid object until after
+        :meth:`LifeSpanHandler.on_before_close` is called. In the renderer process this will
+        return ``None`` if the main frame is hosted in a different renderer process (e.g.
+        for cross-origin sub-frames). The main frame object will change during cross-origin
+        navigation or re-navigation after renderer process termination (due to crashes,
+        etc).
+
+        Returns:
+            Frame | None: The main (top-level) frame for the browser.
         """
         ...
     def get_focused_frame(self) -> Frame | None:
-        """Returns the focused frame for the browser."""
+        """Return the focused frame for the browser.
+
+        Returns:
+            Frame | None: The focused frame for the browser.
+        """
         ...
     def get_frame_by_identifier(self, identifier: str) -> Frame | None:
-        """Returns the frame with the specified identifier, or NULL if not found."""
+        """Return the frame with the specified identifier, or ``None`` if not found.
+
+        Args:
+            identifier (str):
+        Returns:
+            Frame | None: The frame with the specified identifier, or ``None`` if not found.
+        """
         ...
     def get_frame_by_name(self, name: str | None) -> Frame | None:
-        """Returns the frame with the specified name, or NULL if not found."""
+        """Return the frame with the specified name, or ``None`` if not found.
+
+        Args:
+            name (str | None):
+        Returns:
+            Frame | None: The frame with the specified name, or ``None`` if not found.
+        """
         ...
     def get_frame_count(self) -> int:
-        """Returns the number of frames that currently exist."""
+        """Return the number of frames that currently exist.
+
+        Returns:
+            int: The number of frames that currently exist.
+        """
         ...
     def get_frame_identifiers(self) -> list[str]:
-        """Returns the identifiers of all existing frames."""
+        """Return the identifiers of all existing frames.
+
+        Returns:
+            list[str]: The identifiers of all existing frames.
+        """
         ...
     def get_frame_names(self) -> list[str]:
-        """Returns the names of all existing frames."""
+        """Return the names of all existing frames.
+
+        Returns:
+            list[str]: The names of all existing frames.
+        """
         ...
 
 
 class BrowserHost:
-    """Class used to represent the browser process aspects of a browser. The
-    methods of this class can only be called in the browser process. They may be
-    called on any thread in that process unless otherwise indicated in the
-    comments.
+    """Class used to represent the browser process aspects of a browser.
+
+    The methods of this class can only be called in the browser process. They may be
+    called on any thread in that process unless otherwise indicated in the comments.
     """
     def get_browser(self) -> Browser | None:
-        """Returns the hosted browser object."""
+        """Return the hosted browser object.
+
+        Returns:
+            Browser | None: The hosted browser object.
+        """
         ...
     def close_browser(self, force_close: bool) -> None:
-        """Request that the browser close. Closing a browser is a multi-stage process
-        that may complete either synchronously or asynchronously, and involves
-        callbacks such as CefLifeSpanHandler::DoClose (Alloy style only),
-        CefLifeSpanHandler::OnBeforeClose, and a top-level window close handler
-        such as CefWindowDelegate::CanClose (or platform-specific equivalent). In
-        some cases a close request may be delayed or canceled by the user. Using
-        TryCloseBrowser() instead of CloseBrowser() is recommended for most use
-        cases. See CefLifeSpanHandler::DoClose() documentation for detailed usage
-        and examples.
+        """Request that the browser close.
 
-        If |force_close| is false then JavaScript unload handlers, if any, may be
-        fired and the close may be delayed or canceled by the user. If
-        |force_close| is true then the user will not be prompted and the close
-        will proceed immediately (possibly asynchronously). If browser close is
-        delayed and not canceled the default behavior is to call the top-level
-        window close handler once the browser is ready to be closed. This default
-        behavior can be changed for Alloy style browsers by implementing
-        CefLifeSpanHandler::DoClose(). IsReadyToBeClosed() can be used to detect
-        mandatory browser close events when customizing close behavior on the
-        browser process UI thread.
+        Closing a browser is a multi-stage process that may complete either synchronously or
+        asynchronously, and involves callbacks such as :meth:`LifeSpanHandler.do_close`
+        (Alloy style only), :meth:`LifeSpanHandler.on_before_close`, and a top-level window
+        close handler such as :meth:`WindowDelegate.can_close` (or platform-specific
+        equivalent). In some cases a close request may be delayed or canceled by the user.
+        Using TryCloseBrowser() instead of CloseBrowser() is recommended for most use cases.
+        See :meth:`LifeSpanHandler.do_close` documentation for detailed usage and examples.
+
+        If ``force_close`` is ``False`` then JavaScript unload handlers, if any, may be
+        fired and the close may be delayed or canceled by the user. If ``force_close`` is
+        ``True`` then the user will not be prompted and the close will proceed immediately
+        (possibly asynchronously). If browser close is delayed and not canceled the default
+        behavior is to call the top-level window close handler once the browser is ready to
+        be closed. This default behavior can be changed for Alloy style browsers by
+        implementing :meth:`LifeSpanHandler.do_close`. IsReadyToBeClosed() can be used to
+        detect mandatory browser close events when customizing close behavior on the browser
+        process UI thread.
+
+        Args:
+            force_close (bool): True then the user will not be prompted and the close  will proceed immediately (possibly asynchronously).
         """
         ...
     def try_close_browser(self) -> bool:
-        """Helper for closing a browser. This is similar in behavior to
-        CLoseBrowser(false) but returns a boolean to reflect the immediate close
-        status. Call this method from a top-level window close handler such as
-        CefWindowDelegate::CanClose (or platform-specific equivalent) to request
-        that the browser close, and return the result to indicate if the window
-        close should proceed. Returns false if the close will be delayed
-        (JavaScript unload handlers triggered but still pending) or true if the
-        close will proceed immediately (possibly asynchronously). See
-        CloseBrowser() documentation for additional usage information. This method
-        must be called on the browser process UI thread.
+        """Helper for closing a browser.
+
+        This is similar in behavior to CLoseBrowser(``False``) but returns a boolean to
+        reflect the immediate close status. Call this method from a top-level window close
+        handler such as :meth:`WindowDelegate.can_close` (or platform-specific equivalent)
+        to request that the browser close, and return the result to indicate if the window
+        close should proceed. Returns ``False`` if the close will be delayed (JavaScript
+        unload handlers triggered but still pending) or ``True`` if the close will proceed
+        immediately (possibly asynchronously). See CloseBrowser() documentation for
+        additional usage information. This method must be called on the browser process UI
+        thread.
+
+        Returns:
+            bool
         """
         ...
     def is_ready_to_be_closed(self) -> bool:
-        """Returns true if the browser is ready to be closed, meaning that the close
-        has already been initiated and that JavaScript unload handlers have
-        already executed or should be ignored. This can be used from a top-level
-        window close handler such as CefWindowDelegate::CanClose (or
-        platform-specific equivalent) to distringuish between potentially
-        cancelable browser close events (like the user clicking the top-level
-        window close button before browser close has started) and mandatory
-        browser close events (like JavaScript `window.close()` or after browser
-        close has started in response to [Try]CloseBrowser()). Not completing the
-        browser close for mandatory close events (when this method returns true)
-        will leave the browser in a partially closed state that interferes with
-        proper functioning. See CloseBrowser() documentation for additional usage
-        information. This method must be called on the browser process UI thread.
+        """Return ``True`` if the browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
+
+        This can be used from a top-level window close handler such as
+        :meth:`WindowDelegate.can_close` (or platform-specific equivalent) to distringuish
+        between potentially cancelable browser close events (like the user clicking the
+        top-level window close button before browser close has started) and mandatory
+        browser close events (like JavaScript `window.close()` or after browser close has
+        started in response to [Try]CloseBrowser()). Not completing the browser close for
+        mandatory close events (when this method returns ``True``) will leave the browser in
+        a partially closed state that interferes with proper functioning. See CloseBrowser()
+        documentation for additional usage information. This method must be called on the
+        browser process UI thread.
+
+        Returns:
+            bool: ``True`` if the browser is ready to be closed, meaning that the close  has already been initiated and that JavaScript unload handlers have  already executed or should be ignored.
         """
         ...
     def set_focus(self, focus: bool) -> None:
-        """Set whether the browser is focused."""
+        """Set whether the browser is focused.
+
+        Args:
+            focus (bool):
+        """
         ...
     def get_window_handle(self) -> int:
-        """Retrieve the window handle (if any) for this browser. If this browser is
-        wrapped in a CefBrowserView this method should be called on the browser
-        process UI thread and it will return the handle for the top-level native
+        """Retrieve the window handle (if any) for this browser.
+
+        If this browser is wrapped in a :class:`BrowserView` this method should be called on
+        the browser process UI thread and it will return the handle for the top-level native
         window.
+
+        Returns:
+            int
         """
         ...
     def get_opener_window_handle(self) -> int:
-        """Retrieve the window handle (if any) of the browser that opened this
-        browser. Will return NULL for non-popup browsers or if this browser is
-        wrapped in a CefBrowserView. This method can be used in combination with
-        custom handling of modal windows.
+        """Retrieve the window handle (if any) of the browser that opened this browser.
+
+        Will return ``None`` for non-popup browsers or if this browser is wrapped in a
+        :class:`BrowserView`. This method can be used in combination with custom handling of
+        modal windows.
+
+        Returns:
+            int
         """
         ...
     def get_opener_identifier(self) -> int:
         """Retrieve the unique identifier of the browser that opened this browser.
+
         Will return 0 for non-popup browsers.
+
+        Returns:
+            int
         """
         ...
     def has_view(self) -> bool:
-        """Returns true if this browser is wrapped in a CefBrowserView."""
+        """Return ``True`` if this browser is wrapped in a :class:`BrowserView`.
+
+        Returns:
+            bool: ``True`` if this browser is wrapped in a ``CefBrowserView``.
+        """
         ...
     def get_client(self) -> Client | None:
-        """Returns the client for this browser."""
+        """Return the client for this browser.
+
+        Returns:
+            Client | None: The client for this browser.
+        """
         ...
     def get_request_context(self) -> RequestContext | None:
-        """Returns the request context for this browser."""
+        """Return the request context for this browser.
+
+        Returns:
+            RequestContext | None: The request context for this browser.
+        """
         ...
     def can_zoom(self, command: ZoomCommand | int) -> bool:
-        """Returns true if this browser can execute the specified zoom command. This
-        method can only be called on the UI thread.
+        """Return ``True`` if this browser can execute the specified zoom command.
+
+        This method can only be called on the UI thread.
+
+        Args:
+            command (ZoomCommand | int):
+        Returns:
+            bool: ``True`` if this browser can execute the specified zoom command.
         """
         ...
     def zoom(self, command: ZoomCommand | int) -> None:
-        """Execute a zoom command in this browser. If called on the UI thread the
-        change will be applied immediately. Otherwise, the change will be applied
-        asynchronously on the UI thread.
+        """Execute a zoom command in this browser.
+
+        If called on the UI thread the change will be applied immediately. Otherwise, the
+        change will be applied asynchronously on the UI thread.
+
+        Args:
+            command (ZoomCommand | int):
         """
         ...
     def get_default_zoom_level(self) -> float:
-        """Get the default zoom level. This value will be 0.0 by default but can be
-        configured. This method can only be called on the UI thread.
+        """Get the default zoom level.
+
+        This value will be 0.0 by default but can be configured. This method can only be
+        called on the UI thread.
+
+        Returns:
+            float
         """
         ...
     def get_zoom_level(self) -> float:
-        """Get the current zoom level. This method can only be called on the UI
-        thread.
+        """Get the current zoom level.
+
+        This method can only be called on the UI thread.
+
+        Returns:
+            float
         """
         ...
     def set_zoom_level(self, zoom_level: float) -> None:
-        """Change the zoom level to the specified value. Specify 0.0 to reset the
-        zoom level to the default. If called on the UI thread the change will be
-        applied immediately. Otherwise, the change will be applied asynchronously
-        on the UI thread.
+        """Change the zoom level to the specified value.
+
+        Specify 0.0 to reset the zoom level to the default. If called on the UI thread the
+        change will be applied immediately. Otherwise, the change will be applied
+        asynchronously on the UI thread.
+
+        Args:
+            zoom_level (float):
         """
         ...
     def run_file_dialog(self, mode: FileDialogMode | int, title: str | None, default_file_path: str | None, accept_filters: Sequence[str], callback: RunFileDialogCallback) -> None:
-        """Call to run a file chooser dialog. Only a single file chooser dialog may
-        be pending at any given time. |mode| represents the type of dialog to
-        display. |title| to the title to be used for the dialog and may be empty
-        to show the default title (\"Open\" or \"Save\" depending on the mode).
-        |default_file_path| is the path with optional directory and/or file name
-        component that will be initially selected in the dialog. |accept_filters|
-        are used to restrict the selectable file types and may any combination of
-        (a) valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b)
-        individual file extensions (e.g.
-        \".txt\" or \".png\"), or (c) combined description and file extension
-        delimited using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\").
-        |callback| will be executed after the dialog is dismissed or immediately
-        if another dialog is already pending. The dialog will be initiated
-        asynchronously on the UI thread.
+        """Call to run a file chooser dialog.
+
+        Only a single file chooser dialog may be pending at any given time. ``mode``
+        represents the type of dialog to display. ``title`` to the title to be used for the
+        dialog and may be empty to show the default title (\"Open\" or \"Save\" depending on the
+        mode). ``default_file_path`` is the path with optional directory and/or file name
+        component that will be initially selected in the dialog. ``accept_filters`` are used
+        to restrict the selectable file types and may any combination of (a) valid
+        lower-cased MIME types (e.g. \"text/*\" or \"image/*\"), (b) individual file extensions
+        (e.g. \".txt\" or \".png\"), or (c) combined description and file extension delimited
+        using \"|\" and \";\" (e.g. \"Image Types|.png;.gif;.jpg\"). ``callback`` will be executed
+        after the dialog is dismissed or immediately if another dialog is already pending.
+        The dialog will be initiated asynchronously on the UI thread.
+
+        Args:
+            mode (FileDialogMode | int):
+            title (str | None):
+            default_file_path (str | None): The path with optional directory and/or file name  component that will be initially selected in the dialog.
+            accept_filters (Sequence[str]): Used to restrict the selectable file types and may any combination of  (a) valid lower-cased MIME types (e.
+            callback (RunFileDialogCallback):
         """
         ...
     def start_download(self, url: str) -> None:
-        """Download the file at |url| using CefDownloadHandler."""
+        """Download the file at ``url`` using :class:`DownloadHandler`.
+
+        Args:
+            url (str):
+        """
         ...
     def download_image(self, image_url: str, is_favicon: bool, max_image_size: int, bypass_cache: bool, callback: DownloadImageCallback) -> None:
-        """Download |image_url| and execute |callback| on completion with the images
-        received from the renderer. If |is_favicon| is true then cookies are not
-        sent and not accepted during download. Images with density independent
-        pixel (DIP) sizes larger than |max_image_size| are filtered out from the
-        image results. Versions of the image at different scale factors may be
-        downloaded up to the maximum scale factor supported by the system. If
-        there are no image results <= |max_image_size| then the smallest image is
-        resized to |max_image_size| and is the only result. A |max_image_size| of
-        0 means unlimited. If |bypass_cache| is true then |image_url| is requested
-        from the server even if it is present in the browser cache.
+        """Download ``image_url`` and execute ``callback`` on completion with the images received from the renderer.
+
+        If ``is_favicon`` is ``True`` then cookies are not sent and not accepted during
+        download. Images with density independent pixel (DIP) sizes larger than
+        ``max_image_size`` are filtered out from the image results. Versions of the image at
+        different scale factors may be downloaded up to the maximum scale factor supported
+        by the system. If there are no image results <= ``max_image_size`` then the smallest
+        image is resized to ``max_image_size`` and is the only result. A ``max_image_size``
+        of 0 means unlimited. If ``bypass_cache`` is ``True`` then ``image_url`` is
+        requested from the server even if it is present in the browser cache.
+
+        Args:
+            image_url (str):
+            is_favicon (bool): True then cookies are not  sent and not accepted during download.
+            max_image_size (int): Filtered out from the  image results.
+            bypass_cache (bool): True then ``image_url`` is requested  from the server even if it is present in the browser cache.
+            callback (DownloadImageCallback):
         """
         ...
     def print(self) -> None:
         """Print the current browser contents."""
         ...
     def print_to_pdf(self, path: str, settings: PdfPrintSettings | tuple[int, int, float, float, float, int, PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int], callback: PdfPrintCallback | None) -> None:
-        """Print the current browser contents to the PDF file specified by |path| and
-        execute |callback| on completion. The caller is responsible for deleting
-        |path| when done. For PDF printing to work on Linux you must implement the
-        CefPrintHandler::GetPdfPaperSize method.
+        """Print the current browser contents to the PDF file specified by ``path`` and execute ``callback`` on completion.
+
+        The caller is responsible for deleting ``path`` when done. For PDF printing to work
+        on Linux you must implement the :meth:`PrintHandler.get_pdf_paper_size` method.
+
+        Args:
+            path (str):
+            settings (PdfPrintSettings | tuple[int, int, float, float, float, int, PdfPrintMarginType, float, float, float, float, str, int, str, str, int, int]):
+            callback (PdfPrintCallback | None):
         """
         ...
     def find(self, search_text: str, forward: bool, match_case: bool, find_next: bool) -> None:
-        """Search for |searchText|. |forward| indicates whether to search forward or
-        backward within the page. |matchCase| indicates whether the search should
-        be case-sensitive. |findNext| indicates whether this is the first request
-        or a follow-up. The search will be restarted if |searchText| or
-        |matchCase| change. The search will be stopped if |searchText| is empty.
-        The CefFindHandler instance, if any, returned via
-        CefClient::GetFindHandler will be called to report find results.
+        """Search for ``search_text``.
+
+        ``forward`` indicates whether to search forward or backward within the page.
+        ``match_case`` indicates whether the search should be case-sensitive. ``find_next``
+        indicates whether this is the first request or a follow-up. The search will be
+        restarted if ``search_text`` or ``match_case`` change. The search will be stopped if
+        ``search_text`` is empty. The :class:`FindHandler` instance, if any, returned via
+        :meth:`Client.get_find_handler` will be called to report find results.
+
+        Args:
+            search_text (str): Empty.
+            forward (bool):
+            match_case (bool):
+            find_next (bool):
         """
         ...
     def stop_finding(self, clear_selection: bool) -> None:
-        """Cancel all searches that are currently going on."""
+        """Cancel all searches that are currently going on.
+
+        Args:
+            clear_selection (bool):
+        """
         ...
     def close_dev_tools(self) -> None:
         """Explicitly close the associated DevTools browser, if any."""
         ...
     def has_dev_tools(self) -> bool:
-        """Returns true if this browser currently has an associated DevTools browser.
+        """Return ``True`` if this browser currently has an associated DevTools browser.
+
         Must be called on the browser process UI thread.
+
+        Returns:
+            bool: ``True`` if this browser currently has an associated DevTools browser.
         """
         ...
     def send_dev_tools_message(self, message: bytes | bytearray | memoryview) -> bool:
-        """Send a method call message over the DevTools protocol. |message| must be a
-        UTF8-encoded JSON dictionary that contains \"id\" (int), \"method\" (string)
-        and \"params\" (dictionary, optional) values. See the DevTools protocol
-        documentation at https://chromedevtools.github.io/devtools-protocol/ for
-        details of supported methods and the expected \"params\" dictionary
-        contents. |message| will be copied if necessary. This method will return
-        true if called on the UI thread and the message was successfully submitted
-        for validation, otherwise false. Validation will be applied asynchronously
-        and any messages that fail due to formatting errors or missing parameters
-        may be discarded without notification. Prefer ExecuteDevToolsMethod if a
-        more structured approach to message formatting is desired.
+        """Send a method call message over the DevTools protocol.
 
-        Every valid method call will result in an asynchronous method result or
-        error message that references the sent message \"id\". Event messages are
-        received while notifications are enabled (for example, between method
-        calls for \"Page.enable\" and \"Page.disable\"). All received messages will be
-        delivered to the observer(s) registered with AddDevToolsMessageObserver.
-        See CefDevToolsMessageObserver::OnDevToolsMessage documentation for
-        details of received message contents.
+        ``message`` must be a UTF8-encoded JSON dictionary that contains \"id\" (int),
+        \"method\" (string) and \"params\" (dictionary, optional) values. See the DevTools
+        protocol documentation at https://chromedevtools.github.io/devtools-protocol/ for
+        details of supported methods and the expected \"params\" dictionary contents.
+        ``message`` will be copied if necessary. This method will return ``True`` if called
+        on the UI thread and the message was successfully submitted for validation,
+        otherwise ``False``. Validation will be applied asynchronously and any messages that
+        fail due to formatting errors or missing parameters may be discarded without
+        notification. Prefer ExecuteDevToolsMethod if a more structured approach to message
+        formatting is desired.
+
+        Every valid method call will result in an asynchronous method result or error
+        message that references the sent message \"id\". Event messages are received while
+        notifications are enabled (for example, between method calls for \"Page.enable\" and
+        \"Page.disable\"). All received messages will be delivered to the observer(s)
+        registered with AddDevToolsMessageObserver. See
+        :meth:`DevToolsMessageObserver.on_dev_tools_message` documentation for details of
+        received message contents.
 
         Usage of the SendDevToolsMessage, ExecuteDevToolsMethod and
-        AddDevToolsMessageObserver methods does not require an active DevTools
-        front-end or remote-debugging session. Other active DevTools sessions will
-        continue to function independently. However, any modification of global
-        browser state by one session may not be reflected in the UI of other
-        sessions.
+        AddDevToolsMessageObserver methods does not require an active DevTools front-end or
+        remote-debugging session. Other active DevTools sessions will continue to function
+        independently. However, any modification of global browser state by one session may
+        not be reflected in the UI of other sessions.
 
-        Communication with the DevTools front-end (when displayed) can be logged
-        for development purposes by passing the
-        `--devtools-protocol-log-file=<path>` command-line flag.
+        Communication with the DevTools front-end (when displayed) can be logged for
+        development purposes by passing the `--devtools-protocol-log-file=<path>`
+        command-line flag.
+
+        Args:
+            message (bytes | bytearray | memoryview):
+        Returns:
+            bool
         """
         ...
     def execute_dev_tools_method(self, message_id: int, method: str, params: DictionaryValue | None) -> int:
-        """Execute a method call over the DevTools protocol. This is a more
-        structured version of SendDevToolsMessage. |message_id| is an incremental
-        number that uniquely identifies the message (pass 0 to have the next
-        number assigned automatically based on previous values). |method| is the
-        method name. |params| are the method parameters, which may be empty. See
-        the DevTools protocol documentation (linked above) for details of
-        supported methods and the expected |params| dictionary contents. This
-        method will return the assigned message ID if called on the UI thread and
-        the message was successfully submitted for validation, otherwise 0. See
-        the SendDevToolsMessage documentation for additional usage information.
+        """Execute a method call over the DevTools protocol.
+
+        This is a more structured version of SendDevToolsMessage. ``message_id`` is an
+        incremental number that uniquely identifies the message (pass 0 to have the next
+        number assigned automatically based on previous values). ``method`` is the method
+        name. ``params`` are the method parameters, which may be empty. See the DevTools
+        protocol documentation (linked above) for details of supported methods and the
+        expected ``params`` dictionary contents. This method will return the assigned
+        message ID if called on the UI thread and the message was successfully submitted for
+        validation, otherwise 0. See the SendDevToolsMessage documentation for additional
+        usage information.
+
+        Args:
+            message_id (int): An incremental  number that uniquely identifies the message (pass 0 to have the next  number assigned automatically based on previous values).
+            method (str): The  method name.
+            params (DictionaryValue | None): The method parameters, which may be empty.
+        Returns:
+            int
         """
         ...
     def add_dev_tools_message_observer(self, observer: DevToolsMessageObserver) -> Registration | None:
-        """Add an observer for DevTools protocol messages (method results and
-        events). The observer will remain registered until the returned
-        Registration object is destroyed. See the SendDevToolsMessage
-        documentation for additional usage information.
+        """Add an observer for DevTools protocol messages (method results and events).
+
+        The observer will remain registered until the returned Registration object is
+        destroyed. See the SendDevToolsMessage documentation for additional usage
+        information.
+
+        Args:
+            observer (DevToolsMessageObserver):
+        Returns:
+            Registration | None
         """
         ...
     def get_navigation_entries(self, visitor: NavigationEntryVisitor, current_only: bool) -> None:
-        """Retrieve a snapshot of current navigation entries as values sent to the
-        specified visitor. If |current_only| is true only the current navigation
-        entry will be sent, otherwise all navigation entries will be sent.
+        """Retrieve a snapshot of current navigation entries as values sent to the specified visitor.
+
+        If ``current_only`` is ``True`` only the current navigation entry will be sent,
+        otherwise all navigation entries will be sent.
+
+        Args:
+            visitor (NavigationEntryVisitor):
+            current_only (bool): True only the current navigation  entry will be sent, otherwise all navigation entries will be sent.
         """
         ...
     def replace_misspelling(self, word: str) -> None:
-        """If a misspelled word is currently selected in an editable node calling
-        this method will replace it with the specified |word|.
+        """If a misspelled word is currently selected in an editable node calling this method will replace it with the specified ``word``.
+
+        Args:
+            word (str):
         """
         ...
     def add_word_to_dictionary(self, word: str) -> None:
-        """Add the specified |word| to the spelling dictionary."""
+        """Add the specified ``word`` to the spelling dictionary.
+
+        Args:
+            word (str):
+        """
         ...
     def is_window_rendering_disabled(self) -> bool:
-        """Returns true if window rendering is disabled."""
+        """Return ``True`` if window rendering is disabled.
+
+        Returns:
+            bool: ``True`` if window rendering is disabled.
+        """
         ...
     def was_resized(self) -> None:
-        """Notify the browser that the widget has been resized. The browser will
-        first call CefRenderHandler::GetViewRect to get the new size and then call
-        CefRenderHandler::OnPaint asynchronously with the updated regions. This
-        method is only used when window rendering is disabled.
+        """Notify the browser that the widget has been resized.
+
+        The browser will first call :meth:`RenderHandler.get_view_rect` to get the new size
+        and then call :meth:`RenderHandler.on_paint` asynchronously with the updated
+        regions. This method is only used when window rendering is disabled.
         """
         ...
     def was_hidden(self, hidden: bool) -> None:
-        """Notify the browser that it has been hidden or shown. Layouting and
-        CefRenderHandler::OnPaint notification will stop when the browser is
-        hidden. This method is only used when window rendering is disabled.
+        """Notify the browser that it has been hidden or shown.
+
+        Layouting and :meth:`RenderHandler.on_paint` notification will stop when the browser
+        is hidden. This method is only used when window rendering is disabled.
+
+        Args:
+            hidden (bool):
         """
         ...
     def notify_screen_info_changed(self) -> None:
-        """Notify the browser that screen information has changed. Updated
-        information will be sent to the renderer process to configure screen size
+        """Notify the browser that screen information has changed.
+
+        Updated information will be sent to the renderer process to configure screen size
         and position values used by CSS and JavaScript (window.deviceScaleFactor,
         window.screenX/Y, window.outerWidth/Height, etc.). For background see
         https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
 
-        This method is used with (a) windowless rendering and (b) windowed
-        rendering with external (client-provided) root window.
+        This method is used with (a) windowless rendering and (b) windowed rendering with
+        external (client-provided) root window.
 
         With windowless rendering the browser will call
-        CefRenderHandler::GetScreenInfo, CefRenderHandler::GetRootScreenRect and
-        CefRenderHandler::GetViewRect. This simulates moving or resizing the root
-        window in the current display, moving the root window from one display to
-        another, or changing the properties of the current display.
+        :meth:`RenderHandler.get_screen_info`, :meth:`RenderHandler.get_root_screen_rect`
+        and :meth:`RenderHandler.get_view_rect`. This simulates moving or resizing the root
+        window in the current display, moving the root window from one display to another,
+        or changing the properties of the current display.
 
         With windowed rendering the browser will call
-        CefDisplayHandler::GetRootWindowScreenRect and use the associated
-        display properties.
+        :meth:`DisplayHandler.get_root_window_screen_rect` and use the associated display
+        properties.
         """
         ...
     def invalidate(self, type: PaintElementType | int) -> None:
-        """Invalidate the view. The browser will call CefRenderHandler::OnPaint
-        asynchronously. This method is only used when window rendering is
-        disabled.
+        """Invalidate the view.
+
+        The browser will call :meth:`RenderHandler.on_paint` asynchronously. This method is
+        only used when window rendering is disabled.
+
+        Args:
+            type (PaintElementType | int):
         """
         ...
     def send_external_begin_frame(self) -> None:
-        """Issue a BeginFrame request to Chromium.  Only valid when
-        CefWindowInfo::external_begin_frame_enabled is set to true.
+        """Issue a BeginFrame request to Chromium.
+
+        Only valid when ``CefWindowInfo::external_begin_frame_enabled`` is set to ``True``.
         """
         ...
     def send_key_event(self, event: KeyEvent | tuple[KeyEventType, int, int, int, int, int, int, int]) -> None:
-        """Send a key event to the browser."""
+        """Send a key event to the browser.
+
+        Args:
+            event (KeyEvent | tuple[KeyEventType, int, int, int, int, int, int, int]):
+        """
         ...
     def send_mouse_click_event(self, event: MouseEvent | tuple[int, int, int], type: MouseButtonType | int, mouse_up: bool, click_count: int) -> None:
-        """Send a mouse click event to the browser. The |x| and |y| coordinates are
-        relative to the upper-left corner of the view.
+        """Send a mouse click event to the browser.
+
+        The ``x`` and ``y`` coordinates are relative to the upper-left corner of the view.
+
+        Args:
+            event (MouseEvent | tuple[int, int, int]):
+            type (MouseButtonType | int):
+            mouse_up (bool):
+            click_count (int):
         """
         ...
     def send_mouse_move_event(self, event: MouseEvent | tuple[int, int, int], mouse_leave: bool) -> None:
-        """Send a mouse move event to the browser. The |x| and |y| coordinates are
-        relative to the upper-left corner of the view.
+        """Send a mouse move event to the browser.
+
+        The ``x`` and ``y`` coordinates are relative to the upper-left corner of the view.
+
+        Args:
+            event (MouseEvent | tuple[int, int, int]):
+            mouse_leave (bool):
         """
         ...
     def send_mouse_wheel_event(self, event: MouseEvent | tuple[int, int, int], delta_x: int, delta_y: int) -> None:
-        """Send a mouse wheel event to the browser. The |x| and |y| coordinates are
-        relative to the upper-left corner of the view. The |deltaX| and |deltaY|
-        values represent the movement delta in the X and Y directions
-        respectively. In order to scroll inside select popups with window
-        rendering disabled CefRenderHandler::GetScreenPoint should be implemented
+        """Send a mouse wheel event to the browser.
+
+        The ``x`` and ``y`` coordinates are relative to the upper-left corner of the view.
+        The ``delta_x`` and ``delta_y`` values represent the movement delta in the X and Y
+        directions respectively. In order to scroll inside select popups with window
+        rendering disabled :meth:`RenderHandler.get_screen_point` should be implemented
         properly.
+
+        Args:
+            event (MouseEvent | tuple[int, int, int]):
+            delta_x (int):
+            delta_y (int):
         """
         ...
     def send_touch_event(self, event: TouchEvent | tuple[int, float, float, float, float, float, float, TouchEventType, int, PointerType]) -> None:
-        """Send a touch event to the browser for a windowless browser."""
+        """Send a touch event to the browser for a windowless browser.
+
+        Args:
+            event (TouchEvent | tuple[int, float, float, float, float, float, float, TouchEventType, int, PointerType]):
+        """
         ...
     def send_capture_lost_event(self) -> None:
         """Send a capture lost event to the browser."""
         ...
     def notify_move_or_resize_started(self) -> None:
-        """Notify the browser that the window hosting it is about to be moved or
-        resized. This method is only used on Windows and Linux.
+        """Notify the browser that the window hosting it is about to be moved or resized.
+
+        This method is only used on Windows and Linux.
         """
         ...
     def get_windowless_frame_rate(self) -> int:
-        """Returns the maximum rate in frames per second (fps) that
-        CefRenderHandler::OnPaint will be called for a windowless browser. The
-        actual fps may be lower if the browser cannot generate frames at the
-        requested rate. The minimum value is 1 and the default value is 30. This
-        method can only be called on the UI thread.
+        """Return the maximum rate in frames per second (fps) that :meth:`RenderHandler.on_paint` will be called for a windowless browser.
+
+        The actual fps may be lower if the browser cannot generate frames at the requested
+        rate. The minimum value is 1 and the default value is 30. This method can only be
+        called on the UI thread.
+
+        Returns:
+            int: The maximum rate in frames per second (fps) that  ``CefRenderHandler::OnPaint`` will be called for a windowless browser.
         """
         ...
     def set_windowless_frame_rate(self, frame_rate: int) -> None:
-        """Set the maximum rate in frames per second (fps) that CefRenderHandler::
-        OnPaint will be called for a windowless browser. The actual fps may be
-        lower if the browser cannot generate frames at the requested rate. The
-        minimum value is 1 and the default value is 30. Can also be set at browser
-        creation via CefBrowserSettings.windowless_frame_rate.
+        """Set the maximum rate in frames per second (fps) that :class:`RenderHandler`:: OnPaint will be called for a windowless browser.
+
+        The actual fps may be lower if the browser cannot generate frames at the requested
+        rate. The minimum value is 1 and the default value is 30. Can also be set at browser
+        creation via ``CefBrowserSettings``.windowless_frame_rate.
+
+        Args:
+            frame_rate (int):
         """
         ...
     def ime_set_composition(self, text: str | None, underlines: Sequence[CompositionUnderline | tuple[Range, int, int, int, CompositionUnderlineStyle]], replacement_range: Range | tuple[int, int], selection_range: Range | tuple[int, int]) -> None:
-        """Begins a new composition or updates the existing composition. Blink has a
-        special node (a composition node) that allows the input method to change
-        text without affecting other DOM nodes. |text| is the optional text that
-        will be inserted into the composition node. |underlines| is an optional
-        set of ranges that will be underlined in the resulting text.
-        |replacement_range| is an optional range of the existing text that will be
-        replaced. |selection_range| is an optional range of the resulting text
-        that will be selected after insertion or replacement. The
-        |replacement_range| value is only used on OS X.
+        """Begin a new composition or updates the existing composition.
 
-        This method may be called multiple times as the composition changes. When
-        the client is done making changes the composition should either be
-        canceled or completed. To cancel the composition call
-        ImeCancelComposition. To complete the composition call either
-        ImeCommitText or ImeFinishComposingText. Completion is usually signaled
-        when:
+        Blink has a special node (a composition node) that allows the input method to change
+        text without affecting other DOM nodes. ``text`` is the optional text that will be
+        inserted into the composition node. ``underlines`` is an optional set of ranges that
+        will be underlined in the resulting text. ``replacement_range`` is an optional range
+        of the existing text that will be replaced. ``selection_range`` is an optional range
+        of the resulting text that will be selected after insertion or replacement. The
+        ``replacement_range`` value is only used on OS X.
 
-        1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
-           flag (on Windows), or;
-        2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
-        3. insertText of NSTextInput is called (on Mac).
+        This method may be called multiple times as the composition changes. When the client
+        is done making changes the composition should either be canceled or completed. To
+        cancel the composition call ImeCancelComposition. To complete the composition call
+        either ImeCommitText or ImeFinishComposingText. Completion is usually signaled when:
+
+         1. The client receives a WM_IME_COMPOSITION message with a GCS_RESULTSTR
+            flag (on Windows), or;
+         2. The client receives a \"commit\" signal of GtkIMContext (on Linux), or;
+         3. insertText of NSTextInput is called (on Mac).
 
         This method is only used when window rendering is disabled.
+
+        Args:
+            text (str | None): The optional text that  will be inserted into the composition node.
+            underlines (Sequence[CompositionUnderline | tuple[Range, int, int, int, CompositionUnderlineStyle]]): An optional  set of ranges that will be underlined in the resulting text.
+            replacement_range (Range | tuple[int, int]): An optional range of the existing text that will be  replaced.
+            selection_range (Range | tuple[int, int]): An optional range of the resulting text  that will be selected after insertion or replacement.
         """
         ...
     def ime_commit_text(self, text: str | None, replacement_range: Range | tuple[int, int], relative_cursor_pos: int) -> None:
-        """Completes the existing composition by optionally inserting the specified
-        |text| into the composition node. |replacement_range| is an optional range
-        of the existing text that will be replaced. |relative_cursor_pos| is where
-        the cursor will be positioned relative to the current cursor position. See
-        comments on ImeSetComposition for usage. The |replacement_range| and
-        |relative_cursor_pos| values are only used on OS X.
-        This method is only used when window rendering is disabled.
+        """Complete the existing composition by optionally inserting the specified ``text`` into the composition node.
+
+        ``replacement_range`` is an optional range of the existing text that will be
+        replaced. ``relative_cursor_pos`` is where the cursor will be positioned relative to
+        the current cursor position. See comments on ImeSetComposition for usage. The
+        ``replacement_range`` and ``relative_cursor_pos`` values are only used on OS X. This
+        method is only used when window rendering is disabled.
+
+        Args:
+            text (str | None):
+            replacement_range (Range | tuple[int, int]): An optional range  of the existing text that will be replaced.
+            relative_cursor_pos (int): Where  the cursor will be positioned relative to the current cursor position.
         """
         ...
     def ime_finish_composing_text(self, keep_selection: bool) -> None:
-        """Completes the existing composition by applying the current composition
-        node contents. If |keep_selection| is false the current selection, if any,
-        will be discarded. See comments on ImeSetComposition for usage. This
-        method is only used when window rendering is disabled.
+        """Complete the existing composition by applying the current composition node contents.
+
+        If ``keep_selection`` is ``False`` the current selection, if any, will be discarded.
+        See comments on ImeSetComposition for usage. This method is only used when window
+        rendering is disabled.
+
+        Args:
+            keep_selection (bool): False the current selection, if any,  will be discarded.
         """
         ...
     def ime_cancel_composition(self) -> None:
-        """Cancels the existing composition and discards the composition node
-        contents without applying them. See comments on ImeSetComposition for
-        usage.
-        This method is only used when window rendering is disabled.
+        """Cancel the existing composition and discards the composition node contents without applying them.
+
+        See comments on ImeSetComposition for usage. This method is only used when window
+        rendering is disabled.
         """
         ...
     def drag_target_drag_enter(self, drag_data: DragData, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
-        """Call this method when the user drags the mouse into the web view (before
-        calling DragTargetDragOver/DragTargetLeave/DragTargetDrop).
-        |drag_data| should not contain file contents as this type of data is not
-        allowed to be dragged into the web view. File contents can be removed
-        using CefDragData::ResetFileContents (for example, if |drag_data| comes
-        from CefRenderHandler::StartDragging). This method is only used when
-        window rendering is disabled.
+        """Call this method when the user drags the mouse into the web view (before calling DragTargetDragOver/DragTargetLeave/DragTargetDrop).
+
+        ``drag_data`` should not contain file contents as this type of data is not allowed
+        to be dragged into the web view. File contents can be removed using
+        :meth:`DragData.reset_file_contents` (for example, if ``drag_data`` comes from
+        :meth:`RenderHandler.start_dragging`). This method is only used when window
+        rendering is disabled.
+
+        Args:
+            drag_data (DragData):
+            event (MouseEvent | tuple[int, int, int]):
+            allowed_ops (DragOperationsMask | int):
         """
         ...
     def drag_target_drag_over(self, event: MouseEvent | tuple[int, int, int], allowed_ops: DragOperationsMask | int) -> None:
-        """Call this method each time the mouse is moved across the web view during
-        a drag operation (after calling DragTargetDragEnter and before calling
-        DragTargetDragLeave/DragTargetDrop).
+        """Call this method each time the mouse is moved across the web view during a drag operation (after calling DragTargetDragEnter and before calling DragTargetDragLeave/DragTargetDrop).
+
         This method is only used when window rendering is disabled.
+
+        Args:
+            event (MouseEvent | tuple[int, int, int]):
+            allowed_ops (DragOperationsMask | int):
         """
         ...
     def drag_target_drag_leave(self) -> None:
-        """Call this method when the user drags the mouse out of the web view (after
-        calling DragTargetDragEnter).
+        """Call this method when the user drags the mouse out of the web view (after calling DragTargetDragEnter).
+
         This method is only used when window rendering is disabled.
         """
         ...
     def drag_target_drop(self, event: MouseEvent | tuple[int, int, int]) -> None:
-        """Call this method when the user completes the drag operation by dropping
-        the object onto the web view (after calling DragTargetDragEnter).
-        The object being dropped is |drag_data|, given as an argument to
-        the previous DragTargetDragEnter call.
-        This method is only used when window rendering is disabled.
+        """Call this method when the user completes the drag operation by dropping the object onto the web view (after calling DragTargetDragEnter).
+
+        The object being dropped is ``drag_data``, given as an argument to the previous
+        DragTargetDragEnter call. This method is only used when window rendering is
+        disabled.
+
+        Args:
+            event (MouseEvent | tuple[int, int, int]):
         """
         ...
     def drag_source_ended_at(self, x: int, y: int, op: DragOperationsMask | int) -> None:
-        """Call this method when the drag operation started by a
-        CefRenderHandler::StartDragging call has ended either in a drop or
-        by being cancelled. |x| and |y| are mouse coordinates relative to the
-        upper-left corner of the view. If the web view is both the drag source
-        and the drag target then all DragTarget* methods should be called before
-        DragSource* mthods.
-        This method is only used when window rendering is disabled.
+        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has ended either in a drop or by being cancelled.
+
+        ``x`` and ``y`` are mouse coordinates relative to the upper-left corner of the view.
+        If the web view is both the drag source and the drag target then all DragTarget*
+        methods should be called before DragSource* mthods. This method is only used when
+        window rendering is disabled.
+
+        Args:
+            x (int):
+            y (int): Mouse coordinates relative to the  upper-left corner of the view.
+            op (DragOperationsMask | int):
         """
         ...
     def drag_source_system_drag_ended(self) -> None:
-        """Call this method when the drag operation started by a
-        CefRenderHandler::StartDragging call has completed. This method may be
-        called immediately without first calling DragSourceEndedAt to cancel a
-        drag operation. If the web view is both the drag source and the drag
-        target then all DragTarget* methods should be called before DragSource*
-        mthods.
-        This method is only used when window rendering is disabled.
+        """Call this method when the drag operation started by a :meth:`RenderHandler.start_dragging` call has completed.
+
+        This method may be called immediately without first calling DragSourceEndedAt to
+        cancel a drag operation. If the web view is both the drag source and the drag target
+        then all DragTarget* methods should be called before DragSource* mthods. This method
+        is only used when window rendering is disabled.
         """
         ...
     def get_visible_navigation_entry(self) -> NavigationEntry | None:
-        """Returns the current visible navigation entry for this browser. This method
-        can only be called on the UI thread.
+        """Return the current visible navigation entry for this browser.
+
+        This method can only be called on the UI thread.
+
+        Returns:
+            NavigationEntry | None: The current visible navigation entry for this browser.
         """
         ...
     def set_accessibility_state(self, accessibility_state: State | int) -> None:
-        """Set accessibility state for all frames. |accessibility_state| may be
-        default, enabled or disabled. If |accessibility_state| is STATE_DEFAULT
-        then accessibility will be disabled by default and the state may be
-        further controlled with the \"force-renderer-accessibility\" and
-        \"disable-renderer-accessibility\" command-line switches. If
-        |accessibility_state| is STATE_ENABLED then accessibility will be enabled.
-        If |accessibility_state| is STATE_DISABLED then accessibility will be
+        """Set accessibility state for all frames.
+
+        ``accessibility_state`` may be default, enabled or disabled. If
+        ``accessibility_state`` is STATE_DEFAULT then accessibility will be disabled by
+        default and the state may be further controlled with the
+        \"force-renderer-accessibility\" and \"disable-renderer-accessibility\" command-line
+        switches. If ``accessibility_state`` is STATE_ENABLED then accessibility will be
+        enabled. If ``accessibility_state`` is STATE_DISABLED then accessibility will be
         completely disabled.
 
-        For windowed browsers accessibility will be enabled in Complete mode
-        (which corresponds to kAccessibilityModeComplete in Chromium). In this
-        mode all platform accessibility objects will be created and managed by
-        Chromium's internal implementation. The client needs only to detect the
-        screen reader and call this method appropriately. For example, on macOS
-        the client can handle the @\"AXEnhancedUserInterface\" accessibility
-        attribute to detect VoiceOver state changes and on Windows the client can
-        handle WM_GETOBJECT with OBJID_CLIENT to detect accessibility readers.
+        For windowed browsers accessibility will be enabled in Complete mode (which
+        corresponds to kAccessibilityModeComplete in Chromium). In this mode all platform
+        accessibility objects will be created and managed by Chromium's internal
+        implementation. The client needs only to detect the screen reader and call this
+        method appropriately. For example, on macOS the client can handle the
+        @\"AXEnhancedUserInterface\" accessibility attribute to detect VoiceOver state changes
+        and on Windows the client can handle WM_GETOBJECT with OBJID_CLIENT to detect
+        accessibility readers.
 
-        For windowless browsers accessibility will be enabled in TreeOnly mode
-        (which corresponds to kAccessibilityModeWebContentsOnly in Chromium). In
-        this mode renderer accessibility is enabled, the full tree is computed,
-        and events are passed to CefAccessibiltyHandler, but platform
-        accessibility objects are not created. The client may implement platform
-        accessibility objects using CefAccessibiltyHandler callbacks if desired.
+        For windowless browsers accessibility will be enabled in TreeOnly mode (which
+        corresponds to kAccessibilityModeWebContentsOnly in Chromium). In this mode renderer
+        accessibility is enabled, the full tree is computed, and events are passed to
+        ``CefAccessibiltyHandler``, but platform accessibility objects are not created. The
+        client may implement platform accessibility objects using ``CefAccessibiltyHandler``
+        callbacks if desired.
+
+        Args:
+            accessibility_state (State | int): STATE_DISABLED then accessibility will be  completely disabled.
         """
         ...
     def set_auto_resize_enabled(self, enabled: bool, min_size: Size | tuple[int, int], max_size: Size | tuple[int, int]) -> None:
-        """Enable notifications of auto resize via CefDisplayHandler::OnAutoResize.
-        Notifications are disabled by default. |min_size| and |max_size| define
-        the range of allowed sizes.
+        """Enable notifications of auto resize via :meth:`DisplayHandler.on_auto_resize`.
+
+        Notifications are disabled by default. ``min_size`` and ``max_size`` define the
+        range of allowed sizes.
+
+        Args:
+            enabled (bool):
+            min_size (Size | tuple[int, int]):
+            max_size (Size | tuple[int, int]):
         """
         ...
     def set_audio_muted(self, mute: bool) -> None:
-        """Set whether the browser's audio is muted."""
+        """Set whether the browser's audio is muted.
+
+        Args:
+            mute (bool):
+        """
         ...
     def is_audio_muted(self) -> bool:
-        """Returns true if the browser's audio is muted.  This method can only be
-        called on the UI thread.
+        """Return ``True`` if the browser's audio is muted.
+
+        This method can only be called on the UI thread.
+
+        Returns:
+            bool: ``True`` if the browser's audio is muted.
         """
         ...
     def is_fullscreen(self) -> bool:
-        """Returns true if the renderer is currently in browser fullscreen. This
-        differs from window fullscreen in that browser fullscreen is entered using
-        the JavaScript Fullscreen API and modifies CSS attributes such as the
-        ::backdrop pseudo-element and :fullscreen pseudo-class. This method can
-        only be called on the UI thread.
+        """Return ``True`` if the renderer is currently in browser fullscreen.
+
+        This differs from window fullscreen in that browser fullscreen is entered using the
+        JavaScript Fullscreen API and modifies CSS attributes such as the ::backdrop
+        pseudo-element and :fullscreen pseudo-class. This method can only be called on the
+        UI thread.
+
+        Returns:
+            bool: ``True`` if the renderer is currently in browser fullscreen.
         """
         ...
     def exit_fullscreen(self, will_cause_resize: bool) -> None:
-        """Requests the renderer to exit browser fullscreen. In most cases exiting
-        window fullscreen should also exit browser fullscreen. With Alloy
-        style this method should be called in response to a user action such as
+        """Request the renderer to exit browser fullscreen.
+
+        In most cases exiting window fullscreen should also exit browser fullscreen. With
+        Alloy style this method should be called in response to a user action such as
         clicking the green traffic light button on MacOS
-        (CefWindowDelegate::OnWindowFullscreenTransition callback) or pressing the
-        \"ESC\" key (CefKeyboardHandler::OnPreKeyEvent callback). With Chrome
-        style these standard exit actions are handled internally but
-        new/additional user actions can use this method. Set |will_cause_resize|
-        to true if exiting browser fullscreen will cause a view resize.
+        (:meth:`WindowDelegate.on_window_fullscreen_transition` callback) or pressing the
+        \"ESC\" key (:meth:`KeyboardHandler.on_pre_key_event` callback). With Chrome style
+        these standard exit actions are handled internally but new/additional user actions
+        can use this method. Set ``will_cause_resize`` to ``True`` if exiting browser
+        fullscreen will cause a view resize.
+
+        Args:
+            will_cause_resize (bool):
         """
         ...
     def can_execute_chrome_command(self, command_id: int) -> bool:
-        """Returns true if a Chrome command is supported and enabled. Use the
-        cef_id_for_command_id_name() function for version-safe mapping of command
-        IDC names from cef_command_ids.h to version-specific numerical
-        |command_id| values. This method can only be called on the UI thread. Only
-        used with Chrome style.
+        """Return ``True`` if a Chrome command is supported and enabled.
+
+        Use the cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical ``command_id``
+        values. This method can only be called on the UI thread. Only used with Chrome
+        style.
+
+        Args:
+            command_id (int):
+        Returns:
+            bool: ``True`` if a Chrome command is supported and enabled.
         """
         ...
     def execute_chrome_command(self, command_id: int, disposition: WindowOpenDisposition | int) -> None:
-        """Execute a Chrome command. Use the cef_id_for_command_id_name()
-        function for version-safe mapping of command IDC names from
-        cef_command_ids.h to version-specific numerical |command_id| values.
-        |disposition| provides information about the intended command target. Only
+        """Execute a Chrome command.
+
+        Use the cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical ``command_id``
+        values. ``disposition`` provides information about the intended command target. Only
         used with Chrome style.
+
+        Args:
+            command_id (int):
+            disposition (WindowOpenDisposition | int):
         """
         ...
     def is_render_process_unresponsive(self) -> bool:
-        """Returns true if the render process associated with this browser is
-        currently unresponsive as indicated by a lack of input event processing
-        for at least 15 seconds. To receive associated state change notifications
-        and optionally handle an unresponsive render process implement
-        CefRequestHandler::OnRenderProcessUnresponsive. This method can only be
+        """Return ``True`` if the render process associated with this browser is currently unresponsive as indicated by a lack of input event processing for at least 15 seconds.
+
+        To receive associated state change notifications and optionally handle an
+        unresponsive render process implement
+        :meth:`RequestHandler.on_render_process_unresponsive`. This method can only be
         called on the UI thread.
+
+        Returns:
+            bool: ``True`` if the render process associated with this browser is  currently unresponsive as indicated by a lack of input event processing  for at least 15 seconds.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
-        """Returns the runtime style for this browser (ALLOY or CHROME). See
-        cef_runtime_style_t documentation for details.
+        """Return the runtime style for this browser (ALLOY or CHROME).
+
+        See cef_runtime_style_t documentation for details.
+
+        Returns:
+            RuntimeStyle: The runtime style for this browser (ALLOY or CHROME).
         """
         ...
     def set_ax_viewport_collapse(self, enabled: bool) -> None:
-        """Enable or disable CDP accessibility tree viewport collapse for this
-        browser. When enabled, off-screen landmarks and headings are serialized
-        as summaries and other off-screen nodes are pruned. Overrides the
-        CefBrowserSettings.ax_viewport_collapse value. If called on the UI thread
-        the change will be applied immediately. Otherwise, the change will be
-        applied asynchronously on the UI thread.
-        WARNING: This collapses the CDP accessibility tree and disables CDP
-        dynamic tree updates (nodesUpdated events). The DevTools Accessibility
-        panel will show an incomplete tree. Platform screen readers (NVDA, JAWS,
-        VoiceOver) are unaffected - they use a separate code path.
+        """Enable or disable CDP accessibility tree viewport collapse for this browser.
+
+        When enabled, off-screen landmarks and headings are serialized as summaries and
+        other off-screen nodes are pruned. Overrides the
+        ``CefBrowserSettings``.ax_viewport_collapse value. If called on the UI thread the
+        change will be applied immediately. Otherwise, the change will be applied
+        asynchronously on the UI thread. WARNING: This collapses the CDP accessibility tree
+        and disables CDP dynamic tree updates (nodesUpdated events). The DevTools
+        Accessibility panel will show an incomplete tree. Platform screen readers (NVDA,
+        JAWS, VoiceOver) are unaffected - they use a separate code path.
+
+        Args:
+            enabled (bool):
         """
         ...
     @staticmethod
     def get_browser_by_identifier(browser_id: int) -> Browser | None:
-        """Returns the browser (if any) with the specified identifier."""
+        """Return the browser (if any) with the specified identifier.
+
+        Args:
+            browser_id (int):
+        Returns:
+            Browser | None: The browser (if any) with the specified identifier.
+        """
         ...
     def show_dev_tools(self, inspect_x: int = -1, inspect_y: int = -1) -> None:
         """Open DevTools in a window of its own. With `inspect_x` and `inspect_y` (both 0 or more) the element at
@@ -981,596 +1938,1076 @@ class Callback:
 
 
 class CommandLine:
-    """Class used to create and/or parse command line arguments. Arguments with
-    \"--\", \"-\" and, on Windows, \"/\" prefixes are considered switches. Switches
-    will always precede any arguments without switch prefixes. Switches can
-    optionally have a value specified using the \"=\" delimiter (e.g.
-    \"-switch=value\"). An argument of \"--\" will terminate switch parsing with all
-    subsequent tokens, regardless of prefix, being interpreted as non-switch
-    arguments. Switch names should be lowercase ASCII and will be converted to
-    such if necessary. Switch values will retain the original case and UTF8
-    encoding. This class can be used before CefInitialize() is called.
+    """Class used to create and/or parse command line arguments.
+
+    Arguments with \"--\", \"-\" and, on Windows, \"/\" prefixes are considered switches.
+    Switches will always precede any arguments without switch prefixes. Switches can
+    optionally have a value specified using the \"=\" delimiter (e.g. \"-switch=value\"). An
+    argument of \"--\" will terminate switch parsing with all subsequent tokens,
+    regardless of prefix, being interpreted as non-switch arguments. Switch names should
+    be lowercase ASCII and will be converted to such if necessary. Switch values will
+    retain the original case and UTF8 encoding. This class can be used before
+    ``CefInitialize``() is called.
     """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         ...
     def copy(self) -> CommandLine | None:
-        """Returns a writable copy of this object."""
+        """Return a writable copy of this object.
+
+        Returns:
+            CommandLine | None: A writable copy of this object.
+        """
         ...
     def init_from_string(self, command_line: str) -> None:
-        """Initialize the command line with the string returned by calling
-        GetCommandLineW(). This method is only supported on Windows.
+        """Initialize the command line with the string returned by calling GetCommandLineW().
+
+        This method is only supported on Windows.
+
+        Args:
+            command_line (str):
         """
         ...
     def reset(self) -> None:
-        """Reset the command-line switches and arguments but leave the program
-        component unchanged.
-        """
+        """Reset the command-line switches and arguments but leave the program component unchanged."""
         ...
     def get_argv(self) -> list[str]:
         """Retrieve the original command line string as a vector of strings.
-        The argv array:
-        `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+
+        The argv array: `{ program, [(--|-|/)switch[=value]]*, [--], [argument]* }`
+
+        Returns:
+            list[str]
         """
         ...
     def get_command_line_string(self) -> str:
-        """Constructs and returns the represented command line string. Use this
-        method cautiously because quoting behavior is unclear.
+        """Constructs and returns the represented command line string.
+
+        Use this method cautiously because quoting behavior is unclear.
+
+        Returns:
+            str
         """
         ...
     def get_program(self) -> str:
-        """Get the program part of the command line string (the first item)."""
+        """Get the program part of the command line string (the first item).
+
+        Returns:
+            str
+        """
         ...
     def set_program(self, program: str) -> None:
-        """Set the program part of the command line string (the first item)."""
+        """Set the program part of the command line string (the first item).
+
+        Args:
+            program (str):
+        """
         ...
     def has_switches(self) -> bool:
-        """Returns true if the command line has switches."""
+        """Return ``True`` if the command line has switches.
+
+        Returns:
+            bool: ``True`` if the command line has switches.
+        """
         ...
     def has_switch(self, name: str) -> bool:
-        """Returns true if the command line contains the given switch."""
+        """Return ``True`` if the command line contains the given switch.
+
+        Args:
+            name (str):
+        Returns:
+            bool: ``True`` if the command line contains the given switch.
+        """
         ...
     def get_switch_value(self, name: str) -> str:
-        """Returns the value associated with the given switch. If the switch has no
-        value or isn't present this method returns the empty string.
+        """Return the value associated with the given switch.
+
+        If the switch has no value or isn't present this method returns the empty string.
+
+        Args:
+            name (str):
+        Returns:
+            str: The value associated with the given switch.
         """
         ...
     def get_switches(self) -> dict[str, str]:
-        """Returns the map of switch names and values. If a switch has no value an
-        empty string is returned.
+        """Return the map of switch names and values.
+
+        If a switch has no value an empty string is returned.
+
+        Returns:
+            dict[str, str]: The map of switch names and values.
         """
         ...
     def append_switch(self, name: str) -> None:
-        """Add a switch to the end of the command line."""
+        """Add a switch to the end of the command line.
+
+        Args:
+            name (str):
+        """
         ...
     def append_switch_with_value(self, name: str, value: str) -> None:
-        """Add a switch with the specified value to the end of the command line. If
-        the switch has no value pass an empty value string.
+        """Add a switch with the specified value to the end of the command line.
+
+        If the switch has no value pass an empty value string.
+
+        Args:
+            name (str):
+            value (str):
         """
         ...
     def remove_switch(self, name: str) -> None:
-        """Remove a switch from the command line. If no such switch is present, this
-        has no effect.
+        """Remove a switch from the command line.
+
+        If no such switch is present, this has no effect.
+
+        Args:
+            name (str):
         """
         ...
     def has_arguments(self) -> bool:
-        """True if there are remaining command line arguments."""
+        """True if there are remaining command line arguments.
+
+        Returns:
+            bool
+        """
         ...
     def get_arguments(self) -> list[str]:
-        """Get the remaining command line arguments."""
+        """Get the remaining command line arguments.
+
+        Returns:
+            list[str]
+        """
         ...
     def append_argument(self, argument: str) -> None:
-        """Add an argument to the end of the command line."""
+        """Add an argument to the end of the command line.
+
+        Args:
+            argument (str):
+        """
         ...
     def prepend_wrapper(self, wrapper: str) -> None:
         """Insert a command before the current command.
+
         Common for debuggers, like \"valgrind\" or \"gdb --args\".
+
+        Args:
+            wrapper (str):
         """
         ...
     @staticmethod
     def create_command_line() -> CommandLine | None:
-        """Create a new CefCommandLine instance."""
+        """Create a new :class:`CommandLine` instance.
+
+        Returns:
+            CommandLine | None
+        """
         ...
     @staticmethod
     def get_global_command_line() -> CommandLine | None:
-        """Returns the singleton global CefCommandLine object. The returned object
-        will be read-only.
+        """Return the singleton global :class:`CommandLine` object.
+
+        The returned object will be read-only.
+
+        Returns:
+            CommandLine | None: The singleton global ``CefCommandLine`` object.
         """
         ...
 
 
 class Component:
-    """Class representing a snapshot of a component's state at the time of
-    retrieval. To get updated information, retrieve a new CefComponent object
-    via CefComponentUpdater::GetComponentByID or GetComponents. The methods of
-    this class may be called on any thread.
+    """Class representing a snapshot of a component's state at the time of retrieval.
+
+    To get updated information, retrieve a new :class:`Component` object via
+    :meth:`ComponentUpdater.get_component_by_id` or GetComponents. The methods of this
+    class may be called on any thread.
     """
     def get_id(self) -> str:
-        """Returns the unique identifier for this component."""
+        """Return the unique identifier for this component.
+
+        Returns:
+            str: The unique identifier for this component.
+        """
         ...
     def get_name(self) -> str:
-        """Returns the human-readable name of this component.
+        """Return the human-readable name of this component.
+
         Returns an empty string if the component is not installed.
+
+        Returns:
+            str: The human-readable name of this component.
         """
         ...
     def get_version(self) -> str:
-        """Returns the version of this component as a string (e.g., \"1.2.3.4\").
+        """Return the version of this component as a string (e.g., \"1.2.3.4\").
+
         Returns an empty string if the component is not installed.
+
+        Returns:
+            str: The version of this component as a string (e.g., \"1.2.3.4\").
         """
         ...
     def get_state(self) -> ComponentState:
-        """Returns the state of this component at the time this object was created.
+        """Return the state of this component at the time this object was created.
+
         A component is considered installed when its state is one of:
         CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or
         CEF_COMPONENT_STATE_RUN.
+
+        Returns:
+            ComponentState: The state of this component at the time this object was created.
         """
         ...
 
 
 class ComponentUpdater:
-    """This class provides access to Chromium's component updater service, allowing
-    clients to discover registered components and trigger on-demand updates. The
-    methods of this class may only be called on the browser process UI thread.
-    If the CEF context is not initialized or the component updater service is
-    not available, methods will return safe defaults (0, nullptr, or empty).
+    """This class provides access to Chromium's component updater service, allowing clients to discover registered components and trigger on-demand updates.
+
+    The methods of this class may only be called on the browser process UI thread. If
+    the CEF context is not initialized or the component updater service is not
+    available, methods will return safe defaults (0, ``None``, or empty).
     """
     def get_component_count(self) -> int:
-        """Returns the number of registered components, or 0 if the service is not
-        available.
+        """Return the number of registered components, or 0 if the service is not available.
+
+        Returns:
+            int: The number of registered components, or 0 if the service is not  available.
         """
         ...
     def get_components(self) -> list[Component]:
-        """Populates |components| with all registered components. Any existing
-        contents will be cleared first.
+        """Populates ``components`` with all registered components.
+
+        Any existing contents will be cleared first.
+
+        Returns:
+            list[Component]
         """
         ...
     def get_component_by_id(self, component_id: str) -> Component | None:
-        """Returns the component with the specified |component_id|, or nullptr if
-        not found or the service is not available.
+        """Return the component with the specified ``component_id``, or ``None`` if not found or the service is not available.
+
+        Args:
+            component_id (str):
+        Returns:
+            Component | None: The component with the specified ``component_id``, or ``None`` if  not found or the service is not available.
         """
         ...
     def update(self, component_id: str, priority: ComponentUpdatePriority | int, callback: ComponentUpdateCallback | None) -> None:
-        """Triggers an on-demand update for the component with the specified
-        |component_id|. |priority| specifies whether the update should be
-        processed in the background or foreground. Use
-        CEF_COMPONENT_UPDATE_PRIORITY_FOREGROUND for user-initiated updates.
+        """Trigger an on-demand update for the component with the specified ``component_id``.
 
-        |callback| will be called asynchronously on the UI thread when the
-        update operation completes. The callback is always executed, including
-        when the component is already up-to-date (returns
-        CEF_COMPONENT_UPDATE_ERROR_NONE), when the requested component doesn't
-        exist, or when the service is unavailable (returns
-        CEF_COMPONENT_UPDATE_ERROR_SERVICE_ERROR). The callback may be nullptr
-        if no notification is needed.
+        ``priority`` specifies whether the update should be processed in the background or
+        foreground. Use CEF_COMPONENT_UPDATE_PRIORITY_FOREGROUND for user-initiated updates.
+
+        ``callback`` will be called asynchronously on the UI thread when the update
+        operation completes. The callback is always executed, including when the component
+        is already up-to-date (returns CEF_COMPONENT_UPDATE_ERROR_NONE), when the requested
+        component doesn't exist, or when the service is unavailable (returns
+        CEF_COMPONENT_UPDATE_ERROR_SERVICE_ERROR). The callback may be ``None`` if no
+        notification is needed.
+
+        Args:
+            component_id (str):
+            priority (ComponentUpdatePriority | int):
+            callback (ComponentUpdateCallback | None):
         """
         ...
     @staticmethod
     def get_component_updater() -> ComponentUpdater | None:
-        """Returns the global CefComponentUpdater singleton. Returns nullptr if
-        called from the incorrect thread.
+        """Return the global :class:`ComponentUpdater` singleton.
+
+        Returns ``None`` if called from the incorrect thread.
+
+        Returns:
+            ComponentUpdater | None: The global ``CefComponentUpdater`` singleton.
         """
         ...
 
 
 class ContextMenuParams:
-    """Provides information about the context menu state. The methods of this class
-    can only be accessed on browser process the UI thread.
+    """Provides information about the context menu state.
+
+    The methods of this class can only be accessed on browser process the UI thread.
     """
     def get_x_coord(self) -> int:
-        """Returns the X coordinate of the mouse where the context menu was invoked.
+        """Return the X coordinate of the mouse where the context menu was invoked.
+
         Coords are relative to the associated RenderView's origin.
+
+        Returns:
+            int: The X coordinate of the mouse where the context menu was invoked.
         """
         ...
     def get_y_coord(self) -> int:
-        """Returns the Y coordinate of the mouse where the context menu was invoked.
+        """Return the Y coordinate of the mouse where the context menu was invoked.
+
         Coords are relative to the associated RenderView's origin.
+
+        Returns:
+            int: The Y coordinate of the mouse where the context menu was invoked.
         """
         ...
     def get_type_flags(self) -> ContextMenuTypeFlags:
-        """Returns flags representing the type of node that the context menu was
-        invoked on.
+        """Return flags representing the type of node that the context menu was invoked on.
+
+        Returns:
+            ContextMenuTypeFlags: Flags representing the type of node that the context menu was  invoked on.
         """
         ...
     def get_link_url(self) -> str:
-        """Returns the URL of the link, if any, that encloses the node that the
-        context menu was invoked on.
+        """Return the URL of the link, if any, that encloses the node that the context menu was invoked on.
+
+        Returns:
+            str: The URL of the link, if any, that encloses the node that the  context menu was invoked on.
         """
         ...
     def get_unfiltered_link_url(self) -> str:
-        """Returns the link URL, if any, to be used ONLY for \"copy link address\". We
-        don't validate this field in the frontend process.
+        """Return the link URL, if any, to be used ONLY for \"copy link address\".
+
+        We don't validate this field in the frontend process.
+
+        Returns:
+            str: The link URL, if any, to be used ONLY for \"copy link address\".
         """
         ...
     def get_source_url(self) -> str:
-        """Returns the source URL, if any, for the element that the context menu was
-        invoked on. Example of elements with source URLs are img, audio, and
-        video.
+        """Return the source URL, if any, for the element that the context menu was invoked on.
+
+        Example of elements with source URLs are img, audio, and video.
+
+        Returns:
+            str: The source URL, if any, for the element that the context menu was  invoked on.
         """
         ...
     def has_image_contents(self) -> bool:
-        """Returns true if the context menu was invoked on an image which has
-        non-empty contents.
+        """Return ``True`` if the context menu was invoked on an image which has non-empty contents.
+
+        Returns:
+            bool: ``True`` if the context menu was invoked on an image which has  non-empty contents.
         """
         ...
     def get_title_text(self) -> str:
-        """Returns the title text or the alt text if the context menu was invoked on
-        an image.
+        """Return the title text or the alt text if the context menu was invoked on an image.
+
+        Returns:
+            str: The title text or the alt text if the context menu was invoked on  an image.
         """
         ...
     def get_page_url(self) -> str:
-        """Returns the URL of the top level page that the context menu was invoked
-        on.
+        """Return the URL of the top level page that the context menu was invoked on.
+
+        Returns:
+            str: The URL of the top level page that the context menu was invoked  on.
         """
         ...
     def get_frame_url(self) -> str:
-        """Returns the URL of the subframe that the context menu was invoked on."""
+        """Return the URL of the subframe that the context menu was invoked on.
+
+        Returns:
+            str: The URL of the subframe that the context menu was invoked on.
+        """
         ...
     def get_frame_charset(self) -> str:
-        """Returns the character encoding of the subframe that the context menu was
-        invoked on.
+        """Return the character encoding of the subframe that the context menu was invoked on.
+
+        Returns:
+            str: The character encoding of the subframe that the context menu was  invoked on.
         """
         ...
     def get_media_type(self) -> ContextMenuMediaType:
-        """Returns the type of context node that the context menu was invoked on."""
+        """Return the type of context node that the context menu was invoked on.
+
+        Returns:
+            ContextMenuMediaType: The type of context node that the context menu was invoked on.
+        """
         ...
     def get_media_state_flags(self) -> ContextMenuMediaStateFlags:
-        """Returns flags representing the actions supported by the media element, if
-        any, that the context menu was invoked on.
+        """Return flags representing the actions supported by the media element, if any, that the context menu was invoked on.
+
+        Returns:
+            ContextMenuMediaStateFlags: Flags representing the actions supported by the media element, if  any, that the context menu was invoked on.
         """
         ...
     def get_selection_text(self) -> str:
-        """Returns the text of the selection, if any, that the context menu was
-        invoked on.
+        """Return the text of the selection, if any, that the context menu was invoked on.
+
+        Returns:
+            str: The text of the selection, if any, that the context menu was  invoked on.
         """
         ...
     def get_misspelled_word(self) -> str:
-        """Returns the text of the misspelled word, if any, that the context menu was
-        invoked on.
+        """Return the text of the misspelled word, if any, that the context menu was invoked on.
+
+        Returns:
+            str: The text of the misspelled word, if any, that the context menu was  invoked on.
         """
         ...
     def get_dictionary_suggestions(self) -> tuple[bool, list[str]]:
-        """Returns true if suggestions exist, false otherwise. Fills in |suggestions|
-        from the spell check service for the misspelled word if there is one.
+        """Return ``True`` if suggestions exist, ``False`` otherwise.
+
+        Fills in ``suggestions`` from the spell check service for the misspelled word if
+        there is one.
+
+        Returns:
+            tuple[bool, list[str]]: ``True`` if suggestions exist, ``False`` otherwise.
         """
         ...
     def is_editable(self) -> bool:
-        """Returns true if the context menu was invoked on an editable node."""
+        """Return ``True`` if the context menu was invoked on an editable node.
+
+        Returns:
+            bool: ``True`` if the context menu was invoked on an editable node.
+        """
         ...
     def is_spell_check_enabled(self) -> bool:
-        """Returns true if the context menu was invoked on an editable node where
-        spell-check is enabled.
+        """Return ``True`` if the context menu was invoked on an editable node where spell-check is enabled.
+
+        Returns:
+            bool: ``True`` if the context menu was invoked on an editable node where  spell-check is enabled.
         """
         ...
     def get_edit_state_flags(self) -> ContextMenuEditStateFlags:
-        """Returns flags representing the actions supported by the editable node, if
-        any, that the context menu was invoked on.
+        """Return flags representing the actions supported by the editable node, if any, that the context menu was invoked on.
+
+        Returns:
+            ContextMenuEditStateFlags: Flags representing the actions supported by the editable node, if  any, that the context menu was invoked on.
         """
         ...
     def is_custom_menu(self) -> bool:
-        """Returns true if the context menu contains items specified by the renderer
-        process.
+        """Return ``True`` if the context menu contains items specified by the renderer process.
+
+        Returns:
+            bool: ``True`` if the context menu contains items specified by the renderer  process.
         """
         ...
 
 
 class CookieManager:
-    """Class used for managing cookies. The methods of this class may be called on
-    any thread unless otherwise indicated.
+    """Class used for managing cookies.
+
+    The methods of this class may be called on any thread unless otherwise indicated.
     """
     def visit_all_cookies(self, visitor: CookieVisitor) -> bool:
-        """Visit all cookies on the UI thread. The returned cookies are ordered by
-        longest path, then by earliest creation date. Returns false if cookies
-        cannot be accessed.
+        """Visit all cookies on the UI thread.
+
+        The returned cookies are ordered by longest path, then by earliest creation date.
+        Returns ``False`` if cookies cannot be accessed.
+
+        Args:
+            visitor (CookieVisitor):
+        Returns:
+            bool
         """
         ...
     def visit_url_cookies(self, url: str, include_http_only: bool, visitor: CookieVisitor) -> bool:
-        """Visit a subset of cookies on the UI thread. The results are filtered by
-        the given url scheme, host, domain and path. If |includeHttpOnly| is true
-        HTTP-only cookies will also be included in the results. The returned
-        cookies are ordered by longest path, then by earliest creation date.
-        Returns false if cookies cannot be accessed.
+        """Visit a subset of cookies on the UI thread.
+
+        The results are filtered by the given url scheme, host, domain and path. If
+        ``include_http_only`` is ``True`` HTTP-only cookies will also be included in the
+        results. The returned cookies are ordered by longest path, then by earliest creation
+        date. Returns ``False`` if cookies cannot be accessed.
+
+        Args:
+            url (str):
+            include_http_only (bool): True  HTTP-only cookies will also be included in the results.
+            visitor (CookieVisitor):
+        Returns:
+            bool
         """
         ...
     def set_cookie(self, url: str, cookie: Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, CookieSameSite, CookiePriority], callback: SetCookieCallback | None) -> bool:
-        """Sets a cookie given a valid URL and explicit user-provided cookie
-        attributes. This function expects each attribute to be well-formed. It
-        will check for disallowed characters (e.g. the ';' character is disallowed
-        within the cookie value attribute) and fail without setting the cookie if
-        such characters are found. If |callback| is non-NULL it will be executed
-        asnychronously on the UI thread after the cookie has been set. Returns
-        false if an invalid URL is specified or if cookies cannot be accessed.
+        """Set a cookie given a valid URL and explicit user-provided cookie attributes.
+
+        This function expects each attribute to be well-formed. It will check for disallowed
+        characters (e.g. the ';' character is disallowed within the cookie value attribute)
+        and fail without setting the cookie if such characters are found. If ``callback`` is
+        non-``None`` it will be executed asnychronously on the UI thread after the cookie
+        has been set. Returns ``False`` if an invalid URL is specified or if cookies cannot
+        be accessed.
+
+        Args:
+            url (str):
+            cookie (Cookie | tuple[str, str, str, str, int, int, datetime.datetime | None, datetime.datetime | None, int, datetime.datetime | None, CookieSameSite, CookiePriority]):
+            callback (SetCookieCallback | None): Non-``None`` it will be executed  asnychronously on the UI thread after the cookie has been set.
+        Returns:
+            bool
         """
         ...
     def delete_cookies(self, url: str | None, cookie_name: str | None, callback: DeleteCookiesCallback | None) -> bool:
-        """Delete all cookies that match the specified parameters. If both |url| and
-        |cookie_name| values are specified all host and domain cookies matching
-        both will be deleted. If only |url| is specified all host cookies (but not
-        domain cookies) irrespective of path will be deleted. If |url| is empty
-        all cookies for all hosts and domains will be deleted. If |callback| is
-        non-NULL it will be executed asnychronously on the UI thread after the
-        cookies have been deleted. Returns false if a non-empty invalid URL is
-        specified or if cookies cannot be accessed. Cookies can alternately be
-        deleted using the Visit*Cookies() methods.
+        """Delete all cookies that match the specified parameters.
+
+        If both ``url`` and ``cookie_name`` values are specified all host and domain cookies
+        matching both will be deleted. If only ``url`` is specified all host cookies (but
+        not domain cookies) irrespective of path will be deleted. If ``url`` is empty all
+        cookies for all hosts and domains will be deleted. If ``callback`` is non-``None``
+        it will be executed asnychronously on the UI thread after the cookies have been
+        deleted. Returns ``False`` if a non-empty invalid URL is specified or if cookies
+        cannot be accessed. Cookies can alternately be deleted using the Visit*Cookies()
+        methods.
+
+        Args:
+            url (str | None): Empty  all cookies for all hosts and domains will be deleted.
+            cookie_name (str | None):
+            callback (DeleteCookiesCallback | None): Non-``None`` it will be executed asnychronously on the UI thread after the  cookies have been deleted.
+        Returns:
+            bool
         """
         ...
     def flush_store(self, callback: CompletionCallback | None) -> bool:
-        """Flush the backing store (if any) to disk. If |callback| is non-NULL it
-        will be executed asnychronously on the UI thread after the flush is
-        complete. Returns false if cookies cannot be accessed.
+        """Flush the backing store (if any) to disk.
+
+        If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
+        after the flush is complete. Returns ``False`` if cookies cannot be accessed.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the flush is  complete.
+        Returns:
+            bool
         """
         ...
     @staticmethod
     def get_global_manager(callback: CompletionCallback | None) -> CookieManager | None:
-        """Returns the global cookie manager. By default data will be stored at
-        cef_settings_t.cache_path if specified or in memory otherwise. If
-        |callback| is non-NULL it will be executed asnychronously on the UI thread
-        after the manager's storage has been initialized. Using this method is
-        equivalent to calling
-        CefRequestContext::GetGlobalContext()->GetDefaultCookieManager().
+        """Return the global cookie manager.
+
+        By default data will be stored at cef_settings_t.cache_path if specified or in
+        memory otherwise. If ``callback`` is non-``None`` it will be executed asnychronously
+        on the UI thread after the manager's storage has been initialized. Using this method
+        is equivalent to calling
+        :meth:`RequestContext.get_global_context`->GetDefaultCookieManager().
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's storage has been initialized.
+        Returns:
+            CookieManager | None: The global cookie manager.
         """
         ...
 
 
 class DictionaryValue:
-    """Class representing a dictionary value. Can be used on any process and
-    thread.
+    """Class representing a dictionary value.
+
+    Can be used on any process and thread.
     """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. This object may become invalid if
-        the underlying data is owned by another object (e.g. list or dictionary)
-        and that other object is then modified or destroyed. Do not call any other
-        methods if this method returns false.
+        """Return ``True`` if this object is valid.
+
+        This object may become invalid if the underlying data is owned by another object
+        (e.g. list or dictionary) and that other object is then modified or destroyed. Do
+        not call any other methods if this method returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_owned(self) -> bool:
-        """Returns true if this object is currently owned by another object."""
+        """Return ``True`` if this object is currently owned by another object.
+
+        Returns:
+            bool: ``True`` if this object is currently owned by another object.
+        """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         ...
     def is_same(self, that: DictionaryValue) -> bool:
-        """Returns true if this object and |that| object have the same underlying
-        data. If true modifications to this object will also affect |that| object
-        and vice-versa.
+        """Return ``True`` if this object and ``that`` object have the same underlying data.
+
+        If ``True`` modifications to this object will also affect ``that`` object and
+        vice-versa.
+
+        Args:
+            that (DictionaryValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have the same underlying  data.
         """
         ...
     def is_equal(self, that: DictionaryValue) -> bool:
-        """Returns true if this object and |that| object have an equivalent
-        underlying value but are not necessarily the same object.
+        """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
+
+        Args:
+            that (DictionaryValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
         """
         ...
     def copy(self, exclude_empty_children: bool) -> DictionaryValue | None:
-        """Returns a writable copy of this object. If |exclude_empty_children| is
-        true any empty dictionaries or lists will be excluded from the copy.
+        """Return a writable copy of this object.
+
+        If ``exclude_empty_children`` is ``True`` any empty dictionaries or lists will be
+        excluded from the copy.
+
+        Args:
+            exclude_empty_children (bool): True any empty dictionaries or lists will be excluded from the copy.
+        Returns:
+            DictionaryValue | None: A writable copy of this object.
         """
         ...
     def get_size(self) -> int:
-        """Returns the number of values."""
+        """Return the number of values.
+
+        Returns:
+            int: The number of values.
+        """
         ...
     def clear(self) -> bool:
-        """Removes all values. Returns true on success."""
+        """Remove all values.
+
+        Returns ``True`` on success.
+
+        Returns:
+            bool
+        """
         ...
     def has_key(self, key: str) -> bool:
-        """Returns true if the current dictionary has a value for the given key."""
+        """Return ``True`` if the current dictionary has a value for the given key.
+
+        Args:
+            key (str):
+        Returns:
+            bool: ``True`` if the current dictionary has a value for the given key.
+        """
         ...
     def get_keys(self) -> tuple[bool, list[str]]:
-        """Reads all keys for this dictionary into the specified vector."""
+        """Read all keys for this dictionary into the specified vector.
+
+        Returns:
+            tuple[bool, list[str]]
+        """
         ...
     def remove(self, key: str) -> bool:
-        """Removes the value at the specified key. Returns true is the value was
-        removed successfully.
+        """Remove the value at the specified key.
+
+        Returns ``True`` is the value was removed successfully.
+
+        Args:
+            key (str):
+        Returns:
+            bool
         """
         ...
     def get_type(self, key: str) -> ValueType:
-        """Returns the value type for the specified key."""
+        """Return the value type for the specified key.
+
+        Args:
+            key (str):
+        Returns:
+            ValueType: The value type for the specified key.
+        """
         ...
     def get_value(self, key: str) -> Value | None:
-        """Returns the value at the specified key. For simple types the returned
-        value will copy existing data and modifications to the value will not
-        modify this object. For complex types (binary, dictionary and list) the
-        returned value will reference existing data and modifications to the value
-        will modify this object.
+        """Return the value at the specified key.
+
+        For simple types the returned value will copy existing data and modifications to the
+        value will not modify this object. For complex types (binary, dictionary and list)
+        the returned value will reference existing data and modifications to the value will
+        modify this object.
+
+        Args:
+            key (str):
+        Returns:
+            Value | None: The value at the specified key.
         """
         ...
     def get_bool(self, key: str) -> bool:
-        """Returns the value at the specified key as type bool."""
+        """Return the value at the specified key as type bool.
+
+        Args:
+            key (str):
+        Returns:
+            bool: The value at the specified key as type bool.
+        """
         ...
     def get_int(self, key: str) -> int:
-        """Returns the value at the specified key as type int."""
+        """Return the value at the specified key as type int.
+
+        Args:
+            key (str):
+        Returns:
+            int: The value at the specified key as type int.
+        """
         ...
     def get_double(self, key: str) -> float:
-        """Returns the value at the specified key as type double."""
+        """Return the value at the specified key as type double.
+
+        Args:
+            key (str):
+        Returns:
+            float: The value at the specified key as type double.
+        """
         ...
     def get_string(self, key: str) -> str:
-        """Returns the value at the specified key as type string."""
+        """Return the value at the specified key as type string.
+
+        Args:
+            key (str):
+        Returns:
+            str: The value at the specified key as type string.
+        """
         ...
     def get_binary(self, key: str) -> BinaryValue | None:
-        """Returns the value at the specified key as type binary. The returned
-        value will reference existing data.
+        """Return the value at the specified key as type binary.
+
+        The returned value will reference existing data.
+
+        Args:
+            key (str):
+        Returns:
+            BinaryValue | None: The value at the specified key as type binary.
         """
         ...
     def get_dictionary(self, key: str) -> DictionaryValue | None:
-        """Returns the value at the specified key as type dictionary. The returned
-        value will reference existing data and modifications to the value will
+        """Return the value at the specified key as type dictionary.
+
+        The returned value will reference existing data and modifications to the value will
         modify this object.
+
+        Args:
+            key (str):
+        Returns:
+            DictionaryValue | None: The value at the specified key as type dictionary.
         """
         ...
     def get_list(self, key: str) -> ListValue | None:
-        """Returns the value at the specified key as type list. The returned value
-        will reference existing data and modifications to the value will modify
-        this object.
+        """Return the value at the specified key as type list.
+
+        The returned value will reference existing data and modifications to the value will
+        modify this object.
+
+        Args:
+            key (str):
+        Returns:
+            ListValue | None: The value at the specified key as type list.
         """
         ...
     def set_value(self, key: str, value: Value) -> bool:
-        """Sets the value at the specified key. Returns true if the value was set
-        successfully. If |value| represents simple data then the underlying data
-        will be copied and modifications to |value| will not modify this object.
-        If |value| represents complex data (binary, dictionary or list) then the
-        underlying data will be referenced and modifications to |value| will
-        modify this object.
+        """Set the value at the specified key.
+
+        Returns ``True`` if the value was set successfully. If ``value`` represents simple
+        data then the underlying data will be copied and modifications to ``value`` will not
+        modify this object. If ``value`` represents complex data (binary, dictionary or
+        list) then the underlying data will be referenced and modifications to ``value``
+        will modify this object.
+
+        Args:
+            key (str):
+            value (Value):
+        Returns:
+            bool
         """
         ...
     def set_null(self, key: str) -> bool:
-        """Sets the value at the specified key as type null. Returns true if the
-        value was set successfully.
+        """Set the value at the specified key as type null.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            key (str):
+        Returns:
+            bool
         """
         ...
     def set_bool(self, key: str, value: bool) -> bool:
-        """Sets the value at the specified key as type bool. Returns true if the
-        value was set successfully.
+        """Set the value at the specified key as type bool.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            key (str):
+            value (bool):
+        Returns:
+            bool
         """
         ...
     def set_int(self, key: str, value: int) -> bool:
-        """Sets the value at the specified key as type int. Returns true if the
-        value was set successfully.
+        """Set the value at the specified key as type int.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            key (str):
+            value (int):
+        Returns:
+            bool
         """
         ...
     def set_double(self, key: str, value: float) -> bool:
-        """Sets the value at the specified key as type double. Returns true if the
-        value was set successfully.
+        """Set the value at the specified key as type double.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            key (str):
+            value (float):
+        Returns:
+            bool
         """
         ...
     def set_string(self, key: str, value: str | None) -> bool:
-        """Sets the value at the specified key as type string. Returns true if the
-        value was set successfully.
+        """Set the value at the specified key as type string.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            key (str):
+            value (str | None):
+        Returns:
+            bool
         """
         ...
     def set_binary(self, key: str, value: BinaryValue) -> bool:
-        """Sets the value at the specified key as type binary. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified key as type binary.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            key (str):
+            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     def set_dictionary(self, key: str, value: DictionaryValue) -> bool:
-        """Sets the value at the specified key as type dict. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified key as type dict.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            key (str):
+            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     def set_list(self, key: str, value: ListValue) -> bool:
-        """Sets the value at the specified key as type list. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified key as type list.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            key (str):
+            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     @staticmethod
     def create() -> DictionaryValue:
-        """Creates a new object that is not owned by any other object."""
+        """Create a new object that is not owned by any other object.
+
+        Returns:
+            DictionaryValue
+        """
         ...
 
 
 class Display:
-    """This class typically, but not always, corresponds to a physical display
-    connected to the system. A fake Display may exist on a headless system, or a
-    Display may correspond to a remote, virtual display. All size and position
-    values are in density independent pixel (DIP) coordinates unless otherwise
-    indicated. Methods must be called on the browser process UI thread unless
-    otherwise indicated.
+    """This class typically, but not always, corresponds to a physical display connected to the system.
+
+    A fake Display may exist on a headless system, or a Display may correspond to a
+    remote, virtual display. All size and position values are in density independent
+    pixel (DIP) coordinates unless otherwise indicated. Methods must be called on the
+    browser process UI thread unless otherwise indicated.
 
     For details on coordinate systems and usage see
     https://chromiumembedded.github.io/cef/general_usage#coordinate-systems
     """
     def get_id(self) -> int:
-        """Returns the unique identifier for this Display."""
+        """Return the unique identifier for this Display.
+
+        Returns:
+            int: The unique identifier for this Display.
+        """
         ...
     def get_device_scale_factor(self) -> float:
-        """Returns this Display's device pixel scale factor. This specifies how much
-        the UI should be scaled when the actual output has more pixels than
-        standard displays (which is around 100~120dpi). The potential return
-        values differ by platform. Windowed browsers with 1.0 zoom will have a
-        JavaScript `window.devicePixelRatio` value matching the associated
-        Display's GetDeviceScaleFactor() value.
+        """Return this Display's device pixel scale factor.
+
+        This specifies how much the UI should be scaled when the actual output has more
+        pixels than standard displays (which is around 100~120dpi). The potential return
+        values differ by platform. Windowed browsers with 1.0 zoom will have a JavaScript
+        `window.devicePixelRatio` value matching the associated Display's
+        GetDeviceScaleFactor() value.
+
+        Returns:
+            float: This Display's device pixel scale factor.
         """
         ...
     def convert_point_to_pixels(self, point: Point | tuple[int, int]) -> Point:
-        """Convert |point| from DIP coordinates to pixel coordinates using this
-        Display's device scale factor.
+        """Convert ``point`` from DIP coordinates to pixel coordinates using this Display's device scale factor.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            Point
         """
         ...
     def convert_point_from_pixels(self, point: Point | tuple[int, int]) -> Point:
-        """Convert |point| from pixel coordinates to DIP coordinates using this
-        Display's device scale factor.
+        """Convert ``point`` from pixel coordinates to DIP coordinates using this Display's device scale factor.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            Point
         """
         ...
     def get_bounds(self) -> Rect:
-        """Returns this Display's bounds in DIP screen coordinates. This is the full
-        size of the display.
+        """Return this Display's bounds in DIP screen coordinates.
+
+        This is the full size of the display.
+
+        Returns:
+            Rect: This Display's bounds in DIP screen coordinates.
         """
         ...
     def get_work_area(self) -> Rect:
-        """Returns this Display's work area in DIP screen coordinates. This excludes
-        areas of the display that are occupied with window manager toolbars, etc.
+        """Return this Display's work area in DIP screen coordinates.
+
+        This excludes areas of the display that are occupied with window manager toolbars,
+        etc.
+
+        Returns:
+            Rect: This Display's work area in DIP screen coordinates.
         """
         ...
     def get_rotation(self) -> int:
-        """Returns this Display's rotation in degrees."""
+        """Return this Display's rotation in degrees.
+
+        Returns:
+            int: This Display's rotation in degrees.
+        """
         ...
     @staticmethod
     def get_primary_display() -> Display | None:
-        """Returns the primary Display."""
+        """Return the primary Display.
+
+        Returns:
+            Display | None: The primary Display.
+        """
         ...
     @staticmethod
     def get_display_nearest_point(point: Point | tuple[int, int], input_pixel_coords: bool) -> Display | None:
-        """Returns the Display nearest |point|. Set |input_pixel_coords| to true if
-        |point| is in pixel screen coordinates instead of DIP screen coordinates.
+        """Return the Display nearest ``point``.
+
+        Set ``input_pixel_coords`` to ``True`` if ``point`` is in pixel screen coordinates
+        instead of DIP screen coordinates.
+
+        Args:
+            point (Point | tuple[int, int]): In pixel screen coordinates instead of DIP screen coordinates.
+            input_pixel_coords (bool):
+        Returns:
+            Display | None: The Display nearest ``point``.
         """
         ...
     @staticmethod
     def get_display_matching_bounds(bounds: Rect | tuple[int, int, int, int], input_pixel_coords: bool) -> Display | None:
-        """Returns the Display that most closely intersects |bounds|.  Set
-        |input_pixel_coords| to true if |bounds| is in pixel screen coordinates
+        """Return the Display that most closely intersects ``bounds``.
+
+        Set ``input_pixel_coords`` to ``True`` if ``bounds`` is in pixel screen coordinates
         instead of DIP screen coordinates.
+
+        Args:
+            bounds (Rect | tuple[int, int, int, int]): In pixel screen coordinates  instead of DIP screen coordinates.
+            input_pixel_coords (bool):
+        Returns:
+            Display | None: The Display that most closely intersects ``bounds``.
         """
         ...
     @staticmethod
     def get_display_count() -> int:
-        """Returns the total number of Displays. Mirrored displays are excluded; this
-        method is intended to return the number of distinct, usable displays.
+        """Return the total number of Displays.
+
+        Mirrored displays are excluded; this method is intended to return the number of
+        distinct, usable displays.
+
+        Returns:
+            int: The total number of Displays.
         """
         ...
     @staticmethod
     def get_all_displays() -> list[Display]:
-        """Returns all Displays. Mirrored displays are excluded; this method is
-        intended to return distinct, usable displays.
+        """Return all Displays.
+
+        Mirrored displays are excluded; this method is intended to return distinct, usable
+        displays.
+
+        Returns:
+            list[Display]: All Displays.
         """
         ...
     @staticmethod
     def convert_screen_point_to_pixels(point: Point | tuple[int, int]) -> Point:
-        """Convert |point| from DIP screen coordinates to pixel screen coordinates.
+        """Convert ``point`` from DIP screen coordinates to pixel screen coordinates.
+
         This method is only used on Windows.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            Point
         """
         ...
     @staticmethod
     def convert_screen_point_from_pixels(point: Point | tuple[int, int]) -> Point:
-        """Convert |point| from pixel screen coordinates to DIP screen coordinates.
+        """Convert ``point`` from pixel screen coordinates to DIP screen coordinates.
+
         This method is only used on Windows.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            Point
         """
         ...
     @staticmethod
     def convert_screen_rect_to_pixels(rect: Rect | tuple[int, int, int, int]) -> Rect:
-        """Convert |rect| from DIP screen coordinates to pixel screen coordinates.
+        """Convert ``rect`` from DIP screen coordinates to pixel screen coordinates.
+
         This method is only used on Windows.
+
+        Args:
+            rect (Rect | tuple[int, int, int, int]):
+        Returns:
+            Rect
         """
         ...
     @staticmethod
     def convert_screen_rect_from_pixels(rect: Rect | tuple[int, int, int, int]) -> Rect:
-        """Convert |rect| from pixel screen coordinates to DIP screen coordinates.
+        """Convert ``rect`` from pixel screen coordinates to DIP screen coordinates.
+
         This method is only used on Windows.
+
+        Args:
+            rect (Rect | tuple[int, int, int, int]):
+        Returns:
+            Rect
         """
         ...
 
@@ -1578,68 +3015,146 @@ class Display:
 class DownloadItem:
     """Class used to represent a download item."""
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_in_progress(self) -> bool:
-        """Returns true if the download is in progress."""
+        """Return ``True`` if the download is in progress.
+
+        Returns:
+            bool: ``True`` if the download is in progress.
+        """
         ...
     def is_complete(self) -> bool:
-        """Returns true if the download is complete."""
+        """Return ``True`` if the download is complete.
+
+        Returns:
+            bool: ``True`` if the download is complete.
+        """
         ...
     def is_canceled(self) -> bool:
-        """Returns true if the download has been canceled."""
+        """Return ``True`` if the download has been canceled.
+
+        Returns:
+            bool: ``True`` if the download has been canceled.
+        """
         ...
     def is_interrupted(self) -> bool:
-        """Returns true if the download has been interrupted."""
+        """Return ``True`` if the download has been interrupted.
+
+        Returns:
+            bool: ``True`` if the download has been interrupted.
+        """
         ...
     def is_paused(self) -> bool:
-        """Returns true if the download has been paused."""
+        """Return ``True`` if the download has been paused.
+
+        Returns:
+            bool: ``True`` if the download has been paused.
+        """
         ...
     def get_interrupt_reason(self) -> DownloadInterruptReason:
-        """Returns the most recent interrupt reason."""
+        """Return the most recent interrupt reason.
+
+        Returns:
+            DownloadInterruptReason: The most recent interrupt reason.
+        """
         ...
     def get_current_speed(self) -> int:
-        """Returns a simple speed estimate in bytes/s."""
+        """Return a simple speed estimate in bytes/s.
+
+        Returns:
+            int: A simple speed estimate in bytes/s.
+        """
         ...
     def get_percent_complete(self) -> int:
-        """Returns the rough percent complete or -1 if the receive total size is
-        unknown.
+        """Return the rough percent complete or -1 if the receive total size is unknown.
+
+        Returns:
+            int: The rough percent complete or -1 if the receive total size is  unknown.
         """
         ...
     def get_total_bytes(self) -> int:
-        """Returns the total number of bytes."""
+        """Return the total number of bytes.
+
+        Returns:
+            int: The total number of bytes.
+        """
         ...
     def get_received_bytes(self) -> int:
-        """Returns the number of received bytes."""
+        """Return the number of received bytes.
+
+        Returns:
+            int: The number of received bytes.
+        """
         ...
     def get_start_time(self) -> datetime.datetime | None:
-        """Returns the time that the download started."""
+        """Return the time that the download started.
+
+        Returns:
+            datetime.datetime | None: The time that the download started.
+        """
         ...
     def get_end_time(self) -> datetime.datetime | None:
-        """Returns the time that the download ended."""
+        """Return the time that the download ended.
+
+        Returns:
+            datetime.datetime | None: The time that the download ended.
+        """
         ...
     def get_full_path(self) -> str:
-        """Returns the full path to the downloaded or downloading file."""
+        """Return the full path to the downloaded or downloading file.
+
+        Returns:
+            str: The full path to the downloaded or downloading file.
+        """
         ...
     def get_id(self) -> int:
-        """Returns the unique identifier for this download."""
+        """Return the unique identifier for this download.
+
+        Returns:
+            int: The unique identifier for this download.
+        """
         ...
     def get_url(self) -> str:
-        """Returns the URL."""
+        """Return the URL.
+
+        Returns:
+            str: The URL.
+        """
         ...
     def get_original_url(self) -> str:
-        """Returns the original URL before any redirections."""
+        """Return the original URL before any redirections.
+
+        Returns:
+            str: The original URL before any redirections.
+        """
         ...
     def get_suggested_file_name(self) -> str:
-        """Returns the suggested file name."""
+        """Return the suggested file name.
+
+        Returns:
+            str: The suggested file name.
+        """
         ...
     def get_content_disposition(self) -> str:
-        """Returns the content disposition."""
+        """Return the content disposition.
+
+        Returns:
+            str: The content disposition.
+        """
         ...
     def get_mime_type(self) -> str:
-        """Returns the mime type."""
+        """Return the mime type.
+
+        Returns:
+            str: The mime type.
+        """
         ...
 
 
@@ -1657,117 +3172,226 @@ class DownloadItemCallback:
 
 
 class DragData:
-    """Class used to represent drag data. The methods of this class may be called
-    on any thread.
+    """Class used to represent drag data.
+
+    The methods of this class may be called on any thread.
     """
     def clone(self) -> DragData | None:
-        """Returns a copy of the current object."""
+        """Return a copy of the current object.
+
+        Returns:
+            DragData | None: A copy of the current object.
+        """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if this object is read-only."""
+        """Return ``True`` if this object is read-only.
+
+        Returns:
+            bool: ``True`` if this object is read-only.
+        """
         ...
     def is_link(self) -> bool:
-        """Returns true if the drag data is a link."""
+        """Return ``True`` if the drag data is a link.
+
+        Returns:
+            bool: ``True`` if the drag data is a link.
+        """
         ...
     def is_fragment(self) -> bool:
-        """Returns true if the drag data is a text or html fragment."""
+        """Return ``True`` if the drag data is a text or html fragment.
+
+        Returns:
+            bool: ``True`` if the drag data is a text or html fragment.
+        """
         ...
     def is_file(self) -> bool:
-        """Returns true if the drag data is a file."""
+        """Return ``True`` if the drag data is a file.
+
+        Returns:
+            bool: ``True`` if the drag data is a file.
+        """
         ...
     def get_link_url(self) -> str:
-        """Return the link URL that is being dragged."""
+        """Return the link URL that is being dragged.
+
+        Returns:
+            str: The link URL that is being dragged.
+        """
         ...
     def get_link_title(self) -> str:
-        """Return the title associated with the link being dragged."""
+        """Return the title associated with the link being dragged.
+
+        Returns:
+            str: The title associated with the link being dragged.
+        """
         ...
     def get_link_metadata(self) -> str:
-        """Return the metadata, if any, associated with the link being dragged."""
+        """Return the metadata, if any, associated with the link being dragged.
+
+        Returns:
+            str: The metadata, if any, associated with the link being dragged.
+        """
         ...
     def get_fragment_text(self) -> str:
-        """Return the plain text fragment that is being dragged."""
+        """Return the plain text fragment that is being dragged.
+
+        Returns:
+            str: The plain text fragment that is being dragged.
+        """
         ...
     def get_fragment_html(self) -> str:
-        """Return the text/html fragment that is being dragged."""
+        """Return the text/html fragment that is being dragged.
+
+        Returns:
+            str: The text/html fragment that is being dragged.
+        """
         ...
     def get_fragment_base_url(self) -> str:
-        """Return the base URL that the fragment came from. This value is used for
-        resolving relative URLs and may be empty.
+        """Return the base URL that the fragment came from.
+
+        This value is used for resolving relative URLs and may be empty.
+
+        Returns:
+            str: The base URL that the fragment came from.
         """
         ...
     def get_file_name(self) -> str:
-        """Return the name of the file being dragged out of the browser window."""
+        """Return the name of the file being dragged out of the browser window.
+
+        Returns:
+            str: The name of the file being dragged out of the browser window.
+        """
         ...
     def get_file_contents(self, writer: StreamWriter | None) -> int:
-        """Write the contents of the file being dragged out of the web view into
-        |writer|. Returns the number of bytes sent to |writer|. If |writer| is
-        NULL this method will return the size of the file contents in bytes.
-        Call GetFileName() to get a suggested name for the file.
+        """Write the contents of the file being dragged out of the web view into ``writer``.
+
+        Returns the number of bytes sent to ``writer``. If ``writer`` is ``None`` this
+        method will return the size of the file contents in bytes. Call GetFileName() to get
+        a suggested name for the file.
+
+        Args:
+            writer (StreamWriter | None): ``None`` this method will return the size of the file contents in bytes.
+        Returns:
+            int
         """
         ...
     def get_file_names(self) -> tuple[bool, list[str]]:
-        """Retrieve the list of file names that are being dragged into the browser
-        window.
+        """Retrieve the list of file names that are being dragged into the browser window.
+
+        Returns:
+            tuple[bool, list[str]]
         """
         ...
     def get_file_paths(self) -> tuple[bool, list[str]]:
-        """Retrieve the list of file paths that are being dragged into the browser
-        window.
+        """Retrieve the list of file paths that are being dragged into the browser window.
+
+        Returns:
+            tuple[bool, list[str]]
         """
         ...
     def set_link_url(self, url: str | None) -> None:
-        """Set the link URL that is being dragged."""
+        """Set the link URL that is being dragged.
+
+        Args:
+            url (str | None):
+        """
         ...
     def set_link_title(self, title: str | None) -> None:
-        """Set the title associated with the link being dragged."""
+        """Set the title associated with the link being dragged.
+
+        Args:
+            title (str | None):
+        """
         ...
     def set_link_metadata(self, data: str | None) -> None:
-        """Set the metadata associated with the link being dragged."""
+        """Set the metadata associated with the link being dragged.
+
+        Args:
+            data (str | None):
+        """
         ...
     def set_fragment_text(self, text: str | None) -> None:
-        """Set the plain text fragment that is being dragged."""
+        """Set the plain text fragment that is being dragged.
+
+        Args:
+            text (str | None):
+        """
         ...
     def set_fragment_html(self, html: str | None) -> None:
-        """Set the text/html fragment that is being dragged."""
+        """Set the text/html fragment that is being dragged.
+
+        Args:
+            html (str | None):
+        """
         ...
     def set_fragment_base_url(self, base_url: str | None) -> None:
-        """Set the base URL that the fragment came from."""
+        """Set the base URL that the fragment came from.
+
+        Args:
+            base_url (str | None):
+        """
         ...
     def reset_file_contents(self) -> None:
-        """Reset the file contents. You should do this before calling
-        CefBrowserHost::DragTargetDragEnter as the web view does not allow us to
-        drag in this kind of data.
+        """Reset the file contents.
+
+        You should do this before calling :meth:`BrowserHost.drag_target_drag_enter` as the
+        web view does not allow us to drag in this kind of data.
         """
         ...
     def add_file(self, path: str, display_name: str | None) -> None:
-        """Add a file that is being dragged into the webview."""
+        """Add a file that is being dragged into the webview.
+
+        Args:
+            path (str):
+            display_name (str | None):
+        """
         ...
     def clear_filenames(self) -> None:
         """Clear list of filenames."""
         ...
     def get_image(self) -> Image | None:
-        """Get the image representation of drag data. May return NULL if no image
-        representation is available.
+        """Get the image representation of drag data.
+
+        May return ``None`` if no image representation is available.
+
+        Returns:
+            Image | None
         """
         ...
     def get_image_hotspot(self) -> Point:
-        """Get the image hotspot (drag start location relative to image dimensions)."""
+        """Get the image hotspot (drag start location relative to image dimensions).
+
+        Returns:
+            Point
+        """
         ...
     def has_image(self) -> bool:
-        """Returns true if an image representation of drag data is available."""
+        """Return ``True`` if an image representation of drag data is available.
+
+        Returns:
+            bool: ``True`` if an image representation of drag data is available.
+        """
         ...
     @staticmethod
     def create() -> DragData:
-        """Create a new CefDragData object."""
+        """Create a new :class:`DragData` object.
+
+        Returns:
+            DragData
+        """
         ...
 
 
 class FileDialogCallback:
     """Callback interface for asynchronous continuation of file dialog requests."""
     def continue_(self, file_paths: Sequence[str]) -> None:
-        """Continue the file selection. |file_paths| should be a single value or a
-        list of values depending on the dialog mode. An empty |file_paths| value
-        is treated the same as calling Cancel().
+        """Continue the file selection.
+
+        ``file_paths`` should be a single value or a list of values depending on the dialog
+        mode. An empty ``file_paths`` value is treated the same as calling Cancel().
+
+        Args:
+            file_paths (Sequence[str]):
         """
         ...
     def cancel(self) -> None:
@@ -1776,13 +3400,18 @@ class FileDialogCallback:
 
 
 class Frame:
-    """Class used to represent a frame in the browser window. When used in the
-    browser process the methods of this class may be called on any thread unless
-    otherwise indicated in the comments. When used in the render process the
-    methods of this class may only be called on the main thread.
+    """Class used to represent a frame in the browser window.
+
+    When used in the browser process the methods of this class may be called on any
+    thread unless otherwise indicated in the comments. When used in the render process
+    the methods of this class may only be called on the main thread.
     """
     def is_valid(self) -> bool:
-        """True if this object is currently attached to a valid frame."""
+        """True if this object is currently attached to a valid frame.
+
+        Returns:
+            bool
+        """
         ...
     def undo(self) -> None:
         """Execute undo in this frame."""
@@ -1809,375 +3438,702 @@ class Frame:
         """Execute select all in this frame."""
         ...
     def view_source(self) -> None:
-        """Save this frame's HTML source to a temporary file and open it in the
-        default text viewing application. This method can only be called from the
-        browser process.
+        """Save this frame's HTML source to a temporary file and open it in the default text viewing application.
+
+        This method can only be called from the browser process.
         """
         ...
     def get_source(self, visitor: StringVisitor) -> None:
-        """Retrieve this frame's HTML source as a string sent to the specified
-        visitor.
+        """Retrieve this frame's HTML source as a string sent to the specified visitor.
+
+        Args:
+            visitor (StringVisitor):
         """
         ...
     def get_text(self, visitor: StringVisitor) -> None:
-        """Retrieve this frame's display text as a string sent to the specified
-        visitor.
+        """Retrieve this frame's display text as a string sent to the specified visitor.
+
+        Args:
+            visitor (StringVisitor):
         """
         ...
     def load_request(self, request: Request) -> None:
-        """Load the request represented by the |request| object.
+        """Load the request represented by the ``request`` object.
 
         WARNING: This method will fail with \"bad IPC message\" reason
-        INVALID_INITIATOR_ORIGIN (213) unless you first navigate to the
-        request origin using some other mechanism (LoadURL, link click, etc).
+        INVALID_INITIATOR_ORIGIN (213) unless you first navigate to the request origin using
+        some other mechanism (LoadURL, link click, etc).
+
+        Args:
+            request (Request):
         """
         ...
     def load_url(self, url: str) -> None:
-        """Load the specified |url|."""
+        """Load the specified ``url``.
+
+        Args:
+            url (str):
+        """
         ...
     def execute_java_script(self, code: str, script_url: str | None, start_line: int) -> None:
-        """Execute a string of JavaScript code in this frame. The |script_url|
-        parameter is the URL where the script in question can be found, if any.
-        The renderer may request this URL to show the developer the source of the
-        error.  The |start_line| parameter is the base line number to use for
-        error reporting.
+        """Execute a string of JavaScript code in this frame.
+
+        The ``script_url`` parameter is the URL where the script in question can be found,
+        if any. The renderer may request this URL to show the developer the source of the
+        error.  The ``start_line`` parameter is the base line number to use for error
+        reporting.
+
+        Args:
+            code (str):
+            script_url (str | None): The URL where the script in question can be found, if any.
+            start_line (int): The base line number to use for  error reporting.
         """
         ...
     def is_main(self) -> bool:
-        """Returns true if this is the main (top-level) frame."""
+        """Return ``True`` if this is the main (top-level) frame.
+
+        Returns:
+            bool: ``True`` if this is the main (top-level) frame.
+        """
         ...
     def is_focused(self) -> bool:
-        """Returns true if this is the focused frame."""
+        """Return ``True`` if this is the focused frame.
+
+        Returns:
+            bool: ``True`` if this is the focused frame.
+        """
         ...
     def get_name(self) -> str:
-        """Returns the name for this frame. If the frame has an assigned name (for
-        example, set via the iframe \"name\" attribute) then that value will be
-        returned. Otherwise a unique name will be constructed based on the frame
-        parent hierarchy. The main (top-level) frame will always have an empty
+        """Return the name for this frame.
+
+        If the frame has an assigned name (for example, set via the iframe \"name\" attribute)
+        then that value will be returned. Otherwise a unique name will be constructed based
+        on the frame parent hierarchy. The main (top-level) frame will always have an empty
         name value.
+
+        Returns:
+            str: The name for this frame.
         """
         ...
     def get_identifier(self) -> str:
-        """Returns the globally unique identifier for this frame or empty if the
-        underlying frame does not yet exist.
+        """Return the globally unique identifier for this frame or empty if the underlying frame does not yet exist.
+
+        Returns:
+            str: The globally unique identifier for this frame or empty if the  underlying frame does not yet exist.
         """
         ...
     def get_parent(self) -> Frame | None:
-        """Returns the parent of this frame or NULL if this is the main (top-level)
-        frame.
+        """Return the parent of this frame or ``None`` if this is the main (top-level) frame.
+
+        Returns:
+            Frame | None: The parent of this frame or ``None`` if this is the main (top-level)  frame.
         """
         ...
     def get_url(self) -> str:
-        """Returns the URL currently loaded in this frame."""
+        """Return the URL currently loaded in this frame.
+
+        Returns:
+            str: The URL currently loaded in this frame.
+        """
         ...
     def get_browser(self) -> Browser | None:
-        """Returns the browser that this frame belongs to."""
+        """Return the browser that this frame belongs to.
+
+        Returns:
+            Browser | None: The browser that this frame belongs to.
+        """
         ...
     def create_url_request(self, request: Request, client: URLRequestClient) -> URLRequest | None:
-        """Create a new URL request that will be treated as originating from this
-        frame and the associated browser. Use CefURLRequest::Create instead if you
-        do not want the request to have this association, in which case it may be
-        handled differently (see documentation on that method). A request created
-        with this method may only originate from the browser process, and will
-        behave as follows:
-          - It may be intercepted by the client via CefResourceRequestHandler or
-            CefSchemeHandlerFactory.
-          - POST data may only contain a single element of type PDE_TYPE_FILE or
-            PDE_TYPE_BYTES.
+        """ Create a new URL request that will be treated as originating from this
+         frame and the associated browser. Use :meth:`URLRequest.create` instead if you
+         do not want the request to have this association, in which case it may be
+         handled differently (see documentation on that method). A request created
+         with this method may only originate from the browser process, and will
+         behave as follows:
+           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
+             :class:`SchemeHandlerFactory`.
+           - POST data may only contain a single element of type PDE_TYPE_FILE or
+             PDE_TYPE_BYTES.
 
-        The |request| object will be marked as read-only after calling this
-        method.
+        The ``request`` object will be marked as read-only after calling this method.
+
+        Args:
+            request (Request):
+            client (URLRequestClient):
+        Returns:
+            URLRequest | None
         """
         ...
     def send_process_message(self, target_process: ProcessId | int, message: ProcessMessage) -> None:
-        """Send a message to the specified |target_process|. Ownership of the message
-        contents will be transferred and the |message| reference will be
-        invalidated. Message delivery is not guaranteed in all cases (for example,
-        if the browser is closing, navigating, or if the target process crashes).
-        Send an ACK message back from the target process if confirmation is
-        required.
+        """Send a message to the specified ``target_process``.
+
+        Ownership of the message contents will be transferred and the ``message`` reference
+        will be invalidated. Message delivery is not guaranteed in all cases (for example,
+        if the browser is closing, navigating, or if the target process crashes). Send an
+        ACK message back from the target process if confirmation is required.
+
+        Args:
+            target_process (ProcessId | int):
+            message (ProcessMessage):
         """
         ...
 
 
 class Image:
-    """Container for a single image represented at different scale factors. All
-    image representations should be the same size in density independent pixel
-    (DIP) units. For example, if the image at scale factor 1.0 is 100x100 pixels
-    then the image at scale factor 2.0 should be 200x200 pixels -- both images
-    will display with a DIP size of 100x100 units. The methods of this class can
-    be called on any browser process thread.
+    """Container for a single image represented at different scale factors.
+
+    All image representations should be the same size in density independent pixel (DIP)
+    units. For example, if the image at scale factor 1.0 is 100x100 pixels then the
+    image at scale factor 2.0 should be 200x200 pixels -- both images will display with
+    a DIP size of 100x100 units. The methods of this class can be called on any browser
+    process thread.
     """
     def is_empty(self) -> bool:
-        """Returns true if this Image is empty."""
+        """Return ``True`` if this Image is empty.
+
+        Returns:
+            bool: ``True`` if this Image is empty.
+        """
         ...
     def is_same(self, that: Image) -> bool:
-        """Returns true if this Image and |that| Image share the same underlying
-        storage. Will also return true if both images are empty.
+        """Return ``True`` if this Image and ``that`` Image share the same underlying storage.
+
+        Will also return ``True`` if both images are empty.
+
+        Args:
+            that (Image):
+        Returns:
+            bool: ``True`` if this Image and ``that`` Image share the same underlying  storage.
         """
         ...
     def add_bitmap(self, scale_factor: float, pixel_width: int, pixel_height: int, color_type: ColorType | int, alpha_type: AlphaType | int, pixel_data: bytes | bytearray | memoryview) -> bool:
-        """Add a bitmap image representation for |scale_factor|. Only 32-bit
-        RGBA/BGRA formats are supported. |pixel_width| and |pixel_height| are the
-        bitmap representation size in pixel coordinates. |pixel_data| is the array
-        of pixel data and should be |pixel_width| x |pixel_height| x 4 bytes in
-        size. |color_type| and |alpha_type| values specify the pixel format.
+        """Add a bitmap image representation for ``scale_factor``.
+
+        Only 32-bit RGBA/BGRA formats are supported. ``pixel_width`` and ``pixel_height``
+        are the bitmap representation size in pixel coordinates. ``pixel_data`` is the array
+        of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in size.
+        ``color_type`` and ``alpha_type`` values specify the pixel format.
+
+        Args:
+            scale_factor (float):
+            pixel_width (int):
+            pixel_height (int): The  bitmap representation size in pixel coordinates.
+            color_type (ColorType | int):
+            alpha_type (AlphaType | int):
+            pixel_data (bytes | bytearray | memoryview): The array  of pixel data and should be ``pixel_width`` x ``pixel_height`` x 4 bytes in  size.
+        Returns:
+            bool
         """
         ...
     def add_png(self, scale_factor: float, png_data: bytes | bytearray | memoryview) -> bool:
-        """Add a PNG image representation for |scale_factor|. |png_data| is the image
-        data of size |png_data_size|. Any alpha transparency in the PNG data will
-        be maintained.
+        """Add a PNG image representation for ``scale_factor``.
+
+        ``png_data`` is the image data of size ``png_data_size``. Any alpha transparency in
+        the PNG data will be maintained.
+
+        Args:
+            scale_factor (float):
+            png_data (bytes | bytearray | memoryview): The image  data of size ``png_data_size``.
+        Returns:
+            bool
         """
         ...
     def add_jpeg(self, scale_factor: float, jpeg_data: bytes | bytearray | memoryview) -> bool:
-        """Create a JPEG image representation for |scale_factor|. |jpeg_data| is the
-        image data of size |jpeg_data_size|. The JPEG format does not support
-        transparency so the alpha byte will be set to 0xFF for all pixels.
+        """Create a JPEG image representation for ``scale_factor``.
+
+        ``jpeg_data`` is the image data of size ``jpeg_data_size``. The JPEG format does not
+        support transparency so the alpha byte will be set to 0xFF for all pixels.
+
+        Args:
+            scale_factor (float):
+            jpeg_data (bytes | bytearray | memoryview): The  image data of size ``jpeg_data_size``.
+        Returns:
+            bool
         """
         ...
     def get_width(self) -> int:
-        """Returns the image width in density independent pixel (DIP) units."""
+        """Return the image width in density independent pixel (DIP) units.
+
+        Returns:
+            int: The image width in density independent pixel (DIP) units.
+        """
         ...
     def get_height(self) -> int:
-        """Returns the image height in density independent pixel (DIP) units."""
+        """Return the image height in density independent pixel (DIP) units.
+
+        Returns:
+            int: The image height in density independent pixel (DIP) units.
+        """
         ...
     def has_representation(self, scale_factor: float) -> bool:
-        """Returns true if this image contains a representation for |scale_factor|."""
+        """Return ``True`` if this image contains a representation for ``scale_factor``.
+
+        Args:
+            scale_factor (float):
+        Returns:
+            bool: ``True`` if this image contains a representation for ``scale_factor``.
+        """
         ...
     def remove_representation(self, scale_factor: float) -> bool:
-        """Removes the representation for |scale_factor|. Returns true on success."""
+        """Remove the representation for ``scale_factor``.
+
+        Returns ``True`` on success.
+
+        Args:
+            scale_factor (float):
+        Returns:
+            bool
+        """
         ...
     def get_representation_info(self, scale_factor: float) -> tuple[bool, float, int, int]:
-        """Returns information for the representation that most closely matches
-        |scale_factor|. |actual_scale_factor| is the actual scale factor for the
-        representation. |pixel_width| and |pixel_height| are the representation
-        size in pixel coordinates. Returns true on success.
+        """Return information for the representation that most closely matches ``scale_factor``.
+
+        ``actual_scale_factor`` is the actual scale factor for the representation.
+        ``pixel_width`` and ``pixel_height`` are the representation size in pixel
+        coordinates. Returns ``True`` on success.
+
+        Args:
+            scale_factor (float):
+        Returns:
+            tuple[bool, float, int, int]: Information for the representation that most closely matches  ``scale_factor``.
         """
         ...
     def get_as_bitmap(self, scale_factor: float, color_type: ColorType | int, alpha_type: AlphaType | int) -> tuple[BinaryValue | None, int, int]:
-        """Returns the bitmap representation that most closely matches
-        |scale_factor|. Only 32-bit RGBA/BGRA formats are supported. |color_type|
-        and |alpha_type| values specify the desired output pixel format.
-        |pixel_width| and |pixel_height| are the output representation size in
-        pixel coordinates. Returns a CefBinaryValue containing the pixel data on
-        success or NULL on failure.
+        """Return the bitmap representation that most closely matches ``scale_factor``.
+
+        Only 32-bit RGBA/BGRA formats are supported. ``color_type`` and ``alpha_type``
+        values specify the desired output pixel format. ``pixel_width`` and ``pixel_height``
+        are the output representation size in pixel coordinates. Returns a
+        :class:`BinaryValue` containing the pixel data on success or ``None`` on failure.
+
+        Args:
+            scale_factor (float):
+            color_type (ColorType | int):
+            alpha_type (AlphaType | int):
+        Returns:
+            tuple[BinaryValue | None, int, int]: The bitmap representation that most closely matches  ``scale_factor``.
         """
         ...
     def get_as_png(self, scale_factor: float, with_transparency: bool) -> tuple[BinaryValue | None, int, int]:
-        """Returns the PNG representation that most closely matches |scale_factor|.
-        If |with_transparency| is true any alpha transparency in the image will be
-        represented in the resulting PNG data. |pixel_width| and |pixel_height|
-        are the output representation size in pixel coordinates. Returns a
-        CefBinaryValue containing the PNG image data on success or NULL on
-        failure.
+        """Return the PNG representation that most closely matches ``scale_factor``.
+
+        If ``with_transparency`` is ``True`` any alpha transparency in the image will be
+        represented in the resulting PNG data. ``pixel_width`` and ``pixel_height`` are the
+        output representation size in pixel coordinates. Returns a :class:`BinaryValue`
+        containing the PNG image data on success or ``None`` on failure.
+
+        Args:
+            scale_factor (float):
+            with_transparency (bool): True any alpha transparency in the image will be  represented in the resulting PNG data.
+        Returns:
+            tuple[BinaryValue | None, int, int]: The PNG representation that most closely matches ``scale_factor``.
         """
         ...
     def get_as_jpeg(self, scale_factor: float, quality: int) -> tuple[BinaryValue | None, int, int]:
-        """Returns the JPEG representation that most closely matches |scale_factor|.
-        |quality| determines the compression level with 0 == lowest and 100 ==
-        highest. The JPEG format does not support alpha transparency and the alpha
-        channel, if any, will be discarded. |pixel_width| and |pixel_height| are
-        the output representation size in pixel coordinates. Returns a
-        CefBinaryValue containing the JPEG image data on success or NULL on
-        failure.
+        """Return the JPEG representation that most closely matches ``scale_factor``.
+
+        ``quality`` determines the compression level with 0 == lowest and 100 == highest.
+        The JPEG format does not support alpha transparency and the alpha channel, if any,
+        will be discarded. ``pixel_width`` and ``pixel_height`` are the output
+        representation size in pixel coordinates. Returns a :class:`BinaryValue` containing
+        the JPEG image data on success or ``None`` on failure.
+
+        Args:
+            scale_factor (float):
+            quality (int):
+        Returns:
+            tuple[BinaryValue | None, int, int]: The JPEG representation that most closely matches ``scale_factor``.
         """
         ...
     @staticmethod
     def create_image() -> Image | None:
-        """Create a new CefImage. It will initially be empty. Use the Add*() methods
-        to add representations at different scale factors.
+        """Create a new :class:`Image`.
+
+        It will initially be empty. Use the Add*() methods to add representations at
+        different scale factors.
+
+        Returns:
+            Image | None
         """
         ...
 
 
 class JSDialogCallback:
-    """Callback interface used for asynchronous continuation of JavaScript dialog
-    requests.
-    """
+    """Callback interface used for asynchronous continuation of JavaScript dialog requests."""
     def continue_(self, success: bool, user_input: str | None) -> None:
-        """Continue the JS dialog request. Set |success| to true if the OK button was
-        pressed. The |user_input| value should be specified for prompt dialogs.
+        """Continue the JS dialog request.
+
+        Set ``success`` to ``True`` if the OK button was pressed. The ``user_input`` value
+        should be specified for prompt dialogs.
+
+        Args:
+            success (bool):
+            user_input (str | None):
         """
         ...
 
 
 class Layout:
-    """A Layout handles the sizing of the children of a Panel according to
-    implementation-specific heuristics. Methods must be called on the browser
-    process UI thread unless otherwise indicated.
+    """A Layout handles the sizing of the children of a Panel according to implementation-specific heuristics.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def as_box_layout(self) -> BoxLayout | None:
-        """Returns this Layout as a BoxLayout or NULL if this is not a BoxLayout."""
+        """Return this Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
+
+        Returns:
+            BoxLayout | None: This Layout as a BoxLayout or ``None`` if this is not a BoxLayout.
+        """
         ...
     def as_fill_layout(self) -> FillLayout | None:
-        """Returns this Layout as a FillLayout or NULL if this is not a FillLayout."""
+        """Return this Layout as a FillLayout or ``None`` if this is not a FillLayout.
+
+        Returns:
+            FillLayout | None: This Layout as a FillLayout or ``None`` if this is not a FillLayout.
+        """
         ...
     def is_valid(self) -> bool:
-        """Returns true if this Layout is valid."""
+        """Return ``True`` if this Layout is valid.
+
+        Returns:
+            bool: ``True`` if this Layout is valid.
+        """
         ...
 
 
 class ListValue:
-    """Class representing a list value. Can be used on any process and thread."""
+    """Class representing a list value.
+
+    Can be used on any process and thread.
+    """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. This object may become invalid if
-        the underlying data is owned by another object (e.g. list or dictionary)
-        and that other object is then modified or destroyed. Do not call any other
-        methods if this method returns false.
+        """Return ``True`` if this object is valid.
+
+        This object may become invalid if the underlying data is owned by another object
+        (e.g. list or dictionary) and that other object is then modified or destroyed. Do
+        not call any other methods if this method returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_owned(self) -> bool:
-        """Returns true if this object is currently owned by another object."""
+        """Return ``True`` if this object is currently owned by another object.
+
+        Returns:
+            bool: ``True`` if this object is currently owned by another object.
+        """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         ...
     def is_same(self, that: ListValue) -> bool:
-        """Returns true if this object and |that| object have the same underlying
-        data. If true modifications to this object will also affect |that| object
-        and vice-versa.
+        """Return ``True`` if this object and ``that`` object have the same underlying data.
+
+        If ``True`` modifications to this object will also affect ``that`` object and
+        vice-versa.
+
+        Args:
+            that (ListValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have the same underlying  data.
         """
         ...
     def is_equal(self, that: ListValue) -> bool:
-        """Returns true if this object and |that| object have an equivalent
-        underlying value but are not necessarily the same object.
+        """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
+
+        Args:
+            that (ListValue):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> ListValue | None:
-        """Returns a writable copy of this object."""
+        """Return a writable copy of this object.
+
+        Returns:
+            ListValue | None: A writable copy of this object.
+        """
         ...
     def set_size(self, size: int) -> bool:
-        """Sets the number of values. If the number of values is expanded all
-        new value slots will default to type null. Returns true on success.
+        """Set the number of values.
+
+        If the number of values is expanded all new value slots will default to type null.
+        Returns ``True`` on success.
+
+        Args:
+            size (int):
+        Returns:
+            bool
         """
         ...
     def get_size(self) -> int:
-        """Returns the number of values."""
+        """Return the number of values.
+
+        Returns:
+            int: The number of values.
+        """
         ...
     def clear(self) -> bool:
-        """Removes all values. Returns true on success."""
+        """Remove all values.
+
+        Returns ``True`` on success.
+
+        Returns:
+            bool
+        """
         ...
     def remove(self, index: int) -> bool:
-        """Removes the value at the specified index."""
+        """Remove the value at the specified index.
+
+        Args:
+            index (int):
+        Returns:
+            bool
+        """
         ...
     def get_type(self, index: int) -> ValueType:
-        """Returns the value type at the specified index."""
+        """Return the value type at the specified index.
+
+        Args:
+            index (int):
+        Returns:
+            ValueType: The value type at the specified index.
+        """
         ...
     def get_value(self, index: int) -> Value | None:
-        """Returns the value at the specified index. For simple types the returned
-        value will copy existing data and modifications to the value will not
-        modify this object. For complex types (binary, dictionary and list) the
-        returned value will reference existing data and modifications to the value
-        will modify this object.
+        """Return the value at the specified index.
+
+        For simple types the returned value will copy existing data and modifications to the
+        value will not modify this object. For complex types (binary, dictionary and list)
+        the returned value will reference existing data and modifications to the value will
+        modify this object.
+
+        Args:
+            index (int):
+        Returns:
+            Value | None: The value at the specified index.
         """
         ...
     def get_bool(self, index: int) -> bool:
-        """Returns the value at the specified index as type bool."""
+        """Return the value at the specified index as type bool.
+
+        Args:
+            index (int):
+        Returns:
+            bool: The value at the specified index as type bool.
+        """
         ...
     def get_int(self, index: int) -> int:
-        """Returns the value at the specified index as type int."""
+        """Return the value at the specified index as type int.
+
+        Args:
+            index (int):
+        Returns:
+            int: The value at the specified index as type int.
+        """
         ...
     def get_double(self, index: int) -> float:
-        """Returns the value at the specified index as type double."""
+        """Return the value at the specified index as type double.
+
+        Args:
+            index (int):
+        Returns:
+            float: The value at the specified index as type double.
+        """
         ...
     def get_string(self, index: int) -> str:
-        """Returns the value at the specified index as type string."""
+        """Return the value at the specified index as type string.
+
+        Args:
+            index (int):
+        Returns:
+            str: The value at the specified index as type string.
+        """
         ...
     def get_binary(self, index: int) -> BinaryValue | None:
-        """Returns the value at the specified index as type binary. The returned
-        value will reference existing data.
+        """Return the value at the specified index as type binary.
+
+        The returned value will reference existing data.
+
+        Args:
+            index (int):
+        Returns:
+            BinaryValue | None: The value at the specified index as type binary.
         """
         ...
     def get_dictionary(self, index: int) -> DictionaryValue | None:
-        """Returns the value at the specified index as type dictionary. The returned
-        value will reference existing data and modifications to the value will
+        """Return the value at the specified index as type dictionary.
+
+        The returned value will reference existing data and modifications to the value will
         modify this object.
+
+        Args:
+            index (int):
+        Returns:
+            DictionaryValue | None: The value at the specified index as type dictionary.
         """
         ...
     def get_list(self, index: int) -> ListValue | None:
-        """Returns the value at the specified index as type list. The returned
-        value will reference existing data and modifications to the value will
+        """Return the value at the specified index as type list.
+
+        The returned value will reference existing data and modifications to the value will
         modify this object.
+
+        Args:
+            index (int):
+        Returns:
+            ListValue | None: The value at the specified index as type list.
         """
         ...
     def set_value(self, index: int, value: Value) -> bool:
-        """Sets the value at the specified index. Returns true if the value was set
-        successfully. If |value| represents simple data then the underlying data
-        will be copied and modifications to |value| will not modify this object.
-        If |value| represents complex data (binary, dictionary or list) then the
-        underlying data will be referenced and modifications to |value| will
-        modify this object.
+        """Set the value at the specified index.
+
+        Returns ``True`` if the value was set successfully. If ``value`` represents simple
+        data then the underlying data will be copied and modifications to ``value`` will not
+        modify this object. If ``value`` represents complex data (binary, dictionary or
+        list) then the underlying data will be referenced and modifications to ``value``
+        will modify this object.
+
+        Args:
+            index (int):
+            value (Value):
+        Returns:
+            bool
         """
         ...
     def set_null(self, index: int) -> bool:
-        """Sets the value at the specified index as type null. Returns true if the
-        value was set successfully.
+        """Set the value at the specified index as type null.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            index (int):
+        Returns:
+            bool
         """
         ...
     def set_bool(self, index: int, value: bool) -> bool:
-        """Sets the value at the specified index as type bool. Returns true if the
-        value was set successfully.
+        """Set the value at the specified index as type bool.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            index (int):
+            value (bool):
+        Returns:
+            bool
         """
         ...
     def set_int(self, index: int, value: int) -> bool:
-        """Sets the value at the specified index as type int. Returns true if the
-        value was set successfully.
+        """Set the value at the specified index as type int.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            index (int):
+            value (int):
+        Returns:
+            bool
         """
         ...
     def set_double(self, index: int, value: float) -> bool:
-        """Sets the value at the specified index as type double. Returns true if the
-        value was set successfully.
+        """Set the value at the specified index as type double.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            index (int):
+            value (float):
+        Returns:
+            bool
         """
         ...
     def set_string(self, index: int, value: str | None) -> bool:
-        """Sets the value at the specified index as type string. Returns true if the
-        value was set successfully.
+        """Set the value at the specified index as type string.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            index (int):
+            value (str | None):
+        Returns:
+            bool
         """
         ...
     def set_binary(self, index: int, value: BinaryValue) -> bool:
-        """Sets the value at the specified index as type binary. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified index as type binary.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            index (int):
+            value (BinaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     def set_dictionary(self, index: int, value: DictionaryValue) -> bool:
-        """Sets the value at the specified index as type dict. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified index as type dict.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            index (int):
+            value (DictionaryValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     def set_list(self, index: int, value: ListValue) -> bool:
-        """Sets the value at the specified index as type list. Returns true if the
-        value was set successfully. If |value| is currently owned by another
-        object then the value will be copied and the |value| reference will not
-        change. Otherwise, ownership will be transferred to this object and the
-        |value| reference will be invalidated.
+        """Set the value at the specified index as type list.
+
+        Returns ``True`` if the value was set successfully. If ``value`` is currently owned
+        by another object then the value will be copied and the ``value`` reference will not
+        change. Otherwise, ownership will be transferred to this object and the ``value``
+        reference will be invalidated.
+
+        Args:
+            index (int):
+            value (ListValue): Currently owned by another  object then the value will be copied and the ``value`` reference will not  change.
+        Returns:
+            bool
         """
         ...
     @staticmethod
     def create() -> ListValue:
-        """Creates a new object that is not owned by any other object."""
+        """Create a new object that is not owned by any other object.
+
+        Returns:
+            ListValue
+        """
         ...
 
 
 class MediaAccessCallback:
-    """Callback interface used for asynchronous continuation of media access
-    permission requests.
-    """
+    """Callback interface used for asynchronous continuation of media access permission requests."""
     def continue_(self, allowed_permissions: int) -> None:
-        """Call to allow or deny media access. If this callback was initiated in
-        response to a getUserMedia (indicated by
+        """Call to allow or deny media access.
+
+        If this callback was initiated in response to a getUserMedia (indicated by
         CEF_MEDIA_PERMISSION_DEVICE_AUDIO_CAPTURE and/or
-        CEF_MEDIA_PERMISSION_DEVICE_VIDEO_CAPTURE being set) then
-        |allowed_permissions| must match |required_permissions| passed to
-        OnRequestMediaAccessPermission.
+        CEF_MEDIA_PERMISSION_DEVICE_VIDEO_CAPTURE being set) then ``allowed_permissions``
+        must match ``required_permissions`` passed to OnRequestMediaAccessPermission.
+
+        Args:
+            allowed_permissions (int):
         """
         ...
     def cancel(self) -> None:
@@ -2186,117 +4142,206 @@ class MediaAccessCallback:
 
 
 class MediaRoute:
-    """Represents the route between a media source and sink. Instances of this
-    object are created via CefMediaRouter::CreateRoute and retrieved via
-    CefMediaObserver::OnRoutes. Contains the status and metadata of a
-    routing operation. The methods of this class may be called on any browser
-    process thread unless otherwise indicated.
+    """Represents the route between a media source and sink.
+
+    Instances of this object are created via :meth:`MediaRouter.create_route` and
+    retrieved via :meth:`MediaObserver.on_routes`. Contains the status and metadata of a
+    routing operation. The methods of this class may be called on any browser process
+    thread unless otherwise indicated.
     """
     def get_id(self) -> str:
-        """Returns the ID for this route."""
+        """Return the ID for this route.
+
+        Returns:
+            str: The ID for this route.
+        """
         ...
     def get_source(self) -> MediaSource | None:
-        """Returns the source associated with this route."""
+        """Return the source associated with this route.
+
+        Returns:
+            MediaSource | None: The source associated with this route.
+        """
         ...
     def get_sink(self) -> MediaSink | None:
-        """Returns the sink associated with this route."""
+        """Return the sink associated with this route.
+
+        Returns:
+            MediaSink | None: The sink associated with this route.
+        """
         ...
     def send_route_message(self, message: bytes | bytearray | memoryview) -> None:
-        """Send a message over this route. |message| will be copied if necessary."""
+        """Send a message over this route.
+
+        ``message`` will be copied if necessary.
+
+        Args:
+            message (bytes | bytearray | memoryview):
+        """
         ...
     def terminate(self) -> None:
-        """Terminate this route. Will result in an asynchronous call to
-        CefMediaObserver::OnRoutes on all registered observers.
+        """Terminate this route.
+
+        Will result in an asynchronous call to :meth:`MediaObserver.on_routes` on all
+        registered observers.
         """
         ...
 
 
 class MediaRouter:
-    """Supports discovery of and communication with media devices on the local
-    network via the Cast and DIAL protocols. The methods of this class may be
-    called on any browser process thread unless otherwise indicated.
+    """Supports discovery of and communication with media devices on the local network via the Cast and DIAL protocols.
+
+    The methods of this class may be called on any browser process thread unless
+    otherwise indicated.
     """
     def add_observer(self, observer: MediaObserver) -> Registration | None:
-        """Add an observer for MediaRouter events. The observer will remain
-        registered until the returned Registration object is destroyed.
+        """Add an observer for MediaRouter events.
+
+        The observer will remain registered until the returned Registration object is
+        destroyed.
+
+        Args:
+            observer (MediaObserver):
+        Returns:
+            Registration | None
         """
         ...
     def get_source(self, urn: str) -> MediaSource | None:
-        """Returns a MediaSource object for the specified media source URN. Supported
-        URN schemes include \"cast:\" and \"dial:\", and will be already known by the
+        """Return a MediaSource object for the specified media source URN.
+
+        Supported URN schemes include \"cast:\" and \"dial:\", and will be already known by the
         client application (e.g. \"cast:<appId>?clientId=<clientId>\").
+
+        Args:
+            urn (str):
+        Returns:
+            MediaSource | None: A MediaSource object for the specified media source URN.
         """
         ...
     def notify_current_sinks(self) -> None:
-        """Trigger an asynchronous call to CefMediaObserver::OnSinks on all
-        registered observers.
-        """
+        """Trigger an asynchronous call to :meth:`MediaObserver.on_sinks` on all registered observers."""
         ...
     def create_route(self, source: MediaSource, sink: MediaSink, callback: MediaRouteCreateCallback) -> None:
-        """Create a new route between |source| and |sink|. Source and sink must be
-        valid, compatible (as reported by CefMediaSink::IsCompatibleWith), and a
-        route between them must not already exist. |callback| will be executed
-        on success or failure. If route creation succeeds it will also trigger an
-        asynchronous call to CefMediaObserver::OnRoutes on all registered
-        observers.
+        """Create a new route between ``source`` and ``sink``.
+
+        Source and sink must be valid, compatible (as reported by
+        :meth:`MediaSink.is_compatible_with`), and a route between them must not already
+        exist. ``callback`` will be executed on success or failure. If route creation
+        succeeds it will also trigger an asynchronous call to
+        :meth:`MediaObserver.on_routes` on all registered observers.
+
+        Args:
+            source (MediaSource):
+            sink (MediaSink):
+            callback (MediaRouteCreateCallback):
         """
         ...
     def notify_current_routes(self) -> None:
-        """Trigger an asynchronous call to CefMediaObserver::OnRoutes on all
-        registered observers.
-        """
+        """Trigger an asynchronous call to :meth:`MediaObserver.on_routes` on all registered observers."""
         ...
     @staticmethod
     def get_global_media_router(callback: CompletionCallback | None) -> MediaRouter | None:
-        """Returns the MediaRouter object associated with the global request context.
-        If |callback| is non-NULL it will be executed asnychronously on the UI
-        thread after the manager's storage has been initialized. Equivalent to
-        calling CefRequestContext::GetGlobalContext()->GetMediaRouter().
+        """Return the MediaRouter object associated with the global request context.
+
+        If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
+        after the manager's storage has been initialized. Equivalent to calling
+        :meth:`RequestContext.get_global_context`->GetMediaRouter().
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI  thread after the manager's storage has been initialized.
+        Returns:
+            MediaRouter | None: The MediaRouter object associated with the global request context.
         """
         ...
 
 
 class MediaSink:
-    """Represents a sink to which media can be routed. Instances of this object are
-    retrieved via CefMediaObserver::OnSinks. The methods of this class may
-    be called on any browser process thread unless otherwise indicated.
+    """Represents a sink to which media can be routed.
+
+    Instances of this object are retrieved via :meth:`MediaObserver.on_sinks`. The
+    methods of this class may be called on any browser process thread unless otherwise
+    indicated.
     """
     def get_id(self) -> str:
-        """Returns the ID for this sink."""
+        """Return the ID for this sink.
+
+        Returns:
+            str: The ID for this sink.
+        """
         ...
     def get_name(self) -> str:
-        """Returns the name of this sink."""
+        """Return the name of this sink.
+
+        Returns:
+            str: The name of this sink.
+        """
         ...
     def get_icon_type(self) -> MediaSinkIconType:
-        """Returns the icon type for this sink."""
+        """Return the icon type for this sink.
+
+        Returns:
+            MediaSinkIconType: The icon type for this sink.
+        """
         ...
     def get_device_info(self, callback: MediaSinkDeviceInfoCallback) -> None:
-        """Asynchronously retrieves device info."""
+        """Asynchronously retrieves device info.
+
+        Args:
+            callback (MediaSinkDeviceInfoCallback):
+        """
         ...
     def is_cast_sink(self) -> bool:
-        """Returns true if this sink accepts content via Cast."""
+        """Return ``True`` if this sink accepts content via Cast.
+
+        Returns:
+            bool: ``True`` if this sink accepts content via Cast.
+        """
         ...
     def is_dial_sink(self) -> bool:
-        """Returns true if this sink accepts content via DIAL."""
+        """Return ``True`` if this sink accepts content via DIAL.
+
+        Returns:
+            bool: ``True`` if this sink accepts content via DIAL.
+        """
         ...
     def is_compatible_with(self, source: MediaSource) -> bool:
-        """Returns true if this sink is compatible with |source|."""
+        """Return ``True`` if this sink is compatible with ``source``.
+
+        Args:
+            source (MediaSource):
+        Returns:
+            bool: ``True`` if this sink is compatible with ``source``.
+        """
         ...
 
 
 class MediaSource:
-    """Represents a source from which media can be routed. Instances of this object
-    are retrieved via CefMediaRouter::GetSource. The methods of this class may
-    be called on any browser process thread unless otherwise indicated.
+    """Represents a source from which media can be routed.
+
+    Instances of this object are retrieved via :meth:`MediaRouter.get_source`. The
+    methods of this class may be called on any browser process thread unless otherwise
+    indicated.
     """
     def get_id(self) -> str:
-        """Returns the ID (media source URN or URL) for this source."""
+        """Return the ID (media source URN or URL) for this source.
+
+        Returns:
+            str: The ID (media source URN or URL) for this source.
+        """
         ...
     def is_cast_source(self) -> bool:
-        """Returns true if this source outputs its content via Cast."""
+        """Return ``True`` if this source outputs its content via Cast.
+
+        Returns:
+            bool: ``True`` if this source outputs its content via Cast.
+        """
         ...
     def is_dial_source(self) -> bool:
-        """Returns true if this source outputs its content via DIAL."""
+        """Return ``True`` if this source outputs its content via DIAL.
+
+        Returns:
+            bool: ``True`` if this source outputs its content via DIAL.
+        """
         ...
 
 
@@ -2305,431 +4350,922 @@ class MenuButtonPressedLock:
 
 
 class MenuModel:
-    """Supports creation and modification of menus. See cef_menu_id_t for the
-    command ids that have default implementations. All user-defined command ids
-    should be between MENU_ID_USER_FIRST and MENU_ID_USER_LAST. The methods of
-    this class can only be accessed on the browser process the UI thread.
+    """Supports creation and modification of menus.
+
+    See cef_menu_id_t for the command ids that have default implementations. All
+    user-defined command ids should be between MENU_ID_USER_FIRST and MENU_ID_USER_LAST.
+    The methods of this class can only be accessed on the browser process the UI thread.
     """
     def is_sub_menu(self) -> bool:
-        """Returns true if this menu is a submenu."""
+        """Return ``True`` if this menu is a submenu.
+
+        Returns:
+            bool: ``True`` if this menu is a submenu.
+        """
         ...
     def clear(self) -> bool:
-        """Clears the menu. Returns true on success."""
+        """Clear the menu.
+
+        Returns ``True`` on success.
+
+        Returns:
+            bool
+        """
         ...
     def get_count(self) -> int:
-        """Returns the number of items in this menu."""
+        """Return the number of items in this menu.
+
+        Returns:
+            int: The number of items in this menu.
+        """
         ...
     def add_separator(self) -> bool:
-        """Add a separator to the menu. Returns true on success."""
+        """Add a separator to the menu.
+
+        Returns ``True`` on success.
+
+        Returns:
+            bool
+        """
         ...
     def add_item(self, command_id: int, label: str) -> bool:
-        """Add an item to the menu. Returns true on success."""
+        """Add an item to the menu.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            label (str):
+        Returns:
+            bool
+        """
         ...
     def add_check_item(self, command_id: int, label: str) -> bool:
-        """Add a check item to the menu. Returns true on success."""
+        """Add a check item to the menu.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            label (str):
+        Returns:
+            bool
+        """
         ...
     def add_radio_item(self, command_id: int, label: str, group_id: int) -> bool:
-        """Add a radio item to the menu. Only a single item with the specified
-        |group_id| can be checked at a time. Returns true on success.
+        """Add a radio item to the menu.
+
+        Only a single item with the specified ``group_id`` can be checked at a time. Returns
+        ``True`` on success.
+
+        Args:
+            command_id (int):
+            label (str):
+            group_id (int):
+        Returns:
+            bool
         """
         ...
     def add_sub_menu(self, command_id: int, label: str) -> MenuModel | None:
-        """Add a sub-menu to the menu. The new sub-menu is returned."""
+        """Add a sub-menu to the menu.
+
+        The new sub-menu is returned.
+
+        Args:
+            command_id (int):
+            label (str):
+        Returns:
+            MenuModel | None
+        """
         ...
     def insert_separator_at(self, index: int) -> bool:
-        """Insert a separator in the menu at the specified |index|. Returns true on
-        success.
+        """Insert a separator in the menu at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+        Returns:
+            bool
         """
         ...
     def insert_item_at(self, index: int, command_id: int, label: str) -> bool:
-        """Insert an item in the menu at the specified |index|. Returns true on
-        success.
+        """Insert an item in the menu at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            command_id (int):
+            label (str):
+        Returns:
+            bool
         """
         ...
     def insert_check_item_at(self, index: int, command_id: int, label: str) -> bool:
-        """Insert a check item in the menu at the specified |index|. Returns true on
-        success.
+        """Insert a check item in the menu at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            command_id (int):
+            label (str):
+        Returns:
+            bool
         """
         ...
     def insert_radio_item_at(self, index: int, command_id: int, label: str, group_id: int) -> bool:
-        """Insert a radio item in the menu at the specified |index|. Only a single
-        item with the specified |group_id| can be checked at a time. Returns true
-        on success.
+        """Insert a radio item in the menu at the specified ``index``.
+
+        Only a single item with the specified ``group_id`` can be checked at a time. Returns
+        ``True`` on success.
+
+        Args:
+            index (int):
+            command_id (int):
+            label (str):
+            group_id (int):
+        Returns:
+            bool
         """
         ...
     def insert_sub_menu_at(self, index: int, command_id: int, label: str) -> MenuModel | None:
-        """Insert a sub-menu in the menu at the specified |index|. The new sub-menu
-        is returned.
+        """Insert a sub-menu in the menu at the specified ``index``.
+
+        The new sub-menu is returned.
+
+        Args:
+            index (int):
+            command_id (int):
+            label (str):
+        Returns:
+            MenuModel | None
         """
         ...
     def remove(self, command_id: int) -> bool:
-        """Removes the item with the specified |command_id|. Returns true on success."""
+        """Remove the item with the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+        Returns:
+            bool
+        """
         ...
     def remove_at(self, index: int) -> bool:
-        """Removes the item at the specified |index|. Returns true on success."""
+        """Remove the item at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+        Returns:
+            bool
+        """
         ...
     def get_index_of(self, command_id: int) -> int:
-        """Returns the index associated with the specified |command_id| or -1 if not
-        found due to the command id not existing in the menu.
+        """Return the index associated with the specified ``command_id`` or -1 if not found due to the command id not existing in the menu.
+
+        Args:
+            command_id (int):
+        Returns:
+            int: The index associated with the specified ``command_id`` or -1 if not  found due to the command id not existing in the menu.
         """
         ...
     def get_command_id_at(self, index: int) -> int:
-        """Returns the command id at the specified |index| or -1 if not found due to
-        invalid range or the index being a separator.
+        """Return the command id at the specified ``index`` or -1 if not found due to invalid range or the index being a separator.
+
+        Args:
+            index (int):
+        Returns:
+            int: The command id at the specified ``index`` or -1 if not found due to  invalid range or the index being a separator.
         """
         ...
     def set_command_id_at(self, index: int, command_id: int) -> bool:
-        """Sets the command id at the specified |index|. Returns true on success."""
+        """Set the command id at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            command_id (int):
+        Returns:
+            bool
+        """
         ...
     def get_label(self, command_id: int) -> str:
-        """Returns the label for the specified |command_id| or empty if not found."""
+        """Return the label for the specified ``command_id`` or empty if not found.
+
+        Args:
+            command_id (int):
+        Returns:
+            str: The label for the specified ``command_id`` or empty if not found.
+        """
         ...
     def get_label_at(self, index: int) -> str:
-        """Returns the label at the specified |index| or empty if not found due to
-        invalid range or the index being a separator.
+        """Return the label at the specified ``index`` or empty if not found due to invalid range or the index being a separator.
+
+        Args:
+            index (int):
+        Returns:
+            str: The label at the specified ``index`` or empty if not found due to  invalid range or the index being a separator.
         """
         ...
     def set_label(self, command_id: int, label: str) -> bool:
-        """Sets the label for the specified |command_id|. Returns true on success."""
+        """Set the label for the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            label (str):
+        Returns:
+            bool
+        """
         ...
     def set_label_at(self, index: int, label: str) -> bool:
-        """Set the label at the specified |index|. Returns true on success."""
+        """Set the label at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            label (str):
+        Returns:
+            bool
+        """
         ...
     def get_type(self, command_id: int) -> MenuItemType:
-        """Returns the item type for the specified |command_id|."""
+        """Return the item type for the specified ``command_id``.
+
+        Args:
+            command_id (int):
+        Returns:
+            MenuItemType: The item type for the specified ``command_id``.
+        """
         ...
     def get_type_at(self, index: int) -> MenuItemType:
-        """Returns the item type at the specified |index|."""
+        """Return the item type at the specified ``index``.
+
+        Args:
+            index (int):
+        Returns:
+            MenuItemType: The item type at the specified ``index``.
+        """
         ...
     def get_group_id(self, command_id: int) -> int:
-        """Returns the group id for the specified |command_id| or -1 if invalid."""
+        """Return the group id for the specified ``command_id`` or -1 if invalid.
+
+        Args:
+            command_id (int):
+        Returns:
+            int: The group id for the specified ``command_id`` or -1 if invalid.
+        """
         ...
     def get_group_id_at(self, index: int) -> int:
-        """Returns the group id at the specified |index| or -1 if invalid."""
+        """Return the group id at the specified ``index`` or -1 if invalid.
+
+        Args:
+            index (int):
+        Returns:
+            int: The group id at the specified ``index`` or -1 if invalid.
+        """
         ...
     def set_group_id(self, command_id: int, group_id: int) -> bool:
-        """Sets the group id for the specified |command_id|. Returns true on success."""
+        """Set the group id for the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            group_id (int):
+        Returns:
+            bool
+        """
         ...
     def set_group_id_at(self, index: int, group_id: int) -> bool:
-        """Sets the group id at the specified |index|. Returns true on success."""
+        """Set the group id at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            group_id (int):
+        Returns:
+            bool
+        """
         ...
     def get_sub_menu(self, command_id: int) -> MenuModel | None:
-        """Returns the submenu for the specified |command_id| or empty if invalid."""
+        """Return the submenu for the specified ``command_id`` or empty if invalid.
+
+        Args:
+            command_id (int):
+        Returns:
+            MenuModel | None: The submenu for the specified ``command_id`` or empty if invalid.
+        """
         ...
     def get_sub_menu_at(self, index: int) -> MenuModel | None:
-        """Returns the submenu at the specified |index| or empty if invalid."""
+        """Return the submenu at the specified ``index`` or empty if invalid.
+
+        Args:
+            index (int):
+        Returns:
+            MenuModel | None: The submenu at the specified ``index`` or empty if invalid.
+        """
         ...
     def is_visible(self, command_id: int) -> bool:
-        """Returns true if the specified |command_id| is visible."""
+        """Return ``True`` if the specified ``command_id`` is visible.
+
+        Args:
+            command_id (int): Visible.
+        Returns:
+            bool: ``True`` if the specified ``command_id`` is visible.
+        """
         ...
     def is_visible_at(self, index: int) -> bool:
-        """Returns true if the specified |index| is visible."""
+        """Return ``True`` if the specified ``index`` is visible.
+
+        Args:
+            index (int): Visible.
+        Returns:
+            bool: ``True`` if the specified ``index`` is visible.
+        """
         ...
     def set_visible(self, command_id: int, visible: bool) -> bool:
-        """Change the visibility of the specified |command_id|. Returns true on
-        success.
+        """Change the visibility of the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            visible (bool):
+        Returns:
+            bool
         """
         ...
     def set_visible_at(self, index: int, visible: bool) -> bool:
-        """Change the visibility at the specified |index|. Returns true on success."""
+        """Change the visibility at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            visible (bool):
+        Returns:
+            bool
+        """
         ...
     def is_enabled(self, command_id: int) -> bool:
-        """Returns true if the specified |command_id| is enabled."""
+        """Return ``True`` if the specified ``command_id`` is enabled.
+
+        Args:
+            command_id (int): Enabled.
+        Returns:
+            bool: ``True`` if the specified ``command_id`` is enabled.
+        """
         ...
     def is_enabled_at(self, index: int) -> bool:
-        """Returns true if the specified |index| is enabled."""
+        """Return ``True`` if the specified ``index`` is enabled.
+
+        Args:
+            index (int): Enabled.
+        Returns:
+            bool: ``True`` if the specified ``index`` is enabled.
+        """
         ...
     def set_enabled(self, command_id: int, enabled: bool) -> bool:
-        """Change the enabled status of the specified |command_id|. Returns true on
-        success.
+        """Change the enabled status of the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            enabled (bool):
+        Returns:
+            bool
         """
         ...
     def set_enabled_at(self, index: int, enabled: bool) -> bool:
-        """Change the enabled status at the specified |index|. Returns true on
-        success.
+        """Change the enabled status at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+            enabled (bool):
+        Returns:
+            bool
         """
         ...
     def is_checked(self, command_id: int) -> bool:
-        """Returns true if the specified |command_id| is checked. Only applies to
-        check and radio items.
+        """Return ``True`` if the specified ``command_id`` is checked.
+
+        Only applies to check and radio items.
+
+        Args:
+            command_id (int): Checked.
+        Returns:
+            bool: ``True`` if the specified ``command_id`` is checked.
         """
         ...
     def is_checked_at(self, index: int) -> bool:
-        """Returns true if the specified |index| is checked. Only applies to check
-        and radio items.
+        """Return ``True`` if the specified ``index`` is checked.
+
+        Only applies to check and radio items.
+
+        Args:
+            index (int): Checked.
+        Returns:
+            bool: ``True`` if the specified ``index`` is checked.
         """
         ...
     def set_checked(self, command_id: int, checked: bool) -> bool:
-        """Check the specified |command_id|. Only applies to check and radio items.
-        Returns true on success.
+        """Check the specified ``command_id``.
+
+        Only applies to check and radio items. Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            checked (bool):
+        Returns:
+            bool
         """
         ...
     def set_checked_at(self, index: int, checked: bool) -> bool:
-        """Check the specified |index|. Only applies to check and radio items.
-        Returns true on success.
+        """Check the specified ``index``.
+
+        Only applies to check and radio items. Returns ``True`` on success.
+
+        Args:
+            index (int):
+            checked (bool):
+        Returns:
+            bool
         """
         ...
     def has_accelerator(self, command_id: int) -> bool:
-        """Returns true if the specified |command_id| has a keyboard accelerator
-        assigned.
+        """Return ``True`` if the specified ``command_id`` has a keyboard accelerator assigned.
+
+        Args:
+            command_id (int):
+        Returns:
+            bool: ``True`` if the specified ``command_id`` has a keyboard accelerator  assigned.
         """
         ...
     def has_accelerator_at(self, index: int) -> bool:
-        """Returns true if the specified |index| has a keyboard accelerator assigned."""
+        """Return ``True`` if the specified ``index`` has a keyboard accelerator assigned.
+
+        Args:
+            index (int):
+        Returns:
+            bool: ``True`` if the specified ``index`` has a keyboard accelerator assigned.
+        """
         ...
     def set_accelerator(self, command_id: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool) -> bool:
-        """Set the keyboard accelerator for the specified |command_id|. |key_code|
-        can be any virtual key or character value. Returns true on success.
+        """Set the keyboard accelerator for the specified ``command_id``.
+
+        ``key_code`` can be any virtual key or character value. Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+            key_code (int):
+            shift_pressed (bool):
+            ctrl_pressed (bool):
+            alt_pressed (bool):
+        Returns:
+            bool
         """
         ...
     def set_accelerator_at(self, index: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool) -> bool:
-        """Set the keyboard accelerator at the specified |index|. |key_code| can be
-        any virtual key or character value. Returns true on success.
+        """Set the keyboard accelerator at the specified ``index``.
+
+        ``key_code`` can be any virtual key or character value. Returns ``True`` on success.
+
+        Args:
+            index (int):
+            key_code (int):
+            shift_pressed (bool):
+            ctrl_pressed (bool):
+            alt_pressed (bool):
+        Returns:
+            bool
         """
         ...
     def remove_accelerator(self, command_id: int) -> bool:
-        """Remove the keyboard accelerator for the specified |command_id|. Returns
-        true on success.
+        """Remove the keyboard accelerator for the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+        Returns:
+            bool
         """
         ...
     def remove_accelerator_at(self, index: int) -> bool:
-        """Remove the keyboard accelerator at the specified |index|. Returns true on
-        success.
+        """Remove the keyboard accelerator at the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+        Returns:
+            bool
         """
         ...
     def get_accelerator(self, command_id: int) -> tuple[bool, int, bool, bool, bool]:
-        """Retrieves the keyboard accelerator for the specified |command_id|. Returns
-        true on success.
+        """Retrieve the keyboard accelerator for the specified ``command_id``.
+
+        Returns ``True`` on success.
+
+        Args:
+            command_id (int):
+        Returns:
+            tuple[bool, int, bool, bool, bool]
         """
         ...
     def get_accelerator_at(self, index: int) -> tuple[bool, int, bool, bool, bool]:
-        """Retrieves the keyboard accelerator for the specified |index|. Returns true
-        on success.
+        """Retrieve the keyboard accelerator for the specified ``index``.
+
+        Returns ``True`` on success.
+
+        Args:
+            index (int):
+        Returns:
+            tuple[bool, int, bool, bool, bool]
         """
         ...
     def set_color(self, command_id: int, color_type: MenuColorType | int, color: int) -> bool:
-        """Set the explicit color for |command_id| and |color_type| to |color|.
-        Specify a |color| value of 0 to remove the explicit color. If no explicit
-        color or default color is set for |color_type| then the system color will
-        be used. Returns true on success.
+        """Set the explicit color for ``command_id`` and ``color_type`` to ``color``.
+
+        Specify a ``color`` value of 0 to remove the explicit color. If no explicit color or
+        default color is set for ``color_type`` then the system color will be used. Returns
+        ``True`` on success.
+
+        Args:
+            command_id (int):
+            color_type (MenuColorType | int):
+            color (int):
+        Returns:
+            bool
         """
         ...
     def set_color_at(self, index: int, color_type: MenuColorType | int, color: int) -> bool:
-        """Set the explicit color for |command_id| and |index| to |color|. Specify a
-        |color| value of 0 to remove the explicit color. Specify an |index| value
-        of -1 to set the default color for items that do not have an explicit
-        color set. If no explicit color or default color is set for |color_type|
-        then the system color will be used. Returns true on success.
+        """Set the explicit color for ``command_id`` and ``index`` to ``color``.
+
+        Specify a ``color`` value of 0 to remove the explicit color. Specify an ``index``
+        value of -1 to set the default color for items that do not have an explicit color
+        set. If no explicit color or default color is set for ``color_type`` then the system
+        color will be used. Returns ``True`` on success.
+
+        Args:
+            index (int):
+            color_type (MenuColorType | int):
+            color (int):
+        Returns:
+            bool
         """
         ...
     def get_color(self, command_id: int, color_type: MenuColorType | int) -> tuple[bool, int]:
-        """Returns in |color| the color that was explicitly set for |command_id| and
-        |color_type|. If a color was not set then 0 will be returned in |color|.
-        Returns true on success.
+        """Return in ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
+
+        If a color was not set then 0 will be returned in ``color``. Returns ``True`` on
+        success.
+
+        Args:
+            command_id (int):
+            color_type (MenuColorType | int):
+        Returns:
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
         """
         ...
     def get_color_at(self, index: int, color_type: MenuColorType | int) -> tuple[bool, int]:
-        """Returns in |color| the color that was explicitly set for |command_id| and
-        |color_type|. Specify an |index| value of -1 to return the default color
-        in |color|. If a color was not set then 0 will be returned in |color|.
-        Returns true on success.
+        """Return in ``color`` the color that was explicitly set for ``command_id`` and ``color_type``.
+
+        Specify an ``index`` value of -1 to return the default color in ``color``. If a
+        color was not set then 0 will be returned in ``color``. Returns ``True`` on success.
+
+        Args:
+            index (int):
+            color_type (MenuColorType | int):
+        Returns:
+            tuple[bool, int]: In ``color`` the color that was explicitly set for ``command_id`` and  ``color_type``.
         """
         ...
     def set_font_list(self, command_id: int, font_list: str | None) -> bool:
-        """Sets the font list for the specified |command_id|. If |font_list| is empty
-        the system font will be used. Returns true on success. The format is
-        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-        - FONT_FAMILY_LIST is a comma-separated list of font family names,
-        - STYLES is an optional space-separated list of style names
-          (case-sensitive \"Bold\" and \"Italic\" are supported), and
-        - SIZE is an integer font size in pixels with the suffix \"px\".
+        """ Sets the font list for the specified ``command_id``. If ``font_list`` is empty
+         the system font will be used. Returns ``True`` on success. The format is
+         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+         - FONT_FAMILY_LIST is a comma-separated list of font family names,
+         - STYLES is an optional space-separated list of style names
+           (case-sensitive \"Bold\" and \"Italic\" are supported), and
+         - SIZE is an integer font size in pixels with the suffix \"px\".
 
-        Here are examples of valid font description strings:
-        - \"Arial, Helvetica, Bold Italic 14px\"
-        - \"Arial, 14px\"
+        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
+        Italic 14px\" - \"Arial, 14px\"
+
+        Args:
+            command_id (int):
+            font_list (str | None):
+        Returns:
+            bool
         """
         ...
     def set_font_list_at(self, index: int, font_list: str | None) -> bool:
-        """Sets the font list for the specified |index|. Specify an |index| value of
-        -1 to set the default font. If |font_list| is empty the system font will
-        be used. Returns true on success. The format is
-        \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
-        - FONT_FAMILY_LIST is a comma-separated list of font family names,
-        - STYLES is an optional space-separated list of style names
-          (case-sensitive \"Bold\" and \"Italic\" are supported), and
-        - SIZE is an integer font size in pixels with the suffix \"px\".
+        """ Sets the font list for the specified ``index``. Specify an ``index`` value of
+         -1 to set the default font. If ``font_list`` is empty the system font will
+         be used. Returns ``True`` on success. The format is
+         \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\", where:
+         - FONT_FAMILY_LIST is a comma-separated list of font family names,
+         - STYLES is an optional space-separated list of style names
+           (case-sensitive \"Bold\" and \"Italic\" are supported), and
+         - SIZE is an integer font size in pixels with the suffix \"px\".
 
-        Here are examples of valid font description strings:
-        - \"Arial, Helvetica, Bold Italic 14px\"
-        - \"Arial, 14px\"
+        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
+        Italic 14px\" - \"Arial, 14px\"
+
+        Args:
+            index (int):
+            font_list (str | None):
+        Returns:
+            bool
         """
         ...
     @staticmethod
     def create_menu_model(delegate: MenuModelDelegate) -> MenuModel | None:
-        """Create a new MenuModel with the specified |delegate|."""
+        """Create a new MenuModel with the specified ``delegate``.
+
+        Args:
+            delegate (MenuModelDelegate):
+        Returns:
+            MenuModel | None
+        """
         ...
 
 
 class NavigationEntry:
     """Class used to represent an entry in navigation history."""
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def get_url(self) -> str:
-        """Returns the actual URL of the page. For some pages this may be data: URL
-        or similar. Use GetDisplayURL() to return a display-friendly version.
+        """Return the actual URL of the page.
+
+        For some pages this may be data: URL or similar. Use GetDisplayURL() to return a
+        display-friendly version.
+
+        Returns:
+            str: The actual URL of the page.
         """
         ...
     def get_display_url(self) -> str:
-        """Returns a display-friendly version of the URL."""
+        """Return a display-friendly version of the URL.
+
+        Returns:
+            str: A display-friendly version of the URL.
+        """
         ...
     def get_original_url(self) -> str:
-        """Returns the original URL that was entered by the user before any
-        redirects.
+        """Return the original URL that was entered by the user before any redirects.
+
+        Returns:
+            str: The original URL that was entered by the user before any  redirects.
         """
         ...
     def get_title(self) -> str:
-        """Returns the title set by the page. This value may be empty."""
+        """Return the title set by the page.
+
+        This value may be empty.
+
+        Returns:
+            str: The title set by the page.
+        """
         ...
     def get_transition_type(self) -> TransitionType:
-        """Returns the transition type which indicates what the user did to move to
-        this page from the previous page.
+        """Return the transition type which indicates what the user did to move to this page from the previous page.
+
+        Returns:
+            TransitionType: The transition type which indicates what the user did to move to  this page from the previous page.
         """
         ...
     def has_post_data(self) -> bool:
-        """Returns true if this navigation includes post data."""
+        """Return ``True`` if this navigation includes post data.
+
+        Returns:
+            bool: ``True`` if this navigation includes post data.
+        """
         ...
     def get_completion_time(self) -> datetime.datetime | None:
-        """Returns the time for the last known successful navigation completion. A
-        navigation may be completed more than once if the page is reloaded. May be
-        0 if the navigation has not yet completed.
+        """Return the time for the last known successful navigation completion.
+
+        A navigation may be completed more than once if the page is reloaded. May be 0 if
+        the navigation has not yet completed.
+
+        Returns:
+            datetime.datetime | None: The time for the last known successful navigation completion.
         """
         ...
     def get_http_status_code(self) -> int:
-        """Returns the HTTP status code for the last known successful navigation
-        response. May be 0 if the response has not yet been received or if the
-        navigation has not yet completed.
+        """Return the HTTP status code for the last known successful navigation response.
+
+        May be 0 if the response has not yet been received or if the navigation has not yet
+        completed.
+
+        Returns:
+            int: The HTTP status code for the last known successful navigation  response.
         """
         ...
     def get_ssl_status(self) -> SSLStatus | None:
-        """Returns the SSL information for this navigation entry."""
+        """Return the SSL information for this navigation entry.
+
+        Returns:
+            SSLStatus | None: The SSL information for this navigation entry.
+        """
         ...
 
 
 class OverlayController:
-    """Controller for an overlay that contains a contents View added via
-    CefWindow::AddOverlayView. Methods exposed by this controller should be
-    called in preference to methods of the same name exposed by the contents
-    View unless otherwise indicated. Methods must be called on the browser
-    process UI thread unless otherwise indicated.
+    """Controller for an overlay that contains a contents View added via :meth:`Window.add_overlay_view`.
+
+    Methods exposed by this controller should be called in preference to methods of the
+    same name exposed by the contents View unless otherwise indicated. Methods must be
+    called on the browser process UI thread unless otherwise indicated.
     """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid."""
+        """Return ``True`` if this object is valid.
+
+        Returns:
+            bool: ``True`` if this object is valid.
+        """
         ...
     def is_same(self, that: OverlayController) -> bool:
-        """Returns true if this object is the same as |that| object."""
+        """Return ``True`` if this object is the same as ``that`` object.
+
+        Args:
+            that (OverlayController):
+        Returns:
+            bool: ``True`` if this object is the same as ``that`` object.
+        """
         ...
     def get_contents_view(self) -> View | None:
-        """Returns the contents View for this overlay."""
+        """Return the contents View for this overlay.
+
+        Returns:
+            View | None: The contents View for this overlay.
+        """
         ...
     def get_window(self) -> Window | None:
-        """Returns the top-level Window hosting this overlay. Use this method instead
-        of calling GetWindow() on the contents View.
+        """Return the top-level Window hosting this overlay.
+
+        Use this method instead of calling GetWindow() on the contents View.
+
+        Returns:
+            Window | None: The top-level Window hosting this overlay.
         """
         ...
     def get_docking_mode(self) -> DockingMode:
-        """Returns the docking mode for this overlay."""
+        """Return the docking mode for this overlay.
+
+        Returns:
+            DockingMode: The docking mode for this overlay.
+        """
         ...
     def destroy(self) -> None:
         """Destroy this overlay."""
         ...
     def set_bounds(self, bounds: Rect | tuple[int, int, int, int]) -> None:
-        """Sets the bounds (size and position) of this overlay. This will set the
-        bounds of the contents View to match and trigger a re-layout if necessary.
-        |bounds| is in parent coordinates and any insets configured on this
-        overlay will be ignored. Use this method only for overlays created with a
-        docking mode value of CEF_DOCKING_MODE_CUSTOM. With other docking modes
-        modify the insets of this overlay and/or layout of the contents View and
-        call SizeToPreferredSize() instead to calculate the new size and
-        re-position the overlay if necessary.
+        """Set the bounds (size and position) of this overlay.
+
+        This will set the bounds of the contents View to match and trigger a re-layout if
+        necessary. ``bounds`` is in parent coordinates and any insets configured on this
+        overlay will be ignored. Use this method only for overlays created with a docking
+        mode value of CEF_DOCKING_MODE_CUSTOM. With other docking modes modify the insets of
+        this overlay and/or layout of the contents View and call SizeToPreferredSize()
+        instead to calculate the new size and re-position the overlay if necessary.
+
+        Args:
+            bounds (Rect | tuple[int, int, int, int]): In parent coordinates and any insets configured on this  overlay will be ignored.
         """
         ...
     def get_bounds(self) -> Rect:
-        """Returns the bounds (size and position) of this overlay in parent
-        coordinates.
+        """Return the bounds (size and position) of this overlay in parent coordinates.
+
+        Returns:
+            Rect: The bounds (size and position) of this overlay in parent  coordinates.
         """
         ...
     def get_bounds_in_screen(self) -> Rect:
-        """Returns the bounds (size and position) of this overlay in DIP screen
-        coordinates.
+        """Return the bounds (size and position) of this overlay in DIP screen coordinates.
+
+        Returns:
+            Rect: The bounds (size and position) of this overlay in DIP screen  coordinates.
         """
         ...
     def set_size(self, size: Size | tuple[int, int]) -> None:
-        """Sets the size of this overlay without changing the position. This will set
-        the size of the contents View to match and trigger a re-layout if
-        necessary. |size| is in parent coordinates and any insets configured on
-        this overlay will be ignored. Use this method only for overlays created
-        with a docking mode value of CEF_DOCKING_MODE_CUSTOM. With other docking
-        modes modify the insets of this overlay and/or layout of the contents View
-        and call SizeToPreferredSize() instead to calculate the new size and
-        re-position the overlay if necessary.
+        """Set the size of this overlay without changing the position.
+
+        This will set the size of the contents View to match and trigger a re-layout if
+        necessary. ``size`` is in parent coordinates and any insets configured on this
+        overlay will be ignored. Use this method only for overlays created with a docking
+        mode value of CEF_DOCKING_MODE_CUSTOM. With other docking modes modify the insets of
+        this overlay and/or layout of the contents View and call SizeToPreferredSize()
+        instead to calculate the new size and re-position the overlay if necessary.
+
+        Args:
+            size (Size | tuple[int, int]): In parent coordinates and any insets configured on  this overlay will be ignored.
         """
         ...
     def get_size(self) -> Size:
-        """Returns the size of this overlay in parent coordinates."""
+        """Return the size of this overlay in parent coordinates.
+
+        Returns:
+            Size: The size of this overlay in parent coordinates.
+        """
         ...
     def set_position(self, position: Point | tuple[int, int]) -> None:
-        """Sets the position of this overlay without changing the size. |position| is
-        in parent coordinates and any insets configured on this overlay will
-        be ignored. Use this method only for overlays created with a docking mode
-        value of CEF_DOCKING_MODE_CUSTOM. With other docking modes modify the
-        insets of this overlay and/or layout of the contents View and call
-        SizeToPreferredSize() instead to calculate the new size and re-position
-        the overlay if necessary.
+        """Set the position of this overlay without changing the size.
+
+        ``position`` is in parent coordinates and any insets configured on this overlay will
+        be ignored. Use this method only for overlays created with a docking mode value of
+        CEF_DOCKING_MODE_CUSTOM. With other docking modes modify the insets of this overlay
+        and/or layout of the contents View and call SizeToPreferredSize() instead to
+        calculate the new size and re-position the overlay if necessary.
+
+        Args:
+            position (Point | tuple[int, int]): In parent coordinates and any insets configured on this overlay will  be ignored.
         """
         ...
     def get_position(self) -> Point:
-        """Returns the position of this overlay in parent coordinates."""
+        """Return the position of this overlay in parent coordinates.
+
+        Returns:
+            Point: The position of this overlay in parent coordinates.
+        """
         ...
     def set_insets(self, insets: Insets | tuple[int, int, int, int]) -> None:
-        """Sets the insets for this overlay. |insets| is in parent coordinates. Use
-        this method only for overlays created with a docking mode value other than
-        CEF_DOCKING_MODE_CUSTOM.
+        """Set the insets for this overlay.
+
+        ``insets`` is in parent coordinates. Use this method only for overlays created with
+        a docking mode value other than CEF_DOCKING_MODE_CUSTOM.
+
+        Args:
+            insets (Insets | tuple[int, int, int, int]): In parent coordinates.
         """
         ...
     def get_insets(self) -> Insets:
-        """Returns the insets for this overlay in parent coordinates."""
+        """Return the insets for this overlay in parent coordinates.
+
+        Returns:
+            Insets: The insets for this overlay in parent coordinates.
+        """
         ...
     def size_to_preferred_size(self) -> None:
-        """Size this overlay to its preferred size and trigger a re-layout if
-        necessary. The position of overlays created with a docking mode value of
-        CEF_DOCKING_MODE_CUSTOM will not be modified by calling this method. With
-        other docking modes this method may re-position the overlay if necessary
-        to accommodate the new size and any insets configured on the contents
-        View.
+        """Size this overlay to its preferred size and trigger a re-layout if necessary.
+
+        The position of overlays created with a docking mode value of
+        CEF_DOCKING_MODE_CUSTOM will not be modified by calling this method. With other
+        docking modes this method may re-position the overlay if necessary to accommodate
+        the new size and any insets configured on the contents View.
         """
         ...
     def set_visible(self, visible: bool) -> None:
-        """Sets whether this overlay is visible. Overlays are hidden by default. If
-        this overlay is hidden then it and any child Views will not be drawn and,
-        if any of those Views currently have focus, then focus will also be
-        cleared. Painting is scheduled as needed.
+        """Set whether this overlay is visible.
+
+        Overlays are hidden by default. If this overlay is hidden then it and any child
+        Views will not be drawn and, if any of those Views currently have focus, then focus
+        will also be cleared. Painting is scheduled as needed.
+
+        Args:
+            visible (bool):
         """
         ...
     def is_visible(self) -> bool:
-        """Returns whether this overlay is visible. A View may be visible but still
-        not drawn in a Window if any parent Views are hidden. Call IsDrawn() to
-        determine whether this overlay and all parent Views are visible and will
-        be drawn.
+        """Return whether this overlay is visible.
+
+        A View may be visible but still not drawn in a Window if any parent Views are
+        hidden. Call IsDrawn() to determine whether this overlay and all parent Views are
+        visible and will be drawn.
+
+        Returns:
+            bool: Whether this overlay is visible.
         """
         ...
     def is_drawn(self) -> bool:
-        """Returns whether this overlay is visible and drawn in a Window. A View is
-        drawn if it and all parent Views are visible. To determine if the
-        containing Window is visible to the user on-screen call IsVisible() on the
-        Window.
+        """Return whether this overlay is visible and drawn in a Window.
+
+        A View is drawn if it and all parent Views are visible. To determine if the
+        containing Window is visible to the user on-screen call IsVisible() on the Window.
+
+        Returns:
+            bool: Whether this overlay is visible and drawn in a Window.
         """
         ...
 
@@ -2737,89 +5273,164 @@ class OverlayController:
 class PermissionPromptCallback:
     """Callback interface used for asynchronous continuation of permission prompts."""
     def continue_(self, result: PermissionRequestResult | int) -> None:
-        """Complete the permissions request with the specified |result|."""
+        """Complete the permissions request with the specified ``result``.
+
+        Args:
+            result (PermissionRequestResult | int):
+        """
         ...
 
 
 class PostData:
-    """Class used to represent post data for a web request. The methods of this
-    class may be called on any thread.
+    """Class used to represent post data for a web request.
+
+    The methods of this class may be called on any thread.
     """
     def is_read_only(self) -> bool:
-        """Returns true if this object is read-only."""
+        """Return ``True`` if this object is read-only.
+
+        Returns:
+            bool: ``True`` if this object is read-only.
+        """
         ...
     def has_excluded_elements(self) -> bool:
-        """Returns true if the underlying POST data includes elements that are not
-        represented by this CefPostData object (for example, multi-part file
-        upload data). Modifying CefPostData objects with excluded elements may
-        result in the request failing.
+        """Return ``True`` if the underlying POST data includes elements that are not represented by this :class:`PostData` object (for example, multi-part file upload data).
+
+        Modifying :class:`PostData` objects with excluded elements may result in the request
+        failing.
+
+        Returns:
+            bool: ``True`` if the underlying POST data includes elements that are not  represented by this ``CefPostData`` object (for example, multi-part file  upload data).
         """
         ...
     def get_element_count(self) -> int:
-        """Returns the number of existing post data elements."""
+        """Return the number of existing post data elements.
+
+        Returns:
+            int: The number of existing post data elements.
+        """
         ...
     def get_elements(self) -> list[PostDataElement]:
-        """Retrieve the post data elements."""
+        """Retrieve the post data elements.
+
+        Returns:
+            list[PostDataElement]
+        """
         ...
     def remove_element(self, element: PostDataElement) -> bool:
-        """Remove the specified post data element.  Returns true if the removal
-        succeeds.
+        """Remove the specified post data element.
+
+        Returns ``True`` if the removal succeeds.
+
+        Args:
+            element (PostDataElement):
+        Returns:
+            bool
         """
         ...
     def add_element(self, element: PostDataElement) -> bool:
-        """Add the specified post data element.  Returns true if the add succeeds."""
+        """Add the specified post data element.
+
+        Returns ``True`` if the add succeeds.
+
+        Args:
+            element (PostDataElement):
+        Returns:
+            bool
+        """
         ...
     def remove_elements(self) -> None:
         """Remove all existing post data elements."""
         ...
     @staticmethod
     def create() -> PostData:
-        """Create a new CefPostData object."""
+        """Create a new :class:`PostData` object.
+
+        Returns:
+            PostData
+        """
         ...
 
 
 class PostDataElement:
-    """Class used to represent a single element in the request post data. The
-    methods of this class may be called on any thread.
+    """Class used to represent a single element in the request post data.
+
+    The methods of this class may be called on any thread.
     """
     def is_read_only(self) -> bool:
-        """Returns true if this object is read-only."""
+        """Return ``True`` if this object is read-only.
+
+        Returns:
+            bool: ``True`` if this object is read-only.
+        """
         ...
     def set_to_empty(self) -> None:
         """Remove all contents from the post data element."""
         ...
     def set_to_file(self, file_name: str) -> None:
-        """The post data element will represent a file."""
+        """The post data element will represent a file.
+
+        Args:
+            file_name (str):
+        """
         ...
     def set_to_bytes(self, bytes: bytes | bytearray | memoryview) -> None:
-        """The post data element will represent bytes.  The bytes passed
-        in will be copied.
+        """The post data element will represent bytes.
+
+        The bytes passed in will be copied.
+
+        Args:
+            bytes (bytes | bytearray | memoryview):
         """
         ...
     def get_type(self) -> PostdataelementType:
-        """Return the type of this post data element."""
+        """Return the type of this post data element.
+
+        Returns:
+            PostdataelementType: The type of this post data element.
+        """
         ...
     def get_file(self) -> str:
-        """Return the file name."""
+        """Return the file name.
+
+        Returns:
+            str: The file name.
+        """
         ...
     def get_bytes_count(self) -> int:
-        """Return the number of bytes."""
+        """Return the number of bytes.
+
+        Returns:
+            int: The number of bytes.
+        """
         ...
     def get_bytes(self, size: int) -> bytes:
-        """Read up to |size| bytes into |bytes| and return the number of bytes
-        actually read.
+        """Read up to ``size`` bytes into ``bytes`` and return the number of bytes actually read.
+
+        Args:
+            size (int):
+        Returns:
+            bytes
         """
         ...
     @staticmethod
     def create() -> PostDataElement:
-        """Create a new CefPostDataElement object."""
+        """Create a new :class:`PostDataElement` object.
+
+        Returns:
+            PostDataElement
+        """
         ...
 
 
 class PrintDialogCallback:
     """Callback interface for asynchronous continuation of print dialog requests."""
     def continue_(self, settings: PrintSettings) -> None:
-        """Continue printing with the specified |settings|."""
+        """Continue printing with the specified ``settings``.
+
+        Args:
+            settings (PrintSettings):
+        """
         ...
     def cancel(self) -> None:
         """Cancel the printing."""
@@ -2836,117 +5447,244 @@ class PrintJobCallback:
 class PrintSettings:
     """Class representing print settings."""
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         ...
     def set_orientation(self, landscape: bool) -> None:
-        """Set the page orientation."""
+        """Set the page orientation.
+
+        Args:
+            landscape (bool):
+        """
         ...
     def is_landscape(self) -> bool:
-        """Returns true if the orientation is landscape."""
+        """Return ``True`` if the orientation is landscape.
+
+        Returns:
+            bool: ``True`` if the orientation is landscape.
+        """
         ...
     def set_printer_printable_area(self, physical_size_device_units: Size | tuple[int, int], printable_area_device_units: Rect | tuple[int, int, int, int], landscape_needs_flip: bool) -> None:
         """Set the printer printable area in device units.
-        Some platforms already provide flipped area. Set |landscape_needs_flip|
-        to false on those platforms to avoid double flipping.
+
+        Some platforms already provide flipped area. Set ``landscape_needs_flip`` to
+        ``False`` on those platforms to avoid double flipping.
+
+        Args:
+            physical_size_device_units (Size | tuple[int, int]):
+            printable_area_device_units (Rect | tuple[int, int, int, int]):
+            landscape_needs_flip (bool):
         """
         ...
     def set_device_name(self, name: str | None) -> None:
-        """Set the device name."""
+        """Set the device name.
+
+        Args:
+            name (str | None):
+        """
         ...
     def get_device_name(self) -> str:
-        """Get the device name."""
+        """Get the device name.
+
+        Returns:
+            str
+        """
         ...
     def set_dpi(self, dpi: int) -> None:
-        """Set the DPI (dots per inch)."""
+        """Set the DPI (dots per inch).
+
+        Args:
+            dpi (int):
+        """
         ...
     def get_dpi(self) -> int:
-        """Get the DPI (dots per inch)."""
+        """Get the DPI (dots per inch).
+
+        Returns:
+            int
+        """
         ...
     def set_page_ranges(self, ranges: Sequence[Range | tuple[int, int]]) -> None:
-        """Set the page ranges."""
+        """Set the page ranges.
+
+        Args:
+            ranges (Sequence[Range | tuple[int, int]]):
+        """
         ...
     def get_page_ranges_count(self) -> int:
-        """Returns the number of page ranges that currently exist."""
+        """Return the number of page ranges that currently exist.
+
+        Returns:
+            int: The number of page ranges that currently exist.
+        """
         ...
     def get_page_ranges(self) -> list[Range]:
-        """Retrieve the page ranges."""
+        """Retrieve the page ranges.
+
+        Returns:
+            list[Range]
+        """
         ...
     def set_selection_only(self, selection_only: bool) -> None:
-        """Set whether only the selection will be printed."""
+        """Set whether only the selection will be printed.
+
+        Args:
+            selection_only (bool):
+        """
         ...
     def is_selection_only(self) -> bool:
-        """Returns true if only the selection will be printed."""
+        """Return ``True`` if only the selection will be printed.
+
+        Returns:
+            bool: ``True`` if only the selection will be printed.
+        """
         ...
     def set_collate(self, collate: bool) -> None:
-        """Set whether pages will be collated."""
+        """Set whether pages will be collated.
+
+        Args:
+            collate (bool):
+        """
         ...
     def will_collate(self) -> bool:
-        """Returns true if pages will be collated."""
+        """Return ``True`` if pages will be collated.
+
+        Returns:
+            bool: ``True`` if pages will be collated.
+        """
         ...
     def set_color_model(self, model: ColorModel | int) -> None:
-        """Set the color model."""
+        """Set the color model.
+
+        Args:
+            model (ColorModel | int):
+        """
         ...
     def get_color_model(self) -> ColorModel:
-        """Get the color model."""
+        """Get the color model.
+
+        Returns:
+            ColorModel
+        """
         ...
     def set_copies(self, copies: int) -> None:
-        """Set the number of copies."""
+        """Set the number of copies.
+
+        Args:
+            copies (int):
+        """
         ...
     def get_copies(self) -> int:
-        """Get the number of copies."""
+        """Get the number of copies.
+
+        Returns:
+            int
+        """
         ...
     def set_duplex_mode(self, mode: DuplexMode | int) -> None:
-        """Set the duplex mode."""
+        """Set the duplex mode.
+
+        Args:
+            mode (DuplexMode | int):
+        """
         ...
     def get_duplex_mode(self) -> DuplexMode:
-        """Get the duplex mode."""
+        """Get the duplex mode.
+
+        Returns:
+            DuplexMode
+        """
         ...
     @staticmethod
     def create() -> PrintSettings:
-        """Create a new CefPrintSettings object."""
+        """Create a new :class:`PrintSettings` object.
+
+        Returns:
+            PrintSettings
+        """
         ...
 
 
 class ProcessMessage:
-    """Class representing a message. Can be used on any process and thread."""
+    """Class representing a message.
+
+    Can be used on any process and thread.
+    """
     def is_valid(self) -> bool:
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the values of this object are read-only. Some APIs may
-        expose read-only objects.
+        """Return ``True`` if the values of this object are read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the values of this object are read-only.
         """
         ...
     def copy(self) -> ProcessMessage | None:
-        """Returns a writable copy of this object.
-        Returns nullptr when message contains a shared memory region.
+        """Return a writable copy of this object.
+
+        Returns ``None`` when message contains a shared memory region.
+
+        Returns:
+            ProcessMessage | None: A writable copy of this object.
         """
         ...
     def get_name(self) -> str:
-        """Returns the message name."""
+        """Return the message name.
+
+        Returns:
+            str: The message name.
+        """
         ...
     def get_argument_list(self) -> ListValue | None:
-        """Returns the list of arguments.
-        Returns nullptr when message contains a shared memory region.
+        """Return the list of arguments.
+
+        Returns ``None`` when message contains a shared memory region.
+
+        Returns:
+            ListValue | None: The list of arguments.
         """
         ...
     def get_shared_memory_region(self) -> SharedMemoryRegion | None:
-        """Returns the shared memory region.
-        Returns nullptr when message contains an argument list.
+        """Return the shared memory region.
+
+        Returns ``None`` when message contains an argument list.
+
+        Returns:
+            SharedMemoryRegion | None: The shared memory region.
         """
         ...
     @staticmethod
     def create(name: str) -> ProcessMessage:
-        """Create a new CefProcessMessage object with the specified name."""
+        """Create a new :class:`ProcessMessage` object with the specified name.
+
+        Args:
+            name (str):
+        Returns:
+            ProcessMessage
+        """
         ...
 
 
@@ -2955,439 +5693,789 @@ class Registration:
 
 
 class Request:
-    """Class used to represent a web request. The methods of this class may be
-    called on any thread.
+    """Class used to represent a web request.
+
+    The methods of this class may be called on any thread.
     """
     def is_read_only(self) -> bool:
-        """Returns true if this object is read-only."""
+        """Return ``True`` if this object is read-only.
+
+        Returns:
+            bool: ``True`` if this object is read-only.
+        """
         ...
     def get_url(self) -> str:
-        """Get the fully qualified URL."""
+        """Get the fully qualified URL.
+
+        Returns:
+            str
+        """
         ...
     def set_url(self, url: str) -> None:
-        """Set the fully qualified URL."""
+        """Set the fully qualified URL.
+
+        Args:
+            url (str):
+        """
         ...
     def get_method(self) -> str:
-        """Get the request method type. The value will default to POST if post data
-        is provided and GET otherwise.
+        """Get the request method type.
+
+        The value will default to POST if post data is provided and GET otherwise.
+
+        Returns:
+            str
         """
         ...
     def set_method(self, method: str) -> None:
-        """Set the request method type."""
+        """Set the request method type.
+
+        Args:
+            method (str):
+        """
         ...
     def set_referrer(self, referrer_url: str | None, policy: ReferrerPolicy | int) -> None:
-        """Set the referrer URL and policy. If non-empty the referrer URL must be
-        fully qualified with an HTTP or HTTPS scheme component. Any username,
-        password or ref component will be removed.
+        """Set the referrer URL and policy.
+
+        If non-empty the referrer URL must be fully qualified with an HTTP or HTTPS scheme
+        component. Any username, password or ref component will be removed.
+
+        Args:
+            referrer_url (str | None):
+            policy (ReferrerPolicy | int):
         """
         ...
     def get_referrer_url(self) -> str:
-        """Get the referrer URL."""
+        """Get the referrer URL.
+
+        Returns:
+            str
+        """
         ...
     def get_referrer_policy(self) -> ReferrerPolicy:
-        """Get the referrer policy."""
+        """Get the referrer policy.
+
+        Returns:
+            ReferrerPolicy
+        """
         ...
     def get_post_data(self) -> PostData | None:
-        """Get the post data."""
+        """Get the post data.
+
+        Returns:
+            PostData | None
+        """
         ...
     def set_post_data(self, post_data: PostData) -> None:
-        """Set the post data."""
+        """Set the post data.
+
+        Args:
+            post_data (PostData):
+        """
         ...
     def get_header_map(self) -> dict[str, str]:
-        """Get the header values. Will not include the Referer value if any."""
+        """Get the header values.
+
+        Will not include the Referer value if any.
+
+        Returns:
+            dict[str, str]
+        """
         ...
     def set_header_map(self, header_map: dict[str, str]) -> None:
-        """Set the header values. If a Referer value exists in the header map it will
-        be removed and ignored.
+        """Set the header values.
+
+        If a Referer value exists in the header map it will be removed and ignored.
+
+        Args:
+            header_map (dict[str, str]):
         """
         ...
     def get_header_by_name(self, name: str) -> str:
-        """Returns the first header value for |name| or an empty string if not found.
-        Will not return the Referer value if any. Use GetHeaderMap instead if
-        |name| might have multiple values.
+        """Return the first header value for ``name`` or an empty string if not found.
+
+        Will not return the Referer value if any. Use GetHeaderMap instead if ``name`` might
+        have multiple values.
+
+        Args:
+            name (str):
+        Returns:
+            str: The first header value for ``name`` or an empty string if not found.
         """
         ...
     def set_header_by_name(self, name: str, value: str | None, overwrite: bool) -> None:
-        """Set the header |name| to |value|. If |overwrite| is true any existing
-        values will be replaced with the new value. If |overwrite| is false any
-        existing values will not be overwritten. The Referer value cannot be set
-        using this method.
+        """Set the header ``name`` to ``value``.
+
+        If ``overwrite`` is ``True`` any existing values will be replaced with the new
+        value. If ``overwrite`` is ``False`` any existing values will not be overwritten.
+        The Referer value cannot be set using this method.
+
+        Args:
+            name (str):
+            value (str | None):
+            overwrite (bool): False any  existing values will not be overwritten.
         """
         ...
     def set(self, url: str, method: str, post_data: PostData | None, header_map: dict[str, str]) -> None:
-        """Set all values at one time."""
+        """Set all values at one time.
+
+        Args:
+            url (str):
+            method (str):
+            post_data (PostData | None):
+            header_map (dict[str, str]):
+        """
         ...
     def get_flags(self) -> int:
-        """Get the flags used in combination with CefURLRequest. See
-        cef_urlrequest_flags_t for supported values.
+        """Get the flags used in combination with :class:`URLRequest`.
+
+        See cef_urlrequest_flags_t for supported values.
+
+        Returns:
+            int
         """
         ...
     def set_flags(self, flags: int) -> None:
-        """Set the flags used in combination with CefURLRequest.  See
-        cef_urlrequest_flags_t for supported values.
+        """Set the flags used in combination with :class:`URLRequest`.
+
+        See cef_urlrequest_flags_t for supported values.
+
+        Args:
+            flags (int):
         """
         ...
     def get_first_party_for_cookies(self) -> str:
-        """Get the URL to the first party for cookies used in combination with
-        CefURLRequest.
+        """Get the URL to the first party for cookies used in combination with :class:`URLRequest`.
+
+        Returns:
+            str
         """
         ...
     def set_first_party_for_cookies(self, url: str | None) -> None:
-        """Set the URL to the first party for cookies used in combination with
-        CefURLRequest.
+        """Set the URL to the first party for cookies used in combination with :class:`URLRequest`.
+
+        Args:
+            url (str | None):
         """
         ...
     def get_resource_type(self) -> ResourceType:
-        """Get the resource type for this request. Only available in the browser
-        process.
+        """Get the resource type for this request.
+
+        Only available in the browser process.
+
+        Returns:
+            ResourceType
         """
         ...
     def get_transition_type(self) -> TransitionType:
-        """Get the transition type for this request. Only available in the browser
-        process and only applies to requests that represent a main frame or
-        sub-frame navigation.
+        """Get the transition type for this request.
+
+        Only available in the browser process and only applies to requests that represent a
+        main frame or sub-frame navigation.
+
+        Returns:
+            TransitionType
         """
         ...
     def get_identifier(self) -> int:
-        """Returns the globally unique identifier for this request or 0 if not
-        specified. Can be used by CefResourceRequestHandler implementations in the
-        browser process to track a single request across multiple callbacks.
+        """Return the globally unique identifier for this request or 0 if not specified.
+
+        Can be used by :class:`ResourceRequestHandler` implementations in the browser
+        process to track a single request across multiple callbacks.
+
+        Returns:
+            int: The globally unique identifier for this request or 0 if not  specified.
         """
         ...
     @staticmethod
     def create() -> Request:
-        """Create a new CefRequest object."""
+        """Create a new :class:`Request` object.
+
+        Returns:
+            Request
+        """
         ...
 
 
 class RequestContext:
-    """A request context provides request handling for a set of related browser
-    or URL request objects. A request context can be specified when creating a
-    new browser via the CefBrowserHost static factory methods or when creating a
-    new URL request via the CefURLRequest static factory methods. Browser
-    objects with different request contexts will never be hosted in the same
-    render process. Browser objects with the same request context may or may not
-    be hosted in the same render process depending on the process model. Browser
-    objects created indirectly via the JavaScript window.open function or
-    targeted links will share the same render process and the same request
-    context as the source browser. When running in single-process mode there is
-    only a single render process (the main process) and so all browsers created
-    in single-process mode will share the same request context. This will be the
-    first request context passed into a CefBrowserHost static factory method and
+    """A request context provides request handling for a set of related browser or URL request objects.
+
+    A request context can be specified when creating a new browser via the
+    :class:`BrowserHost` static factory methods or when creating a new URL request via
+    the :class:`URLRequest` static factory methods. Browser objects with different
+    request contexts will never be hosted in the same render process. Browser objects
+    with the same request context may or may not be hosted in the same render process
+    depending on the process model. Browser objects created indirectly via the
+    JavaScript window.open function or targeted links will share the same render process
+    and the same request context as the source browser. When running in single-process
+    mode there is only a single render process (the main process) and so all browsers
+    created in single-process mode will share the same request context. This will be the
+    first request context passed into a :class:`BrowserHost` static factory method and
     all other request context objects will be ignored.
     """
     def has_preference(self, name: str) -> bool:
-        """Returns true if a preference with the specified |name| exists. This method
-        must be called on the browser process UI thread.
+        """Return ``True`` if a preference with the specified ``name`` exists.
+
+        This method must be called on the browser process UI thread.
+
+        Args:
+            name (str):
+        Returns:
+            bool: ``True`` if a preference with the specified ``name`` exists.
         """
         ...
     def get_preference(self, name: str) -> Value | None:
-        """Returns the value for the preference with the specified |name|. Returns
-        NULL if the preference does not exist. The returned object contains a copy
-        of the underlying preference value and modifications to the returned
-        object will not modify the underlying preference value. This method must
-        be called on the browser process UI thread.
+        """Return the value for the preference with the specified ``name``.
+
+        Returns ``None`` if the preference does not exist. The returned object contains a
+        copy of the underlying preference value and modifications to the returned object
+        will not modify the underlying preference value. This method must be called on the
+        browser process UI thread.
+
+        Args:
+            name (str):
+        Returns:
+            Value | None: The value for the preference with the specified ``name``.
         """
         ...
     def get_all_preferences(self, include_defaults: bool) -> DictionaryValue | None:
-        """Returns all preferences as a dictionary. If |include_defaults| is true
-        then preferences currently at their default value will be included. The
-        returned object contains a copy of the underlying preference values and
-        modifications to the returned object will not modify the underlying
-        preference values. This method must be called on the browser process UI
+        """Return all preferences as a dictionary.
+
+        If ``include_defaults`` is ``True`` then preferences currently at their default
+        value will be included. The returned object contains a copy of the underlying
+        preference values and modifications to the returned object will not modify the
+        underlying preference values. This method must be called on the browser process UI
         thread.
+
+        Args:
+            include_defaults (bool): True  then preferences currently at their default value will be included.
+        Returns:
+            DictionaryValue | None: All preferences as a dictionary.
         """
         ...
     def can_set_preference(self, name: str) -> bool:
-        """Returns true if the preference with the specified |name| can be modified
-        using SetPreference. As one example preferences set via the command-line
-        usually cannot be modified. This method must be called on the browser
-        process UI thread.
+        """Return ``True`` if the preference with the specified ``name`` can be modified using SetPreference.
+
+        As one example preferences set via the command-line usually cannot be modified. This
+        method must be called on the browser process UI thread.
+
+        Args:
+            name (str):
+        Returns:
+            bool: ``True`` if the preference with the specified ``name`` can be modified  using SetPreference.
         """
         ...
     def set_preference(self, name: str, value: Value | None) -> tuple[bool, str]:
-        """Set the |value| associated with preference |name|. Returns true if the
-        value is set successfully and false otherwise. If |value| is NULL the
-        preference will be restored to its default value. If setting the
-        preference fails then |error| will be populated with a detailed
-        description of the problem. This method must be called on the browser
-        process UI thread.
+        """Set the ``value`` associated with preference ``name``.
+
+        Returns ``True`` if the value is set successfully and ``False`` otherwise. If
+        ``value`` is ``None`` the preference will be restored to its default value. If
+        setting the preference fails then ``error`` will be populated with a detailed
+        description of the problem. This method must be called on the browser process UI
+        thread.
+
+        Args:
+            name (str):
+            value (Value | None): ``None`` the  preference will be restored to its default value.
+        Returns:
+            tuple[bool, str]
         """
         ...
     def add_preference_observer(self, name: str | None, observer: PreferenceObserver) -> Registration | None:
-        """Add an observer for preference changes. |name| is the name of the
-        preference to observe. If |name| is empty then all preferences will
-        be observed. Observing all preferences has performance consequences and
-        is not recommended outside of testing scenarios. The observer will remain
-        registered until the returned Registration object is destroyed. This
-        method must be called on the browser process UI thread.
+        """Add an observer for preference changes.
+
+        ``name`` is the name of the preference to observe. If ``name`` is empty then all
+        preferences will be observed. Observing all preferences has performance consequences
+        and is not recommended outside of testing scenarios. The observer will remain
+        registered until the returned Registration object is destroyed. This method must be
+        called on the browser process UI thread.
+
+        Args:
+            name (str | None): Empty then all preferences will  be observed.
+            observer (PreferenceObserver):
+        Returns:
+            Registration | None
         """
         ...
     def is_same(self, other: RequestContext) -> bool:
-        """Returns true if this object is pointing to the same context as |that|
-        object.
+        """Return ``True`` if this object is pointing to the same context as ``that`` object.
+
+        Args:
+            other (RequestContext):
+        Returns:
+            bool: ``True`` if this object is pointing to the same context as ``that``  object.
         """
         ...
     def is_sharing_with(self, other: RequestContext) -> bool:
-        """Returns true if this object is sharing the same storage as |that| object."""
+        """Return ``True`` if this object is sharing the same storage as ``that`` object.
+
+        Args:
+            other (RequestContext):
+        Returns:
+            bool: ``True`` if this object is sharing the same storage as ``that`` object.
+        """
         ...
     def is_global(self) -> bool:
-        """Returns true if this object is the global context. The global context is
-        used by default when creating a browser or URL request with a NULL context
-        argument.
+        """Return ``True`` if this object is the global context.
+
+        The global context is used by default when creating a browser or URL request with a
+        ``None`` context argument.
+
+        Returns:
+            bool: ``True`` if this object is the global context.
         """
         ...
     def get_handler(self) -> RequestContextHandler | None:
-        """Returns the handler for this context if any."""
+        """Return the handler for this context if any.
+
+        Returns:
+            RequestContextHandler | None: The handler for this context if any.
+        """
         ...
     def get_cache_path(self) -> str:
-        """Returns the cache path for this object. If empty an \"incognito mode\"
-        in-memory cache is being used.
+        """Return the cache path for this object.
+
+        If empty an \"incognito mode\" in-memory cache is being used.
+
+        Returns:
+            str: The cache path for this object.
         """
         ...
     def get_cookie_manager(self, callback: CompletionCallback | None) -> CookieManager | None:
-        """Returns the cookie manager for this object. If |callback| is non-NULL it
-        will be executed asnychronously on the UI thread after the manager's
-        storage has been initialized.
+        """Return the cookie manager for this object.
+
+        If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
+        after the manager's storage has been initialized.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it  will be executed asnychronously on the UI thread after the manager's  storage has been initialized.
+        Returns:
+            CookieManager | None: The cookie manager for this object.
         """
         ...
     def register_scheme_handler_factory(self, scheme_name: str, domain_name: str | None, factory: SchemeHandlerFactory | None) -> bool:
-        """Register a scheme handler factory for the specified |scheme_name| and
-        optional |domain_name|. An empty |domain_name| value for a standard scheme
-        will cause the factory to match all domain names. The |domain_name| value
-        will be ignored for non-standard schemes. If |scheme_name| is a built-in
-        scheme and no handler is returned by |factory| then the built-in scheme
-        handler factory will be called. If |scheme_name| is a custom scheme then
-        you must also implement the CefApp::OnRegisterCustomSchemes() method in
-        all processes. This function may be called multiple times to change or
-        remove the factory that matches the specified |scheme_name| and optional
-        |domain_name|. Returns false if an error occurs. This function may be
-        called on any thread in the browser process.
+        """Register a scheme handler factory for the specified ``scheme_name`` and optional ``domain_name``.
+
+        An empty ``domain_name`` value for a standard scheme will cause the factory to match
+        all domain names. The ``domain_name`` value will be ignored for non-standard
+        schemes. If ``scheme_name`` is a built-in scheme and no handler is returned by
+        ``factory`` then the built-in scheme handler factory will be called. If
+        ``scheme_name`` is a custom scheme then you must also implement the
+        ``CefApp::OnRegisterCustomSchemes()`` method in all processes. This function may be
+        called multiple times to change or remove the factory that matches the specified
+        ``scheme_name`` and optional ``domain_name``. Returns ``False`` if an error occurs.
+        This function may be called on any thread in the browser process.
+
+        Args:
+            scheme_name (str): A custom scheme then  you must also implement the ``CefApp::OnRegisterCustomSchemes()`` method in  all processes.
+            domain_name (str | None):
+            factory (SchemeHandlerFactory | None):
+        Returns:
+            bool
         """
         ...
     def clear_scheme_handler_factories(self) -> bool:
-        """Clear all registered scheme handler factories. Returns false on error.
-        This function may be called on any thread in the browser process.
+        """Clear all registered scheme handler factories.
+
+        Returns ``False`` on error. This function may be called on any thread in the browser
+        process.
+
+        Returns:
+            bool
         """
         ...
     def clear_certificate_exceptions(self, callback: CompletionCallback | None) -> None:
-        """Clears all certificate exceptions that were added as part of handling
-        CefRequestHandler::OnCertificateError(). If you call this it is
-        recommended that you also call CloseAllConnections() or you risk not
-        being prompted again for server certificates if you reconnect quickly.
-        If |callback| is non-NULL it will be executed on the UI thread after
-        completion.
+        """Clear all certificate exceptions that were added as part of handling :meth:`RequestHandler.on_certificate_error`.
+
+        If you call this it is recommended that you also call CloseAllConnections() or you
+        risk not being prompted again for server certificates if you reconnect quickly. If
+        ``callback`` is non-``None`` it will be executed on the UI thread after completion.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed on the UI thread after  completion.
         """
         ...
     def clear_http_cache(self, callback: CompletionCallback | None) -> None:
-        """Clears the HTTP cache. If |callback| is non-NULL it will be executed on
-        the UI thread after completion.
+        """Clear the HTTP cache.
+
+        If ``callback`` is non-``None`` it will be executed on the UI thread after
+        completion.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed on  the UI thread after completion.
         """
         ...
     def clear_http_auth_credentials(self, callback: CompletionCallback | None) -> None:
-        """Clears all HTTP authentication credentials that were added as part of
-        handling GetAuthCredentials. If |callback| is non-NULL it will be executed
-        on the UI thread after completion.
+        """Clear all HTTP authentication credentials that were added as part of handling GetAuthCredentials.
+
+        If ``callback`` is non-``None`` it will be executed on the UI thread after
+        completion.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed  on the UI thread after completion.
         """
         ...
     def close_all_connections(self, callback: CompletionCallback | None) -> None:
-        """Clears all active and idle connections that Chromium currently has.
-        This is only recommended if you have released all other CEF objects but
-        don't yet want to call CefShutdown(). If |callback| is non-NULL it will be
-        executed on the UI thread after completion.
+        """Clear all active and idle connections that Chromium currently has.
+
+        This is only recommended if you have released all other CEF objects but don't yet
+        want to call ``CefShutdown``(). If ``callback`` is non-``None`` it will be executed
+        on the UI thread after completion.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be  executed on the UI thread after completion.
         """
         ...
     def resolve_host(self, origin: str, callback: ResolveCallback) -> None:
-        """Attempts to resolve |origin| to a list of associated IP addresses.
-        |callback| will be executed on the UI thread after completion.
+        """Attempt to resolve ``origin`` to a list of associated IP addresses.
+
+        ``callback`` will be executed on the UI thread after completion.
+
+        Args:
+            origin (str):
+            callback (ResolveCallback):
         """
         ...
     def get_media_router(self, callback: CompletionCallback | None) -> MediaRouter | None:
-        """Returns the MediaRouter object associated with this context.  If
-        |callback| is non-NULL it will be executed asnychronously on the UI thread
+        """Return the MediaRouter object associated with this context.
+
+        If ``callback`` is non-``None`` it will be executed asnychronously on the UI thread
         after the manager's context has been initialized.
+
+        Args:
+            callback (CompletionCallback | None): Non-``None`` it will be executed asnychronously on the UI thread  after the manager's context has been initialized.
+        Returns:
+            MediaRouter | None: The MediaRouter object associated with this context.
         """
         ...
     def get_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> Value | None:
-        """Returns the current value for |content_type| that applies for the
-        specified URLs. If both URLs are empty the default value will be returned.
-        Returns nullptr if no value is configured. Must be called on the browser
-        process UI thread.
+        """Return the current value for ``content_type`` that applies for the specified URLs.
+
+        If both URLs are empty the default value will be returned. Returns ``None`` if no
+        value is configured. Must be called on the browser process UI thread.
+
+        Args:
+            requesting_url (str | None):
+            top_level_url (str | None):
+            content_type (ContentSettingTypes | int):
+        Returns:
+            Value | None: The current value for ``content_type`` that applies for the  specified URLs.
         """
         ...
     def set_website_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: Value | None) -> None:
-        """Sets the current value for |content_type| for the specified URLs in the
-        default scope. If both URLs are empty, and the context is not incognito,
-        the default value will be set. Pass nullptr for |value| to remove the
-        default value for this content type.
+        """Set the current value for ``content_type`` for the specified URLs in the default scope.
 
-        WARNING: Incorrect usage of this method may cause instability or security
-        issues in Chromium. Make sure that you first understand the potential
-        impact of any changes to |content_type| by reviewing the related source
-        code in Chromium. For example, if you plan to modify
-        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
-        ContentSettingsType::POPUPS in Chromium:
+        If both URLs are empty, and the context is not incognito, the default value will be
+        set. Pass ``None`` for ``value`` to remove the default value for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security issues in
+        Chromium. Make sure that you first understand the potential impact of any changes to
+        ``content_type`` by reviewing the related source code in Chromium. For example, if
+        you plan to modify CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the
+        usage of ContentSettingsType::POPUPS in Chromium:
         https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+
+        Args:
+            requesting_url (str | None):
+            top_level_url (str | None):
+            content_type (ContentSettingTypes | int):
+            value (Value | None):
         """
         ...
     def get_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int) -> ContentSettingValues:
-        """Returns the current value for |content_type| that applies for the
-        specified URLs. If both URLs are empty the default value will be returned.
-        Returns CEF_CONTENT_SETTING_VALUE_DEFAULT if no value is configured. Must
-        be called on the browser process UI thread.
+        """Return the current value for ``content_type`` that applies for the specified URLs.
+
+        If both URLs are empty the default value will be returned. Returns
+        CEF_CONTENT_SETTING_VALUE_DEFAULT if no value is configured. Must be called on the
+        browser process UI thread.
+
+        Args:
+            requesting_url (str | None):
+            top_level_url (str | None):
+            content_type (ContentSettingTypes | int):
+        Returns:
+            ContentSettingValues: The current value for ``content_type`` that applies for the  specified URLs.
         """
         ...
     def set_content_setting(self, requesting_url: str | None, top_level_url: str | None, content_type: ContentSettingTypes | int, value: ContentSettingValues | int) -> None:
-        """Sets the current value for |content_type| for the specified URLs in the
-        default scope. If both URLs are empty, and the context is not incognito,
-        the default value will be set. Pass CEF_CONTENT_SETTING_VALUE_DEFAULT for
-        |value| to use the default value for this content type.
+        """Set the current value for ``content_type`` for the specified URLs in the default scope.
 
-        WARNING: Incorrect usage of this method may cause instability or security
-        issues in Chromium. Make sure that you first understand the potential
-        impact of any changes to |content_type| by reviewing the related source
-        code in Chromium. For example, if you plan to modify
-        CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the usage of
-        ContentSettingsType::POPUPS in Chromium:
+        If both URLs are empty, and the context is not incognito, the default value will be
+        set. Pass CEF_CONTENT_SETTING_VALUE_DEFAULT for ``value`` to use the default value
+        for this content type.
+
+        WARNING: Incorrect usage of this method may cause instability or security issues in
+        Chromium. Make sure that you first understand the potential impact of any changes to
+        ``content_type`` by reviewing the related source code in Chromium. For example, if
+        you plan to modify CEF_CONTENT_SETTING_TYPE_POPUPS, first review and understand the
+        usage of ContentSettingsType::POPUPS in Chromium:
         https://source.chromium.org/search?q=ContentSettingsType::POPUPS
+
+        Args:
+            requesting_url (str | None):
+            top_level_url (str | None):
+            content_type (ContentSettingTypes | int):
+            value (ContentSettingValues | int):
         """
         ...
     def add_setting_observer(self, observer: SettingObserver) -> Registration | None:
-        """Add an observer for content and website setting changes. The observer will
-        remain registered until the returned Registration object is destroyed.
-        This method must be called on the browser process UI thread.
+        """Add an observer for content and website setting changes.
+
+        The observer will remain registered until the returned Registration object is
+        destroyed. This method must be called on the browser process UI thread.
+
+        Args:
+            observer (SettingObserver):
+        Returns:
+            Registration | None
         """
         ...
     def set_chrome_color_scheme(self, variant: ColorVariant | int, user_color: int) -> None:
-        """Sets the Chrome color scheme for all browsers that share this request
-        context. |variant| values of SYSTEM, LIGHT and DARK change the underlying
-        color mode (e.g. light vs dark). Other |variant| values determine how
-        |user_color| will be applied in the current color mode. If |user_color| is
-        transparent (0) the default color will be used.
+        """Set the Chrome color scheme for all browsers that share this request context.
+
+        ``variant`` values of SYSTEM, LIGHT and DARK change the underlying color mode (e.g.
+        light vs dark). Other ``variant`` values determine how ``user_color`` will be
+        applied in the current color mode. If ``user_color`` is transparent (0) the default
+        color will be used.
+
+        Args:
+            variant (ColorVariant | int):
+            user_color (int): Transparent (0) the default color will be used.
         """
         ...
     def get_chrome_color_scheme_mode(self) -> ColorVariant:
-        """Returns the current Chrome color scheme mode (SYSTEM, LIGHT or DARK). Must
-        be called on the browser process UI thread.
+        """Return the current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
+
+        Must be called on the browser process UI thread.
+
+        Returns:
+            ColorVariant: The current Chrome color scheme mode (SYSTEM, LIGHT or DARK).
         """
         ...
     def get_chrome_color_scheme_color(self) -> int:
-        """Returns the current Chrome color scheme color, or transparent (0) for the
-        default color. Must be called on the browser process UI thread.
+        """Return the current Chrome color scheme color, or transparent (0) for the default color.
+
+        Must be called on the browser process UI thread.
+
+        Returns:
+            int: The current Chrome color scheme color, or transparent (0) for the  default color.
         """
         ...
     def get_chrome_color_scheme_variant(self) -> ColorVariant:
-        """Returns the current Chrome color scheme variant. Must be called on the
-        browser process UI thread.
+        """Return the current Chrome color scheme variant.
+
+        Must be called on the browser process UI thread.
+
+        Returns:
+            ColorVariant: The current Chrome color scheme variant.
         """
         ...
     @staticmethod
     def get_global_context() -> RequestContext | None:
-        """Returns the global context object."""
+        """Return the global context object.
+
+        Returns:
+            RequestContext | None: The global context object.
+        """
         ...
     @staticmethod
     def create_context(settings: RequestContextSettings | tuple[str, int, str, str, int], handler: RequestContextHandler | None) -> RequestContext | None:
-        """Creates a new context object with the specified |settings| and optional
-        |handler|.
+        """Create a new context object with the specified ``settings`` and optional ``handler``.
+
+        Args:
+            settings (RequestContextSettings | tuple[str, int, str, str, int]):
+            handler (RequestContextHandler | None):
+        Returns:
+            RequestContext | None
         """
         ...
 
 
 class ResourceReadCallback:
-    """Callback for asynchronous continuation of CefResourceHandler::Read()."""
+    """Callback for asynchronous continuation of :meth:`ResourceHandler.read`."""
     def continue_(self, bytes_read: int) -> None:
-        """Callback for asynchronous continuation of Read(). If |bytes_read| == 0
-        the response will be considered complete. If |bytes_read| > 0 then Read()
-        will be called again until the request is complete (based on either the
-        result or the expected content length). If |bytes_read| < 0 then the
-        request will fail and the |bytes_read| value will be treated as the error
-        code.
+        """Callback for asynchronous continuation of Read().
+
+        If ``bytes_read`` == 0 the response will be considered complete. If ``bytes_read`` >
+        0 then Read() will be called again until the request is complete (based on either
+        the result or the expected content length). If ``bytes_read`` < 0 then the request
+        will fail and the ``bytes_read`` value will be treated as the error code.
+
+        Args:
+            bytes_read (int):
         """
         ...
 
 
 class ResourceSkipCallback:
-    """Callback for asynchronous continuation of CefResourceHandler::Skip()."""
+    """Callback for asynchronous continuation of :meth:`ResourceHandler.skip`."""
     def continue_(self, bytes_skipped: int) -> None:
-        """Callback for asynchronous continuation of Skip(). If |bytes_skipped| > 0
-        then either Skip() will be called again until the requested number of
-        bytes have been skipped or the request will proceed. If |bytes_skipped|
+        """Callback for asynchronous continuation of Skip().
+
+        If ``bytes_skipped`` > 0 then either Skip() will be called again until the requested
+        number of bytes have been skipped or the request will proceed. If ``bytes_skipped``
         <= 0 the request will fail with ERR_REQUEST_RANGE_NOT_SATISFIABLE.
+
+        Args:
+            bytes_skipped (int):
         """
         ...
 
 
 class Response:
-    """Class used to represent a web response. The methods of this class may be
-    called on any thread.
+    """Class used to represent a web response.
+
+    The methods of this class may be called on any thread.
     """
     def is_read_only(self) -> bool:
-        """Returns true if this object is read-only."""
+        """Return ``True`` if this object is read-only.
+
+        Returns:
+            bool: ``True`` if this object is read-only.
+        """
         ...
     def get_error(self) -> ErrorCode:
-        """Get the response error code. Returns ERR_NONE if there was no error."""
+        """Get the response error code.
+
+        Returns ERR_NONE if there was no error.
+
+        Returns:
+            ErrorCode
+        """
         ...
     def set_error(self, error: ErrorCode | int) -> None:
-        """Set the response error code. This can be used by custom scheme handlers
-        to return errors during initial request processing.
+        """Set the response error code.
+
+        This can be used by custom scheme handlers to return errors during initial request
+        processing.
+
+        Args:
+            error (ErrorCode | int):
         """
         ...
     def get_status(self) -> int:
-        """Get the response status code."""
+        """Get the response status code.
+
+        Returns:
+            int
+        """
         ...
     def set_status(self, status: int) -> None:
-        """Set the response status code."""
+        """Set the response status code.
+
+        Args:
+            status (int):
+        """
         ...
     def get_status_text(self) -> str:
-        """Get the response status text."""
+        """Get the response status text.
+
+        Returns:
+            str
+        """
         ...
     def set_status_text(self, status_text: str | None) -> None:
-        """Set the response status text."""
+        """Set the response status text.
+
+        Args:
+            status_text (str | None):
+        """
         ...
     def get_mime_type(self) -> str:
-        """Get the response mime type."""
+        """Get the response mime type.
+
+        Returns:
+            str
+        """
         ...
     def set_mime_type(self, mime_type: str | None) -> None:
-        """Set the response mime type."""
+        """Set the response mime type.
+
+        Args:
+            mime_type (str | None):
+        """
         ...
     def get_charset(self) -> str:
-        """Get the response charset."""
+        """Get the response charset.
+
+        Returns:
+            str
+        """
         ...
     def set_charset(self, charset: str | None) -> None:
-        """Set the response charset."""
+        """Set the response charset.
+
+        Args:
+            charset (str | None):
+        """
         ...
     def get_header_by_name(self, name: str) -> str:
-        """Get the value for the specified response header field."""
+        """Get the value for the specified response header field.
+
+        Args:
+            name (str):
+        Returns:
+            str
+        """
         ...
     def set_header_by_name(self, name: str, value: str | None, overwrite: bool) -> None:
-        """Set the header |name| to |value|. If |overwrite| is true any existing
-        values will be replaced with the new value. If |overwrite| is false any
-        existing values will not be overwritten.
+        """Set the header ``name`` to ``value``.
+
+        If ``overwrite`` is ``True`` any existing values will be replaced with the new
+        value. If ``overwrite`` is ``False`` any existing values will not be overwritten.
+
+        Args:
+            name (str):
+            value (str | None):
+            overwrite (bool): False any  existing values will not be overwritten.
         """
         ...
     def get_header_map(self) -> dict[str, str]:
-        """Get all response header fields."""
+        """Get all response header fields.
+
+        Returns:
+            dict[str, str]
+        """
         ...
     def set_header_map(self, header_map: dict[str, str]) -> None:
-        """Set all response header fields."""
+        """Set all response header fields.
+
+        Args:
+            header_map (dict[str, str]):
+        """
         ...
     def get_url(self) -> str:
-        """Get the resolved URL after redirects or changed as a result of HSTS."""
+        """Get the resolved URL after redirects or changed as a result of HSTS.
+
+        Returns:
+            str
+        """
         ...
     def set_url(self, url: str | None) -> None:
-        """Set the resolved URL after redirects or changed as a result of HSTS."""
+        """Set the resolved URL after redirects or changed as a result of HSTS.
+
+        Args:
+            url (str | None):
+        """
         ...
     @staticmethod
     def create() -> Response:
-        """Create a new CefResponse object."""
+        """Create a new :class:`Response` object.
+
+        Returns:
+            Response
+        """
         ...
 
 
 class RunContextMenuCallback:
     """Callback interface used for continuation of custom context menu display."""
     def continue_(self, command_id: int, event_flags: EventFlags | int) -> None:
-        """Complete context menu display by selecting the specified |command_id| and
-        |event_flags|.
+        """Complete context menu display by selecting the specified ``command_id`` and ``event_flags``.
+
+        Args:
+            command_id (int):
+            event_flags (EventFlags | int):
         """
         ...
     def cancel(self) -> None:
@@ -3398,8 +6486,11 @@ class RunContextMenuCallback:
 class RunQuickMenuCallback:
     """Callback interface used for continuation of custom quick menu display."""
     def continue_(self, command_id: int, event_flags: EventFlags | int) -> None:
-        """Complete quick menu display by selecting the specified |command_id| and
-        |event_flags|.
+        """Complete quick menu display by selecting the specified ``command_id`` and ``event_flags``.
+
+        Args:
+            command_id (int):
+            event_flags (EventFlags | int):
         """
         ...
     def cancel(self) -> None:
@@ -3410,33 +6501,57 @@ class RunQuickMenuCallback:
 class SSLInfo:
     """Class representing SSL information."""
     def get_cert_status(self) -> CertStatus:
-        """Returns a bitmask containing any and all problems verifying the server
-        certificate.
+        """Return a bitmask containing any and all problems verifying the server certificate.
+
+        Returns:
+            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
         """
         ...
     def get_x509_certificate(self) -> X509Certificate | None:
-        """Returns the X.509 certificate."""
+        """Return the X.509 certificate.
+
+        Returns:
+            X509Certificate | None: The X.509 certificate.
+        """
         ...
 
 
 class SSLStatus:
     """Class representing the SSL information for a navigation entry."""
     def is_secure_connection(self) -> bool:
-        """Returns true if the status is related to a secure SSL/TLS connection."""
+        """Return ``True`` if the status is related to a secure SSL/TLS connection.
+
+        Returns:
+            bool: ``True`` if the status is related to a secure SSL/TLS connection.
+        """
         ...
     def get_cert_status(self) -> CertStatus:
-        """Returns a bitmask containing any and all problems verifying the server
-        certificate.
+        """Return a bitmask containing any and all problems verifying the server certificate.
+
+        Returns:
+            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
         """
         ...
     def get_ssl_version(self) -> SslVersion:
-        """Returns the SSL version used for the SSL connection."""
+        """Return the SSL version used for the SSL connection.
+
+        Returns:
+            SslVersion: The SSL version used for the SSL connection.
+        """
         ...
     def get_content_status(self) -> SslContentStatus:
-        """Returns a bitmask containing the page security content status."""
+        """Return a bitmask containing the page security content status.
+
+        Returns:
+            SslContentStatus: A bitmask containing the page security content status.
+        """
         ...
     def get_x509_certificate(self) -> X509Certificate | None:
-        """Returns the X.509 certificate."""
+        """Return the X.509 certificate.
+
+        Returns:
+            X509Certificate | None: The X.509 certificate.
+        """
         ...
 
 
@@ -3444,115 +6559,178 @@ class SelectClientCertificateCallback:
     """Callback interface used to select a client certificate for authentication."""
     def select(self, cert: X509Certificate | None) -> None:
         """Chooses the specified certificate for client certificate authentication.
-        NULL value means that no client certificate should be used.
+
+        ``None`` value means that no client certificate should be used.
+
+        Args:
+            cert (X509Certificate | None):
         """
         ...
 
 
 class Server:
     """Class representing a server that supports HTTP and WebSocket requests.
+
     Server capacity is limited and is intended to handle only a small number of
-    simultaneous connections (e.g. for communicating between applications on
-    localhost). The methods of this class are safe to call from any thread in
-    the brower process unless otherwise indicated.
+    simultaneous connections (e.g. for communicating between applications on localhost).
+    The methods of this class are safe to call from any thread in the brower process
+    unless otherwise indicated.
     """
     def shutdown(self) -> None:
-        """Stop the server and shut down the dedicated server thread. See
-        CefServerHandler::OnServerCreated documentation for a description of
+        """Stop the server and shut down the dedicated server thread.
+
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
         server lifespan.
         """
         ...
     def is_running(self) -> bool:
-        """Returns true if the server is currently running and accepting incoming
-        connections. See CefServerHandler::OnServerCreated documentation for a
-        description of server lifespan. This method must be called on the
-        dedicated server thread.
+        """Return ``True`` if the server is currently running and accepting incoming connections.
+
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
+        server lifespan. This method must be called on the dedicated server thread.
+
+        Returns:
+            bool: ``True`` if the server is currently running and accepting incoming  connections.
         """
         ...
     def get_address(self) -> str:
-        """Returns the server address including the port number."""
+        """Return the server address including the port number.
+
+        Returns:
+            str: The server address including the port number.
+        """
         ...
     def has_connection(self) -> bool:
-        """Returns true if the server currently has a connection. This method must be
-        called on the dedicated server thread.
+        """Return ``True`` if the server currently has a connection.
+
+        This method must be called on the dedicated server thread.
+
+        Returns:
+            bool: ``True`` if the server currently has a connection.
         """
         ...
     def is_valid_connection(self, connection_id: int) -> bool:
-        """Returns true if |connection_id| represents a valid connection. This method
-        must be called on the dedicated server thread.
+        """Return ``True`` if ``connection_id`` represents a valid connection.
+
+        This method must be called on the dedicated server thread.
+
+        Args:
+            connection_id (int):
+        Returns:
+            bool: ``True`` if ``connection_id`` represents a valid connection.
         """
         ...
     def send_http200_response(self, connection_id: int, content_type: str, data: bytes | bytearray | memoryview) -> None:
-        """Send an HTTP 200 \"OK\" response to the connection identified by
-        |connection_id|. |content_type| is the response content type (e.g.
-        \"text/html\"), |data| is the response content, and |data_size| is the size
-        of |data| in bytes. The contents of |data| will be copied. The connection
-        will be closed automatically after the response is sent.
+        """Send an HTTP 200 \"OK\" response to the connection identified by ``connection_id``.
+
+        ``content_type`` is the response content type (e.g. \"text/html\"), ``data`` is the
+        response content, and ``data_size`` is the size of ``data`` in bytes. The contents
+        of ``data`` will be copied. The connection will be closed automatically after the
+        response is sent.
+
+        Args:
+            connection_id (int):
+            content_type (str): The response content type (e.
+            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size  of ``data`` in bytes.
         """
         ...
     def send_http404_response(self, connection_id: int) -> None:
-        """Send an HTTP 404 \"Not Found\" response to the connection identified by
-        |connection_id|. The connection will be closed automatically after the
-        response is sent.
+        """Send an HTTP 404 \"Not Found\" response to the connection identified by ``connection_id``.
+
+        The connection will be closed automatically after the response is sent.
+
+        Args:
+            connection_id (int):
         """
         ...
     def send_http500_response(self, connection_id: int, error_message: str) -> None:
-        """Send an HTTP 500 \"Internal Server Error\" response to the connection
-        identified by |connection_id|. |error_message| is the associated error
-        message. The connection will be closed automatically after the response is
-        sent.
+        """Send an HTTP 500 \"Internal Server Error\" response to the connection identified by ``connection_id``.
+
+        ``error_message`` is the associated error message. The connection will be closed
+        automatically after the response is sent.
+
+        Args:
+            connection_id (int):
+            error_message (str): The associated error  message.
         """
         ...
     def send_http_response(self, connection_id: int, response_code: int, content_type: str, content_length: int, extra_headers: dict[str, str] | None) -> None:
-        """Send a custom HTTP response to the connection identified by
-        |connection_id|. |response_code| is the HTTP response code sent in the
-        status line (e.g. 200), |content_type| is the response content type sent
-        as the \"Content-Type\" header (e.g. \"text/html\"), |content_length| is the
-        expected content length, and |extra_headers| is the map of extra response
-        headers. If |content_length| is >= 0 then the \"Content-Length\" header will
-        be sent. If |content_length| is 0 then no content is expected and the
-        connection will be closed automatically after the response is sent. If
-        |content_length| is < 0 then no \"Content-Length\" header will be sent and
-        the client will continue reading until the connection is closed. Use the
-        SendRawData method to send the content, if applicable, and call
-        CloseConnection after all content has been sent.
+        """Send a custom HTTP response to the connection identified by ``connection_id``.
+
+        ``response_code`` is the HTTP response code sent in the status line (e.g. 200),
+        ``content_type`` is the response content type sent as the \"Content-Type\" header
+        (e.g. \"text/html\"), ``content_length`` is the expected content length, and
+        ``extra_headers`` is the map of extra response headers. If ``content_length`` is >=
+        0 then the \"Content-Length\" header will be sent. If ``content_length`` is 0 then no
+        content is expected and the connection will be closed automatically after the
+        response is sent. If ``content_length`` is < 0 then no \"Content-Length\" header will
+        be sent and the client will continue reading until the connection is closed. Use the
+        SendRawData method to send the content, if applicable, and call CloseConnection
+        after all content has been sent.
+
+        Args:
+            connection_id (int):
+            response_code (int): The HTTP response code sent in the  status line (e.
+            content_type (str): The response content type sent  as the \"Content-Type\" header (e.
+            content_length (int): < 0 then no \"Content-Length\" header will be sent and  the client will continue reading until the connection is closed.
+            extra_headers (dict[str, str] | None):
         """
         ...
     def send_raw_data(self, connection_id: int, data: bytes | bytearray | memoryview) -> None:
-        """Send raw data directly to the connection identified by |connection_id|.
-        |data| is the raw data and |data_size| is the size of |data| in bytes.
-        The contents of |data| will be copied. No validation of |data| is
-        performed internally so the client should be careful to send the amount
-        indicated by the \"Content-Length\" header, if specified. See
-        SendHttpResponse documentation for intended usage.
+        """Send raw data directly to the connection identified by ``connection_id``.
+
+        ``data`` is the raw data and ``data_size`` is the size of ``data`` in bytes. The
+        contents of ``data`` will be copied. No validation of ``data`` is performed
+        internally so the client should be careful to send the amount indicated by the
+        \"Content-Length\" header, if specified. See SendHttpResponse documentation for
+        intended usage.
+
+        Args:
+            connection_id (int):
+            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount  indicated by the \"Content-Length\" header, if specified.
         """
         ...
     def close_connection(self, connection_id: int) -> None:
-        """Close the connection identified by |connection_id|. See SendHttpResponse
-        documentation for intended usage.
+        """Close the connection identified by ``connection_id``.
+
+        See SendHttpResponse documentation for intended usage.
+
+        Args:
+            connection_id (int):
         """
         ...
     def send_web_socket_message(self, connection_id: int, data: bytes | bytearray | memoryview) -> None:
-        """Send a WebSocket message to the connection identified by |connection_id|.
-        |data| is the response content and |data_size| is the size of |data| in
-        bytes. The contents of |data| will be copied. See
-        CefServerHandler::OnWebSocketRequest documentation for intended usage.
+        """Send a WebSocket message to the connection identified by ``connection_id``.
+
+        ``data`` is the response content and ``data_size`` is the size of ``data`` in bytes.
+        The contents of ``data`` will be copied. See
+        :meth:`ServerHandler.on_web_socket_request` documentation for intended usage.
+
+        Args:
+            connection_id (int):
+            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in  bytes.
         """
         ...
     @staticmethod
     def create_server(address: str, port: int, backlog: int, handler: ServerHandler) -> None:
-        """Create a new server that binds to |address| and |port|. |address| must be
-        a valid IPv4 or IPv6 address (e.g. 127.0.0.1 or ::1) and |port| must be a
-        port number outside of the reserved range (e.g. between 1025 and 65535 on
-        most platforms). |backlog| is the maximum number of pending connections.
-        A new thread will be created for each CreateServer call (the \"dedicated
-        server thread\"). It is therefore recommended to use a different
-        CefServerHandler instance for each CreateServer call to avoid thread
-        safety issues in the CefServerHandler implementation. The
-        CefServerHandler::OnServerCreated method will be called on the dedicated
-        server thread to report success or failure. See
-        CefServerHandler::OnServerCreated documentation for a description of
+        """Create a new server that binds to ``address`` and ``port``.
+
+        ``address`` must be a valid IPv4 or IPv6 address (e.g. 127.0.0.1 or ::1) and
+        ``port`` must be a port number outside of the reserved range (e.g. between 1025 and
+        65535 on most platforms). ``backlog`` is the maximum number of pending connections.
+        A new thread will be created for each CreateServer call (the \"dedicated server
+        thread\"). It is therefore recommended to use a different :class:`ServerHandler`
+        instance for each CreateServer call to avoid thread safety issues in the
+        :class:`ServerHandler` implementation. The :meth:`ServerHandler.on_server_created`
+        method will be called on the dedicated server thread to report success or failure.
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
         server lifespan.
+
+        Args:
+            address (str):
+            port (int):
+            backlog (int): The maximum number of pending connections.
+            handler (ServerHandler):
         """
         ...
 
@@ -3560,10 +6738,20 @@ class Server:
 class SharedMemoryRegion:
     """Class that wraps platform-dependent share memory region mapping."""
     def is_valid(self) -> bool:
-        """Returns true if the mapping is valid."""
+        """Return ``True`` if the mapping is valid.
+
+        Returns:
+            bool: ``True`` if the mapping is valid.
+        """
         ...
     def size(self) -> int:
-        """Returns the size of the mapping in bytes. Returns 0 for invalid instances."""
+        """Return the size of the mapping in bytes.
+
+        Returns 0 for invalid instances.
+
+        Returns:
+            int: The size of the mapping in bytes.
+        """
         ...
     def to_bytes(self) -> bytes:
         """A copy of the shared memory as bytes."""
@@ -3571,27 +6759,45 @@ class SharedMemoryRegion:
 
 
 class SharedProcessMessageBuilder:
-    """Class that builds a CefProcessMessage containing a shared memory region.
-    This class is not thread-safe but may be used exclusively on a different
-    thread from the one which constructed it.
+    """Class that builds a :class:`ProcessMessage` containing a shared memory region.
+
+    This class is not thread-safe but may be used exclusively on a different thread from
+    the one which constructed it.
     """
     def is_valid(self) -> bool:
-        """Returns true if the builder is valid."""
+        """Return ``True`` if the builder is valid.
+
+        Returns:
+            bool: ``True`` if the builder is valid.
+        """
         ...
     def size(self) -> int:
-        """Returns the size of the shared memory region in bytes. Returns 0 for
-        invalid instances.
+        """Return the size of the shared memory region in bytes.
+
+        Returns 0 for invalid instances.
+
+        Returns:
+            int: The size of the shared memory region in bytes.
         """
         ...
     def build(self) -> ProcessMessage | None:
-        """Creates a new CefProcessMessage from the data provided to the builder.
-        Returns nullptr for invalid instances. Invalidates the builder instance.
+        """Create a new :class:`ProcessMessage` from the data provided to the builder.
+
+        Returns ``None`` for invalid instances. Invalidates the builder instance.
+
+        Returns:
+            ProcessMessage | None
         """
         ...
     @staticmethod
     def create(name: str, byte_size: int) -> SharedProcessMessageBuilder:
-        """Creates a new CefSharedProcessMessageBuilder with the specified |name| and
-        shared memory region of specified |byte_size|.
+        """Create a new :class:`SharedProcessMessageBuilder` with the specified ``name`` and shared memory region of specified ``byte_size``.
+
+        Args:
+            name (str):
+            byte_size (int):
+        Returns:
+            SharedProcessMessageBuilder
         """
         ...
     def write(self, offset: int, data: bytes | bytearray | memoryview) -> bool:
@@ -3600,159 +6806,295 @@ class SharedProcessMessageBuilder:
 
 
 class StreamReader:
-    """Class used to read data from a stream. The methods of this class may be
-    called on any thread.
+    """Class used to read data from a stream.
+
+    The methods of this class may be called on any thread.
     """
     def read(self, n: int, size: int = 1) -> bytes:
-        """Read raw binary data."""
+        """Read raw binary data.
+
+        Args:
+            n (int):
+            size (int):
+        Returns:
+            bytes
+        """
         ...
     def seek(self, offset: int, whence: int) -> int:
-        """Seek to the specified offset position. |whence| may be any one of
-        SEEK_CUR, SEEK_END or SEEK_SET. Returns zero on success and non-zero on
-        failure.
+        """Seek to the specified offset position.
+
+        ``whence`` may be any one of SEEK_CUR, SEEK_END or SEEK_SET. Returns zero on success
+        and non-zero on failure.
+
+        Args:
+            offset (int):
+            whence (int):
+        Returns:
+            int
         """
         ...
     def tell(self) -> int:
-        """Return the current offset position."""
+        """Return the current offset position.
+
+        Returns:
+            int: The current offset position.
+        """
         ...
     def eof(self) -> int:
-        """Return non-zero if at end of file."""
+        """Return non-zero if at end of file.
+
+        Returns:
+            int: Non-zero if at end of file.
+        """
         ...
     def may_block(self) -> bool:
-        """Returns true if this reader performs work like accessing the file system
-        which may block. Used as a hint for determining the thread to access the
-        reader from.
+        """Return ``True`` if this reader performs work like accessing the file system which may block.
+
+        Used as a hint for determining the thread to access the reader from.
+
+        Returns:
+            bool: ``True`` if this reader performs work like accessing the file system  which may block.
         """
         ...
     @staticmethod
     def create_for_file(file_name: str) -> StreamReader | None:
-        """Create a new CefStreamReader object from a file."""
+        """Create a new :class:`StreamReader` object from a file.
+
+        Args:
+            file_name (str):
+        Returns:
+            StreamReader | None
+        """
         ...
     @staticmethod
     def create_for_data(data: bytes | bytearray | memoryview) -> StreamReader | None:
-        """Create a new CefStreamReader object from data."""
+        """Create a new :class:`StreamReader` object from data.
+
+        Args:
+            data (bytes | bytearray | memoryview):
+        Returns:
+            StreamReader | None
+        """
         ...
     @staticmethod
     def create_for_handler(handler: ReadHandler) -> StreamReader | None:
-        """Create a new CefStreamReader object from a custom handler."""
+        """Create a new :class:`StreamReader` object from a custom handler.
+
+        Args:
+            handler (ReadHandler):
+        Returns:
+            StreamReader | None
+        """
         ...
 
 
 class StreamWriter:
-    """Class used to write data to a stream. The methods of this class may be
-    called on any thread.
+    """Class used to write data to a stream.
+
+    The methods of this class may be called on any thread.
     """
     def write(self, data: bytes | bytearray | memoryview, size: int = 1) -> int:
-        """Write raw binary data."""
+        """Write raw binary data.
+
+        Args:
+            data (bytes | bytearray | memoryview):
+            size (int):
+        Returns:
+            int
+        """
         ...
     def seek(self, offset: int, whence: int) -> int:
-        """Seek to the specified offset position. |whence| may be any one of
-        SEEK_CUR, SEEK_END or SEEK_SET. Returns zero on success and non-zero on
-        failure.
+        """Seek to the specified offset position.
+
+        ``whence`` may be any one of SEEK_CUR, SEEK_END or SEEK_SET. Returns zero on success
+        and non-zero on failure.
+
+        Args:
+            offset (int):
+            whence (int):
+        Returns:
+            int
         """
         ...
     def tell(self) -> int:
-        """Return the current offset position."""
+        """Return the current offset position.
+
+        Returns:
+            int: The current offset position.
+        """
         ...
     def flush(self) -> int:
-        """Flush the stream."""
+        """Flush the stream.
+
+        Returns:
+            int
+        """
         ...
     def may_block(self) -> bool:
-        """Returns true if this writer performs work like accessing the file system
-        which may block. Used as a hint for determining the thread to access the
-        writer from.
+        """Return ``True`` if this writer performs work like accessing the file system which may block.
+
+        Used as a hint for determining the thread to access the writer from.
+
+        Returns:
+            bool: ``True`` if this writer performs work like accessing the file system  which may block.
         """
         ...
     @staticmethod
     def create_for_file(file_name: str) -> StreamWriter | None:
-        """Create a new CefStreamWriter object for a file."""
+        """Create a new :class:`StreamWriter` object for a file.
+
+        Args:
+            file_name (str):
+        Returns:
+            StreamWriter | None
+        """
         ...
     @staticmethod
     def create_for_handler(handler: WriteHandler) -> StreamWriter | None:
-        """Create a new CefStreamWriter object for a custom handler."""
+        """Create a new :class:`StreamWriter` object for a custom handler.
+
+        Args:
+            handler (WriteHandler):
+        Returns:
+            StreamWriter | None
+        """
         ...
 
 
 class TaskManager:
     """Class that facilitates managing the browser-related tasks.
+
     The methods of this class may only be called on the UI thread.
     """
     def get_tasks_count(self) -> int:
-        """Returns the number of tasks currently tracked by the task manager.
+        """Return the number of tasks currently tracked by the task manager.
+
         Returns 0 if the method was called from the incorrect thread.
+
+        Returns:
+            int: The number of tasks currently tracked by the task manager.
         """
         ...
     def get_task_ids_list(self) -> tuple[bool, list[int]]:
-        """Gets the list of task IDs currently tracked by the task manager. Tasks
-        that share the same process id will always be consecutive. The list will
-        be sorted in a way that reflects the process tree: the browser process
-        will be first, followed by the gpu process if it exists. Related processes
-        (e.g., a subframe process and its parent) will be kept together if
-        possible. Callers can expect this ordering to be stable when a process is
-        added or removed. The task IDs are unique within the application lifespan.
-        Returns false if the method was called from the incorrect thread.
+        """Get the list of task IDs currently tracked by the task manager.
+
+        Tasks that share the same process id will always be consecutive. The list will be
+        sorted in a way that reflects the process tree: the browser process will be first,
+        followed by the gpu process if it exists. Related processes (e.g., a subframe
+        process and its parent) will be kept together if possible. Callers can expect this
+        ordering to be stable when a process is added or removed. The task IDs are unique
+        within the application lifespan. Returns ``False`` if the method was called from the
+        incorrect thread.
+
+        Returns:
+            tuple[bool, list[int]]
         """
         ...
     def get_task_info(self, task_id: int, info: TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]) -> tuple[bool, TaskInfo]:
-        """Gets information about the task with |task_id|.
-        Returns true if the information about the task was successfully
-        retrieved and false if the |task_id| is invalid or the method was called
-        from the incorrect thread.
+        """Get information about the task with ``task_id``.
+
+        Returns ``True`` if the information about the task was successfully retrieved and
+        ``False`` if the ``task_id`` is invalid or the method was called from the incorrect
+        thread.
+
+        Args:
+            task_id (int): Invalid or the method was called  from the incorrect thread.
+            info (TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]):
+        Returns:
+            tuple[bool, TaskInfo]
         """
         ...
     def kill_task(self, task_id: int) -> bool:
-        """Attempts to terminate a task with |task_id|.
-        Returns false if the |task_id| is invalid, the call is made from an
-        incorrect thread, or if the task cannot be terminated.
+        """Attempt to terminate a task with ``task_id``.
+
+        Returns ``False`` if the ``task_id`` is invalid, the call is made from an incorrect
+        thread, or if the task cannot be terminated.
+
+        Args:
+            task_id (int): Invalid, the call is made from an  incorrect thread, or if the task cannot be terminated.
+        Returns:
+            bool
         """
         ...
     def get_task_id_for_browser_id(self, browser_id: int) -> int:
-        """Returns the task ID associated with the main task for |browser_id|
-        (value from CefBrowser::GetIdentifier). Returns -1 if |browser_id| is
-        invalid, does not currently have an associated task, or the method was
-        called from the incorrect thread.
+        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`Browser.get_identifier`).
+
+        Returns -1 if ``browser_id`` is invalid, does not currently have an associated task,
+        or the method was called from the incorrect thread.
+
+        Args:
+            browser_id (int): Invalid, does not currently have an associated task, or the method was  called from the incorrect thread.
+        Returns:
+            int: The task ID associated with the main task for ``browser_id``  (value from ``CefBrowser::GetIdentifier``).
         """
         ...
     @staticmethod
     def get_task_manager() -> TaskManager | None:
-        """Returns the global task manager object.
-        Returns nullptr if the method was called from the incorrect thread.
+        """Return the global task manager object.
+
+        Returns ``None`` if the method was called from the incorrect thread.
+
+        Returns:
+            TaskManager | None: The global task manager object.
         """
         ...
 
 
 class URLRequest:
-    """Class used to make a URL request. URL requests are not associated with a
-    browser instance so no CefClient callbacks will be executed. URL requests
-    can be created on any valid CEF thread in either the browser or render
-    process. Once created the methods of the URL request object must be accessed
-    on the same thread that created it.
+    """Class used to make a URL request.
+
+    URL requests are not associated with a browser instance so no :class:`Client`
+    callbacks will be executed. URL requests can be created on any valid CEF thread in
+    either the browser or render process. Once created the methods of the URL request
+    object must be accessed on the same thread that created it.
     """
     def get_request(self) -> Request | None:
-        """Returns the request object used to create this URL request. The returned
-        object is read-only and should not be modified.
+        """Return the request object used to create this URL request.
+
+        The returned object is read-only and should not be modified.
+
+        Returns:
+            Request | None: The request object used to create this URL request.
         """
         ...
     def get_client(self) -> URLRequestClient | None:
-        """Returns the client."""
+        """Return the client.
+
+        Returns:
+            URLRequestClient | None: The client.
+        """
         ...
     def get_request_status(self) -> URLRequestStatus:
-        """Returns the request status."""
+        """Return the request status.
+
+        Returns:
+            URLRequestStatus: The request status.
+        """
         ...
     def get_request_error(self) -> ErrorCode:
-        """Returns the request error if status is UR_CANCELED or UR_FAILED, or 0
-        otherwise.
+        """Return the request error if status is UR_CANCELED or UR_FAILED, or 0 otherwise.
+
+        Returns:
+            ErrorCode: The request error if status is UR_CANCELED or UR_FAILED, or 0  otherwise.
         """
         ...
     def get_response(self) -> Response | None:
-        """Returns the response, or NULL if no response information is available.
-        Response information will only be available after the upload has
-        completed. The returned object is read-only and should not be modified.
+        """Return the response, or ``None`` if no response information is available.
+
+        Response information will only be available after the upload has completed. The
+        returned object is read-only and should not be modified.
+
+        Returns:
+            Response | None: The response, or ``None`` if no response information is available.
         """
         ...
     def response_was_cached(self) -> bool:
-        """Returns true if the response body was served from the cache. This includes
-        responses for which revalidation was required.
+        """Return ``True`` if the response body was served from the cache.
+
+        This includes responses for which revalidation was required.
+
+        Returns:
+            bool: ``True`` if the response body was served from the cache.
         """
         ...
     def cancel(self) -> None:
@@ -3760,19 +7102,25 @@ class URLRequest:
         ...
     @staticmethod
     def create(request: Request, client: URLRequestClient, request_context: RequestContext | None) -> URLRequest:
-        """Create a new URL request that is not associated with a specific browser or
-        frame. Use CefFrame::CreateURLRequest instead if you want the request to
-        have this association, in which case it may be handled differently (see
-        documentation on that method). A request created with this method may only
-        originate from the browser process, and will behave as follows:
-          - It may be intercepted by the client via CefResourceRequestHandler or
-            CefSchemeHandlerFactory.
-          - POST data may only contain only a single element of type PDE_TYPE_FILE
-            or PDE_TYPE_BYTES.
-          - If |request_context| is empty the global request context will be used.
+        """ Create a new URL request that is not associated with a specific browser or
+         frame. Use :meth:`Frame.create_url_request` instead if you want the request to
+         have this association, in which case it may be handled differently (see
+         documentation on that method). A request created with this method may only
+         originate from the browser process, and will behave as follows:
+           - It may be intercepted by the client via :class:`ResourceRequestHandler` or
+             :class:`SchemeHandlerFactory`.
+           - POST data may only contain only a single element of type PDE_TYPE_FILE
+             or PDE_TYPE_BYTES.
+           - If ``request_context`` is empty the global request context will be used.
 
-        The |request| object will be marked as read-only after calling this
-        method.
+        The ``request`` object will be marked as read-only after calling this method.
+
+        Args:
+            request (Request):
+            client (URLRequestClient):
+            request_context (RequestContext | None):
+        Returns:
+            URLRequest
         """
         ...
 
@@ -3788,407 +7136,726 @@ class UnresponsiveProcessCallback:
 
 
 class Value:
-    """Class that wraps other data value types. Complex types (binary, dictionary
-    and list) will be referenced but not owned by this object. Can be used on
-    any process and thread.
+    """Class that wraps other data value types.
+
+    Complex types (binary, dictionary and list) will be referenced but not owned by this
+    object. Can be used on any process and thread.
     """
     def is_valid(self) -> bool:
-        """Returns true if the underlying data is valid. This will always be true for
-        simple types. For complex types (binary, dictionary and list) the
-        underlying data may become invalid if owned by another object (e.g. list
-        or dictionary) and that other object is then modified or destroyed. This
-        value object can be re-used by calling Set*() even if the underlying data
-        is invalid.
+        """Return ``True`` if the underlying data is valid.
+
+        This will always be ``True`` for simple types. For complex types (binary, dictionary
+        and list) the underlying data may become invalid if owned by another object (e.g.
+        list or dictionary) and that other object is then modified or destroyed. This value
+        object can be re-used by calling Set*() even if the underlying data is invalid.
+
+        Returns:
+            bool: ``True`` if the underlying data is valid.
         """
         ...
     def is_owned(self) -> bool:
-        """Returns true if the underlying data is owned by another object."""
+        """Return ``True`` if the underlying data is owned by another object.
+
+        Returns:
+            bool: ``True`` if the underlying data is owned by another object.
+        """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the underlying data is read-only. Some APIs may expose
-        read-only objects.
+        """Return ``True`` if the underlying data is read-only.
+
+        Some APIs may expose read-only objects.
+
+        Returns:
+            bool: ``True`` if the underlying data is read-only.
         """
         ...
     def is_same(self, that: Value) -> bool:
-        """Returns true if this object and |that| object have the same underlying
-        data. If true modifications to this object will also affect |that| object
-        and vice-versa.
+        """Return ``True`` if this object and ``that`` object have the same underlying data.
+
+        If ``True`` modifications to this object will also affect ``that`` object and
+        vice-versa.
+
+        Args:
+            that (Value):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have the same underlying  data.
         """
         ...
     def is_equal(self, that: Value) -> bool:
-        """Returns true if this object and |that| object have an equivalent
-        underlying value but are not necessarily the same object.
+        """Return ``True`` if this object and ``that`` object have an equivalent underlying value but are not necessarily the same object.
+
+        Args:
+            that (Value):
+        Returns:
+            bool: ``True`` if this object and ``that`` object have an equivalent  underlying value but are not necessarily the same object.
         """
         ...
     def copy(self) -> Value | None:
-        """Returns a copy of this object. The underlying data will also be copied."""
+        """Return a copy of this object.
+
+        The underlying data will also be copied.
+
+        Returns:
+            Value | None: A copy of this object.
+        """
         ...
     def get_type(self) -> ValueType:
-        """Returns the underlying value type."""
+        """Return the underlying value type.
+
+        Returns:
+            ValueType: The underlying value type.
+        """
         ...
     def get_bool(self) -> bool:
-        """Returns the underlying value as type bool."""
+        """Return the underlying value as type bool.
+
+        Returns:
+            bool: The underlying value as type bool.
+        """
         ...
     def get_int(self) -> int:
-        """Returns the underlying value as type int."""
+        """Return the underlying value as type int.
+
+        Returns:
+            int: The underlying value as type int.
+        """
         ...
     def get_double(self) -> float:
-        """Returns the underlying value as type double."""
+        """Return the underlying value as type double.
+
+        Returns:
+            float: The underlying value as type double.
+        """
         ...
     def get_string(self) -> str:
-        """Returns the underlying value as type string."""
+        """Return the underlying value as type string.
+
+        Returns:
+            str: The underlying value as type string.
+        """
         ...
     def get_binary(self) -> BinaryValue | None:
-        """Returns the underlying value as type binary. The returned reference may
-        become invalid if the value is owned by another object or if ownership is
-        transferred to another object in the future. To maintain a reference to
-        the value after assigning ownership to a dictionary or list pass this
-        object to the SetValue() method instead of passing the returned reference
-        to SetBinary().
+        """Return the underlying value as type binary.
+
+        The returned reference may become invalid if the value is owned by another object or
+        if ownership is transferred to another object in the future. To maintain a reference
+        to the value after assigning ownership to a dictionary or list pass this object to
+        the SetValue() method instead of passing the returned reference to SetBinary().
+
+        Returns:
+            BinaryValue | None: The underlying value as type binary.
         """
         ...
     def get_dictionary(self) -> DictionaryValue | None:
-        """Returns the underlying value as type dictionary. The returned reference
-        may become invalid if the value is owned by another object or if ownership
-        is transferred to another object in the future. To maintain a reference to
-        the value after assigning ownership to a dictionary or list pass this
-        object to the SetValue() method instead of passing the returned reference
-        to SetDictionary().
+        """Return the underlying value as type dictionary.
+
+        The returned reference may become invalid if the value is owned by another object or
+        if ownership is transferred to another object in the future. To maintain a reference
+        to the value after assigning ownership to a dictionary or list pass this object to
+        the SetValue() method instead of passing the returned reference to SetDictionary().
+
+        Returns:
+            DictionaryValue | None: The underlying value as type dictionary.
         """
         ...
     def get_list(self) -> ListValue | None:
-        """Returns the underlying value as type list. The returned reference may
-        become invalid if the value is owned by another object or if ownership is
-        transferred to another object in the future. To maintain a reference to
-        the value after assigning ownership to a dictionary or list pass this
-        object to the SetValue() method instead of passing the returned reference
-        to SetList().
+        """Return the underlying value as type list.
+
+        The returned reference may become invalid if the value is owned by another object or
+        if ownership is transferred to another object in the future. To maintain a reference
+        to the value after assigning ownership to a dictionary or list pass this object to
+        the SetValue() method instead of passing the returned reference to SetList().
+
+        Returns:
+            ListValue | None: The underlying value as type list.
         """
         ...
     def set_null(self) -> bool:
-        """Sets the underlying value as type null. Returns true if the value was set
-        successfully.
+        """Set the underlying value as type null.
+
+        Returns ``True`` if the value was set successfully.
+
+        Returns:
+            bool
         """
         ...
     def set_bool(self, value: bool) -> bool:
-        """Sets the underlying value as type bool. Returns true if the value was set
-        successfully.
+        """Set the underlying value as type bool.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            value (bool):
+        Returns:
+            bool
         """
         ...
     def set_int(self, value: int) -> bool:
-        """Sets the underlying value as type int. Returns true if the value was set
-        successfully.
+        """Set the underlying value as type int.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            value (int):
+        Returns:
+            bool
         """
         ...
     def set_double(self, value: float) -> bool:
-        """Sets the underlying value as type double. Returns true if the value was
-        set successfully.
+        """Set the underlying value as type double.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            value (float):
+        Returns:
+            bool
         """
         ...
     def set_string(self, value: str | None) -> bool:
-        """Sets the underlying value as type string. Returns true if the value was
-        set successfully.
+        """Set the underlying value as type string.
+
+        Returns ``True`` if the value was set successfully.
+
+        Args:
+            value (str | None):
+        Returns:
+            bool
         """
         ...
     def set_binary(self, value: BinaryValue) -> bool:
-        """Sets the underlying value as type binary. Returns true if the value was
-        set successfully. This object keeps a reference to |value| and ownership
-        of the underlying data remains unchanged.
+        """Set the underlying value as type binary.
+
+        Returns ``True`` if the value was set successfully. This object keeps a reference to
+        ``value`` and ownership of the underlying data remains unchanged.
+
+        Args:
+            value (BinaryValue):
+        Returns:
+            bool
         """
         ...
     def set_dictionary(self, value: DictionaryValue) -> bool:
-        """Sets the underlying value as type dict. Returns true if the value was set
-        successfully. This object keeps a reference to |value| and ownership of
-        the underlying data remains unchanged.
+        """Set the underlying value as type dict.
+
+        Returns ``True`` if the value was set successfully. This object keeps a reference to
+        ``value`` and ownership of the underlying data remains unchanged.
+
+        Args:
+            value (DictionaryValue):
+        Returns:
+            bool
         """
         ...
     def set_list(self, value: ListValue) -> bool:
-        """Sets the underlying value as type list. Returns true if the value was set
-        successfully. This object keeps a reference to |value| and ownership of
-        the underlying data remains unchanged.
+        """Set the underlying value as type list.
+
+        Returns ``True`` if the value was set successfully. This object keeps a reference to
+        ``value`` and ownership of the underlying data remains unchanged.
+
+        Args:
+            value (ListValue):
+        Returns:
+            bool
         """
         ...
     @staticmethod
     def create() -> Value:
-        """Creates a new object."""
+        """Create a new object.
+
+        Returns:
+            Value
+        """
         ...
 
 
 class View:
-    """A View is a rectangle within the views View hierarchy. It is the base class
-    for all Views. All size and position values are in density independent
-    pixels (DIP) unless otherwise indicated. Methods must be called on the
+    """A View is a rectangle within the views View hierarchy.
+
+    It is the base class for all Views. All size and position values are in density
+    independent pixels (DIP) unless otherwise indicated. Methods must be called on the
     browser process UI thread unless otherwise indicated.
     """
     def as_browser_view(self) -> BrowserView | None:
-        """Returns this View as a BrowserView or NULL if this is not a BrowserView."""
+        """Return this View as a BrowserView or ``None`` if this is not a BrowserView.
+
+        Returns:
+            BrowserView | None: This View as a BrowserView or ``None`` if this is not a BrowserView.
+        """
         ...
     def as_button(self) -> Button | None:
-        """Returns this View as a Button or NULL if this is not a Button."""
+        """Return this View as a Button or ``None`` if this is not a Button.
+
+        Returns:
+            Button | None: This View as a Button or ``None`` if this is not a Button.
+        """
         ...
     def as_panel(self) -> Panel | None:
-        """Returns this View as a Panel or NULL if this is not a Panel."""
+        """Return this View as a Panel or ``None`` if this is not a Panel.
+
+        Returns:
+            Panel | None: This View as a Panel or ``None`` if this is not a Panel.
+        """
         ...
     def as_scroll_view(self) -> ScrollView | None:
-        """Returns this View as a ScrollView or NULL if this is not a ScrollView."""
+        """Return this View as a ScrollView or ``None`` if this is not a ScrollView.
+
+        Returns:
+            ScrollView | None: This View as a ScrollView or ``None`` if this is not a ScrollView.
+        """
         ...
     def as_textfield(self) -> Textfield | None:
-        """Returns this View as a Textfield or NULL if this is not a Textfield."""
+        """Return this View as a Textfield or ``None`` if this is not a Textfield.
+
+        Returns:
+            Textfield | None: This View as a Textfield or ``None`` if this is not a Textfield.
+        """
         ...
     def get_type_string(self) -> str:
-        """Returns the type of this View as a string. Used primarily for testing
-        purposes.
+        """Return the type of this View as a string.
+
+        Used primarily for testing purposes.
+
+        Returns:
+            str: The type of this View as a string.
         """
         ...
     def to_string(self, include_children: bool) -> str:
-        """Returns a string representation of this View which includes the type and
-        various type-specific identifying attributes. If |include_children| is
-        true any child Views will also be included. Used primarily for testing
-        purposes.
+        """Return a string representation of this View which includes the type and various type-specific identifying attributes.
+
+        If ``include_children`` is ``True`` any child Views will also be included. Used
+        primarily for testing purposes.
+
+        Args:
+            include_children (bool): True any child Views will also be included.
+        Returns:
+            str: A string representation of this View which includes the type and  various type-specific identifying attributes.
         """
         ...
     def is_valid(self) -> bool:
-        """Returns true if this View is valid."""
+        """Return ``True`` if this View is valid.
+
+        Returns:
+            bool: ``True`` if this View is valid.
+        """
         ...
     def is_attached(self) -> bool:
-        """Returns true if this View is currently attached to another View. A View
-        can only be attached to one View at a time.
+        """Return ``True`` if this View is currently attached to another View.
+
+        A View can only be attached to one View at a time.
+
+        Returns:
+            bool: ``True`` if this View is currently attached to another View.
         """
         ...
     def is_same(self, that: View) -> bool:
-        """Returns true if this View is the same as |that| View."""
+        """Return ``True`` if this View is the same as ``that`` View.
+
+        Args:
+            that (View):
+        Returns:
+            bool: ``True`` if this View is the same as ``that`` View.
+        """
         ...
     def get_delegate(self) -> ViewDelegate | None:
-        """Returns the delegate associated with this View, if any."""
+        """Return the delegate associated with this View, if any.
+
+        Returns:
+            ViewDelegate | None: The delegate associated with this View, if any.
+        """
         ...
     def get_window(self) -> Window | None:
-        """Returns the top-level Window hosting this View, if any."""
+        """Return the top-level Window hosting this View, if any.
+
+        Returns:
+            Window | None: The top-level Window hosting this View, if any.
+        """
         ...
     def get_id(self) -> int:
-        """Returns the ID for this View."""
+        """Return the ID for this View.
+
+        Returns:
+            int: The ID for this View.
+        """
         ...
     def set_id(self, id: int) -> None:
-        """Sets the ID for this View. ID should be unique within the subtree that you
-        intend to search for it. 0 is the default ID for views.
+        """Set the ID for this View.
+
+        ID should be unique within the subtree that you intend to search for it. 0 is the
+        default ID for views.
+
+        Args:
+            id (int):
         """
         ...
     def get_group_id(self) -> int:
-        """Returns the group id of this View, or -1 if not set."""
+        """Return the group id of this View, or -1 if not set.
+
+        Returns:
+            int: The group id of this View, or -1 if not set.
+        """
         ...
     def set_group_id(self, group_id: int) -> None:
         """A group id is used to tag Views which are part of the same logical group.
-        Focus can be moved between views with the same group using the arrow keys.
-        The group id is immutable once it's set.
+
+        Focus can be moved between views with the same group using the arrow keys. The group
+        id is immutable once it's set.
+
+        Args:
+            group_id (int):
         """
         ...
     def get_parent_view(self) -> View | None:
-        """Returns the View that contains this View, if any."""
+        """Return the View that contains this View, if any.
+
+        Returns:
+            View | None: The View that contains this View, if any.
+        """
         ...
     def get_view_for_id(self, id: int) -> View | None:
-        """Recursively descends the view tree starting at this View, and returns the
-        first child that it encounters with the given ID. Returns NULL if no
-        matching child view is found.
+        """Recursively descends the view tree starting at this View, and returns the first child that it encounters with the given ID.
+
+        Returns ``None`` if no matching child view is found.
+
+        Args:
+            id (int):
+        Returns:
+            View | None
         """
         ...
     def set_bounds(self, bounds: Rect | tuple[int, int, int, int]) -> None:
-        """Sets the bounds (size and position) of this View. |bounds| is in parent
-        coordinates, or DIP screen coordinates if there is no parent.
+        """Set the bounds (size and position) of this View.
+
+        ``bounds`` is in parent coordinates, or DIP screen coordinates if there is no
+        parent.
+
+        Args:
+            bounds (Rect | tuple[int, int, int, int]): In parent  coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_bounds(self) -> Rect:
-        """Returns the bounds (size and position) of this View in parent coordinates,
-        or DIP screen coordinates if there is no parent.
+        """Return the bounds (size and position) of this View in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Rect: The bounds (size and position) of this View in parent coordinates,  or DIP screen coordinates if there is no parent.
         """
         ...
     def get_bounds_in_screen(self) -> Rect:
-        """Returns the bounds (size and position) of this View in DIP screen
-        coordinates.
+        """Return the bounds (size and position) of this View in DIP screen coordinates.
+
+        Returns:
+            Rect: The bounds (size and position) of this View in DIP screen  coordinates.
         """
         ...
     def set_size(self, size: Size | tuple[int, int]) -> None:
-        """Sets the size of this View without changing the position. |size| in
-        parent coordinates, or DIP screen coordinates if there is no parent.
+        """Set the size of this View without changing the position.
+
+        ``size`` in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Args:
+            size (Size | tuple[int, int]):
         """
         ...
     def get_size(self) -> Size:
-        """Returns the size of this View in parent coordinates, or DIP screen
-        coordinates if there is no parent.
+        """Return the size of this View in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Size: The size of this View in parent coordinates, or DIP screen  coordinates if there is no parent.
         """
         ...
     def set_position(self, position: Point | tuple[int, int]) -> None:
-        """Sets the position of this View without changing the size. |position| is in
-        parent coordinates, or DIP screen coordinates if there is no parent.
+        """Set the position of this View without changing the size.
+
+        ``position`` is in parent coordinates, or DIP screen coordinates if there is no
+        parent.
+
+        Args:
+            position (Point | tuple[int, int]): In  parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_position(self) -> Point:
-        """Returns the position of this View. Position is in parent coordinates, or
-        DIP screen coordinates if there is no parent.
+        """Return the position of this View.
+
+        Position is in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Point: The position of this View.
         """
         ...
     def set_insets(self, insets: Insets | tuple[int, int, int, int]) -> None:
-        """Sets the insets for this View. |insets| is in parent coordinates, or DIP
-        screen coordinates if there is no parent.
+        """Set the insets for this View.
+
+        ``insets`` is in parent coordinates, or DIP screen coordinates if there is no
+        parent.
+
+        Args:
+            insets (Insets | tuple[int, int, int, int]): In parent coordinates, or DIP  screen coordinates if there is no parent.
         """
         ...
     def get_insets(self) -> Insets:
-        """Returns the insets for this View in parent coordinates, or DIP screen
-        coordinates if there is no parent.
+        """Return the insets for this View in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Insets: The insets for this View in parent coordinates, or DIP screen  coordinates if there is no parent.
         """
         ...
     def get_preferred_size(self) -> Size:
-        """Returns the size this View would like to be if enough space is available.
-        Size is in parent coordinates, or DIP screen coordinates if there is no
-        parent.
+        """Return the size this View would like to be if enough space is available.
+
+        Size is in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Size: The size this View would like to be if enough space is available.
         """
         ...
     def size_to_preferred_size(self) -> None:
-        """Size this View to its preferred size. Size is in parent coordinates, or
-        DIP screen coordinates if there is no parent.
+        """Size this View to its preferred size.
+
+        Size is in parent coordinates, or DIP screen coordinates if there is no parent.
         """
         ...
     def get_minimum_size(self) -> Size:
-        """Returns the minimum size for this View. Size is in parent coordinates, or
-        DIP screen coordinates if there is no parent.
+        """Return the minimum size for this View.
+
+        Size is in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Size: The minimum size for this View.
         """
         ...
     def get_maximum_size(self) -> Size:
-        """Returns the maximum size for this View. Size is in parent coordinates, or
-        DIP screen coordinates if there is no parent.
+        """Return the maximum size for this View.
+
+        Size is in parent coordinates, or DIP screen coordinates if there is no parent.
+
+        Returns:
+            Size: The maximum size for this View.
         """
         ...
     def get_height_for_width(self, width: int) -> int:
-        """Returns the height necessary to display this View with the provided width."""
+        """Return the height necessary to display this View with the provided width.
+
+        Args:
+            width (int):
+        Returns:
+            int: The height necessary to display this View with the provided width.
+        """
         ...
     def invalidate_layout(self) -> None:
-        """Indicate that this View and all parent Views require a re-layout. This
-        ensures the next call to Layout() will propagate to this View even if the
+        """Indicate that this View and all parent Views require a re-layout.
+
+        This ensures the next call to Layout() will propagate to this View even if the
         bounds of parent Views do not change.
         """
         ...
     def set_visible(self, visible: bool) -> None:
-        """Sets whether this View is visible. Windows are hidden by default and other
-        views are visible by default. This View and any parent views must be set
-        as visible for this View to be drawn in a Window. If this View is set as
-        hidden then it and any child views will not be drawn and, if any of those
-        views currently have focus, then focus will also be cleared. Painting is
-        scheduled as needed. If this View is a Window then calling this method is
-        equivalent to calling the Window Show() and Hide() methods.
+        """Set whether this View is visible.
+
+        Windows are hidden by default and other views are visible by default. This View and
+        any parent views must be set as visible for this View to be drawn in a Window. If
+        this View is set as hidden then it and any child views will not be drawn and, if any
+        of those views currently have focus, then focus will also be cleared. Painting is
+        scheduled as needed. If this View is a Window then calling this method is equivalent
+        to calling the Window Show() and Hide() methods.
+
+        Args:
+            visible (bool):
         """
         ...
     def is_visible(self) -> bool:
-        """Returns whether this View is visible. A view may be visible but still not
-        drawn in a Window if any parent views are hidden. If this View is a Window
-        then a return value of true indicates that this Window is currently
-        visible to the user on-screen. If this View is not a Window then call
-        IsDrawn() to determine whether this View and all parent views are visible
-        and will be drawn.
+        """Return whether this View is visible.
+
+        A view may be visible but still not drawn in a Window if any parent views are
+        hidden. If this View is a Window then a return value of ``True`` indicates that this
+        Window is currently visible to the user on-screen. If this View is not a Window then
+        call IsDrawn() to determine whether this View and all parent views are visible and
+        will be drawn.
+
+        Returns:
+            bool: Whether this View is visible.
         """
         ...
     def is_drawn(self) -> bool:
-        """Returns whether this View is visible and drawn in a Window. A view is
-        drawn if it and all parent views are visible. If this View is a Window
-        then calling this method is equivalent to calling IsVisible(). Otherwise,
-        to determine if the containing Window is visible to the user on-screen
-        call IsVisible() on the Window.
+        """Return whether this View is visible and drawn in a Window.
+
+        A view is drawn if it and all parent views are visible. If this View is a Window
+        then calling this method is equivalent to calling IsVisible(). Otherwise, to
+        determine if the containing Window is visible to the user on-screen call IsVisible()
+        on the Window.
+
+        Returns:
+            bool: Whether this View is visible and drawn in a Window.
         """
         ...
     def set_enabled(self, enabled: bool) -> None:
-        """Set whether this View is enabled. A disabled View does not receive
-        keyboard or mouse inputs. If |enabled| differs from the current value the
-        View will be repainted. Also, clears focus if the focused View is
-        disabled.
+        """Set whether this View is enabled.
+
+        A disabled View does not receive keyboard or mouse inputs. If ``enabled`` differs
+        from the current value the View will be repainted. Also, clears focus if the focused
+        View is disabled.
+
+        Args:
+            enabled (bool):
         """
         ...
     def is_enabled(self) -> bool:
-        """Returns whether this View is enabled."""
+        """Return whether this View is enabled.
+
+        Returns:
+            bool: Whether this View is enabled.
+        """
         ...
     def set_focusable(self, focusable: bool) -> None:
-        """Sets whether this View is capable of taking focus. It will clear focus if
-        the focused View is set to be non-focusable. This is false by default so
-        that a View used as a container does not get the focus.
+        """Set whether this View is capable of taking focus.
+
+        It will clear focus if the focused View is set to be non-focusable. This is
+        ``False`` by default so that a View used as a container does not get the focus.
+
+        Args:
+            focusable (bool):
         """
         ...
     def is_focusable(self) -> bool:
-        """Returns true if this View is focusable, enabled and drawn."""
+        """Return ``True`` if this View is focusable, enabled and drawn.
+
+        Returns:
+            bool: ``True`` if this View is focusable, enabled and drawn.
+        """
         ...
     def is_accessibility_focusable(self) -> bool:
-        """Return whether this View is focusable when the user requires full keyboard
-        access, even though it may not be normally focusable.
+        """Return whether this View is focusable when the user requires full keyboard access, even though it may not be normally focusable.
+
+        Returns:
+            bool: Whether this View is focusable when the user requires full keyboard  access, even though it may not be normally focusable.
         """
         ...
     def has_focus(self) -> bool:
-        """Returns true if this View has focus in the context of the containing
-        Window. Check both this method and CefWindow::IsActive to determine global
-        keyboard focus.
+        """Return ``True`` if this View has focus in the context of the containing Window.
+
+        Check both this method and :meth:`Window.is_active` to determine global keyboard
+        focus.
+
+        Returns:
+            bool: ``True`` if this View has focus in the context of the containing  Window.
         """
         ...
     def request_focus(self) -> None:
-        """Request focus for this View in the context of the containing Window. If
-        this View is focusable it will become the focused View. Any focus changes
-        while a Window is not active may be applied after that Window next becomes
-        active.
+        """Request focus for this View in the context of the containing Window.
+
+        If this View is focusable it will become the focused View. Any focus changes while a
+        Window is not active may be applied after that Window next becomes active.
         """
         ...
     def set_background_color(self, color: int) -> None:
-        """Sets the background color for this View. The background color will be
-        automatically reset when CefViewDelegate::OnThemeChanged is called.
+        """Set the background color for this View.
+
+        The background color will be automatically reset when
+        :meth:`ViewDelegate.on_theme_changed` is called.
+
+        Args:
+            color (int):
         """
         ...
     def get_background_color(self) -> int:
-        """Returns the background color for this View. If the background color is
-        unset then the current `GetThemeColor(CEF_ColorPrimaryBackground)` value
-        will be returned. If this View belongs to an overlay (created with
-        CefWindow::AddOverlayView), and the background color is unset, then a
-        value of transparent (0) will be returned.
+        """Return the background color for this View.
+
+        If the background color is unset then the current
+        `GetThemeColor(CEF_ColorPrimaryBackground)` value will be returned. If this View
+        belongs to an overlay (created with :meth:`Window.add_overlay_view`), and the
+        background color is unset, then a value of transparent (0) will be returned.
+
+        Returns:
+            int: The background color for this View.
         """
         ...
     def get_theme_color(self, color_id: int) -> int:
-        """Returns the current theme color associated with |color_id|, or the
-        placeholder color (red) if unset. See cef_color_ids.h for standard ID
-        values. Standard colors can be overridden and custom colors can be added
-        using CefWindow::SetThemeColor.
+        """Return the current theme color associated with ``color_id``, or the placeholder color (red) if unset.
+
+        See cef_color_ids.h for standard ID values. Standard colors can be overridden and
+        custom colors can be added using :meth:`Window.set_theme_color`.
+
+        Args:
+            color_id (int):
+        Returns:
+            int: The current theme color associated with ``color_id``, or the  placeholder color (red) if unset.
         """
         ...
     def convert_point_to_screen(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| from this View's coordinate system to DIP screen
-        coordinates. This View must belong to a Window when calling this method.
-        Returns true if the conversion is successful or false otherwise. Use
-        CefDisplay::ConvertPointToPixels() after calling this method if further
+        """Convert ``point`` from this View's coordinate system to DIP screen coordinates.
+
+        This View must belong to a Window when calling this method. Returns ``True`` if the
+        conversion is successful or ``False`` otherwise. Use
+        :meth:`Display.convert_point_to_pixels` after calling this method if further
         conversion to display-specific pixel coordinates is desired.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
     def convert_point_from_screen(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| to this View's coordinate system from DIP screen
-        coordinates. This View must belong to a Window when calling this method.
-        Returns true if the conversion is successful or false otherwise. Use
-        CefDisplay::ConvertPointFromPixels() before calling this method if
-        conversion from display-specific pixel coordinates is necessary.
+        """Convert ``point`` to this View's coordinate system from DIP screen coordinates.
+
+        This View must belong to a Window when calling this method. Returns ``True`` if the
+        conversion is successful or ``False`` otherwise. Use
+        :meth:`Display.convert_point_from_pixels` before calling this method if conversion
+        from display-specific pixel coordinates is necessary.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
     def convert_point_to_window(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| from this View's coordinate system to that of the Window.
-        This View must belong to a Window when calling this method. Returns true
-        if the conversion is successful or false otherwise.
+        """Convert ``point`` from this View's coordinate system to that of the Window.
+
+        This View must belong to a Window when calling this method. Returns ``True`` if the
+        conversion is successful or ``False`` otherwise.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
     def convert_point_from_window(self, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| to this View's coordinate system from that of the Window.
-        This View must belong to a Window when calling this method. Returns true
-        if the conversion is successful or false otherwise.
+        """Convert ``point`` to this View's coordinate system from that of the Window.
+
+        This View must belong to a Window when calling this method. Returns ``True`` if the
+        conversion is successful or ``False`` otherwise.
+
+        Args:
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
     def convert_point_to_view(self, view: View, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| from this View's coordinate system to that of |view|.
-        |view| needs to be in the same Window but not necessarily the same view
-        hierarchy. Returns true if the conversion is successful or false
-        otherwise.
+        """Convert ``point`` from this View's coordinate system to that of ``view``.
+
+        ``view`` needs to be in the same Window but not necessarily the same view hierarchy.
+        Returns ``True`` if the conversion is successful or ``False`` otherwise.
+
+        Args:
+            view (View):
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
     def convert_point_from_view(self, view: View, point: Point | tuple[int, int]) -> tuple[bool, Point]:
-        """Convert |point| to this View's coordinate system from that |view|. |view|
-        needs to be in the same Window but not necessarily the same view
-        hierarchy. Returns true if the conversion is successful or false
-        otherwise.
+        """Convert ``point`` to this View's coordinate system from that ``view``.
+
+        ``view`` needs to be in the same Window but not necessarily the same view hierarchy.
+        Returns ``True`` if the conversion is successful or ``False`` otherwise.
+
+        Args:
+            view (View):
+            point (Point | tuple[int, int]):
+        Returns:
+            tuple[bool, Point]
         """
         ...
 
@@ -4196,576 +7863,1026 @@ class View:
 class X509CertPrincipal:
     """Class representing the issuer or subject field of an X.509 certificate."""
     def get_display_name(self) -> str:
-        """Returns a name that can be used to represent the issuer. It tries in this
-        order: Common Name (CN), Organization Name (O) and Organizational Unit
-        Name (OU) and returns the first non-empty one found.
+        """Return a name that can be used to represent the issuer.
+
+        It tries in this order: Common Name (CN), Organization Name (O) and Organizational
+        Unit Name (OU) and returns the first non-empty one found.
+
+        Returns:
+            str: A name that can be used to represent the issuer.
         """
         ...
     def get_common_name(self) -> str:
-        """Returns the common name."""
+        """Return the common name.
+
+        Returns:
+            str: The common name.
+        """
         ...
     def get_locality_name(self) -> str:
-        """Returns the locality name."""
+        """Return the locality name.
+
+        Returns:
+            str: The locality name.
+        """
         ...
     def get_state_or_province_name(self) -> str:
-        """Returns the state or province name."""
+        """Return the state or province name.
+
+        Returns:
+            str: The state or province name.
+        """
         ...
     def get_country_name(self) -> str:
-        """Returns the country name."""
+        """Return the country name.
+
+        Returns:
+            str: The country name.
+        """
         ...
     def get_organization_names(self) -> list[str]:
-        """Retrieve the list of organization names."""
+        """Retrieve the list of organization names.
+
+        Returns:
+            list[str]
+        """
         ...
     def get_organization_unit_names(self) -> list[str]:
-        """Retrieve the list of organization unit names."""
+        """Retrieve the list of organization unit names.
+
+        Returns:
+            list[str]
+        """
         ...
 
 
 class X509Certificate:
     """Class representing a X.509 certificate."""
     def get_subject(self) -> X509CertPrincipal | None:
-        """Returns the subject of the X.509 certificate. For HTTPS server
-        certificates this represents the web server.  The common name of the
-        subject should match the host name of the web server.
+        """Return the subject of the X.509 certificate.
+
+        For HTTPS server certificates this represents the web server.  The common name of
+        the subject should match the host name of the web server.
+
+        Returns:
+            X509CertPrincipal | None: The subject of the X.509 certificate.
         """
         ...
     def get_issuer(self) -> X509CertPrincipal | None:
-        """Returns the issuer of the X.509 certificate."""
+        """Return the issuer of the X.509 certificate.
+
+        Returns:
+            X509CertPrincipal | None: The issuer of the X.509 certificate.
+        """
         ...
     def get_serial_number(self) -> BinaryValue | None:
-        """Returns the DER encoded serial number for the X.509 certificate. The value
-        possibly includes a leading 00 byte.
+        """Return the DER encoded serial number for the X.509 certificate.
+
+        The value possibly includes a leading 00 byte.
+
+        Returns:
+            BinaryValue | None: The DER encoded serial number for the X.509 certificate.
         """
         ...
     def get_valid_start(self) -> datetime.datetime | None:
-        """Returns the date before which the X.509 certificate is invalid.
-        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """Return the date before which the X.509 certificate is invalid.
+
+        ``CefBaseTime``.GetTimeT() will return 0 if no date was specified.
+
+        Returns:
+            datetime.datetime | None: The date before which the X.509 certificate is invalid.
         """
         ...
     def get_valid_expiry(self) -> datetime.datetime | None:
-        """Returns the date after which the X.509 certificate is invalid.
-        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """Return the date after which the X.509 certificate is invalid.
+
+        ``CefBaseTime``.GetTimeT() will return 0 if no date was specified.
+
+        Returns:
+            datetime.datetime | None: The date after which the X.509 certificate is invalid.
         """
         ...
     def get_der_encoded(self) -> BinaryValue | None:
-        """Returns the DER encoded data for the X.509 certificate."""
+        """Return the DER encoded data for the X.509 certificate.
+
+        Returns:
+            BinaryValue | None: The DER encoded data for the X.509 certificate.
+        """
         ...
     def get_pem_encoded(self) -> BinaryValue | None:
-        """Returns the PEM encoded data for the X.509 certificate."""
+        """Return the PEM encoded data for the X.509 certificate.
+
+        Returns:
+            BinaryValue | None: The PEM encoded data for the X.509 certificate.
+        """
         ...
     def get_issuer_chain_size(self) -> int:
-        """Returns the number of certificates in the issuer chain.
+        """Return the number of certificates in the issuer chain.
+
         If 0, the certificate is self-signed.
+
+        Returns:
+            int: The number of certificates in the issuer chain.
         """
         ...
     def get_der_encoded_issuer_chain(self) -> list[BinaryValue]:
-        """Returns the DER encoded data for the certificate issuer chain.
-        If we failed to encode a certificate in the chain it is still
-        present in the array but is an empty string.
+        """Return the DER encoded data for the certificate issuer chain.
+
+        If we failed to encode a certificate in the chain it is still present in the array
+        but is an empty string.
+
+        Returns:
+            list[BinaryValue]: The DER encoded data for the certificate issuer chain.
         """
         ...
     def get_pem_encoded_issuer_chain(self) -> list[BinaryValue]:
-        """Returns the PEM encoded data for the certificate issuer chain.
-        If we failed to encode a certificate in the chain it is still
-        present in the array but is an empty string.
+        """Return the PEM encoded data for the certificate issuer chain.
+
+        If we failed to encode a certificate in the chain it is still present in the array
+        but is an empty string.
+
+        Returns:
+            list[BinaryValue]: The PEM encoded data for the certificate issuer chain.
         """
         ...
 
 
 class ZipReader:
     """Class that supports the reading of zip archives via the zlib unzip API.
-    The methods of this class should only be called on the thread that creates
-    the object.
+
+    The methods of this class should only be called on the thread that creates the
+    object.
     """
     def move_to_first_file(self) -> bool:
-        """Moves the cursor to the first file in the archive. Returns true if the
-        cursor position was set successfully.
+        """Move the cursor to the first file in the archive.
+
+        Returns ``True`` if the cursor position was set successfully.
+
+        Returns:
+            bool
         """
         ...
     def move_to_next_file(self) -> bool:
-        """Moves the cursor to the next file in the archive. Returns true if the
-        cursor position was set successfully.
+        """Move the cursor to the next file in the archive.
+
+        Returns ``True`` if the cursor position was set successfully.
+
+        Returns:
+            bool
         """
         ...
     def move_to_file(self, file_name: str, case_sensitive: bool) -> bool:
-        """Moves the cursor to the specified file in the archive. If |caseSensitive|
-        is true then the search will be case sensitive. Returns true if the cursor
-        position was set successfully.
+        """Move the cursor to the specified file in the archive.
+
+        If ``case_sensitive`` is ``True`` then the search will be case sensitive. Returns
+        ``True`` if the cursor position was set successfully.
+
+        Args:
+            file_name (str):
+            case_sensitive (bool): True then the search will be case sensitive.
+        Returns:
+            bool
         """
         ...
     def close(self) -> bool:
-        """Closes the archive. This should be called directly to ensure that cleanup
-        occurs on the correct thread.
+        """Close the archive.
+
+        This should be called directly to ensure that cleanup occurs on the correct thread.
+
+        Returns:
+            bool
         """
         ...
     def get_file_name(self) -> str:
-        """Returns the name of the file."""
+        """Return the name of the file.
+
+        Returns:
+            str: The name of the file.
+        """
         ...
     def get_file_size(self) -> int:
-        """Returns the uncompressed size of the file."""
+        """Return the uncompressed size of the file.
+
+        Returns:
+            int: The uncompressed size of the file.
+        """
         ...
     def get_file_last_modified(self) -> datetime.datetime | None:
-        """Returns the last modified timestamp for the file."""
+        """Return the last modified timestamp for the file.
+
+        Returns:
+            datetime.datetime | None: The last modified timestamp for the file.
+        """
         ...
     def open_file(self, password: str | None) -> bool:
-        """Opens the file for reading of uncompressed data. A read password may
-        optionally be specified.
+        """Open the file for reading of uncompressed data.
+
+        A read password may optionally be specified.
+
+        Args:
+            password (str | None):
+        Returns:
+            bool
         """
         ...
     def close_file(self) -> bool:
-        """Closes the file."""
+        """Close the file.
+
+        Returns:
+            bool
+        """
         ...
     def read_file(self, buffer_size: int) -> bytes:
-        """Read uncompressed file contents into the specified buffer. Returns < 0 if
-        an error occurred, 0 if at the end of file, or the number of bytes read.
+        """Read uncompressed file contents into the specified buffer.
+
+        Returns < 0 if an error occurred, 0 if at the end of file, or the number of bytes
+        read.
+
+        Args:
+            buffer_size (int):
+        Returns:
+            bytes
         """
         ...
     def tell(self) -> int:
-        """Returns the current offset in the uncompressed file contents."""
+        """Return the current offset in the uncompressed file contents.
+
+        Returns:
+            int: The current offset in the uncompressed file contents.
+        """
         ...
     def eof(self) -> bool:
-        """Returns true if at end of the file contents."""
+        """Return ``True`` if at end of the file contents.
+
+        Returns:
+            bool: ``True`` if at end of the file contents.
+        """
         ...
     @staticmethod
     def create(stream: StreamReader) -> ZipReader:
-        """Create a new CefZipReader object. The returned object's methods can only
-        be called from the thread that created the object.
+        """Create a new :class:`ZipReader` object.
+
+        The returned object's methods can only be called from the thread that created the
+        object.
+
+        Args:
+            stream (StreamReader):
+        Returns:
+            ZipReader
         """
         ...
 
 
 class BoxLayout(Layout):
-    """A Layout manager that arranges child views vertically or horizontally in a
-    side-by-side fashion with spacing around and between the child views. The
-    child views are always sized according to their preferred size. If the
-    host's bounds provide insufficient space, child views will be clamped.
-    Excess space will not be distributed. Methods must be called on the browser
-    process UI thread unless otherwise indicated.
+    """A Layout manager that arranges child views vertically or horizontally in a side-by-side fashion with spacing around and between the child views.
+
+    The child views are always sized according to their preferred size. If the host's
+    bounds provide insufficient space, child views will be clamped. Excess space will
+    not be distributed. Methods must be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def set_flex_for_view(self, view: View, flex: int) -> None:
-        """Set the flex weight for the given |view|. Using the preferred size as
-        the basis, free space along the main axis is distributed to views in the
-        ratio of their flex weights. Similarly, if the views will overflow the
-        parent, space is subtracted in these ratios. A flex of 0 means this view
-        is not resized. Flex values must not be negative.
+        """Set the flex weight for the given ``view``.
+
+        Using the preferred size as the basis, free space along the main axis is distributed
+        to views in the ratio of their flex weights. Similarly, if the views will overflow
+        the parent, space is subtracted in these ratios. A flex of 0 means this view is not
+        resized. Flex values must not be negative.
+
+        Args:
+            view (View):
+            flex (int):
         """
         ...
     def clear_flex_for_view(self, view: View) -> None:
-        """Clears the flex for the given |view|, causing it to use the default flex
-        specified via CefBoxLayoutSettings.default_flex.
+        """Clear the flex for the given ``view``, causing it to use the default flex specified via ``CefBoxLayoutSettings``.default_flex.
+
+        Args:
+            view (View):
         """
         ...
 
 
 class BrowserView(View):
-    """A View hosting a CefBrowser instance. Methods must be called on the browser
-    process UI thread unless otherwise indicated.
+    """A View hosting a :class:`Browser` instance.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def get_browser(self) -> Browser | None:
-        """Returns the CefBrowser hosted by this BrowserView. Will return NULL if the
-        browser has not yet been created or has already been destroyed.
+        """Return the :class:`Browser` hosted by this BrowserView.
+
+        Will return ``None`` if the browser has not yet been created or has already been
+        destroyed.
+
+        Returns:
+            Browser | None: The ``CefBrowser`` hosted by this BrowserView.
         """
         ...
     def get_chrome_toolbar(self) -> View | None:
-        """Returns the Chrome toolbar associated with this BrowserView. Only
-        supported when using Chrome style. The CefBrowserViewDelegate::
-        GetChromeToolbarType() method must return a value other than
-        CEF_CTT_NONE and the toolbar will not be available until after this
-        BrowserView is added to a CefWindow and CefViewDelegate::OnWindowChanged()
-        has been called.
+        """Return the Chrome toolbar associated with this BrowserView.
+
+        Only supported when using Chrome style. The :class:`BrowserViewDelegate`::
+        GetChromeToolbarType() method must return a value other than CEF_CTT_NONE and the
+        toolbar will not be available until after this BrowserView is added to a
+        :class:`Window` and :meth:`ViewDelegate.on_window_changed` has been called.
+
+        Returns:
+            View | None: The Chrome toolbar associated with this BrowserView.
         """
         ...
     def set_prefer_accelerators(self, prefer_accelerators: bool) -> None:
-        """Sets whether normal priority accelerators are first forwarded to the web
-        content (`keydown` event handler) or CefKeyboardHandler. Normal priority
-        accelerators can be registered via CefWindow::SetAccelerator (with
-        |high_priority|=false) or internally for standard accelerators supported
-        by Chrome style. If |prefer_accelerators| is true then the matching
+        """Set whether normal priority accelerators are first forwarded to the web content (`keydown` event handler) or :class:`KeyboardHandler`.
+
+        Normal priority accelerators can be registered via :meth:`Window.set_accelerator`
+        (with ``high_priority``=``False``) or internally for standard accelerators supported
+        by Chrome style. If ``prefer_accelerators`` is ``True`` then the matching
         accelerator will be triggered immediately (calling
-        CefWindowDelegate::OnAccelerator or CefCommandHandler::OnChromeCommand
+        :meth:`WindowDelegate.on_accelerator` or :meth:`CommandHandler.on_chrome_command`
         respectively) and the event will not be forwarded to the web content or
-        CefKeyboardHandler first. If |prefer_accelerators| is false then the
-        matching accelerator will only be triggered if the event is not handled by
-        web content (`keydown` event handler that calls `event.preventDefault()`)
-        or by CefKeyboardHandler. The default value is false.
+        :class:`KeyboardHandler` first. If ``prefer_accelerators`` is ``False`` then the
+        matching accelerator will only be triggered if the event is not handled by web
+        content (`keydown` event handler that calls `event.preventDefault()`) or by
+        :class:`KeyboardHandler`. The default value is ``False``.
+
+        Args:
+            prefer_accelerators (bool): False then the  matching accelerator will only be triggered if the event is not handled by  web content (`keydown` event handler that calls `event.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
-        """Returns the runtime style for this BrowserView (ALLOY or CHROME). See
-        cef_runtime_style_t documentation for details.
+        """Return the runtime style for this BrowserView (ALLOY or CHROME).
+
+        See cef_runtime_style_t documentation for details.
+
+        Returns:
+            RuntimeStyle: The runtime style for this BrowserView (ALLOY or CHROME).
         """
         ...
     @staticmethod
     def create_browser_view(client: Client | None, url: str | None, settings: BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, State, State, State, State, State, State, State, State, State, State, State, int, State, State], extra_info: DictionaryValue | None, request_context: RequestContext | None, delegate: BrowserViewDelegate | None) -> BrowserView | None:
-        """Create a new BrowserView. The underlying CefBrowser will not be created
-        until this view is added to the views hierarchy. The optional |extra_info|
-        parameter provides an opportunity to specify extra information specific
-        to the created browser that will be passed to
-        CefRenderProcessHandler::OnBrowserCreated() in the render process.
+        """Create a new BrowserView.
+
+        The underlying :class:`Browser` will not be created until this view is added to the
+        views hierarchy. The optional ``extra_info`` parameter provides an opportunity to
+        specify extra information specific to the created browser that will be passed to
+        ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
+
+        Args:
+            client (Client | None):
+            url (str | None):
+            settings (BrowserSettings | tuple[int, str, str, str, str, str, str, int, int, int, int, str, State, State, State, State, State, State, State, State, State, State, State, int, State, State]):
+            extra_info (DictionaryValue | None):
+            request_context (RequestContext | None):
+            delegate (BrowserViewDelegate | None):
+        Returns:
+            BrowserView | None
         """
         ...
     @staticmethod
     def get_for_browser(browser: Browser) -> BrowserView | None:
-        """Returns the BrowserView associated with |browser|."""
+        """Return the BrowserView associated with ``browser``.
+
+        Args:
+            browser (Browser):
+        Returns:
+            BrowserView | None: The BrowserView associated with ``browser``.
+        """
         ...
 
 
 class Button(View):
-    """A View representing a button. Depending on the specific type, the button
-    could be implemented by a native control or custom rendered. Methods must be
-    called on the browser process UI thread unless otherwise indicated.
+    """A View representing a button.
+
+    Depending on the specific type, the button could be implemented by a native control
+    or custom rendered. Methods must be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def as_label_button(self) -> LabelButton | None:
-        """Returns this Button as a LabelButton or NULL if this is not a LabelButton."""
+        """Return this Button as a LabelButton or ``None`` if this is not a LabelButton.
+
+        Returns:
+            LabelButton | None: This Button as a LabelButton or ``None`` if this is not a LabelButton.
+        """
         ...
     def set_state(self, state: ButtonState | int) -> None:
-        """Sets the current display state of the Button."""
+        """Set the current display state of the Button.
+
+        Args:
+            state (ButtonState | int):
+        """
         ...
     def get_state(self) -> ButtonState:
-        """Returns the current display state of the Button."""
+        """Return the current display state of the Button.
+
+        Returns:
+            ButtonState: The current display state of the Button.
+        """
         ...
     def set_ink_drop_enabled(self, enabled: bool) -> None:
-        """Sets the Button will use an ink drop effect for displaying state changes."""
+        """Set the Button will use an ink drop effect for displaying state changes.
+
+        Args:
+            enabled (bool):
+        """
         ...
     def set_tooltip_text(self, tooltip_text: str) -> None:
-        """Sets the tooltip text that will be displayed when the user hovers the
-        mouse cursor over the Button.
+        """Set the tooltip text that will be displayed when the user hovers the mouse cursor over the Button.
+
+        Args:
+            tooltip_text (str):
         """
         ...
     def set_accessible_name(self, name: str) -> None:
-        """Sets the accessible name that will be exposed to assistive technology
-        (AT).
+        """Set the accessible name that will be exposed to assistive technology (AT).
+
+        Args:
+            name (str):
         """
         ...
 
 
 class FillLayout(Layout):
-    """A simple Layout that causes the associated Panel's one child to be sized to
-    match the bounds of its parent. Methods must be called on the browser
-    process UI thread unless otherwise indicated.
+    """A simple Layout that causes the associated Panel's one child to be sized to match the bounds of its parent.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
 
 
 class Panel(View):
-    """A Panel is a container in the views hierarchy that can contain other Views
-    as children. Methods must be called on the browser process UI thread unless
-    otherwise indicated.
+    """A Panel is a container in the views hierarchy that can contain other Views as children.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def as_window(self) -> Window | None:
-        """Returns this Panel as a Window or NULL if this is not a Window."""
-        ...
-    def set_to_fill_layout(self) -> FillLayout | None:
-        """Set this Panel's Layout to FillLayout and return the FillLayout object."""
-        ...
-    def set_to_box_layout(self, settings: BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]) -> BoxLayout | None:
-        """Set this Panel's Layout to BoxLayout and return the BoxLayout object."""
-        ...
-    def get_layout(self) -> Layout | None:
-        """Get the Layout."""
-        ...
-    def layout(self) -> None:
-        """Lay out the child Views (set their bounds based on sizing heuristics
-        specific to the current Layout).
+        """Return this Panel as a Window or ``None`` if this is not a Window.
+
+        Returns:
+            Window | None: This Panel as a Window or ``None`` if this is not a Window.
         """
         ...
+    def set_to_fill_layout(self) -> FillLayout | None:
+        """Set this Panel's Layout to FillLayout and return the FillLayout object.
+
+        Returns:
+            FillLayout | None
+        """
+        ...
+    def set_to_box_layout(self, settings: BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]) -> BoxLayout | None:
+        """Set this Panel's Layout to BoxLayout and return the BoxLayout object.
+
+        Args:
+            settings (BoxLayoutSettings | tuple[int, int, int, Insets, int, AxisAlignment, AxisAlignment, int, int]):
+        Returns:
+            BoxLayout | None
+        """
+        ...
+    def get_layout(self) -> Layout | None:
+        """Get the Layout.
+
+        Returns:
+            Layout | None
+        """
+        ...
+    def layout(self) -> None:
+        """Lay out the child Views (set their bounds based on sizing heuristics specific to the current Layout)."""
+        ...
     def add_child_view(self, view: View) -> None:
-        """Add a child View."""
+        """Add a child View.
+
+        Args:
+            view (View):
+        """
         ...
     def add_child_view_at(self, view: View, index: int) -> None:
-        """Add a child View at the specified |index|. If |index| matches the result
-        of GetChildCount() then the View will be added at the end.
+        """Add a child View at the specified ``index``.
+
+        If ``index`` matches the result of GetChildCount() then the View will be added at
+        the end.
+
+        Args:
+            view (View):
+            index (int):
         """
         ...
     def reorder_child_view(self, view: View, index: int) -> None:
-        """Move the child View to the specified |index|. A negative value for |index|
-        will move the View to the end.
+        """Move the child View to the specified ``index``.
+
+        A negative value for ``index`` will move the View to the end.
+
+        Args:
+            view (View):
+            index (int):
         """
         ...
     def remove_child_view(self, view: View) -> None:
-        """Remove a child View. The View can then be added to another Panel."""
+        """Remove a child View.
+
+        The View can then be added to another Panel.
+
+        Args:
+            view (View):
+        """
         ...
     def remove_all_child_views(self) -> None:
-        """Remove all child Views. The removed Views will be deleted if the client
-        holds no references to them.
+        """Remove all child Views.
+
+        The removed Views will be deleted if the client holds no references to them.
         """
         ...
     def get_child_view_count(self) -> int:
-        """Returns the number of child Views."""
+        """Return the number of child Views.
+
+        Returns:
+            int: The number of child Views.
+        """
         ...
     def get_child_view_at(self, index: int) -> View | None:
-        """Returns the child View at the specified |index|."""
+        """Return the child View at the specified ``index``.
+
+        Args:
+            index (int):
+        Returns:
+            View | None: The child View at the specified ``index``.
+        """
         ...
     @staticmethod
     def create_panel(delegate: PanelDelegate | None) -> Panel | None:
-        """Create a new Panel."""
+        """Create a new Panel.
+
+        Args:
+            delegate (PanelDelegate | None):
+        Returns:
+            Panel | None
+        """
         ...
 
 
 class ScrollView(View):
-    """A ScrollView will show horizontal and/or vertical scrollbars when necessary
-    based on the size of the attached content view. Methods must be called on
-    the browser process UI thread unless otherwise indicated.
+    """A ScrollView will show horizontal and/or vertical scrollbars when necessary based on the size of the attached content view.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def set_content_view(self, view: View) -> None:
-        """Set the content View. The content View must have a specified size (e.g.
-        via CefView::SetBounds or CefViewDelegate::GetPreferredSize).
+        """Set the content View.
+
+        The content View must have a specified size (e.g. via :meth:`View.set_bounds` or
+        :meth:`ViewDelegate.get_preferred_size`).
+
+        Args:
+            view (View):
         """
         ...
     def get_content_view(self) -> View | None:
-        """Returns the content View."""
+        """Return the content View.
+
+        Returns:
+            View | None: The content View.
+        """
         ...
     def get_visible_content_rect(self) -> Rect:
-        """Returns the visible region of the content View."""
+        """Return the visible region of the content View.
+
+        Returns:
+            Rect: The visible region of the content View.
+        """
         ...
     def has_horizontal_scrollbar(self) -> bool:
-        """Returns true if the horizontal scrollbar is currently showing."""
+        """Return ``True`` if the horizontal scrollbar is currently showing.
+
+        Returns:
+            bool: ``True`` if the horizontal scrollbar is currently showing.
+        """
         ...
     def get_horizontal_scrollbar_height(self) -> int:
-        """Returns the height of the horizontal scrollbar."""
+        """Return the height of the horizontal scrollbar.
+
+        Returns:
+            int: The height of the horizontal scrollbar.
+        """
         ...
     def has_vertical_scrollbar(self) -> bool:
-        """Returns true if the vertical scrollbar is currently showing."""
+        """Return ``True`` if the vertical scrollbar is currently showing.
+
+        Returns:
+            bool: ``True`` if the vertical scrollbar is currently showing.
+        """
         ...
     def get_vertical_scrollbar_width(self) -> int:
-        """Returns the width of the vertical scrollbar."""
+        """Return the width of the vertical scrollbar.
+
+        Returns:
+            int: The width of the vertical scrollbar.
+        """
         ...
     @staticmethod
     def create_scroll_view(delegate: ViewDelegate | None) -> ScrollView | None:
-        """Create a new ScrollView."""
+        """Create a new ScrollView.
+
+        Args:
+            delegate (ViewDelegate | None):
+        Returns:
+            ScrollView | None
+        """
         ...
 
 
 class Textfield(View):
-    """A Textfield supports editing of text. This control is custom rendered with
-    no platform-specific code. Methods must be called on the browser process UI
-    thread unless otherwise indicated.
+    """A Textfield supports editing of text.
+
+    This control is custom rendered with no platform-specific code. Methods must be
+    called on the browser process UI thread unless otherwise indicated.
     """
     def set_password_input(self, password_input: bool) -> None:
-        """Sets whether the text will be displayed as asterisks."""
+        """Set whether the text will be displayed as asterisks.
+
+        Args:
+            password_input (bool):
+        """
         ...
     def is_password_input(self) -> bool:
-        """Returns true if the text will be displayed as asterisks."""
+        """Return ``True`` if the text will be displayed as asterisks.
+
+        Returns:
+            bool: ``True`` if the text will be displayed as asterisks.
+        """
         ...
     def set_read_only(self, read_only: bool) -> None:
-        """Sets whether the text will read-only."""
+        """Set whether the text will read-only.
+
+        Args:
+            read_only (bool):
+        """
         ...
     def is_read_only(self) -> bool:
-        """Returns true if the text is read-only."""
+        """Return ``True`` if the text is read-only.
+
+        Returns:
+            bool: ``True`` if the text is read-only.
+        """
         ...
     def get_text(self) -> str:
-        """Returns the currently displayed text."""
+        """Return the currently displayed text.
+
+        Returns:
+            str: The currently displayed text.
+        """
         ...
     def set_text(self, text: str) -> None:
-        """Sets the contents to |text|. The cursor will be moved to end of the text
-        if the current position is outside of the text range.
+        """Set the contents to ``text``.
+
+        The cursor will be moved to end of the text if the current position is outside of
+        the text range.
+
+        Args:
+            text (str):
         """
         ...
     def append_text(self, text: str) -> None:
-        """Appends |text| to the previously-existing text."""
+        """Appends ``text`` to the previously-existing text.
+
+        Args:
+            text (str):
+        """
         ...
     def insert_or_replace_text(self, text: str) -> None:
-        """Inserts |text| at the current cursor position replacing any selected text."""
+        """Insert ``text`` at the current cursor position replacing any selected text.
+
+        Args:
+            text (str):
+        """
         ...
     def has_selection(self) -> bool:
-        """Returns true if there is any selected text."""
+        """Return ``True`` if there is any selected text.
+
+        Returns:
+            bool: ``True`` if there is any selected text.
+        """
         ...
     def get_selected_text(self) -> str:
-        """Returns the currently selected text."""
+        """Return the currently selected text.
+
+        Returns:
+            str: The currently selected text.
+        """
         ...
     def select_all(self, reversed: bool) -> None:
-        """Selects all text. If |reversed| is true the range will end at the logical
-        beginning of the text; this generally shows the leading portion of text
-        that overflows its display area.
+        """Select all text.
+
+        If ``reversed`` is ``True`` the range will end at the logical beginning of the text;
+        this generally shows the leading portion of text that overflows its display area.
+
+        Args:
+            reversed (bool): True the range will end at the logical  beginning of the text; this generally shows the leading portion of text  that overflows its display area.
         """
         ...
     def clear_selection(self) -> None:
-        """Clears the text selection and sets the caret to the end."""
+        """Clear the text selection and sets the caret to the end."""
         ...
     def get_selected_range(self) -> Range:
-        """Returns the selected logical text range."""
+        """Return the selected logical text range.
+
+        Returns:
+            Range: The selected logical text range.
+        """
         ...
     def select_range(self, range: Range | tuple[int, int]) -> None:
-        """Selects the specified logical text range."""
+        """Select the specified logical text range.
+
+        Args:
+            range (Range | tuple[int, int]):
+        """
         ...
     def get_cursor_position(self) -> int:
-        """Returns the current cursor position."""
+        """Return the current cursor position.
+
+        Returns:
+            int: The current cursor position.
+        """
         ...
     def set_font_list(self, font_list: str) -> None:
-        """Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-        where:
-        - FONT_FAMILY_LIST is a comma-separated list of font family names,
-        - STYLES is an optional space-separated list of style names
-          (case-sensitive \"Bold\" and \"Italic\" are supported), and
-        - SIZE is an integer font size in pixels with the suffix \"px\".
+        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
+         where:
+         - FONT_FAMILY_LIST is a comma-separated list of font family names,
+         - STYLES is an optional space-separated list of style names
+           (case-sensitive \"Bold\" and \"Italic\" are supported), and
+         - SIZE is an integer font size in pixels with the suffix \"px\".
 
-        Here are examples of valid font description strings:
-        - \"Arial, Helvetica, Bold Italic 14px\"
-        - \"Arial, 14px\"
+        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
+        Italic 14px\" - \"Arial, 14px\"
+
+        Args:
+            font_list (str):
         """
         ...
     def apply_text_color(self, color: int, range: Range | tuple[int, int]) -> None:
-        """Applies |color| to the specified |range| without changing the default
-        color. If |range| is empty the color will be set on the complete text
-        contents.
+        """Apply ``color`` to the specified ``range`` without changing the default color.
+
+        If ``range`` is empty the color will be set on the complete text contents.
+
+        Args:
+            color (int):
+            range (Range | tuple[int, int]): Empty the color will be set on the complete text  contents.
         """
         ...
     def apply_text_style(self, style: TextStyle | int, add: bool, range: Range | tuple[int, int]) -> None:
-        """Applies |style| to the specified |range| without changing the default
-        style. If |add| is true the style will be added, otherwise the style will
-        be removed. If |range| is empty the style will be set on the complete text
-        contents.
+        """Apply ``style`` to the specified ``range`` without changing the default style.
+
+        If ``add`` is ``True`` the style will be added, otherwise the style will be removed.
+        If ``range`` is empty the style will be set on the complete text contents.
+
+        Args:
+            style (TextStyle | int):
+            add (bool): True the style will be added, otherwise the style will  be removed.
+            range (Range | tuple[int, int]): Empty the style will be set on the complete text  contents.
         """
         ...
     def is_command_enabled(self, command_id: TextFieldCommands | int) -> bool:
-        """Returns true if the action associated with the specified command id is
-        enabled. See additional comments on ExecuteCommand().
+        """Return ``True`` if the action associated with the specified command id is enabled.
+
+        See additional comments on ExecuteCommand().
+
+        Args:
+            command_id (TextFieldCommands | int):
+        Returns:
+            bool: ``True`` if the action associated with the specified command id is  enabled.
         """
         ...
     def execute_command(self, command_id: TextFieldCommands | int) -> None:
-        """Performs the action associated with the specified command id."""
+        """Perform the action associated with the specified command id.
+
+        Args:
+            command_id (TextFieldCommands | int):
+        """
         ...
     def clear_edit_history(self) -> None:
-        """Clears Edit history."""
+        """Clear Edit history."""
         ...
     def set_placeholder_text(self, text: str) -> None:
-        """Sets the placeholder text that will be displayed when the Textfield is
-        empty.
+        """Set the placeholder text that will be displayed when the Textfield is empty.
+
+        Args:
+            text (str):
         """
         ...
     def get_placeholder_text(self) -> str:
-        """Returns the placeholder text that will be displayed when the Textfield is
-        empty.
+        """Return the placeholder text that will be displayed when the Textfield is empty.
+
+        Returns:
+            str: The placeholder text that will be displayed when the Textfield is  empty.
         """
         ...
     def set_accessible_name(self, name: str) -> None:
-        """Set the accessible name that will be exposed to assistive technology (AT)."""
+        """Set the accessible name that will be exposed to assistive technology (AT).
+
+        Args:
+            name (str):
+        """
         ...
     @staticmethod
     def create_textfield(delegate: TextfieldDelegate | None) -> Textfield | None:
-        """Create a new Textfield."""
+        """Create a new Textfield.
+
+        Args:
+            delegate (TextfieldDelegate | None):
+        Returns:
+            Textfield | None
+        """
         ...
 
 
 class LabelButton(Button):
-    """LabelButton is a button with optional text and/or icon. Methods must be
-    called on the browser process UI thread unless otherwise indicated.
+    """LabelButton is a button with optional text and/or icon.
+
+    Methods must be called on the browser process UI thread unless otherwise indicated.
     """
     def as_menu_button(self) -> MenuButton | None:
-        """Returns this LabelButton as a MenuButton or NULL if this is not a
-        MenuButton.
+        """Return this LabelButton as a MenuButton or ``None`` if this is not a MenuButton.
+
+        Returns:
+            MenuButton | None: This LabelButton as a MenuButton or ``None`` if this is not a  MenuButton.
         """
         ...
     def set_text(self, text: str) -> None:
-        """Sets the text shown on the LabelButton. By default |text| will also be
-        used as the accessible name.
+        """Set the text shown on the LabelButton.
+
+        By default ``text`` will also be used as the accessible name.
+
+        Args:
+            text (str):
         """
         ...
     def get_text(self) -> str:
-        """Returns the text shown on the LabelButton."""
+        """Return the text shown on the LabelButton.
+
+        Returns:
+            str: The text shown on the LabelButton.
+        """
         ...
     def set_image(self, button_state: ButtonState | int, image: Image | None) -> None:
-        """Sets the image shown for |button_state|. When this Button is drawn if no
-        image exists for the current state then the image for
-        CEF_BUTTON_STATE_NORMAL, if any, will be shown.
+        """Set the image shown for ``button_state``.
+
+        When this Button is drawn if no image exists for the current state then the image
+        for CEF_BUTTON_STATE_NORMAL, if any, will be shown.
+
+        Args:
+            button_state (ButtonState | int):
+            image (Image | None):
         """
         ...
     def get_image(self, button_state: ButtonState | int) -> Image | None:
-        """Returns the image shown for |button_state|. If no image exists for that
-        state then the image for CEF_BUTTON_STATE_NORMAL will be returned.
+        """Return the image shown for ``button_state``.
+
+        If no image exists for that state then the image for CEF_BUTTON_STATE_NORMAL will be
+        returned.
+
+        Args:
+            button_state (ButtonState | int):
+        Returns:
+            Image | None: The image shown for ``button_state``.
         """
         ...
     def set_text_color(self, for_state: ButtonState | int, color: int) -> None:
-        """Sets the text color shown for the specified button |for_state| to |color|."""
+        """Set the text color shown for the specified button ``for_state`` to ``color``.
+
+        Args:
+            for_state (ButtonState | int):
+            color (int):
+        """
         ...
     def set_enabled_text_colors(self, color: int) -> None:
-        """Sets the text colors shown for the non-disabled states to |color|."""
+        """Set the text colors shown for the non-disabled states to ``color``.
+
+        Args:
+            color (int):
+        """
         ...
     def set_font_list(self, font_list: str) -> None:
-        """Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
-        where:
-        - FONT_FAMILY_LIST is a comma-separated list of font family names,
-        - STYLES is an optional space-separated list of style names
-          (case-sensitive \"Bold\" and \"Italic\" are supported), and
-        - SIZE is an integer font size in pixels with the suffix \"px\".
+        """ Sets the font list. The format is \"<FONT_FAMILY_LIST>,[STYLES] <SIZE>\",
+         where:
+         - FONT_FAMILY_LIST is a comma-separated list of font family names,
+         - STYLES is an optional space-separated list of style names
+           (case-sensitive \"Bold\" and \"Italic\" are supported), and
+         - SIZE is an integer font size in pixels with the suffix \"px\".
 
-        Here are examples of valid font description strings:
-        - \"Arial, Helvetica, Bold Italic 14px\"
-        - \"Arial, 14px\"
+        Here are examples of valid font description strings: - \"Arial, Helvetica, Bold
+        Italic 14px\" - \"Arial, 14px\"
+
+        Args:
+            font_list (str):
         """
         ...
     def set_horizontal_alignment(self, alignment: HorizontalAlignment | int) -> None:
-        """Sets the horizontal alignment; reversed in RTL. Default is
-        CEF_HORIZONTAL_ALIGNMENT_CENTER.
+        """Set the horizontal alignment; reversed in RTL.
+
+        Default is CEF_HORIZONTAL_ALIGNMENT_CENTER.
+
+        Args:
+            alignment (HorizontalAlignment | int):
         """
         ...
     def set_minimum_size(self, size: Size | tuple[int, int]) -> None:
-        """Reset the minimum size of this LabelButton to |size|."""
+        """Reset the minimum size of this LabelButton to ``size``.
+
+        Args:
+            size (Size | tuple[int, int]):
+        """
         ...
     def set_maximum_size(self, size: Size | tuple[int, int]) -> None:
-        """Reset the maximum size of this LabelButton to |size|."""
+        """Reset the maximum size of this LabelButton to ``size``.
+
+        Args:
+            size (Size | tuple[int, int]):
+        """
         ...
     @staticmethod
     def create_label_button(delegate: ButtonDelegate, text: str | None) -> LabelButton | None:
-        """Create a new LabelButton. A |delegate| must be provided to handle the
-        button click. |text| will be shown on the LabelButton and used as the
-        default accessible name.
+        """Create a new LabelButton.
+
+        A ``delegate`` must be provided to handle the button click. ``text`` will be shown
+        on the LabelButton and used as the default accessible name.
+
+        Args:
+            delegate (ButtonDelegate):
+            text (str | None):
+        Returns:
+            LabelButton | None
         """
         ...
 
 
 class Window(Panel):
-    """A Window is a top-level Window/widget in the Views hierarchy. By default it
-    will have a non-client area with title bar, icon and buttons that supports
-    moving and resizing. All size and position values are in density independent
-    pixels (DIP) unless otherwise indicated. Methods must be called on the
+    """A Window is a top-level Window/widget in the Views hierarchy.
+
+    By default it will have a non-client area with title bar, icon and buttons that
+    supports moving and resizing. All size and position values are in density
+    independent pixels (DIP) unless otherwise indicated. Methods must be called on the
     browser process UI thread unless otherwise indicated.
     """
     def show(self) -> None:
         """Show the Window."""
         ...
     def show_as_browser_modal_dialog(self, browser_view: BrowserView) -> None:
-        """Show the Window as a browser modal dialog relative to |browser_view|. A
-        parent Window must be returned via CefWindowDelegate::GetParentWindow()
-        and |browser_view| must belong to that parent Window. While this Window is
-        visible, |browser_view| will be disabled while other controls in the
-        parent Window remain enabled. Navigating or destroying the |browser_view|
-        will close this Window automatically. Alternately, use Show() and return
-        true from CefWindowDelegate::IsWindowModalDialog() for a window modal
-        dialog where all controls in the parent Window are disabled.
+        """Show the Window as a browser modal dialog relative to ``browser_view``.
+
+        A parent Window must be returned via :meth:`WindowDelegate.get_parent_window` and
+        ``browser_view`` must belong to that parent Window. While this Window is visible,
+        ``browser_view`` will be disabled while other controls in the parent Window remain
+        enabled. Navigating or destroying the ``browser_view`` will close this Window
+        automatically. Alternately, use Show() and return ``True`` from
+        :meth:`WindowDelegate.is_window_modal_dialog` for a window modal dialog where all
+        controls in the parent Window are disabled.
+
+        Args:
+            browser_view (BrowserView):
         """
         ...
     def hide(self) -> None:
         """Hide the Window."""
         ...
     def center_window(self, size: Size | tuple[int, int]) -> None:
-        """Sizes the Window to |size| and centers it in the current display."""
+        """Size the Window to ``size`` and centers it in the current display.
+
+        Args:
+            size (Size | tuple[int, int]):
+        """
         ...
     def close(self) -> None:
         """Close the Window."""
         ...
     def is_closed(self) -> bool:
-        """Returns true if the Window has been closed."""
+        """Return ``True`` if the Window has been closed.
+
+        Returns:
+            bool: ``True`` if the Window has been closed.
+        """
         ...
     def activate(self) -> None:
         """Activate the Window, assuming it already exists and is visible."""
         ...
     def deactivate(self) -> None:
-        """Deactivate the Window, making the next Window in the Z order the active
-        Window.
-        """
+        """Deactivate the Window, making the next Window in the Z order the active Window."""
         ...
     def is_active(self) -> bool:
-        """Returns whether the Window is the currently active Window."""
+        """Return whether the Window is the currently active Window.
+
+        Returns:
+            bool: Whether the Window is the currently active Window.
+        """
         ...
     def bring_to_top(self) -> None:
         """Bring this Window to the top of other Windows in the Windowing system."""
         ...
     def set_always_on_top(self, on_top: bool) -> None:
-        """Set the Window to be on top of other Windows in the Windowing system."""
+        """Set the Window to be on top of other Windows in the Windowing system.
+
+        Args:
+            on_top (bool):
+        """
         ...
     def is_always_on_top(self) -> bool:
-        """Returns whether the Window has been set to be on top of other Windows in
-        the Windowing system.
+        """Return whether the Window has been set to be on top of other Windows in the Windowing system.
+
+        Returns:
+            bool: Whether the Window has been set to be on top of other Windows in  the Windowing system.
         """
         ...
     def maximize(self) -> None:
@@ -4778,245 +8895,382 @@ class Window(Panel):
         """Restore the Window."""
         ...
     def set_fullscreen(self, fullscreen: bool) -> None:
-        """Set fullscreen Window state. The
-        CefWindowDelegate::OnWindowFullscreenTransition method will be called
+        """Set fullscreen Window state.
+
+        The :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called
         during the fullscreen transition for notification purposes.
+
+        Args:
+            fullscreen (bool):
         """
         ...
     def is_maximized(self) -> bool:
-        """Returns true if the Window is maximized."""
+        """Return ``True`` if the Window is maximized.
+
+        Returns:
+            bool: ``True`` if the Window is maximized.
+        """
         ...
     def is_minimized(self) -> bool:
-        """Returns true if the Window is minimized."""
+        """Return ``True`` if the Window is minimized.
+
+        Returns:
+            bool: ``True`` if the Window is minimized.
+        """
         ...
     def is_fullscreen(self) -> bool:
-        """Returns true if the Window is fullscreen."""
+        """Return ``True`` if the Window is fullscreen.
+
+        Returns:
+            bool: ``True`` if the Window is fullscreen.
+        """
         ...
     def get_focused_view(self) -> View | None:
-        """Returns the View that currently has focus in this Window, or nullptr if no
-        View currently has focus. A Window may have a focused View even if it is
-        not currently active. Any focus changes while a Window is not active may
-        be applied after that Window next becomes active.
+        """Return the View that currently has focus in this Window, or ``None`` if no View currently has focus.
+
+        A Window may have a focused View even if it is not currently active. Any focus
+        changes while a Window is not active may be applied after that Window next becomes
+        active.
+
+        Returns:
+            View | None: The View that currently has focus in this Window, or ``None`` if no  View currently has focus.
         """
         ...
     def set_title(self, title: str | None) -> None:
-        """Set the Window title."""
+        """Set the Window title.
+
+        Args:
+            title (str | None):
+        """
         ...
     def get_title(self) -> str:
-        """Get the Window title."""
+        """Get the Window title.
+
+        Returns:
+            str
+        """
         ...
     def set_window_icon(self, image: Image) -> None:
-        """Set the Window icon. This should be a 16x16 icon suitable for use in the
-        Windows's title bar.
+        """Set the Window icon.
+
+        This should be a 16x16 icon suitable for use in the Windows's title bar.
+
+        Args:
+            image (Image):
         """
         ...
     def get_window_icon(self) -> Image | None:
-        """Get the Window icon."""
+        """Get the Window icon.
+
+        Returns:
+            Image | None
+        """
         ...
     def set_window_app_icon(self, image: Image) -> None:
-        """Set the Window App icon. This should be a larger icon for use in the host
-        environment app switching UI. On Windows, this is the ICON_BIG used in
-        Alt-Tab list and Windows taskbar. The Window icon will be used by default
-        if no Window App icon is specified.
+        """Set the Window App icon.
+
+        This should be a larger icon for use in the host environment app switching UI. On
+        Windows, this is the ICON_BIG used in Alt-Tab list and Windows taskbar. The Window
+        icon will be used by default if no Window App icon is specified.
+
+        Args:
+            image (Image):
         """
         ...
     def get_window_app_icon(self) -> Image | None:
-        """Get the Window App icon."""
+        """Get the Window App icon.
+
+        Returns:
+            Image | None
+        """
         ...
     def add_overlay_view(self, view: View, docking_mode: DockingMode | int, can_activate: bool) -> OverlayController | None:
-        """Add a View that will be overlayed on the Window contents with absolute
-        positioning and high z-order. Positioning is controlled by |docking_mode|
-        as described below. Setting |can_activate| to true will allow the overlay
-        view to receive input focus. The returned CefOverlayController object is
-        used to control the overlay. Overlays are hidden by default.
+        """Add a View that will be overlayed on the Window contents with absolute positioning and high z-order.
 
-        With CEF_DOCKING_MODE_CUSTOM:
-          1. The overlay is initially hidden, sized to |view|'s preferred size,
-             and positioned in the top-left corner.
-          2. Optionally change the overlay position and/or size by calling
-             CefOverlayController methods.
-          3. Call CefOverlayController::SetVisible(true) to show the overlay.
-          4. The overlay will be automatically re-sized if |view|'s layout
-             changes. Optionally change the overlay position and/or size when
-             OnLayoutChanged is called on the Window's delegate to indicate a
-             change in Window bounds.
+        Positioning is controlled by ``docking_mode`` as described below. Setting
+        ``can_activate`` to ``True`` will allow the overlay view to receive input focus. The
+        returned :class:`OverlayController` object is used to control the overlay. Overlays
+        are hidden by default.
 
-        With other docking modes:
-          1. The overlay is initially hidden, sized to |view|'s preferred size,
-             and positioned based on |docking_mode|.
-          2. Call CefOverlayController::SetVisible(true) to show the overlay.
-          3. The overlay will be automatically re-sized if |view|'s layout changes
-             and re-positioned as appropriate when the Window resizes.
+         With CEF_DOCKING_MODE_CUSTOM:
+           1. The overlay is initially hidden, sized to ``view``'s preferred size,
+              and positioned in the top-left corner.
+           2. Optionally change the overlay position and/or size by calling
+              :class:`OverlayController` methods.
+           3. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
+           4. The overlay will be automatically re-sized if ``view``'s layout
+              changes. Optionally change the overlay position and/or size when
+              OnLayoutChanged is called on the Window's delegate to indicate a
+              change in Window bounds.
 
-        Overlays created by this method will receive a higher z-order then any
-        child Views added previously. It is therefore recommended to call this
-        method last after all other child Views have been added so that the
-        overlay displays as the top-most child of the Window.
+         With other docking modes:
+           1. The overlay is initially hidden, sized to ``view``'s preferred size,
+              and positioned based on ``docking_mode``.
+           2. Call :meth:`OverlayController.set_visible`(``True``) to show the overlay.
+           3. The overlay will be automatically re-sized if ``view``'s layout changes
+              and re-positioned as appropriate when the Window resizes.
+
+        Overlays created by this method will receive a higher z-order then any child Views
+        added previously. It is therefore recommended to call this method last after all
+        other child Views have been added so that the overlay displays as the top-most child
+        of the Window.
+
+        Args:
+            view (View):
+            docking_mode (DockingMode | int):
+            can_activate (bool):
+        Returns:
+            OverlayController | None
         """
         ...
     def show_menu(self, menu_model: MenuModel, screen_point: Point | tuple[int, int], anchor_position: MenuAnchorPosition | int) -> None:
-        """Show a menu with contents |menu_model|. |screen_point| specifies the menu
-        position in screen coordinates. |anchor_position| specifies how the menu
-        will be anchored relative to |screen_point|.
+        """Show a menu with contents ``menu_model``.
+
+        ``screen_point`` specifies the menu position in screen coordinates.
+        ``anchor_position`` specifies how the menu will be anchored relative to
+        ``screen_point``.
+
+        Args:
+            menu_model (MenuModel):
+            screen_point (Point | tuple[int, int]):
+            anchor_position (MenuAnchorPosition | int):
         """
         ...
     def cancel_menu(self) -> None:
         """Cancel the menu that is currently showing, if any."""
         ...
     def get_display(self) -> Display | None:
-        """Returns the Display that most closely intersects the bounds of this
-        Window. May return NULL if this Window is not currently displayed.
+        """Return the Display that most closely intersects the bounds of this Window.
+
+        May return ``None`` if this Window is not currently displayed.
+
+        Returns:
+            Display | None: The Display that most closely intersects the bounds of this  Window.
         """
         ...
     def get_client_area_bounds_in_screen(self) -> Rect:
-        """Returns the bounds (size and position) of this Window's client area.
+        """Return the bounds (size and position) of this Window's client area.
+
         Position is in screen coordinates.
+
+        Returns:
+            Rect: The bounds (size and position) of this Window's client area.
         """
         ...
     def set_draggable_regions(self, regions: Sequence[DraggableRegion | tuple[Rect, int]]) -> None:
-        """Set the regions where mouse events will be intercepted by this Window to
-        support drag operations. Call this method with an empty vector to clear
-        the draggable regions. The draggable region bounds should be in window
-        coordinates.
+        """Set the regions where mouse events will be intercepted by this Window to support drag operations.
+
+        Call this method with an empty vector to clear the draggable regions. The draggable
+        region bounds should be in window coordinates.
+
+        Args:
+            regions (Sequence[DraggableRegion | tuple[Rect, int]]):
         """
         ...
     def get_window_handle(self) -> int:
-        """Retrieve the platform window handle for this Window."""
+        """Retrieve the platform window handle for this Window.
+
+        Returns:
+            int
+        """
         ...
     def send_key_press(self, key_code: int, event_flags: int) -> None:
-        """Simulate a key press. |key_code| is the VKEY_* value from Chromium's
-        ui/events/keycodes/keyboard_codes.h header (VK_* values on Windows).
-        |event_flags| is some combination of EVENTFLAG_SHIFT_DOWN,
-        EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN. This method is exposed
-        primarily for testing purposes.
+        """Simulate a key press.
+
+        ``key_code`` is the VKEY_* value from Chromium's ui/events/keycodes/keyboard_codes.h
+        header (VK_* values on Windows). ``event_flags`` is some combination of
+        EVENTFLAG_SHIFT_DOWN, EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN. This method
+        is exposed primarily for testing purposes.
+
+        Args:
+            key_code (int): The VKEY_* value from Chromium's  ui/events/keycodes/keyboard_codes.
+            event_flags (int): Some combination of EVENTFLAG_SHIFT_DOWN,  EVENTFLAG_CONTROL_DOWN and/or EVENTFLAG_ALT_DOWN.
         """
         ...
     def send_mouse_move(self, screen_x: int, screen_y: int) -> None:
-        """Simulate a mouse move. The mouse cursor will be moved to the specified
-        (screen_x, screen_y) position. This method is exposed primarily for
-        testing purposes.
+        """Simulate a mouse move.
+
+        The mouse cursor will be moved to the specified (screen_x, screen_y) position. This
+        method is exposed primarily for testing purposes.
+
+        Args:
+            screen_x (int):
+            screen_y (int):
         """
         ...
     def send_mouse_events(self, button: MouseButtonType | int, mouse_down: bool, mouse_up: bool) -> None:
-        """Simulate mouse down and/or mouse up events. |button| is the mouse button
-        type. If |mouse_down| is true a mouse down event will be sent. If
-        |mouse_up| is true a mouse up event will be sent. If both are true a mouse
-        down event will be sent followed by a mouse up event (equivalent to
-        clicking the mouse button). The events will be sent using the current
-        cursor position so make sure to call SendMouseMove() first to position the
-        mouse. This method is exposed primarily for testing purposes.
+        """Simulate mouse down and/or mouse up events.
+
+        ``button`` is the mouse button type. If ``mouse_down`` is ``True`` a mouse down
+        event will be sent. If ``mouse_up`` is ``True`` a mouse up event will be sent. If
+        both are ``True`` a mouse down event will be sent followed by a mouse up event
+        (equivalent to clicking the mouse button). The events will be sent using the current
+        cursor position so make sure to call SendMouseMove() first to position the mouse.
+        This method is exposed primarily for testing purposes.
+
+        Args:
+            button (MouseButtonType | int): The mouse button  type.
+            mouse_down (bool): True a mouse down event will be sent.
+            mouse_up (bool): True a mouse up event will be sent.
         """
         ...
     def set_accelerator(self, command_id: int, key_code: int, shift_pressed: bool, ctrl_pressed: bool, alt_pressed: bool, high_priority: bool) -> None:
-        """Set the keyboard accelerator for the specified |command_id|. |key_code|
-        can be any virtual key or character value. Required modifier keys are
-        specified by |shift_pressed|, |ctrl_pressed| and/or |alt_pressed|.
-        CefWindowDelegate::OnAccelerator will be called if the keyboard
-        combination is triggered while this window has focus.
+        """Set the keyboard accelerator for the specified ``command_id``.
 
-        The |high_priority| value will be considered if a child CefBrowserView has
-        focus when the keyboard combination is triggered. If |high_priority| is
-        true then the key event will not be forwarded to the web content
-        (`keydown` event handler) or CefKeyboardHandler first. If |high_priority|
-        is false then the behavior will depend on the
-        CefBrowserView::SetPreferAccelerators configuration.
+        ``key_code`` can be any virtual key or character value. Required modifier keys are
+        specified by ``shift_pressed``, ``ctrl_pressed`` and/or ``alt_pressed``.
+        :meth:`WindowDelegate.on_accelerator` will be called if the keyboard combination is
+        triggered while this window has focus.
+
+        The ``high_priority`` value will be considered if a child :class:`BrowserView` has
+        focus when the keyboard combination is triggered. If ``high_priority`` is ``True``
+        then the key event will not be forwarded to the web content (`keydown` event
+        handler) or :class:`KeyboardHandler` first. If ``high_priority`` is ``False`` then
+        the behavior will depend on the :meth:`BrowserView.set_prefer_accelerators`
+        configuration.
+
+        Args:
+            command_id (int):
+            key_code (int):
+            shift_pressed (bool):
+            ctrl_pressed (bool):
+            alt_pressed (bool):
+            high_priority (bool): False then the behavior will depend on the  ``CefBrowserView::SetPreferAccelerators`` configuration.
         """
         ...
     def remove_accelerator(self, command_id: int) -> None:
-        """Remove the keyboard accelerator for the specified |command_id|."""
+        """Remove the keyboard accelerator for the specified ``command_id``.
+
+        Args:
+            command_id (int):
+        """
         ...
     def remove_all_accelerators(self) -> None:
         """Remove all keyboard accelerators."""
         ...
     def set_theme_color(self, color_id: int, color: int) -> None:
-        """Override a standard theme color or add a custom color associated with
-        |color_id|. See cef_color_ids.h for standard ID values. Recommended usage
-        is as follows:
+        """Override a standard theme color or add a custom color associated with ``color_id``.
 
-        1. Customize the default native/OS theme by calling SetThemeColor before
-           showing the first Window. When done setting colors call
-           CefWindow::ThemeChanged to trigger CefViewDelegate::OnThemeChanged
-           notifications.
-        2. Customize the current native/OS or Chrome theme after it changes by
-           calling SetThemeColor from the CefWindowDelegate::OnThemeColorsChanged
-           callback. CefViewDelegate::OnThemeChanged notifications will then be
-           triggered automatically.
+        See cef_color_ids.h for standard ID values. Recommended usage is as follows:
 
-        The configured color will be available immediately via
-        CefView::GetThemeColor and will be applied to each View in this Window's
-        component hierarchy when CefViewDelegate::OnThemeChanged is called. See
-        OnThemeColorsChanged documentation for additional details.
+         1. Customize the default native/OS theme by calling SetThemeColor before
+            showing the first Window. When done setting colors call
+            :meth:`Window.theme_changed` to trigger :meth:`ViewDelegate.on_theme_changed`
+            notifications.
+         2. Customize the current native/OS or Chrome theme after it changes by
+            calling SetThemeColor from the :meth:`WindowDelegate.on_theme_colors_changed`
+            callback. :meth:`ViewDelegate.on_theme_changed` notifications will then be
+            triggered automatically.
 
-        Clients wishing to add custom colors should use |color_id| values >=
+        The configured color will be available immediately via :meth:`View.get_theme_color`
+        and will be applied to each View in this Window's component hierarchy when
+        :meth:`ViewDelegate.on_theme_changed` is called. See OnThemeColorsChanged
+        documentation for additional details.
+
+        Clients wishing to add custom colors should use ``color_id`` values >=
         CEF_ChromeColorsEnd.
+
+        Args:
+            color_id (int):
+            color (int):
         """
         ...
     def theme_changed(self) -> None:
-        """Trigger CefViewDelegate::OnThemeChanged callbacks for each View in this
-        Window's component hierarchy. Unlike a native/OS or Chrome theme change
-        this method does not reset theme colors to standard values and does not
-        result in a call to CefWindowDelegate::OnThemeColorsChanged.
+        """Trigger :meth:`ViewDelegate.on_theme_changed` callbacks for each View in this Window's component hierarchy.
 
-        Do not call this method from CefWindowDelegate::OnThemeColorsChanged or
-        CefViewDelegate::OnThemeChanged.
+        Unlike a native/OS or Chrome theme change this method does not reset theme colors to
+        standard values and does not result in a call to
+        :meth:`WindowDelegate.on_theme_colors_changed`.
+
+        Do not call this method from :meth:`WindowDelegate.on_theme_colors_changed` or
+        :meth:`ViewDelegate.on_theme_changed`.
         """
         ...
     def get_runtime_style(self) -> RuntimeStyle:
-        """Returns the runtime style for this Window (ALLOY or CHROME). See
-        cef_runtime_style_t documentation for details.
+        """Return the runtime style for this Window (ALLOY or CHROME).
+
+        See cef_runtime_style_t documentation for details.
+
+        Returns:
+            RuntimeStyle: The runtime style for this Window (ALLOY or CHROME).
         """
         ...
     @staticmethod
     def create_top_level_window(delegate: WindowDelegate | None) -> Window | None:
-        """Create a new Window."""
+        """Create a new Window.
+
+        Args:
+            delegate (WindowDelegate | None):
+        Returns:
+            Window | None
+        """
         ...
 
 
 class MenuButton(LabelButton):
-    """MenuButton is a button with optional text, icon and/or menu marker that
-    shows a menu when clicked with the left mouse button. All size and position
-    values are in density independent pixels (DIP) unless otherwise indicated.
-    Methods must be called on the browser process UI thread unless otherwise
-    indicated.
+    """MenuButton is a button with optional text, icon and/or menu marker that shows a menu when clicked with the left mouse button.
+
+    All size and position values are in density independent pixels (DIP) unless
+    otherwise indicated. Methods must be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def show_menu(self, menu_model: MenuModel, screen_point: Point | tuple[int, int], anchor_position: MenuAnchorPosition | int) -> None:
-        """Show a menu with contents |menu_model|. |screen_point| specifies the menu
-        position in screen coordinates. |anchor_position| specifies how the menu
-        will be anchored relative to |screen_point|. This method should be called
-        from CefMenuButtonDelegate::OnMenuButtonPressed().
+        """Show a menu with contents ``menu_model``.
+
+        ``screen_point`` specifies the menu position in screen coordinates.
+        ``anchor_position`` specifies how the menu will be anchored relative to
+        ``screen_point``. This method should be called from
+        :meth:`MenuButtonDelegate.on_menu_button_pressed`.
+
+        Args:
+            menu_model (MenuModel):
+            screen_point (Point | tuple[int, int]):
+            anchor_position (MenuAnchorPosition | int):
         """
         ...
     def trigger_menu(self) -> None:
-        """Show the menu for this button. Results in a call to
-        CefMenuButtonDelegate::OnMenuButtonPressed().
+        """Show the menu for this button.
+
+        Results in a call to :meth:`MenuButtonDelegate.on_menu_button_pressed`.
         """
         ...
     @staticmethod
     def create_menu_button(delegate: MenuButtonDelegate, text: str | None) -> MenuButton | None:
-        """Create a new MenuButton. A |delegate| must be provided to call ShowMenu()
-        when the button is clicked. |text| will be shown on the MenuButton and
-        used as the default accessible name. If |with_frame| is true the button
-        will have a visible frame at all times, center alignment, additional
-        padding and a default minimum size of 70x33 DIP. If |with_frame| is false
-        the button will only have a visible frame on hover/press, left alignment,
-        less padding and no default minimum size.
+        """Create a new MenuButton.
+
+        A ``delegate`` must be provided to call ShowMenu() when the button is clicked.
+        ``text`` will be shown on the MenuButton and used as the default accessible name. If
+        ``with_frame`` is ``True`` the button will have a visible frame at all times, center
+        alignment, additional padding and a default minimum size of 70x33 DIP. If
+        ``with_frame`` is ``False`` the button will only have a visible frame on
+        hover/press, left alignment, less padding and no default minimum size.
+
+        Args:
+            delegate (MenuButtonDelegate):
+            text (str | None):
+        Returns:
+            MenuButton | None
         """
         ...
 
 
 class AccessibilityHandler:
-    """Implement this interface to receive accessibility notification when
-    accessibility events have been registered. The methods of this class will
-    be called on the UI thread.
+    """Implement this interface to receive accessibility notification when accessibility events have been registered.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_accessibility_tree_change(self, value: Value) -> None:
-        """Called after renderer process sends accessibility tree changes to the
-        browser process.
+        """Called after renderer process sends accessibility tree changes to the browser process.
+
+        Args:
+            value (Value):
         """
         ...
     def on_accessibility_location_change(self, value: Value) -> None:
-        """Called after renderer process sends accessibility location changes to the
-        browser process.
+        """Called after renderer process sends accessibility location changes to the browser process.
+
+        Args:
+            value (Value):
         """
         ...
 
@@ -5025,381 +9279,712 @@ class AudioHandler:
     """Implement this interface to handle audio events."""
     def get_audio_parameters(self, browser: Browser) -> tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]:
         """Called on the UI thread to allow configuration of audio stream parameters.
-        Return true to proceed with audio stream capture, or false to cancel it.
-        All members of |params| can optionally be configured here, but they are
-        also pre-filled with some sensible defaults.
+
+        Return ``True`` to proceed with audio stream capture, or ``False`` to cancel it. All
+        members of ``params`` can optionally be configured here, but they are also
+        pre-filled with some sensible defaults.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, AudioParameters | tuple[ChannelLayout, int, int]]
         """
         ...
     def on_audio_stream_started(self, browser: Browser, params: AudioParameters, channels: int) -> None:
-        """Called on a browser audio capture thread when the browser starts
-        streaming audio. OnAudioStreamStopped will always be called after
-        OnAudioStreamStarted; both methods may be called multiple times
-        for the same browser. |params| contains the audio parameters like
-        sample rate and channel layout. |channels| is the number of channels.
+        """Called on a browser audio capture thread when the browser starts streaming audio.
+
+        OnAudioStreamStopped will always be called after OnAudioStreamStarted; both methods
+        may be called multiple times for the same browser. ``params`` contains the audio
+        parameters like sample rate and channel layout. ``channels`` is the number of
+        channels.
+
+        Args:
+            browser (Browser):
+            params (AudioParameters):
+            channels (int): The number of channels.
         """
         ...
     def on_audio_stream_packet(self, browser: Browser, data: list[memoryview], pts: int) -> None:
-        """Called on the audio stream thread when a PCM packet is received for the
-        stream. |data| is an array representing the raw PCM data as a floating
-        point type, i.e. 4-byte value(s). |frames| is the number of frames in the
-        PCM packet. |pts| is the presentation timestamp (in milliseconds since the
-        Unix Epoch) and represents the time at which the decompressed packet
-        should be presented to the user. Based on |frames| and the
-        |channel_layout| value passed to OnAudioStreamStarted you can calculate
-        the size of the |data| array in bytes.
+        """Called on the audio stream thread when a PCM packet is received for the stream.
+
+        ``data`` is an array representing the raw PCM data as a floating point type, i.e.
+        4-byte value(s). ``frames`` is the number of frames in the PCM packet. ``pts`` is
+        the presentation timestamp (in milliseconds since the Unix Epoch) and represents the
+        time at which the decompressed packet should be presented to the user. Based on
+        ``frames`` and the ``channel_layout`` value passed to OnAudioStreamStarted you can
+        calculate the size of the ``data`` array in bytes.
+
+        Args:
+            browser (Browser):
+            data (list[memoryview]): An array representing the raw PCM data as a floating  point type, i.
+            pts (int): The presentation timestamp (in milliseconds since the  Unix Epoch) and represents the time at which the decompressed packet  should be presented to the user.
         """
         ...
     def on_audio_stream_stopped(self, browser: Browser) -> None:
-        """Called on the UI thread when the stream has stopped. OnAudioSteamStopped
-        will always be called after OnAudioStreamStarted; both methods may be
-        called multiple times for the same stream.
+        """Called on the UI thread when the stream has stopped.
+
+        OnAudioSteamStopped will always be called after OnAudioStreamStarted; both methods
+        may be called multiple times for the same stream.
+
+        Args:
+            browser (Browser):
         """
         ...
     def on_audio_stream_error(self, browser: Browser, message: str) -> None:
-        """Called on the UI or audio stream thread when an error occurred. During the
-        stream creation phase this callback will be called on the UI thread while
-        in the capturing phase it will be called on the audio stream thread. The
-        stream will be stopped immediately.
+        """Called on the UI or audio stream thread when an error occurred.
+
+        During the stream creation phase this callback will be called on the UI thread while
+        in the capturing phase it will be called on the audio stream thread. The stream will
+        be stopped immediately.
+
+        Args:
+            browser (Browser):
+            message (str):
         """
         ...
 
 
 class BrowserViewDelegate:
-    """Implement this interface to handle BrowserView events. The methods of this
-    class will be called on the browser process UI thread unless otherwise
-    indicated.
+    """Implement this interface to handle BrowserView events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
     def on_browser_created(self, browser_view: BrowserView, browser: Browser) -> None:
-        """Called when |browser| associated with |browser_view| is created. This
-        method will be called after CefLifeSpanHandler::OnAfterCreated() is called
-        for |browser| and before OnPopupBrowserViewCreated() is called for
-        |browser|'s parent delegate if |browser| is a popup.
+        """Called when ``browser`` associated with ``browser_view`` is created.
+
+        This method will be called after :meth:`LifeSpanHandler.on_after_created` is called
+        for ``browser`` and before OnPopupBrowserViewCreated() is called for ``browser``'s
+        parent delegate if ``browser`` is a popup.
+
+        Args:
+            browser_view (BrowserView): Created.
+            browser (Browser): A popup.
         """
         ...
     def on_browser_destroyed(self, browser_view: BrowserView, browser: Browser) -> None:
-        """Called when |browser| associated with |browser_view| is destroyed. Release
-        all references to |browser| and do not attempt to execute any methods on
-        |browser| after this callback returns. This method will be called before
-        CefLifeSpanHandler::OnBeforeClose() is called for |browser|.
+        """Called when ``browser`` associated with ``browser_view`` is destroyed.
+
+        Release all references to ``browser`` and do not attempt to execute any methods on
+        ``browser`` after this callback returns. This method will be called before
+        :meth:`LifeSpanHandler.on_before_close` is called for ``browser``.
+
+        Args:
+            browser_view (BrowserView): Destroyed.
+            browser (Browser):
         """
         ...
     def get_delegate_for_popup_browser_view(self, browser_view: BrowserView, settings: BrowserSettings, client: Client | None, is_devtools: bool) -> BrowserViewDelegate | None:
-        """Called before a new popup BrowserView is created. The popup originated
-        from |browser_view|. |settings| and |client| are the values returned from
-        CefLifeSpanHandler::OnBeforePopup(). |is_devtools| will be true if the
-        popup will be a DevTools browser. Return the delegate that will be used
-        for the new popup BrowserView.
+        """Called before a new popup BrowserView is created.
+
+        The popup originated from ``browser_view``. ``settings`` and ``client`` are the
+        values returned from :meth:`LifeSpanHandler.on_before_popup`. ``is_devtools`` will
+        be ``True`` if the popup will be a DevTools browser. Return the delegate that will
+        be used for the new popup BrowserView.
+
+        Args:
+            browser_view (BrowserView):
+            settings (BrowserSettings):
+            client (Client | None): The values returned from  ``CefLifeSpanHandler::OnBeforePopup()``.
+            is_devtools (bool):
+        Returns:
+            BrowserViewDelegate | None
         """
         ...
     def on_popup_browser_view_created(self, browser_view: BrowserView, popup_browser_view: BrowserView, is_devtools: bool) -> bool:
-        """Called after |popup_browser_view| is created. This method will be called
-        after CefLifeSpanHandler::OnAfterCreated() and OnBrowserCreated() are
-        called for the new popup browser. The popup originated from
-        |browser_view|. |is_devtools| will be true if the popup is a DevTools
-        browser. Optionally add |popup_browser_view| to the views hierarchy
-        yourself and return true. Otherwise return false and a default CefWindow
-        will be created for the popup.
+        """Called after ``popup_browser_view`` is created.
+
+        This method will be called after :meth:`LifeSpanHandler.on_after_created` and
+        OnBrowserCreated() are called for the new popup browser. The popup originated from
+        ``browser_view``. ``is_devtools`` will be ``True`` if the popup is a DevTools
+        browser. Optionally add ``popup_browser_view`` to the views hierarchy yourself and
+        return ``True``. Otherwise return ``False`` and a default :class:`Window` will be
+        created for the popup.
+
+        Args:
+            browser_view (BrowserView):
+            popup_browser_view (BrowserView): Created.
+            is_devtools (bool):
+        Returns:
+            bool
         """
         ...
     def get_chrome_toolbar_type(self, browser_view: BrowserView) -> ChromeToolbarType | int:
-        """Returns the Chrome toolbar type that will be available via
-        CefBrowserView::GetChromeToolbar(). See that method for related
-        documentation.
+        """Return the Chrome toolbar type that will be available via :meth:`BrowserView.get_chrome_toolbar`.
+
+        See that method for related documentation.
+
+        Args:
+            browser_view (BrowserView):
+        Returns:
+            ChromeToolbarType | int: The Chrome toolbar type that will be available via  ``CefBrowserView::GetChromeToolbar()``.
         """
         ...
     def use_frameless_window_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
-        """Return true to create frameless windows for Document picture-in-picture
-        popups. Content in frameless windows should specify draggable regions
-        using \"-webkit-app-region: drag\" CSS.
+        """Return ``True`` to create frameless windows for Document picture-in-picture popups.
+
+        Content in frameless windows should specify draggable regions using
+        \"-webkit-app-region: drag\" CSS.
+
+        Args:
+            browser_view (BrowserView):
+        Returns:
+            bool: ``True`` to create frameless windows for Document picture-in-picture  popups.
         """
         ...
     def allow_move_for_picture_in_picture(self, browser_view: BrowserView) -> bool:
-        """Return true to allow the use of JavaScript moveTo/By() and resizeTo/By()
-        (without user activation) with Document picture-in-picture popups.
+        """Return ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By() (without user activation) with Document picture-in-picture popups.
+
+        Args:
+            browser_view (BrowserView):
+        Returns:
+            bool: ``True`` to allow the use of JavaScript moveTo/By() and resizeTo/By()  (without user activation) with Document picture-in-picture popups.
         """
         ...
     def allow_picture_in_picture_without_user_activation(self, browser_view: BrowserView) -> bool:
-        """Return true to allow opening Document picture-in-picture without
-        user activation. Default is false (user activation required).
+        """Return ``True`` to allow opening Document picture-in-picture without user activation.
+
+        Default is ``False`` (user activation required).
+
+        Args:
+            browser_view (BrowserView):
+        Returns:
+            bool: ``True`` to allow opening Document picture-in-picture without  user activation.
         """
         ...
     def on_gesture_command(self, browser_view: BrowserView, gesture_command: GestureCommand) -> bool:
-        """Called when |browser_view| receives a gesture command. Return true to
-        handle (or disable) a |gesture_command| or false to propagate the gesture
-        to the browser for default handling. With Chrome style these commands can
-        also be handled via CefCommandHandler::OnChromeCommand.
+        """Called when ``browser_view`` receives a gesture command.
+
+        Return ``True`` to handle (or disable) a ``gesture_command`` or ``False`` to
+        propagate the gesture to the browser for default handling. With Chrome style these
+        commands can also be handled via :meth:`CommandHandler.on_chrome_command`.
+
+        Args:
+            browser_view (BrowserView):
+            gesture_command (GestureCommand):
+        Returns:
+            bool
         """
         ...
     def get_browser_runtime_style(self) -> RuntimeStyle | int:
-        """Optionally change the runtime style for this BrowserView. See
-        cef_runtime_style_t documentation for details.
+        """Optionally change the runtime style for this BrowserView.
+
+        See cef_runtime_style_t documentation for details.
+
+        Returns:
+            RuntimeStyle | int
         """
         ...
 
 
 class ButtonDelegate:
-    """Implement this interface to handle Button events. The methods of this class
-    will be called on the browser process UI thread unless otherwise indicated.
+    """Implement this interface to handle Button events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
     def on_button_pressed(self, button: Button) -> None:
-        """Called when |button| is pressed."""
+        """Called when ``button`` is pressed.
+
+        Args:
+            button (Button): Pressed.
+        """
         ...
     def on_button_state_changed(self, button: Button) -> None:
-        """Called when the state of |button| changes."""
+        """Called when the state of ``button`` changes.
+
+        Args:
+            button (Button):
+        """
         ...
 
 
 class Client:
     """Implement this interface to provide handler implementations."""
     def get_audio_handler(self) -> AudioHandler | None:
-        """Return the handler for audio rendering events."""
+        """Return the handler for audio rendering events.
+
+        Returns:
+            AudioHandler | None: The handler for audio rendering events.
+        """
         ...
     def get_command_handler(self) -> CommandHandler | None:
-        """Return the handler for commands. If no handler is provided the default
-        implementation will be used.
+        """Return the handler for commands.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            CommandHandler | None: The handler for commands.
         """
         ...
     def get_context_menu_handler(self) -> ContextMenuHandler | None:
-        """Return the handler for context menus. If no handler is provided the
-        default implementation will be used.
+        """Return the handler for context menus.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            ContextMenuHandler | None: The handler for context menus.
         """
         ...
     def get_dialog_handler(self) -> DialogHandler | None:
-        """Return the handler for dialogs. If no handler is provided the default
-        implementation will be used.
+        """Return the handler for dialogs.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            DialogHandler | None: The handler for dialogs.
         """
         ...
     def get_display_handler(self) -> DisplayHandler | None:
-        """Return the handler for browser display state events."""
+        """Return the handler for browser display state events.
+
+        Returns:
+            DisplayHandler | None: The handler for browser display state events.
+        """
         ...
     def get_download_handler(self) -> DownloadHandler | None:
-        """Return the handler for download events. If no handler is returned
-        downloads will be canceled with Alloy style and will proceed with default
-        handling with Chrome style.
+        """Return the handler for download events.
+
+        If no handler is returned downloads will be canceled with Alloy style and will
+        proceed with default handling with Chrome style.
+
+        Returns:
+            DownloadHandler | None: The handler for download events.
         """
         ...
     def get_drag_handler(self) -> DragHandler | None:
-        """Return the handler for drag events."""
+        """Return the handler for drag events.
+
+        Returns:
+            DragHandler | None: The handler for drag events.
+        """
         ...
     def get_find_handler(self) -> FindHandler | None:
-        """Return the handler for find result events."""
+        """Return the handler for find result events.
+
+        Returns:
+            FindHandler | None: The handler for find result events.
+        """
         ...
     def get_focus_handler(self) -> FocusHandler | None:
-        """Return the handler for focus events."""
+        """Return the handler for focus events.
+
+        Returns:
+            FocusHandler | None: The handler for focus events.
+        """
         ...
     def get_frame_handler(self) -> FrameHandler | None:
-        """Return the handler for events related to CefFrame lifespan. This method
-        will be called once during CefBrowser creation and the result will be
-        cached for performance reasons.
+        """Return the handler for events related to :class:`Frame` lifespan.
+
+        This method will be called once during :class:`Browser` creation and the result will
+        be cached for performance reasons.
+
+        Returns:
+            FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
         """
         ...
     def get_permission_handler(self) -> PermissionHandler | None:
-        """Return the handler for permission requests."""
+        """Return the handler for permission requests.
+
+        Returns:
+            PermissionHandler | None: The handler for permission requests.
+        """
         ...
     def get_js_dialog_handler(self) -> JSDialogHandler | None:
-        """Return the handler for JavaScript dialogs. If no handler is provided the
-        default implementation will be used.
+        """Return the handler for JavaScript dialogs.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            JSDialogHandler | None: The handler for JavaScript dialogs.
         """
         ...
     def get_keyboard_handler(self) -> KeyboardHandler | None:
-        """Return the handler for keyboard events."""
+        """Return the handler for keyboard events.
+
+        Returns:
+            KeyboardHandler | None: The handler for keyboard events.
+        """
         ...
     def get_life_span_handler(self) -> LifeSpanHandler | None:
-        """Return the handler for browser life span events."""
+        """Return the handler for browser life span events.
+
+        Returns:
+            LifeSpanHandler | None: The handler for browser life span events.
+        """
         ...
     def get_load_handler(self) -> LoadHandler | None:
-        """Return the handler for browser load status events."""
+        """Return the handler for browser load status events.
+
+        Returns:
+            LoadHandler | None: The handler for browser load status events.
+        """
         ...
     def get_print_handler(self) -> PrintHandler | None:
-        """Return the handler for printing on Linux. If a print handler is not
-        provided then printing will not be supported on the Linux platform.
+        """Return the handler for printing on Linux.
+
+        If a print handler is not provided then printing will not be supported on the Linux
+        platform.
+
+        Returns:
+            PrintHandler | None: The handler for printing on Linux.
         """
         ...
     def get_render_handler(self) -> RenderHandler | None:
-        """Return the handler for off-screen rendering events."""
+        """Return the handler for off-screen rendering events.
+
+        Returns:
+            RenderHandler | None: The handler for off-screen rendering events.
+        """
         ...
     def get_request_handler(self) -> RequestHandler | None:
-        """Return the handler for browser request events."""
+        """Return the handler for browser request events.
+
+        Returns:
+            RequestHandler | None: The handler for browser request events.
+        """
         ...
     def on_process_message_received(self, browser: Browser, frame: Frame, source_process: ProcessId, message: ProcessMessage) -> bool:
-        """Called when a new message is received from a different process. Return
-        true if the message was handled or false otherwise.  It is safe to keep a
-        reference to |message| outside of this callback.
+        """Called when a new message is received from a different process.
+
+        Return ``True`` if the message was handled or ``False`` otherwise.  It is safe to
+        keep a reference to ``message`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            source_process (ProcessId):
+            message (ProcessMessage):
+        Returns:
+            bool
         """
         ...
 
 
 class CommandHandler:
-    """Implement this interface to handle events related to commands. The methods
-    of this class will be called on the UI thread.
+    """Implement this interface to handle events related to commands.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_chrome_command(self, browser: Browser, command_id: int, disposition: WindowOpenDisposition) -> bool:
-        """Called to execute a Chrome command triggered via menu selection or
-        keyboard shortcut. Use the cef_id_for_command_id_name()
-        function for version-safe mapping of command IDC names from
-        cef_command_ids.h to version-specific numerical |command_id| values.
-        |disposition| provides information about the intended command target.
-        Return true if the command was handled or false for the default
+        """Called to execute a Chrome command triggered via menu selection or keyboard shortcut.
+
+        Use the cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical ``command_id``
+        values. ``disposition`` provides information about the intended command target.
+        Return ``True`` if the command was handled or ``False`` for the default
         implementation. For context menu commands this will be called after
-        CefContextMenuHandler::OnContextMenuCommand. Only used with Chrome style.
+        :meth:`ContextMenuHandler.on_context_menu_command`. Only used with Chrome style.
+
+        Args:
+            browser (Browser):
+            command_id (int):
+            disposition (WindowOpenDisposition):
+        Returns:
+            bool
         """
         ...
     def is_chrome_app_menu_item_visible(self, browser: Browser, command_id: int) -> bool:
-        """Called to check if a Chrome app menu item should be visible. Use the
-        cef_id_for_command_id_name() function for version-safe mapping of command
-        IDC names from cef_command_ids.h to version-specific numerical
-        |command_id| values. Only called for menu items that would be visible by
-        default. Only used with Chrome style.
+        """Called to check if a Chrome app menu item should be visible.
+
+        Use the cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical ``command_id``
+        values. Only called for menu items that would be visible by default. Only used with
+        Chrome style.
+
+        Args:
+            browser (Browser):
+            command_id (int):
+        Returns:
+            bool
         """
         ...
     def is_chrome_app_menu_item_enabled(self, browser: Browser, command_id: int) -> bool:
-        """Called to check if a Chrome app menu item should be enabled. Use the
-        cef_id_for_command_id_name() function for version-safe mapping of command
-        IDC names from cef_command_ids.h to version-specific numerical
-        |command_id| values. Only called for menu items that would be enabled by
-        default. Only used with Chrome style.
+        """Called to check if a Chrome app menu item should be enabled.
+
+        Use the cef_id_for_command_id_name() function for version-safe mapping of command
+        IDC names from cef_command_ids.h to version-specific numerical ``command_id``
+        values. Only called for menu items that would be enabled by default. Only used with
+        Chrome style.
+
+        Args:
+            browser (Browser):
+            command_id (int):
+        Returns:
+            bool
         """
         ...
     def is_chrome_page_action_icon_visible(self, icon_type: ChromePageActionIconType) -> bool:
-        """Called during browser creation to check if a Chrome page action icon
-        should be visible. Only called for icons that would be visible by default.
-        Only used with Chrome style.
+        """Called during browser creation to check if a Chrome page action icon should be visible.
+
+        Only called for icons that would be visible by default. Only used with Chrome style.
+
+        Args:
+            icon_type (ChromePageActionIconType):
+        Returns:
+            bool
         """
         ...
     def is_chrome_toolbar_button_visible(self, button_type: ChromeToolbarButtonType) -> bool:
-        """Called during browser creation to check if a Chrome toolbar button
-        should be visible. Only called for buttons that would be visible by
-        default. Only used with Chrome style.
+        """Called during browser creation to check if a Chrome toolbar button should be visible.
+
+        Only called for buttons that would be visible by default. Only used with Chrome
+        style.
+
+        Args:
+            button_type (ChromeToolbarButtonType):
+        Returns:
+            bool
         """
         ...
 
@@ -5415,1632 +10000,2571 @@ class ComponentUpdateCallback:
     """Callback interface for component update results."""
     def on_complete(self, component_id: str, error: ComponentUpdateError) -> None:
         """Called when the component update operation completes.
-        |component_id| is the ID of the component that was updated.
-        |error| contains the result of the operation.
+
+        ``component_id`` is the ID of the component that was updated. ``error`` contains the
+        result of the operation.
+
+        Args:
+            component_id (str): The ID of the component that was updated.
+            error (ComponentUpdateError):
         """
         ...
 
 
 class ContextMenuHandler:
-    """Implement this interface to handle context menu events. The methods of this
-    class will be called on the UI thread.
+    """Implement this interface to handle context menu events.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_before_context_menu(self, browser: Browser, frame: Frame, params: ContextMenuParams, model: MenuModel) -> None:
-        """Called before a context menu is displayed. |params| provides information
-        about the context menu state. |model| initially contains the default
-        context menu. The |model| can be cleared to show no context menu or
-        modified to show a custom menu. Do not keep references to |params| or
-        |model| outside of this callback.
+        """Called before a context menu is displayed.
+
+        ``params`` provides information about the context menu state. ``model`` initially
+        contains the default context menu. The ``model`` can be cleared to show no context
+        menu or modified to show a custom menu. Do not keep references to ``params`` or
+        ``model`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            params (ContextMenuParams):
+            model (MenuModel):
         """
         ...
     def run_context_menu(self, browser: Browser, frame: Frame, params: ContextMenuParams, model: MenuModel, callback: RunContextMenuCallback) -> bool:
-        """Called to allow custom display of the context menu. |params| provides
-        information about the context menu state. |model| contains the context
-        menu model resulting from OnBeforeContextMenu. For custom display return
-        true and execute |callback| either synchronously or asynchronously with
-        the selected command ID. For default display return false. Do not keep
-        references to |params| or |model| outside of this callback.
+        """Called to allow custom display of the context menu.
+
+        ``params`` provides information about the context menu state. ``model`` contains the
+        context menu model resulting from OnBeforeContextMenu. For custom display return
+        ``True`` and execute ``callback`` either synchronously or asynchronously with the
+        selected command ID. For default display return ``False``. Do not keep references to
+        ``params`` or ``model`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            params (ContextMenuParams):
+            model (MenuModel):
+            callback (RunContextMenuCallback):
+        Returns:
+            bool
         """
         ...
     def on_context_menu_command(self, browser: Browser, frame: Frame, params: ContextMenuParams, command_id: int, event_flags: EventFlags) -> bool:
-        """Called to execute a command selected from the context menu. Return true if
-        the command was handled or false for the default implementation. See
-        cef_menu_id_t for the command ids that have default implementations. All
-        user-defined command ids should be between MENU_ID_USER_FIRST and
-        MENU_ID_USER_LAST. |params| will have the same values as what was passed
-        to OnBeforeContextMenu(). Do not keep a reference to |params| outside of
-        this callback.
+        """Called to execute a command selected from the context menu.
+
+        Return ``True`` if the command was handled or ``False`` for the default
+        implementation. See cef_menu_id_t for the command ids that have default
+        implementations. All user-defined command ids should be between MENU_ID_USER_FIRST
+        and MENU_ID_USER_LAST. ``params`` will have the same values as what was passed to
+        OnBeforeContextMenu(). Do not keep a reference to ``params`` outside of this
+        callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            params (ContextMenuParams):
+            command_id (int):
+            event_flags (EventFlags):
+        Returns:
+            bool
         """
         ...
     def on_context_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
-        """Called when the context menu is dismissed irregardless of whether the menu
-        was canceled or a command was selected.
+        """Called when the context menu is dismissed irregardless of whether the menu was canceled or a command was selected.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
         """
         ...
     def run_quick_menu(self, browser: Browser, frame: Frame, location: Point, size: Size, edit_state_flags: QuickMenuEditStateFlags, callback: RunQuickMenuCallback) -> bool:
         """Called to allow custom display of the quick menu for a windowless browser.
-        |location| is the top left corner of the selected region. |size| is the
-        size of the selected region. |edit_state_flags| is a combination of flags
-        that represent the state of the quick menu. Return true if the menu will
-        be handled and execute |callback| either synchronously or asynchronously
-        with the selected command ID. Return false to cancel the menu.
+
+        ``location`` is the top left corner of the selected region. ``size`` is the size of
+        the selected region. ``edit_state_flags`` is a combination of flags that represent
+        the state of the quick menu. Return ``True`` if the menu will be handled and execute
+        ``callback`` either synchronously or asynchronously with the selected command ID.
+        Return ``False`` to cancel the menu.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            location (Point): The top left corner of the selected region.
+            size (Size): The  size of the selected region.
+            edit_state_flags (QuickMenuEditStateFlags): A combination of flags  that represent the state of the quick menu.
+            callback (RunQuickMenuCallback):
+        Returns:
+            bool
         """
         ...
     def on_quick_menu_command(self, browser: Browser, frame: Frame, command_id: int, event_flags: EventFlags) -> bool:
-        """Called to execute a command selected from the quick menu for a windowless
-        browser. Return true if the command was handled or false for the default
-        implementation. See cef_menu_id_t for command IDs that have default
-        implementations.
+        """Called to execute a command selected from the quick menu for a windowless browser.
+
+        Return ``True`` if the command was handled or ``False`` for the default
+        implementation. See cef_menu_id_t for command IDs that have default implementations.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            command_id (int):
+            event_flags (EventFlags):
+        Returns:
+            bool
         """
         ...
     def on_quick_menu_dismissed(self, browser: Browser, frame: Frame) -> None:
-        """Called when the quick menu for a windowless browser is dismissed
-        irregardless of whether the menu was canceled or a command was selected.
+        """Called when the quick menu for a windowless browser is dismissed irregardless of whether the menu was canceled or a command was selected.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
         """
         ...
 
 
 class CookieAccessFilter:
-    """Implement this interface to filter cookies that may be sent or received from
-    resource requests. The methods of this class will be called on the IO thread
-    unless otherwise indicated.
+    """Implement this interface to filter cookies that may be sent or received from resource requests.
+
+    The methods of this class will be called on the IO thread unless otherwise
+    indicated.
     """
     def can_send_cookie(self, browser: Browser | None, frame: Frame | None, request: Request, cookie: Cookie) -> bool:
-        """Called on the IO thread before a resource request is sent. The |browser|
-        and |frame| values represent the source of the request, and may be NULL
-        for requests originating from service workers or CefURLRequest. |request|
-        cannot be modified in this callback. Return true if the specified cookie
-        can be sent with the request or false otherwise.
+        """Called on the IO thread before a resource request is sent.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` cannot be modified in this callback. Return ``True`` if the specified
+        cookie can be sent with the request or ``False`` otherwise.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            cookie (Cookie):
+        Returns:
+            bool
         """
         ...
     def can_save_cookie(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, cookie: Cookie) -> bool:
-        """Called on the IO thread after a resource response is received. The
-        |browser| and |frame| values represent the source of the request, and may
-        be NULL for requests originating from service workers or CefURLRequest.
-        |request| cannot be modified in this callback. Return true if the
-        specified cookie returned with the response can be saved or false
-        otherwise.
+        """Called on the IO thread after a resource response is received.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` cannot be modified in this callback. Return ``True`` if the specified
+        cookie returned with the response can be saved or ``False`` otherwise.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            response (Response):
+            cookie (Cookie):
+        Returns:
+            bool
         """
         ...
 
 
 class CookieVisitor:
-    """Interface to implement for visiting cookie values. The methods of this class
-    will always be called on the UI thread.
+    """Interface to implement for visiting cookie values.
+
+    The methods of this class will always be called on the UI thread.
     """
     def visit(self, cookie: Cookie, count: int, total: int) -> tuple[bool, bool]:
-        """Method that will be called once for each cookie. |count| is the 0-based
-        index for the current cookie. |total| is the total number of cookies.
-        Set |deleteCookie| to true to delete the cookie currently being visited.
-        Return false to stop visiting cookies. This method may never be called if
-        no cookies are found.
+        """Method that will be called once for each cookie.
+
+        ``count`` is the 0-based index for the current cookie. ``total`` is the total number
+        of cookies. Set ``delete_cookie`` to ``True`` to delete the cookie currently being
+        visited. Return ``False`` to stop visiting cookies. This method may never be called
+        if no cookies are found.
+
+        Args:
+            cookie (Cookie):
+            count (int): The 0-based  index for the current cookie.
+            total (int): The total number of cookies.
+        Returns:
+            tuple[bool, bool]
         """
         ...
 
 
 class DeleteCookiesCallback:
-    """Interface to implement to be notified of asynchronous completion via
-    CefCookieManager::DeleteCookies().
-    """
+    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.delete_cookies`."""
     def on_complete(self, num_deleted: int) -> None:
-        """Method that will be called upon completion. |num_deleted| will be the
-        number of cookies that were deleted.
+        """Method that will be called upon completion.
+
+        ``num_deleted`` will be the number of cookies that were deleted.
+
+        Args:
+            num_deleted (int):
         """
         ...
 
 
 class DevToolsMessageObserver:
-    """Callback interface for CefBrowserHost::AddDevToolsMessageObserver. The
-    methods of this class will be called on the browser process UI thread.
+    """Callback interface for :meth:`BrowserHost.add_dev_tools_message_observer`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_dev_tools_message(self, browser: Browser, message: memoryview) -> bool:
         """Method that will be called on receipt of a DevTools protocol message.
-        |browser| is the originating browser instance. |message| is a UTF8-encoded
-        JSON dictionary representing either a method result or an event. |message|
-        is only valid for the scope of this callback and should be copied if
-        necessary. Return true if the message was handled or false if the message
-        should be further processed and passed to the OnDevToolsMethodResult or
-        OnDevToolsEvent methods as appropriate.
+
+        ``browser`` is the originating browser instance. ``message`` is a UTF8-encoded JSON
+        dictionary representing either a method result or an event. ``message`` is only
+        valid for the scope of this callback and should be copied if necessary. Return
+        ``True`` if the message was handled or ``False`` if the message should be further
+        processed and passed to the OnDevToolsMethodResult or OnDevToolsEvent methods as
+        appropriate.
 
         Method result dictionaries include an \"id\" (int) value that identifies the
-        orginating method call sent from CefBrowserHost::SendDevToolsMessage, and
-        optionally either a \"result\" (dictionary) or \"error\" (dictionary) value.
-        The \"error\" dictionary will contain \"code\" (int) and \"message\" (string)
-        values. Event dictionaries include a \"method\" (string) value and
-        optionally a \"params\" (dictionary) value. See the DevTools protocol
-        documentation at https://chromedevtools.github.io/devtools-protocol/ for
-        details of supported method calls and the expected \"result\" or \"params\"
-        dictionary contents. JSON dictionaries can be parsed using the
-        CefParseJSON function if desired, however be aware of performance
-        considerations when parsing large messages (some of which may exceed 1MB
+        orginating method call sent from :meth:`BrowserHost.send_dev_tools_message`, and
+        optionally either a \"result\" (dictionary) or \"error\" (dictionary) value. The \"error\"
+        dictionary will contain \"code\" (int) and \"message\" (string) values. Event
+        dictionaries include a \"method\" (string) value and optionally a \"params\"
+        (dictionary) value. See the DevTools protocol documentation at
+        https://chromedevtools.github.io/devtools-protocol/ for details of supported method
+        calls and the expected \"result\" or \"params\" dictionary contents. JSON dictionaries
+        can be parsed using the ``CefParseJSON`` function if desired, however be aware of
+        performance considerations when parsing large messages (some of which may exceed 1MB
         in size).
+
+        Args:
+            browser (Browser): The originating browser instance.
+            message (memoryview): Only valid for the scope of this callback and should be copied if  necessary.
+        Returns:
+            bool
         """
         ...
     def on_dev_tools_method_result(self, browser: Browser, message_id: int, success: bool, result: memoryview) -> None:
-        """Method that will be called after attempted execution of a DevTools
-        protocol method. |browser| is the originating browser instance.
-        |message_id| is the \"id\" value that identifies the originating method call
-        message. If the method succeeded |success| will be true and |result| will
-        be the UTF8-encoded JSON \"result\" dictionary value (which may be empty).
-        If the method failed |success| will be false and |result| will be the
-        UTF8-encoded JSON \"error\" dictionary value. |result| is only valid for the
-        scope of this callback and should be copied if necessary. See the
-        OnDevToolsMessage documentation for additional details on |result|
-        contents.
+        """Method that will be called after attempted execution of a DevTools protocol method.
+
+        ``browser`` is the originating browser instance. ``message_id`` is the \"id\" value
+        that identifies the originating method call message. If the method succeeded
+        ``success`` will be ``True`` and ``result`` will be the UTF8-encoded JSON \"result\"
+        dictionary value (which may be empty). If the method failed ``success`` will be
+        ``False`` and ``result`` will be the UTF8-encoded JSON \"error\" dictionary value.
+        ``result`` is only valid for the scope of this callback and should be copied if
+        necessary. See the OnDevToolsMessage documentation for additional details on
+        ``result`` contents.
+
+        Args:
+            browser (Browser): The originating browser instance.
+            message_id (int): The \"id\" value that identifies the originating method call  message.
+            success (bool):
+            result (memoryview): Only valid for the  scope of this callback and should be copied if necessary.
         """
         ...
     def on_dev_tools_event(self, browser: Browser, method: str, params: memoryview) -> None:
         """Method that will be called on receipt of a DevTools protocol event.
-        |browser| is the originating browser instance. |method| is the \"method\"
-        value. |params| is the UTF8-encoded JSON \"params\" dictionary value (which
-        may be empty). |params| is only valid for the scope of this callback and
-        should be copied if necessary. See the OnDevToolsMessage documentation for
-        additional details on |params| contents.
+
+        ``browser`` is the originating browser instance. ``method`` is the \"method\" value.
+        ``params`` is the UTF8-encoded JSON \"params\" dictionary value (which may be empty).
+        ``params`` is only valid for the scope of this callback and should be copied if
+        necessary. See the OnDevToolsMessage documentation for additional details on
+        ``params`` contents.
+
+        Args:
+            browser (Browser): The originating browser instance.
+            method (str): The \"method\"  value.
+            params (memoryview): Only valid for the scope of this callback and  should be copied if necessary.
         """
         ...
     def on_dev_tools_agent_attached(self, browser: Browser) -> None:
-        """Method that will be called when the DevTools agent has attached. |browser|
-        is the originating browser instance. This will generally occur in response
-        to the first message sent while the agent is detached.
+        """Method that will be called when the DevTools agent has attached.
+
+        ``browser`` is the originating browser instance. This will generally occur in
+        response to the first message sent while the agent is detached.
+
+        Args:
+            browser (Browser): The originating browser instance.
         """
         ...
     def on_dev_tools_agent_detached(self, browser: Browser) -> None:
-        """Method that will be called when the DevTools agent has detached. |browser|
-        is the originating browser instance. Any method results that were pending
-        before the agent became detached will not be delivered, and any active
-        event subscriptions will be canceled.
+        """Method that will be called when the DevTools agent has detached.
+
+        ``browser`` is the originating browser instance. Any method results that were
+        pending before the agent became detached will not be delivered, and any active event
+        subscriptions will be canceled.
+
+        Args:
+            browser (Browser): The originating browser instance.
         """
         ...
 
 
 class DialogHandler:
-    """Implement this interface to handle dialog events. The methods of this class
-    will be called on the browser process UI thread.
+    """Implement this interface to handle dialog events.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_file_dialog(self, browser: Browser, mode: FileDialogMode, title: str, default_file_path: str, accept_filters: list[str], accept_extensions: list[str], accept_descriptions: list[str], callback: FileDialogCallback) -> bool:
-        """Called to run a file chooser dialog. |mode| represents the type of dialog
-        to display. |title| to the title to be used for the dialog and may be
-        empty to show the default title (\"Open\" or \"Save\" depending on the mode).
-        |default_file_path| is the path with optional directory and/or file name
-        component that should be initially selected in the dialog.
-        |accept_filters| are used to restrict the selectable file types and may be
-        any combination of valid lower-cased MIME types (e.g. \"text/*\" or
-        \"image/*\") and individual file extensions (e.g. \".txt\" or \".png\").
-        |accept_extensions| provides the semicolon-delimited expansion of MIME
-        types to file extensions (if known, or empty string otherwise).
-        |accept_descriptions| provides the descriptions for MIME types (if known,
-        or empty string otherwise). For example, the \"image/*\" mime type might
-        have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
-        |accept_filters|, |accept_extensions| and |accept_descriptions| will all
-        be the same size. To display a custom dialog return true and execute
-        |callback| either inline or at a later time. To display the default dialog
-        return false. If this method returns false it may be called an additional
-        time for the same dialog (both before and after MIME type expansion).
+        """Called to run a file chooser dialog.
+
+        ``mode`` represents the type of dialog to display. ``title`` to the title to be used
+        for the dialog and may be empty to show the default title (\"Open\" or \"Save\"
+        depending on the mode). ``default_file_path`` is the path with optional directory
+        and/or file name component that should be initially selected in the dialog.
+        ``accept_filters`` are used to restrict the selectable file types and may be any
+        combination of valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\") and
+        individual file extensions (e.g. \".txt\" or \".png\"). ``accept_extensions`` provides
+        the semicolon-delimited expansion of MIME types to file extensions (if known, or
+        empty string otherwise). ``accept_descriptions`` provides the descriptions for MIME
+        types (if known, or empty string otherwise). For example, the \"image/*\" mime type
+        might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        ``accept_filters``, ``accept_extensions`` and ``accept_descriptions`` will all be
+        the same size. To display a custom dialog return ``True`` and execute ``callback``
+        either inline or at a later time. To display the default dialog return ``False``. If
+        this method returns ``False`` it may be called an additional time for the same
+        dialog (both before and after MIME type expansion).
+
+        Args:
+            browser (Browser):
+            mode (FileDialogMode):
+            title (str):
+            default_file_path (str): The path with optional directory and/or file name  component that should be initially selected in the dialog.
+            accept_filters (list[str]): Used to restrict the selectable file types and may be  any combination of valid lower-cased MIME types (e.
+            accept_extensions (list[str]):
+            accept_descriptions (list[str]):
+            callback (FileDialogCallback):
+        Returns:
+            bool
         """
         ...
 
 
 class DisplayHandler:
     """Implement this interface to handle events related to browser display state.
+
     The methods of this class will be called on the UI thread.
     """
     def on_address_change(self, browser: Browser, frame: Frame, url: str) -> None:
-        """Called when a frame's address has changed."""
+        """Called when a frame's address has changed.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            url (str):
+        """
         ...
     def on_title_change(self, browser: Browser, title: str) -> None:
-        """Called when the page title changes."""
+        """Called when the page title changes.
+
+        Args:
+            browser (Browser):
+            title (str):
+        """
         ...
     def on_favicon_url_change(self, browser: Browser, icon_urls: list[str]) -> None:
-        """Called when the page icon changes."""
+        """Called when the page icon changes.
+
+        Args:
+            browser (Browser):
+            icon_urls (list[str]):
+        """
         ...
     def on_fullscreen_mode_change(self, browser: Browser, fullscreen: bool) -> None:
-        """Called when web content in the page has toggled fullscreen mode. If
-        |fullscreen| is true the content will automatically be sized to fill the
-        browser content area. If |fullscreen| is false the content will
-        automatically return to its original size and position. With Alloy style
-        the client is responsible for triggering the fullscreen transition (for
-        example, by calling CefWindow::SetFullscreen when using Views). With
-        Chrome style the fullscreen transition will be triggered automatically.
-        The CefWindowDelegate::OnWindowFullscreenTransition method will be called
-        during the fullscreen transition for notification purposes.
+        """Called when web content in the page has toggled fullscreen mode.
+
+        If ``fullscreen`` is ``True`` the content will automatically be sized to fill the
+        browser content area. If ``fullscreen`` is ``False`` the content will automatically
+        return to its original size and position. With Alloy style the client is responsible
+        for triggering the fullscreen transition (for example, by calling
+        :meth:`Window.set_fullscreen` when using Views). With Chrome style the fullscreen
+        transition will be triggered automatically. The
+        :meth:`WindowDelegate.on_window_fullscreen_transition` method will be called during
+        the fullscreen transition for notification purposes.
+
+        Args:
+            browser (Browser):
+            fullscreen (bool): False the content will  automatically return to its original size and position.
         """
         ...
     def on_tooltip(self, browser: Browser) -> tuple[bool, str]:
-        """Called when the browser is about to display a tooltip. |text| contains the
-        text that will be displayed in the tooltip. To handle the display of the
-        tooltip yourself return true. Otherwise, you can optionally modify |text|
-        and then return false to allow the browser to display the tooltip.
-        When window rendering is disabled the application is responsible for
+        """Called when the browser is about to display a tooltip.
+
+        ``text`` contains the text that will be displayed in the tooltip. To handle the
+        display of the tooltip yourself return ``True``. Otherwise, you can optionally
+        modify ``text`` and then return ``False`` to allow the browser to display the
+        tooltip. When window rendering is disabled the application is responsible for
         drawing tooltips and the return value is ignored.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, str]
         """
         ...
     def on_status_message(self, browser: Browser, value: str) -> None:
-        """Called when the browser receives a status message. |value| contains the
-        text that will be displayed in the status message.
+        """Called when the browser receives a status message.
+
+        ``value`` contains the text that will be displayed in the status message.
+
+        Args:
+            browser (Browser):
+            value (str):
         """
         ...
     def on_console_message(self, browser: Browser, level: LogSeverity, message: str, source: str, line: int) -> bool:
-        """Called to display a console message. Return true to stop the message from
-        being output to the console.
+        """Called to display a console message.
+
+        Return ``True`` to stop the message from being output to the console.
+
+        Args:
+            browser (Browser):
+            level (LogSeverity):
+            message (str):
+            source (str):
+            line (int):
+        Returns:
+            bool
         """
         ...
     def on_auto_resize(self, browser: Browser, new_size: Size) -> bool:
-        """Called when auto-resize is enabled via
-        CefBrowserHost::SetAutoResizeEnabled and the contents have auto-resized.
-        |new_size| will be the desired size in DIP coordinates. Return true if
-        the resize was handled or false for default handling.
+        """Called when auto-resize is enabled via :meth:`BrowserHost.set_auto_resize_enabled` and the contents have auto-resized.
+
+        ``new_size`` will be the desired size in DIP coordinates. Return ``True`` if the
+        resize was handled or ``False`` for default handling.
+
+        Args:
+            browser (Browser):
+            new_size (Size):
+        Returns:
+            bool
         """
         ...
     def on_loading_progress_change(self, browser: Browser, progress: float) -> None:
-        """Called when the overall page loading progress has changed. |progress|
-        ranges from 0.0 to 1.0.
+        """Called when the overall page loading progress has changed.
+
+        ``progress`` ranges from 0.0 to 1.0.
+
+        Args:
+            browser (Browser):
+            progress (float):
         """
         ...
     def on_cursor_change(self, browser: Browser, type: CursorType) -> bool:
-        """Called when the browser's cursor has changed. If |type| is CT_CUSTOM then
-        |custom_cursor_info| will be populated with the custom cursor information.
-        Return true if the cursor change was handled or false for default
-        handling.
+        """Called when the browser's cursor has changed.
+
+        If ``type`` is CT_CUSTOM then ``custom_cursor_info`` will be populated with the
+        custom cursor information. Return ``True`` if the cursor change was handled or
+        ``False`` for default handling.
+
+        Args:
+            browser (Browser):
+            type (CursorType): CT_CUSTOM then  ``custom_cursor_info`` will be populated with the custom cursor information.
+        Returns:
+            bool
         """
         ...
     def on_media_access_change(self, browser: Browser, has_video_access: bool, has_audio_access: bool) -> None:
-        """Called when the browser's access to an audio and/or video source has
-        changed.
+        """Called when the browser's access to an audio and/or video source has changed.
+
+        Args:
+            browser (Browser):
+            has_video_access (bool):
+            has_audio_access (bool):
         """
         ...
     def on_contents_bounds_change(self, browser: Browser, new_bounds: Rect) -> bool:
-        """Called when JavaScript is requesting new bounds via window.moveTo/By() or
-        window.resizeTo/By(). |new_bounds| are in DIP screen coordinates.
+        """Called when JavaScript is requesting new bounds via window.moveTo/By() or window.resizeTo/By().
 
-        With Views-hosted browsers |new_bounds| are the desired bounds for
-        the containing CefWindow and may be passed directly to
-        CefWindow::SetBounds. With external (client-provided) parent on macOS and
-        Windows |new_bounds| are the desired frame bounds for the containing root
-        window. With other non-Views browsers |new_bounds| are the desired bounds
-        for the browser content only unless the client implements either
-        CefDisplayHandler::GetRootWindowScreenRect for windowed browsers or
-        CefRenderHandler::GetWindowScreenRect for windowless browsers. Clients may
-        expand browser content bounds to window bounds using OS-specific or
-        CefDisplay methods.
+        ``new_bounds`` are in DIP screen coordinates.
 
-        Return true if this method was handled or false for default handling.
-        Default move/resize behavior is only provided with Views-hosted Chrome
-        style browsers.
+        With Views-hosted browsers ``new_bounds`` are the desired bounds for the containing
+        :class:`Window` and may be passed directly to :meth:`Window.set_bounds`. With
+        external (client-provided) parent on macOS and Windows ``new_bounds`` are the
+        desired frame bounds for the containing root window. With other non-Views browsers
+        ``new_bounds`` are the desired bounds for the browser content only unless the client
+        implements either :meth:`DisplayHandler.get_root_window_screen_rect` for windowed
+        browsers or :meth:`RenderHandler.get_window_screen_rect` for windowless browsers.
+        Clients may expand browser content bounds to window bounds using OS-specific or
+        :class:`Display` methods.
+
+        Return ``True`` if this method was handled or ``False`` for default handling.
+        Default move/resize behavior is only provided with Views-hosted Chrome style
+        browsers.
+
+        Args:
+            browser (Browser):
+            new_bounds (Rect): The desired bounds  for the browser content only unless the client implements either  ``CefDisplayHandler::GetRootWindowScreenRect`` for windowed browsers or  ``CefRenderHandler::GetWindowScreenRect`` for windowless browsers.
+        Returns:
+            bool
         """
         ...
     def get_root_window_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
-        """Called to retrieve the external (client-provided) root window rectangle in
-        screen DIP coordinates. Only called for windowed browsers on Windows and
-        Linux. Return true if the rectangle was provided. Return false to use the
-        root window bounds on Windows or the browser content bounds on Linux. For
-        additional usage details see CefBrowserHost::NotifyScreenInfoChanged.
+        """Called to retrieve the external (client-provided) root window rectangle in screen DIP coordinates.
+
+        Only called for windowed browsers on Windows and Linux. Return ``True`` if the
+        rectangle was provided. Return ``False`` to use the root window bounds on Windows or
+        the browser content bounds on Linux. For additional usage details see
+        :meth:`BrowserHost.notify_screen_info_changed`.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, Rect | tuple[int, int, int, int]]
         """
         ...
 
 
 class DownloadHandler:
-    """Class used to handle file downloads. The methods of this class will called
-    on the browser process UI thread.
+    """Class used to handle file downloads.
+
+    The methods of this class will called on the browser process UI thread.
     """
     def can_download(self, browser: Browser, url: str, request_method: str) -> bool:
-        """Called before a download begins in response to a user-initiated action
-        (e.g. alt + link click or link click that returns a `Content-Disposition:
-        attachment` response from the server). |url| is the target download URL
-        and |request_method| is the target method (GET, POST, etc). Return true to
-        proceed with the download or false to cancel the download. This method is
-        not called for downloads initiated by CefBrowserHost::StartDownload().
+        """Called before a download begins in response to a user-initiated action (e.g.
+
+        alt + link click or link click that returns a `Content-Disposition: attachment`
+        response from the server). ``url`` is the target download URL and ``request_method``
+        is the target method (GET, POST, etc). Return ``True`` to proceed with the download
+        or ``False`` to cancel the download. This method is not called for downloads
+        initiated by :meth:`BrowserHost.start_download`.
+
+        Args:
+            browser (Browser):
+            url (str): The target download URL  and ``request_method`` is the target method (GET, POST, etc).
+            request_method (str):
+        Returns:
+            bool
         """
         ...
     def on_before_download(self, browser: Browser, download_item: DownloadItem, suggested_name: str, callback: BeforeDownloadCallback) -> bool:
-        """Called before a download begins. |suggested_name| is the suggested name
-        for the download file. Return true and execute |callback| either
-        asynchronously or in this method to continue the download. Return false to
-        proceed with default handling (cancel with Alloy style, default download
-        handling with Chrome style). To cancel the download with either style
-        execute the callback passed to OnDownloadUpdated(). If this method returns
-        true and |callback| is destroyed without being executed, the download will
-        be canceled. Do not keep a reference to |download_item| outside of this
+        """Called before a download begins.
+
+        ``suggested_name`` is the suggested name for the download file. Return ``True`` and
+        execute ``callback`` either asynchronously or in this method to continue the
+        download. Return ``False`` to proceed with default handling (cancel with Alloy
+        style, default download handling with Chrome style). To cancel the download with
+        either style execute the callback passed to OnDownloadUpdated(). If this method
+        returns ``True`` and ``callback`` is destroyed without being executed, the download
+        will be canceled. Do not keep a reference to ``download_item`` outside of this
         method.
+
+        Args:
+            browser (Browser):
+            download_item (DownloadItem):
+            suggested_name (str): The suggested name  for the download file.
+            callback (BeforeDownloadCallback): Destroyed without being executed, the download will  be canceled.
+        Returns:
+            bool
         """
         ...
     def on_download_updated(self, browser: Browser, download_item: DownloadItem, callback: DownloadItemCallback) -> None:
         """Called when a download's status or progress information has been updated.
-        This may be called multiple times before and after OnBeforeDownload().
-        Execute |callback| either asynchronously or in this method to cancel the
-        download if desired. Do not keep a reference to |download_item| outside of
-        this method.
+
+        This may be called multiple times before and after OnBeforeDownload(). Execute
+        ``callback`` either asynchronously or in this method to cancel the download if
+        desired. Do not keep a reference to ``download_item`` outside of this method.
+
+        Args:
+            browser (Browser):
+            download_item (DownloadItem):
+            callback (DownloadItemCallback):
         """
         ...
 
 
 class DownloadImageCallback:
-    """Callback interface for CefBrowserHost::DownloadImage. The methods of this
-    class will be called on the browser process UI thread.
+    """Callback interface for :meth:`BrowserHost.download_image`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_download_image_finished(self, image_url: str, http_status_code: int, image: Image | None) -> None:
         """Method that will be executed when the image download has completed.
-        |image_url| is the URL that was downloaded and |http_status_code| is the
-        resulting HTTP status code. |image| is the resulting image, possibly at
-        multiple scale factors, or empty if the download failed.
+
+        ``image_url`` is the URL that was downloaded and ``http_status_code`` is the
+        resulting HTTP status code. ``image`` is the resulting image, possibly at multiple
+        scale factors, or empty if the download failed.
+
+        Args:
+            image_url (str): The URL that was downloaded and ``http_status_code`` is the  resulting HTTP status code.
+            http_status_code (int):
+            image (Image | None): The resulting image, possibly at  multiple scale factors, or empty if the download failed.
         """
         ...
 
 
 class DragHandler:
-    """Implement this interface to handle events related to dragging. The methods
-    of this class will be called on the UI thread.
+    """Implement this interface to handle events related to dragging.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_drag_enter(self, browser: Browser, drag_data: DragData, mask: DragOperationsMask) -> bool:
-        """Called when an external drag event enters the browser window. |dragData|
-        contains the drag event data and |mask| represents the type of drag
-        operation. Return false for default drag handling behavior or true to
-        cancel the drag event.
+        """Called when an external drag event enters the browser window.
+
+        ``drag_data`` contains the drag event data and ``mask`` represents the type of drag
+        operation. Return ``False`` for default drag handling behavior or ``True`` to cancel
+        the drag event.
+
+        Args:
+            browser (Browser):
+            drag_data (DragData):
+            mask (DragOperationsMask):
+        Returns:
+            bool
         """
         ...
     def on_draggable_regions_changed(self, browser: Browser, frame: Frame, regions: list[DraggableRegion]) -> None:
-        """Called whenever draggable regions for the browser window change. These can
-        be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
-        draggable regions are never defined in a document this method will also
-        never be called. If the last draggable region is removed from a document
-        this method will be called with an empty vector.
+        """Called whenever draggable regions for the browser window change.
+
+        These can be specified using the '-webkit-app-region: drag/no-drag' CSS-property. If
+        draggable regions are never defined in a document this method will also never be
+        called. If the last draggable region is removed from a document this method will be
+        called with an empty vector.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            regions (list[DraggableRegion]):
         """
         ...
 
 
 class EndTracingCallback:
     """Implement this interface to receive notification when tracing has completed.
+
     The methods of this class will be called on the browser process UI thread.
     """
     def on_end_tracing_complete(self, tracing_file: str) -> None:
-        """Called after all processes have sent their trace data. |tracing_file| is
-        the path at which tracing data was written. The client is responsible for
-        deleting |tracing_file|.
+        """Called after all processes have sent their trace data.
+
+        ``tracing_file`` is the path at which tracing data was written. The client is
+        responsible for deleting ``tracing_file``.
+
+        Args:
+            tracing_file (str): The path at which tracing data was written.
         """
         ...
 
 
 class FindHandler:
-    """Implement this interface to handle events related to find results. The
-    methods of this class will be called on the UI thread.
+    """Implement this interface to handle events related to find results.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_find_result(self, browser: Browser, identifier: int, count: int, selection_rect: Rect, active_match_ordinal: int, final_update: bool) -> None:
-        """Called to report find results returned by CefBrowserHost::Find().
-        |identifer| is a unique incremental identifier for the currently active
-        search, |count| is the number of matches currently identified,
-        |selectionRect| is the location of where the match was found (in window
-        coordinates), |activeMatchOrdinal| is the current position in the search
-        results, and |finalUpdate| is true if this is the last find notification.
+        """Called to report find results returned by :meth:`BrowserHost.find`.
+
+        ``identifer`` is a unique incremental identifier for the currently active search,
+        ``count`` is the number of matches currently identified, ``selection_rect`` is the
+        location of where the match was found (in window coordinates),
+        ``active_match_ordinal`` is the current position in the search results, and
+        ``final_update`` is ``True`` if this is the last find notification.
+
+        Args:
+            browser (Browser):
+            identifier (int):
+            count (int):
+            selection_rect (Rect):
+            active_match_ordinal (int):
+            final_update (bool):
         """
         ...
 
 
 class FocusHandler:
-    """Implement this interface to handle events related to focus. The methods of
-    this class will be called on the UI thread.
+    """Implement this interface to handle events related to focus.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_take_focus(self, browser: Browser, next: bool) -> None:
-        """Called when the browser component is about to loose focus. For instance,
-        if focus was on the last HTML element and the user pressed the TAB key.
-        |next| will be true if the browser is giving focus to the next component
-        and false if the browser is giving focus to the previous component.
+        """Called when the browser component is about to loose focus.
+
+        For instance, if focus was on the last HTML element and the user pressed the TAB
+        key. ``next`` will be ``True`` if the browser is giving focus to the next component
+        and ``False`` if the browser is giving focus to the previous component.
+
+        Args:
+            browser (Browser):
+            next (bool):
         """
         ...
     def on_set_focus(self, browser: Browser, source: FocusSource) -> bool:
-        """Called when the browser component is requesting focus. |source| indicates
-        where the focus request is originating from. Return false to allow the
-        focus to be set or true to cancel setting the focus.
+        """Called when the browser component is requesting focus.
+
+        ``source`` indicates where the focus request is originating from. Return ``False``
+        to allow the focus to be set or ``True`` to cancel setting the focus.
+
+        Args:
+            browser (Browser):
+            source (FocusSource):
+        Returns:
+            bool
         """
         ...
     def on_got_focus(self, browser: Browser) -> None:
-        """Called when the browser component has received focus."""
+        """Called when the browser component has received focus.
+
+        Args:
+            browser (Browser):
+        """
         ...
 
 
 class FrameHandler:
-    """Implement this interface to handle events related to CefFrame life span. The
-    order of callbacks is:
+    """Implement this interface to handle events related to :class:`Frame` life span.
 
-    (1) During initial CefBrowserHost creation and navigation of the main frame:
-    - CefFrameHandler::OnFrameCreated => The initial main frame object has been
-      created. Any commands will be queued until the frame is attached.
-    - CefFrameHandler::OnMainFrameChanged => The initial main frame object has
-      been assigned to the browser.
-    - CefLifeSpanHandler::OnAfterCreated => The browser is now valid and can be
-      used.
-    - CefFrameHandler::OnFrameAttached => The initial main frame object is now
-      connected to its peer in the renderer process. Commands can be routed.
+    The order of callbacks is:
 
-    (2) During further CefBrowserHost navigation/loading of the main frame
-        and/or sub-frames:
-    - CefFrameHandler::OnFrameCreated => A new main frame or sub-frame object
-      has been created. Any commands will be queued until the frame is attached.
-    - CefFrameHandler::OnFrameAttached => A new main frame or sub-frame object
-      is now connected to its peer in the renderer process. Commands can be
-      routed.
-    - CefFrameHandler::OnFrameDetached => An existing main frame or sub-frame
-      object has lost its connection to the renderer process. If multiple
-      objects are detached at the same time then notifications will be sent for
-      any sub-frame objects before the main frame object. Commands can no longer
-      be routed and will be discarded.
-    - CefFremeHadler::OnFrameDestroyed => An existing main frame or sub-frame
-      object has been destroyed.
-    - CefFrameHandler::OnMainFrameChanged => A new main frame object has been
-      assigned to the browser. This will only occur with cross-origin navigation
-      or re-navigation after renderer process termination (due to crashes, etc).
+     (1) During initial :class:`BrowserHost` creation and navigation of the main frame:
+     - :meth:`FrameHandler.on_frame_created` => The initial main frame object has been
+       created. Any commands will be queued until the frame is attached.
+     - :meth:`FrameHandler.on_main_frame_changed` => The initial main frame object has
+       been assigned to the browser.
+     - :meth:`LifeSpanHandler.on_after_created` => The browser is now valid and can be
+       used.
+     - :meth:`FrameHandler.on_frame_attached` => The initial main frame object is now
+       connected to its peer in the renderer process. Commands can be routed.
 
-    (3) During final CefBrowserHost destruction of the main frame:
-    - CefFrameHandler::OnFrameDetached => Any sub-frame objects have lost their
-      connection to the renderer process. Commands can no longer be routed and
-      will be discarded.
-    - CefFreameHandler::OnFrameDestroyed => Any sub-frame objects have been
-      destroyed.
-    - CefLifeSpanHandler::OnBeforeClose => The browser has been destroyed.
-    - CefFrameHandler::OnFrameDetached => The main frame object have lost its
-      connection to the renderer process. Notifications will be sent for any
-      sub-frame objects before the main frame object. Commands can no longer be
-      routed and will be discarded.
-    - CefFreameHandler::OnFrameDestroyed => The main frame object has been
-      destroyed.
-    - CefFrameHandler::OnMainFrameChanged => The final main frame object has
-      been removed from the browser.
+     (2) During further :class:`BrowserHost` navigation/loading of the main frame
+         and/or sub-frames:
+     - :meth:`FrameHandler.on_frame_created` => A new main frame or sub-frame object
+       has been created. Any commands will be queued until the frame is attached.
+     - :meth:`FrameHandler.on_frame_attached` => A new main frame or sub-frame object
+       is now connected to its peer in the renderer process. Commands can be
+       routed.
+     - :meth:`FrameHandler.on_frame_detached` => An existing main frame or sub-frame
+       object has lost its connection to the renderer process. If multiple
+       objects are detached at the same time then notifications will be sent for
+       any sub-frame objects before the main frame object. Commands can no longer
+       be routed and will be discarded.
+     - ``CefFremeHadler::OnFrameDestroyed`` => An existing main frame or sub-frame
+       object has been destroyed.
+     - :meth:`FrameHandler.on_main_frame_changed` => A new main frame object has been
+       assigned to the browser. This will only occur with cross-origin navigation
+       or re-navigation after renderer process termination (due to crashes, etc).
+
+     (3) During final :class:`BrowserHost` destruction of the main frame:
+     - :meth:`FrameHandler.on_frame_detached` => Any sub-frame objects have lost their
+       connection to the renderer process. Commands can no longer be routed and
+       will be discarded.
+     - ``CefFreameHandler::OnFrameDestroyed`` => Any sub-frame objects have been
+       destroyed.
+     - :meth:`LifeSpanHandler.on_before_close` => The browser has been destroyed.
+     - :meth:`FrameHandler.on_frame_detached` => The main frame object have lost its
+       connection to the renderer process. Notifications will be sent for any
+       sub-frame objects before the main frame object. Commands can no longer be
+       routed and will be discarded.
+     - ``CefFreameHandler::OnFrameDestroyed`` => The main frame object has been
+       destroyed.
+     - :meth:`FrameHandler.on_main_frame_changed` => The final main frame object has
+       been removed from the browser.
 
     Special handling applies for cross-origin loading on creation/navigation of
-    sub-frames, and cross-origin loading on creation of new popup browsers. A
-    temporary frame will first be created in the parent frame's renderer
-    process. This temporary frame will never attach and will be discarded after
-    the real cross-origin frame is created in the new/target renderer process.
-    The client will receive creation callbacks for the temporary frame, followed
-    by cross-origin navigation callbacks (2) for the transition from the
-    temporary frame to the real frame. The temporary frame will not receive or
-    execute commands during this transitional period (any sent commands will be
-    discarded).
+    sub-frames, and cross-origin loading on creation of new popup browsers. A temporary
+    frame will first be created in the parent frame's renderer process. This temporary
+    frame will never attach and will be discarded after the real cross-origin frame is
+    created in the new/target renderer process. The client will receive creation
+    callbacks for the temporary frame, followed by cross-origin navigation callbacks (2)
+    for the transition from the temporary frame to the real frame. The temporary frame
+    will not receive or execute commands during this transitional period (any sent
+    commands will be discarded).
 
-    When the main frame navigates to a different origin the OnMainFrameChanged
-    callback (2) will be executed with the old and new main frame objects.
+    When the main frame navigates to a different origin the OnMainFrameChanged callback
+    (2) will be executed with the old and new main frame objects.
 
     Callbacks will not be executed for placeholders that may be created during
-    pre-commit navigation for sub-frames that do not yet exist in the renderer
-    process. Placeholders will have CefFrame::GetIdentifier() == -4.
+    pre-commit navigation for sub-frames that do not yet exist in the renderer process.
+    Placeholders will have :meth:`Frame.get_identifier` == -4.
 
     The methods of this class will be called on the UI thread unless otherwise
     indicated.
     """
     def on_frame_created(self, browser: Browser, frame: Frame) -> None:
-        """Called when a new frame is created. This will be the first notification
-        that references |frame|. Any commands that require transport to the
-        associated renderer process (LoadRequest, SendProcessMessage, GetSource,
-        etc.) will be queued. The queued commands will be sent before
-        OnFrameAttached or discarded before OnFrameDestroyed if the frame never
+        """Called when a new frame is created.
+
+        This will be the first notification that references ``frame``. Any commands that
+        require transport to the associated renderer process (LoadRequest,
+        SendProcessMessage, GetSource, etc.) will be queued. The queued commands will be
+        sent before OnFrameAttached or discarded before OnFrameDestroyed if the frame never
         attaches.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
         """
         ...
     def on_frame_destroyed(self, browser: Browser, frame: Frame) -> None:
-        """Called when an existing frame is destroyed. This will be the last
-        notification that references |frame| and CefFrame::IsValid() will return
-        false for |frame|. If called during browser destruction and after
-        CefLifeSpanHandler::OnBeforeClose() then CefBrowser::IsValid() will return
-        false for |browser|. Any queued commands that have not been sent will be
-        discarded before this callback.
+        """Called when an existing frame is destroyed.
+
+        This will be the last notification that references ``frame`` and
+        :meth:`Frame.is_valid` will return ``False`` for ``frame``. If called during browser
+        destruction and after :meth:`LifeSpanHandler.on_before_close` then
+        :meth:`Browser.is_valid` will return ``False`` for ``browser``. Any queued commands
+        that have not been sent will be discarded before this callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
         """
         ...
     def on_frame_attached(self, browser: Browser, frame: Frame, reattached: bool) -> None:
-        """Called when a frame can begin routing commands to/from the associated
-        renderer process. |reattached| will be true if the frame was re-attached
-        after exiting the BackForwardCache or after encountering a recoverable
-        connection error. Any queued commands will now have been dispatched. This
-        method will not be called for temporary frames created during cross-origin
-        navigation.
+        """Called when a frame can begin routing commands to/from the associated renderer process.
+
+        ``reattached`` will be ``True`` if the frame was re-attached after exiting the
+        BackForwardCache or after encountering a recoverable connection error. Any queued
+        commands will now have been dispatched. This method will not be called for temporary
+        frames created during cross-origin navigation.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            reattached (bool):
         """
         ...
     def on_frame_detached(self, browser: Browser, frame: Frame) -> None:
-        """Called when a frame loses its connection to the renderer process. This may
-        occur when a frame is destroyed, enters the BackForwardCache, or
-        encounters a rare connection error. In the case of frame destruction this
-        call will be followed by a (potentially async) call to OnFrameDestroyed.
-        If frame destruction is occuring synchronously then CefFrame::IsValid()
-        will return false for |frame|. If called during browser destruction and
-        after CefLifeSpanHandler::OnBeforeClose() then CefBrowser::IsValid() will
-        return false for |browser|. If, in the non-destruction case, the same
-        frame later exits the BackForwardCache or recovers from a connection error
-        then there will be a follow-up call to OnFrameAttached. This method will
-        not be called for temporary frames created during cross-origin navigation.
+        """Called when a frame loses its connection to the renderer process.
+
+        This may occur when a frame is destroyed, enters the BackForwardCache, or encounters
+        a rare connection error. In the case of frame destruction this call will be followed
+        by a (potentially async) call to OnFrameDestroyed. If frame destruction is occuring
+        synchronously then :meth:`Frame.is_valid` will return ``False`` for ``frame``. If
+        called during browser destruction and after :meth:`LifeSpanHandler.on_before_close`
+        then :meth:`Browser.is_valid` will return ``False`` for ``browser``. If, in the
+        non-destruction case, the same frame later exits the BackForwardCache or recovers
+        from a connection error then there will be a follow-up call to OnFrameAttached. This
+        method will not be called for temporary frames created during cross-origin
+        navigation.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
         """
         ...
     def on_main_frame_changed(self, browser: Browser, old_frame: Frame | None, new_frame: Frame | None) -> None:
-        """Called when the main frame changes due to (a) initial browser creation,
-        (b) final browser destruction, (c) cross-origin navigation or (d)
-        re-navigation after renderer process termination (due to crashes, etc).
-        |old_frame| will be NULL and |new_frame| will be non-NULL when a main
-        frame is assigned to |browser| for the first time. |old_frame| will be
-        non-NULL and |new_frame| will be NULL when a main frame is removed from
-        |browser| for the last time. Both |old_frame| and |new_frame| will be
-        non-NULL for cross-origin navigations or re-navigation after renderer
-        process termination. This method will be called after OnFrameCreated() for
-        |new_frame| and/or after OnFrameDestroyed() for |old_frame|. If called
-        during browser destruction and after CefLifeSpanHandler::OnBeforeClose()
-        then CefBrowser::IsValid() will return false for |browser|.
+        """Called when the main frame changes due to (a) initial browser creation, (b) final browser destruction, (c) cross-origin navigation or (d) re-navigation after renderer process termination (due to crashes, etc).
+
+        ``old_frame`` will be ``None`` and ``new_frame`` will be non-``None`` when a main
+        frame is assigned to ``browser`` for the first time. ``old_frame`` will be
+        non-``None`` and ``new_frame`` will be ``None`` when a main frame is removed from
+        ``browser`` for the last time. Both ``old_frame`` and ``new_frame`` will be
+        non-``None`` for cross-origin navigations or re-navigation after renderer process
+        termination. This method will be called after OnFrameCreated() for ``new_frame``
+        and/or after OnFrameDestroyed() for ``old_frame``. If called during browser
+        destruction and after :meth:`LifeSpanHandler.on_before_close` then
+        :meth:`Browser.is_valid` will return ``False`` for ``browser``.
+
+        Args:
+            browser (Browser):
+            old_frame (Frame | None):
+            new_frame (Frame | None):
         """
         ...
 
 
 class JSDialogHandler:
-    """Implement this interface to handle events related to JavaScript dialogs. The
-    methods of this class will be called on the UI thread.
+    """Implement this interface to handle events related to JavaScript dialogs.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_js_dialog(self, browser: Browser, origin_url: str, dialog_type: JSDialogType, message_text: str, default_prompt_text: str, callback: JSDialogCallback) -> tuple[bool, bool]:
-        """Called to run a JavaScript dialog. If |origin_url| is non-empty it can be
-        passed to the CefFormatUrlForSecurityDisplay function to retrieve a secure
-        and user-friendly display string. The |default_prompt_text| value will be
-        specified for prompt dialogs only. Set |suppress_message| to true and
-        return false to suppress the message (suppressing messages is preferable
-        to immediately executing the callback as this is used to detect presumably
-        malicious behavior like spamming alert messages in onbeforeunload). Set
-        |suppress_message| to false and return false to use the default
-        implementation (the default implementation will show one modal dialog at a
-        time and suppress any additional dialog requests until the displayed
-        dialog is dismissed). Return true if the application will use a custom
-        dialog or if the callback has been executed immediately. Custom dialogs
-        may be either modal or modeless. If a custom dialog is used the
-        application must execute |callback| once the custom dialog is dismissed.
+        """Called to run a JavaScript dialog.
+
+        If ``origin_url`` is non-empty it can be passed to the
+        ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure and user-friendly
+        display string. The ``default_prompt_text`` value will be specified for prompt
+        dialogs only. Set ``suppress_message`` to ``True`` and return ``False`` to suppress
+        the message (suppressing messages is preferable to immediately executing the
+        callback as this is used to detect presumably malicious behavior like spamming alert
+        messages in onbeforeunload). Set ``suppress_message`` to ``False`` and return
+        ``False`` to use the default implementation (the default implementation will show
+        one modal dialog at a time and suppress any additional dialog requests until the
+        displayed dialog is dismissed). Return ``True`` if the application will use a custom
+        dialog or if the callback has been executed immediately. Custom dialogs may be
+        either modal or modeless. If a custom dialog is used the application must execute
+        ``callback`` once the custom dialog is dismissed.
+
+        Args:
+            browser (Browser):
+            origin_url (str): Non-empty it can be  passed to the ``CefFormatUrlForSecurityDisplay`` function to retrieve a secure  and user-friendly display string.
+            dialog_type (JSDialogType):
+            message_text (str):
+            default_prompt_text (str):
+            callback (JSDialogCallback):
+        Returns:
+            tuple[bool, bool]
         """
         ...
     def on_before_unload_dialog(self, browser: Browser, message_text: str, is_reload: bool, callback: JSDialogCallback) -> bool:
         """Called to run a dialog asking the user if they want to leave a page.
-        Return false to use the default dialog implementation. Return true if the
+
+        Return ``False`` to use the default dialog implementation. Return ``True`` if the
         application will use a custom dialog or if the callback has been executed
-        immediately. Custom dialogs may be either modal or modeless. If a custom
-        dialog is used the application must execute |callback| once the custom
-        dialog is dismissed.
+        immediately. Custom dialogs may be either modal or modeless. If a custom dialog is
+        used the application must execute ``callback`` once the custom dialog is dismissed.
+
+        Args:
+            browser (Browser):
+            message_text (str):
+            is_reload (bool):
+            callback (JSDialogCallback):
+        Returns:
+            bool
         """
         ...
     def on_reset_dialog_state(self, browser: Browser) -> None:
         """Called to cancel any pending dialogs and reset any saved dialog state.
-        Will be called due to events like page navigation irregardless of whether
-        any dialogs are currently pending.
+
+        Will be called due to events like page navigation irregardless of whether any
+        dialogs are currently pending.
+
+        Args:
+            browser (Browser):
         """
         ...
     def on_dialog_closed(self, browser: Browser) -> None:
-        """Called when the dialog is closed."""
+        """Called when the dialog is closed.
+
+        Args:
+            browser (Browser):
+        """
         ...
 
 
 class KeyboardHandler:
-    """Implement this interface to handle events related to keyboard input. The
-    methods of this class will be called on the UI thread.
+    """Implement this interface to handle events related to keyboard input.
+
+    The methods of this class will be called on the UI thread.
     """
     def on_pre_key_event(self, browser: Browser, event: KeyEvent) -> tuple[bool, bool]:
-        """Called before a keyboard event is sent to the renderer. |event| contains
-        information about the keyboard event. |os_event| is the operating system
-        event message, if any. Return true if the event was handled or false
-        otherwise. If the event will be handled in OnKeyEvent() as a keyboard
-        shortcut set |is_keyboard_shortcut| to true and return false.
+        """Called before a keyboard event is sent to the renderer.
+
+        ``event`` contains information about the keyboard event. ``os_event`` is the
+        operating system event message, if any. Return ``True`` if the event was handled or
+        ``False`` otherwise. If the event will be handled in OnKeyEvent() as a keyboard
+        shortcut set ``is_keyboard_shortcut`` to ``True`` and return ``False``.
+
+        Args:
+            browser (Browser):
+            event (KeyEvent):
+        Returns:
+            tuple[bool, bool]
         """
         ...
     def on_key_event(self, browser: Browser, event: KeyEvent) -> bool:
-        """Called after the renderer and JavaScript in the page has had a chance to
-        handle the event. |event| contains information about the keyboard event.
-        |os_event| is the operating system event message, if any. Return true if
-        the keyboard event was handled or false otherwise.
+        """Called after the renderer and JavaScript in the page has had a chance to handle the event.
+
+        ``event`` contains information about the keyboard event. ``os_event`` is the
+        operating system event message, if any. Return ``True`` if the keyboard event was
+        handled or ``False`` otherwise.
+
+        Args:
+            browser (Browser):
+            event (KeyEvent):
+        Returns:
+            bool
         """
         ...
 
 
 class LifeSpanHandler:
-    """Implement this interface to handle events related to browser life span. The
-    methods of this class will be called on the UI thread unless otherwise
+    """Implement this interface to handle events related to browser life span.
+
+    The methods of this class will be called on the UI thread unless otherwise
     indicated.
     """
     def on_before_popup(self, browser: Browser, frame: Frame, target_url: str, target_frame_name: str) -> bool:
-        """Called on the UI thread before a new popup browser is created. The
-        |browser| and |frame| values represent the source of the popup request
-        (opener browser and frame). The |popup_id| value uniquely identifies the
-        popup in the context of the opener browser. The |target_url| and
-        |target_frame_name| values indicate where the popup browser should
-        navigate and may be empty if not specified with the request. The
-        |target_disposition| value indicates where the user intended to open the
-        popup (e.g. current tab, new tab, etc). The |user_gesture| value will be
-        true if the popup was opened via explicit user gesture (e.g. clicking a
-        link) or false if the popup opened automatically (e.g. via the
-        DomContentLoaded event). The |popupFeatures| structure contains additional
-        information about the requested popup window. To allow creation of the
-        popup browser optionally modify |windowInfo|, |client|, |settings| and
-        |no_javascript_access| and return false. To cancel creation of the popup
-        browser return true. The |client| and |settings| values will default to
-        the source browser's values. If the |no_javascript_access| value is set to
-        false the new browser will not be scriptable and may not be hosted in the
-        same renderer process as the source browser. Any modifications to
-        |windowInfo| will be ignored if the parent browser is wrapped in a
-        CefBrowserView. The |extra_info| parameter provides an opportunity to
-        specify extra information specific to the created popup browser that will
-        be passed to CefRenderProcessHandler::OnBrowserCreated() in the render
-        process.
+        """Called on the UI thread before a new popup browser is created.
 
-        If popup browser creation succeeds then OnAfterCreated will be called for
-        the new popup browser. If popup browser creation fails, and if the opener
-        browser has not yet been destroyed, then OnBeforePopupAborted will be
-        called for the opener browser. See OnBeforePopupAborted documentation for
-        additional details.
+        The ``browser`` and ``frame`` values represent the source of the popup request
+        (opener browser and frame). The ``popup_id`` value uniquely identifies the popup in
+        the context of the opener browser. The ``target_url`` and ``target_frame_name``
+        values indicate where the popup browser should navigate and may be empty if not
+        specified with the request. The ``target_disposition`` value indicates where the
+        user intended to open the popup (e.g. current tab, new tab, etc). The
+        ``user_gesture`` value will be ``True`` if the popup was opened via explicit user
+        gesture (e.g. clicking a link) or ``False`` if the popup opened automatically (e.g.
+        via the DomContentLoaded event). The ``popup_features`` structure contains
+        additional information about the requested popup window. To allow creation of the
+        popup browser optionally modify ``window_info``, ``client``, ``settings`` and
+        ``no_javascript_access`` and return ``False``. To cancel creation of the popup
+        browser return ``True``. The ``client`` and ``settings`` values will default to the
+        source browser's values. If the ``no_javascript_access`` value is set to ``False``
+        the new browser will not be scriptable and may not be hosted in the same renderer
+        process as the source browser. Any modifications to ``window_info`` will be ignored
+        if the parent browser is wrapped in a :class:`BrowserView`. The ``extra_info``
+        parameter provides an opportunity to specify extra information specific to the
+        created popup browser that will be passed to
+        ``CefRenderProcessHandler::OnBrowserCreated()`` in the render process.
 
-        A default popup window is created if this method returns false without
-        setting a parent window handle via CefWindowInfo (for native-hosted
-        popups), or without implementing
-        CefBrowserViewDelegate::OnPopupBrowserViewCreated (for Views-hosted
-        popups). The default popup window type depends on the parent browser
-        configuration:
-        - Views-hosted parent: Creates a Views-hosted popup window.
-        - Native-hosted Alloy style parent: Creates a native popup window.
-        - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
-          default; set CefSettings.use_views_default_popup to true to instead
-          create a Views-hosted popup window.
+        If popup browser creation succeeds then OnAfterCreated will be called for the new
+        popup browser. If popup browser creation fails, and if the opener browser has not
+        yet been destroyed, then OnBeforePopupAborted will be called for the opener browser.
+        See OnBeforePopupAborted documentation for additional details.
+
+         A default popup window is created if this method returns ``False`` without
+         setting a parent window handle via ``CefWindowInfo`` (for native-hosted
+         popups), or without implementing
+         :meth:`BrowserViewDelegate.on_popup_browser_view_created` (for Views-hosted
+         popups). The default popup window type depends on the parent browser
+         configuration:
+         - Views-hosted parent: Creates a Views-hosted popup window.
+         - Native-hosted Alloy style parent: Creates a native popup window.
+         - Native-hosted Chrome style parent: Creates a Chrome UI popup window by
+           default; set ``CefSettings``.use_views_default_popup to ``True`` to instead
+           create a Views-hosted popup window.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            target_url (str):
+            target_frame_name (str):
+        Returns:
+            bool
         """
         ...
     def on_before_popup_aborted(self, browser: Browser, popup_id: int) -> None:
-        """Called on the UI thread if a new popup browser is aborted. This only
-        occurs if the popup is allowed in OnBeforePopup and creation fails before
-        OnAfterCreated is called for the new popup browser. The |browser| value is
-        the source of the popup request (opener browser). The |popup_id| value
-        uniquely identifies the popup in the context of the opener browser, and is
-        the same value that was passed to OnBeforePopup.
+        """Called on the UI thread if a new popup browser is aborted.
+
+        This only occurs if the popup is allowed in OnBeforePopup and creation fails before
+        OnAfterCreated is called for the new popup browser. The ``browser`` value is the
+        source of the popup request (opener browser). The ``popup_id`` value uniquely
+        identifies the popup in the context of the opener browser, and is the same value
+        that was passed to OnBeforePopup.
 
         Any client state associated with pending popups should be cleared in
-        OnBeforePopupAborted, OnAfterCreated of the popup browser, or
-        OnBeforeClose of the opener browser. OnBeforeClose of the opener browser
-        may be called before this method in cases where the opener is closing
-        during popup creation, in which case CefBrowserHost::IsValid will return
-        false in this method.
+        OnBeforePopupAborted, OnAfterCreated of the popup browser, or OnBeforeClose of the
+        opener browser. OnBeforeClose of the opener browser may be called before this method
+        in cases where the opener is closing during popup creation, in which case
+        :meth:`BrowserHost.is_valid` will return ``False`` in this method.
+
+        Args:
+            browser (Browser):
+            popup_id (int):
         """
         ...
     def on_after_created(self, browser: Browser) -> None:
-        """Called after a new browser is created. It is now safe to begin performing
-        actions with |browser|. CefFrameHandler callbacks related to initial main
-        frame creation will arrive before this callback. See CefFrameHandler
-        documentation for additional usage information.
+        """Called after a new browser is created.
+
+        It is now safe to begin performing actions with ``browser``. :class:`FrameHandler`
+        callbacks related to initial main frame creation will arrive before this callback.
+        See :class:`FrameHandler` documentation for additional usage information.
+
+        Args:
+            browser (Browser):
         """
         ...
     def do_close(self, browser: Browser) -> bool:
-        """Called when an Alloy style browser is ready to be closed, meaning that the
-        close has already been initiated and that JavaScript unload handlers have
-        already executed or should be ignored. This may result directly from a
-        call to CefBrowserHost::[Try]CloseBrowser() or indirectly if the browser's
-        top-level parent window was created by CEF and the user attempts to
-        close that window (by clicking the 'X', for example). DoClose() will not
-        be called if the browser's host window/view has already been destroyed
-        (via parent window/view hierarchy tear-down, for example), as it is no
-        longer possible to customize the close behavior at that point.
+        """Called when an Alloy style browser is ready to be closed, meaning that the close has already been initiated and that JavaScript unload handlers have already executed or should be ignored.
 
-        An application should handle top-level parent window close notifications
-        by calling CefBrowserHost::TryCloseBrowser() or
-        CefBrowserHost::CloseBrowser(false) instead of allowing the window to
-        close immediately (see the examples below). This gives CEF an opportunity
-        to process JavaScript unload handlers and optionally cancel the close
-        before DoClose() is called.
+        This may result directly from a call to :class:`BrowserHost`::[Try]CloseBrowser() or
+        indirectly if the browser's top-level parent window was created by CEF and the user
+        attempts to close that window (by clicking the 'X', for example). DoClose() will not
+        be called if the browser's host window/view has already been destroyed (via parent
+        window/view hierarchy tear-down, for example), as it is no longer possible to
+        customize the close behavior at that point.
 
-        When windowed rendering is enabled CEF will create an internal child
-        window/view to host the browser. In that case returning false from
-        DoClose() will send the standard close notification to the browser's
-        top-level parent window (e.g. WM_CLOSE on Windows, performClose: on OS X,
-        \"delete_event\" on Linux or CefWindowDelegate::CanClose() callback from
-        Views).
+        An application should handle top-level parent window close notifications by calling
+        :meth:`BrowserHost.try_close_browser` or
+        :meth:`BrowserHost.close_browser`(``False``) instead of allowing the window to close
+        immediately (see the examples below). This gives CEF an opportunity to process
+        JavaScript unload handlers and optionally cancel the close before DoClose() is
+        called.
 
-        When windowed rendering is disabled there is no internal window/view
-        and returning false from DoClose() will cause the browser object to be
-        destroyed immediately.
+        When windowed rendering is enabled CEF will create an internal child window/view to
+        host the browser. In that case returning ``False`` from DoClose() will send the
+        standard close notification to the browser's top-level parent window (e.g. WM_CLOSE
+        on Windows, performClose: on OS X, \"delete_event\" on Linux or
+        :meth:`WindowDelegate.can_close` callback from Views).
 
-        If the browser's top-level parent window requires a non-standard close
-        notification then send that notification from DoClose() and return true.
-        You are still required to complete the browser close as soon as possible
-        (either by calling [Try]CloseBrowser() or by proceeding with window/view
-        hierarchy tear-down), otherwise the browser will be left in a partially
-        closed state that interferes with proper functioning. Top-level windows
-        created on the browser process UI thread can alternately call
-        CefBrowserHost::IsReadyToBeClosed() in the close handler to check close
-        status instead of relying on custom DoClose() handling. See documentation
-        on that method for additional details.
+        When windowed rendering is disabled there is no internal window/view and returning
+        ``False`` from DoClose() will cause the browser object to be destroyed immediately.
 
-        The CefLifeSpanHandler::OnBeforeClose() method will be called after
-        DoClose() (if DoClose() is called) and immediately before the browser
-        object is destroyed. The application should only exit after
-        OnBeforeClose() has been called for all existing browsers.
+        If the browser's top-level parent window requires a non-standard close notification
+        then send that notification from DoClose() and return ``True``. You are still
+        required to complete the browser close as soon as possible (either by calling
+        [Try]CloseBrowser() or by proceeding with window/view hierarchy tear-down),
+        otherwise the browser will be left in a partially closed state that interferes with
+        proper functioning. Top-level windows created on the browser process UI thread can
+        alternately call :meth:`BrowserHost.is_ready_to_be_closed` in the close handler to
+        check close status instead of relying on custom DoClose() handling. See
+        documentation on that method for additional details.
 
-        The below examples describe what should happen during window close when
-        the browser is parented to an application-provided top-level window.
+        The :meth:`LifeSpanHandler.on_before_close` method will be called after DoClose()
+        (if DoClose() is called) and immediately before the browser object is destroyed. The
+        application should only exit after OnBeforeClose() has been called for all existing
+        browsers.
 
-        Example 1: Using CefBrowserHost::TryCloseBrowser(). This is recommended
-        for clients using standard close handling and windows created on the
-        browser process UI thread.
-        1.  User clicks the window close button which sends a close notification
-            to the application's top-level window.
-        2.  Application's top-level window receives the close notification and
-            calls TryCloseBrowser() (similar to calling CloseBrowser(false)).
-            TryCloseBrowser() returns false so the client cancels the window
-            close.
-        3.  JavaScript 'onbeforeunload' handler executes and shows the close
-            confirmation dialog (which can be overridden via
-            CefJSDialogHandler::OnBeforeUnloadDialog()).
-        4.  User approves the close.
-        5.  JavaScript 'onunload' handler executes.
-        6.  Application's DoClose() handler is called and returns false by
-            default.
-        7.  CEF sends a close notification to the application's top-level window
-            (because DoClose() returned false).
-        8.  Application's top-level window receives the close notification and
-            calls TryCloseBrowser(). TryCloseBrowser() returns true so the client
-            allows the window close.
-        9.  Application's top-level window is destroyed, triggering destruction
-            of the child browser window.
-        10. Application's OnBeforeClose() handler is called and the browser object
-            is destroyed.
-        11. Application exits by calling CefQuitMessageLoop() if no other browsers
-            exist.
+        The below examples describe what should happen during window close when the browser
+        is parented to an application-provided top-level window.
 
-        Example 2: Using CefBrowserHost::CloseBrowser(false) and implementing the
-        DoClose() callback. This is recommended for clients using non-standard
-        close handling or windows that were not created on the browser process UI
-        thread.
-        1.  User clicks the window close button which sends a close notification
-            to the application's top-level window.
-        2.  Application's top-level window receives the close notification and:
-            A. Calls CefBrowserHost::CloseBrowser(false).
-            B. Cancels the window close.
-        3.  JavaScript 'onbeforeunload' handler executes and shows the close
-            confirmation dialog (which can be overridden via
-            CefJSDialogHandler::OnBeforeUnloadDialog()).
-        4.  User approves the close.
-        5.  JavaScript 'onunload' handler executes.
-        6.  Application's DoClose() handler is called. Application will:
-            A. Set a flag to indicate that the next top-level window close attempt
-               will be allowed.
-            B. Return false.
-        7.  CEF sends a close notification to the application's top-level window
-            (because DoClose() returned false).
-        8.  Application's top-level window receives the close notification and
-            allows the window to close based on the flag from #6A.
-        9.  Application's top-level window is destroyed, triggering destruction
-            of the child browser window.
-        10. Application's OnBeforeClose() handler is called and the browser object
-            is destroyed.
-        11. Application exits by calling CefQuitMessageLoop() if no other browsers
-            exist.
+         Example 1: Using :meth:`BrowserHost.try_close_browser`. This is recommended
+         for clients using standard close handling and windows created on the
+         browser process UI thread.
+         1.  User clicks the window close button which sends a close notification
+             to the application's top-level window.
+         2.  Application's top-level window receives the close notification and
+             calls TryCloseBrowser() (similar to calling CloseBrowser(``False``)).
+             TryCloseBrowser() returns ``False`` so the client cancels the window
+             close.
+         3.  JavaScript 'onbeforeunload' handler executes and shows the close
+             confirmation dialog (which can be overridden via
+             :meth:`JSDialogHandler.on_before_unload_dialog`).
+         4.  User approves the close.
+         5.  JavaScript 'onunload' handler executes.
+         6.  Application's DoClose() handler is called and returns ``False`` by
+             default.
+         7.  CEF sends a close notification to the application's top-level window
+             (because DoClose() returned ``False``).
+         8.  Application's top-level window receives the close notification and
+             calls TryCloseBrowser(). TryCloseBrowser() returns ``True`` so the client
+             allows the window close.
+         9.  Application's top-level window is destroyed, triggering destruction
+             of the child browser window.
+         10. Application's OnBeforeClose() handler is called and the browser object
+             is destroyed.
+         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
+             exist.
+
+         Example 2: Using :meth:`BrowserHost.close_browser`(``False``) and implementing the
+         DoClose() callback. This is recommended for clients using non-standard
+         close handling or windows that were not created on the browser process UI
+         thread.
+         1.  User clicks the window close button which sends a close notification
+             to the application's top-level window.
+         2.  Application's top-level window receives the close notification and:
+             A. Calls :meth:`BrowserHost.close_browser`(``False``).
+             B. Cancels the window close.
+         3.  JavaScript 'onbeforeunload' handler executes and shows the close
+             confirmation dialog (which can be overridden via
+             :meth:`JSDialogHandler.on_before_unload_dialog`).
+         4.  User approves the close.
+         5.  JavaScript 'onunload' handler executes.
+         6.  Application's DoClose() handler is called. Application will:
+             A. Set a flag to indicate that the next top-level window close attempt
+                will be allowed.
+             B. Return ``False``.
+         7.  CEF sends a close notification to the application's top-level window
+             (because DoClose() returned ``False``).
+         8.  Application's top-level window receives the close notification and
+             allows the window to close based on the flag from #6A.
+         9.  Application's top-level window is destroyed, triggering destruction
+             of the child browser window.
+         10. Application's OnBeforeClose() handler is called and the browser object
+             is destroyed.
+         11. Application exits by calling ``CefQuitMessageLoop``() if no other browsers
+             exist.
+
+        Args:
+            browser (Browser):
+        Returns:
+            bool
         """
         ...
     def on_before_close(self, browser: Browser) -> None:
-        """Called just before a browser is destroyed. Release all references to the
-        browser object and do not attempt to execute any methods on the browser
-        object (other than IsValid, GetIdentifier or IsSame) after this callback
-        returns. CefFrameHandler callbacks related to final main frame
-        destruction, and OnBeforePopupAborted callbacks for any pending popups,
-        will arrive after this callback and CefBrowser::IsValid will return false
-        at that time. Any in-progress network requests associated with |browser|
-        will be aborted when the browser is destroyed, and
-        CefResourceRequestHandler callbacks related to those requests may still
-        arrive on the IO thread after this callback. See CefFrameHandler and
-        DoClose() documentation for additional usage information.
+        """Called just before a browser is destroyed.
+
+        Release all references to the browser object and do not attempt to execute any
+        methods on the browser object (other than IsValid, GetIdentifier or IsSame) after
+        this callback returns. :class:`FrameHandler` callbacks related to final main frame
+        destruction, and OnBeforePopupAborted callbacks for any pending popups, will arrive
+        after this callback and :meth:`Browser.is_valid` will return ``False`` at that time.
+        Any in-progress network requests associated with ``browser`` will be aborted when
+        the browser is destroyed, and :class:`ResourceRequestHandler` callbacks related to
+        those requests may still arrive on the IO thread after this callback. See
+        :class:`FrameHandler` and DoClose() documentation for additional usage information.
+
+        Args:
+            browser (Browser):
         """
         ...
 
 
 class LoadHandler:
     """Implement this interface to handle events related to browser load status.
-    The methods of this class will be called on the browser process UI thread or
-    render process main thread (TID_RENDERER).
+
+    The methods of this class will be called on the browser process UI thread or render
+    process main thread (TID_RENDERER).
     """
     def on_loading_state_change(self, browser: Browser, is_loading: bool, can_go_back: bool, can_go_forward: bool) -> None:
-        """Called when the loading state has changed. This callback will be executed
-        twice -- once when loading is initiated either programmatically or by user
-        action, and once when loading is terminated due to completion,
-        cancellation of failure. It will be called before any calls to OnLoadStart
-        and after all calls to OnLoadError and/or OnLoadEnd.
+        """Called when the loading state has changed.
+
+        This callback will be executed twice -- once when loading is initiated either
+        programmatically or by user action, and once when loading is terminated due to
+        completion, cancellation of failure. It will be called before any calls to
+        OnLoadStart and after all calls to OnLoadError and/or OnLoadEnd.
+
+        Args:
+            browser (Browser):
+            is_loading (bool):
+            can_go_back (bool):
+            can_go_forward (bool):
         """
         ...
     def on_load_start(self, browser: Browser, frame: Frame, transition_type: TransitionType) -> None:
-        """Called after a navigation has been committed and before the browser begins
-        loading contents in the frame. The |frame| value will never be empty --
-        call the IsMain() method to check if this frame is the main frame.
-        |transition_type| provides information about the source of the navigation
-        and an accurate value is only available in the browser process. Multiple
-        frames may be loading at the same time. Sub-frames may start or continue
-        loading after the main frame load has ended. This method will not be
-        called for same page navigations (fragments, history state, etc.) or for
-        navigations that fail or are canceled before commit. For notification of
-        overall browser load status use OnLoadingStateChange instead.
+        """Called after a navigation has been committed and before the browser begins loading contents in the frame.
+
+        The ``frame`` value will never be empty -- call the IsMain() method to check if this
+        frame is the main frame. ``transition_type`` provides information about the source
+        of the navigation and an accurate value is only available in the browser process.
+        Multiple frames may be loading at the same time. Sub-frames may start or continue
+        loading after the main frame load has ended. This method will not be called for same
+        page navigations (fragments, history state, etc.) or for navigations that fail or
+        are canceled before commit. For notification of overall browser load status use
+        OnLoadingStateChange instead.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            transition_type (TransitionType):
         """
         ...
     def on_load_end(self, browser: Browser, frame: Frame, http_status_code: int) -> None:
-        """Called when the browser is done loading a frame. The |frame| value will
-        never be empty -- call the IsMain() method to check if this frame is the
-        main frame. Multiple frames may be loading at the same time. Sub-frames
-        may start or continue loading after the main frame load has ended. This
-        method will not be called for same page navigations (fragments, history
-        state, etc.) or for navigations that fail or are canceled before commit.
-        For notification of overall browser load status use OnLoadingStateChange
-        instead.
+        """Called when the browser is done loading a frame.
+
+        The ``frame`` value will never be empty -- call the IsMain() method to check if this
+        frame is the main frame. Multiple frames may be loading at the same time. Sub-frames
+        may start or continue loading after the main frame load has ended. This method will
+        not be called for same page navigations (fragments, history state, etc.) or for
+        navigations that fail or are canceled before commit. For notification of overall
+        browser load status use OnLoadingStateChange instead.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            http_status_code (int):
         """
         ...
     def on_load_error(self, browser: Browser, frame: Frame, error_code: ErrorCode, error_text: str, failed_url: str) -> None:
-        """Called when a navigation fails or is canceled. This method may be called
-        by itself if before commit or in combination with OnLoadStart/OnLoadEnd if
-        after commit. |errorCode| is the error code number, |errorText| is the
-        error text and |failedUrl| is the URL that failed to load.
-        See net\\base\\net_error_list.h for complete descriptions of the error
-        codes.
+        """Called when a navigation fails or is canceled.
+
+        This method may be called by itself if before commit or in combination with
+        OnLoadStart/OnLoadEnd if after commit. ``error_code`` is the error code number,
+        ``error_text`` is the error text and ``failed_url`` is the URL that failed to load.
+        See net\\base\\net_error_list.h for complete descriptions of the error codes.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            error_code (ErrorCode): The error code number, ``error_text`` is the  error text and ``failed_url`` is the URL that failed to load.
+            error_text (str):
+            failed_url (str):
         """
         ...
 
 
 class MediaObserver:
-    """Implemented by the client to observe MediaRouter events and registered via
-    CefMediaRouter::AddObserver. The methods of this class will be called on the
-    browser process UI thread.
+    """Implemented by the client to observe MediaRouter events and registered via :meth:`MediaRouter.add_observer`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_sinks(self, sinks: list[MediaSink]) -> None:
-        """The list of available media sinks has changed or
-        CefMediaRouter::NotifyCurrentSinks was called.
+        """The list of available media sinks has changed or :meth:`MediaRouter.notify_current_sinks` was called.
+
+        Args:
+            sinks (list[MediaSink]):
         """
         ...
     def on_routes(self, routes: list[MediaRoute]) -> None:
-        """The list of available media routes has changed or
-        CefMediaRouter::NotifyCurrentRoutes was called.
+        """The list of available media routes has changed or :meth:`MediaRouter.notify_current_routes` was called.
+
+        Args:
+            routes (list[MediaRoute]):
         """
         ...
     def on_route_state_changed(self, route: MediaRoute, state: MediaRouteConnectionState) -> None:
-        """The connection state of |route| has changed."""
+        """The connection state of ``route`` has changed.
+
+        Args:
+            route (MediaRoute):
+            state (MediaRouteConnectionState):
+        """
         ...
     def on_route_message_received(self, route: MediaRoute, message: memoryview) -> None:
-        """A message was received over |route|. |message| is only valid for
-        the scope of this callback and should be copied if necessary.
+        """A message was received over ``route``.
+
+        ``message`` is only valid for the scope of this callback and should be copied if
+        necessary.
+
+        Args:
+            route (MediaRoute):
+            message (memoryview): Only valid for  the scope of this callback and should be copied if necessary.
         """
         ...
 
 
 class MediaRouteCreateCallback:
-    """Callback interface for CefMediaRouter::CreateRoute. The methods of this
-    class will be called on the browser process UI thread.
+    """Callback interface for :meth:`MediaRouter.create_route`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_media_route_create_finished(self, result: MediaRouteCreateResult, error: str, route: MediaRoute | None) -> None:
         """Method that will be executed when the route creation has finished.
-        |result| will be CEF_MRCR_OK if the route creation succeeded. |error| will
-        be a description of the error if the route creation failed. |route| is the
-        resulting route, or empty if the route creation failed.
+
+        ``result`` will be CEF_MRCR_OK if the route creation succeeded. ``error`` will be a
+        description of the error if the route creation failed. ``route`` is the resulting
+        route, or empty if the route creation failed.
+
+        Args:
+            result (MediaRouteCreateResult):
+            error (str):
+            route (MediaRoute | None): The  resulting route, or empty if the route creation failed.
         """
         ...
 
 
 class MediaSinkDeviceInfoCallback:
-    """Callback interface for CefMediaSink::GetDeviceInfo. The methods of this
-    class will be called on the browser process UI thread.
+    """Callback interface for :meth:`MediaSink.get_device_info`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_media_sink_device_info(self, device_info: MediaSinkDeviceInfo) -> None:
-        """Method that will be executed asyncronously once device information has
-        been retrieved.
+        """Method that will be executed asyncronously once device information has been retrieved.
+
+        Args:
+            device_info (MediaSinkDeviceInfo):
         """
         ...
 
 
 class MenuButtonDelegate:
-    """Implement this interface to handle MenuButton events. The methods of this
-    class will be called on the browser process UI thread unless otherwise
-    indicated.
+    """Implement this interface to handle MenuButton events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
     def on_button_pressed(self, button: Button) -> None:
-        """Called when |button| is pressed."""
+        """Called when ``button`` is pressed.
+
+        Args:
+            button (Button): Pressed.
+        """
         ...
     def on_button_state_changed(self, button: Button) -> None:
-        """Called when the state of |button| changes."""
+        """Called when the state of ``button`` changes.
+
+        Args:
+            button (Button):
+        """
         ...
     def on_menu_button_pressed(self, menu_button: MenuButton, screen_point: Point, button_pressed_lock: MenuButtonPressedLock) -> None:
-        """Called when |button| is pressed. Call CefMenuButton::ShowMenu() to show a
-        popup menu at |screen_point|. When showing a custom popup such as a window
-        keep a reference to |button_pressed_lock| until the popup is hidden to
-        maintain the pressed button state.
+        """Called when ``button`` is pressed.
+
+        Call :meth:`MenuButton.show_menu` to show a popup menu at ``screen_point``. When
+        showing a custom popup such as a window keep a reference to ``button_pressed_lock``
+        until the popup is hidden to maintain the pressed button state.
+
+        Args:
+            menu_button (MenuButton):
+            screen_point (Point):
+            button_pressed_lock (MenuButtonPressedLock):
         """
         ...
 
 
 class MenuModelDelegate:
-    """Implement this interface to handle menu model events. The methods of this
-    class will be called on the browser process UI thread unless otherwise
-    indicated.
+    """Implement this interface to handle menu model events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def execute_command(self, menu_model: MenuModel, command_id: int, event_flags: EventFlags) -> None:
-        """Perform the action associated with the specified |command_id| and
-        optional |event_flags|.
+        """Perform the action associated with the specified ``command_id`` and optional ``event_flags``.
+
+        Args:
+            menu_model (MenuModel):
+            command_id (int):
+            event_flags (EventFlags):
         """
         ...
     def mouse_outside_menu(self, menu_model: MenuModel, screen_point: Point) -> None:
-        """Called when the user moves the mouse outside the menu and over the owning
-        window.
+        """Called when the user moves the mouse outside the menu and over the owning window.
+
+        Args:
+            menu_model (MenuModel):
+            screen_point (Point):
         """
         ...
     def unhandled_open_submenu(self, menu_model: MenuModel, is_rtl: bool) -> None:
-        """Called on unhandled open submenu keyboard commands. |is_rtl| will be true
-        if the menu is displaying a right-to-left language.
+        """Called on unhandled open submenu keyboard commands.
+
+        ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
+
+        Args:
+            menu_model (MenuModel):
+            is_rtl (bool):
         """
         ...
     def unhandled_close_submenu(self, menu_model: MenuModel, is_rtl: bool) -> None:
-        """Called on unhandled close submenu keyboard commands. |is_rtl| will be true
-        if the menu is displaying a right-to-left language.
+        """Called on unhandled close submenu keyboard commands.
+
+        ``is_rtl`` will be ``True`` if the menu is displaying a right-to-left language.
+
+        Args:
+            menu_model (MenuModel):
+            is_rtl (bool):
         """
         ...
     def menu_will_show(self, menu_model: MenuModel) -> None:
-        """The menu is about to show."""
+        """The menu is about to show.
+
+        Args:
+            menu_model (MenuModel):
+        """
         ...
     def menu_closed(self, menu_model: MenuModel) -> None:
-        """The menu has closed."""
+        """The menu has closed.
+
+        Args:
+            menu_model (MenuModel):
+        """
         ...
     def format_label(self, menu_model: MenuModel) -> tuple[bool, str]:
-        """Optionally modify a menu item label. Return true if |label| was modified."""
+        """Optionally modify a menu item label.
+
+        Return ``True`` if ``label`` was modified.
+
+        Args:
+            menu_model (MenuModel):
+        Returns:
+            tuple[bool, str]
+        """
         ...
 
 
 class NavigationEntryVisitor:
-    """Callback interface for CefBrowserHost::GetNavigationEntries. The methods of
-    this class will be called on the browser process UI thread.
+    """Callback interface for :meth:`BrowserHost.get_navigation_entries`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def visit(self, entry: NavigationEntry, current: bool, index: int, total: int) -> bool:
-        """Method that will be executed. Do not keep a reference to |entry| outside
-        of this callback. Return true to continue visiting entries or false to
-        stop. |current| is true if this entry is the currently loaded navigation
-        entry. |index| is the 0-based index of this entry and |total| is the total
-        number of entries.
+        """Method that will be executed.
+
+        Do not keep a reference to ``entry`` outside of this callback. Return ``True`` to
+        continue visiting entries or ``False`` to stop. ``current`` is ``True`` if this
+        entry is the currently loaded navigation entry. ``index`` is the 0-based index of
+        this entry and ``total`` is the total number of entries.
+
+        Args:
+            entry (NavigationEntry):
+            current (bool): True if this entry is the currently loaded navigation  entry.
+            index (int): The 0-based index of this entry and ``total`` is the total  number of entries.
+            total (int):
+        Returns:
+            bool
         """
         ...
 
 
 class PanelDelegate:
-    """Implement this interface to handle Panel events. The methods of this class
-    will be called on the browser process UI thread unless otherwise indicated.
+    """Implement this interface to handle Panel events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
 
 
 class PdfPrintCallback:
-    """Callback interface for CefBrowserHost::PrintToPDF. The methods of this class
-    will be called on the browser process UI thread.
+    """Callback interface for :meth:`BrowserHost.print_to_pdf`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_pdf_print_finished(self, path: str, ok: bool) -> None:
-        """Method that will be executed when the PDF printing has completed. |path|
-        is the output path. |ok| will be true if the printing completed
-        successfully or false otherwise.
+        """Method that will be executed when the PDF printing has completed.
+
+        ``path`` is the output path. ``ok`` will be ``True`` if the printing completed
+        successfully or ``False`` otherwise.
+
+        Args:
+            path (str): The output path.
+            ok (bool):
         """
         ...
 
 
 class PermissionHandler:
     """Implement this interface to handle events related to permission requests.
+
     The methods of this class will be called on the browser process UI thread.
     """
     def on_request_media_access_permission(self, browser: Browser, frame: Frame, requesting_origin: str, requested_permissions: int, callback: MediaAccessCallback) -> bool:
         """Called when a page requests permission to access media.
-        |requesting_origin| is the URL origin requesting permission.
-        |requested_permissions| is a combination of values from
-        cef_media_access_permission_types_t that represent the requested
-        permissions. Return true and call CefMediaAccessCallback methods either in
-        this method or at a later time to continue or cancel the request. Return
-        false to proceed with default handling. With Chrome style, default
-        handling will display the permission request UI. With Alloy style,
-        default handling will deny the request. This method will not be called if
-        the \"--enable-media-stream\" command-line switch is used to grant all
-        permissions.
+
+        ``requesting_origin`` is the URL origin requesting permission.
+        ``requested_permissions`` is a combination of values from
+        cef_media_access_permission_types_t that represent the requested permissions. Return
+        ``True`` and call :class:`MediaAccessCallback` methods either in this method or at a
+        later time to continue or cancel the request. Return ``False`` to proceed with
+        default handling. With Chrome style, default handling will display the permission
+        request UI. With Alloy style, default handling will deny the request. This method
+        will not be called if the \"--enable-media-stream\" command-line switch is used to
+        grant all permissions.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            requesting_origin (str): The URL origin requesting permission.
+            requested_permissions (int): A combination of values from  cef_media_access_permission_types_t that represent the requested  permissions.
+            callback (MediaAccessCallback):
+        Returns:
+            bool
         """
         ...
     def on_show_permission_prompt(self, browser: Browser, prompt_id: int, requesting_origin: str, requested_permissions: int, callback: PermissionPromptCallback) -> bool:
-        """Called when a page should show a permission prompt. |prompt_id| uniquely
-        identifies the prompt. |requesting_origin| is the URL origin requesting
-        permission. |requested_permissions| is a combination of values from
-        cef_permission_request_types_t that represent the requested permissions.
-        Return true and call CefPermissionPromptCallback::Continue either in this
-        method or at a later time to continue or cancel the request. Return false
-        to proceed with default handling. With Chrome style, default handling will
-        display the permission prompt UI. With Alloy style, default handling is
+        """Called when a page should show a permission prompt.
+
+        ``prompt_id`` uniquely identifies the prompt. ``requesting_origin`` is the URL
+        origin requesting permission. ``requested_permissions`` is a combination of values
+        from cef_permission_request_types_t that represent the requested permissions. Return
+        ``True`` and call :meth:`PermissionPromptCallback.continue_` either in this method
+        or at a later time to continue or cancel the request. Return ``False`` to proceed
+        with default handling. With Chrome style, default handling will display the
+        permission prompt UI. With Alloy style, default handling is
         CEF_PERMISSION_RESULT_IGNORE.
+
+        Args:
+            browser (Browser):
+            prompt_id (int):
+            requesting_origin (str): The URL origin requesting  permission.
+            requested_permissions (int): A combination of values from  cef_permission_request_types_t that represent the requested permissions.
+            callback (PermissionPromptCallback):
+        Returns:
+            bool
         """
         ...
     def on_dismiss_permission_prompt(self, browser: Browser, prompt_id: int, result: PermissionRequestResult) -> None:
-        """Called when a permission prompt handled via OnShowPermissionPrompt is
-        dismissed. |prompt_id| will match the value that was passed to
-        OnShowPermissionPrompt. |result| will be the value passed to
-        CefPermissionPromptCallback::Continue or CEF_PERMISSION_RESULT_IGNORE if
-        the dialog was dismissed for other reasons such as navigation, browser
-        closure, etc. This method will not be called if OnShowPermissionPrompt
-        returned false for |prompt_id|.
+        """Called when a permission prompt handled via OnShowPermissionPrompt is dismissed.
+
+        ``prompt_id`` will match the value that was passed to OnShowPermissionPrompt.
+        ``result`` will be the value passed to :meth:`PermissionPromptCallback.continue_` or
+        CEF_PERMISSION_RESULT_IGNORE if the dialog was dismissed for other reasons such as
+        navigation, browser closure, etc. This method will not be called if
+        OnShowPermissionPrompt returned ``False`` for ``prompt_id``.
+
+        Args:
+            browser (Browser):
+            prompt_id (int):
+            result (PermissionRequestResult):
         """
         ...
 
 
 class PreferenceObserver:
-    """Implemented by the client to observe preference changes and registered via
-    CefPreferenceManager::AddPreferenceObserver. The methods of this class will
-    be called on the browser process UI thread.
+    """Implemented by the client to observe preference changes and registered via ``CefPreferenceManager::AddPreferenceObserver``.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_preference_changed(self, name: str) -> None:
-        """Called when a preference has changed. The new value can be retrieved using
-        CefPreferenceManager::GetPreference.
+        """Called when a preference has changed.
+
+        The new value can be retrieved using ``CefPreferenceManager::GetPreference``.
+
+        Args:
+            name (str):
         """
         ...
 
 
 class PrintHandler:
-    """Implement this interface to handle printing on Linux. Each browser will have
-    only one print job in progress at a time. The methods of this class will be
-    called on the browser process UI thread.
+    """Implement this interface to handle printing on Linux.
+
+    Each browser will have only one print job in progress at a time. The methods of this
+    class will be called on the browser process UI thread.
     """
     def on_print_start(self, browser: Browser) -> None:
-        """Called when printing has started for the specified |browser|. This method
-        will be called before the other OnPrint*() methods and irrespective of how
-        printing was initiated (e.g. CefBrowserHost::Print(), JavaScript
+        """Called when printing has started for the specified ``browser``.
+
+        This method will be called before the other OnPrint*() methods and irrespective of
+        how printing was initiated (e.g. :meth:`BrowserHost.print`, JavaScript
         window.print() or PDF extension print button).
+
+        Args:
+            browser (Browser):
         """
         ...
     def on_print_settings(self, browser: Browser, settings: PrintSettings, get_defaults: bool) -> None:
-        """Synchronize |settings| with client state. If |get_defaults| is true then
-        populate |settings| with the default print settings. Do not keep a
-        reference to |settings| outside of this callback.
+        """Synchronize ``settings`` with client state.
+
+        If ``get_defaults`` is ``True`` then populate ``settings`` with the default print
+        settings. Do not keep a reference to ``settings`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            settings (PrintSettings):
+            get_defaults (bool): True then  populate ``settings`` with the default print settings.
         """
         ...
     def on_print_dialog(self, browser: Browser, has_selection: bool, callback: PrintDialogCallback) -> bool:
-        """Show the print dialog. Execute |callback| once the dialog is dismissed.
-        Return true if the dialog will be displayed or false to cancel the
-        printing immediately.
+        """Show the print dialog.
+
+        Execute ``callback`` once the dialog is dismissed. Return ``True`` if the dialog
+        will be displayed or ``False`` to cancel the printing immediately.
+
+        Args:
+            browser (Browser):
+            has_selection (bool):
+            callback (PrintDialogCallback):
+        Returns:
+            bool
         """
         ...
     def on_print_job(self, browser: Browser, document_name: str, pdf_file_path: str, callback: PrintJobCallback) -> bool:
-        """Send the print job to the printer. Execute |callback| once the job is
-        completed. Return true if the job will proceed or false to cancel the job
-        immediately.
+        """Send the print job to the printer.
+
+        Execute ``callback`` once the job is completed. Return ``True`` if the job will
+        proceed or ``False`` to cancel the job immediately.
+
+        Args:
+            browser (Browser):
+            document_name (str):
+            pdf_file_path (str):
+            callback (PrintJobCallback):
+        Returns:
+            bool
         """
         ...
     def on_print_reset(self, browser: Browser) -> None:
-        """Reset client state related to printing."""
+        """Reset client state related to printing.
+
+        Args:
+            browser (Browser):
+        """
         ...
     def get_pdf_paper_size(self, browser: Browser, device_units_per_inch: int) -> Size | tuple[int, int]:
-        """Return the PDF paper size in device units. Used in combination with
-        CefBrowserHost::PrintToPDF().
+        """Return the PDF paper size in device units.
+
+        Used in combination with :meth:`BrowserHost.print_to_pdf`.
+
+        Args:
+            browser (Browser):
+            device_units_per_inch (int):
+        Returns:
+            Size | tuple[int, int]: The PDF paper size in device units.
         """
         ...
 
 
 class ReadHandler:
-    """Interface the client can implement to provide a custom stream reader. The
-    methods of this class may be called on any thread.
+    """Interface the client can implement to provide a custom stream reader.
+
+    The methods of this class may be called on any thread.
     """
     def read(self, ptr: memoryview, size: int) -> int:
-        """Read raw binary data."""
+        """Read raw binary data.
+
+        Args:
+            ptr (memoryview):
+            size (int):
+        Returns:
+            int
+        """
         ...
     def seek(self, offset: int, whence: int) -> int:
-        """Seek to the specified offset position. |whence| may be any one of
-        SEEK_CUR, SEEK_END or SEEK_SET. Return zero on success and non-zero on
-        failure.
+        """Seek to the specified offset position.
+
+        ``whence`` may be any one of SEEK_CUR, SEEK_END or SEEK_SET. Return zero on success
+        and non-zero on failure.
+
+        Args:
+            offset (int):
+            whence (int):
+        Returns:
+            int
         """
         ...
     def tell(self) -> int:
-        """Return the current offset position."""
+        """Return the current offset position.
+
+        Returns:
+            int: The current offset position.
+        """
         ...
     def eof(self) -> int:
-        """Return non-zero if at end of file."""
+        """Return non-zero if at end of file.
+
+        Returns:
+            int: Non-zero if at end of file.
+        """
         ...
     def may_block(self) -> bool:
-        """Return true if this handler performs work like accessing the file system
-        which may block. Used as a hint for determining the thread to access the
-        handler from.
+        """Return ``True`` if this handler performs work like accessing the file system which may block.
+
+        Used as a hint for determining the thread to access the handler from.
+
+        Returns:
+            bool: ``True`` if this handler performs work like accessing the file system  which may block.
         """
         ...
 
 
 class RenderHandler:
     """Implement this interface to handle events when window rendering is disabled.
+
     The methods of this class will be called on the UI thread.
     """
     def get_accessibility_handler(self) -> AccessibilityHandler | None:
-        """Return the handler for accessibility notifications. If no handler is
-        provided the default implementation will be used.
+        """Return the handler for accessibility notifications.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            AccessibilityHandler | None: The handler for accessibility notifications.
         """
         ...
     def get_root_screen_rect(self, browser: Browser) -> tuple[bool, Rect | tuple[int, int, int, int]]:
         """Called to retrieve the root window rectangle in screen DIP coordinates.
-        Return true if the rectangle was provided. If this method returns false
-        the rectangle from GetViewRect will be used.
+
+        Return ``True`` if the rectangle was provided. If this method returns ``False`` the
+        rectangle from GetViewRect will be used.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, Rect | tuple[int, int, int, int]]
         """
         ...
     def get_view_rect(self, browser: Browser) -> Rect | tuple[int, int, int, int]:
-        """Called to retrieve the view rectangle in screen DIP coordinates. This
-        method must always provide a non-empty rectangle.
+        """Called to retrieve the view rectangle in screen DIP coordinates.
+
+        This method must always provide a non-empty rectangle.
+
+        Args:
+            browser (Browser):
+        Returns:
+            Rect | tuple[int, int, int, int]
         """
         ...
     def get_screen_point(self, browser: Browser, view_x: int, view_y: int) -> tuple[bool, int, int]:
-        """Called to retrieve the translation from view DIP coordinates to screen
-        coordinates. Windows/Linux should provide screen device (pixel)
-        coordinates and MacOS should provide screen DIP coordinates. Return true
-        if the requested coordinates were provided.
+        """Called to retrieve the translation from view DIP coordinates to screen coordinates.
+
+        Windows/Linux should provide screen device (pixel) coordinates and MacOS should
+        provide screen DIP coordinates. Return ``True`` if the requested coordinates were
+        provided.
+
+        Args:
+            browser (Browser):
+            view_x (int):
+            view_y (int):
+        Returns:
+            tuple[bool, int, int]
         """
         ...
     def get_screen_info(self, browser: Browser) -> tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]:
-        """Called to allow the client to fill in the CefScreenInfo object with
-        appropriate values. Return true if the |screen_info| structure has been
-        modified.
+        """Called to allow the client to fill in the ``CefScreenInfo`` object with appropriate values.
 
-        If the screen info rectangle is left empty the rectangle from GetViewRect
-        will be used. If the rectangle is still empty or invalid popups may not be
-        drawn correctly.
+        Return ``True`` if the ``screen_info`` structure has been modified.
+
+        If the screen info rectangle is left empty the rectangle from GetViewRect will be
+        used. If the rectangle is still empty or invalid popups may not be drawn correctly.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]
         """
         ...
     def on_popup_show(self, browser: Browser, show: bool) -> None:
-        """Called when the browser wants to show or hide the popup widget. The popup
-        should be shown if |show| is true and hidden if |show| is false.
+        """Called when the browser wants to show or hide the popup widget.
+
+        The popup should be shown if ``show`` is ``True`` and hidden if ``show`` is
+        ``False``.
+
+        Args:
+            browser (Browser):
+            show (bool): True and hidden if ``show`` is ``False``.
         """
         ...
     def on_popup_size(self, browser: Browser, rect: Rect) -> None:
-        """Called when the browser wants to move or resize the popup widget. |rect|
-        contains the new location and size in view coordinates.
+        """Called when the browser wants to move or resize the popup widget.
+
+        ``rect`` contains the new location and size in view coordinates.
+
+        Args:
+            browser (Browser):
+            rect (Rect):
         """
         ...
     def on_paint(self, browser: Browser, type: PaintElementType, dirty_rects: list[Rect], buffer: memoryview, width: int, height: int) -> None:
-        """Called when an element should be painted. Pixel values passed to this
-        method are scaled relative to view coordinates based on the value of
-        CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
-        indicates whether the element is the view or the popup widget. |buffer|
-        contains the pixel data for the whole image. |dirtyRects| contains the set
-        of rectangles in pixel coordinates that need to be repainted. |buffer|
-        will be |width|*|height|*4 bytes in size and represents a BGRA image with
-        an upper-left origin. This method is only called when
-        CefWindowInfo::shared_texture_enabled is set to false.
+        """Called when an element should be painted.
+
+        Pixel values passed to this method are scaled relative to view coordinates based on
+        the value of ``CefScreenInfo``.device_scale_factor returned from GetScreenInfo.
+        ``type`` indicates whether the element is the view or the popup widget. ``buffer``
+        contains the pixel data for the whole image. ``dirty_rects`` contains the set of
+        rectangles in pixel coordinates that need to be repainted. ``buffer`` will be
+        ``width``*``height``*4 bytes in size and represents a BGRA image with an upper-left
+        origin. This method is only called when ``CefWindowInfo::shared_texture_enabled`` is
+        set to ``False``.
+
+        Args:
+            browser (Browser):
+            type (PaintElementType):
+            dirty_rects (list[Rect]):
+            buffer (memoryview):
+            width (int):
+            height (int):
         """
         ...
     def on_accelerated_paint(self, browser: Browser, type: PaintElementType, dirty_rects: list[Rect], info: AcceleratedPaintInfo) -> None:
         """Called when an element has been rendered to the shared texture handle.
-        |type| indicates whether the element is the view or the popup widget.
-        |dirtyRects| contains the set of rectangles in pixel coordinates that need
-        to be repainted. |info| contains the shared handle; on Windows it is a
-        HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
-        D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
-        opened with Metal or OpenGL, and on Linux it contains several planes, each
-        with an fd to the underlying system native buffer.
 
-        The underlying implementation uses a pool to deliver frames. As a result,
-        the handle may differ every frame depending on how many frames are
-        in-progress. The handle's resource cannot be cached and cannot be accessed
-        outside of this callback. It should be reopened each time this callback is
-        executed and the contents should be copied to a texture owned by the
-        client application. The contents of |info| will be released back to the
-        pool after this callback returns.
+        ``type`` indicates whether the element is the view or the popup widget.
+        ``dirty_rects`` contains the set of rectangles in pixel coordinates that need to be
+        repainted. ``info`` contains the shared handle; on Windows it is a HANDLE to a
+        texture that can be opened with D3D11 OpenSharedResource1 or D3D12 OpenSharedHandle,
+        on macOS it is an IOSurface pointer that can be opened with Metal or OpenGL, and on
+        Linux it contains several planes, each with an fd to the underlying system native
+        buffer.
+
+        The underlying implementation uses a pool to deliver frames. As a result, the handle
+        may differ every frame depending on how many frames are in-progress. The handle's
+        resource cannot be cached and cannot be accessed outside of this callback. It should
+        be reopened each time this callback is executed and the contents should be copied to
+        a texture owned by the client application. The contents of ``info`` will be released
+        back to the pool after this callback returns.
+
+        Args:
+            browser (Browser):
+            type (PaintElementType):
+            dirty_rects (list[Rect]):
+            info (AcceleratedPaintInfo):
         """
         ...
     def get_touch_handle_size(self, browser: Browser, orientation: HorizontalAlignment) -> Size | tuple[int, int]:
-        """Called to retrieve the size of the touch handle for the specified
-        |orientation|.
+        """Called to retrieve the size of the touch handle for the specified ``orientation``.
+
+        Args:
+            browser (Browser):
+            orientation (HorizontalAlignment):
+        Returns:
+            Size | tuple[int, int]
         """
         ...
     def on_touch_handle_state_changed(self, browser: Browser, state: TouchHandleState) -> None:
-        """Called when touch handle state is updated. The client is responsible for
-        rendering the touch handles.
+        """Called when touch handle state is updated.
+
+        The client is responsible for rendering the touch handles.
+
+        Args:
+            browser (Browser):
+            state (TouchHandleState):
         """
         ...
     def start_dragging(self, browser: Browser, drag_data: DragData, allowed_ops: DragOperationsMask, x: int, y: int) -> bool:
-        """Called when the user starts dragging content in the web view. Contextual
-        information about the dragged content is supplied by |drag_data|.
-        (|x|, |y|) is the drag start location in screen coordinates.
-        OS APIs that run a system message loop may be used within the
-        StartDragging call.
+        """Called when the user starts dragging content in the web view.
 
-        Return false to abort the drag operation. Don't call any of
-        CefBrowserHost::DragSource*Ended* methods after returning false.
+        Contextual information about the dragged content is supplied by ``drag_data``.
+        (``x``, ``y``) is the drag start location in screen coordinates. OS APIs that run a
+        system message loop may be used within the StartDragging call.
 
-        Return true to handle the drag operation. Call
-        CefBrowserHost::DragSourceEndedAt and DragSourceSystemDragEnded either
-        synchronously or asynchronously to inform the web view that the drag
-        operation has ended.
+        Return ``False`` to abort the drag operation. Don't call any of
+        :meth:`BrowserHost.drag_source`*Ended* methods after returning ``False``.
+
+        Return ``True`` to handle the drag operation. Call
+        :meth:`BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded either
+        synchronously or asynchronously to inform the web view that the drag operation has
+        ended.
+
+        Args:
+            browser (Browser):
+            drag_data (DragData):
+            allowed_ops (DragOperationsMask):
+            x (int):
+            y (int):
+        Returns:
+            bool
         """
         ...
     def update_drag_cursor(self, browser: Browser, operation: DragOperationsMask) -> None:
-        """Called when the web view wants to update the mouse cursor during a
-        drag & drop operation. |operation| describes the allowed operation
-        (none, move, copy, link).
+        """Called when the web view wants to update the mouse cursor during a drag & drop operation.
+
+        ``operation`` describes the allowed operation (none, move, copy, link).
+
+        Args:
+            browser (Browser):
+            operation (DragOperationsMask):
         """
         ...
     def on_scroll_offset_changed(self, browser: Browser, x: float, y: float) -> None:
-        """Called when the scroll offset has changed."""
+        """Called when the scroll offset has changed.
+
+        Args:
+            browser (Browser):
+            x (float):
+            y (float):
+        """
         ...
     def on_ime_composition_range_changed(self, browser: Browser, selected_range: Range, character_bounds: list[Rect]) -> None:
-        """Called when the IME composition range has changed. |selected_range| is the
-        range of characters that have been selected. |character_bounds| is the
-        bounds of each character in view coordinates.
+        """Called when the IME composition range has changed.
+
+        ``selected_range`` is the range of characters that have been selected.
+        ``character_bounds`` is the bounds of each character in view coordinates.
+
+        Args:
+            browser (Browser):
+            selected_range (Range): The  range of characters that have been selected.
+            character_bounds (list[Rect]): The  bounds of each character in view coordinates.
         """
         ...
     def on_text_selection_changed(self, browser: Browser, selected_text: str, selected_range: Range) -> None:
-        """Called when text selection has changed for the specified |browser|.
-        |selected_text| is the currently selected text and |selected_range| is
-        the character range.
+        """Called when text selection has changed for the specified ``browser``.
+
+        ``selected_text`` is the currently selected text and ``selected_range`` is the
+        character range.
+
+        Args:
+            browser (Browser):
+            selected_text (str): The currently selected text and ``selected_range`` is  the character range.
+            selected_range (Range):
         """
         ...
     def on_virtual_keyboard_requested(self, browser: Browser, input_mode: TextInputMode) -> None:
-        """Called when an on-screen keyboard should be shown or hidden for the
-        specified |browser|. |input_mode| specifies what kind of keyboard
-        should be opened. If |input_mode| is CEF_TEXT_INPUT_MODE_NONE, any
-        existing keyboard for this browser should be hidden.
+        """Called when an on-screen keyboard should be shown or hidden for the specified ``browser``.
+
+        ``input_mode`` specifies what kind of keyboard should be opened. If ``input_mode``
+        is CEF_TEXT_INPUT_MODE_NONE, any existing keyboard for this browser should be
+        hidden.
+
+        Args:
+            browser (Browser):
+            input_mode (TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any  existing keyboard for this browser should be hidden.
         """
         ...
 
 
 class RequestContextHandler:
-    """Implement this interface to provide handler implementations. The handler
-    instance will not be released until all objects related to the context have
-    been destroyed.
+    """Implement this interface to provide handler implementations.
+
+    The handler instance will not be released until all objects related to the context
+    have been destroyed.
     """
     def on_request_context_initialized(self, request_context: RequestContext) -> None:
-        """Called on the browser process UI thread immediately after the request
-        context has been initialized.
+        """Called on the browser process UI thread immediately after the request context has been initialized.
+
+        Args:
+            request_context (RequestContext):
         """
         ...
     def get_resource_request_handler(self, browser: Browser | None, frame: Frame | None, request: Request, is_navigation: bool, is_download: bool, request_initiator: str) -> tuple[ResourceRequestHandler | None, bool]:
-        """Called on the browser process IO thread before a resource request is
-        initiated. The |browser| and |frame| values represent the source of the
-        request, and may be NULL for requests originating from service workers or
-        CefURLRequest. |request| represents the request contents and cannot be
-        modified in this callback. |is_navigation| will be true if the resource
-        request is a navigation. |is_download| will be true if the resource
-        request is a download. |request_initiator| is the origin (scheme + domain)
-        of the page that initiated the request. Set |disable_default_handling| to
-        true to disable default handling of the request, in which case it will
-        need to be handled via CefResourceRequestHandler::GetResourceHandler or it
-        will be canceled. To allow the resource load to proceed with default
-        handling return NULL. To specify a handler for the resource return a
-        CefResourceRequestHandler object. This method will not be called if the
-        client associated with |browser| returns a non-NULL value from
-        CefRequestHandler::GetResourceRequestHandler for the same request
-        (identified by CefRequest::GetIdentifier). For worker requests without an
-        associated frame or process handler, an arbitrary non-NULL handler from
-        the contexts sharing the same storage will be used.
+        """Called on the browser process IO thread before a resource request is initiated.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` represents the request contents and cannot be modified in this callback.
+        ``is_navigation`` will be ``True`` if the resource request is a navigation.
+        ``is_download`` will be ``True`` if the resource request is a download.
+        ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
+        request. Set ``disable_default_handling`` to ``True`` to disable default handling of
+        the request, in which case it will need to be handled via
+        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
+        the resource load to proceed with default handling return ``None``. To specify a
+        handler for the resource return a :class:`ResourceRequestHandler` object. This
+        method will not be called if the client associated with ``browser`` returns a
+        non-``None`` value from :meth:`RequestHandler.get_resource_request_handler` for the
+        same request (identified by :meth:`Request.get_identifier`). For worker requests
+        without an associated frame or process handler, an arbitrary non-``None`` handler
+        from the contexts sharing the same storage will be used.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            is_navigation (bool):
+            is_download (bool):
+            request_initiator (str): The origin (scheme + domain)  of the page that initiated the request.
+        Returns:
+            tuple[ResourceRequestHandler | None, bool]
         """
         ...
 
 
 class RequestHandler:
-    """Implement this interface to handle events related to browser requests. The
-    methods of this class will be called on the thread indicated.
+    """Implement this interface to handle events related to browser requests.
+
+    The methods of this class will be called on the thread indicated.
     """
     def on_before_browse(self, browser: Browser, frame: Frame, request: Request, user_gesture: bool, is_redirect: bool) -> bool:
-        """Called on the UI thread before browser navigation. Return true to cancel
-        the navigation or false to allow the navigation to proceed. The |request|
-        object cannot be modified in this callback.
-        CefLoadHandler::OnLoadingStateChange will be called twice in all cases.
-        If the navigation is allowed CefLoadHandler::OnLoadStart and
-        CefLoadHandler::OnLoadEnd will be called. If the navigation is canceled
-        CefLoadHandler::OnLoadError will be called with an |errorCode| value of
-        ERR_ABORTED. The |user_gesture| value will be true if the browser
-        navigated via explicit user gesture (e.g. clicking a link) or false if it
-        navigated automatically (e.g. via the DomContentLoaded event).
+        """Called on the UI thread before browser navigation.
+
+        Return ``True`` to cancel the navigation or ``False`` to allow the navigation to
+        proceed. The ``request`` object cannot be modified in this callback.
+        :meth:`LoadHandler.on_loading_state_change` will be called twice in all cases. If
+        the navigation is allowed :meth:`LoadHandler.on_load_start` and
+        :meth:`LoadHandler.on_load_end` will be called. If the navigation is canceled
+        :meth:`LoadHandler.on_load_error` will be called with an ``error_code`` value of
+        ERR_ABORTED. The ``user_gesture`` value will be ``True`` if the browser navigated
+        via explicit user gesture (e.g. clicking a link) or ``False`` if it navigated
+        automatically (e.g. via the DomContentLoaded event).
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            request (Request):
+            user_gesture (bool):
+            is_redirect (bool):
+        Returns:
+            bool
         """
         ...
     def on_open_url_from_tab(self, browser: Browser, frame: Frame, target_url: str, target_disposition: WindowOpenDisposition, user_gesture: bool) -> bool:
-        """Called on the UI thread before OnBeforeBrowse in certain limited cases
-        where navigating a new or different browser might be desirable. This
-        includes user-initiated navigation that might open in a special way (e.g.
-        links clicked via middle-click or ctrl + left-click) and certain types of
-        cross-origin navigation initiated from the renderer process (e.g.
-        navigating the top-level frame to/from a file URL). The |browser| and
-        |frame| values represent the source of the navigation. The
-        |target_disposition| value indicates where the user intended to navigate
-        the browser based on standard Chromium behaviors (e.g. current tab,
-        new tab, etc). The |user_gesture| value will be true if the browser
-        navigated via explicit user gesture (e.g. clicking a link) or false if it
-        navigated automatically (e.g. via the DomContentLoaded event). Return true
-        to cancel the navigation or false to allow the navigation to proceed in
-        the source browser's top-level frame.
+        """Called on the UI thread before OnBeforeBrowse in certain limited cases where navigating a new or different browser might be desirable.
+
+        This includes user-initiated navigation that might open in a special way (e.g. links
+        clicked via middle-click or ctrl + left-click) and certain types of cross-origin
+        navigation initiated from the renderer process (e.g. navigating the top-level frame
+        to/from a file URL). The ``browser`` and ``frame`` values represent the source of
+        the navigation. The ``target_disposition`` value indicates where the user intended
+        to navigate the browser based on standard Chromium behaviors (e.g. current tab, new
+        tab, etc). The ``user_gesture`` value will be ``True`` if the browser navigated via
+        explicit user gesture (e.g. clicking a link) or ``False`` if it navigated
+        automatically (e.g. via the DomContentLoaded event). Return ``True`` to cancel the
+        navigation or ``False`` to allow the navigation to proceed in the source browser's
+        top-level frame.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            target_url (str):
+            target_disposition (WindowOpenDisposition):
+            user_gesture (bool):
+        Returns:
+            bool
         """
         ...
     def get_resource_request_handler(self, browser: Browser, frame: Frame, request: Request, is_navigation: bool, is_download: bool, request_initiator: str) -> tuple[ResourceRequestHandler | None, bool]:
-        """Called on the browser process IO thread before a resource request is
-        initiated. The |browser| and |frame| values represent the source of the
-        request. |request| represents the request contents and cannot be modified
-        in this callback. |is_navigation| will be true if the resource request is
-        a navigation. |is_download| will be true if the resource request is a
-        download. |request_initiator| is the origin (scheme + domain) of the page
-        that initiated the request. Set |disable_default_handling| to true to
-        disable default handling of the request, in which case it will need to be
-        handled via CefResourceRequestHandler::GetResourceHandler or it will be
-        canceled. To allow the resource load to proceed with default handling
-        return NULL. To specify a handler for the resource return a
-        CefResourceRequestHandler object. If this callback returns NULL the same
-        method will be called on the associated CefRequestContextHandler, if any.
+        """Called on the browser process IO thread before a resource request is initiated.
+
+        The ``browser`` and ``frame`` values represent the source of the request.
+        ``request`` represents the request contents and cannot be modified in this callback.
+        ``is_navigation`` will be ``True`` if the resource request is a navigation.
+        ``is_download`` will be ``True`` if the resource request is a download.
+        ``request_initiator`` is the origin (scheme + domain) of the page that initiated the
+        request. Set ``disable_default_handling`` to ``True`` to disable default handling of
+        the request, in which case it will need to be handled via
+        :meth:`ResourceRequestHandler.get_resource_handler` or it will be canceled. To allow
+        the resource load to proceed with default handling return ``None``. To specify a
+        handler for the resource return a :class:`ResourceRequestHandler` object. If this
+        callback returns ``None`` the same method will be called on the associated
+        :class:`RequestContextHandler`, if any.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            request (Request):
+            is_navigation (bool):
+            is_download (bool):
+            request_initiator (str): The origin (scheme + domain) of the page  that initiated the request.
+        Returns:
+            tuple[ResourceRequestHandler | None, bool]
         """
         ...
     def get_auth_credentials(self, browser: Browser, origin_url: str, is_proxy: bool, host: str, port: int, realm: str, scheme: str, callback: AuthCallback) -> bool:
         """Called on the IO thread when the browser needs credentials from the user.
-        |origin_url| is the origin making this authentication request. |isProxy|
-        indicates whether the host is a proxy server. |host| contains the hostname
-        and |port| contains the port number. |realm| is the realm of the challenge
-        and may be empty. |scheme| is the authentication scheme used, such as
-        \"basic\" or \"digest\", and will be empty if the source of the request is an
-        FTP server. Return true to continue the request and call
-        CefAuthCallback::Continue() either in this method or at a later time when
-        the authentication information is available. Return false to cancel the
-        request immediately.
+
+        ``origin_url`` is the origin making this authentication request. ``is_proxy``
+        indicates whether the host is a proxy server. ``host`` contains the hostname and
+        ``port`` contains the port number. ``realm`` is the realm of the challenge and may
+        be empty. ``scheme`` is the authentication scheme used, such as \"basic\" or \"digest\",
+        and will be empty if the source of the request is an FTP server. Return ``True`` to
+        continue the request and call :meth:`AuthCallback.continue_` either in this method
+        or at a later time when the authentication information is available. Return
+        ``False`` to cancel the request immediately.
+
+        Args:
+            browser (Browser):
+            origin_url (str): The origin making this authentication request.
+            is_proxy (bool):
+            host (str):
+            port (int):
+            realm (str): The realm of the challenge  and may be empty.
+            scheme (str): The authentication scheme used, such as  \"basic\" or \"digest\", and will be empty if the source of the request is an  FTP server.
+            callback (AuthCallback):
+        Returns:
+            bool
         """
         ...
     def on_certificate_error(self, browser: Browser, cert_error: ErrorCode, request_url: str, callback: Callback) -> bool:
-        """Called on the UI thread to handle requests for URLs with an invalid
-        SSL certificate. Return true and call CefCallback methods either in this
-        method or at a later time to continue or cancel the request. Return false
-        to cancel the request immediately. If
-        cef_settings_t.ignore_certificate_errors is set all invalid certificates
-        will be accepted without calling this method.
+        """Called on the UI thread to handle requests for URLs with an invalid SSL certificate.
+
+        Return ``True`` and call :class:`Callback` methods either in this method or at a
+        later time to continue or cancel the request. Return ``False`` to cancel the request
+        immediately. If cef_settings_t.ignore_certificate_errors is set all invalid
+        certificates will be accepted without calling this method.
+
+        Args:
+            browser (Browser):
+            cert_error (ErrorCode):
+            request_url (str):
+            callback (Callback):
+        Returns:
+            bool
         """
         ...
     def on_select_client_certificate(self, browser: Browser, is_proxy: bool, host: str, port: int, certificates: list[X509Certificate], callback: SelectClientCertificateCallback) -> bool:
-        """Called on the UI thread when a client certificate is being requested for
-        authentication. Return false to use the default behavior.  If the
-        |certificates| list is not empty the default behavior will be to display a
-        dialog for certificate selection. If the |certificates| list is empty then
-        the default behavior will be not to show a dialog and it will continue
-        without using any certificate. Return true and call
-        CefSelectClientCertificateCallback::Select either in this method or at a
-        later time to select a certificate. Do not call Select or call it with
-        NULL to continue without using any certificate. |isProxy| indicates
-        whether the host is an HTTPS proxy or the origin server. |host| and |port|
-        contains the hostname and port of the SSL server. |certificates| is the
-        list of certificates to choose from; this list has already been pruned by
-        Chromium so that it only contains certificates from issuers that the
-        server trusts.
+        """Called on the UI thread when a client certificate is being requested for authentication.
+
+        Return ``False`` to use the default behavior.  If the ``certificates`` list is not
+        empty the default behavior will be to display a dialog for certificate selection. If
+        the ``certificates`` list is empty then the default behavior will be not to show a
+        dialog and it will continue without using any certificate. Return ``True`` and call
+        :meth:`SelectClientCertificateCallback.select` either in this method or at a later
+        time to select a certificate. Do not call Select or call it with ``None`` to
+        continue without using any certificate. ``is_proxy`` indicates whether the host is
+        an HTTPS proxy or the origin server. ``host`` and ``port`` contains the hostname and
+        port of the SSL server. ``certificates`` is the list of certificates to choose from;
+        this list has already been pruned by Chromium so that it only contains certificates
+        from issuers that the server trusts.
+
+        Args:
+            browser (Browser):
+            is_proxy (bool):
+            host (str):
+            port (int):
+            certificates (list[X509Certificate]): The  list of certificates to choose from; this list has already been pruned by  Chromium so that it only contains certificates from issuers that the  server trusts.
+            callback (SelectClientCertificateCallback):
+        Returns:
+            bool
         """
         ...
     def on_render_view_ready(self, browser: Browser) -> None:
-        """Called on the browser process UI thread when the render view associated
-        with |browser| is ready to receive/handle IPC messages in the render
-        process.
+        """Called on the browser process UI thread when the render view associated with ``browser`` is ready to receive/handle IPC messages in the render process.
+
+        Args:
+            browser (Browser): Ready to receive/handle IPC messages in the render  process.
         """
         ...
     def on_render_process_unresponsive(self, browser: Browser, callback: UnresponsiveProcessCallback) -> bool:
-        """Called on the browser process UI thread when the render process is
-        unresponsive as indicated by a lack of input event processing for at
-        least 15 seconds. Return false for the default behavior which is to
-        continue waiting with Alloy style or display of the \"Page
-        unresponsive\" dialog with Chrome style. Return true and don't
-        execute the callback to continue waiting without display of the Chrome
-        style dialog. Return true and call CefUnresponsiveProcessCallback::Wait
-        either in this method or at a later time to reset the wait timer.
-        In cases where you continue waiting there may be another call to this
-        method if the process remains unresponsive. Return true and call
-        CefUnresponsiveProcessCallback::Terminate either in this method or at a
-        later time to terminate the unresponsive process, resulting in a call to
-        OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the
-        process becomes responsive after this method is called. This functionality
-        depends on the hang monitor which can be disabled by passing the
-        `--disable-hang-monitor` command-line flag.
+        """Called on the browser process UI thread when the render process is unresponsive as indicated by a lack of input event processing for at least 15 seconds.
+
+        Return ``False`` for the default behavior which is to continue waiting with Alloy
+        style or display of the \"Page unresponsive\" dialog with Chrome style. Return
+        ``True`` and don't execute the callback to continue waiting without display of the
+        Chrome style dialog. Return ``True`` and call
+        :meth:`UnresponsiveProcessCallback.wait` either in this method or at a later time to
+        reset the wait timer. In cases where you continue waiting there may be another call
+        to this method if the process remains unresponsive. Return ``True`` and call
+        :meth:`UnresponsiveProcessCallback.terminate` either in this method or at a later
+        time to terminate the unresponsive process, resulting in a call to
+        OnRenderProcessTerminated. OnRenderProcessResponsive will be called if the process
+        becomes responsive after this method is called. This functionality depends on the
+        hang monitor which can be disabled by passing the `--disable-hang-monitor`
+        command-line flag.
+
+        Args:
+            browser (Browser):
+            callback (UnresponsiveProcessCallback):
+        Returns:
+            bool
         """
         ...
     def on_render_process_responsive(self, browser: Browser) -> None:
-        """Called on the browser process UI thread when the render process becomes
-        responsive after previously being unresponsive. See documentation on
-        OnRenderProcessUnresponsive.
+        """Called on the browser process UI thread when the render process becomes responsive after previously being unresponsive.
+
+        See documentation on OnRenderProcessUnresponsive.
+
+        Args:
+            browser (Browser):
         """
         ...
     def on_render_process_terminated(self, browser: Browser, status: TerminationStatus, error_code: int, error_string: str) -> None:
-        """Called on the browser process UI thread when the render process
-        terminates unexpectedly. |status| indicates how the process terminated.
-        |error_code| and |error_string| represent the error that would be
-        displayed in Chrome's \"Aw, Snap!\" view. Possible |error_code| values
-        include cef_resultcode_t non-normal exit values and platform-specific
-        crash values (for example, a Posix signal or Windows hardware exception).
+        """Called on the browser process UI thread when the render process terminates unexpectedly.
+
+        ``status`` indicates how the process terminated. ``error_code`` and ``error_string``
+        represent the error that would be displayed in Chrome's \"Aw, Snap!\" view. Possible
+        ``error_code`` values include cef_resultcode_t non-normal exit values and
+        platform-specific crash values (for example, a Posix signal or Windows hardware
+        exception).
+
+        Args:
+            browser (Browser):
+            status (TerminationStatus):
+            error_code (int):
+            error_string (str):
         """
         ...
     def on_document_available_in_main_frame(self, browser: Browser) -> None:
-        """Called on the browser process UI thread when the window.document object of
-        the main frame has been created.
+        """Called on the browser process UI thread when the window.document object of the main frame has been created.
+
+        Args:
+            browser (Browser):
         """
         ...
 
 
 class ResolveCallback:
-    """Callback interface for CefRequestContext::ResolveHost."""
+    """Callback interface for :meth:`RequestContext.resolve_host`."""
     def on_resolve_completed(self, result: ErrorCode, resolved_ips: list[str]) -> None:
         """Called on the UI thread after the ResolveHost request has completed.
-        |result| will be the result code. |resolved_ips| will be the list of
-        resolved IP addresses or empty if the resolution failed.
+
+        ``result`` will be the result code. ``resolved_ips`` will be the list of resolved IP
+        addresses or empty if the resolution failed.
+
+        Args:
+            result (ErrorCode):
+            resolved_ips (list[str]):
         """
         ...
 
 
 class ResourceHandler:
-    """Class used to implement a custom request handler interface. The methods of
-    this class will be called on the IO thread unless otherwise indicated.
+    """Class used to implement a custom request handler interface.
+
+    The methods of this class will be called on the IO thread unless otherwise
+    indicated.
     """
     def open(self, request: Request, callback: Callback) -> tuple[bool, bool]:
-        """Open the response stream. To handle the request immediately set
-        |handle_request| to true and return true. To decide at a later time set
-        |handle_request| to false, return true, and execute |callback| to continue
-        or cancel the request. To cancel the request immediately set
-        |handle_request| to true and return false. This method will be called in
-        sequence but not from a dedicated thread. For backwards compatibility set
-        |handle_request| to false and return false and the ProcessRequest method
-        will be called.
+        """Open the response stream.
+
+        To handle the request immediately set ``handle_request`` to ``True`` and return
+        ``True``. To decide at a later time set ``handle_request`` to ``False``, return
+        ``True``, and execute ``callback`` to continue or cancel the request. To cancel the
+        request immediately set ``handle_request`` to ``True`` and return ``False``. This
+        method will be called in sequence but not from a dedicated thread. For backwards
+        compatibility set ``handle_request`` to ``False`` and return ``False`` and the
+        ProcessRequest method will be called.
+
+        Args:
+            request (Request):
+            callback (Callback):
+        Returns:
+            tuple[bool, bool]
         """
         ...
     def process_request(self, request: Request, callback: Callback) -> bool:
-        """Begin processing the request. To handle the request return true and call
-        CefCallback::Continue() once the response header information is available
-        (CefCallback::Continue() can also be called from inside this method if
-        header information is available immediately). To cancel the request return
-        false.
+        """Begin processing the request.
+
+        To handle the request return ``True`` and call :meth:`Callback.continue_` once the
+        response header information is available (:meth:`Callback.continue_` can also be
+        called from inside this method if header information is available immediately). To
+        cancel the request return ``False``.
 
         WARNING: This method is deprecated. Use Open instead.
+
+        Args:
+            request (Request):
+            callback (Callback):
+        Returns:
+            bool
         """
         ...
     def get_response_headers(self, response: Response) -> tuple[int, str]:
-        """Retrieve response header information. If the response length is not known
-        set |response_length| to -1 and ReadResponse() will be called until it
-        returns false. If the response length is known set |response_length|
-        to a positive value and ReadResponse() will be called until it returns
-        false or the specified number of bytes have been read. Use the |response|
-        object to set the mime type, http status code and other optional header
-        values. To redirect the request to a new URL set |redirectUrl| to the new
-        URL. |redirectUrl| can be either a relative or fully qualified URL.
-        It is also possible to set |response| to a redirect http status code
-        and pass the new URL via a Location header. Likewise with |redirectUrl| it
-        is valid to set a relative or fully qualified URL as the Location header
-        value. If an error occured while setting up the request you can call
-        SetError() on |response| to indicate the error condition.
+        """Retrieve response header information.
+
+        If the response length is not known set ``response_length`` to -1 and ReadResponse()
+        will be called until it returns ``False``. If the response length is known set
+        ``response_length`` to a positive value and ReadResponse() will be called until it
+        returns ``False`` or the specified number of bytes have been read. Use the
+        ``response`` object to set the mime type, http status code and other optional header
+        values. To redirect the request to a new URL set ``redirect_url`` to the new URL.
+        ``redirect_url`` can be either a relative or fully qualified URL. It is also
+        possible to set ``response`` to a redirect http status code and pass the new URL via
+        a Location header. Likewise with ``redirect_url`` it is valid to set a relative or
+        fully qualified URL as the Location header value. If an error occured while setting
+        up the request you can call SetError() on ``response`` to indicate the error
+        condition.
+
+        Args:
+            response (Response):
+        Returns:
+            tuple[int, str]
         """
         ...
     def skip(self, bytes_to_skip: int, callback: ResourceSkipCallback) -> tuple[bool, int]:
-        """Skip response data when requested by a Range header. Skip over and discard
-        |bytes_to_skip| bytes of response data. If data is available immediately
-        set |bytes_skipped| to the number of bytes skipped and return true. To
-        read the data at a later time set |bytes_skipped| to 0, return true and
-        execute |callback| when the data is available. To indicate failure set
-        |bytes_skipped| to < 0 (e.g. -2 for ERR_FAILED) and return false. This
+        """Skip response data when requested by a Range header.
+
+        Skip over and discard ``bytes_to_skip`` bytes of response data. If data is available
+        immediately set ``bytes_skipped`` to the number of bytes skipped and return
+        ``True``. To read the data at a later time set ``bytes_skipped`` to 0, return
+        ``True`` and execute ``callback`` when the data is available. To indicate failure
+        set ``bytes_skipped`` to < 0 (e.g. -2 for ERR_FAILED) and return ``False``. This
         method will be called in sequence but not from a dedicated thread.
+
+        Args:
+            bytes_to_skip (int):
+            callback (ResourceSkipCallback):
+        Returns:
+            tuple[bool, int]
         """
         ...
     def read(self, data_out: memoryview, callback: ResourceReadCallback) -> tuple[bool, int]:
-        """Read response data. If data is available immediately copy up to
-        |bytes_to_read| bytes into |data_out|, set |bytes_read| to the number of
-        bytes copied, and return true. To read the data at a later time keep a
-        pointer to |data_out|, set |bytes_read| to 0, return true and execute
-        |callback| when the data is available (|data_out| will remain valid until
-        the callback is executed). To indicate response completion set
-        |bytes_read| to 0 and return false. To indicate failure set |bytes_read|
-        to < 0 (e.g. -2 for ERR_FAILED) and return false. This method will be
-        called in sequence but not from a dedicated thread. For backwards
-        compatibility set |bytes_read| to -1 and return false and the ReadResponse
-        method will be called.
+        """Read response data.
+
+        If data is available immediately copy up to ``bytes_to_read`` bytes into
+        ``data_out``, set ``bytes_read`` to the number of bytes copied, and return ``True``.
+        To read the data at a later time keep a pointer to ``data_out``, set ``bytes_read``
+        to 0, return ``True`` and execute ``callback`` when the data is available
+        (``data_out`` will remain valid until the callback is executed). To indicate
+        response completion set ``bytes_read`` to 0 and return ``False``. To indicate
+        failure set ``bytes_read`` to < 0 (e.g. -2 for ERR_FAILED) and return ``False``.
+        This method will be called in sequence but not from a dedicated thread. For
+        backwards compatibility set ``bytes_read`` to -1 and return ``False`` and the
+        ReadResponse method will be called.
+
+        Args:
+            data_out (memoryview):
+            callback (ResourceReadCallback):
+        Returns:
+            tuple[bool, int]
         """
         ...
     def read_response(self, data_out: memoryview, callback: Callback) -> tuple[bool, int]:
-        """Read response data. If data is available immediately copy up to
-        |bytes_to_read| bytes into |data_out|, set |bytes_read| to the number of
-        bytes copied, and return true. To read the data at a later time set
-        |bytes_read| to 0, return true and call CefCallback::Continue() when the
-        data is available. To indicate response completion return false.
+        """Read response data.
+
+        If data is available immediately copy up to ``bytes_to_read`` bytes into
+        ``data_out``, set ``bytes_read`` to the number of bytes copied, and return ``True``.
+        To read the data at a later time set ``bytes_read`` to 0, return ``True`` and call
+        :meth:`Callback.continue_` when the data is available. To indicate response
+        completion return ``False``.
 
         WARNING: This method is deprecated. Use Skip and Read instead.
+
+        Args:
+            data_out (memoryview):
+            callback (Callback):
+        Returns:
+            tuple[bool, int]
         """
         ...
     def cancel(self) -> None:
@@ -7049,269 +12573,415 @@ class ResourceHandler:
 
 
 class ResourceRequestHandler:
-    """Implement this interface to handle events related to browser requests. The
-    methods of this class will be called on the IO thread unless otherwise
+    """Implement this interface to handle events related to browser requests.
+
+    The methods of this class will be called on the IO thread unless otherwise
     indicated.
     """
     def get_cookie_access_filter(self, browser: Browser | None, frame: Frame | None, request: Request) -> CookieAccessFilter | None:
-        """Called on the IO thread before a resource request is loaded. The |browser|
-        and |frame| values represent the source of the request, and may be NULL
-        for requests originating from service workers or CefURLRequest. To
-        optionally filter cookies for the request return a CefCookieAccessFilter
-        object. The |request| object cannot not be modified in this callback.
+        """Called on the IO thread before a resource request is loaded.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`. To
+        optionally filter cookies for the request return a :class:`CookieAccessFilter`
+        object. The ``request`` object cannot not be modified in this callback.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+        Returns:
+            CookieAccessFilter | None
         """
         ...
     def on_before_resource_load(self, browser: Browser | None, frame: Frame | None, request: Request, callback: Callback) -> ReturnValue | int:
-        """Called on the IO thread before a resource request is loaded. The |browser|
-        and |frame| values represent the source of the request, and may be NULL
-        for requests originating from service workers or CefURLRequest. To
-        redirect or change the resource load optionally modify |request|.
-        Modification of the request URL will be treated as a redirect. Return
-        RV_CONTINUE to continue the request immediately. Return RV_CONTINUE_ASYNC
-        and call CefCallback methods at a later time to continue or cancel the
-        request asynchronously. Return RV_CANCEL to cancel the request
-        immediately.
+        """Called on the IO thread before a resource request is loaded.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`. To
+        redirect or change the resource load optionally modify ``request``. Modification of
+        the request URL will be treated as a redirect. Return RV_CONTINUE to continue the
+        request immediately. Return RV_CONTINUE_ASYNC and call :class:`Callback` methods at
+        a later time to continue or cancel the request asynchronously. Return RV_CANCEL to
+        cancel the request immediately.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            callback (Callback):
+        Returns:
+            ReturnValue | int
         """
         ...
     def get_resource_handler(self, browser: Browser | None, frame: Frame | None, request: Request) -> ResourceHandler | None:
-        """Called on the IO thread before a resource is loaded. The |browser| and
-        |frame| values represent the source of the request, and may be NULL for
-        requests originating from service workers or CefURLRequest. To allow the
-        resource to load using the default network loader return NULL. To specify
-        a handler for the resource return a CefResourceHandler object. The
-        |request| object cannot not be modified in this callback.
+        """Called on the IO thread before a resource is loaded.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`. To
+        allow the resource to load using the default network loader return ``None``. To
+        specify a handler for the resource return a :class:`ResourceHandler` object. The
+        ``request`` object cannot not be modified in this callback.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+        Returns:
+            ResourceHandler | None
         """
         ...
     def on_resource_redirect(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, new_url: str) -> str:
-        """Called on the IO thread when a resource load is redirected. The |browser|
-        and |frame| values represent the source of the request, and may be NULL
-        for requests originating from service workers or CefURLRequest. The
-        |request| parameter will contain the old URL and other request-related
-        information. The |response| parameter will contain the response that
-        resulted in the redirect. The |new_url| parameter will contain the new URL
-        and can be changed if desired. The |request| and |response| objects cannot
-        be modified in this callback.
+        """Called on the IO thread when a resource load is redirected.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`. The
+        ``request`` parameter will contain the old URL and other request-related
+        information. The ``response`` parameter will contain the response that resulted in
+        the redirect. The ``new_url`` parameter will contain the new URL and can be changed
+        if desired. The ``request`` and ``response`` objects cannot be modified in this
+        callback.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            response (Response):
+            new_url (str):
+        Returns:
+            str
         """
         ...
     def on_resource_response(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> bool:
-        """Called on the IO thread when a resource response is received. The
-        |browser| and |frame| values represent the source of the request, and may
-        be NULL for requests originating from service workers or CefURLRequest. To
-        allow the resource load to proceed without modification return false. To
-        redirect or retry the resource load optionally modify |request| and return
-        true. Modification of the request URL will be treated as a redirect.
-        Requests handled using the default network loader cannot be redirected in
-        this callback. The |response| object cannot be modified in this callback.
+        """Called on the IO thread when a resource response is received.
 
-        WARNING: Redirecting using this method is deprecated. Use
-        OnBeforeResourceLoad or GetResourceHandler to perform redirects.
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`. To
+        allow the resource load to proceed without modification return ``False``. To
+        redirect or retry the resource load optionally modify ``request`` and return
+        ``True``. Modification of the request URL will be treated as a redirect. Requests
+        handled using the default network loader cannot be redirected in this callback. The
+        ``response`` object cannot be modified in this callback.
+
+        WARNING: Redirecting using this method is deprecated. Use OnBeforeResourceLoad or
+        GetResourceHandler to perform redirects.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            response (Response):
+        Returns:
+            bool
         """
         ...
     def get_resource_response_filter(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response) -> ResponseFilter | None:
         """Called on the IO thread to optionally filter resource response content.
-        The |browser| and |frame| values represent the source of the request, and
-        may be NULL for requests originating from service workers or
-        CefURLRequest. |request| and |response| represent the request and response
-        respectively and cannot be modified in this callback.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` and ``response`` represent the request and response respectively and
+        cannot be modified in this callback.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            response (Response):
+        Returns:
+            ResponseFilter | None
         """
         ...
     def on_resource_load_complete(self, browser: Browser | None, frame: Frame | None, request: Request, response: Response, status: URLRequestStatus, received_content_length: int) -> None:
-        """Called on the IO thread when a resource load has completed. The |browser|
-        and |frame| values represent the source of the request, and may be NULL
-        for requests originating from service workers or CefURLRequest. |request|
-        and |response| represent the request and response respectively and cannot
-        be modified in this callback. |status| indicates the load completion
-        status. |received_content_length| is the number of response bytes actually
-        read. This method will be called for all requests, including requests that
-        are aborted due to CEF shutdown or destruction of the associated browser.
-        In cases where the associated browser is destroyed this callback may
-        arrive after the CefLifeSpanHandler::OnBeforeClose callback for that
-        browser. The CefFrame::IsValid method can be used to test for this
-        situation, and care should be taken not to call |browser| or |frame|
-        methods that modify state (like LoadURL, SendProcessMessage, etc.) if the
-        frame is invalid.
+        """Called on the IO thread when a resource load has completed.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` and ``response`` represent the request and response respectively and
+        cannot be modified in this callback. ``status`` indicates the load completion
+        status. ``received_content_length`` is the number of response bytes actually read.
+        This method will be called for all requests, including requests that are aborted due
+        to CEF shutdown or destruction of the associated browser. In cases where the
+        associated browser is destroyed this callback may arrive after the
+        :meth:`LifeSpanHandler.on_before_close` callback for that browser. The
+        :meth:`Frame.is_valid` method can be used to test for this situation, and care
+        should be taken not to call ``browser`` or ``frame`` methods that modify state (like
+        LoadURL, SendProcessMessage, etc.) if the frame is invalid.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+            response (Response):
+            status (URLRequestStatus):
+            received_content_length (int): The number of response bytes actually  read.
         """
         ...
     def on_protocol_execution(self, browser: Browser | None, frame: Frame | None, request: Request) -> bool:
-        """Called on the IO thread to handle requests for URLs with an unknown
-        protocol component. The |browser| and |frame| values represent the source
-        of the request, and may be NULL for requests originating from service
-        workers or CefURLRequest. |request| cannot be modified in this callback.
-        Set |allow_os_execution| to true to attempt execution via the registered
-        OS protocol handler, if any. SECURITY WARNING: YOU SHOULD USE THIS METHOD
-        TO ENFORCE RESTRICTIONS BASED ON SCHEME, HOST OR OTHER URL ANALYSIS BEFORE
-        ALLOWING OS EXECUTION.
+        """Called on the IO thread to handle requests for URLs with an unknown protocol component.
+
+        The ``browser`` and ``frame`` values represent the source of the request, and may be
+        ``None`` for requests originating from service workers or :class:`URLRequest`.
+        ``request`` cannot be modified in this callback. Set ``allow_os_execution`` to
+        ``True`` to attempt execution via the registered OS protocol handler, if any.
+        SECURITY WARNING: YOU SHOULD USE THIS METHOD TO ENFORCE RESTRICTIONS BASED ON
+        SCHEME, HOST OR OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            request (Request):
+        Returns:
+            bool
         """
         ...
 
 
 class ResponseFilter:
-    """Implement this interface to filter resource response content. The methods of
-    this class will be called on the browser process IO thread.
+    """Implement this interface to filter resource response content.
+
+    The methods of this class will be called on the browser process IO thread.
     """
     def init_filter(self) -> bool:
-        """Initialize the response filter. Will only be called a single time. The
-        filter will not be installed if this method returns false.
+        """Initialize the response filter.
+
+        Will only be called a single time. The filter will not be installed if this method
+        returns ``False``.
+
+        Returns:
+            bool
         """
         ...
     def filter(self, data_in: memoryview, data_out: memoryview) -> tuple[ResponseFilterStatus | int, int, int]:
-        """Called to filter a chunk of data. Expected usage is as follows:
+        """Called to filter a chunk of data.
 
-         1. Read input data from |data_in| and set |data_in_read| to the number of
-            bytes that were read up to a maximum of |data_in_size|. |data_in| will
-            be NULL if |data_in_size| is zero.
-         2. Write filtered output data to |data_out| and set |data_out_written| to
-            the number of bytes that were written up to a maximum of
-            |data_out_size|. If no output data was written then all data must be
-            read from |data_in| (user must set |data_in_read| = |data_in_size|).
-         3. Return RESPONSE_FILTER_DONE if all output data was written or
-            RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
+        Expected usage is as follows:
 
-        This method will be called repeatedly until the input buffer has been
-        fully read (user sets |data_in_read| = |data_in_size|) and there is no
-        more input data to filter (the resource response is complete). This method
-        may then be called an additional time with an empty input buffer if the
-        user filled the output buffer (set |data_out_written| = |data_out_size|)
-        and returned RESPONSE_FILTER_NEED_MORE_DATA to indicate that output data
-        is still pending.
+          1. Read input data from ``data_in`` and set ``data_in_read`` to the number of
+             bytes that were read up to a maximum of ``data_in_size``. ``data_in`` will
+             be ``None`` if ``data_in_size`` is zero.
+          2. Write filtered output data to ``data_out`` and set ``data_out_written`` to
+             the number of bytes that were written up to a maximum of
+             ``data_out_size``. If no output data was written then all data must be
+             read from ``data_in`` (user must set ``data_in_read`` = ``data_in_size``).
+          3. Return RESPONSE_FILTER_DONE if all output data was written or
+             RESPONSE_FILTER_NEED_MORE_DATA if output data is still pending.
 
-        Calls to this method will stop when one of the following conditions is
-        met:
+        This method will be called repeatedly until the input buffer has been fully read
+        (user sets ``data_in_read`` = ``data_in_size``) and there is no more input data to
+        filter (the resource response is complete). This method may then be called an
+        additional time with an empty input buffer if the user filled the output buffer (set
+        ``data_out_written`` = ``data_out_size``) and returned
+        RESPONSE_FILTER_NEED_MORE_DATA to indicate that output data is still pending.
 
-         1. There is no more input data to filter (the resource response is
-            complete) and the user sets |data_out_written| = 0 or returns
-            RESPONSE_FILTER_DONE to indicate that all data has been written, or;
-         2. The user returns RESPONSE_FILTER_ERROR to indicate an error.
+        Calls to this method will stop when one of the following conditions is met:
+
+          1. There is no more input data to filter (the resource response is
+             complete) and the user sets ``data_out_written`` = 0 or returns
+             RESPONSE_FILTER_DONE to indicate that all data has been written, or;
+          2. The user returns RESPONSE_FILTER_ERROR to indicate an error.
 
         Do not keep a reference to the buffers passed to this method.
+
+        Args:
+            data_in (memoryview):
+            data_out (memoryview):
+        Returns:
+            tuple[ResponseFilterStatus | int, int, int]
         """
         ...
 
 
 class RunFileDialogCallback:
-    """Callback interface for CefBrowserHost::RunFileDialog. The methods of this
-    class will be called on the browser process UI thread.
+    """Callback interface for :meth:`BrowserHost.run_file_dialog`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_file_dialog_dismissed(self, file_paths: list[str]) -> None:
         """Called asynchronously after the file dialog is dismissed.
-        |file_paths| will be a single value or a list of values depending on the
-        dialog mode. If the selection was cancelled |file_paths| will be empty.
+
+        ``file_paths`` will be a single value or a list of values depending on the dialog
+        mode. If the selection was cancelled ``file_paths`` will be empty.
+
+        Args:
+            file_paths (list[str]):
         """
         ...
 
 
 class SchemeHandlerFactory:
-    """Class that creates CefResourceHandler instances for handling scheme
-    requests. The methods of this class will always be called on the IO thread.
+    """Class that creates :class:`ResourceHandler` instances for handling scheme requests.
+
+    The methods of this class will always be called on the IO thread.
     """
     def create(self, browser: Browser | None, frame: Frame | None, scheme_name: str, request: Request) -> ResourceHandler | None:
-        """Return a new resource handler instance to handle the request or an empty
-        reference to allow default handling of the request. |browser| and |frame|
-        will be the browser window and frame respectively that originated the
-        request or NULL if the request did not originate from a browser window
-        (for example, if the request came from CefURLRequest). The |request|
+        """Return a new resource handler instance to handle the request or an empty reference to allow default handling of the request.
+
+        ``browser`` and ``frame`` will be the browser window and frame respectively that
+        originated the request or ``None`` if the request did not originate from a browser
+        window (for example, if the request came from :class:`URLRequest`). The ``request``
         object passed to this method cannot be modified.
+
+        Args:
+            browser (Browser | None):
+            frame (Frame | None):
+            scheme_name (str):
+            request (Request):
+        Returns:
+            ResourceHandler | None: A new resource handler instance to handle the request or an empty  reference to allow default handling of the request.
         """
         ...
 
 
 class ServerHandler:
-    """Implement this interface to handle HTTP server requests. A new thread will
-    be created for each CefServer::CreateServer call (the \"dedicated server
-    thread\"), and the methods of this class will be called on that thread. It is
-    therefore recommended to use a different CefServerHandler instance for each
-    CefServer::CreateServer call to avoid thread safety issues in the
-    CefServerHandler implementation.
+    """Implement this interface to handle HTTP server requests.
+
+    A new thread will be created for each :meth:`Server.create_server` call (the
+    \"dedicated server thread\"), and the methods of this class will be called on that
+    thread. It is therefore recommended to use a different :class:`ServerHandler`
+    instance for each :meth:`Server.create_server` call to avoid thread safety issues in
+    the :class:`ServerHandler` implementation.
     """
     def on_server_created(self, server: Server) -> None:
-        """Called when |server| is created. If the server was started successfully
-        then CefServer::IsRunning will return true. The server will continue
-        running until CefServer::Shutdown is called, after which time
-        OnServerDestroyed will be called. If the server failed to start then
-        OnServerDestroyed will be called immediately after this method returns.
+        """Called when ``server`` is created.
+
+        If the server was started successfully then :meth:`Server.is_running` will return
+        ``True``. The server will continue running until :meth:`Server.shutdown` is called,
+        after which time OnServerDestroyed will be called. If the server failed to start
+        then OnServerDestroyed will be called immediately after this method returns.
+
+        Args:
+            server (Server): Created.
         """
         ...
     def on_server_destroyed(self, server: Server) -> None:
-        """Called when |server| is destroyed. The server thread will be stopped after
-        this method returns. The client should release any references to |server|
-        when this method is called. See OnServerCreated documentation for a
-        description of server lifespan.
+        """Called when ``server`` is destroyed.
+
+        The server thread will be stopped after this method returns. The client should
+        release any references to ``server`` when this method is called. See OnServerCreated
+        documentation for a description of server lifespan.
+
+        Args:
+            server (Server): Destroyed.
         """
         ...
     def on_client_connected(self, server: Server, connection_id: int) -> None:
-        """Called when a client connects to |server|. |connection_id| uniquely
-        identifies the connection. Each call to this method will have a matching
-        call to OnClientDisconnected.
+        """Called when a client connects to ``server``.
+
+        ``connection_id`` uniquely identifies the connection. Each call to this method will
+        have a matching call to OnClientDisconnected.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         ...
     def on_client_disconnected(self, server: Server, connection_id: int) -> None:
-        """Called when a client disconnects from |server|. |connection_id| uniquely
-        identifies the connection. The client should release any data associated
-        with |connection_id| when this method is called and |connection_id| should
-        no longer be passed to CefServer methods. Disconnects can originate from
-        either the client or the server. For example, the server will disconnect
-        automatically after a CefServer::SendHttpXXXResponse method is called.
+        """Called when a client disconnects from ``server``.
+
+        ``connection_id`` uniquely identifies the connection. The client should release any
+        data associated with ``connection_id`` when this method is called and
+        ``connection_id`` should no longer be passed to :class:`Server` methods. Disconnects
+        can originate from either the client or the server. For example, the server will
+        disconnect automatically after a :meth:`Server.send_http_xxx_response` method is
+        called.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         ...
     def on_http_request(self, server: Server, connection_id: int, client_address: str, request: Request) -> None:
-        """Called when |server| receives an HTTP request. |connection_id| uniquely
-        identifies the connection, |client_address| is the requesting IPv4 or IPv6
-        client address including port number, and |request| contains the request
-        contents (URL, method, headers and optional POST data). Call CefServer
-        methods either synchronously or asynchronusly to send a response.
+        """Called when ``server`` receives an HTTP request.
+
+        ``connection_id`` uniquely identifies the connection, ``client_address`` is the
+        requesting IPv4 or IPv6 client address including port number, and ``request``
+        contains the request contents (URL, method, headers and optional POST data). Call
+        :class:`Server` methods either synchronously or asynchronusly to send a response.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            client_address (str): The requesting IPv4 or IPv6  client address including port number, and ``request`` contains the request  contents (URL, method, headers and optional POST data).
+            request (Request):
         """
         ...
     def on_web_socket_request(self, server: Server, connection_id: int, client_address: str, request: Request, callback: Callback) -> None:
-        """Called when |server| receives a WebSocket request. |connection_id|
-        uniquely identifies the connection, |client_address| is the requesting
-        IPv4 or IPv6 client address including port number, and |request| contains
-        the request contents (URL, method, headers and optional POST data).
-        Execute |callback| either synchronously or asynchronously to accept or
-        decline the WebSocket connection. If the request is accepted then
-        OnWebSocketConnected will be called after the WebSocket has connected and
-        incoming messages will be delivered to the OnWebSocketMessage callback. If
-        the request is declined then the client will be disconnected and
-        OnClientDisconnected will be called. Call the
-        CefServer::SendWebSocketMessage method after receiving the
+        """Called when ``server`` receives a WebSocket request.
+
+        ``connection_id`` uniquely identifies the connection, ``client_address`` is the
+        requesting IPv4 or IPv6 client address including port number, and ``request``
+        contains the request contents (URL, method, headers and optional POST data). Execute
+        ``callback`` either synchronously or asynchronously to accept or decline the
+        WebSocket connection. If the request is accepted then OnWebSocketConnected will be
+        called after the WebSocket has connected and incoming messages will be delivered to
+        the OnWebSocketMessage callback. If the request is declined then the client will be
+        disconnected and OnClientDisconnected will be called. Call the
+        :meth:`Server.send_web_socket_message` method after receiving the
         OnWebSocketConnected callback to respond with WebSocket messages.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            client_address (str): The requesting  IPv4 or IPv6 client address including port number, and ``request`` contains  the request contents (URL, method, headers and optional POST data).
+            request (Request):
+            callback (Callback):
         """
         ...
     def on_web_socket_connected(self, server: Server, connection_id: int) -> None:
-        """Called after the client has accepted the WebSocket connection for |server|
-        and |connection_id| via the OnWebSocketRequest callback. See
-        OnWebSocketRequest documentation for intended usage.
+        """Called after the client has accepted the WebSocket connection for ``server`` and ``connection_id`` via the OnWebSocketRequest callback.
+
+        See OnWebSocketRequest documentation for intended usage.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         ...
     def on_web_socket_message(self, server: Server, connection_id: int, data: memoryview) -> None:
-        """Called when |server| receives an WebSocket message. |connection_id|
-        uniquely identifies the connection, |data| is the message content and
-        |data_size| is the size of |data| in bytes. Do not keep a reference to
-        |data| outside of this method. See OnWebSocketRequest documentation for
+        """Called when ``server`` receives an WebSocket message.
+
+        ``connection_id`` uniquely identifies the connection, ``data`` is the message
+        content and ``data_size`` is the size of ``data`` in bytes. Do not keep a reference
+        to ``data`` outside of this method. See OnWebSocketRequest documentation for
         intended usage.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            data (memoryview): The message content and  ``data_size`` is the size of ``data`` in bytes.
         """
         ...
 
 
 class SetCookieCallback:
-    """Interface to implement to be notified of asynchronous completion via
-    CefCookieManager::SetCookie().
-    """
+    """Interface to implement to be notified of asynchronous completion via :meth:`CookieManager.set_cookie`."""
     def on_complete(self, success: bool) -> None:
-        """Method that will be called upon completion. |success| will be true if the
-        cookie was set successfully.
+        """Method that will be called upon completion.
+
+        ``success`` will be ``True`` if the cookie was set successfully.
+
+        Args:
+            success (bool):
         """
         ...
 
 
 class SettingObserver:
-    """Implemented by the client to observe content and website setting changes and
-    registered via CefRequestContext::AddSettingObserver. The methods of this
-    class will be called on the browser process UI thread.
+    """Implemented by the client to observe content and website setting changes and registered via :meth:`RequestContext.add_setting_observer`.
+
+    The methods of this class will be called on the browser process UI thread.
     """
     def on_setting_changed(self, requesting_url: str, top_level_url: str, content_type: ContentSettingTypes) -> None:
-        """Called when a content or website setting has changed. The new value can be
-        retrieved using CefRequestContext::GetContentSetting or
-        CefRequestContext::GetWebsiteSetting.
+        """Called when a content or website setting has changed.
+
+        The new value can be retrieved using :meth:`RequestContext.get_content_setting` or
+        :meth:`RequestContext.get_website_setting`.
+
+        Args:
+            requesting_url (str):
+            top_level_url (str):
+            content_type (ContentSettingTypes):
         """
         ...
 
@@ -7319,17 +12989,22 @@ class SettingObserver:
 class StringVisitor:
     """Implement this interface to receive string values asynchronously."""
     def visit(self, string: str) -> None:
-        """Method that will be executed."""
+        """Method that will be executed.
+
+        Args:
+            string (str):
+        """
         ...
 
 
 class Task:
-    """Implement this interface for asynchronous task execution. If the task is
-    posted successfully and if the associated message loop is still running then
-    the Execute() method will be called on the target thread. If the task fails
-    to post then the task object may be destroyed on the source thread instead
-    of the target thread. For this reason be cautious when performing work in
-    the task object destructor.
+    """Implement this interface for asynchronous task execution.
+
+    If the task is posted successfully and if the associated message loop is still
+    running then the Execute() method will be called on the target thread. If the task
+    fails to post then the task object may be destroyed on the source thread instead of
+    the target thread. For this reason be cautious when performing work in the task
+    object destructor.
     """
     def execute(self) -> None:
         """Method that will be executed on the target thread."""
@@ -7337,508 +13012,922 @@ class Task:
 
 
 class TextfieldDelegate:
-    """Implement this interface to handle Textfield events. The methods of this
-    class will be called on the browser process UI thread unless otherwise
-    indicated.
+    """Implement this interface to handle Textfield events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
     def on_key_event(self, textfield: Textfield, event: KeyEvent) -> bool:
-        """Called when |textfield| receives a keyboard event. |event| contains
-        information about the keyboard event. Return true if the keyboard event
-        was handled or false otherwise for default handling.
+        """Called when ``textfield`` receives a keyboard event.
+
+        ``event`` contains information about the keyboard event. Return ``True`` if the
+        keyboard event was handled or ``False`` otherwise for default handling.
+
+        Args:
+            textfield (Textfield):
+            event (KeyEvent):
+        Returns:
+            bool
         """
         ...
     def on_after_user_action(self, textfield: Textfield) -> None:
-        """Called after performing a user action that may change |textfield|."""
+        """Called after performing a user action that may change ``textfield``.
+
+        Args:
+            textfield (Textfield):
+        """
         ...
 
 
 class URLRequestClient:
-    """Interface that should be implemented by the CefURLRequest client. The
-    methods of this class will be called on the same thread that created the
-    request unless otherwise documented.
+    """Interface that should be implemented by the :class:`URLRequest` client.
+
+    The methods of this class will be called on the same thread that created the request
+    unless otherwise documented.
     """
     def on_request_complete(self, request: URLRequest) -> None:
-        """Notifies the client that the request has completed. Use the
-        CefURLRequest::GetRequestStatus method to determine if the request was
+        """Notify the client that the request has completed.
+
+        Use the :meth:`URLRequest.get_request_status` method to determine if the request was
         successful or not.
+
+        Args:
+            request (URLRequest):
         """
         ...
     def on_upload_progress(self, request: URLRequest, current: int, total: int) -> None:
-        """Notifies the client of upload progress. |current| denotes the number of
-        bytes sent so far and |total| is the total size of uploading data (or -1
-        if chunked upload is enabled). This method will only be called if the
-        UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
+        """Notify the client of upload progress.
+
+        ``current`` denotes the number of bytes sent so far and ``total`` is the total size
+        of uploading data (or -1 if chunked upload is enabled). This method will only be
+        called if the UR_FLAG_REPORT_UPLOAD_PROGRESS flag is set on the request.
+
+        Args:
+            request (URLRequest):
+            current (int):
+            total (int): The total size of uploading data (or -1  if chunked upload is enabled).
         """
         ...
     def on_download_progress(self, request: URLRequest, current: int, total: int) -> None:
-        """Notifies the client of download progress. |current| denotes the number of
-        bytes received up to the call and |total| is the expected total size of
-        the response (or -1 if not determined).
+        """Notify the client of download progress.
+
+        ``current`` denotes the number of bytes received up to the call and ``total`` is the
+        expected total size of the response (or -1 if not determined).
+
+        Args:
+            request (URLRequest):
+            current (int):
+            total (int): The expected total size of  the response (or -1 if not determined).
         """
         ...
     def on_download_data(self, request: URLRequest, data: memoryview) -> None:
-        """Called when some part of the response is read. |data| contains the current
-        bytes received since the last call. This method will not be called if the
-        UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
+        """Called when some part of the response is read.
+
+        ``data`` contains the current bytes received since the last call. This method will
+        not be called if the UR_FLAG_NO_DOWNLOAD_DATA flag is set on the request.
+
+        Args:
+            request (URLRequest):
+            data (memoryview):
         """
         ...
     def get_auth_credentials(self, is_proxy: bool, host: str, port: int, realm: str, scheme: str, callback: AuthCallback) -> bool:
         """Called on the IO thread when the browser needs credentials from the user.
-        |isProxy| indicates whether the host is a proxy server. |host| contains
-        the hostname and |port| contains the port number. Return true to continue
-        the request and call CefAuthCallback::Continue() when the authentication
-        information is available. If the request has an associated browser/frame
-        then returning false will result in a call to GetAuthCredentials on the
-        CefRequestHandler associated with that browser, if any. Otherwise,
-        returning false will cancel the request immediately. This method will only
-        be called for requests initiated from the browser process.
+
+        ``is_proxy`` indicates whether the host is a proxy server. ``host`` contains the
+        hostname and ``port`` contains the port number. Return ``True`` to continue the
+        request and call :meth:`AuthCallback.continue_` when the authentication information
+        is available. If the request has an associated browser/frame then returning
+        ``False`` will result in a call to GetAuthCredentials on the :class:`RequestHandler`
+        associated with that browser, if any. Otherwise, returning ``False`` will cancel the
+        request immediately. This method will only be called for requests initiated from the
+        browser process.
+
+        Args:
+            is_proxy (bool):
+            host (str):
+            port (int):
+            realm (str):
+            scheme (str):
+            callback (AuthCallback):
+        Returns:
+            bool
         """
         ...
 
 
 class ViewDelegate:
-    """Implement this interface to handle view events. All size and position values
-    are in density independent pixels (DIP) unless otherwise indicated. The
-    methods of this class will be called on the browser process UI thread unless
-    otherwise indicated.
+    """Implement this interface to handle view events.
+
+    All size and position values are in density independent pixels (DIP) unless
+    otherwise indicated. The methods of this class will be called on the browser process
+    UI thread unless otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
 
 
 class WindowDelegate:
-    """Implement this interface to handle window events. The methods of this class
-    will be called on the browser process UI thread unless otherwise indicated.
+    """Implement this interface to handle window events.
+
+    The methods of this class will be called on the browser process UI thread unless
+    otherwise indicated.
     """
     def get_preferred_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the preferred size for |view|. The Layout will use this information
-        to determine the display size.
+        """Return the preferred size for ``view``.
+
+        The Layout will use this information to determine the display size.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The preferred size for ``view``.
         """
         ...
     def get_minimum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the minimum size for |view|."""
+        """Return the minimum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The minimum size for ``view``.
+        """
         ...
     def get_maximum_size(self, view: View) -> Size | tuple[int, int]:
-        """Return the maximum size for |view|."""
+        """Return the maximum size for ``view``.
+
+        Args:
+            view (View):
+        Returns:
+            Size | tuple[int, int]: The maximum size for ``view``.
+        """
         ...
     def get_height_for_width(self, view: View, width: int) -> int:
-        """Return the height necessary to display |view| with the provided |width|.
-        If not specified the result of GetPreferredSize().height will be used by
-        default. Override if |view|'s preferred height depends upon the width
-        (for example, with Labels).
+        """Return the height necessary to display ``view`` with the provided ``width``.
+
+        If not specified the result of GetPreferredSize().height will be used by default.
+        Override if ``view``'s preferred height depends upon the width (for example, with
+        Labels).
+
+        Args:
+            view (View):
+            width (int):
+        Returns:
+            int: The height necessary to display ``view`` with the provided ``width``.
         """
         ...
     def on_parent_view_changed(self, view: View, added: bool, parent: View) -> None:
-        """Called when the parent of |view| has changed. If |view| is being added to
-        |parent| then |added| will be true. If |view| is being removed from
-        |parent| then |added| will be false. If |view| is being reparented the
-        remove notification will be sent before the add notification. Do not
-        modify the view hierarchy in this callback.
+        """Called when the parent of ``view`` has changed.
+
+        If ``view`` is being added to ``parent`` then ``added`` will be ``True``. If
+        ``view`` is being removed from ``parent`` then ``added`` will be ``False``. If
+        ``view`` is being reparented the remove notification will be sent before the add
+        notification. Do not modify the view hierarchy in this callback.
+
+        Args:
+            view (View): Being reparented the  remove notification will be sent before the add notification.
+            added (bool):
+            parent (View):
         """
         ...
     def on_child_view_changed(self, view: View, added: bool, child: View) -> None:
-        """Called when a child of |view| has changed. If |child| is being added to
-        |view| then |added| will be true. If |child| is being removed from |view|
-        then |added| will be false. If |child| is being reparented the remove
-        notification will be sent to the old parent before the add notification is
-        sent to the new parent. Do not modify the view hierarchy in this callback.
+        """Called when a child of ``view`` has changed.
+
+        If ``child`` is being added to ``view`` then ``added`` will be ``True``. If
+        ``child`` is being removed from ``view`` then ``added`` will be ``False``. If
+        ``child`` is being reparented the remove notification will be sent to the old parent
+        before the add notification is sent to the new parent. Do not modify the view
+        hierarchy in this callback.
+
+        Args:
+            view (View):
+            added (bool):
+            child (View): Being reparented the remove  notification will be sent to the old parent before the add notification is  sent to the new parent.
         """
         ...
     def on_window_changed(self, view: View, added: bool) -> None:
-        """Called when |view| is added or removed from the CefWindow."""
+        """Called when ``view`` is added or removed from the :class:`Window`.
+
+        Args:
+            view (View): Added or removed from the ``CefWindow``.
+            added (bool):
+        """
         ...
     def on_layout_changed(self, view: View, new_bounds: Rect) -> None:
-        """Called when the layout of |view| has changed."""
+        """Called when the layout of ``view`` has changed.
+
+        Args:
+            view (View):
+            new_bounds (Rect):
+        """
         ...
     def on_focus(self, view: View) -> None:
-        """Called when |view| gains focus."""
+        """Called when ``view`` gains focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_blur(self, view: View) -> None:
-        """Called when |view| loses focus."""
+        """Called when ``view`` loses focus.
+
+        Args:
+            view (View):
+        """
         ...
     def on_theme_changed(self, view: View) -> None:
-        """Called when the theme for |view| has changed, after the new theme colors
-        have already been applied. Views are notified via the component hierarchy
-        in depth-first reverse order (children before parents).
+        """Called when the theme for ``view`` has changed, after the new theme colors have already been applied.
+
+        Views are notified via the component hierarchy in depth-first reverse order
+        (children before parents).
 
         This will be called in the following cases:
 
-        1. When |view|, or a parent of |view|, is added to a Window.
-        2. When the native/OS or Chrome theme changes for the Window that contains
-           |view|. See CefWindowDelegate::OnThemeColorsChanged documentation.
-        3. When the client explicitly calls CefWindow::ThemeChanged on the Window
-           that contains |view|.
+         1. When ``view``, or a parent of ``view``, is added to a Window.
+         2. When the native/OS or Chrome theme changes for the Window that contains
+            ``view``. See :meth:`WindowDelegate.on_theme_colors_changed` documentation.
+         3. When the client explicitly calls :meth:`Window.theme_changed` on the Window
+            that contains ``view``.
 
-        Optionally use this callback to override the new per-View theme colors by
-        calling CefView::SetBackgroundColor or the appropriate component-specific
-        method. See CefWindow::SetThemeColor documentation for how to customize
-        additional Window theme colors.
+        Optionally use this callback to override the new per-View theme colors by calling
+        :meth:`View.set_background_color` or the appropriate component-specific method. See
+        :meth:`Window.set_theme_color` documentation for how to customize additional Window
+        theme colors.
+
+        Args:
+            view (View):
         """
         ...
     def on_window_created(self, window: Window) -> None:
-        """Called when |window| is created."""
+        """Called when ``window`` is created.
+
+        Args:
+            window (Window): Created.
+        """
         ...
     def on_window_closing(self, window: Window) -> None:
-        """Called when |window| is closing."""
+        """Called when ``window`` is closing.
+
+        Args:
+            window (Window): Closing.
+        """
         ...
     def on_window_destroyed(self, window: Window) -> None:
-        """Called when |window| is destroyed. Release all references to |window| and
-        do not attempt to execute any methods on |window| after this callback
-        returns.
+        """Called when ``window`` is destroyed.
+
+        Release all references to ``window`` and do not attempt to execute any methods on
+        ``window`` after this callback returns.
+
+        Args:
+            window (Window): Destroyed.
         """
         ...
     def on_window_activation_changed(self, window: Window, active: bool) -> None:
-        """Called when |window| is activated or deactivated."""
+        """Called when ``window`` is activated or deactivated.
+
+        Args:
+            window (Window): Activated or deactivated.
+            active (bool):
+        """
         ...
     def on_window_bounds_changed(self, window: Window, new_bounds: Rect) -> None:
-        """Called when |window| bounds have changed. |new_bounds| will be in DIP
-        screen coordinates.
+        """Called when ``window`` bounds have changed.
+
+        ``new_bounds`` will be in DIP screen coordinates.
+
+        Args:
+            window (Window):
+            new_bounds (Rect):
         """
         ...
     def on_window_fullscreen_transition(self, window: Window, is_completed: bool) -> None:
-        """Called when |window| is transitioning to or from fullscreen mode. On MacOS
-        the transition occurs asynchronously with |is_competed| set to false when
-        the transition starts and true after the transition completes. On other
-        platforms the transition occurs synchronously with |is_completed| set to
-        true after the transition completes. With Alloy style you must also
-        implement CefDisplayHandler::OnFullscreenModeChange to handle fullscreen
-        transitions initiated by browser content.
+        """Called when ``window`` is transitioning to or from fullscreen mode.
+
+        On MacOS the transition occurs asynchronously with ``is_competed`` set to ``False``
+        when the transition starts and ``True`` after the transition completes. On other
+        platforms the transition occurs synchronously with ``is_completed`` set to ``True``
+        after the transition completes. With Alloy style you must also implement
+        :meth:`DisplayHandler.on_fullscreen_mode_change` to handle fullscreen transitions
+        initiated by browser content.
+
+        Args:
+            window (Window): Transitioning to or from fullscreen mode.
+            is_completed (bool):
         """
         ...
     def get_parent_window(self, window: Window) -> tuple[Window | None, bool, bool]:
-        """Return the parent for |window| or NULL if the |window| does not have a
-        parent. Windows with parents will not get a taskbar button. Set |is_menu|
-        to true if |window| will be displayed as a menu, in which case it will not
-        be clipped to the parent window bounds. Set |can_activate_menu| to false
-        if |is_menu| is true and |window| should not be activated (given keyboard
-        focus) when displayed.
+        """Return the parent for ``window`` or ``None`` if the ``window`` does not have a parent.
+
+        Windows with parents will not get a taskbar button. Set ``is_menu`` to ``True`` if
+        ``window`` will be displayed as a menu, in which case it will not be clipped to the
+        parent window bounds. Set ``can_activate_menu`` to ``False`` if ``is_menu`` is
+        ``True`` and ``window`` should not be activated (given keyboard focus) when
+        displayed.
+
+        Args:
+            window (Window):
+        Returns:
+            tuple[Window | None, bool, bool]: The parent for ``window`` or ``None`` if the ``window`` does not have a  parent.
         """
         ...
     def is_window_modal_dialog(self, window: Window) -> bool:
-        """Return true if |window| should be created as a window modal dialog. Only
-        called when a Window is returned via GetParentWindow() with |is_menu| set
-        to false. All controls in the parent Window will be disabled while
-        |window| is visible. This functionality is not supported by all Linux
-        window managers. Alternately, use CefWindow::ShowAsBrowserModalDialog()
-        for a browser modal dialog that works on all platforms.
+        """Return ``True`` if ``window`` should be created as a window modal dialog.
+
+        Only called when a Window is returned via GetParentWindow() with ``is_menu`` set to
+        ``False``. All controls in the parent Window will be disabled while ``window`` is
+        visible. This functionality is not supported by all Linux window managers.
+        Alternately, use :meth:`Window.show_as_browser_modal_dialog` for a browser modal
+        dialog that works on all platforms.
+
+        Args:
+            window (Window): Visible.
+        Returns:
+            bool: ``True`` if ``window`` should be created as a window modal dialog.
         """
         ...
     def get_initial_bounds(self, window: Window) -> Rect | tuple[int, int, int, int]:
-        """Return the initial bounds for |window| in density independent pixel (DIP)
-        coordinates. If this method returns an empty CefRect then
-        GetPreferredSize() will be called to retrieve the size, and the window
-        will be placed on the screen with origin (0,0). This method can be used in
-        combination with CefView::GetBoundsInScreen() to restore the previous
-        window bounds.
+        """Return the initial bounds for ``window`` in density independent pixel (DIP) coordinates.
+
+        If this method returns an empty ``CefRect`` then GetPreferredSize() will be called
+        to retrieve the size, and the window will be placed on the screen with origin (0,0).
+        This method can be used in combination with :meth:`View.get_bounds_in_screen` to
+        restore the previous window bounds.
+
+        Args:
+            window (Window):
+        Returns:
+            Rect | tuple[int, int, int, int]: The initial bounds for ``window`` in density independent pixel (DIP)  coordinates.
         """
         ...
     def get_initial_show_state(self, window: Window) -> ShowState | int:
-        """Return the initial show state for |window|."""
+        """Return the initial show state for ``window``.
+
+        Args:
+            window (Window):
+        Returns:
+            ShowState | int: The initial show state for ``window``.
+        """
         ...
     def is_frameless(self, window: Window) -> bool:
-        """Return true if |window| should be created without a frame or title bar.
-        The window will be resizable if CanResize() returns true. Use
-        CefWindow::SetDraggableRegions() to specify draggable regions.
+        """Return ``True`` if ``window`` should be created without a frame or title bar.
+
+        The window will be resizable if CanResize() returns ``True``. Use
+        :meth:`Window.set_draggable_regions` to specify draggable regions.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` should be created without a frame or title bar.
         """
         ...
     def with_standard_window_buttons(self, window: Window) -> bool:
-        """Return true if |window| should be created with standard window buttons
-        like close, minimize and zoom. This method is only supported on macOS.
+        """Return ``True`` if ``window`` should be created with standard window buttons like close, minimize and zoom.
+
+        This method is only supported on macOS.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` should be created with standard window buttons  like close, minimize and zoom.
         """
         ...
     def get_titlebar_height(self, window: Window) -> tuple[bool, float]:
-        """Return whether the titlebar height should be overridden, and sets the
-        height of the titlebar in |titlebar_height|. On macOS, it can also be used
-        to adjust the vertical position of the traffic light buttons in frameless
-        windows. The buttons will be positioned halfway down the titlebar at a
-        height of |titlebar_height| / 2.
+        """Return whether the titlebar height should be overridden, and sets the height of the titlebar in ``titlebar_height``.
+
+        On macOS, it can also be used to adjust the vertical position of the traffic light
+        buttons in frameless windows. The buttons will be positioned halfway down the
+        titlebar at a height of ``titlebar_height`` / 2.
+
+        Args:
+            window (Window):
+        Returns:
+            tuple[bool, float]: Whether the titlebar height should be overridden, and sets the  height of the titlebar in ``titlebar_height``.
         """
         ...
     def accepts_first_mouse(self, window: Window) -> State | int:
-        """Return whether the view should accept the initial mouse-down event,
-        allowing it to respond to click-through behavior. If STATE_ENABLED is
-        returned, the view will be sent a mouseDown: message for an initial
-        mouse-down event, activating the view with one click, instead of clicking
+        """Return whether the view should accept the initial mouse-down event, allowing it to respond to click-through behavior.
+
+        If STATE_ENABLED is returned, the view will be sent a mouseDown: message for an
+        initial mouse-down event, activating the view with one click, instead of clicking
         first to make the window active and then clicking the view.
 
-        This method is only supported on macOS. For more details, refer to the
-        documentation of acceptsFirstMouse.
+        This method is only supported on macOS. For more details, refer to the documentation
+        of acceptsFirstMouse.
+
+        Args:
+            window (Window):
+        Returns:
+            State | int: Whether the view should accept the initial mouse-down event,  allowing it to respond to click-through behavior.
         """
         ...
     def can_resize(self, window: Window) -> bool:
-        """Return true if |window| can be resized."""
+        """Return ``True`` if ``window`` can be resized.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` can be resized.
+        """
         ...
     def can_maximize(self, window: Window) -> bool:
-        """Return true if |window| can be maximized."""
+        """Return ``True`` if ``window`` can be maximized.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` can be maximized.
+        """
         ...
     def can_minimize(self, window: Window) -> bool:
-        """Return true if |window| can be minimized."""
+        """Return ``True`` if ``window`` can be minimized.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` can be minimized.
+        """
         ...
     def can_close(self, window: Window) -> bool:
-        """Return true if |window| can be closed. This will be called for user-
-        initiated window close actions and when CefWindow::Close() is called.
+        """Return ``True`` if ``window`` can be closed.
+
+        This will be called for user- initiated window close actions and when
+        :meth:`Window.close` is called.
+
+        Args:
+            window (Window):
+        Returns:
+            bool: ``True`` if ``window`` can be closed.
         """
         ...
     def on_accelerator(self, window: Window, command_id: int) -> bool:
-        """Called when a keyboard accelerator registered with
-        CefWindow::SetAccelerator is triggered. Return true if the accelerator was
-        handled or false otherwise.
+        """Called when a keyboard accelerator registered with :meth:`Window.set_accelerator` is triggered.
+
+        Return ``True`` if the accelerator was handled or ``False`` otherwise.
+
+        Args:
+            window (Window):
+            command_id (int):
+        Returns:
+            bool
         """
         ...
     def on_key_event(self, window: Window, event: KeyEvent) -> bool:
-        """Called after all other controls in the window have had a chance to
-        handle the event. |event| contains information about the keyboard event.
-        Return true if the keyboard event was handled or false otherwise.
+        """Called after all other controls in the window have had a chance to handle the event.
+
+        ``event`` contains information about the keyboard event. Return ``True`` if the
+        keyboard event was handled or ``False`` otherwise.
+
+        Args:
+            window (Window):
+            event (KeyEvent):
+        Returns:
+            bool
         """
         ...
     def on_theme_colors_changed(self, window: Window, chrome_theme: bool) -> None:
-        """Called after the native/OS or Chrome theme for |window| has changed.
-        |chrome_theme| will be true if the notification is for a Chrome theme.
+        """Called after the native/OS or Chrome theme for ``window`` has changed.
 
-        Native/OS theme colors are configured globally and do not need to be
-        customized for each Window individually. An example of a native/OS theme
-        change that triggers this callback is when the user switches between dark
-        and light mode during application lifespan. Native/OS theme changes can be
-        disabled by passing the `--force-dark-mode` or `--force-light-mode`
-        command-line flag.
+        ``chrome_theme`` will be ``True`` if the notification is for a Chrome theme.
 
-        Chrome theme colors will be applied and this callback will be triggered
-        if/when a BrowserView is added to the Window's component hierarchy. Chrome
-        theme colors can be configured on a per-RequestContext basis using
-        CefRequestContext::SetChromeColorScheme or (Chrome style only) by
-        visiting chrome://settings/manageProfile. Any theme changes using those
-        mechanisms will also trigger this callback. Chrome theme colors will be
-        persisted and restored from disk cache.
+        Native/OS theme colors are configured globally and do not need to be customized for
+        each Window individually. An example of a native/OS theme change that triggers this
+        callback is when the user switches between dark and light mode during application
+        lifespan. Native/OS theme changes can be disabled by passing the `--force-dark-mode`
+        or `--force-light-mode` command-line flag.
 
-        This callback is not triggered on Window creation so clients that wish to
-        customize the initial native/OS theme must call CefWindow::SetThemeColor
-        and CefWindow::ThemeChanged before showing the first Window.
+        Chrome theme colors will be applied and this callback will be triggered if/when a
+        BrowserView is added to the Window's component hierarchy. Chrome theme colors can be
+        configured on a per-RequestContext basis using
+        :meth:`RequestContext.set_chrome_color_scheme` or (Chrome style only) by visiting
+        chrome://settings/manageProfile. Any theme changes using those mechanisms will also
+        trigger this callback. Chrome theme colors will be persisted and restored from disk
+        cache.
 
-        Theme colors will be reset to standard values before this callback is
-        called for the first affected Window. Call CefWindow::SetThemeColor from
-        inside this callback to override a standard color or add a custom color.
-        CefViewDelegate::OnThemeChanged will be called after this callback for the
-        complete |window| component hierarchy.
+        This callback is not triggered on Window creation so clients that wish to customize
+        the initial native/OS theme must call :meth:`Window.set_theme_color` and
+        :meth:`Window.theme_changed` before showing the first Window.
+
+        Theme colors will be reset to standard values before this callback is called for the
+        first affected Window. Call :meth:`Window.set_theme_color` from inside this callback
+        to override a standard color or add a custom color.
+        :meth:`ViewDelegate.on_theme_changed` will be called after this callback for the
+        complete ``window`` component hierarchy.
+
+        Args:
+            window (Window):
+            chrome_theme (bool):
         """
         ...
     def get_window_runtime_style(self) -> RuntimeStyle | int:
-        """Optionally change the runtime style for this Window. See
-        cef_runtime_style_t documentation for details.
+        """Optionally change the runtime style for this Window.
+
+        See cef_runtime_style_t documentation for details.
+
+        Returns:
+            RuntimeStyle | int
         """
         ...
     def get_linux_window_properties(self, window: Window) -> tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]:
-        """Return Linux-specific window properties for correctly handling by window
-        managers
+        """Return Linux-specific window properties for correctly handling by window managers
+
+        Args:
+            window (Window):
+        Returns:
+            tuple[bool, LinuxWindowProperties | tuple[str, str, str, str]]
         """
         ...
 
 
 class WriteHandler:
-    """Interface the client can implement to provide a custom stream writer. The
-    methods of this class may be called on any thread.
+    """Interface the client can implement to provide a custom stream writer.
+
+    The methods of this class may be called on any thread.
     """
     def write(self, ptr: memoryview, size: int) -> int:
-        """Write raw binary data."""
+        """Write raw binary data.
+
+        Args:
+            ptr (memoryview):
+            size (int):
+        Returns:
+            int
+        """
         ...
     def seek(self, offset: int, whence: int) -> int:
-        """Seek to the specified offset position. |whence| may be any one of
-        SEEK_CUR, SEEK_END or SEEK_SET. Return zero on success and non-zero on
-        failure.
+        """Seek to the specified offset position.
+
+        ``whence`` may be any one of SEEK_CUR, SEEK_END or SEEK_SET. Return zero on success
+        and non-zero on failure.
+
+        Args:
+            offset (int):
+            whence (int):
+        Returns:
+            int
         """
         ...
     def tell(self) -> int:
-        """Return the current offset position."""
+        """Return the current offset position.
+
+        Returns:
+            int: The current offset position.
+        """
         ...
     def flush(self) -> int:
-        """Flush the stream."""
+        """Flush the stream.
+
+        Returns:
+            int
+        """
         ...
     def may_block(self) -> bool:
-        """Return true if this handler performs work like accessing the file system
-        which may block. Used as a hint for determining the thread to access the
-        handler from.
+        """Return ``True`` if this handler performs work like accessing the file system which may block.
+
+        Used as a hint for determining the thread to access the handler from.
+
+        Returns:
+            bool: ``True`` if this handler performs work like accessing the file system  which may block.
         """
         ...
 
 
 def register_scheme_handler_factory(scheme_name: str, domain_name: str | None, factory: SchemeHandlerFactory | None) -> bool:
-    """Register a scheme handler factory with the global request context. An empty
-    |domain_name| value for a standard scheme will cause the factory to match
-    all domain names. The |domain_name| value will be ignored for non-standard
-    schemes. If |scheme_name| is a built-in scheme and no handler is returned by
-    |factory| then the built-in scheme handler factory will be called. If
-    |scheme_name| is a custom scheme then you must also implement the
-    CefApp::OnRegisterCustomSchemes() method in all processes. This function may
-    be called multiple times to change or remove the factory that matches the
-    specified |scheme_name| and optional |domain_name|. Returns false if an
-    error occurs. This function may be called on any thread in the browser
-    process. Using this function is equivalent to calling
-    CefRequestContext::GetGlobalContext()->RegisterSchemeHandlerFactory().
+    """Register a scheme handler factory with the global request context.
+
+    An empty ``domain_name`` value for a standard scheme will cause the factory to match
+    all domain names. The ``domain_name`` value will be ignored for non-standard
+    schemes. If ``scheme_name`` is a built-in scheme and no handler is returned by
+    ``factory`` then the built-in scheme handler factory will be called. If
+    ``scheme_name`` is a custom scheme then you must also implement the
+    ``CefApp::OnRegisterCustomSchemes()`` method in all processes. This function may be
+    called multiple times to change or remove the factory that matches the specified
+    ``scheme_name`` and optional ``domain_name``. Returns ``False`` if an error occurs.
+    This function may be called on any thread in the browser process. Using this
+    function is equivalent to calling
+    :meth:`RequestContext.get_global_context`->RegisterSchemeHandlerFactory().
+
+    Args:
+        scheme_name (str): A custom scheme then you must also implement the  ``CefApp::OnRegisterCustomSchemes()`` method in all processes.
+        domain_name (str | None):
+        factory (SchemeHandlerFactory | None):
+    Returns:
+        bool
     """
     ...
 
 
 def clear_scheme_handler_factories() -> bool:
-    """Clear all scheme handler factories registered with the global request
-    context. Returns false on error. This function may be called on any thread
-    in the browser process. Using this function is equivalent to calling
-    CefRequestContext::GetGlobalContext()->ClearSchemeHandlerFactories().
+    """Clear all scheme handler factories registered with the global request context.
+
+    Returns ``False`` on error. This function may be called on any thread in the browser
+    process. Using this function is equivalent to calling
+    :meth:`RequestContext.get_global_context`->ClearSchemeHandlerFactories().
+
+    Returns:
+        bool
     """
     ...
 
 
 def get_mime_type(extension: str) -> str:
-    """Returns the mime type for the specified file extension or an empty string if
-    unknown.
+    """Return the mime type for the specified file extension or an empty string if unknown.
+
+    Args:
+        extension (str):
+    Returns:
+        str: The mime type for the specified file extension or an empty string if  unknown.
     """
     ...
 
 
 def post_task(thread_id: ThreadId | int, task: Task) -> bool:
-    """Post a task for execution on the specified thread. Equivalent to
-    using CefTaskRunner::GetForThread(threadId)->PostTask(task).
+    """Post a task for execution on the specified thread.
+
+    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostTask(task).
+
+    Args:
+        thread_id (ThreadId | int):
+        task (Task):
+    Returns:
+        bool
     """
     ...
 
 
 def post_delayed_task(thread_id: ThreadId | int, task: Task, delay_ms: int) -> bool:
-    """Post a task for delayed execution on the specified thread. Equivalent to
-    using CefTaskRunner::GetForThread(threadId)->PostDelayedTask(task,
+    """Post a task for delayed execution on the specified thread.
+
+    Equivalent to using ``CefTaskRunner::GetForThread``(threadId)->PostDelayedTask(task,
     delay_ms).
+
+    Args:
+        thread_id (ThreadId | int):
+        task (Task):
+        delay_ms (int):
+    Returns:
+        bool
     """
     ...
 
 
 def currently_on(thread_id: ThreadId | int) -> bool:
-    """Returns true if called on the specified thread. Equivalent to using
-    CefTaskRunner::GetForThread(threadId)->BelongsToCurrentThread().
+    """Return ``True`` if called on the specified thread.
+
+    Equivalent to using
+    ``CefTaskRunner::GetForThread``(threadId)->BelongsToCurrentThread().
+
+    Args:
+        thread_id (ThreadId | int):
+    Returns:
+        bool: ``True`` if called on the specified thread.
     """
     ...
 
@@ -7846,114 +13935,155 @@ def currently_on(thread_id: ThreadId | int) -> bool:
 def add_cross_origin_whitelist_entry(source_origin: str, target_protocol: str, target_domain: str | None, allow_target_subdomains: bool) -> bool:
     """Add an entry to the cross-origin access whitelist.
 
-    The same-origin policy restricts how scripts hosted from different origins
-    (scheme + domain + port) can communicate. By default, scripts can only
-    access resources with the same origin. Scripts hosted on the HTTP and HTTPS
-    schemes (but no other schemes) can use the \"Access-Control-Allow-Origin\"
-    header to allow cross-origin requests. For example,
-    https://source.example.com can make XMLHttpRequest requests on
-    http://target.example.com if the http://target.example.com request returns
-    an \"Access-Control-Allow-Origin: https://source.example.com\" response
-    header.
+    The same-origin policy restricts how scripts hosted from different origins (scheme +
+    domain + port) can communicate. By default, scripts can only access resources with
+    the same origin. Scripts hosted on the HTTP and HTTPS schemes (but no other schemes)
+    can use the \"Access-Control-Allow-Origin\" header to allow cross-origin requests. For
+    example, https://source.example.com can make XMLHttpRequest requests on
+    http://target.example.com if the http://target.example.com request returns an
+    \"Access-Control-Allow-Origin: https://source.example.com\" response header.
 
-    Scripts in separate frames or iframes and hosted from the same protocol and
-    domain suffix can execute cross-origin JavaScript if both pages set the
-    document.domain value to the same domain suffix. For example,
-    scheme://foo.example.com and scheme://bar.example.com can communicate using
-    JavaScript if both domains set document.domain=\"example.com\".
+    Scripts in separate frames or iframes and hosted from the same protocol and domain
+    suffix can execute cross-origin JavaScript if both pages set the document.domain
+    value to the same domain suffix. For example, scheme://foo.example.com and
+    scheme://bar.example.com can communicate using JavaScript if both domains set
+    document.domain=\"example.com\".
 
-    This method is used to allow access to origins that would otherwise violate
-    the same-origin policy. Scripts hosted underneath the fully qualified
-    |source_origin| URL (like http://www.example.com) will be allowed access to
-    all resources hosted on the specified |target_protocol| and |target_domain|.
-    If |target_domain| is non-empty and |allow_target_subdomains| is false only
-    exact domain matches will be allowed. If |target_domain| contains a top-
-    level domain component (like \"example.com\") and |allow_target_subdomains| is
-    true sub-domain matches will be allowed. If |target_domain| is empty and
-    |allow_target_subdomains| if true all domains and IP addresses will be
-    allowed.
+    This method is used to allow access to origins that would otherwise violate the
+    same-origin policy. Scripts hosted underneath the fully qualified ``source_origin``
+    URL (like http://www.example.com) will be allowed access to all resources hosted on
+    the specified ``target_protocol`` and ``target_domain``. If ``target_domain`` is
+    non-empty and ``allow_target_subdomains`` is ``False`` only exact domain matches
+    will be allowed. If ``target_domain`` contains a top- level domain component (like
+    \"example.com\") and ``allow_target_subdomains`` is ``True`` sub-domain matches will
+    be allowed. If ``target_domain`` is empty and ``allow_target_subdomains`` if
+    ``True`` all domains and IP addresses will be allowed.
 
-    This method cannot be used to bypass the restrictions on local or display
-    isolated schemes. See the comments on CefRegisterCustomScheme for more
-    information.
+    This method cannot be used to bypass the restrictions on local or display isolated
+    schemes. See the comments on ``CefRegisterCustomScheme`` for more information.
 
-    This function may be called on any thread. Returns false if |source_origin|
-    is invalid or the whitelist cannot be accessed.
+    This function may be called on any thread. Returns ``False`` if ``source_origin`` is
+    invalid or the whitelist cannot be accessed.
+
+    Args:
+        source_origin (str): Invalid or the whitelist cannot be accessed.
+        target_protocol (str):
+        target_domain (str | None): Empty and  ``allow_target_subdomains`` if ``True`` all domains and IP addresses will be  allowed.
+        allow_target_subdomains (bool): True sub-domain matches will be allowed.
+    Returns:
+        bool
     """
     ...
 
 
 def remove_cross_origin_whitelist_entry(source_origin: str, target_protocol: str, target_domain: str | None, allow_target_subdomains: bool) -> bool:
-    """Remove an entry from the cross-origin access whitelist. Returns false if
-    |source_origin| is invalid or the whitelist cannot be accessed.
+    """Remove an entry from the cross-origin access whitelist.
+
+    Returns ``False`` if ``source_origin`` is invalid or the whitelist cannot be
+    accessed.
+
+    Args:
+        source_origin (str): Invalid or the whitelist cannot be accessed.
+        target_protocol (str):
+        target_domain (str | None):
+        allow_target_subdomains (bool):
+    Returns:
+        bool
     """
     ...
 
 
 def clear_cross_origin_whitelist() -> bool:
-    """Remove all entries from the cross-origin access whitelist. Returns false if
-    the whitelist cannot be accessed.
+    """Remove all entries from the cross-origin access whitelist.
+
+    Returns ``False`` if the whitelist cannot be accessed.
+
+    Returns:
+        bool
     """
     ...
 
 
 def is_cert_status_error(status: CertStatus | int) -> bool:
-    """Returns true if the certificate status represents an error."""
+    """Return ``True`` if the certificate status represents an error.
+
+    Args:
+        status (CertStatus | int):
+    Returns:
+        bool: ``True`` if the certificate status represents an error.
+    """
     ...
 
 
 def format_url_for_security_display(origin_url: str) -> str:
-    """This is a convenience function for formatting a URL in a concise and human-
-    friendly way to help users make security-related decisions (or in other
-    circumstances when people need to distinguish sites, origins, or otherwise-
-    simplified URLs from each other). Internationalized domain names (IDN) may
-    be presented in Unicode if the conversion is considered safe. The returned
-    value will (a) omit the path for standard schemes, excepting file and
-    filesystem, and (b) omit the port if it is the default for the scheme. Do
-    not use this for URLs which will be parsed or sent to other applications.
+    """This is a convenience function for formatting a URL in a concise and human- friendly way to help users make security-related decisions (or in other circumstances when people need to distinguish sites, origins, or otherwise- simplified URLs from each other).
+
+    Internationalized domain names (IDN) may be presented in Unicode if the conversion
+    is considered safe. The returned value will (a) omit the path for standard schemes,
+    excepting file and filesystem, and (b) omit the port if it is the default for the
+    scheme. Do not use this for URLs which will be parsed or sent to other applications.
+
+    Args:
+        origin_url (str):
+    Returns:
+        str
     """
     ...
 
 
 def get_extensions_for_mime_type(mime_type: str) -> list[str]:
-    """Get the extensions associated with the given mime type. This should be
-    passed in lower case. There could be multiple extensions for a given mime
-    type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"text/*\".
-    Any existing elements in the provided vector will not be erased.
+    """Get the extensions associated with the given mime type.
+
+    This should be passed in lower case. There could be multiple extensions for a given
+    mime type, like \"html,htm\" for \"text/html\", or \"txt,text,html,...\" for \"text/*\". Any
+    existing elements in the provided vector will not be erased.
+
+    Args:
+        mime_type (str):
+    Returns:
+        list[str]
     """
     ...
 
 
 def load_crl_sets_file(path: str) -> None:
-    """Loads the existing \"Certificate Revocation Lists\" file that is managed by
-    Google Chrome. This file can generally be found in Chrome's User Data
-    directory (e.g. \"C:\\Users\\[User]\\AppData\\Local\\Google\\Chrome\\User Data\\\" on
-    Windows) and is updated periodically by Chrome's component updater service.
-    Must be called in the browser process after the context has been
-    initialized. See https://dev.chromium.org/Home/chromium-security/crlsets for
-    background.
+    """Load the existing \"Certificate Revocation Lists\" file that is managed by Google Chrome.
+
+    This file can generally be found in Chrome's User Data directory (e.g.
+    \"C:\\Users\\[User]\\AppData\\Local\\Google\\Chrome\\User Data\\\" on Windows) and is updated
+    periodically by Chrome's component updater service. Must be called in the browser
+    process after the context has been initialized. See
+    https://dev.chromium.org/Home/chromium-security/crlsets for background.
+
+    Args:
+        path (str):
     """
     ...
 
 
 def begin_tracing(categories: str | None, callback: CompletionCallback | None) -> bool:
-    """Start tracing events on all processes. Tracing is initialized asynchronously
-    and |callback| will be executed on the UI thread after initialization is
-    complete.
+    """Start tracing events on all processes.
 
-    If CefBeginTracing was called previously, or if a CefEndTracingAsync call is
-    pending, CefBeginTracing will fail and return false.
+    Tracing is initialized asynchronously and ``callback`` will be executed on the UI
+    thread after initialization is complete.
 
-    |categories| is a comma-delimited list of category wildcards. A category can
-    have an optional '-' prefix to make it an excluded category. Having both
-    included and excluded categories in the same list is not supported.
+    If ``CefBeginTracing`` was called previously, or if a ``CefEndTracingAsync`` call is
+    pending, ``CefBeginTracing`` will fail and return ``False``.
 
-    Examples:
-    - \"test_MyTest*\"
-    - \"test_MyTest*,test_OtherStuff\"
-    - \"-excluded_category1,-excluded_category2\"
+    ``categories`` is a comma-delimited list of category wildcards. A category can have
+    an optional '-' prefix to make it an excluded category. Having both included and
+    excluded categories in the same list is not supported.
+
+    Examples: - \"test_MyTest*\" - \"test_MyTest*,test_OtherStuff\" -
+    \"-excluded_category1,-excluded_category2\"
 
     This function must be called on the browser process UI thread.
+
+    Args:
+        categories (str | None): A comma-delimited list of category wildcards.
+        callback (CompletionCallback | None):
+    Returns:
+        bool
     """
     ...
 
@@ -7961,135 +14091,159 @@ def begin_tracing(categories: str | None, callback: CompletionCallback | None) -
 def end_tracing(tracing_file: str | None, callback: EndTracingCallback | None) -> bool:
     """Stop tracing events on all processes.
 
-    This function will fail and return false if a previous call to
-    CefEndTracingAsync is already pending or if CefBeginTracing was not called.
+    This function will fail and return ``False`` if a previous call to
+    ``CefEndTracingAsync`` is already pending or if ``CefBeginTracing`` was not called.
 
-    |tracing_file| is the path at which tracing data will be written and
-    |callback| is the callback that will be executed once all processes have
-    sent their trace data. If |tracing_file| is empty a new temporary file path
-    will be used. If |callback| is empty no trace data will be written.
+    ``tracing_file`` is the path at which tracing data will be written and ``callback``
+    is the callback that will be executed once all processes have sent their trace data.
+    If ``tracing_file`` is empty a new temporary file path will be used. If ``callback``
+    is empty no trace data will be written.
 
     This function must be called on the browser process UI thread.
+
+    Args:
+        tracing_file (str | None): Empty a new temporary file path  will be used.
+        callback (EndTracingCallback | None): Empty no trace data will be written.
+    Returns:
+        bool
     """
     ...
 
 
 def set_crash_key_value(key: str, value: str | None) -> None:
-    """Sets or clears a specific key-value pair from the crash metadata."""
+    """Set or clears a specific key-value pair from the crash metadata.
+
+    Args:
+        key (str):
+        value (str | None):
+    """
     ...
 
 
 def crash_reporting_enabled() -> bool:
-    """Crash reporting is configured using an INI-style config file named
-    \"crash_reporter.cfg\". On Windows and Linux this file must be placed next to
-    the main application executable. On macOS this file must be placed in the
-    top-level app bundle Resources directory (e.g.
-    \"<appname>.app/Contents/Resources\"). File contents are as follows:
+    """Crash reporting is configured using an INI-style config file named \"crash_reporter.cfg\".
 
-    <pre>
-     # Comments start with a hash character and must be on their own line.
+    On Windows and Linux this file must be placed next to the main application
+    executable. On macOS this file must be placed in the top-level app bundle Resources
+    directory (e.g. \"<appname>.app/Contents/Resources\"). File contents are as follows:
 
-     [Config]
-     ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
-     ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
-     AppName=<Windows only; App-specific folder name component for storing crash
-              information; default to \"CEF\">
-     ExternalHandler=<Windows only; Name of the external handler exe to use
-                      instead of re-launching the main exe; default to empty>
-     BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
-                                    should be forwarded to the system crash
-                                    reporter; default to false>
-     ServerURL=<crash server URL; default to empty>
-     RateLimitEnabled=<True if uploads should be rate limited; default to true>
-     MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
-                       default to 5>
-     MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
-                          will cause older reports to be deleted; default to 20>
-     MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
-                           default to 5>
+     <pre>
+      # Comments start with a hash character and must be on their own line.
 
-     [CrashKeys]
-     my_key1=<small|medium|large>
-     my_key2=<small|medium|large>
-    </pre>
+      [Config]
+      ProductName=<Value of the \"prod\" crash key; defaults to \"cef\">
+      ProductVersion=<Value of the \"ver\" crash key; defaults to the CEF version>
+      AppName=<Windows only; App-specific folder name component for storing crash
+               information; default to \"CEF\">
+      ExternalHandler=<Windows only; Name of the external handler exe to use
+                       instead of re-launching the main exe; default to empty>
+      BrowserCrashForwardingEnabled=<macOS only; True if browser process crashes
+                                     should be forwarded to the system crash
+                                     reporter; default to ``False``>
+      ServerURL=<crash server URL; default to empty>
+      RateLimitEnabled=<True if uploads should be rate limited; default to ``True``>
+      MaxUploadsPerDay=<Max uploads per 24 hours, used if rate limit is enabled;
+                        default to 5>
+      MaxDatabaseSizeInMb=<Total crash report disk usage greater than this value
+                           will cause older reports to be deleted; default to 20>
+      MaxDatabaseAgeInDays=<Crash reports older than this value will be deleted;
+                            default to 5>
+
+      [CrashKeys]
+      my_key1=<small``medium``large>
+      my_key2=<small``medium``large>
+     </pre>
 
     <b>Config section:</b>
 
-    If \"ProductName\" and/or \"ProductVersion\" are set then the specified values
-    will be included in the crash dump metadata. On macOS if these values are
-    set to empty then they will be retrieved from the Info.plist file using the
-    \"CFBundleName\" and \"CFBundleShortVersionString\" keys respectively.
+    If \"ProductName\" and/or \"ProductVersion\" are set then the specified values will be
+    included in the crash dump metadata. On macOS if these values are set to empty then
+    they will be retrieved from the Info.plist file using the \"CFBundleName\" and
+    \"CFBundleShortVersionString\" keys respectively.
 
-    If \"AppName\" is set on Windows then crash report information (metrics,
-    database and dumps) will be stored locally on disk under the
+    If \"AppName\" is set on Windows then crash report information (metrics, database and
+    dumps) will be stored locally on disk under the
     \"C:\\Users\\[CurrentUser]\\AppData\\Local\\[AppName]\\User Data\" folder. On other
     platforms the cef_settings_t.root_cache_path value will be used.
 
-    If \"ExternalHandler\" is set on Windows then the specified exe will be
-    launched as the crashpad-handler instead of re-launching the main process
-    exe. The value can be an absolute path or a path relative to the main exe
-    directory. On Linux the cef_settings_t.browser_subprocess_path value will be
-    used. On macOS the existing subprocess app bundle will be used.
+    If \"ExternalHandler\" is set on Windows then the specified exe will be launched as
+    the crashpad-handler instead of re-launching the main process exe. The value can be
+    an absolute path or a path relative to the main exe directory. On Linux the
+    cef_settings_t.browser_subprocess_path value will be used. On macOS the existing
+    subprocess app bundle will be used.
 
-    If \"BrowserCrashForwardingEnabled\" is set to true on macOS then browser
-    process crashes will be forwarded to the system crash reporter. This results
-    in the crash UI dialog being displayed to the user and crash reports being
-    logged under \"~/Library/Logs/DiagnosticReports\". Forwarding of crash reports
-    from non-browser processes and Debug builds is always disabled.
+    If \"BrowserCrashForwardingEnabled\" is set to ``True`` on macOS then browser process
+    crashes will be forwarded to the system crash reporter. This results in the crash UI
+    dialog being displayed to the user and crash reports being logged under
+    \"~/Library/Logs/DiagnosticReports\". Forwarding of crash reports from non-browser
+    processes and Debug builds is always disabled.
 
-    If \"ServerURL\" is set then crashes will be uploaded as a multi-part POST
-    request to the specified URL. Otherwise, reports will only be stored locally
-    on disk.
+    If \"ServerURL\" is set then crashes will be uploaded as a multi-part POST request to
+    the specified URL. Otherwise, reports will only be stored locally on disk.
 
-    If \"RateLimitEnabled\" is set to true then crash report uploads will be rate
-    limited as follows:
-     1. If \"MaxUploadsPerDay\" is set to a positive value then at most the
-        specified number of crashes will be uploaded in each 24 hour period.
-     2. If crash upload fails due to a network or server error then an
-        incremental backoff delay up to a maximum of 24 hours will be applied
-        for retries.
-     3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
-        \"MaxUploadsPerDay\" value will be reduced to 1 until the client is
-        restarted. This helps to avoid an upload flood when the network or
-        server error is resolved.
-    Rate limiting is not supported on Linux.
+     If \"RateLimitEnabled\" is set to ``True`` then crash report uploads will be rate
+     limited as follows:
+      1. If \"MaxUploadsPerDay\" is set to a positive value then at most the
+         specified number of crashes will be uploaded in each 24 hour period.
+      2. If crash upload fails due to a network or server error then an
+         incremental backoff delay up to a maximum of 24 hours will be applied
+         for retries.
+      3. If a backoff delay is applied and \"MaxUploadsPerDay\" is > 1 then the
+         \"MaxUploadsPerDay\" value will be reduced to 1 until the client is
+         restarted. This helps to avoid an upload flood when the network or
+         server error is resolved.
+     Rate limiting is not supported on Linux.
 
-    If \"MaxDatabaseSizeInMb\" is set to a positive value then crash report
-    storage on disk will be limited to that size in megabytes. For example, on
-    Windows each dump is about 600KB so a \"MaxDatabaseSizeInMb\" value of 20
-    equates to about 34 crash reports stored on disk. Not supported on Linux.
+    If \"MaxDatabaseSizeInMb\" is set to a positive value then crash report storage on
+    disk will be limited to that size in megabytes. For example, on Windows each dump is
+    about 600KB so a \"MaxDatabaseSizeInMb\" value of 20 equates to about 34 crash reports
+    stored on disk. Not supported on Linux.
 
-    If \"MaxDatabaseAgeInDays\" is set to a positive value then crash reports
-    older than the specified age in days will be deleted. Not supported on
-    Linux.
+    If \"MaxDatabaseAgeInDays\" is set to a positive value then crash reports older than
+    the specified age in days will be deleted. Not supported on Linux.
 
     <b>CrashKeys section:</b>
 
-    A maximum of 26 crash keys of each size can be specified for use by the
-    application. Crash key values will be truncated based on the specified size
-    (small = 64 bytes, medium = 256 bytes, large = 1024 bytes). The value of
-    crash keys can be set from any thread or process using the
-    CefSetCrashKeyValue function. These key/value pairs will be sent to the
-    crash server along with the crash dump file.
+    A maximum of 26 crash keys of each size can be specified for use by the application.
+    Crash key values will be truncated based on the specified size (small = 64 bytes,
+    medium = 256 bytes, large = 1024 bytes). The value of crash keys can be set from any
+    thread or process using the ``CefSetCrashKeyValue`` function. These key/value pairs
+    will be sent to the crash server along with the crash dump file.
+
+    Returns:
+        bool
     """
     ...
 
 
 def is_rtl() -> bool:
-    """Returns true if the application text direction is right-to-left."""
+    """Return ``True`` if the application text direction is right-to-left.
+
+    Returns:
+        bool: ``True`` if the application text direction is right-to-left.
+    """
     ...
 
 
 def get_path(key: PathKey | int) -> tuple[bool, str]:
-    """Retrieve the path associated with the specified |key|. Returns true on
-    success. Can be called on any thread in the browser process.
+    """Retrieve the path associated with the specified ``key``.
+
+    Returns ``True`` on success. Can be called on any thread in the browser process.
+
+    Args:
+        key (PathKey | int):
+    Returns:
+        tuple[bool, str]
     """
     ...
 
 
 def now_from_system_trace_time() -> int:
-    """Returns the current system trace time or, if none is defined, the current
-    high-res time. Can be used by clients to synchronize with the time
-    information in trace events.
+    """Return the current system trace time or, if none is defined, the current high-res time.
+
+    Can be used by clients to synchronize with the time information in trace events.
+
+    Returns:
+        int: The current system trace time or, if none is defined, the current  high-res time.
     """
     ...

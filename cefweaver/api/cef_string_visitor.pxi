@@ -5,7 +5,11 @@ class StringVisitor:
     """Implement this interface to receive string values asynchronously."""
 
     def visit(self, string):
-        """Method that will be executed."""
+        """Method that will be executed.
+
+        Args:
+            string (str):
+        """
         return None
 
 

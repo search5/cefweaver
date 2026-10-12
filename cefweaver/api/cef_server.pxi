@@ -3,10 +3,11 @@
 
 cdef class Server:
     """Class representing a server that supports HTTP and WebSocket requests.
+
     Server capacity is limited and is intended to handle only a small number of
-    simultaneous connections (e.g. for communicating between applications on
-    localhost). The methods of this class are safe to call from any thread in
-    the brower process unless otherwise indicated.
+    simultaneous connections (e.g. for communicating between applications on localhost).
+    The methods of this class are safe to call from any thread in the brower process
+    unless otherwise indicated.
     """
     cdef CefRefPtr[CefServer] _ref
 
@@ -24,8 +25,9 @@ cdef class Server:
         return p
 
     def shutdown(self):
-        """Stop the server and shut down the dedicated server thread. See
-        CefServerHandler::OnServerCreated documentation for a description of
+        """Stop the server and shut down the dedicated server thread.
+
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
         server lifespan.
         """
         cdef CefServer* _p = self._ptr()
@@ -34,10 +36,13 @@ cdef class Server:
         return None
 
     def is_running(self):
-        """Returns true if the server is currently running and accepting incoming
-        connections. See CefServerHandler::OnServerCreated documentation for a
-        description of server lifespan. This method must be called on the
-        dedicated server thread.
+        """Return ``True`` if the server is currently running and accepting incoming connections.
+
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
+        server lifespan. This method must be called on the dedicated server thread.
+
+        Returns:
+            bool: ``True`` if the server is currently running and accepting incoming  connections.
         """
         cdef CefServer* _p = self._ptr()
         cdef cpp_bool _r
@@ -46,7 +51,11 @@ cdef class Server:
         return _r
 
     def get_address(self):
-        """Returns the server address including the port number."""
+        """Return the server address including the port number.
+
+        Returns:
+            str: The server address including the port number.
+        """
         cdef CefServer* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -54,8 +63,12 @@ cdef class Server:
         return _g_str(_r)
 
     def has_connection(self):
-        """Returns true if the server currently has a connection. This method must be
-        called on the dedicated server thread.
+        """Return ``True`` if the server currently has a connection.
+
+        This method must be called on the dedicated server thread.
+
+        Returns:
+            bool: ``True`` if the server currently has a connection.
         """
         cdef CefServer* _p = self._ptr()
         cdef cpp_bool _r
@@ -64,8 +77,14 @@ cdef class Server:
         return _r
 
     def is_valid_connection(self, int connection_id):
-        """Returns true if |connection_id| represents a valid connection. This method
-        must be called on the dedicated server thread.
+        """Return ``True`` if ``connection_id`` represents a valid connection.
+
+        This method must be called on the dedicated server thread.
+
+        Args:
+            connection_id (int):
+        Returns:
+            bool: ``True`` if ``connection_id`` represents a valid connection.
         """
         cdef CefServer* _p = self._ptr()
         cdef cpp_bool _r
@@ -74,11 +93,17 @@ cdef class Server:
         return _r
 
     def send_http200_response(self, int connection_id, content_type, data):
-        """Send an HTTP 200 \"OK\" response to the connection identified by
-        |connection_id|. |content_type| is the response content type (e.g.
-        \"text/html\"), |data| is the response content, and |data_size| is the size
-        of |data| in bytes. The contents of |data| will be copied. The connection
-        will be closed automatically after the response is sent.
+        """Send an HTTP 200 \"OK\" response to the connection identified by ``connection_id``.
+
+        ``content_type`` is the response content type (e.g. \"text/html\"), ``data`` is the
+        response content, and ``data_size`` is the size of ``data`` in bytes. The contents
+        of ``data`` will be copied. The connection will be closed automatically after the
+        response is sent.
+
+        Args:
+            connection_id (int):
+            content_type (str): The response content type (e.
+            data (bytes | bytearray | memoryview): The response content, and ``data_size`` is the size  of ``data`` in bytes.
         """
         cdef CefString _a1
         cdef const unsigned char[::1] _v2
@@ -97,9 +122,12 @@ cdef class Server:
         return None
 
     def send_http404_response(self, int connection_id):
-        """Send an HTTP 404 \"Not Found\" response to the connection identified by
-        |connection_id|. The connection will be closed automatically after the
-        response is sent.
+        """Send an HTTP 404 \"Not Found\" response to the connection identified by ``connection_id``.
+
+        The connection will be closed automatically after the response is sent.
+
+        Args:
+            connection_id (int):
         """
         cdef CefServer* _p = self._ptr()
         with nogil:
@@ -107,10 +135,14 @@ cdef class Server:
         return None
 
     def send_http500_response(self, int connection_id, error_message):
-        """Send an HTTP 500 \"Internal Server Error\" response to the connection
-        identified by |connection_id|. |error_message| is the associated error
-        message. The connection will be closed automatically after the response is
-        sent.
+        """Send an HTTP 500 \"Internal Server Error\" response to the connection identified by ``connection_id``.
+
+        ``error_message`` is the associated error message. The connection will be closed
+        automatically after the response is sent.
+
+        Args:
+            connection_id (int):
+            error_message (str): The associated error  message.
         """
         cdef CefString _a1
         cdef CefServer* _p = self._ptr()
@@ -120,18 +152,25 @@ cdef class Server:
         return None
 
     def send_http_response(self, int connection_id, int response_code, content_type, int64_t content_length, extra_headers):
-        """Send a custom HTTP response to the connection identified by
-        |connection_id|. |response_code| is the HTTP response code sent in the
-        status line (e.g. 200), |content_type| is the response content type sent
-        as the \"Content-Type\" header (e.g. \"text/html\"), |content_length| is the
-        expected content length, and |extra_headers| is the map of extra response
-        headers. If |content_length| is >= 0 then the \"Content-Length\" header will
-        be sent. If |content_length| is 0 then no content is expected and the
-        connection will be closed automatically after the response is sent. If
-        |content_length| is < 0 then no \"Content-Length\" header will be sent and
-        the client will continue reading until the connection is closed. Use the
-        SendRawData method to send the content, if applicable, and call
-        CloseConnection after all content has been sent.
+        """Send a custom HTTP response to the connection identified by ``connection_id``.
+
+        ``response_code`` is the HTTP response code sent in the status line (e.g. 200),
+        ``content_type`` is the response content type sent as the \"Content-Type\" header
+        (e.g. \"text/html\"), ``content_length`` is the expected content length, and
+        ``extra_headers`` is the map of extra response headers. If ``content_length`` is >=
+        0 then the \"Content-Length\" header will be sent. If ``content_length`` is 0 then no
+        content is expected and the connection will be closed automatically after the
+        response is sent. If ``content_length`` is < 0 then no \"Content-Length\" header will
+        be sent and the client will continue reading until the connection is closed. Use the
+        SendRawData method to send the content, if applicable, and call CloseConnection
+        after all content has been sent.
+
+        Args:
+            connection_id (int):
+            response_code (int): The HTTP response code sent in the  status line (e.
+            content_type (str): The response content type sent  as the \"Content-Type\" header (e.
+            content_length (int): < 0 then no \"Content-Length\" header will be sent and  the client will continue reading until the connection is closed.
+            extra_headers (dict[str, str] | None):
         """
         cdef CefString _a2
         cdef cpp_multimap[CefString, CefString] _a4
@@ -143,12 +182,17 @@ cdef class Server:
         return None
 
     def send_raw_data(self, int connection_id, data):
-        """Send raw data directly to the connection identified by |connection_id|.
-        |data| is the raw data and |data_size| is the size of |data| in bytes.
-        The contents of |data| will be copied. No validation of |data| is
-        performed internally so the client should be careful to send the amount
-        indicated by the \"Content-Length\" header, if specified. See
-        SendHttpResponse documentation for intended usage.
+        """Send raw data directly to the connection identified by ``connection_id``.
+
+        ``data`` is the raw data and ``data_size`` is the size of ``data`` in bytes. The
+        contents of ``data`` will be copied. No validation of ``data`` is performed
+        internally so the client should be careful to send the amount indicated by the
+        \"Content-Length\" header, if specified. See SendHttpResponse documentation for
+        intended usage.
+
+        Args:
+            connection_id (int):
+            data (bytes | bytearray | memoryview): Performed internally so the client should be careful to send the amount  indicated by the \"Content-Length\" header, if specified.
         """
         cdef const unsigned char[::1] _v1
         cdef const void* _a1 = NULL
@@ -165,8 +209,12 @@ cdef class Server:
         return None
 
     def close_connection(self, int connection_id):
-        """Close the connection identified by |connection_id|. See SendHttpResponse
-        documentation for intended usage.
+        """Close the connection identified by ``connection_id``.
+
+        See SendHttpResponse documentation for intended usage.
+
+        Args:
+            connection_id (int):
         """
         cdef CefServer* _p = self._ptr()
         with nogil:
@@ -174,10 +222,15 @@ cdef class Server:
         return None
 
     def send_web_socket_message(self, int connection_id, data):
-        """Send a WebSocket message to the connection identified by |connection_id|.
-        |data| is the response content and |data_size| is the size of |data| in
-        bytes. The contents of |data| will be copied. See
-        CefServerHandler::OnWebSocketRequest documentation for intended usage.
+        """Send a WebSocket message to the connection identified by ``connection_id``.
+
+        ``data`` is the response content and ``data_size`` is the size of ``data`` in bytes.
+        The contents of ``data`` will be copied. See
+        :meth:`ServerHandler.on_web_socket_request` documentation for intended usage.
+
+        Args:
+            connection_id (int):
+            data (bytes | bytearray | memoryview): The response content and ``data_size`` is the size of ``data`` in  bytes.
         """
         cdef const unsigned char[::1] _v1
         cdef const void* _a1 = NULL
@@ -195,18 +248,24 @@ cdef class Server:
 
     @staticmethod
     def create_server(address, uint16_t port, int backlog, handler):
-        """Create a new server that binds to |address| and |port|. |address| must be
-        a valid IPv4 or IPv6 address (e.g. 127.0.0.1 or ::1) and |port| must be a
-        port number outside of the reserved range (e.g. between 1025 and 65535 on
-        most platforms). |backlog| is the maximum number of pending connections.
-        A new thread will be created for each CreateServer call (the \"dedicated
-        server thread\"). It is therefore recommended to use a different
-        CefServerHandler instance for each CreateServer call to avoid thread
-        safety issues in the CefServerHandler implementation. The
-        CefServerHandler::OnServerCreated method will be called on the dedicated
-        server thread to report success or failure. See
-        CefServerHandler::OnServerCreated documentation for a description of
+        """Create a new server that binds to ``address`` and ``port``.
+
+        ``address`` must be a valid IPv4 or IPv6 address (e.g. 127.0.0.1 or ::1) and
+        ``port`` must be a port number outside of the reserved range (e.g. between 1025 and
+        65535 on most platforms). ``backlog`` is the maximum number of pending connections.
+        A new thread will be created for each CreateServer call (the \"dedicated server
+        thread\"). It is therefore recommended to use a different :class:`ServerHandler`
+        instance for each CreateServer call to avoid thread safety issues in the
+        :class:`ServerHandler` implementation. The :meth:`ServerHandler.on_server_created`
+        method will be called on the dedicated server thread to report success or failure.
+        See :meth:`ServerHandler.on_server_created` documentation for a description of
         server lifespan.
+
+        Args:
+            address (str):
+            port (int):
+            backlog (int): The maximum number of pending connections.
+            handler (ServerHandler):
         """
         cdef CefString _a0
         cdef CefRefPtr[CefServerHandler] _a3
@@ -246,86 +305,130 @@ cdef inline CefServer* _g_ref_Server(object obj) except? NULL:
 
 
 class ServerHandler:
-    """Implement this interface to handle HTTP server requests. A new thread will
-    be created for each CefServer::CreateServer call (the \"dedicated server
-    thread\"), and the methods of this class will be called on that thread. It is
-    therefore recommended to use a different CefServerHandler instance for each
-    CefServer::CreateServer call to avoid thread safety issues in the
-    CefServerHandler implementation.
+    """Implement this interface to handle HTTP server requests.
+
+    A new thread will be created for each :meth:`Server.create_server` call (the
+    \"dedicated server thread\"), and the methods of this class will be called on that
+    thread. It is therefore recommended to use a different :class:`ServerHandler`
+    instance for each :meth:`Server.create_server` call to avoid thread safety issues in
+    the :class:`ServerHandler` implementation.
     """
 
     def on_server_created(self, server):
-        """Called when |server| is created. If the server was started successfully
-        then CefServer::IsRunning will return true. The server will continue
-        running until CefServer::Shutdown is called, after which time
-        OnServerDestroyed will be called. If the server failed to start then
-        OnServerDestroyed will be called immediately after this method returns.
+        """Called when ``server`` is created.
+
+        If the server was started successfully then :meth:`Server.is_running` will return
+        ``True``. The server will continue running until :meth:`Server.shutdown` is called,
+        after which time OnServerDestroyed will be called. If the server failed to start
+        then OnServerDestroyed will be called immediately after this method returns.
+
+        Args:
+            server (Server): Created.
         """
         return None
 
     def on_server_destroyed(self, server):
-        """Called when |server| is destroyed. The server thread will be stopped after
-        this method returns. The client should release any references to |server|
-        when this method is called. See OnServerCreated documentation for a
-        description of server lifespan.
+        """Called when ``server`` is destroyed.
+
+        The server thread will be stopped after this method returns. The client should
+        release any references to ``server`` when this method is called. See OnServerCreated
+        documentation for a description of server lifespan.
+
+        Args:
+            server (Server): Destroyed.
         """
         return None
 
     def on_client_connected(self, server, connection_id):
-        """Called when a client connects to |server|. |connection_id| uniquely
-        identifies the connection. Each call to this method will have a matching
-        call to OnClientDisconnected.
+        """Called when a client connects to ``server``.
+
+        ``connection_id`` uniquely identifies the connection. Each call to this method will
+        have a matching call to OnClientDisconnected.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         return None
 
     def on_client_disconnected(self, server, connection_id):
-        """Called when a client disconnects from |server|. |connection_id| uniquely
-        identifies the connection. The client should release any data associated
-        with |connection_id| when this method is called and |connection_id| should
-        no longer be passed to CefServer methods. Disconnects can originate from
-        either the client or the server. For example, the server will disconnect
-        automatically after a CefServer::SendHttpXXXResponse method is called.
+        """Called when a client disconnects from ``server``.
+
+        ``connection_id`` uniquely identifies the connection. The client should release any
+        data associated with ``connection_id`` when this method is called and
+        ``connection_id`` should no longer be passed to :class:`Server` methods. Disconnects
+        can originate from either the client or the server. For example, the server will
+        disconnect automatically after a :meth:`Server.send_http_xxx_response` method is
+        called.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         return None
 
     def on_http_request(self, server, connection_id, client_address, request):
-        """Called when |server| receives an HTTP request. |connection_id| uniquely
-        identifies the connection, |client_address| is the requesting IPv4 or IPv6
-        client address including port number, and |request| contains the request
-        contents (URL, method, headers and optional POST data). Call CefServer
-        methods either synchronously or asynchronusly to send a response.
+        """Called when ``server`` receives an HTTP request.
+
+        ``connection_id`` uniquely identifies the connection, ``client_address`` is the
+        requesting IPv4 or IPv6 client address including port number, and ``request``
+        contains the request contents (URL, method, headers and optional POST data). Call
+        :class:`Server` methods either synchronously or asynchronusly to send a response.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            client_address (str): The requesting IPv4 or IPv6  client address including port number, and ``request`` contains the request  contents (URL, method, headers and optional POST data).
+            request (Request):
         """
         return None
 
     def on_web_socket_request(self, server, connection_id, client_address, request, callback):
-        """Called when |server| receives a WebSocket request. |connection_id|
-        uniquely identifies the connection, |client_address| is the requesting
-        IPv4 or IPv6 client address including port number, and |request| contains
-        the request contents (URL, method, headers and optional POST data).
-        Execute |callback| either synchronously or asynchronously to accept or
-        decline the WebSocket connection. If the request is accepted then
-        OnWebSocketConnected will be called after the WebSocket has connected and
-        incoming messages will be delivered to the OnWebSocketMessage callback. If
-        the request is declined then the client will be disconnected and
-        OnClientDisconnected will be called. Call the
-        CefServer::SendWebSocketMessage method after receiving the
+        """Called when ``server`` receives a WebSocket request.
+
+        ``connection_id`` uniquely identifies the connection, ``client_address`` is the
+        requesting IPv4 or IPv6 client address including port number, and ``request``
+        contains the request contents (URL, method, headers and optional POST data). Execute
+        ``callback`` either synchronously or asynchronously to accept or decline the
+        WebSocket connection. If the request is accepted then OnWebSocketConnected will be
+        called after the WebSocket has connected and incoming messages will be delivered to
+        the OnWebSocketMessage callback. If the request is declined then the client will be
+        disconnected and OnClientDisconnected will be called. Call the
+        :meth:`Server.send_web_socket_message` method after receiving the
         OnWebSocketConnected callback to respond with WebSocket messages.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            client_address (str): The requesting  IPv4 or IPv6 client address including port number, and ``request`` contains  the request contents (URL, method, headers and optional POST data).
+            request (Request):
+            callback (Callback):
         """
         return None
 
     def on_web_socket_connected(self, server, connection_id):
-        """Called after the client has accepted the WebSocket connection for |server|
-        and |connection_id| via the OnWebSocketRequest callback. See
-        OnWebSocketRequest documentation for intended usage.
+        """Called after the client has accepted the WebSocket connection for ``server`` and ``connection_id`` via the OnWebSocketRequest callback.
+
+        See OnWebSocketRequest documentation for intended usage.
+
+        Args:
+            server (Server):
+            connection_id (int):
         """
         return None
 
     def on_web_socket_message(self, server, connection_id, data):
-        """Called when |server| receives an WebSocket message. |connection_id|
-        uniquely identifies the connection, |data| is the message content and
-        |data_size| is the size of |data| in bytes. Do not keep a reference to
-        |data| outside of this method. See OnWebSocketRequest documentation for
+        """Called when ``server`` receives an WebSocket message.
+
+        ``connection_id`` uniquely identifies the connection, ``data`` is the message
+        content and ``data_size`` is the size of ``data`` in bytes. Do not keep a reference
+        to ``data`` outside of this method. See OnWebSocketRequest documentation for
         intended usage.
+
+        Args:
+            server (Server):
+            connection_id (int):
+            data (memoryview): The message content and  ``data_size`` is the size of ``data`` in bytes.
         """
         return None
 

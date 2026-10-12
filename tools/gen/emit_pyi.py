@@ -2,6 +2,7 @@
 
 from emit_cython import (_annotation, _docstring, all_structs, extras_text, public_function_name,
                          struct_tuple_annotation)
+import docs
 from model import py_class_name, py_param_name
 from typesys import Buffer, Bytes, Planes, ClientRef, ItemBytes, Enum, LibRef, Struct, Vector, Void
 
@@ -60,8 +61,8 @@ def _return_annotation(plan, client_side):
     return text
 
 
-def _stub(plan, client_side, indent, model, name=None, with_self=True):
-    pad = " " * indent
+def _stub_params(plan, client_side, with_self=True):
+    """The parameters of a stub as "name: type" strings (self first)."""
     params = ([] if plan.static or not with_self else ["self"])
     for p in plan.params:
         if isinstance(p.kind, ItemBytes):
@@ -74,12 +75,25 @@ def _stub(plan, client_side, indent, model, name=None, with_self=True):
             params.append("%s: int" % py_param_name(p.size_name))  # how much to read
         elif p in plan.ins:
             params.append("%s: %s" % (p.name, _param_annotation(p, client_side)))
+    return params
+
+
+def plan_doc(model, known, plan, client_side):
+    """The docstring body of a method (Google style, with Args: and Returns: from the stub's signature)."""
+    typed = [tuple(x.strip() for x in text.split(":", 1)) for text in _stub_params(plan, client_side, False)]
+    args = [(name, kind.split(" = ")[0]) for name, kind in typed]
+    return docs.method_doc(model, plan, known, args, _return_annotation(plan, client_side))
+
+
+def _stub(plan, client_side, indent, model, name=None, with_self=True):
+    pad = " " * indent
+    params = _stub_params(plan, client_side, with_self)
     lines = []
     if plan.static and plan.owner:
         lines.append(pad + "@staticmethod")
     lines.append("%sdef %s(%s) -> %s:" % (pad, name or plan.name, ", ".join(params),
                                          _return_annotation(plan, client_side)))
-    doc = _docstring(model.comment(plan.node), indent + 4)
+    doc = _docstring(plan.doc_body, indent + 4, raw=True)
     lines += doc if doc else [pad + "    ..."]
     if doc:
         lines.append(pad + "    ...")
@@ -119,7 +133,7 @@ def emit(model, scope, plans_by_class, function_plans, handwritten, banner):
         client = cls.is_client_side()
         parent = scope.python_parent(cls.get_name())
         out.append("class %s%s:" % (py_class_name(cls.get_name()), "(%s)" % py_class_name(parent) if parent else ""))
-        doc = _docstring(model.comment(cls), 4)
+        doc = _docstring(model.class_doc_body[cls.get_name()], 4, raw=True)
         out += doc
         plans = [p for p in plans_by_class[cls.get_name()] if p.supported]
         if not plans and not doc:

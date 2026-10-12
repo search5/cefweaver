@@ -574,7 +574,7 @@ class WithHeaders(unittest.TestCase):
 
     def test_the_first_browser_can_use_a_request_context_of_its_own(self):
         stub = self.generated("pyi")
-        self.assertIn("def set_request_context(self, context: RequestContext | None) -> None: ...", stub)
+        self.assertIn("def set_request_context(self, context: RequestContext | None) -> None:", stub)
 
     def test_the_request_context_handler_is_generated(self):
         self.assertTrue(self.scope.is_client("CefRequestContextHandler"))

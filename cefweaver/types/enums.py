@@ -9,16 +9,29 @@ import enum
 class AlphaType(enum.IntEnum):
     """Describes how to interpret the alpha component of a pixel."""
     OPAQUE = 0
+    """No transparency.
+
+    The alpha component is ignored.
+    """
     PREMULTIPLIED = 1
+    """Transparency with pre-multiplied alpha component."""
     POSTMULTIPLIED = 2
+    """Transparency with post-multiplied alpha component."""
 
 
 class AxisAlignment(enum.IntEnum):
-    """Specifies where along the axis the CefBoxLayout child views should be laid out. Should be kept in sync with Chromium's views::LayoutAlignment type."""
+    """Specifies where along the axis the :class:`BoxLayout` child views should be laid out.
+
+    Should be kept in sync with Chromium's views::LayoutAlignment type.
+    """
     START = 0
+    """Child views will be left/top-aligned."""
     CENTER = 1
+    """Child views will be center-aligned."""
     END = 2
+    """Child views will be right/bottom-aligned."""
     STRETCH = 3
+    """Child views will be stretched to fit."""
     NUM_VALUES = 4
 
 
@@ -32,72 +45,130 @@ class ButtonState(enum.IntEnum):
 
 
 class CertStatus(enum.IntFlag):
-    """Supported certificate status code values. See net\\cert\\cert_status_flags.h for more information. CERT_STATUS_NONE is new in CEF because we use an enum while cert_status_flags.h uses a typedef and static const variables."""
+    """Supported certificate status code values.
+
+    See net\\cert\\cert_status_flags.h for more information. CERT_STATUS_NONE is new in
+    CEF because we use an enum while cert_status_flags.h uses a typedef and static const
+    variables.
+    """
     NONE = 0
     COMMON_NAME_INVALID = 1
     DATE_INVALID = 2
     AUTHORITY_INVALID = 4
     NO_REVOCATION_MECHANISM = 16
+    """1 << 3 is reserved for ERR_CERT_CONTAINS_ERRORS (not useful with WinHTTP)."""
     UNABLE_TO_CHECK_REVOCATION = 32
     REVOKED = 64
     INVALID = 128
     WEAK_SIGNATURE_ALGORITHM = 256
     NON_UNIQUE_NAME = 1024
+    """1 << 9 was used for CERT_STATUS_NOT_IN_DNS"""
     WEAK_KEY = 2048
     PINNED_KEY_MISSING = 8192
+    """1 << 12 was used for CERT_STATUS_WEAK_DH_KEY"""
     NAME_CONSTRAINT_VIOLATION = 16384
     VALIDITY_TOO_LONG = 32768
     IS_EV = 65536
+    """Bits 16 to 31 are for non-error statuses."""
     REV_CHECKING_ENABLED = 131072
     SHA1_SIGNATURE_PRESENT = 524288
+    """Bit 18 was CERT_STATUS_IS_DNSSEC"""
     CT_COMPLIANCE_FAILED = 1048576
 
 
 class ChannelLayout(enum.IntEnum):
-    """Enumerates the various representations of the ordering of audio channels. Must be kept synchronized with media::ChannelLayout from Chromium. See media\\base\\channel_layout.h"""
+    """Enumerates the various representations of the ordering of audio channels.
+
+    Must be kept synchronized with media::ChannelLayout from Chromium. See
+    media\\base\\channel_layout.h
+    """
     LAYOUT_NONE = 0
     LAYOUT_UNSUPPORTED = 1
     LAYOUT_MONO = 2
+    """Front C"""
     LAYOUT_STEREO = 3
+    """Front L, Front R"""
     LAYOUT_2_1 = 4
+    """Front L, Front R, Back C"""
     LAYOUT_SURROUND = 5
+    """Front L, Front R, Front C"""
     LAYOUT_4_0 = 6
+    """Front L, Front R, Front C, Back C"""
     LAYOUT_2_2 = 7
+    """Front L, Front R, Side L, Side R"""
     LAYOUT_QUAD = 8
+    """Front L, Front R, Back L, Back R"""
     LAYOUT_5_0 = 9
+    """Front L, Front R, Front C, Side L, Side R"""
     LAYOUT_5_1 = 10
+    """Front L, Front R, Front C, LFE, Side L, Side R"""
     LAYOUT_5_0_BACK = 11
+    """Front L, Front R, Front C, Back L, Back R"""
     LAYOUT_5_1_BACK = 12
+    """Front L, Front R, Front C, LFE, Back L, Back R"""
     LAYOUT_7_0 = 13
+    """Front L, Front R, Front C, Back L, Back R, Side L, Side R"""
     LAYOUT_7_1 = 14
+    """Front L, Front R, Front C, LFE, Back L, Back R, Side L, Side R"""
     LAYOUT_7_1_WIDE = 15
+    """Front L, Front R, Front C, LFE, Front LofC, Front RofC, Side L, Side R"""
     LAYOUT_STEREO_DOWNMIX = 16
+    """Front L, Front R"""
     LAYOUT_2POINT1 = 17
+    """Front L, Front R, LFE"""
     LAYOUT_3_1 = 18
+    """Front L, Front R, Front C, LFE"""
     LAYOUT_4_1 = 19
+    """Front L, Front R, Front C, LFE, Back C"""
     LAYOUT_6_0 = 20
+    """Front L, Front R, Front C, Back C, Side L, Side R"""
     LAYOUT_6_0_FRONT = 21
+    """Front L, Front R, Front LofC, Front RofC, Side L, Side R"""
     LAYOUT_HEXAGONAL = 22
+    """Front L, Front R, Front C, Back L, Back R, Back C"""
     LAYOUT_6_1 = 23
+    """Front L, Front R, Front C, LFE, Back C, Side L, Side R"""
     LAYOUT_6_1_BACK = 24
+    """Front L, Front R, Front C, LFE, Back L, Back R, Back C"""
     LAYOUT_6_1_FRONT = 25
+    """Front L, Front R, LFE, Front LofC, Front RofC, Side L, Side R"""
     LAYOUT_7_0_FRONT = 26
+    """Front L, Front R, Front C, Front LofC, Front RofC, Side L, Side R"""
     LAYOUT_7_1_WIDE_BACK = 27
+    """Front L, Front R, Front C, LFE, Back L, Back R, Front LofC, Front RofC"""
     LAYOUT_OCTAGONAL = 28
+    """Front L, Front R, Front C, Back L, Back R, Back C, Side L, Side R"""
     LAYOUT_DISCRETE = 29
+    """Channels are not explicitly mapped to speakers."""
     LAYOUT_STEREO_AND_KEYBOARD_MIC = 30
+    """Deprecated, but keeping the enum value for UMA consistency.
+
+    Front L, Front R, Front C. Front C contains the keyboard mic audio. This layout is
+    only intended for input for WebRTC. The Front C channel is stripped away in the
+    WebRTC audio input pipeline and never seen outside of that.
+    """
     LAYOUT_4_1_QUAD_SIDE = 31
+    """Front L, Front R, LFE, Side L, Side R"""
     LAYOUT_BITSTREAM = 32
+    """Actual channel layout is specified in the bitstream and the actual channel count is unknown at Chromium media pipeline level (useful for audio pass-through mode)."""
     LAYOUT_5_1_4_DOWNMIX = 33
+    """Front L, Front R, Front C, LFE, Side L, Side R, Front Height L, Front Height R, Rear Height L, Rear Height R Will be represented as six channels (5.1) due to eight channel limit kMaxConcurrentChannels"""
     LAYOUT_1_1 = 34
+    """Front C, LFE"""
     LAYOUT_3_1_BACK = 35
+    """Front L, Front R, LFE, Back C"""
     LAYOUT_5_1_4 = 36
+    """Front L, Front R, Front C, LFE, Side L, Side R, Top Front L, Top Front R, Top Back L, Top Back R"""
     LAYOUT_7_1_4 = 37
+    """Front L, Front R, Front C, LFE, Back L, Back R, Side L, Side R, Top Front L, Top Front R, Top Back L, Top Back R"""
     NUM_VALUES = 38
 
 
 class ChromePageActionIconType(enum.IntEnum):
-    """Chrome page action icon types. Should be kept in sync with Chromium's PageActionIconType type."""
+    """Chrome page action icon types.
+
+    Should be kept in sync with Chromium's PageActionIconType type.
+    """
     BOOKMARK_STAR = 0
     CLICK_TO_CALL = 1
     COOKIE_CONTROLS = 2
@@ -152,7 +223,10 @@ class ChromePageActionIconType(enum.IntEnum):
 
 
 class ChromeToolbarButtonType(enum.IntEnum):
-    """Chrome toolbar button types. Should be kept in sync with CEF's internal ToolbarButtonType type."""
+    """Chrome toolbar button types.
+
+    Should be kept in sync with CEF's internal ToolbarButtonType type.
+    """
     CAST_DEPRECATED = 0
     DOWNLOAD_DEPRECATED = 1
     SEND_TAB_TO_SELF_DEPRECATED = 2
@@ -202,12 +276,14 @@ class ColorModel(enum.IntEnum):
 class ColorType(enum.IntEnum):
     """Describes how to interpret the components of a pixel."""
     RGBA_8888 = 0
+    """RGBA with 8 bits per pixel (32bits total)."""
     BGRA_8888 = 1
+    """BGRA with 8 bits per pixel (32bits total)."""
     NUM_VALUES = 2
 
 
 class ColorVariant(enum.IntEnum):
-    """Specifies the color variants supported by CefRequestContext::SetChromeThemeColor."""
+    """Specifies the color variants supported by :meth:`RequestContext.set_chrome_theme_color`."""
     SYSTEM = 0
     LIGHT = 1
     DARK = 2
@@ -219,44 +295,100 @@ class ColorVariant(enum.IntEnum):
 
 
 class ComInitMode(enum.IntEnum):
-    """Windows COM initialization mode. Specifies how COM will be initialized for a new thread."""
+    """Windows COM initialization mode.
+
+    Specifies how COM will be initialized for a new thread.
+    """
     NONE = 0
+    """No COM initialization."""
     STA = 1
+    """Initialize COM using single-threaded apartments."""
     MTA = 2
+    """Initialize COM using multi-threaded apartments."""
 
 
 class ComponentState(enum.IntEnum):
-    """Component state values. These map to update_client::ComponentState values from components/update_client/update_client.h A component is considered "installed" when its state is one of: CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or CEF_COMPONENT_STATE_RUN."""
+    """Component state values.
+
+    These map to update_client::ComponentState values from
+    components/update_client/update_client.h A component is considered "installed" when
+    its state is one of: CEF_COMPONENT_STATE_UPDATED, CEF_COMPONENT_STATE_UP_TO_DATE, or
+    CEF_COMPONENT_STATE_RUN.
+    """
     NEW = 0
+    """The component has not yet been checked for updates."""
     CHECKING = 1
+    """The component is being checked for updates now."""
     CAN_UPDATE = 2
+    """An update is available and will soon be processed."""
     DOWNLOADING = 3
+    """An update is being downloaded."""
     DECOMPRESSING = 4
+    """An update is being decompressed."""
     PATCHING = 5
+    """A patch is being applied."""
     UPDATING = 6
+    """An update is being installed."""
     UPDATED = 7
+    """An update was successfully applied.
+
+    The component is now installed.
+    """
     UP_TO_DATE = 8
+    """The component was already up to date.
+
+    The component is installed.
+    """
     UPDATE_ERROR = 9
+    """The service encountered an error during the update process."""
     RUN = 10
+    """The component is running a server-specified action.
+
+    The component is installed.
+    """
 
 
 class ComponentUpdateError(enum.IntEnum):
-    """Component update error codes. These map to update_client::Error values from components/update_client/update_client_errors.h"""
+    """Component update error codes.
+
+    These map to update_client::Error values from
+    components/update_client/update_client_errors.h
+    """
     NONE = 0
+    """No error."""
     UPDATE_IN_PROGRESS = 1
+    """An update is already in progress for this component."""
     UPDATE_CANCELED = 2
+    """The update was canceled."""
     RETRY_LATER = 3
+    """The update should be retried later."""
     SERVICE_ERROR = 4
+    """A service error occurred."""
     UPDATE_CHECK_ERROR = 5
+    """An error occurred during the update check."""
     CRX_NOT_FOUND = 6
+    """The component was not found."""
     INVALID_ARGUMENT = 7
+    """An invalid argument was provided."""
     BAD_CRX_DATA_CALLBACK = 8
+    """Bad CRX data callback."""
 
 
 class ComponentUpdatePriority(enum.IntEnum):
-    """Component update priority. Maps to component_updater::OnDemandUpdater::Priority."""
+    """Component update priority.
+
+    Maps to component_updater::OnDemandUpdater::Priority.
+    """
     BACKGROUND = 0
+    """Background priority.
+
+    Update requests may be queued.
+    """
     FOREGROUND = 1
+    """Foreground priority.
+
+    Update requests are processed immediately.
+    """
 
 
 class CompositionUnderlineStyle(enum.IntEnum):
@@ -269,11 +401,22 @@ class CompositionUnderlineStyle(enum.IntEnum):
 
 
 class ContentSettingTypes(enum.IntEnum):
-    """Supported content setting types. Some types are platform-specific or only supported with Chrome style. Should be kept in sync with Chromium's ContentSettingsType type."""
+    """Supported content setting types.
+
+    Some types are platform-specific or only supported with Chrome style. Should be kept
+    in sync with Chromium's ContentSettingsType type.
+    """
     COOKIES = 0
+    """This setting governs whether cookies are enabled by the user in the provided context.
+
+    However, it may be overridden by other settings. This enum should NOT be read
+    directly to determine whether cookies are enabled; the client should instead rely on
+    the CookieSettings API.
+    """
     IMAGES = 1
     JAVASCRIPT = 2
     POPUPS = 3
+    """This setting governs both popups and unwanted redirects like tab-unders and framebusting."""
     GEOLOCATION = 4
     NOTIFICATIONS = 5
     AUTO_SELECT_CERTIFICATE = 6
@@ -284,6 +427,11 @@ class ContentSettingTypes(enum.IntEnum):
     DEPRECATED_PPAPI_BROKER = 11
     AUTOMATIC_DOWNLOADS = 12
     MIDI_SYSEX = 13
+    """Advanced device-specific functions on MIDI devices.
+
+    MIDI-SysEx communications can be used for changing the MIDI device's persistent
+    state such as firmware.
+    """
     SSL_CERT_DECISIONS = 14
     PROTECTED_MEDIA_IDENTIFIER = 15
     APP_BANNER = 16
@@ -297,116 +445,361 @@ class ContentSettingTypes(enum.IntEnum):
     PERMISSION_AUTOBLOCKER_DATA = 24
     ADS = 25
     ADS_DATA = 26
+    """Website setting which stores metadata for the subresource filter to aid in decisions for whether or not to show the UI."""
     MIDI = 27
+    """MIDI stands for Musical Instrument Digital Interface.
+
+    It is a standard that allows electronic musical instruments, computers, and other
+    devices to communicate with each other.
+    """
     PASSWORD_PROTECTION = 28
+    """This content setting type is for caching password protection service's verdicts of each origin."""
     MEDIA_ENGAGEMENT = 29
+    """Website setting which stores engagement data for media related to a specific origin."""
     SOUND = 30
+    """Content setting which stores whether or not the site can play audible sound.
+
+    This will not block playback but instead the user will not hear it.
+    """
     CLIENT_HINTS = 31
+    """Website setting which stores the list of client hints that the origin requested the browser to remember.
+
+    The browser is expected to send all client hints in the HTTP request headers for
+    every resource requested from that origin.
+    """
     SENSORS = 32
+    """Generic Sensor API covering ambient-light-sensor, accelerometer, gyroscope and magnetometer are all mapped to a single content_settings_type.
+
+    Setting for the Generic Sensor API covering ambient-light-sensor, accelerometer,
+    gyroscope and magnetometer. These are all mapped to a single ContentSettingsType.
+    """
     DEPRECATED_ACCESSIBILITY_EVENTS = 33
+    """Content setting which stores whether or not the user has granted the site permission to respond to accessibility events, which can be used to provide a custom accessibility experience.
+
+    Requires explicit user consent because some users may not want sites to know they're
+    using assistive technology. Deprecated in M131.
+    """
     PAYMENT_HANDLER = 34
+    """Used to store whether to allow a website to install a payment handler."""
     USB_GUARD = 35
+    """Content setting which stores whether to allow sites to ask for permission to access USB devices.
+
+    If this is allowed specific device permissions are stored under USB_CHOOSER_DATA.
+    """
     BACKGROUND_FETCH = 36
+    """Nothing is stored in this setting at present.
+
+    Please refer to BackgroundFetchPermissionContext for details on how this permission
+    is ascertained.
+    """
     INTENT_PICKER_DISPLAY = 37
+    """Website setting which stores the amount of times the user has dismissed intent picker UI without explicitly choosing an option."""
     IDLE_DETECTION = 38
+    """Used to store whether to allow a website to detect user active/idle state."""
     SERIAL_GUARD = 39
+    """Content settings for access to serial ports.
+
+    The "guard" content setting stores whether to allow sites to ask for permission to
+    access a port. The permissions granted to access particular ports are stored in the
+    "chooser data" website setting.
+    """
     SERIAL_CHOOSER_DATA = 40
     PERIODIC_BACKGROUND_SYNC = 41
+    """Nothing is stored in this setting at present.
+
+    Please refer to PeriodicBackgroundSyncPermissionContext for details on how this
+    permission is ascertained. This content setting is not registered because it does
+    not require access to any existing providers.
+    """
     BLUETOOTH_SCANNING = 42
+    """Content setting which stores whether to allow sites to ask for permission to do Bluetooth scanning."""
     HID_GUARD = 43
+    """Content settings for access to HID devices.
+
+    The "guard" content setting stores whether to allow sites to ask for permission to
+    access a device. The permissions granted to access particular devices are stored in
+    the "chooser data" website setting.
+    """
     HID_CHOOSER_DATA = 44
     WAKE_LOCK_SCREEN = 45
+    """Wake Lock API, which has two lock types: screen and system locks.
+
+    Currently, screen locks do not need any additional permission, and system locks are
+    always denied while the right UI is worked out.
+    """
     WAKE_LOCK_SYSTEM = 46
     LEGACY_COOKIE_ACCESS = 47
+    """Legacy SameSite cookie behavior.
+
+    This disables SameSite=Lax-by-default, SameSite=None requires Secure, and Schemeful
+    Same-Site, forcing the legacy behavior wherein 1) cookies that don't specify
+    SameSite are treated as SameSite=None, 2) SameSite=None cookies are not required to
+    be Secure, and 3) schemeful same-site is not active. This will also be used to
+    revert to legacy behavior when future changes in cookie handling are introduced.
+    """
     FILE_SYSTEM_WRITE_GUARD = 48
+    """Content settings which stores whether to allow sites to ask for permission to save changes to an original file selected by the user through the File System Access API."""
     NFC = 49
+    """Used to store whether to allow a website to exchange data with NFC devices."""
     BLUETOOTH_CHOOSER_DATA = 50
+    """Website setting to store permissions granted to access particular Bluetooth devices."""
     CLIPBOARD_READ_WRITE = 51
+    """Full access to the system clipboard (sanitized read without user gesture, and unsanitized read and write with user gesture)."""
     CLIPBOARD_SANITIZED_WRITE = 52
+    """This is special-cased in the permissions layer to always allow, and as such doesn't have associated prefs data."""
     SAFE_BROWSING_URL_CHECK_DATA = 53
+    """This content setting type is for caching safe browsing real time url check's verdicts of each origin."""
     VR = 54
+    """Used to store whether a site is allowed to request AR or VR sessions with the WebXr Device API."""
     AR = 55
     FILE_SYSTEM_READ_GUARD = 56
+    """Content setting which stores whether to allow site to open and read files and directories selected through the File System Access API."""
     STORAGE_ACCESS = 57
+    """Access to first party storage in a third-party context.
+
+    Exceptions are scoped to the combination of requesting/top-level origin, and are
+    managed through the Storage Access API. For the time being, this content setting
+    exists in parallel to third-party cookie rules stored in COOKIES.
+    """
     CAMERA_PAN_TILT_ZOOM = 58
+    """Content setting which stores whether to allow a site to control camera movements.
+
+    It does not give access to camera.
+    """
     WINDOW_MANAGEMENT = 59
+    """Content setting for Screen Enumeration and Screen Detail functionality.
+
+    Permits access to detailed multi-screen information, like size and position. Permits
+    placing fullscreen and windowed content on specific screens. See also:
+    https://w3c.github.io/window-placement
+    """
     INSECURE_PRIVATE_NETWORK_DEPRECATED = 60
+    """Stores whether to allow insecure websites to make private network requests.
+
+    See also: https://wicg.github.io/cors-rfc1918 Set through enterprise policies only.
+    """
     LOCAL_FONTS = 61
+    """Content setting which stores whether or not a site can access low-level locally installed font data using the Local Fonts Access API."""
     PERMISSION_AUTOREVOCATION_DATA = 62
+    """Stores per-origin state for permission auto-revocation (for all permission types)."""
     FILE_SYSTEM_LAST_PICKED_DIRECTORY = 63
+    """Stores per-origin state of the most recently selected directory for the use by the File System Access API."""
     DISPLAY_CAPTURE = 64
+    """Controls access to the getDisplayMedia API."""
     FILE_SYSTEM_ACCESS_CHOOSER_DATA = 65
+    """Website setting to store permissions metadata granted to paths on the local file system via the File System Access API.
+
+    ``file_system_write_guard`` is the corresponding "guard" setting. The stored data
+    represents valid permission only if ``file_system_access_extended_permission`` is
+    enabled via user opt-in. Otherwise, they represent "recently granted but revoked
+    permission", which are used to restore the permission.
+    """
     FEDERATED_IDENTITY_SHARING = 66
+    """Stores a grant that allows a relying party to send a request for identity information to specified identity providers, potentially through any anti-tracking measures that would otherwise prevent it.
+
+    This setting is associated with the relying party's origin.
+    """
     JAVASCRIPT_JIT = 67
+    """Whether to use the v8 optimized JIT for running JavaScript on the page."""
     HTTP_ALLOWED = 68
+    """Content setting which stores user decisions to allow loading a site over HTTP.
+
+    Entries are added by hostname when a user bypasses the HTTPS-First Mode interstitial
+    warning when a site does not support HTTPS. Allowed hosts are exact hostname matches
+    -- subdomains of a host on the allowlist must be separately allowlisted.
+    """
     FORMFILL_METADATA = 69
+    """Stores metadata related to form fill, such as e.g.
+
+    whether user data was autofilled on a specific website.
+    """
     DEPRECATED_FEDERATED_IDENTITY_ACTIVE_SESSION = 70
+    """Setting to indicate that there is an active federated sign-in session between a specified relying party and a specified identity provider for a specified account.
+
+    When this is present it allows access to session management capabilities between the
+    sites. This setting is associated with the relying party's origin. Obsolete on Nov
+    2023.
+    """
     AUTO_DARK_WEB_CONTENT = 71
+    """Setting to indicate whether Chrome should automatically apply darkening to web content."""
     REQUEST_DESKTOP_SITE = 72
+    """Setting to indicate whether Chrome should request the desktop view of a site instead of the mobile one."""
     FEDERATED_IDENTITY_API = 73
+    """Setting to indicate whether browser should allow signing into a website via the browser FedCM API."""
     NOTIFICATION_INTERACTIONS = 74
+    """Stores notification interactions per origin for the past 90 days.
+
+    Interactions per origin are pre-aggregated over seven-day windows: A notification
+    interaction or display is assigned to the last Monday midnight in local time.
+    """
     REDUCED_ACCEPT_LANGUAGE = 75
+    """Website setting which stores the last reduced accept language negotiated for a given origin, to be used on future visits to the origin."""
     NOTIFICATION_PERMISSION_REVIEW = 76
+    """Website setting which is used for NotificationPermissionReviewService to store origin blocklist from review notification permissions feature."""
     PRIVATE_NETWORK_GUARD_DEPRECATED = 77
     PRIVATE_NETWORK_CHOOSER_DATA_DEPRECATED = 78
     FEDERATED_IDENTITY_IDENTITY_PROVIDER_SIGNIN_STATUS = 79
+    """Website setting which stores whether the browser has observed the user signing into an identity-provider based on observing the IdP-SignIn-Status HTTP header."""
     REVOKED_UNUSED_SITE_PERMISSIONS = 80
+    """Website setting which is used for RevokedPermissionsService to store revoked permissions of unused sites from unused site permissions feature."""
     TOP_LEVEL_STORAGE_ACCESS = 81
+    """Similar to STORAGE_ACCESS, but applicable at the page-level rather than being specific to a frame."""
     FEDERATED_IDENTITY_AUTO_REAUTHN_PERMISSION = 82
+    """Setting to indicate whether user has opted in to allowing auto re-authn via the FedCM API."""
     FEDERATED_IDENTITY_IDENTITY_PROVIDER_REGISTRATION = 83
+    """Website setting which stores whether the user has explicitly registered a website as an identity-provider."""
     ANTI_ABUSE = 84
+    """Content setting which is used to indicate whether anti-abuse functionality should be enabled."""
     THIRD_PARTY_STORAGE_PARTITIONING_DEPRECATED = 85
     HTTPS_ENFORCED = 86
+    """Used to indicate whether HTTPS-First Mode is enabled on the hostname."""
     ALL_SCREEN_CAPTURE = 87
+    """Setting for enabling the `getAllScreensMedia` API.
+
+    Spec link: https://github.com/screen-share/capture-all-screens
+    """
     COOKIE_CONTROLS_METADATA = 88
+    """Stores per origin metadata for cookie controls."""
     TPCD_HEURISTICS_GRANTS_DEPRECATED = 89
     TPCD_METADATA_GRANTS_DEPRECATED = 90
     TPCD_TRIAL_DEPRECATED = 91
     TOP_LEVEL_TPCD_TRIAL_DEPRECATED = 92
     TOP_LEVEL_TPCD_ORIGIN_TRIAL_DEPRECATED = 93
     AUTO_PICTURE_IN_PICTURE = 94
+    """Content setting used to indicate whether entering picture-in-picture automatically should be enabled."""
     FILE_SYSTEM_ACCESS_EXTENDED_PERMISSION = 95
+    """Whether user has opted into keeping file/directory permissions persistent between visits for a given origin.
+
+    When enabled, permission metadata stored under ``file_system_access_chooser_data``
+    can auto-grant incoming permission request.
+    """
     FILE_SYSTEM_ACCESS_RESTORE_PERMISSION = 96
+    """Whether the FSA Persistent Permissions restore prompt is eligible to be shown to the user, for a given origin."""
     CAPTURED_SURFACE_CONTROL = 97
+    """Whether an application capturing another tab, may scroll and zoom the captured tab."""
     SMART_CARD_GUARD = 98
+    """Content setting for access to smart card readers.
+
+    The "guard" content setting stores whether to allow sites to access the Smart Card
+    API.
+    """
     SMART_CARD_DATA = 99
     WEB_PRINTING = 100
+    """Content settings for access to printers for the Web Printing API."""
     AUTOMATIC_FULLSCREEN = 101
+    """Content setting used to indicate whether entering HTML Fullscreen automatically (i.e.
+
+    without transient activation) should be enabled.
+    """
     SUB_APP_INSTALLATION_PROMPTS = 102
+    """Content settings used to indicate that a web app is allowed to prompt the user for the installation of sub apps."""
     SPEAKER_SELECTION = 103
+    """Whether an application can enumerate audio output device."""
     DIRECT_SOCKETS = 104
+    """Content settings for access to the Direct Sockets API."""
     KEYBOARD_LOCK = 105
+    """Keyboard Lock API allows a site to capture keyboard inputs that would otherwise be handled by the OS or the browser."""
     POINTER_LOCK = 106
+    """Pointer Lock API allows a site to hide the cursor and have exclusive access to mouse inputs."""
     REVOKED_ABUSIVE_NOTIFICATION_PERMISSIONS = 107
+    """Website setting which is used for RevokedPermissionsService to store auto-revoked notification permissions from abusive sites."""
     TRACKING_PROTECTION_DEPRECATED = 108
     DISPLAY_MEDIA_SYSTEM_AUDIO = 109
+    """With this permission, when the application calls `getDisplayMedia()`, a system audio track can be returned without showing the display media selection picker.
+
+    The application can explicitly specify `systemAudio: 'exclude'` or `video: true` to
+    still show the display media selection picker if needed. Please note that the
+    setting only works for WebUI.
+    """
     JAVASCRIPT_OPTIMIZER = 110
+    """Whether to use the higher-tier v8 optimizers for running JavaScript on the page."""
     STORAGE_ACCESS_HEADER_ORIGIN_TRIAL = 111
+    """Content Setting for the Storage Access Headers persistent origin trial that allows origins to opt into the storage access header behavior.
+
+    Should be scoped to `REQUESTING_ORIGIN_AND_TOP_SCHEMEFUL_SITE_SCOPE` in order to
+    correspond to the design of persistent origin trials. See also:
+    https://github.com/cfredric/storage-access-headers ALLOW: storage access request
+    headers will be attached to cross-site requests, and url requests will look for
+    response headers from origins to retry a request or load with storage access. BLOCK
+    (default): no effect.
+    """
     HAND_TRACKING = 112
+    """Whether or not sites can request Hand Tracking data within WebXR Sessions."""
     WEB_APP_INSTALLATION = 113
+    """Website setting to indicate whether user has opted in to allow web apps to install other web apps."""
     DIRECT_SOCKETS_PRIVATE_NETWORK_ACCESS = 114
+    """Content settings for private network access in the context of the Direct Sockets API."""
     LEGACY_COOKIE_SCOPE = 115
+    """Content settings for legacy cookie scope.
+
+    Checks whether cookies scope is handled according to origin-bound cookies or legacy
+    behavior.
+    """
     ARE_SUSPICIOUS_NOTIFICATIONS_ALLOWLISTED_BY_USER = 116
+    """Website setting to indicate whether the user has allowlisted suspicious notifications for the origin."""
     CONTROLLED_FRAME = 117
+    """Content settings for access to the Controlled Frame API."""
     REVOKED_DISRUPTIVE_NOTIFICATION_PERMISSIONS = 118
+    """Website setting which is used for RevokedPermissionsService to store revoked notification permissions of disruptive sites."""
     LOCAL_NETWORK_ACCESS = 119
+    """Content setting for whether the site is allowed to make local network requests."""
     ON_DEVICE_SPEECH_RECOGNITION_LANGUAGES_DOWNLOADED = 120
+    """Stores information on-device language packs for which a site has installed using the Web Speech API."""
     INITIALIZED_TRANSLATIONS = 121
+    """Stores which Translator API language packs the site has initialized."""
     SUSPICIOUS_NOTIFICATION_IDS = 122
+    """Stores a list of notification ids where content detection found the notification to be suspicious and a warning has already been shown for the site.
+
+    Used for recovering notification contents from the database if the user decides they
+    would like to see all of these notifications.
+    """
     GEOLOCATION_WITH_OPTIONS = 123
+    """To support approximate geolocation, the permission is migrating to use permissions with options, which won't be stored as ContentSettings.
+
+    Upon launch of the feature, GEOLOCATION and GEOLOCATION_WITH_OPTIONS should be
+    merged.
+    """
     DEVICE_ATTRIBUTES = 124
+    """Setting for enabling the Device Attributes API.
+
+    Spec link: https://wicg.github.io/WebApiDevice/device_attributes/
+    """
     PERMISSION_ACTIONS_HISTORY = 125
+    """Stores per-origin state for permission heuristics.
+
+    Currently used for auto-granting geolocation element permission request after
+    repeated temporary grants.
+    """
     SUSPICIOUS_NOTIFICATION_SHOW_ORIGINAL = 126
+    """Website setting to indicate whether the user has selected "show original" when suspicious warning is shown.
+
+    If the user has selected this, the notification permission will not be revoked based
+    on suspicious verdict.
+    """
     LOCAL_NETWORK = 127
+    """Content setting for whether the site is allowed to make local network requests.
+
+    Split from LOCAL_NETWORK_ACCESS.
+    """
     LOOPBACK_NETWORK = 128
+    """Content setting for whether the site is allowed to make loopback network requests.
+
+    Split from LOCAL_NETWORK_ACCESS.
+    """
     SUB_APPS_WITHOUT_PROMPTS = 129
+    """Content setting for whether an IWA can add sub apps without prompting users."""
     INLINE_CUE_MENU = 130
+    """Content setting for inline cue menus."""
     SUSPICIOUS_SITE_WARNING_DATA = 131
+    """Stores allowlist decisions for Suspicious Site Warnings."""
     NUM_VALUES = 132
 
 
 class ContentSettingValues(enum.IntEnum):
-    """Supported content setting values. Should be kept in sync with Chromium's ContentSetting type."""
+    """Supported content setting values.
+
+    Should be kept in sync with Chromium's ContentSetting type.
+    """
     DEFAULT = 0
     ALLOW = 1
     BLOCK = 2
@@ -417,7 +810,11 @@ class ContentSettingValues(enum.IntEnum):
 
 
 class ContextMenuEditStateFlags(enum.IntFlag):
-    """Supported context menu edit state bit flags. These constants match their equivalents in Chromium's ContextMenuDataEditFlags and should not be renumbered."""
+    """Supported context menu edit state bit flags.
+
+    These constants match their equivalents in Chromium's ContextMenuDataEditFlags and
+    should not be renumbered.
+    """
     NONE = 0
     CAN_UNDO = 1
     CAN_REDO = 2
@@ -431,7 +828,11 @@ class ContextMenuEditStateFlags(enum.IntFlag):
 
 
 class ContextMenuMediaStateFlags(enum.IntFlag):
-    """Supported context menu media state bit flags. These constants match their equivalents in Chromium's ContextMenuData::MediaFlags and should not be renumbered."""
+    """Supported context menu media state bit flags.
+
+    These constants match their equivalents in Chromium's ContextMenuData::MediaFlags
+    and should not be renumbered.
+    """
     NONE = 0
     IN_ERROR = 1
     PAUSED = 2
@@ -449,26 +850,44 @@ class ContextMenuMediaStateFlags(enum.IntFlag):
 
 
 class ContextMenuMediaType(enum.IntEnum):
-    """Supported context menu media types. These constants match their equivalents in Chromium's ContextMenuDataMediaType and should not be renumbered."""
+    """Supported context menu media types.
+
+    These constants match their equivalents in Chromium's ContextMenuDataMediaType and
+    should not be renumbered.
+    """
     NONE = 0
+    """No special node is in context."""
     IMAGE = 1
+    """An image node is selected."""
     VIDEO = 2
+    """A video node is selected."""
     AUDIO = 3
+    """An audio node is selected."""
     CANVAS = 4
+    """An canvas node is selected."""
     FILE = 5
+    """A file node is selected."""
     PLUGIN = 6
+    """A plugin node is selected."""
     NUM_VALUES = 7
 
 
 class ContextMenuTypeFlags(enum.IntFlag):
     """Supported context menu type flags."""
     NONE = 0
+    """No node is selected."""
     PAGE = 1
+    """The top page is selected."""
     FRAME = 2
+    """A subframe page is selected."""
     LINK = 4
+    """A link is selected."""
     MEDIA = 8
+    """A media node is selected."""
     SELECTION = 16
+    """There is a textual or mixed selection that is selected."""
     EDITABLE = 32
+    """An editable element is selected."""
 
 
 class CookiePriority(enum.IntEnum):
@@ -543,7 +962,7 @@ class CursorType(enum.IntEnum):
 
 
 class DockingMode(enum.IntEnum):
-    """Docking modes supported by CefWindow::AddOverlay."""
+    """Docking modes supported by :meth:`Window.add_overlay`."""
     TOP_LEFT = 0
     TOP_RIGHT = 1
     BOTTOM_LEFT = 2
@@ -592,7 +1011,10 @@ class DomEventPhase(enum.IntEnum):
 
 
 class DomFormControlType(enum.IntEnum):
-    """DOM form control types. Should be kept in sync with Chromium's blink::mojom::FormControlType type."""
+    """DOM form control types.
+
+    Should be kept in sync with Chromium's blink::mojom::FormControlType type.
+    """
     UNSUPPORTED = 0
     BUTTON_BUTTON = 1
     BUTTON_SUBMIT = 2
@@ -644,41 +1066,104 @@ class DomNodeType(enum.IntEnum):
 
 
 class DownloadInterruptReason(enum.IntEnum):
-    """Download interrupt reasons. Should be kept in sync with Chromium's download::DownloadInterruptReason type."""
+    """Download interrupt reasons.
+
+    Should be kept in sync with Chromium's download::DownloadInterruptReason type.
+    """
     NONE = 0
     FILE_FAILED = 1
+    """Generic file operation failure."""
     FILE_ACCESS_DENIED = 2
+    """The file cannot be accessed due to security restrictions."""
     FILE_NO_SPACE = 3
+    """There is not enough room on the drive."""
     FILE_NAME_TOO_LONG = 5
+    """The directory or file name is too long."""
     FILE_TOO_LARGE = 6
+    """The file is too large for the file system to handle."""
     FILE_VIRUS_INFECTED = 7
+    """The file contains a virus."""
     FILE_TRANSIENT_ERROR = 10
+    """The file was in use.
+
+    Too many files are opened at once. We have run out of memory.
+    """
     FILE_BLOCKED = 11
+    """The file was blocked due to local policy."""
     FILE_SECURITY_CHECK_FAILED = 12
+    """An attempt to check the safety of the download failed due to unexpected reasons.
+
+    See http://crbug.com/153212.
+    """
     FILE_TOO_SHORT = 13
+    """An attempt was made to seek past the end of a file in opening a file (as part of resuming a previously interrupted download)."""
     FILE_HASH_MISMATCH = 14
+    """The partial file didn't match the expected hash."""
     FILE_SAME_AS_SOURCE = 15
+    """The source and the target of the download were the same."""
     NETWORK_FAILED = 20
+    """Generic network failure."""
     NETWORK_TIMEOUT = 21
+    """The network operation timed out."""
     NETWORK_DISCONNECTED = 22
+    """The network connection has been lost."""
     NETWORK_SERVER_DOWN = 23
+    """The server has gone down."""
     NETWORK_INVALID_REQUEST = 24
+    """The network request was invalid.
+
+    This may be due to the original URL or a redirected URL: - Having an unsupported
+    scheme. - Being an invalid URL. - Being disallowed by policy.
+    """
     SERVER_FAILED = 30
+    """The server indicates that the operation has failed (generic)."""
     SERVER_NO_RANGE = 31
+    """The server does not support range requests.
+
+    Internal use only: must restart from the beginning.
+    """
     SERVER_BAD_CONTENT = 33
+    """The server does not have the requested data."""
     SERVER_UNAUTHORIZED = 34
+    """Server didn't authorize access to resource."""
     SERVER_CERT_PROBLEM = 35
+    """Server certificate problem."""
     SERVER_FORBIDDEN = 36
+    """Server access forbidden."""
     SERVER_UNREACHABLE = 37
+    """Unexpected server response.
+
+    This might indicate that the responding server may not be the intended server.
+    """
     SERVER_CONTENT_LENGTH_MISMATCH = 38
+    """The server sent fewer bytes than the content-length header.
+
+    It may indicate that the connection was closed prematurely, or the Content-Length
+    header was invalid. The download is only interrupted if strong validators are
+    present. Otherwise, it is treated as finished.
+    """
     SERVER_CROSS_ORIGIN_REDIRECT = 39
+    """An unexpected cross-origin redirect happened."""
     USER_CANCELED = 40
+    """The user canceled the download."""
     USER_SHUTDOWN = 41
+    """The user shut down the browser.
+
+    Internal use only: resume pending downloads if possible.
+    """
     CRASH = 50
+    """The browser crashed.
+
+    Internal use only: resume pending downloads if possible.
+    """
 
 
 class DragOperationsMask(enum.IntFlag):
-    """"Verb" of a drag-and-drop operation as negotiated between the source and destination. These constants match their equivalents in WebCore's DragActions.h and should not be renumbered."""
+    """"Verb" of a drag-and-drop operation as negotiated between the source and destination.
+
+    These constants match their equivalents in WebCore's DragActions.h and should not be
+    renumbered.
+    """
     NONE = 0
     COPY = 1
     LINK = 2
@@ -699,257 +1184,777 @@ class DuplexMode(enum.IntEnum):
 
 
 class ErrorCode(enum.IntEnum):
-    """Supported error code values. For the complete list of error values see "include/base/internal/cef_net_error_list.h"."""
+    """Supported error code values.
+
+    For the complete list of error values see
+    "include/base/internal/cef_net_error_list.h".
+    """
     NONE = 0
+    """No error."""
     IO_PENDING = (-1)
+    """An asynchronous IO operation is not yet complete.
+
+    This usually does not indicate a fatal error. Typically this error will be generated
+    as a notification to wait for some external notification that the IO operation
+    finally completed.
+    """
     FAILED = (-2)
+    """A generic failure occurred."""
     ABORTED = (-3)
+    """An operation was aborted (due to user action)."""
     INVALID_ARGUMENT = (-4)
+    """An argument to the function is incorrect."""
     INVALID_HANDLE = (-5)
+    """The handle or file descriptor is invalid."""
     FILE_NOT_FOUND = (-6)
+    """The file or directory cannot be found."""
     TIMED_OUT = (-7)
+    """An operation timed out."""
     FILE_TOO_BIG = (-8)
+    """The file is too large."""
     UNEXPECTED = (-9)
+    """An unexpected error.
+
+    This may be caused by a programming mistake or an invalid assumption.
+    """
     ACCESS_DENIED = (-10)
+    """Permission to access a resource, other than the network, was denied."""
     NOT_IMPLEMENTED = (-11)
+    """The operation failed because of unimplemented functionality."""
     INSUFFICIENT_RESOURCES = (-12)
+    """There were not enough resources to complete the operation."""
     OUT_OF_MEMORY = (-13)
+    """Memory allocation failed."""
     UPLOAD_FILE_CHANGED = (-14)
+    """The file upload failed because the file's modification time was different from the expectation."""
     SOCKET_NOT_CONNECTED = (-15)
+    """The socket is not connected."""
     FILE_EXISTS = (-16)
+    """The file already exists."""
     FILE_PATH_TOO_LONG = (-17)
+    """The path or file name is too long."""
     FILE_NO_SPACE = (-18)
+    """Not enough room left on the disk."""
     FILE_VIRUS_INFECTED = (-19)
+    """The file has a virus."""
     BLOCKED_BY_CLIENT = (-20)
+    """The client chose to block the request."""
     NETWORK_CHANGED = (-21)
+    """The network changed."""
     BLOCKED_BY_ADMINISTRATOR = (-22)
+    """The request was blocked by the URL block list configured by the domain administrator."""
     SOCKET_IS_CONNECTED = (-23)
+    """The socket is already connected."""
     UPLOAD_STREAM_REWIND_NOT_SUPPORTED = (-25)
+    """The upload failed because the upload stream needed to be re-read, due to a retry or a redirect, but the upload stream doesn't support that operation."""
     CONTEXT_SHUT_DOWN = (-26)
+    """The request failed because the URLRequestContext is shutting down, or has been shut down."""
     BLOCKED_BY_RESPONSE = (-27)
+    """The request failed because the response was delivered along with requirements which are not met ('X-Frame-Options' and 'Content-Security-Policy' ancestor checks and 'Cross-Origin-Resource-Policy' for instance)."""
     CLEARTEXT_NOT_PERMITTED = (-29)
+    """The request was blocked by system policy disallowing some or all cleartext requests.
+
+    Used for NetworkSecurityPolicy on Android.
+    """
     BLOCKED_BY_CSP = (-30)
+    """The request was blocked by a Content Security Policy"""
     BLOCKED_BY_ORB = (-32)
+    """The request was blocked by CORB or ORB."""
     NETWORK_ACCESS_REVOKED = (-33)
+    """The request was blocked because it originated from a frame that has disabled network access."""
     BLOCKED_BY_FINGERPRINTING_PROTECTION = (-34)
+    """The request was blocked by fingerprinting protections."""
     BLOCKED_IN_INCOGNITO_BY_ADMINISTRATOR = (-35)
+    """The request was blocked by the Incognito Mode URL block list configured by the domain administrator."""
     LOCAL_NETWORK_PERMISSION_MISSING = (-36)
+    """The request was blocked because the local network permission is missing.
+
+    Note that this is different from BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS which is
+    specifically for a CORS error code.
+    """
     STRICT_ECH_REQUIRED = (-37)
+    """The request was blocked because ECH is strictly required, but: - The client could not obtain a valid ECH configuration.
+
+    - The server rejected the ECH, and the client failed to establish a new ECH
+    connection after retrying with retry_configs.
+    """
     CONNECTION_CLOSED = (-100)
+    """A connection was closed (corresponding to a TCP FIN)."""
     CONNECTION_RESET = (-101)
+    """A connection was reset (corresponding to a TCP RST)."""
     CONNECTION_REFUSED = (-102)
+    """A connection attempt was refused."""
     CONNECTION_ABORTED = (-103)
+    """A connection timed out as a result of not receiving an ACK for data sent.
+
+    This can include a FIN packet that did not get ACK'd.
+    """
     CONNECTION_FAILED = (-104)
+    """A connection attempt failed."""
     NAME_NOT_RESOLVED = (-105)
+    """The host name could not be resolved."""
     INTERNET_DISCONNECTED = (-106)
+    """The Internet connection has been lost."""
     SSL_PROTOCOL_ERROR = (-107)
+    """An SSL protocol error occurred."""
     ADDRESS_INVALID = (-108)
+    """The IP address or port number is invalid (e.g., cannot connect to the IP address 0 or the port 0)."""
     ADDRESS_UNREACHABLE = (-109)
+    """The IP address is unreachable.
+
+    This usually means that there is no route to the specified host or network.
+    """
     SSL_CLIENT_AUTH_CERT_NEEDED = (-110)
+    """The server requested a client certificate for SSL client authentication."""
     TUNNEL_CONNECTION_FAILED = (-111)
+    """A tunnel connection through the proxy could not be established.
+
+    For more info see the comment on PROXY_UNABLE_TO_CONNECT_TO_DESTINATION.
+    """
     SSL_VERSION_OR_CIPHER_MISMATCH = (-113)
+    """The client and server don't support a common SSL protocol version or cipher suite."""
     SSL_RENEGOTIATION_REQUESTED = (-114)
+    """The server requested a renegotiation (rehandshake)."""
     PROXY_AUTH_UNSUPPORTED = (-115)
+    """The proxy requested authentication (for tunnel establishment) with an unsupported method."""
     BAD_SSL_CLIENT_AUTH_CERT = (-117)
+    """The SSL handshake failed because of a bad or missing client certificate."""
     CONNECTION_TIMED_OUT = (-118)
+    """A connection attempt timed out."""
     HOST_RESOLVER_QUEUE_TOO_LARGE = (-119)
+    """There are too many pending DNS resolves, so a request in the queue was aborted."""
     SOCKS_CONNECTION_FAILED = (-120)
+    """Failed establishing a connection to the SOCKS proxy server for a target host."""
     SOCKS_CONNECTION_HOST_UNREACHABLE = (-121)
+    """The SOCKS proxy server failed establishing connection to the target host because that host is unreachable."""
     ALPN_NEGOTIATION_FAILED = (-122)
+    """The request to negotiate an alternate protocol failed."""
     SSL_NO_RENEGOTIATION = (-123)
+    """The peer sent an SSL no_renegotiation alert message."""
     WINSOCK_UNEXPECTED_WRITTEN_BYTES = (-124)
+    """Winsock sometimes reports more data written than passed.
+
+    This is probably due to a broken LSP.
+    """
     SSL_DECOMPRESSION_FAILURE_ALERT = (-125)
+    """An SSL peer sent us a fatal decompression_failure alert.
+
+    This typically occurs when a peer selects DEFLATE compression in the mistaken belief
+    that it supports it.
+    """
     SSL_BAD_RECORD_MAC_ALERT = (-126)
+    """An SSL peer sent us a fatal bad_record_mac alert.
+
+    This has been observed from servers with buggy DEFLATE support.
+    """
     PROXY_AUTH_REQUESTED = (-127)
+    """The proxy requested authentication (for tunnel establishment)."""
     PROXY_CONNECTION_FAILED = (-130)
+    """Could not create a connection to the proxy server.
+
+    An error occurred either in resolving its name, or in connecting a socket to it.
+    Note that this does NOT include failures during the actual "CONNECT" method of an
+    HTTP proxy.
+    """
     MANDATORY_PROXY_CONFIGURATION_FAILED = (-131)
+    """A mandatory proxy configuration could not be used.
+
+    Currently this means that a mandatory PAC script could not be fetched, parsed or
+    executed.
+    """
     PRECONNECT_MAX_SOCKET_LIMIT = (-133)
+    """We've hit the max socket limit for the socket pool while preconnecting.
+
+    We don't bother trying to preconnect more sockets.
+    """
     SSL_CLIENT_AUTH_PRIVATE_KEY_ACCESS_DENIED = (-134)
+    """The permission to use the SSL client certificate's private key was denied."""
     SSL_CLIENT_AUTH_CERT_NO_PRIVATE_KEY = (-135)
+    """The SSL client certificate has no private key."""
     PROXY_CERTIFICATE_INVALID = (-136)
+    """The certificate presented by the HTTPS Proxy was invalid."""
     NAME_RESOLUTION_FAILED = (-137)
+    """An error occurred when trying to do a name resolution (DNS)."""
     NETWORK_ACCESS_DENIED = (-138)
+    """Permission to access the network was denied.
+
+    This is used to distinguish errors that were most likely caused by a firewall from
+    other access denied errors. See also ERR_ACCESS_DENIED.
+    """
     TEMPORARILY_THROTTLED = (-139)
+    """The request throttler module cancelled this request to avoid DDOS."""
     SSL_CLIENT_AUTH_SIGNATURE_FAILED = (-141)
+    """We were unable to sign the CertificateVerify data of an SSL client auth handshake with the client certificate's private key.
+
+    Possible causes for this include the user implicitly or explicitly denying access to
+    the private key, the private key may not be valid for signing, the key may be
+    relying on a cached handle which is no longer valid, or the CSP won't allow
+    arbitrary data to be signed.
+    """
     MSG_TOO_BIG = (-142)
+    """The message was too large for the transport.
+
+    (for example a UDP message which exceeds size threshold).
+    """
     WS_PROTOCOL_ERROR = (-145)
+    """Websocket protocol error.
+
+    Indicates that we are terminating the connection due to a malformed frame or other
+    protocol violation.
+    """
     ADDRESS_IN_USE = (-147)
+    """Returned when attempting to bind an address that is already in use."""
     SSL_PINNED_KEY_NOT_IN_CERT_CHAIN = (-150)
+    """The certificate didn't match the built-in public key pins for the host name.
+
+    The pins are set in net/http/transport_security_state.cc and require that one of a
+    set of public keys exist on the path from the leaf to the root.
+    """
     CLIENT_AUTH_CERT_TYPE_UNSUPPORTED = (-151)
+    """Server request for client certificate did not contain any types we support."""
     SSL_DECRYPT_ERROR_ALERT = (-153)
+    """An SSL peer sent us a fatal decrypt_error alert.
+
+    This typically occurs when a peer could not correctly verify a signature (in
+    CertificateVerify or ServerKeyExchange) or validate a Finished message.
+    """
     WS_THROTTLE_QUEUE_TOO_LARGE = (-154)
+    """There are too many pending WebSocketJob instances, so the new job was not pushed to the queue."""
     SSL_SERVER_CERT_CHANGED = (-156)
+    """The SSL server certificate changed in a renegotiation."""
     SSL_UNRECOGNIZED_NAME_ALERT = (-159)
+    """The SSL server sent us a fatal unrecognized_name alert."""
     SOCKET_SET_RECEIVE_BUFFER_SIZE_ERROR = (-160)
+    """Failed to set the socket's receive buffer size as requested."""
     SOCKET_SET_SEND_BUFFER_SIZE_ERROR = (-161)
+    """Failed to set the socket's send buffer size as requested."""
     SOCKET_RECEIVE_BUFFER_SIZE_UNCHANGEABLE = (-162)
+    """Failed to set the socket's receive buffer size as requested, despite success return code from setsockopt."""
     SOCKET_SEND_BUFFER_SIZE_UNCHANGEABLE = (-163)
+    """Failed to set the socket's send buffer size as requested, despite success return code from setsockopt."""
     SSL_CLIENT_AUTH_CERT_BAD_FORMAT = (-164)
+    """Failed to import a client certificate from the platform store into the SSL library."""
     ICANN_NAME_COLLISION = (-166)
+    """Resolving a hostname to an IP address list included the IPv4 address "127.0.53.53".
+
+    This is a special IP address which ICANN has recommended to indicate there was a
+    name collision, and alert admins to a potential problem.
+    """
     SSL_SERVER_CERT_BAD_FORMAT = (-167)
+    """The SSL server presented a certificate which could not be decoded.
+
+    This is not a certificate error code as no X509Certificate object is available. This
+    error is fatal.
+    """
     CT_STH_PARSING_FAILED = (-168)
+    """Certificate Transparency: Received a signed tree head that failed to parse."""
     CT_STH_INCOMPLETE = (-169)
+    """Certificate Transparency: Received a signed tree head whose JSON parsing was OK but was missing some of the fields."""
     UNABLE_TO_REUSE_CONNECTION_FOR_PROXY_AUTH = (-170)
+    """The attempt to reuse a connection to send proxy auth credentials failed before the AuthController was used to generate credentials.
+
+    The caller should reuse the controller with a new connection. This error is only
+    used internally by the network stack.
+    """
     CT_CONSISTENCY_PROOF_PARSING_FAILED = (-171)
+    """Certificate Transparency: Failed to parse the received consistency proof."""
     SSL_OBSOLETE_CIPHER = (-172)
+    """The SSL server required an unsupported cipher suite that has since been removed.
+
+    This error will temporarily be signaled on a fallback for one or two releases
+    immediately following a cipher suite's removal, after which the fallback will be
+    removed.
+    """
     WS_UPGRADE = (-173)
+    """When a WebSocket handshake is done successfully and the connection has been upgraded, the URLRequest is cancelled with this error code."""
     READ_IF_READY_NOT_IMPLEMENTED = (-174)
+    """Socket ReadIfReady support is not implemented.
+
+    This error should not be user visible, because the normal Read() method is used as a
+    fallback.
+    """
     NO_BUFFER_SPACE = (-176)
+    """No socket buffer space is available."""
     SSL_CLIENT_AUTH_NO_COMMON_ALGORITHMS = (-177)
+    """There were no common signature algorithms between our client certificate private key and the server's preferences."""
     EARLY_DATA_REJECTED = (-178)
+    """TLS 1.3 early data was rejected by the server.
+
+    This will be received before any data is returned from the socket. The request
+    should be retried with early data disabled.
+    """
     WRONG_VERSION_ON_EARLY_DATA = (-179)
+    """TLS 1.3 early data was offered, but the server responded with TLS 1.2 or earlier.
+
+    This is an internal error code to account for a backwards-compatibility issue with
+    early data and TLS 1.2. It will be received before any data is returned from the
+    socket. The request should be retried with early data disabled. See
+    https://tools.ietf.org/html/rfc8446#appendix-D.3 for details.
+    """
     TLS13_DOWNGRADE_DETECTED = (-180)
+    """TLS 1.3 was enabled, but a lower version was negotiated and the server returned a value indicating it supported TLS 1.3.
+
+    This is part of a security check in TLS 1.3, but it may also indicate the user is
+    behind a buggy TLS-terminating proxy which implemented TLS 1.2 incorrectly. (See
+    https://crbug.com/boringssl/226.)
+    """
     SSL_KEY_USAGE_INCOMPATIBLE = (-181)
+    """The server's certificate has a keyUsage extension incompatible with the negotiated TLS key exchange method."""
     INVALID_ECH_CONFIG_LIST = (-182)
+    """The ECHConfigList fetched over DNS cannot be parsed."""
     ECH_NOT_NEGOTIATED = (-183)
+    """ECH was enabled, but the server was unable to decrypt the encrypted ClientHello."""
     ECH_FALLBACK_CERTIFICATE_INVALID = (-184)
+    """ECH was enabled, the server was unable to decrypt the encrypted ClientHello, and additionally did not present a certificate valid for the public name."""
     PROXY_UNABLE_TO_CONNECT_TO_DESTINATION = (-186)
+    """An attempt to proxy a request failed because the proxy wasn't able to successfully connect to the destination.
+
+    This likely indicates an issue with the request itself (for instance, the hostname
+    failed to resolve to an IP address or the destination server refused the
+    connection). This error code is used to indicate that the error is outside the
+    control of the proxy server and thus the proxy chain should not be marked as bad.
+    This is in contrast to ERR_TUNNEL_CONNECTION_FAILED which is used for general
+    purpose errors connecting to the proxy and by the proxy request response handling
+    when a proxy delegate doesn't indicate via a different error code whether proxy
+    fallback should occur. Note that for IP Protection proxies this error code causes
+    the proxy to be marked as bad since the preference is to fail open for general
+    purpose errors, but for other proxies this error does not cause the proxy to be
+    marked as bad.
+    """
     PROXY_DELEGATE_CANCELED_CONNECT_REQUEST = (-187)
+    """Some implementations of ProxyDelegate query a separate entity to know whether it should cancel tunnel prior to: - The HTTP CONNECT requests being sent out - The HTTP CONNECT response being parsed by //net An example is CronetProxyDelegate: Cronet allows developers to decide whether the tunnel being established should be canceled."""
     PROXY_DELEGATE_CANCELED_CONNECT_RESPONSE = (-188)
     CONTROL_MSG_TOO_BIG = (-189)
+    """The control message was too large for the transport.
+
+    (for example a UDP message control data exceeds size threshold).
+    """
     MULTICAST_NOT_ALLOWED = (-190)
+    """Direct Sockets attempted to connect to or send a packet to a multicast address without 'direct-sockets-multicast' permissions policy."""
     CERT_COMMON_NAME_INVALID = (-200)
+    """The server responded with a certificate whose common name did not match the host name.
+
+    This could mean: 1. An attacker has redirected our traffic to their server and is
+    presenting a certificate for which they know the private key. 2. The server is
+    misconfigured and responding with the wrong cert. 3. The user is on a wireless
+    network and is being redirected to the network's login page. 4. The OS has used a
+    DNS search suffix and the server doesn't have a certificate for the abbreviated name
+    in the address bar.
+    """
     CERT_DATE_INVALID = (-201)
+    """The server responded with a certificate that, by our clock, appears to either not yet be valid or to have expired.
+
+    This could mean: 1. An attacker is presenting an old certificate for which they have
+    managed to obtain the private key. 2. The server is misconfigured and is not
+    presenting a valid cert. 3. Our clock is wrong.
+    """
     CERT_AUTHORITY_INVALID = (-202)
+    """The server responded with a certificate that is signed by an authority we don't trust.
+
+    The could mean: 1. An attacker has substituted the real certificate for a cert that
+    contains their public key and is signed by their cousin. 2. The server operator has
+    a legitimate certificate from a CA we don't know about, but should trust. 3. The
+    server is presenting a self-signed certificate, providing no defense against active
+    attackers (but foiling passive attackers).
+    """
     CERT_CONTAINS_ERRORS = (-203)
+    """The server responded with a certificate that contains errors.
+
+    This error is not recoverable. MSDN describes this error as follows: "The SSL
+    certificate contains errors." NOTE: It's unclear how this differs from
+    ERR_CERT_INVALID. For consistency, use that code instead of this one from now on.
+    """
     CERT_NO_REVOCATION_MECHANISM = (-204)
+    """The certificate has no mechanism for determining if it is revoked.
+
+    In effect, this certificate cannot be revoked.
+    """
     CERT_UNABLE_TO_CHECK_REVOCATION = (-205)
+    """Revocation information for the security certificate for this site is not available.
+
+    This could mean: 1. An attacker has compromised the private key in the certificate
+    and is blocking our attempt to find out that the cert was revoked. 2. The
+    certificate is unrevoked, but the revocation server is busy or unavailable.
+    """
     CERT_REVOKED = (-206)
+    """The server responded with a certificate has been revoked.
+
+    We have the capability to ignore this error, but it is probably not the thing to do.
+    """
     CERT_INVALID = (-207)
+    """The server responded with a certificate that is invalid.
+
+    This error is not recoverable. MSDN describes this error as follows: "The SSL
+    certificate is invalid."
+    """
     CERT_WEAK_SIGNATURE_ALGORITHM = (-208)
+    """The server responded with a certificate that is signed using a weak signature algorithm."""
     CERT_NON_UNIQUE_NAME = (-210)
+    """The host name specified in the certificate is not unique."""
     CERT_WEAK_KEY = (-211)
+    """The server responded with a certificate that contains a weak key (e.g.
+
+    a too-small RSA key).
+    """
     CERT_NAME_CONSTRAINT_VIOLATION = (-212)
+    """The certificate claimed DNS names that are in violation of name constraints."""
     CERT_VALIDITY_TOO_LONG = (-213)
+    """The certificate's validity period is too long."""
     CERTIFICATE_TRANSPARENCY_REQUIRED = (-214)
+    """Certificate Transparency was required for this connection, but the server did not provide CT information that complied with the policy."""
     CERT_KNOWN_INTERCEPTION_BLOCKED = (-217)
+    """The certificate is known to be used for interception by an entity other the device owner."""
     CERT_SELF_SIGNED_LOCAL_NETWORK = (-219)
+    """The certificate is self signed and it's being used for either an RFC1918 IP literal URL, or a url ending in .local."""
     CERT_END = (-220)
+    """The value immediately past the last certificate error code."""
     INVALID_URL = (-300)
+    """The URL is invalid."""
     DISALLOWED_URL_SCHEME = (-301)
+    """The scheme of the URL is disallowed."""
     UNKNOWN_URL_SCHEME = (-302)
+    """The scheme of the URL is unknown."""
     INVALID_REDIRECT = (-303)
+    """Attempting to load an URL resulted in a redirect to an invalid URL."""
     TOO_MANY_REDIRECTS = (-310)
+    """Attempting to load an URL resulted in too many redirects."""
     UNSAFE_REDIRECT = (-311)
+    """Attempting to load an URL resulted in an unsafe redirect (e.g., a redirect to file:// is considered unsafe)."""
     UNSAFE_PORT = (-312)
+    """Attempting to load an URL with an unsafe port number.
+
+    These are port numbers that correspond to services, which are not robust to spurious
+    input that may be constructed as a result of an allowed web construct (e.g., HTTP
+    looks a lot like SMTP, so form submission to port 25 is denied).
+    """
     INVALID_RESPONSE = (-320)
+    """The server's response was invalid."""
     INVALID_CHUNKED_ENCODING = (-321)
+    """Error in chunked transfer encoding."""
     METHOD_NOT_SUPPORTED = (-322)
+    """The server did not support the request method."""
     UNEXPECTED_PROXY_AUTH = (-323)
+    """The response was 407 (Proxy Authentication Required), yet we did not send the request to a proxy."""
     EMPTY_RESPONSE = (-324)
+    """The server closed the connection without sending any data."""
     RESPONSE_HEADERS_TOO_BIG = (-325)
+    """The headers section of the response is too large."""
     PAC_SCRIPT_FAILED = (-327)
+    """The evaluation of the PAC script failed."""
     REQUEST_RANGE_NOT_SATISFIABLE = (-328)
+    """The response was 416 (Requested range not satisfiable) and the server cannot satisfy the range requested."""
     MALFORMED_IDENTITY = (-329)
+    """The identity used for authentication is invalid."""
     CONTENT_DECODING_FAILED = (-330)
+    """Content decoding of the response body failed."""
     NETWORK_IO_SUSPENDED = (-331)
+    """An operation could not be completed because all network IO is suspended."""
     NO_SUPPORTED_PROXIES = (-336)
+    """There are no supported proxies in the provided list."""
     HTTP2_PROTOCOL_ERROR = (-337)
+    """There is an HTTP/2 protocol error."""
     INVALID_AUTH_CREDENTIALS = (-338)
+    """Credentials could not be established during HTTP Authentication."""
     UNSUPPORTED_AUTH_SCHEME = (-339)
+    """An HTTP Authentication scheme was tried which is not supported on this machine."""
     ENCODING_DETECTION_FAILED = (-340)
+    """Detecting the encoding of the response failed."""
     MISSING_AUTH_CREDENTIALS = (-341)
+    """(GSSAPI) No Kerberos credentials were available during HTTP Authentication."""
     UNEXPECTED_SECURITY_LIBRARY_STATUS = (-342)
+    """An unexpected, but documented, SSPI or GSSAPI status code was returned."""
     MISCONFIGURED_AUTH_ENVIRONMENT = (-343)
+    """The environment was not set up correctly for authentication (for example, no KDC could be found or the principal is unknown."""
     UNDOCUMENTED_SECURITY_LIBRARY_STATUS = (-344)
+    """An undocumented SSPI or GSSAPI status code was returned."""
     RESPONSE_BODY_TOO_BIG_TO_DRAIN = (-345)
+    """The HTTP response was too big to drain."""
     RESPONSE_HEADERS_MULTIPLE_CONTENT_LENGTH = (-346)
+    """The HTTP response contained multiple distinct Content-Length headers."""
     INCOMPLETE_HTTP2_HEADERS = (-347)
+    """HTTP/2 headers have been received, but not all of them - status or version headers are missing, so we're expecting additional frames to complete them."""
     PAC_NOT_IN_DHCP = (-348)
+    """No PAC URL configuration could be retrieved from DHCP.
+
+    This can indicate either a failure to retrieve the DHCP configuration, or that there
+    was no PAC URL configured in DHCP.
+    """
     RESPONSE_HEADERS_MULTIPLE_CONTENT_DISPOSITION = (-349)
+    """The HTTP response contained multiple Content-Disposition headers."""
     RESPONSE_HEADERS_MULTIPLE_LOCATION = (-350)
+    """The HTTP response contained multiple Location headers."""
     HTTP2_SERVER_REFUSED_STREAM = (-351)
+    """HTTP/2 server refused the request without processing, and sent either a GOAWAY frame with error code NO_ERROR and Last-Stream-ID lower than the stream id corresponding to the request indicating that this request has not been processed yet, or a RST_STREAM frame with error code REFUSED_STREAM.
+
+    Client MAY retry (on a different connection). See RFC7540 Section 8.1.4.
+    """
     HTTP2_PING_FAILED = (-352)
+    """HTTP/2 server didn't respond to the PING message."""
     CONTENT_LENGTH_MISMATCH = (-354)
+    """The HTTP response body transferred fewer bytes than were advertised by the Content-Length header when the connection is closed."""
     INCOMPLETE_CHUNKED_ENCODING = (-355)
+    """The HTTP response body is transferred with Chunked-Encoding, but the terminating zero-length chunk was never sent when the connection is closed."""
     QUIC_PROTOCOL_ERROR = (-356)
+    """There is a QUIC protocol error."""
     RESPONSE_HEADERS_TRUNCATED = (-357)
+    """The HTTP headers were truncated by an EOF."""
     QUIC_HANDSHAKE_FAILED = (-358)
+    """The QUIC crypto handshake failed.
+
+    This means that the server was unable to read any requests sent, so they may be
+    resent.
+    """
     HTTP2_INADEQUATE_TRANSPORT_SECURITY = (-360)
+    """Transport security is inadequate for the HTTP/2 version."""
     HTTP2_FLOW_CONTROL_ERROR = (-361)
+    """The peer violated HTTP/2 flow control."""
     HTTP2_FRAME_SIZE_ERROR = (-362)
+    """The peer sent an improperly sized HTTP/2 frame."""
     HTTP2_COMPRESSION_ERROR = (-363)
+    """Decoding or encoding of compressed HTTP/2 headers failed."""
     PROXY_AUTH_REQUESTED_WITH_NO_CONNECTION = (-364)
+    """Proxy Auth Requested without a valid Client Socket Handle."""
     HTTP_1_1_REQUIRED = (-365)
+    """HTTP_1_1_REQUIRED error code received on HTTP/2 session."""
     PROXY_HTTP_1_1_REQUIRED = (-366)
+    """HTTP_1_1_REQUIRED error code received on HTTP/2 session to proxy."""
     PAC_SCRIPT_TERMINATED = (-367)
+    """The PAC script terminated fatally and must be reloaded."""
     INVALID_HTTP_RESPONSE = (-370)
+    """The server was expected to return an HTTP/1.x response, but did not.
+
+    Rather than treat it as HTTP/0.9, this error is returned.
+    """
     CONTENT_DECODING_INIT_FAILED = (-371)
+    """Initializing content decoding failed."""
     HTTP2_RST_STREAM_NO_ERROR_RECEIVED = (-372)
+    """Received HTTP/2 RST_STREAM frame with NO_ERROR error code.
+
+    This error should be handled internally by HTTP/2 code, and should not make it above
+    the SpdyStream layer.
+    """
     TOO_MANY_RETRIES = (-375)
+    """An HTTP transaction was retried too many times due for authentication or invalid certificates.
+
+    This may be due to a bug in the net stack that would otherwise infinite loop, or if
+    the server or proxy continually requests fresh credentials or presents a fresh
+    invalid certificate.
+    """
     HTTP2_STREAM_CLOSED = (-376)
+    """Received an HTTP/2 frame on a closed stream."""
     HTTP_RESPONSE_CODE_FAILURE = (-379)
+    """The server returned a non-2xx HTTP response code.
+
+    Note that this error is only used by certain APIs that interpret the HTTP response
+    itself. URLRequest for instance just passes most non-2xx response back as success.
+    """
     QUIC_CERT_ROOT_NOT_KNOWN = (-380)
+    """The certificate presented on a QUIC connection does not chain to a known root and the origin connected to is not on a list of domains where unknown roots are allowed."""
     QUIC_GOAWAY_REQUEST_CAN_BE_RETRIED = (-381)
+    """A GOAWAY frame has been received indicating that the request has not been processed and is therefore safe to retry on a different connection."""
     TOO_MANY_ACCEPT_CH_RESTARTS = (-382)
+    """The ACCEPT_CH restart has been triggered too many times"""
     INCONSISTENT_IP_ADDRESS_SPACE = (-383)
+    """The IP address space of the remote endpoint differed from the previous observed value during the same request.
+
+    Any cache entry for the affected request should be invalidated.
+    """
     CACHED_IP_ADDRESS_SPACE_BLOCKED_BY_LOCAL_NETWORK_ACCESS_POLICY = (-384)
+    """The IP address space of the cached remote endpoint is blocked by private network access check."""
     BLOCKED_BY_LOCAL_NETWORK_ACCESS_CHECKS = (-385)
+    """The connection is blocked by private network access checks."""
     ZSTD_WINDOW_SIZE_TOO_BIG = (-386)
+    """Content decoding failed due to the zstd window size being too big (over 8MB)."""
     DICTIONARY_LOAD_FAILED = (-387)
+    """The compression dictionary cannot be loaded."""
     UNEXPECTED_CONTENT_DICTIONARY_HEADER = (-388)
+    """The header of dictionary compressed stream does not match the expected value."""
     CACHE_MISS = (-400)
+    """The cache does not have the requested entry."""
     CACHE_READ_FAILURE = (-401)
+    """Unable to read from the disk cache."""
     CACHE_WRITE_FAILURE = (-402)
+    """Unable to write to the disk cache."""
     CACHE_OPERATION_NOT_SUPPORTED = (-403)
+    """The operation is not supported for this entry."""
     CACHE_OPEN_FAILURE = (-404)
+    """The disk cache is unable to open this entry."""
     CACHE_CREATE_FAILURE = (-405)
+    """The disk cache is unable to create this entry."""
     CACHE_RACE = (-406)
+    """Multiple transactions are racing to create disk cache entries.
+
+    This is an internal error returned from the HttpCache to the HttpCacheTransaction
+    that tells the transaction to restart the entry-creation logic because the state of
+    the cache has changed.
+    """
     CACHE_CHECKSUM_READ_FAILURE = (-407)
+    """The cache was unable to read a checksum record on an entry.
+
+    This can be returned from attempts to read from the cache. It is an internal error,
+    returned by the SimpleCache backend, but not by any URLRequest methods or members.
+    """
     CACHE_CHECKSUM_MISMATCH = (-408)
+    """The cache found an entry with an invalid checksum.
+
+    This can be returned from attempts to read from the cache. It is an internal error,
+    returned by the SimpleCache backend, but not by any URLRequest methods or members.
+    """
     CACHE_LOCK_TIMEOUT = (-409)
+    """Internal error code for the HTTP cache.
+
+    The cache lock timeout has fired.
+    """
     CACHE_AUTH_FAILURE_AFTER_READ = (-410)
+    """Received a challenge after the transaction has read some data, and the credentials aren't available.
+
+    There isn't a way to get them at that point.
+    """
     CACHE_ENTRY_NOT_SUITABLE = (-411)
+    """Internal not-quite error code for the HTTP cache.
+
+    In-memory hints suggest that the cache entry would not have been usable with the
+    transaction's current configuration (e.g. load flags, mode, etc.)
+    """
     CACHE_DOOM_FAILURE = (-412)
+    """The disk cache is unable to doom this entry."""
     CACHE_OPEN_OR_CREATE_FAILURE = (-413)
+    """The disk cache is unable to open or create this entry."""
     CACHE_COMPRESSION_FAILURE = (-414)
+    """Zstd compression of a cache entry body failed."""
     INSECURE_RESPONSE = (-501)
+    """The server's response was insecure (e.g.
+
+    there was a cert error).
+    """
     NO_PRIVATE_KEY_FOR_CERT = (-502)
+    """An attempt to import a client certificate failed, as the user's key database lacked a corresponding private key."""
     ADD_USER_CERT_FAILED = (-503)
+    """An error adding a certificate to the OS certificate database."""
     INVALID_SIGNED_EXCHANGE = (-504)
+    """An error occurred while handling a signed exchange."""
     INVALID_WEB_BUNDLE = (-505)
+    """An error occurred while handling a Web Bundle source."""
     TRUST_TOKEN_OPERATION_FAILED = (-506)
+    """A Trust Tokens protocol operation-executing request failed for one of a number of reasons (precondition failure, internal error, bad response)."""
     TRUST_TOKEN_OPERATION_SUCCESS_WITHOUT_SENDING_REQUEST = (-507)
+    """When handling a Trust Tokens protocol operation-executing request, the system was able to execute the request's Trust Tokens operation without sending the request to its destination: for instance, the results could have been present in a local cache (for redemption) or the operation could have been diverted to a local provider (for "platform-provided" issuance)."""
     HTTPENGINE_PROVIDER_IN_USE = (-508)
+    """This is a placeholder value that should never be used within //net.
+
+    When Cronet APIs are being backed by HttpEngine (i.e., HttpEngineProvider is being
+    used), org.chromium.net.NetworkException#getCronetInternalErrorCode is not supported
+    (android.net.http.NetworkException#getCronetInternalErrorCode does not exist). In
+    this scenario, getCronetInternalErrorCode will always return this error. This is a
+    first step towards the deprecation of getCronetInternalErrorCode. Temporarily
+    terminate, then restart, ITTT to avoid unsupported nesting. LINT.ThenChange(
+    //tools/metrics/histograms/enums.xml:HTTPResponseAndNetErrorCodes,
+    //tools/metrics/histograms/enums.xml:NetErrorCodes, )
+    LINT.IfChange(HTTPENGINE_PROVIDER_IN_USE)
+    """
     PKCS12_IMPORT_BAD_PASSWORD = (-701)
+    """PKCS #12 import failed due to incorrect password."""
     PKCS12_IMPORT_FAILED = (-702)
+    """PKCS #12 import failed due to other error."""
     IMPORT_CA_CERT_NOT_CA = (-703)
+    """CA import failed - not a CA cert."""
     IMPORT_CERT_ALREADY_EXISTS = (-704)
+    """Import failed - certificate already exists in database.
+
+    Note it's a little weird this is an error but reimporting a PKCS12 is ok (no-op).
+    That's how Mozilla does it, though.
+    """
     IMPORT_CA_CERT_FAILED = (-705)
+    """CA import failed due to some other error."""
     IMPORT_SERVER_CERT_FAILED = (-706)
+    """Server certificate import failed due to some internal error."""
     PKCS12_IMPORT_INVALID_MAC = (-707)
+    """PKCS #12 import failed due to invalid MAC."""
     PKCS12_IMPORT_INVALID_FILE = (-708)
+    """PKCS #12 import failed due to invalid/corrupt file."""
     PKCS12_IMPORT_UNSUPPORTED = (-709)
+    """PKCS #12 import failed due to unsupported features."""
     KEY_GENERATION_FAILED = (-710)
+    """Key generation failed."""
     PRIVATE_KEY_EXPORT_FAILED = (-712)
+    """Failure to export private key."""
     SELF_SIGNED_CERT_GENERATION_FAILED = (-713)
+    """Self-signed certificate generation failed."""
     CERT_DATABASE_CHANGED = (-714)
+    """The certificate database changed in some way."""
     CERT_VERIFIER_CHANGED = (-716)
+    """The certificate verifier configuration changed in some way."""
     DNS_MALFORMED_RESPONSE = (-800)
+    """DNS resolver received a malformed response."""
     DNS_SERVER_REQUIRES_TCP = (-801)
+    """DNS server requires TCP"""
     DNS_TIMED_OUT = (-803)
+    """DNS transaction timed out."""
     DNS_CACHE_MISS = (-804)
+    """The entry was not found in cache or other local sources, for lookups where only local sources were queried.
+
+    TODO(ericorth): Consider renaming to DNS_LOCAL_MISS or something like that as the
+    cache is not necessarily queried either.
+    """
     DNS_SEARCH_EMPTY = (-805)
+    """Suffix search list rules prevent resolution of the given host name."""
     DNS_SORT_ERROR = (-806)
+    """Failed to sort addresses according to RFC3484."""
     DNS_SECURE_RESOLVER_HOSTNAME_RESOLUTION_FAILED = (-808)
+    """Failed to resolve the hostname of a DNS-over-HTTPS server."""
     DNS_NAME_HTTPS_ONLY = (-809)
+    """DNS identified the request as disallowed for insecure connection (http/ws).
+
+    Error should be handled as if an HTTP redirect was received to redirect to https or
+    wss.
+    """
     DNS_REQUEST_CANCELLED = (-810)
+    """All DNS requests associated with this job have been cancelled."""
     DNS_NO_MATCHING_SUPPORTED_ALPN = (-811)
+    """The hostname resolution of HTTPS record was expected to be resolved with alpn values of supported protocols, but did not."""
     DNS_SECURE_PROBE_RECORD_INVALID = (-814)
+    """When checking whether secure DNS can be used, the response returned for the requested probe record either had no answer or was invalid."""
     DNS_CACHE_INVALIDATION_IN_PROGRESS = (-815)
+    """Returned when DNS cache invalidation is in progress.
+
+    This is a transient error. Callers may want to retry later.
+    """
     DNS_FORMAT_ERROR = (-816)
+    """The DNS server responded with a format error response code."""
     DNS_SERVER_FAILURE = (-817)
+    """The DNS server responded with a server failure response code."""
     DNS_NOT_IMPLEMENTED = (-818)
+    """The DNS server responded that the query type is not implemented."""
     DNS_REFUSED = (-819)
+    """The DNS server responded that the request was refused."""
     DNS_OTHER_FAILURE = (-820)
+    """The DNS server responded with an rcode indicating that the request failed, but the rcode is not one that we have a specific error code for.
+
+    In other words, the rcode was not one of the following: - NOERR - FORMERR - SERVFAIL
+    - NXDOMAIN - NOTIMP - REFUSED
+    """
     DNS_DIRECT_ONLY = (-821)
+    """Declined to call DNS for a direct_only request of a hostname whose traffic would be routed through a proxy."""
     BLOB_INVALID_CONSTRUCTION_ARGUMENTS = (-900)
+    """The construction arguments are invalid.
+
+    This is considered a bad IPC.
+    """
     BLOB_OUT_OF_MEMORY = (-901)
+    """We don't have enough memory for the blob."""
     BLOB_FILE_WRITE_FAILED = (-902)
+    """We couldn't create or write to a file.
+
+    File system error, like a full disk.
+    """
     BLOB_SOURCE_DIED_IN_TRANSIT = (-903)
+    """The renderer was destroyed while data was in transit."""
     BLOB_DEREFERENCED_WHILE_BUILDING = (-904)
+    """The renderer destructed the blob before it was done transferring, and there were no outstanding references (no one is waiting to read) to keep the blob alive."""
     BLOB_REFERENCED_BLOB_BROKEN = (-905)
+    """A blob that we referenced during construction is broken, or a browser-side builder tries to build a blob with a blob reference that isn't finished constructing."""
     BLOB_REFERENCED_FILE_UNAVAILABLE = (-906)
+    """A file that we referenced during construction is not accessible to the renderer trying to create the blob."""
 
 
 class EventFlags(enum.IntFlag):
@@ -963,6 +1968,7 @@ class EventFlags(enum.IntFlag):
     MIDDLE_MOUSE_BUTTON = 32
     RIGHT_MOUSE_BUTTON = 64
     COMMAND_DOWN = 128
+    """Mac OS-X command key."""
     NUM_LOCK_ON = 256
     IS_KEY_PAD = 512
     IS_LEFT = 1024
@@ -976,16 +1982,22 @@ class EventFlags(enum.IntFlag):
 class FileDialogMode(enum.IntEnum):
     """Supported file dialog modes."""
     OPEN = 0
+    """Requires that the file exists before allowing the user to pick it."""
     OPEN_MULTIPLE = 1
+    """Like Open, but allows picking multiple files to open."""
     OPEN_FOLDER = 2
+    """Like Open, but selects a folder to open."""
     SAVE = 3
+    """Allows picking a nonexistent file, and prompts to overwrite if the file already exists."""
     NUM_VALUES = 4
 
 
 class FocusSource(enum.IntEnum):
     """Focus sources."""
     NAVIGATION = 0
+    """The source is explicit navigation via the API (LoadURL(), etc)."""
     SYSTEM = 1
+    """The source is a system-generated focus event."""
     NUM_VALUES = 2
 
 
@@ -998,8 +2010,11 @@ class GestureCommand(enum.IntEnum):
 class HorizontalAlignment(enum.IntEnum):
     """Specifies the horizontal text alignment mode."""
     LEFT = 0
+    """Align the text's left edge with that of its display area."""
     CENTER = 1
+    """Align the text's center with that of its display area."""
     RIGHT = 2
+    """Align the text's right edge with that of its display area."""
 
 
 class JSDialogType(enum.IntEnum):
@@ -1011,60 +2026,108 @@ class JSDialogType(enum.IntEnum):
 
 
 class JsonParserOptions(enum.IntEnum):
-    """Options that can be passed to CefParseJSON."""
+    """Options that can be passed to ``CefParseJSON``."""
     RFC = 0
+    """Parse the input strictly according to RFC 4627.
+
+    See comments in Chromium's base/json/json_reader.h file for known limitations/
+    deviations from the RFC.
+    """
     ALLOW_TRAILING_COMMAS = 1
+    """Allows commas to exist after the last element in structures."""
 
 
 class JsonWriterOptions(enum.IntFlag):
-    """Options that can be passed to CefWriteJSON."""
+    """Options that can be passed to ``CefWriteJSON``."""
     DEFAULT = 0
+    """Default behavior."""
     OMIT_BINARY_VALUES = 1
+    """This option instructs the writer that if a Binary value is encountered, the value (and key if within a dictionary) will be omitted from the output, and success will be returned.
+
+    Otherwise, if a binary value is encountered, failure will be returned.
+    """
     OMIT_DOUBLE_TYPE_PRESERVATION = 2
+    """This option instructs the writer to write doubles that have no fractional part as a normal integer (i.e., without using exponential notation or appending a '.0') as long as the value is within the range of a 64-bit int."""
     PRETTY_PRINT = 4
+    """Return a slightly nicer formatted json string (pads with whitespace to help with readability)."""
 
 
 class KeyEventType(enum.IntEnum):
     """Key event types."""
     RAWKEYDOWN = 0
+    """Notification that a key transitioned from "up" to "down"."""
     KEYDOWN = 1
+    """Notification that a key was pressed.
+
+    This does not necessarily correspond to a character depending on the key and
+    language. Use KEYEVENT_CHAR for character input.
+    """
     KEYUP = 2
+    """Notification that a key was released."""
     CHAR = 3
+    """Notification that a character was typed.
+
+    Use this for text input. Key down events may generate 0, 1, or more than one
+    character event depending on the key, locale, and operating system.
+    """
 
 
 class LogItems(enum.IntFlag):
     """Log items prepended to each log line."""
     DEFAULT = 0
+    """Prepend the default list of items."""
     NONE = 1
+    """Prepend no items."""
     FLAG_PROCESS_ID = 2
+    """Prepend the process ID."""
     FLAG_THREAD_ID = 4
+    """Prepend the thread ID."""
     FLAG_TIME_STAMP = 8
+    """Prepend the timestamp."""
     FLAG_TICK_COUNT = 16
+    """Prepend the tickcount."""
 
 
 class LogSeverity(enum.IntEnum):
     """Log severity levels."""
     DEFAULT = 0
+    """Default logging (currently INFO logging)."""
     VERBOSE = 1
+    """Verbose logging."""
     DEBUG = 1
+    """DEBUG logging."""
     INFO = 2
+    """INFO logging."""
     WARNING = 3
+    """WARNING logging."""
     ERROR = 4
+    """ERROR logging."""
     FATAL = 5
+    """FATAL logging."""
     DISABLE = 99
+    """Disable logging to file for all messages, and to stderr for messages with severity less than FATAL."""
 
 
 class MediaAccessPermissionTypes(enum.IntFlag):
     """Media access permissions used by OnRequestMediaAccessPermission."""
     NONE = 0
+    """No permission."""
     DEVICE_AUDIO_CAPTURE = 1
+    """Device audio capture permission."""
     DEVICE_VIDEO_CAPTURE = 2
+    """Device video capture permission."""
     DESKTOP_AUDIO_CAPTURE = 4
+    """Desktop audio capture permission."""
     DESKTOP_VIDEO_CAPTURE = 8
+    """Desktop video capture permission."""
 
 
 class MediaRouteConnectionState(enum.IntEnum):
-    """Connection state for a MediaRoute object. Should be kept in sync with Chromium's blink::mojom::PresentationConnectionState type."""
+    """Connection state for a MediaRoute object.
+
+    Should be kept in sync with Chromium's blink::mojom::PresentationConnectionState
+    type.
+    """
     UNKNOWN = (-1)
     CONNECTING = 0
     CONNECTED = 1
@@ -1074,7 +2137,11 @@ class MediaRouteConnectionState(enum.IntEnum):
 
 
 class MediaRouteCreateResult(enum.IntEnum):
-    """Result codes for CefMediaRouter::CreateRoute. Should be kept in sync with Chromium's media_router::mojom::RouteRequestResultCode type."""
+    """Result codes for :meth:`MediaRouter.create_route`.
+
+    Should be kept in sync with Chromium's media_router::mojom::RouteRequestResultCode
+    type.
+    """
     UNKNOWN_ERROR = 0
     OK = 1
     TIMED_OUT = 2
@@ -1094,7 +2161,10 @@ class MediaRouteCreateResult(enum.IntEnum):
 
 
 class MediaSinkIconType(enum.IntEnum):
-    """Icon types for a MediaSink object. Should be kept in sync with Chromium's media_router::SinkIconType type."""
+    """Icon types for a MediaSink object.
+
+    Should be kept in sync with Chromium's media_router::SinkIconType type.
+    """
     CAST = 0
     CAST_AUDIO_GROUP = 1
     CAST_AUDIO = 2
@@ -1107,7 +2177,10 @@ class MediaSinkIconType(enum.IntEnum):
 
 
 class MenuAnchorPosition(enum.IntEnum):
-    """Specifies how a menu will be anchored for non-RTL languages. The opposite position will be used for RTL languages."""
+    """Specifies how a menu will be anchored for non-RTL languages.
+
+    The opposite position will be used for RTL languages.
+    """
     TOPLEFT = 0
     TOPRIGHT = 1
     BOTTOMCENTER = 2
@@ -1126,13 +2199,19 @@ class MenuColorType(enum.IntEnum):
 
 
 class MenuId(enum.IntEnum):
-    """Supported menu IDs. Non-English translations can be provided for the IDS_MENU_* strings in CefResourceBundleHandler::GetLocalizedString()."""
+    """Supported menu IDs.
+
+    Non-English translations can be provided for the IDS_MENU_* strings in
+    ``CefResourceBundleHandler::GetLocalizedString()``.
+    """
     BACK = 100
+    """Navigation."""
     FORWARD = 101
     RELOAD = 102
     RELOAD_NOCACHE = 103
     STOPLOAD = 104
     UNDO = 110
+    """Editing."""
     REDO = 111
     CUT = 112
     COPY = 113
@@ -1141,9 +2220,11 @@ class MenuId(enum.IntEnum):
     DELETE = 116
     SELECT_ALL = 117
     FIND = 130
+    """Miscellaneous."""
     PRINT = 131
     VIEW_SOURCE = 132
     SPELLCHECK_SUGGESTION_0 = 200
+    """Spell checking word correction suggestions."""
     SPELLCHECK_SUGGESTION_1 = 201
     SPELLCHECK_SUGGESTION_2 = 202
     SPELLCHECK_SUGGESTION_3 = 203
@@ -1152,8 +2233,10 @@ class MenuId(enum.IntEnum):
     NO_SPELLING_SUGGESTIONS = 205
     ADD_TO_DICTIONARY = 206
     CUSTOM_FIRST = 220
+    """Custom menu items originating from the renderer process."""
     CUSTOM_LAST = 250
     USER_FIRST = 26500
+    """All user-defined menu IDs should come between MENU_ID_USER_FIRST and MENU_ID_USER_LAST to avoid overlapping the Chromium and CEF ID ranges defined in the tools/gritsettings/resource_ids file."""
     USER_LAST = 28500
 
 
@@ -1168,10 +2251,19 @@ class MenuItemType(enum.IntEnum):
 
 
 class MessageLoopType(enum.IntEnum):
-    """Message loop types. Indicates the set of asynchronous events that a message loop can process."""
+    """Message loop types.
+
+    Indicates the set of asynchronous events that a message loop can process.
+    """
     TYPE_DEFAULT = 0
+    """Supports tasks and timers."""
     TYPE_UI = 1
+    """Supports tasks, timers and native UI events (e.g.
+
+    Windows messages).
+    """
     TYPE_IO = 2
+    """Supports tasks, timers and asynchronous IO events."""
     NUM_VALUES = 3
 
 
@@ -1202,35 +2294,62 @@ class PaintElementType(enum.IntEnum):
 class PathKey(enum.IntEnum):
     """Path key values."""
     DIR_CURRENT = 0
+    """Current directory."""
     DIR_EXE = 1
+    """Directory containing PK_FILE_EXE."""
     DIR_MODULE = 2
+    """Directory containing PK_FILE_MODULE."""
     DIR_TEMP = 3
+    """Temporary directory."""
     FILE_EXE = 4
+    """Path and filename of the current executable."""
     FILE_MODULE = 5
+    """Path and filename of the module containing the CEF code (usually the libcef module)."""
     LOCAL_APP_DATA = 6
+    """"Local Settings\\Application Data" directory under the user profile directory on Windows."""
     USER_DATA = 7
+    """"Application Data" directory under the user profile directory on Windows and "~/Library/Application Support" directory on MacOS."""
     DIR_RESOURCES = 8
+    """Directory containing application resources.
+
+    Can be configured via ``CefSettings``.resources_dir_path.
+    """
     NUM_VALUES = 9
 
 
 class PdfPrintMarginType(enum.IntEnum):
     """Margin type for PDF printing."""
     DEFAULT = 0
+    """Default margins of 1cm (~0.4 inches)."""
     NONE = 1
+    """No margins."""
     CUSTOM = 2
+    """Custom margins using the |margin_*| values from cef_pdf_print_settings_t."""
 
 
 class PermissionRequestResult(enum.IntEnum):
     """Permission request results."""
     ACCEPT = 0
+    """Accept the permission request as an explicit user action."""
     DENY = 1
+    """Deny the permission request as an explicit user action."""
     DISMISS = 2
+    """Dismiss the permission request as an explicit user action."""
     IGNORE = 3
+    """Ignore the permission request.
+
+    If the prompt remains unhandled (e.g. OnShowPermissionPrompt returns ``False`` and
+    there is no default permissions UI) then any related promises may remain unresolved.
+    """
     NUM_VALUES = 4
 
 
 class PermissionRequestTypes(enum.IntFlag):
-    """Permission types used with OnShowPermissionPrompt. Some types are platform-specific or only supported with Chrome style. Should be kept in sync with Chromium's permissions::RequestType type."""
+    """Permission types used with OnShowPermissionPrompt.
+
+    Some types are platform-specific or only supported with Chrome style. Should be kept
+    in sync with Chromium's permissions::RequestType type.
+    """
     NONE = 0
     AR_SESSION = 1
     CAMERA_PAN_TILT_ZOOM = 2
@@ -1281,16 +2400,20 @@ class PostdataelementType(enum.IntEnum):
 
 
 class PreferencesType(enum.IntEnum):
-    """Preferences type passed to CefBrowserProcessHandler::OnRegisterCustomPreferences."""
+    """Preferences type passed to ``CefBrowserProcessHandler::OnRegisterCustomPreferences``."""
     GLOBAL = 0
+    """Global preferences registered a single time at application startup."""
     REQUEST_CONTEXT = 1
+    """Request context preferences registered each time a new :class:`RequestContext` is created."""
     NUM_VALUES = 2
 
 
 class ProcessId(enum.IntEnum):
     """Existing process IDs."""
     BROWSER = 0
+    """Browser process."""
     RENDERER = 1
+    """Renderer process."""
 
 
 class QuickMenuEditStateFlags(enum.IntFlag):
@@ -1303,84 +2426,174 @@ class QuickMenuEditStateFlags(enum.IntFlag):
 
 
 class ReferrerPolicy(enum.IntEnum):
-    """Policy for how the Referrer HTTP header value will be sent during navigation. If the `--no-referrers` command-line flag is specified then the policy value will be ignored and the Referrer value will never be sent. Must be kept synchronized with net::URLRequest::ReferrerPolicy from Chromium."""
+    """Policy for how the Referrer HTTP header value will be sent during navigation.
+
+    If the `--no-referrers` command-line flag is specified then the policy value will be
+    ignored and the Referrer value will never be sent. Must be kept synchronized with
+    net::URLRequest::ReferrerPolicy from Chromium.
+    """
     CLEAR_REFERRER_ON_TRANSITION_FROM_SECURE_TO_INSECURE = 0
+    """Clear the referrer header if the header value is HTTPS but the request destination is HTTP.
+
+    This is the default behavior.
+    """
     DEFAULT = 0
     REDUCE_REFERRER_GRANULARITY_ON_TRANSITION_CROSS_ORIGIN = 1
+    """A slight variant on CLEAR_REFERRER_ON_TRANSITION_FROM_SECURE_TO_INSECURE: If the request destination is HTTP, an HTTPS referrer will be cleared.
+
+    If the request's destination is cross-origin with the referrer (but does not
+    downgrade), the referrer's granularity will be stripped down to an origin rather
+    than a full URL. Same-origin requests will send the full referrer.
+    """
     ORIGIN_ONLY_ON_TRANSITION_CROSS_ORIGIN = 2
+    """Strip the referrer down to an origin when the origin of the referrer is different from the destination's origin."""
     NEVER_CLEAR_REFERRER = 3
+    """Never change the referrer."""
     ORIGIN = 4
+    """Strip the referrer down to the origin regardless of the redirect location."""
     CLEAR_REFERRER_ON_TRANSITION_CROSS_ORIGIN = 5
+    """Clear the referrer when the request's referrer is cross-origin with the request's destination."""
     ORIGIN_CLEAR_ON_TRANSITION_FROM_SECURE_TO_INSECURE = 6
+    """Strip the referrer down to the origin, but clear it entirely if the referrer value is HTTPS and the destination is HTTP."""
     NO_REFERRER = 7
+    """Always clear the referrer regardless of the request destination."""
     NUM_VALUES = 8
+    """Always the last value in this enumeration."""
 
 
 class ResourceType(enum.IntEnum):
-    """Resource type for a request. These constants match their equivalents in Chromium's ResourceType and should not be renumbered."""
+    """Resource type for a request.
+
+    These constants match their equivalents in Chromium's ResourceType and should not be
+    renumbered.
+    """
     MAIN_FRAME = 0
+    """Top level page."""
     SUB_FRAME = 1
+    """Frame or iframe."""
     STYLESHEET = 2
+    """CSS stylesheet."""
     SCRIPT = 3
+    """External script."""
     IMAGE = 4
+    """Image (jpg/gif/png/etc)."""
     FONT_RESOURCE = 5
+    """Font."""
     SUB_RESOURCE = 6
+    """Some other subresource.
+
+    This is the default type if the actual type is unknown.
+    """
     OBJECT = 7
+    """Object (or embed) tag for a plugin, or a resource that a plugin requested."""
     MEDIA = 8
+    """Media resource."""
     WORKER = 9
+    """Main resource of a dedicated worker."""
     SHARED_WORKER = 10
+    """Main resource of a shared worker."""
     PREFETCH = 11
+    """Explicitly requested prefetch."""
     FAVICON = 12
+    """Favicon."""
     XHR = 13
+    """XMLHttpRequest."""
     PING = 14
+    """A request for a "<ping>"."""
     SERVICE_WORKER = 15
+    """Main resource of a service worker."""
     CSP_REPORT = 16
+    """A report of Content Security Policy violations."""
     PLUGIN_RESOURCE = 17
+    """A resource that a plugin requested."""
     NAVIGATION_PRELOAD_MAIN_FRAME = 19
+    """A main-frame service worker navigation preload request."""
     NAVIGATION_PRELOAD_SUB_FRAME = 20
+    """A sub-frame service worker navigation preload request."""
     NUM_VALUES = 21
 
 
 class ResponseFilterStatus(enum.IntEnum):
-    """Return values for CefResponseFilter::Filter()."""
+    """Return values for :meth:`ResponseFilter.filter`."""
     NEED_MORE_DATA = 0
+    """Some or all of the pre-filter data was read successfully but more data is needed in order to continue filtering (filtered output is pending)."""
     DONE = 1
+    """Some or all of the pre-filter data was read successfully and all available filtered output has been written."""
     ERROR = 2
+    """An error occurred during filtering."""
 
 
 class Resultcode(enum.IntEnum):
-    """Process result codes. This is not a comprehensive list, as result codes might also include platform-specific crash values (Posix signal or Windows hardware exception), or internal-only implementation values."""
+    """Process result codes.
+
+    This is not a comprehensive list, as result codes might also include
+    platform-specific crash values (Posix signal or Windows hardware exception), or
+    internal-only implementation values.
+    """
     NORMAL_EXIT = 0
     KILLED = 1
+    """Process was killed by user or system."""
     HUNG = 2
+    """Process hung."""
     KILLED_BAD_MESSAGE = 3
+    """A bad message caused the process termination."""
     GPU_DEAD_ON_ARRIVAL = 4
+    """The GPU process exited because initialization failed."""
     CHROME_FIRST = 5
     BAD_PROCESS_TYPE = 6
+    """The process is of an unknown type."""
     MISSING_DATA = 7
+    """A critical chrome file is missing."""
     UNSUPPORTED_PARAM = 13
+    """Command line parameter is not supported."""
     PROFILE_IN_USE = 21
+    """The profile was in use on another host."""
     PACK_EXTENSION_ERROR = 22
+    """Failed to pack an extension via the command line."""
     NORMAL_EXIT_PROCESS_NOTIFIED = 24
+    """The browser process exited early by passing the command line to another running browser."""
     INVALID_SANDBOX_STATE = 31
+    """A browser process was sandboxed.
+
+    This should never happen.
+    """
     CLOUD_POLICY_ENROLLMENT_FAILED = 32
+    """Cloud policy enrollment failed or was given up by user."""
     GPU_EXIT_ON_CONTEXT_LOST = 34
+    """The GPU process was terminated due to context lost."""
     NORMAL_EXIT_PACK_EXTENSION_SUCCESS = 36
+    """An early startup command was executed and the browser must exit."""
     SYSTEM_RESOURCE_EXHAUSTED = 37
+    """The browser process exited because system resources are exhausted.
+
+    The system state can't be recovered and will be unstable.
+    """
     NORMAL_EXIT_AUTO_DE_ELEVATED = 38
+    """The browser process exited because it was re-launched without elevation."""
     TERMINATED_BY_OTHER_PROCESS_ON_COMMIT_FAILURE = 39
+    """Upon encountering a commit failure in a process, PartitionAlloc terminated another process deemed less important."""
     INVALID_ISOLATED_BROWSER_PROCESS = 40
+    """The isolated browser process launched but it was not possible to wait on the exit of the process, so the browser must exit."""
     CHROME_LAST = 41
     SANDBOX_FATAL_FIRST = 7006
     SANDBOX_FATAL_INTEGRITY = 7006
+    """Windows sandbox could not set the integrity level."""
     SANDBOX_FATAL_DROPTOKEN = 7007
+    """Windows sandbox could not lower the token."""
     SANDBOX_FATAL_FLUSHANDLES = 7008
+    """Windows sandbox failed to flush registry handles."""
     SANDBOX_FATAL_CACHEDISABLE = 7009
+    """Windows sandbox failed to forbid HCKU caching."""
     SANDBOX_FATAL_CLOSEHANDLES = 7010
+    """Windows sandbox failed to close pending handles."""
     SANDBOX_FATAL_MITIGATION = 7011
+    """Windows sandbox could not set the mitigation policy."""
     SANDBOX_FATAL_MEMORY_EXCEEDED = 7012
+    """Windows sandbox exceeded the job memory limit."""
     SANDBOX_FATAL_WARMUP = 7013
+    """Windows sandbox failed to warmup."""
     SANDBOX_FATAL_BROKER_SHUTDOWN_HUNG = 7014
+    """Windows sandbox broker terminated in shutdown."""
     SANDBOX_FATAL_LAST = 7015
     NUM_VALUES = 7016
 
@@ -1388,19 +2601,50 @@ class Resultcode(enum.IntEnum):
 class ReturnValue(enum.IntEnum):
     """Return value types."""
     CANCEL = 0
+    """Cancel immediately."""
     CONTINUE = 1
+    """Continue immediately."""
     CONTINUE_ASYNC = 2
+    """Continue asynchronously (usually via a callback)."""
 
 
 class RuntimeStyle(enum.IntEnum):
-    """CEF supports both a Chrome runtime style (based on the Chrome UI layer) and an Alloy runtime style (based on the Chromium content layer). Chrome style provides the full Chrome UI and browser functionality whereas Alloy style provides less default browser functionality but adds additional client callbacks and support for windowless (off-screen) rendering. The style type is individually configured for each window/browser at creation time and different styles can be mixed during runtime. For additional comparative details on runtime styles see https://chromiumembedded.github.io/cef/architecture#cef3 Windowless rendering will always use Alloy style. Windowed rendering with a default window or client-provided parent window can configure the style via CefWindowInfo.runtime_style. Windowed rendering with the Views framework can configure the style via CefWindowDelegate::GetWindowRuntimeStyle and CefBrowserViewDelegate::GetBrowserRuntimeStyle. Alloy style Windows with the Views framework can host only Alloy style BrowserViews but Chrome style Windows can host both style BrowserViews. Additionally, a Chrome style Window can host at most one Chrome style BrowserView but potentially multiple Alloy style BrowserViews. See CefWindowInfo.runtime_style documentation for any additional platform-specific limitations."""
+    """CEF supports both a Chrome runtime style (based on the Chrome UI layer) and an Alloy runtime style (based on the Chromium content layer).
+
+    Chrome style provides the full Chrome UI and browser functionality whereas Alloy
+    style provides less default browser functionality but adds additional client
+    callbacks and support for windowless (off-screen) rendering. The style type is
+    individually configured for each window/browser at creation time and different
+    styles can be mixed during runtime. For additional comparative details on runtime
+    styles see https://chromiumembedded.github.io/cef/architecture#cef3 Windowless
+    rendering will always use Alloy style. Windowed rendering with a default window or
+    client-provided parent window can configure the style via
+    ``CefWindowInfo``.runtime_style. Windowed rendering with the Views framework can
+    configure the style via :meth:`WindowDelegate.get_window_runtime_style` and
+    :meth:`BrowserViewDelegate.get_browser_runtime_style`. Alloy style Windows with the
+    Views framework can host only Alloy style BrowserViews but Chrome style Windows can
+    host both style BrowserViews. Additionally, a Chrome style Window can host at most
+    one Chrome style BrowserView but potentially multiple Alloy style BrowserViews. See
+    ``CefWindowInfo``.runtime_style documentation for any additional platform-specific
+    limitations.
+    """
     DEFAULT = 0
+    """Use the default style.
+
+    See above documentation for exceptions.
+    """
     CHROME = 1
+    """Use Chrome style."""
     ALLOY = 2
+    """Use Alloy style."""
 
 
 class ScaleFactor(enum.IntEnum):
-    """Supported UI scale factors for the platform. SCALE_FACTOR_NONE is used for density independent resources such as string, html/js files or an image that can be used for any scale factors (such as wallpapers)."""
+    """Supported UI scale factors for the platform.
+
+    SCALE_FACTOR_NONE is used for density independent resources such as string, html/js
+    files or an image that can be used for any scale factors (such as wallpapers).
+    """
     NONE = 0
     _100P = 1
     _125P = 2
@@ -1418,34 +2662,98 @@ class SchemeOptions(enum.IntFlag):
     """The CEF enumeration cef_scheme_options_t."""
     NONE = 0
     STANDARD = 1
+    """If CEF_SCHEME_OPTION_STANDARD is set the scheme will be treated as a standard scheme.
+
+    Standard schemes are subject to URL canonicalization and parsing rules as defined in
+    the Common Internet Scheme Syntax RFC 1738 Section 3.1 available at
+    http://www.ietf.org/rfc/rfc1738.txt In particular, the syntax for standard scheme
+    URLs must be of the form: <pre>
+    [scheme]://[username]:[password]@[host]:[port]/[url-path] </pre> Standard scheme
+    URLs must have a host component that is a fully qualified domain name as defined in
+    Section 3.5 of RFC 1034 [13] and Section 2.1 of RFC 1123. These URLs will be
+    canonicalized to "scheme://host/path" in the simplest case and
+    "scheme://username:password@host:port/path" in the most explicit case. For example,
+    "scheme:host/path" and "scheme:///host/path" will both be canonicalized to
+    "scheme://host/path". The origin of a standard scheme URL is the combination of
+    scheme, host and port (i.e., "scheme://host:port" in the most explicit case). For
+    non-standard scheme URLs only the "scheme:" component is parsed and canonicalized.
+    The remainder of the URL will be passed to the handler as- is. For example,
+    "scheme:///some%20text" will remain the same. Non-standard scheme URLs cannot be
+    used as a target for form submission.
+    """
     LOCAL = 2
+    """If CEF_SCHEME_OPTION_LOCAL is set the scheme will be treated with the same security rules as those applied to "file" URLs.
+
+    Normal pages cannot link to or access local URLs. Also, by default, local URLs can
+    only perform XMLHttpRequest calls to the same URL (origin + path) that originated
+    the request. To allow XMLHttpRequest calls from a local URL to other URLs with the
+    same origin set the ``CefSettings``.file_access_from_file_urls_allowed value to
+    ``True`` (1). To allow XMLHttpRequest calls from a local URL to all origins set the
+    ``CefSettings``.universal_access_from_file_urls_allowed value to ``True`` (1).
+    """
     DISPLAY_ISOLATED = 4
+    """If CEF_SCHEME_OPTION_DISPLAY_ISOLATED is set the scheme can only be displayed from other content hosted with the same scheme.
+
+    For example, pages in other origins cannot create iframes or hyperlinks to URLs with
+    the scheme. For schemes that must be accessible from other schemes don't set this,
+    set CEF_SCHEME_OPTION_CORS_ENABLED, and use CORS "Access-Control-Allow-Origin"
+    headers to further restrict access.
+    """
     SECURE = 8
+    """If CEF_SCHEME_OPTION_SECURE is set the scheme will be treated with the same security rules as those applied to "https" URLs.
+
+    For example, loading this scheme from other secure schemes will not trigger mixed
+    content warnings.
+    """
     CORS_ENABLED = 16
+    """If CEF_SCHEME_OPTION_CORS_ENABLED is set the scheme can be sent CORS requests.
+
+    This value should be set in most cases where CEF_SCHEME_OPTION_STANDARD is set.
+    """
     CSP_BYPASSING = 32
+    """If CEF_SCHEME_OPTION_CSP_BYPASSING is set the scheme can bypass Content- Security-Policy (CSP) checks.
+
+    This value should not be set in most cases where CEF_SCHEME_OPTION_STANDARD is set.
+    """
     FETCH_ENABLED = 64
+    """If CEF_SCHEME_OPTION_FETCH_ENABLED is set the scheme can perform Fetch API requests."""
 
 
 class ShowState(enum.IntEnum):
-    """Show states supported by CefWindowDelegate::GetInitialShowState."""
+    """Show states supported by :meth:`WindowDelegate.get_initial_show_state`."""
     NORMAL = 0
+    """Show the window as normal."""
     MINIMIZED = 1
+    """Show the window as minimized."""
     MAXIMIZED = 2
+    """Show the window as maximized."""
     FULLSCREEN = 3
+    """Show the window as fullscreen."""
     HIDDEN = 4
+    """Show the window as hidden (no dock thumbnail).
+
+    Only supported on MacOS.
+    """
     NUM_VALUES = 5
 
 
 class SslContentStatus(enum.IntEnum):
-    """Supported SSL content status flags. See content/public/common/ssl_status.h for more information."""
+    """Supported SSL content status flags.
+
+    See content/public/common/ssl_status.h for more information.
+    """
     NORMAL_CONTENT = 0
     DISPLAYED_INSECURE_CONTENT = 1
     RAN_INSECURE_CONTENT = 2
 
 
 class SslVersion(enum.IntEnum):
-    """Supported SSL version values. See net/ssl/ssl_connection_status_flags.h for more information."""
+    """Supported SSL version values.
+
+    See net/ssl/ssl_connection_status_flags.h for more information.
+    """
     UNKNOWN = 0
+    """Unknown SSL version."""
     SSL2 = 1
     SSL3 = 2
     TLS1 = 3
@@ -1459,8 +2767,11 @@ class SslVersion(enum.IntEnum):
 class State(enum.IntEnum):
     """Represents the state of a setting."""
     DEFAULT = 0
+    """Use the default state for the setting."""
     ENABLED = 1
+    """Enable or allow the setting."""
     DISABLED = 2
+    """Disable or disallow the setting."""
 
 
 class StorageType(enum.IntEnum):
@@ -1470,44 +2781,86 @@ class StorageType(enum.IntEnum):
 
 
 class TaskType(enum.IntEnum):
-    """Specifies the task type variants supported by CefTaskManager. Should be kept in sync with Chromium's task_manager::Task::Type type."""
+    """Specifies the task type variants supported by :class:`TaskManager`.
+
+    Should be kept in sync with Chromium's task_manager::Task::Type type.
+    """
     UNKNOWN = 0
     BROWSER = 1
+    """The main browser process."""
     GPU = 2
+    """A graphics process."""
     ZYGOTE = 3
+    """A Linux zygote process."""
     UTILITY = 4
+    """A browser utility process."""
     RENDERER = 5
+    """A normal WebContents renderer process."""
     EXTENSION = 6
+    """An extension or app process."""
     GUEST = 7
+    """A browser plugin guest process."""
     PLUGIN_DEPRECATED = 8
     SANDBOX_HELPER = 9
+    """A sandbox helper process"""
     DEDICATED_WORKER = 10
+    """A dedicated worker running on the renderer process."""
     SHARED_WORKER = 11
+    """A shared worker running on the renderer process."""
     SERVICE_WORKER = 12
+    """A service worker running on the renderer process."""
     NUM_VALUES = 13
 
 
 class TerminationStatus(enum.IntEnum):
     """Process termination status values."""
     ABNORMAL_TERMINATION = 0
+    """Non-zero exit status."""
     PROCESS_WAS_KILLED = 1
+    """SIGKILL or task manager kill."""
     PROCESS_CRASHED = 2
+    """Segmentation fault."""
     PROCESS_OOM = 3
+    """Out of memory.
+
+    Some platforms may use TS_PROCESS_CRASHED instead.
+    """
     LAUNCH_FAILED = 4
+    """Child process never launched."""
     INTEGRITY_FAILURE = 5
+    """On Windows, the OS terminated the process due to code integrity failure."""
     NUM_VALUES = 6
 
 
 class TestCertType(enum.IntEnum):
-    """Certificate types supported by CefTestServer::CreateAndStart. The matching certificate file must exist in the "net/data/ssl/certificates" directory. See CefSetDataDirectoryForTests() for related configuration."""
+    """Certificate types supported by ``CefTestServer::CreateAndStart``.
+
+    The matching certificate file must exist in the "net/data/ssl/certificates"
+    directory. See ``CefSetDataDirectoryForTests``() for related configuration.
+    """
     OK_IP = 0
+    """Valid certificate using the IP (127.0.0.1).
+
+    Loads the "ok_cert.pem" file.
+    """
     OK_DOMAIN = 1
+    """Valid certificate using the domain ("localhost").
+
+    Loads the "localhost_cert.pem" file.
+    """
     EXPIRED = 2
+    """Expired certificate.
+
+    Loads the "expired_cert.pem" file.
+    """
     NUM_VALUES = 3
 
 
 class TextFieldCommands(enum.IntEnum):
-    """Represents commands available to TextField. Should be kept in sync with Chromium's views::TextField::MenuCommands type."""
+    """Represents commands available to TextField.
+
+    Should be kept in sync with Chromium's views::TextField::MenuCommands type.
+    """
     UNKNOWN = 0
     CUT = 1
     COPY = 2
@@ -1520,7 +2873,12 @@ class TextFieldCommands(enum.IntEnum):
 
 
 class TextInputMode(enum.IntEnum):
-    """Input mode of a virtual keyboard. These constants match their equivalents in Chromium's text_input_mode.h and should not be renumbered. See https://html.spec.whatwg.org/#input-modalities:-the-inputmode-attribute"""
+    """Input mode of a virtual keyboard.
+
+    These constants match their equivalents in Chromium's text_input_mode.h and should
+    not be renumbered. See
+    https://html.spec.whatwg.org/#input-modalities:-the-inputmode-attribute
+    """
     DEFAULT = 0
     NONE = 1
     TEXT = 2
@@ -1534,7 +2892,10 @@ class TextInputMode(enum.IntEnum):
 
 
 class TextStyle(enum.IntEnum):
-    """Text style types. Should be kepy in sync with gfx::TextStyle."""
+    """Text style types.
+
+    Should be kepy in sync with gfx::TextStyle.
+    """
     BOLD = 0
     ITALIC = 1
     STRIKE = 2
@@ -1546,21 +2907,66 @@ class TextStyle(enum.IntEnum):
 class ThreadId(enum.IntEnum):
     """Existing thread IDs."""
     UI = 0
+    """The main thread in the browser.
+
+    This will be the same as the main application thread if ``CefInitialize``() is
+    called with a ``CefSettings``.multi_threaded_message_loop value of ``False``. Do not
+    perform blocking tasks on this thread. All tasks posted after
+    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown``()
+    are guaranteed to run. This thread will outlive all other CEF threads.
+    """
     FILE_BACKGROUND = 1
+    """Used for blocking tasks like file system access where the user won't notice if the task takes an arbitrarily long time to complete.
+
+    All tasks posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and
+    before ``CefShutdown``() are guaranteed to run.
+    """
     FILE_USER_VISIBLE = 2
+    """Used for blocking tasks like file system access that affect UI or responsiveness of future user interactions.
+
+    Do not use if an immediate response to a user interaction is expected. All tasks
+    posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and before
+    ``CefShutdown``() are guaranteed to run. Examples: - Updating the UI to reflect
+    progress on a long task. - Loading data that might be shown in the UI after a future
+    user interaction.
+    """
     FILE_USER_BLOCKING = 3
+    """Used for blocking tasks like file system access that affect UI immediately after a user interaction.
+
+    All tasks posted after ``CefBrowserProcessHandler::OnContextInitialized()`` and
+    before ``CefShutdown``() are guaranteed to run. Example: Generating data shown in
+    the UI immediately after a click.
+    """
     PROCESS_LAUNCHER = 4
+    """Used to launch and terminate browser processes."""
     IO = 5
+    """Used to process IPC and network messages.
+
+    Do not perform blocking tasks on this thread. All tasks posted after
+    ``CefBrowserProcessHandler::OnContextInitialized()`` and before ``CefShutdown``()
+    are guaranteed to run.
+    """
     RENDERER = 6
+    """The main thread in the renderer.
+
+    Used for all WebKit and V8 interaction. Tasks may be posted to this thread after
+    ``CefRenderProcessHandler::OnWebKitInitialized`` but are not guaranteed to run
+    before sub-process termination (sub-processes may be killed at any time without
+    warning).
+    """
     NUM_VALUES = 7
 
 
 class ThreadPriority(enum.IntEnum):
     """Thread priority values listed in increasing order of importance."""
     BACKGROUND = 0
+    """Suitable for threads that shouldn't disrupt high priority work."""
     NORMAL = 1
+    """Default priority level."""
     DISPLAY = 2
+    """Suitable for threads which generate data for the display (at ~60Hz)."""
     REALTIME_AUDIO = 3
+    """Suitable for low-latency, glitch-resistant audio."""
     NUM_VALUES = 4
 
 
@@ -1582,72 +2988,228 @@ class TouchHandleStateFlags(enum.IntFlag):
 
 
 class TransitionType(enum.IntEnum):
-    """Transition type for a request. Made up of one source value and 0 or more qualifiers."""
+    """Transition type for a request.
+
+    Made up of one source value and 0 or more qualifiers.
+    """
     LINK = 0
+    """Source is a link click or the JavaScript window.open function.
+
+    This is also the default value for requests like sub-resource loads that are not
+    navigations.
+    """
     EXPLICIT = 1
+    """Source is some other "explicit" navigation.
+
+    This is the default value for navigations where the actual type is unknown. See also
+    TT_DIRECT_LOAD_FLAG.
+    """
     AUTO_BOOKMARK = 2
+    """User got to this page through a suggestion in the UI (for example, via the destinations page).
+
+    Chrome style only.
+    """
     AUTO_SUBFRAME = 3
+    """Source is a subframe navigation.
+
+    This is any content that is automatically loaded in a non-toplevel frame. For
+    example, if a page consists of several frames containing ads, those ad URLs will
+    have this transition type. The user may not even realize the content in these pages
+    is a separate frame, so may not care about the URL.
+    """
     MANUAL_SUBFRAME = 4
+    """Source is a subframe navigation explicitly requested by the user that will generate new navigation entries in the back/forward list.
+
+    These are probably more important than frames that were automatically loaded in the
+    background because the user probably cares about the fact that this link was loaded.
+    """
     GENERATED = 5
+    """User got to this page by typing in the URL bar and selecting an entry that did not look like a URL.
+
+    For example, a match might have the URL of a Google search result page, but appear
+    like "Search Google for ...". These are not quite the same as EXPLICIT navigations
+    because the user didn't type or see the destination URL. Chrome style only. See also
+    TT_KEYWORD.
+    """
     AUTO_TOPLEVEL = 6
+    """This is a toplevel navigation.
+
+    This is any content that is automatically loaded in a toplevel frame. For example,
+    opening a tab to show the ASH screen saver, opening the devtools window, opening the
+    NTP after the safe browsing warning, opening web-based dialog boxes are examples of
+    AUTO_TOPLEVEL navigations. Chrome style only.
+    """
     FORM_SUBMIT = 7
+    """Source is a form submission by the user.
+
+    NOTE: In some situations submitting a form does not result in this transition type.
+    This can happen if the form uses a script to submit the contents.
+    """
     RELOAD = 8
+    """Source is a "reload" of the page via the Reload function or by re-visiting the same URL.
+
+    NOTE: This is distinct from the concept of whether a particular load uses "reload
+    semantics" (i.e. bypasses cached data).
+    """
     KEYWORD = 9
+    """The url was generated from a replaceable keyword other than the default search provider.
+
+    If the user types a keyword (which also applies to tab-to-search) in the omnibox
+    this qualifier is applied to the transition type of the generated url.
+    TemplateURLModel then may generate an additional visit with a transition type of
+    TT_KEYWORD_GENERATED against the url 'http://' + keyword. For example, if you do a
+    tab-to-search against wikipedia the generated url has a transition qualifer of
+    TT_KEYWORD, and TemplateURLModel generates a visit for 'wikipedia.org' with a
+    transition type of TT_KEYWORD_GENERATED. Chrome style only.
+    """
     KEYWORD_GENERATED = 10
+    """Corresponds to a visit generated for a keyword.
+
+    See description of TT_KEYWORD for more details. Chrome style only.
+    """
     NUM_VALUES = 11
     SOURCE_MASK = 255
+    """General mask defining the bits used for the source values."""
     BLOCKED_FLAG = 8388608
+    """Attempted to visit a URL but was blocked."""
     FORWARD_BACK_FLAG = 16777216
+    """Used the Forward or Back function to navigate among browsing history.
+
+    Will be ORed to the transition type for the original load.
+    """
     DIRECT_LOAD_FLAG = 33554432
+    """Loaded a URL directly via CreateBrowser, LoadURL or LoadRequest."""
     HOME_PAGE_FLAG = 67108864
+    """User is navigating to the home page.
+
+    Chrome style only.
+    """
     FROM_API_FLAG = 134217728
+    """The transition originated from an external application; the exact definition of this is embedder dependent.
+
+    Chrome style only.
+    """
     CHAIN_START_FLAG = 268435456
+    """The beginning of a navigation chain."""
     CHAIN_END_FLAG = 536870912
+    """The last transition in a redirect chain."""
     CLIENT_REDIRECT_FLAG = 1073741824
+    """Redirects caused by JavaScript or a meta refresh tag on the page."""
     SERVER_REDIRECT_FLAG = 2147483648
+    """Redirects sent from the server by HTTP headers."""
     IS_REDIRECT_MASK = 3221225472
+    """Used to test whether a transition involves a redirect."""
     QUALIFIER_MASK = 4294967040
+    """General mask defining the bits used for the qualifiers."""
 
 
 class URLRequestStatus(enum.IntEnum):
-    """Flags that represent CefURLRequest status."""
+    """Flags that represent :class:`URLRequest` status."""
     UNKNOWN = 0
+    """Unknown status."""
     SUCCESS = 1
+    """Request succeeded."""
     IO_PENDING = 2
+    """An IO request is pending, and the caller will be informed when it is completed."""
     CANCELED = 3
+    """Request was canceled programatically."""
     FAILED = 4
+    """Request failed for some reason."""
     NUM_VALUES = 5
 
 
 class UriUnescapeRule(enum.IntFlag):
-    """URI unescape rules passed to CefURIDecode()."""
+    """URI unescape rules passed to ``CefURIDecode``()."""
     NONE = 0
+    """Don't unescape anything at all."""
     NORMAL = 1
+    """Don't unescape anything special, but all normal unescaping will happen.
+
+    This is a placeholder and can't be combined with other flags (since it's just the
+    absence of them). All other unescape rules imply "normal" in addition to their
+    special meaning. Things like escaped letters, digits, and most symbols will get
+    unescaped with this mode.
+    """
     SPACES = 2
+    """Convert %20 to spaces.
+
+    In some places where we're showing URLs, we may want this. In places where the URL
+    may be copied and pasted out, then you wouldn't want this since it might not be
+    interpreted in one piece by other applications.
+    """
     PATH_SEPARATORS = 4
+    """Unescapes '/' and '\\\\'.
+
+    If these characters were unescaped, the resulting URL won't be the same as the
+    source one. Moreover, they are dangerous to unescape in strings that will be used as
+    file paths or names. This value should only be used when slashes don't have special
+    meaning, like data URLs.
+    """
     URL_SPECIAL_CHARS_EXCEPT_PATH_SEPARATORS = 8
+    """Unescapes various characters that will change the meaning of URLs, including '%', '+', '&', '#'.
+
+    Does not unescape path separators. If these characters were unescaped, the resulting
+    URL won't be the same as the source one. This flag is used when generating final
+    output like filenames for URLs where we won't be interpreting as a URL and want to
+    do as much unescaping as possible.
+    """
     REPLACE_PLUS_WITH_SPACE = 16
+    """URL queries use "+" for space.
+
+    This flag controls that replacement.
+    """
 
 
 class UrlrequestFlags(enum.IntFlag):
-    """Flags used to customize the behavior of CefURLRequest."""
+    """Flags used to customize the behavior of :class:`URLRequest`."""
     NONE = 0
+    """Default behavior."""
     SKIP_CACHE = 1
+    """If set the cache will be skipped when handling the request.
+
+    Setting this value is equivalent to specifying the "Cache-Control: no-cache" request
+    header. Setting this value in combination with UR_FLAG_ONLY_FROM_CACHE will cause
+    the request to fail.
+    """
     ONLY_FROM_CACHE = 2
+    """If set the request will fail if it cannot be served from the cache (or some equivalent local store).
+
+    Setting this value is equivalent to specifying the "Cache-Control: only-if-cached"
+    request header. Setting this value in combination with UR_FLAG_SKIP_CACHE or
+    UR_FLAG_DISABLE_CACHE will cause the request to fail.
+    """
     DISABLE_CACHE = 4
+    """If set the cache will not be used at all.
+
+    Setting this value is equivalent to specifying the "Cache-Control: no-store" request
+    header. Setting this value in combination with UR_FLAG_ONLY_FROM_CACHE will cause
+    the request to fail.
+    """
     ALLOW_STORED_CREDENTIALS = 8
+    """If set user name, password, and cookies may be sent with the request, and cookies may be saved from the response."""
     REPORT_UPLOAD_PROGRESS = 16
+    """If set upload progress events will be generated when a request has a body."""
     NO_DOWNLOAD_DATA = 32
+    """If set the :meth:`URLRequestClient.on_download_data` method will not be called."""
     NO_RETRY_ON_5XX = 64
+    """If set 5XX redirect errors will be propagated to the observer instead of automatically re-tried.
+
+    This currently only applies for requests originated in the browser process.
+    """
     STOP_ON_REDIRECT = 128
+    """If set 3XX responses will cause the fetch to halt immediately rather than continue through the redirect."""
 
 
 class V8Propertyattribute(enum.IntFlag):
     """V8 property attribute values."""
     NONE = 0
+    """Writeable, Enumerable, Configurable"""
     READONLY = 1
+    """Not writeable"""
     DONTENUM = 2
+    """Not enumerable"""
     DONTDELETE = 4
+    """Not configurable"""
 
 
 class ValueType(enum.IntEnum):
@@ -1665,25 +3227,56 @@ class ValueType(enum.IntEnum):
 
 
 class WindowOpenDisposition(enum.IntEnum):
-    """The manner in which a link click should be opened. These constants match their equivalents in Chromium's window_open_disposition.h and should not be renumbered."""
+    """The manner in which a link click should be opened.
+
+    These constants match their equivalents in Chromium's window_open_disposition.h and
+    should not be renumbered.
+    """
     UNKNOWN = 0
     CURRENT_TAB = 1
+    """Current tab.
+
+    This is the default in most cases.
+    """
     SINGLETON_TAB = 2
+    """Indicate that only one tab with the url should exist in the same window."""
     NEW_FOREGROUND_TAB = 3
+    """Shift key + Middle mouse button or meta/ctrl key while clicking."""
     NEW_BACKGROUND_TAB = 4
+    """Middle mouse button or meta/ctrl key while clicking."""
     NEW_POPUP = 5
+    """New popup window."""
     NEW_WINDOW = 6
+    """Shift key while clicking."""
     SAVE_TO_DISK = 7
+    """Alt key while clicking."""
     OFF_THE_RECORD = 8
+    """New off-the-record (incognito) window."""
     IGNORE_ACTION = 9
+    """Special case error condition from the renderer."""
     SWITCH_TO_TAB = 10
+    """Activates an existing tab containing the url, rather than navigating.
+
+    This is similar to SINGLETON_TAB, but searches across all windows from the current
+    profile and anonymity (instead of just the current one); closes the current tab on
+    switching if the current tab was the NTP with no session history; and behaves like
+    CURRENT_TAB instead of NEW_FOREGROUND_TAB when no existing tab is found.
+    """
     NEW_PICTURE_IN_PICTURE = 11
+    """Create a new document picture-in-picture window showing a child WebView."""
     NEW_SPLIT_VIEW = 12
+    """Open a link in a split view alongside the current tab."""
     NUM_VALUES = 13
 
 
 class XmlEncodingType(enum.IntEnum):
-    """Supported XML encoding types. The parser supports ASCII, ISO-8859-1, and UTF16 (LE and BE) by default. All other types must be translated to UTF8 before being passed to the parser. If a BOM is detected and the correct decoder is available then that decoder will be used automatically."""
+    """Supported XML encoding types.
+
+    The parser supports ASCII, ISO-8859-1, and UTF16 (LE and BE) by default. All other
+    types must be translated to UTF8 before being passed to the parser. If a BOM is
+    detected and the correct decoder is available then that decoder will be used
+    automatically.
+    """
     NONE = 0
     UTF8 = 1
     UTF16LE = 2
@@ -1709,7 +3302,7 @@ class XmlNodeType(enum.IntEnum):
 
 
 class ZoomCommand(enum.IntEnum):
-    """Specifies the zoom commands supported by CefBrowserHost::Zoom."""
+    """Specifies the zoom commands supported by :meth:`BrowserHost.zoom`."""
     OUT = 0
     RESET = 1
     IN = 2

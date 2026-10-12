@@ -19,9 +19,13 @@ cdef class X509CertPrincipal:
         return p
 
     def get_display_name(self):
-        """Returns a name that can be used to represent the issuer. It tries in this
-        order: Common Name (CN), Organization Name (O) and Organizational Unit
-        Name (OU) and returns the first non-empty one found.
+        """Return a name that can be used to represent the issuer.
+
+        It tries in this order: Common Name (CN), Organization Name (O) and Organizational
+        Unit Name (OU) and returns the first non-empty one found.
+
+        Returns:
+            str: A name that can be used to represent the issuer.
         """
         cdef CefX509CertPrincipal* _p = self._ptr()
         cdef CefString _r
@@ -30,7 +34,11 @@ cdef class X509CertPrincipal:
         return _g_str(_r)
 
     def get_common_name(self):
-        """Returns the common name."""
+        """Return the common name.
+
+        Returns:
+            str: The common name.
+        """
         cdef CefX509CertPrincipal* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -38,7 +46,11 @@ cdef class X509CertPrincipal:
         return _g_str(_r)
 
     def get_locality_name(self):
-        """Returns the locality name."""
+        """Return the locality name.
+
+        Returns:
+            str: The locality name.
+        """
         cdef CefX509CertPrincipal* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -46,7 +58,11 @@ cdef class X509CertPrincipal:
         return _g_str(_r)
 
     def get_state_or_province_name(self):
-        """Returns the state or province name."""
+        """Return the state or province name.
+
+        Returns:
+            str: The state or province name.
+        """
         cdef CefX509CertPrincipal* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -54,7 +70,11 @@ cdef class X509CertPrincipal:
         return _g_str(_r)
 
     def get_country_name(self):
-        """Returns the country name."""
+        """Return the country name.
+
+        Returns:
+            str: The country name.
+        """
         cdef CefX509CertPrincipal* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -62,7 +82,11 @@ cdef class X509CertPrincipal:
         return _g_str(_r)
 
     def get_organization_names(self):
-        """Retrieve the list of organization names."""
+        """Retrieve the list of organization names.
+
+        Returns:
+            list[str]
+        """
         cdef vector[CefString] _a0
         cdef CefX509CertPrincipal* _p = self._ptr()
         with nogil:
@@ -70,7 +94,11 @@ cdef class X509CertPrincipal:
         return _g_str_list(&_a0)
 
     def get_organization_unit_names(self):
-        """Retrieve the list of organization unit names."""
+        """Retrieve the list of organization unit names.
+
+        Returns:
+            list[str]
+        """
         cdef vector[CefString] _a0
         cdef CefX509CertPrincipal* _p = self._ptr()
         with nogil:
@@ -122,9 +150,13 @@ cdef class X509Certificate:
         return p
 
     def get_subject(self):
-        """Returns the subject of the X.509 certificate. For HTTPS server
-        certificates this represents the web server.  The common name of the
-        subject should match the host name of the web server.
+        """Return the subject of the X.509 certificate.
+
+        For HTTPS server certificates this represents the web server.  The common name of
+        the subject should match the host name of the web server.
+
+        Returns:
+            X509CertPrincipal | None: The subject of the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefX509CertPrincipal] _r
@@ -133,7 +165,11 @@ cdef class X509Certificate:
         return _wrap_X509CertPrincipal(_r)
 
     def get_issuer(self):
-        """Returns the issuer of the X.509 certificate."""
+        """Return the issuer of the X.509 certificate.
+
+        Returns:
+            X509CertPrincipal | None: The issuer of the X.509 certificate.
+        """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefX509CertPrincipal] _r
         with nogil:
@@ -141,8 +177,12 @@ cdef class X509Certificate:
         return _wrap_X509CertPrincipal(_r)
 
     def get_serial_number(self):
-        """Returns the DER encoded serial number for the X.509 certificate. The value
-        possibly includes a leading 00 byte.
+        """Return the DER encoded serial number for the X.509 certificate.
+
+        The value possibly includes a leading 00 byte.
+
+        Returns:
+            BinaryValue | None: The DER encoded serial number for the X.509 certificate.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
@@ -151,8 +191,12 @@ cdef class X509Certificate:
         return _wrap_BinaryValue(_r)
 
     def get_valid_start(self):
-        """Returns the date before which the X.509 certificate is invalid.
-        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """Return the date before which the X.509 certificate is invalid.
+
+        ``CefBaseTime``.GetTimeT() will return 0 if no date was specified.
+
+        Returns:
+            datetime.datetime | None: The date before which the X.509 certificate is invalid.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefBaseTime _r
@@ -161,8 +205,12 @@ cdef class X509Certificate:
         return _g_from_basetime(_r.val)
 
     def get_valid_expiry(self):
-        """Returns the date after which the X.509 certificate is invalid.
-        CefBaseTime.GetTimeT() will return 0 if no date was specified.
+        """Return the date after which the X.509 certificate is invalid.
+
+        ``CefBaseTime``.GetTimeT() will return 0 if no date was specified.
+
+        Returns:
+            datetime.datetime | None: The date after which the X.509 certificate is invalid.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefBaseTime _r
@@ -171,7 +219,11 @@ cdef class X509Certificate:
         return _g_from_basetime(_r.val)
 
     def get_der_encoded(self):
-        """Returns the DER encoded data for the X.509 certificate."""
+        """Return the DER encoded data for the X.509 certificate.
+
+        Returns:
+            BinaryValue | None: The DER encoded data for the X.509 certificate.
+        """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
         with nogil:
@@ -179,7 +231,11 @@ cdef class X509Certificate:
         return _wrap_BinaryValue(_r)
 
     def get_pem_encoded(self):
-        """Returns the PEM encoded data for the X.509 certificate."""
+        """Return the PEM encoded data for the X.509 certificate.
+
+        Returns:
+            BinaryValue | None: The PEM encoded data for the X.509 certificate.
+        """
         cdef CefX509Certificate* _p = self._ptr()
         cdef CefRefPtr[CefBinaryValue] _r
         with nogil:
@@ -187,8 +243,12 @@ cdef class X509Certificate:
         return _wrap_BinaryValue(_r)
 
     def get_issuer_chain_size(self):
-        """Returns the number of certificates in the issuer chain.
+        """Return the number of certificates in the issuer chain.
+
         If 0, the certificate is self-signed.
+
+        Returns:
+            int: The number of certificates in the issuer chain.
         """
         cdef CefX509Certificate* _p = self._ptr()
         cdef size_t _r
@@ -197,9 +257,13 @@ cdef class X509Certificate:
         return _r
 
     def get_der_encoded_issuer_chain(self):
-        """Returns the DER encoded data for the certificate issuer chain.
-        If we failed to encode a certificate in the chain it is still
-        present in the array but is an empty string.
+        """Return the DER encoded data for the certificate issuer chain.
+
+        If we failed to encode a certificate in the chain it is still present in the array
+        but is an empty string.
+
+        Returns:
+            list[BinaryValue]: The DER encoded data for the certificate issuer chain.
         """
         cdef vector[CefRefPtr[CefBinaryValue]] _a0
         cdef CefX509Certificate* _p = self._ptr()
@@ -208,9 +272,13 @@ cdef class X509Certificate:
         return _g_list_BinaryValue(&_a0)
 
     def get_pem_encoded_issuer_chain(self):
-        """Returns the PEM encoded data for the certificate issuer chain.
-        If we failed to encode a certificate in the chain it is still
-        present in the array but is an empty string.
+        """Return the PEM encoded data for the certificate issuer chain.
+
+        If we failed to encode a certificate in the chain it is still present in the array
+        but is an empty string.
+
+        Returns:
+            list[BinaryValue]: The PEM encoded data for the certificate issuer chain.
         """
         cdef vector[CefRefPtr[CefBinaryValue]] _a0
         cdef CefX509Certificate* _p = self._ptr()

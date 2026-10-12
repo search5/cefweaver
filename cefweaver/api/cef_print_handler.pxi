@@ -19,7 +19,11 @@ cdef class PrintDialogCallback:
         return p
 
     def continue_(self, PrintSettings settings not None):
-        """Continue printing with the specified |settings|."""
+        """Continue printing with the specified ``settings``.
+
+        Args:
+            settings (PrintSettings):
+        """
         cdef CefRefPtr[CefPrintSettings] _a0
         cdef CefPrintDialogCallback* _p = self._ptr()
         _a0 = settings._ref
@@ -113,47 +117,86 @@ cdef inline CefPrintJobCallback* _g_ref_PrintJobCallback(object obj) except? NUL
 
 
 class PrintHandler:
-    """Implement this interface to handle printing on Linux. Each browser will have
-    only one print job in progress at a time. The methods of this class will be
-    called on the browser process UI thread.
+    """Implement this interface to handle printing on Linux.
+
+    Each browser will have only one print job in progress at a time. The methods of this
+    class will be called on the browser process UI thread.
     """
 
     def on_print_start(self, browser):
-        """Called when printing has started for the specified |browser|. This method
-        will be called before the other OnPrint*() methods and irrespective of how
-        printing was initiated (e.g. CefBrowserHost::Print(), JavaScript
+        """Called when printing has started for the specified ``browser``.
+
+        This method will be called before the other OnPrint*() methods and irrespective of
+        how printing was initiated (e.g. :meth:`BrowserHost.print`, JavaScript
         window.print() or PDF extension print button).
+
+        Args:
+            browser (Browser):
         """
         return None
 
     def on_print_settings(self, browser, settings, get_defaults):
-        """Synchronize |settings| with client state. If |get_defaults| is true then
-        populate |settings| with the default print settings. Do not keep a
-        reference to |settings| outside of this callback.
+        """Synchronize ``settings`` with client state.
+
+        If ``get_defaults`` is ``True`` then populate ``settings`` with the default print
+        settings. Do not keep a reference to ``settings`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            settings (PrintSettings):
+            get_defaults (bool): True then  populate ``settings`` with the default print settings.
         """
         return None
 
     def on_print_dialog(self, browser, has_selection, callback):
-        """Show the print dialog. Execute |callback| once the dialog is dismissed.
-        Return true if the dialog will be displayed or false to cancel the
-        printing immediately.
+        """Show the print dialog.
+
+        Execute ``callback`` once the dialog is dismissed. Return ``True`` if the dialog
+        will be displayed or ``False`` to cancel the printing immediately.
+
+        Args:
+            browser (Browser):
+            has_selection (bool):
+            callback (PrintDialogCallback):
+        Returns:
+            bool
         """
         return False
 
     def on_print_job(self, browser, document_name, pdf_file_path, callback):
-        """Send the print job to the printer. Execute |callback| once the job is
-        completed. Return true if the job will proceed or false to cancel the job
-        immediately.
+        """Send the print job to the printer.
+
+        Execute ``callback`` once the job is completed. Return ``True`` if the job will
+        proceed or ``False`` to cancel the job immediately.
+
+        Args:
+            browser (Browser):
+            document_name (str):
+            pdf_file_path (str):
+            callback (PrintJobCallback):
+        Returns:
+            bool
         """
         return False
 
     def on_print_reset(self, browser):
-        """Reset client state related to printing."""
+        """Reset client state related to printing.
+
+        Args:
+            browser (Browser):
+        """
         return None
 
     def get_pdf_paper_size(self, browser, device_units_per_inch):
-        """Return the PDF paper size in device units. Used in combination with
-        CefBrowserHost::PrintToPDF().
+        """Return the PDF paper size in device units.
+
+        Used in combination with :meth:`BrowserHost.print_to_pdf`.
+
+        Args:
+            browser (Browser):
+            device_units_per_inch (int):
+        Returns:
+            Size | tuple[int, int]: The PDF paper size in device units.
         """
         return Size()
 

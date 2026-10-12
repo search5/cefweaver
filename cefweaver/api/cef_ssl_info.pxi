@@ -19,8 +19,10 @@ cdef class SSLInfo:
         return p
 
     def get_cert_status(self):
-        """Returns a bitmask containing any and all problems verifying the server
-        certificate.
+        """Return a bitmask containing any and all problems verifying the server certificate.
+
+        Returns:
+            CertStatus: A bitmask containing any and all problems verifying the server  certificate.
         """
         cdef CefSSLInfo* _p = self._ptr()
         cdef cef_cert_status_t _r
@@ -29,7 +31,11 @@ cdef class SSLInfo:
         return _g_enum(_types.CertStatus, <int>_r)
 
     def get_x509_certificate(self):
-        """Returns the X.509 certificate."""
+        """Return the X.509 certificate.
+
+        Returns:
+            X509Certificate | None: The X.509 certificate.
+        """
         cdef CefSSLInfo* _p = self._ptr()
         cdef CefRefPtr[CefX509Certificate] _r
         with nogil:

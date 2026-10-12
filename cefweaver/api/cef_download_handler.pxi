@@ -19,10 +19,15 @@ cdef class BeforeDownloadCallback:
         return p
 
     def continue_(self, download_path, bint show_dialog):
-        """Call to continue the download. Set |download_path| to the full file path
-        for the download including the file name or leave blank to use the
-        suggested name and the default temp directory. Set |show_dialog| to true
-        if you do wish to show the default \"Save As\" dialog.
+        """Call to continue the download.
+
+        Set ``download_path`` to the full file path for the download including the file name
+        or leave blank to use the suggested name and the default temp directory. Set
+        ``show_dialog`` to ``True`` if you do wish to show the default \"Save As\" dialog.
+
+        Args:
+            download_path (str | None):
+            show_dialog (bool):
         """
         cdef CefString _a0
         cdef CefBeforeDownloadCallback* _p = self._ptr()
@@ -125,39 +130,62 @@ cdef inline CefDownloadItemCallback* _g_ref_DownloadItemCallback(object obj) exc
 
 
 class DownloadHandler:
-    """Class used to handle file downloads. The methods of this class will called
-    on the browser process UI thread.
+    """Class used to handle file downloads.
+
+    The methods of this class will called on the browser process UI thread.
     """
 
     def can_download(self, browser, url, request_method):
-        """Called before a download begins in response to a user-initiated action
-        (e.g. alt + link click or link click that returns a `Content-Disposition:
-        attachment` response from the server). |url| is the target download URL
-        and |request_method| is the target method (GET, POST, etc). Return true to
-        proceed with the download or false to cancel the download. This method is
-        not called for downloads initiated by CefBrowserHost::StartDownload().
+        """Called before a download begins in response to a user-initiated action (e.g.
+
+        alt + link click or link click that returns a `Content-Disposition: attachment`
+        response from the server). ``url`` is the target download URL and ``request_method``
+        is the target method (GET, POST, etc). Return ``True`` to proceed with the download
+        or ``False`` to cancel the download. This method is not called for downloads
+        initiated by :meth:`BrowserHost.start_download`.
+
+        Args:
+            browser (Browser):
+            url (str): The target download URL  and ``request_method`` is the target method (GET, POST, etc).
+            request_method (str):
+        Returns:
+            bool
         """
         return False
 
     def on_before_download(self, browser, download_item, suggested_name, callback):
-        """Called before a download begins. |suggested_name| is the suggested name
-        for the download file. Return true and execute |callback| either
-        asynchronously or in this method to continue the download. Return false to
-        proceed with default handling (cancel with Alloy style, default download
-        handling with Chrome style). To cancel the download with either style
-        execute the callback passed to OnDownloadUpdated(). If this method returns
-        true and |callback| is destroyed without being executed, the download will
-        be canceled. Do not keep a reference to |download_item| outside of this
+        """Called before a download begins.
+
+        ``suggested_name`` is the suggested name for the download file. Return ``True`` and
+        execute ``callback`` either asynchronously or in this method to continue the
+        download. Return ``False`` to proceed with default handling (cancel with Alloy
+        style, default download handling with Chrome style). To cancel the download with
+        either style execute the callback passed to OnDownloadUpdated(). If this method
+        returns ``True`` and ``callback`` is destroyed without being executed, the download
+        will be canceled. Do not keep a reference to ``download_item`` outside of this
         method.
+
+        Args:
+            browser (Browser):
+            download_item (DownloadItem):
+            suggested_name (str): The suggested name  for the download file.
+            callback (BeforeDownloadCallback): Destroyed without being executed, the download will  be canceled.
+        Returns:
+            bool
         """
         return False
 
     def on_download_updated(self, browser, download_item, callback):
         """Called when a download's status or progress information has been updated.
-        This may be called multiple times before and after OnBeforeDownload().
-        Execute |callback| either asynchronously or in this method to cancel the
-        download if desired. Do not keep a reference to |download_item| outside of
-        this method.
+
+        This may be called multiple times before and after OnBeforeDownload(). Execute
+        ``callback`` either asynchronously or in this method to cancel the download if
+        desired. Do not keep a reference to ``download_item`` outside of this method.
+
+        Args:
+            browser (Browser):
+            download_item (DownloadItem):
+            callback (DownloadItemCallback):
         """
         return None
 

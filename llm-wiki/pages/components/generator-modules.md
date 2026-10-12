@@ -10,9 +10,11 @@ sources:
   - tools/gen/emit_cpp.py
   - tools/gen/emit_cython.py
   - tools/gen/emit_pyi.py
+  - tools/gen/emit_types.py
+  - tools/gen/docs.py
   - tools/gen/handwritten.pyi
   - tools/gen/vendor/README.txt
-updated: 2026-10-10
+updated: 2026-10-12
 ---
 
 # 생성기 모듈 (tools/gen)
@@ -29,6 +31,7 @@ updated: 2026-10-10
 | `emit_cpp.py` | C++ 프록시 헤더 |
 | `emit_types.py` | `cefweaver/types/`(열거형 `enums.py`, 값 타입 `structs.py`, `__init__.py`). 값은 `model.py`가 헤더에서 읽습니다. |
 | `emit_cython.py` | `.pxd`(`emit_pxd`)와 `.pxi`(`emit_pxi`), 공통 변환 함수(`cy_c`, `cy_arg`, `public_function_name`, `_docstring` 등) |
+| `docs.py` | 헤더의 C++ 주석을 Google 스타일 docstring으로 바꿉니다: `CefFoo::Bar`는 `:meth:`Foo.bar``, `|param|`는 ``param``, `true/false/NULL`은 ``True/False/None``, 첫 문장은 명령형(`Returns`는 `Return`)이고 요약 줄 뒤에 빈 줄을 둡니다. `Args:`는 스텁의 시그니처에서 타입을 얻고, 설명은 헤더가 `|name| is ...`나 `The |name| parameter is ...`로 말한 곳에서만 붙입니다(나머지는 타입만). `Returns:`는 반환 타입과, 요약이 `Returns ...`로 시작하면 그 내용입니다. |
 | `emit_pyi.py` | 타입 스텁. 손으로 쓴 `handwritten.pyi`를 앞에 붙입니다. |
 | `handwritten.pyi` | `CefApp`의 스텁(손으로 씀). `CefApp`의 공개 API를 바꾸면 이 파일도 고쳐야 합니다. |
 | `vendor/` | CEF의 `cef_parser.py`, `date_util.py`, `file_util.py`, `version_util.py`와 라이선스. 수정 없이 복사했고 출처 커밋은 `vendor/README.txt`에 있습니다. |

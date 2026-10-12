@@ -19,7 +19,11 @@ cdef class SharedMemoryRegion:
         return p
 
     def is_valid(self):
-        """Returns true if the mapping is valid."""
+        """Return ``True`` if the mapping is valid.
+
+        Returns:
+            bool: ``True`` if the mapping is valid.
+        """
         cdef CefSharedMemoryRegion* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -27,7 +31,13 @@ cdef class SharedMemoryRegion:
         return _r
 
     def size(self):
-        """Returns the size of the mapping in bytes. Returns 0 for invalid instances."""
+        """Return the size of the mapping in bytes.
+
+        Returns 0 for invalid instances.
+
+        Returns:
+            int: The size of the mapping in bytes.
+        """
         cdef CefSharedMemoryRegion* _p = self._ptr()
         cdef size_t _r
         with nogil:

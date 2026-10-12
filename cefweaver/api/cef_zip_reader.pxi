@@ -3,8 +3,9 @@
 
 cdef class ZipReader:
     """Class that supports the reading of zip archives via the zlib unzip API.
-    The methods of this class should only be called on the thread that creates
-    the object.
+
+    The methods of this class should only be called on the thread that creates the
+    object.
     """
     cdef CefRefPtr[CefZipReader] _ref
 
@@ -22,8 +23,12 @@ cdef class ZipReader:
         return p
 
     def move_to_first_file(self):
-        """Moves the cursor to the first file in the archive. Returns true if the
-        cursor position was set successfully.
+        """Move the cursor to the first file in the archive.
+
+        Returns ``True`` if the cursor position was set successfully.
+
+        Returns:
+            bool
         """
         cdef CefZipReader* _p = self._ptr()
         cdef cpp_bool _r
@@ -32,8 +37,12 @@ cdef class ZipReader:
         return _r
 
     def move_to_next_file(self):
-        """Moves the cursor to the next file in the archive. Returns true if the
-        cursor position was set successfully.
+        """Move the cursor to the next file in the archive.
+
+        Returns ``True`` if the cursor position was set successfully.
+
+        Returns:
+            bool
         """
         cdef CefZipReader* _p = self._ptr()
         cdef cpp_bool _r
@@ -42,9 +51,16 @@ cdef class ZipReader:
         return _r
 
     def move_to_file(self, file_name, bint case_sensitive):
-        """Moves the cursor to the specified file in the archive. If |caseSensitive|
-        is true then the search will be case sensitive. Returns true if the cursor
-        position was set successfully.
+        """Move the cursor to the specified file in the archive.
+
+        If ``case_sensitive`` is ``True`` then the search will be case sensitive. Returns
+        ``True`` if the cursor position was set successfully.
+
+        Args:
+            file_name (str):
+            case_sensitive (bool): True then the search will be case sensitive.
+        Returns:
+            bool
         """
         cdef CefString _a0
         cdef CefZipReader* _p = self._ptr()
@@ -55,8 +71,12 @@ cdef class ZipReader:
         return _r
 
     def close(self):
-        """Closes the archive. This should be called directly to ensure that cleanup
-        occurs on the correct thread.
+        """Close the archive.
+
+        This should be called directly to ensure that cleanup occurs on the correct thread.
+
+        Returns:
+            bool
         """
         cdef CefZipReader* _p = self._ptr()
         cdef cpp_bool _r
@@ -65,7 +85,11 @@ cdef class ZipReader:
         return _r
 
     def get_file_name(self):
-        """Returns the name of the file."""
+        """Return the name of the file.
+
+        Returns:
+            str: The name of the file.
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -73,7 +97,11 @@ cdef class ZipReader:
         return _g_str(_r)
 
     def get_file_size(self):
-        """Returns the uncompressed size of the file."""
+        """Return the uncompressed size of the file.
+
+        Returns:
+            int: The uncompressed size of the file.
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef int64_t _r
         with nogil:
@@ -81,7 +109,11 @@ cdef class ZipReader:
         return _r
 
     def get_file_last_modified(self):
-        """Returns the last modified timestamp for the file."""
+        """Return the last modified timestamp for the file.
+
+        Returns:
+            datetime.datetime | None: The last modified timestamp for the file.
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef CefBaseTime _r
         with nogil:
@@ -89,8 +121,14 @@ cdef class ZipReader:
         return _g_from_basetime(_r.val)
 
     def open_file(self, password):
-        """Opens the file for reading of uncompressed data. A read password may
-        optionally be specified.
+        """Open the file for reading of uncompressed data.
+
+        A read password may optionally be specified.
+
+        Args:
+            password (str | None):
+        Returns:
+            bool
         """
         cdef CefString _a0
         cdef CefZipReader* _p = self._ptr()
@@ -102,7 +140,11 @@ cdef class ZipReader:
         return _r
 
     def close_file(self):
-        """Closes the file."""
+        """Close the file.
+
+        Returns:
+            bool
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -110,8 +152,15 @@ cdef class ZipReader:
         return _r
 
     def read_file(self, size_t buffer_size):
-        """Read uncompressed file contents into the specified buffer. Returns < 0 if
-        an error occurred, 0 if at the end of file, or the number of bytes read.
+        """Read uncompressed file contents into the specified buffer.
+
+        Returns < 0 if an error occurred, 0 if at the end of file, or the number of bytes
+        read.
+
+        Args:
+            buffer_size (int):
+        Returns:
+            bytes
         """
         cdef bytes _b0
         cdef char* _c0
@@ -126,7 +175,11 @@ cdef class ZipReader:
         return _b0[:_r]
 
     def tell(self):
-        """Returns the current offset in the uncompressed file contents."""
+        """Return the current offset in the uncompressed file contents.
+
+        Returns:
+            int: The current offset in the uncompressed file contents.
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef int64_t _r
         with nogil:
@@ -134,7 +187,11 @@ cdef class ZipReader:
         return _r
 
     def eof(self):
-        """Returns true if at end of the file contents."""
+        """Return ``True`` if at end of the file contents.
+
+        Returns:
+            bool: ``True`` if at end of the file contents.
+        """
         cdef CefZipReader* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -143,8 +200,15 @@ cdef class ZipReader:
 
     @staticmethod
     def create(StreamReader stream not None):
-        """Create a new CefZipReader object. The returned object's methods can only
-        be called from the thread that created the object.
+        """Create a new :class:`ZipReader` object.
+
+        The returned object's methods can only be called from the thread that created the
+        object.
+
+        Args:
+            stream (StreamReader):
+        Returns:
+            ZipReader
         """
         cdef CefRefPtr[CefStreamReader] _a0
         cdef CefRefPtr[CefZipReader] _r

@@ -3,151 +3,252 @@
 
 class RenderHandler:
     """Implement this interface to handle events when window rendering is disabled.
+
     The methods of this class will be called on the UI thread.
     """
 
     def get_accessibility_handler(self):
-        """Return the handler for accessibility notifications. If no handler is
-        provided the default implementation will be used.
+        """Return the handler for accessibility notifications.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            AccessibilityHandler | None: The handler for accessibility notifications.
         """
         return None
 
     def get_root_screen_rect(self, browser):
         """Called to retrieve the root window rectangle in screen DIP coordinates.
-        Return true if the rectangle was provided. If this method returns false
-        the rectangle from GetViewRect will be used.
+
+        Return ``True`` if the rectangle was provided. If this method returns ``False`` the
+        rectangle from GetViewRect will be used.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, Rect | tuple[int, int, int, int]]
         """
         return False, Rect()
 
     def get_view_rect(self, browser):
-        """Called to retrieve the view rectangle in screen DIP coordinates. This
-        method must always provide a non-empty rectangle.
+        """Called to retrieve the view rectangle in screen DIP coordinates.
+
+        This method must always provide a non-empty rectangle.
+
+        Args:
+            browser (Browser):
+        Returns:
+            Rect | tuple[int, int, int, int]
         """
         return Rect()
 
     def get_screen_point(self, browser, view_x, view_y):
-        """Called to retrieve the translation from view DIP coordinates to screen
-        coordinates. Windows/Linux should provide screen device (pixel)
-        coordinates and MacOS should provide screen DIP coordinates. Return true
-        if the requested coordinates were provided.
+        """Called to retrieve the translation from view DIP coordinates to screen coordinates.
+
+        Windows/Linux should provide screen device (pixel) coordinates and MacOS should
+        provide screen DIP coordinates. Return ``True`` if the requested coordinates were
+        provided.
+
+        Args:
+            browser (Browser):
+            view_x (int):
+            view_y (int):
+        Returns:
+            tuple[bool, int, int]
         """
         return False, 0, 0
 
     def get_screen_info(self, browser):
-        """Called to allow the client to fill in the CefScreenInfo object with
-        appropriate values. Return true if the |screen_info| structure has been
-        modified.
+        """Called to allow the client to fill in the ``CefScreenInfo`` object with appropriate values.
 
-        If the screen info rectangle is left empty the rectangle from GetViewRect
-        will be used. If the rectangle is still empty or invalid popups may not be
-        drawn correctly.
+        Return ``True`` if the ``screen_info`` structure has been modified.
+
+        If the screen info rectangle is left empty the rectangle from GetViewRect will be
+        used. If the rectangle is still empty or invalid popups may not be drawn correctly.
+
+        Args:
+            browser (Browser):
+        Returns:
+            tuple[bool, ScreenInfo | tuple[float, int, int, int, Rect, Rect]]
         """
         return False, ScreenInfo()
 
     def on_popup_show(self, browser, show):
-        """Called when the browser wants to show or hide the popup widget. The popup
-        should be shown if |show| is true and hidden if |show| is false.
+        """Called when the browser wants to show or hide the popup widget.
+
+        The popup should be shown if ``show`` is ``True`` and hidden if ``show`` is
+        ``False``.
+
+        Args:
+            browser (Browser):
+            show (bool): True and hidden if ``show`` is ``False``.
         """
         return None
 
     def on_popup_size(self, browser, rect):
-        """Called when the browser wants to move or resize the popup widget. |rect|
-        contains the new location and size in view coordinates.
+        """Called when the browser wants to move or resize the popup widget.
+
+        ``rect`` contains the new location and size in view coordinates.
+
+        Args:
+            browser (Browser):
+            rect (Rect):
         """
         return None
 
     def on_paint(self, browser, type, dirty_rects, buffer, width, height):
-        """Called when an element should be painted. Pixel values passed to this
-        method are scaled relative to view coordinates based on the value of
-        CefScreenInfo.device_scale_factor returned from GetScreenInfo. |type|
-        indicates whether the element is the view or the popup widget. |buffer|
-        contains the pixel data for the whole image. |dirtyRects| contains the set
-        of rectangles in pixel coordinates that need to be repainted. |buffer|
-        will be |width|*|height|*4 bytes in size and represents a BGRA image with
-        an upper-left origin. This method is only called when
-        CefWindowInfo::shared_texture_enabled is set to false.
+        """Called when an element should be painted.
+
+        Pixel values passed to this method are scaled relative to view coordinates based on
+        the value of ``CefScreenInfo``.device_scale_factor returned from GetScreenInfo.
+        ``type`` indicates whether the element is the view or the popup widget. ``buffer``
+        contains the pixel data for the whole image. ``dirty_rects`` contains the set of
+        rectangles in pixel coordinates that need to be repainted. ``buffer`` will be
+        ``width``*``height``*4 bytes in size and represents a BGRA image with an upper-left
+        origin. This method is only called when ``CefWindowInfo::shared_texture_enabled`` is
+        set to ``False``.
+
+        Args:
+            browser (Browser):
+            type (PaintElementType):
+            dirty_rects (list[Rect]):
+            buffer (memoryview):
+            width (int):
+            height (int):
         """
         return None
 
     def on_accelerated_paint(self, browser, type, dirty_rects, info):
         """Called when an element has been rendered to the shared texture handle.
-        |type| indicates whether the element is the view or the popup widget.
-        |dirtyRects| contains the set of rectangles in pixel coordinates that need
-        to be repainted. |info| contains the shared handle; on Windows it is a
-        HANDLE to a texture that can be opened with D3D11 OpenSharedResource1 or
-        D3D12 OpenSharedHandle, on macOS it is an IOSurface pointer that can be
-        opened with Metal or OpenGL, and on Linux it contains several planes, each
-        with an fd to the underlying system native buffer.
 
-        The underlying implementation uses a pool to deliver frames. As a result,
-        the handle may differ every frame depending on how many frames are
-        in-progress. The handle's resource cannot be cached and cannot be accessed
-        outside of this callback. It should be reopened each time this callback is
-        executed and the contents should be copied to a texture owned by the
-        client application. The contents of |info| will be released back to the
-        pool after this callback returns.
+        ``type`` indicates whether the element is the view or the popup widget.
+        ``dirty_rects`` contains the set of rectangles in pixel coordinates that need to be
+        repainted. ``info`` contains the shared handle; on Windows it is a HANDLE to a
+        texture that can be opened with D3D11 OpenSharedResource1 or D3D12 OpenSharedHandle,
+        on macOS it is an IOSurface pointer that can be opened with Metal or OpenGL, and on
+        Linux it contains several planes, each with an fd to the underlying system native
+        buffer.
+
+        The underlying implementation uses a pool to deliver frames. As a result, the handle
+        may differ every frame depending on how many frames are in-progress. The handle's
+        resource cannot be cached and cannot be accessed outside of this callback. It should
+        be reopened each time this callback is executed and the contents should be copied to
+        a texture owned by the client application. The contents of ``info`` will be released
+        back to the pool after this callback returns.
+
+        Args:
+            browser (Browser):
+            type (PaintElementType):
+            dirty_rects (list[Rect]):
+            info (AcceleratedPaintInfo):
         """
         return None
 
     def get_touch_handle_size(self, browser, orientation):
-        """Called to retrieve the size of the touch handle for the specified
-        |orientation|.
+        """Called to retrieve the size of the touch handle for the specified ``orientation``.
+
+        Args:
+            browser (Browser):
+            orientation (HorizontalAlignment):
+        Returns:
+            Size | tuple[int, int]
         """
         return Size()
 
     def on_touch_handle_state_changed(self, browser, state):
-        """Called when touch handle state is updated. The client is responsible for
-        rendering the touch handles.
+        """Called when touch handle state is updated.
+
+        The client is responsible for rendering the touch handles.
+
+        Args:
+            browser (Browser):
+            state (TouchHandleState):
         """
         return None
 
     def start_dragging(self, browser, drag_data, allowed_ops, x, y):
-        """Called when the user starts dragging content in the web view. Contextual
-        information about the dragged content is supplied by |drag_data|.
-        (|x|, |y|) is the drag start location in screen coordinates.
-        OS APIs that run a system message loop may be used within the
-        StartDragging call.
+        """Called when the user starts dragging content in the web view.
 
-        Return false to abort the drag operation. Don't call any of
-        CefBrowserHost::DragSource*Ended* methods after returning false.
+        Contextual information about the dragged content is supplied by ``drag_data``.
+        (``x``, ``y``) is the drag start location in screen coordinates. OS APIs that run a
+        system message loop may be used within the StartDragging call.
 
-        Return true to handle the drag operation. Call
-        CefBrowserHost::DragSourceEndedAt and DragSourceSystemDragEnded either
-        synchronously or asynchronously to inform the web view that the drag
-        operation has ended.
+        Return ``False`` to abort the drag operation. Don't call any of
+        :meth:`BrowserHost.drag_source`*Ended* methods after returning ``False``.
+
+        Return ``True`` to handle the drag operation. Call
+        :meth:`BrowserHost.drag_source_ended_at` and DragSourceSystemDragEnded either
+        synchronously or asynchronously to inform the web view that the drag operation has
+        ended.
+
+        Args:
+            browser (Browser):
+            drag_data (DragData):
+            allowed_ops (DragOperationsMask):
+            x (int):
+            y (int):
+        Returns:
+            bool
         """
         return False
 
     def update_drag_cursor(self, browser, operation):
-        """Called when the web view wants to update the mouse cursor during a
-        drag & drop operation. |operation| describes the allowed operation
-        (none, move, copy, link).
+        """Called when the web view wants to update the mouse cursor during a drag & drop operation.
+
+        ``operation`` describes the allowed operation (none, move, copy, link).
+
+        Args:
+            browser (Browser):
+            operation (DragOperationsMask):
         """
         return None
 
     def on_scroll_offset_changed(self, browser, x, y):
-        """Called when the scroll offset has changed."""
+        """Called when the scroll offset has changed.
+
+        Args:
+            browser (Browser):
+            x (float):
+            y (float):
+        """
         return None
 
     def on_ime_composition_range_changed(self, browser, selected_range, character_bounds):
-        """Called when the IME composition range has changed. |selected_range| is the
-        range of characters that have been selected. |character_bounds| is the
-        bounds of each character in view coordinates.
+        """Called when the IME composition range has changed.
+
+        ``selected_range`` is the range of characters that have been selected.
+        ``character_bounds`` is the bounds of each character in view coordinates.
+
+        Args:
+            browser (Browser):
+            selected_range (Range): The  range of characters that have been selected.
+            character_bounds (list[Rect]): The  bounds of each character in view coordinates.
         """
         return None
 
     def on_text_selection_changed(self, browser, selected_text, selected_range):
-        """Called when text selection has changed for the specified |browser|.
-        |selected_text| is the currently selected text and |selected_range| is
-        the character range.
+        """Called when text selection has changed for the specified ``browser``.
+
+        ``selected_text`` is the currently selected text and ``selected_range`` is the
+        character range.
+
+        Args:
+            browser (Browser):
+            selected_text (str): The currently selected text and ``selected_range`` is  the character range.
+            selected_range (Range):
         """
         return None
 
     def on_virtual_keyboard_requested(self, browser, input_mode):
-        """Called when an on-screen keyboard should be shown or hidden for the
-        specified |browser|. |input_mode| specifies what kind of keyboard
-        should be opened. If |input_mode| is CEF_TEXT_INPUT_MODE_NONE, any
-        existing keyboard for this browser should be hidden.
+        """Called when an on-screen keyboard should be shown or hidden for the specified ``browser``.
+
+        ``input_mode`` specifies what kind of keyboard should be opened. If ``input_mode``
+        is CEF_TEXT_INPUT_MODE_NONE, any existing keyboard for this browser should be
+        hidden.
+
+        Args:
+            browser (Browser):
+            input_mode (TextInputMode): CEF_TEXT_INPUT_MODE_NONE, any  existing keyboard for this browser should be hidden.
         """
         return None
 

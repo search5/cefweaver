@@ -3,6 +3,7 @@
 
 cdef class TaskManager:
     """Class that facilitates managing the browser-related tasks.
+
     The methods of this class may only be called on the UI thread.
     """
     cdef CefRefPtr[CefTaskManager] _ref
@@ -21,8 +22,12 @@ cdef class TaskManager:
         return p
 
     def get_tasks_count(self):
-        """Returns the number of tasks currently tracked by the task manager.
+        """Return the number of tasks currently tracked by the task manager.
+
         Returns 0 if the method was called from the incorrect thread.
+
+        Returns:
+            int: The number of tasks currently tracked by the task manager.
         """
         cdef CefTaskManager* _p = self._ptr()
         cdef size_t _r
@@ -31,14 +36,18 @@ cdef class TaskManager:
         return _r
 
     def get_task_ids_list(self):
-        """Gets the list of task IDs currently tracked by the task manager. Tasks
-        that share the same process id will always be consecutive. The list will
-        be sorted in a way that reflects the process tree: the browser process
-        will be first, followed by the gpu process if it exists. Related processes
-        (e.g., a subframe process and its parent) will be kept together if
-        possible. Callers can expect this ordering to be stable when a process is
-        added or removed. The task IDs are unique within the application lifespan.
-        Returns false if the method was called from the incorrect thread.
+        """Get the list of task IDs currently tracked by the task manager.
+
+        Tasks that share the same process id will always be consecutive. The list will be
+        sorted in a way that reflects the process tree: the browser process will be first,
+        followed by the gpu process if it exists. Related processes (e.g., a subframe
+        process and its parent) will be kept together if possible. Callers can expect this
+        ordering to be stable when a process is added or removed. The task IDs are unique
+        within the application lifespan. Returns ``False`` if the method was called from the
+        incorrect thread.
+
+        Returns:
+            tuple[bool, list[int]]
         """
         cdef vector[int64_t] _a0
         cdef CefTaskManager* _p = self._ptr()
@@ -48,10 +57,17 @@ cdef class TaskManager:
         return (_r, _g_list_int64_t(&_a0))
 
     def get_task_info(self, int64_t task_id, info):
-        """Gets information about the task with |task_id|.
-        Returns true if the information about the task was successfully
-        retrieved and false if the |task_id| is invalid or the method was called
-        from the incorrect thread.
+        """Get information about the task with ``task_id``.
+
+        Returns ``True`` if the information about the task was successfully retrieved and
+        ``False`` if the ``task_id`` is invalid or the method was called from the incorrect
+        thread.
+
+        Args:
+            task_id (int): Invalid or the method was called  from the incorrect thread.
+            info (TaskInfo | tuple[int, TaskType, int, str, float, int, int, int, int]):
+        Returns:
+            tuple[bool, TaskInfo]
         """
         cdef CefTaskInfo _a1
         cdef CefTaskManager* _p = self._ptr()
@@ -62,9 +78,15 @@ cdef class TaskManager:
         return (_r, _g_from_TaskInfo(&_a1))
 
     def kill_task(self, int64_t task_id):
-        """Attempts to terminate a task with |task_id|.
-        Returns false if the |task_id| is invalid, the call is made from an
-        incorrect thread, or if the task cannot be terminated.
+        """Attempt to terminate a task with ``task_id``.
+
+        Returns ``False`` if the ``task_id`` is invalid, the call is made from an incorrect
+        thread, or if the task cannot be terminated.
+
+        Args:
+            task_id (int): Invalid, the call is made from an  incorrect thread, or if the task cannot be terminated.
+        Returns:
+            bool
         """
         cdef CefTaskManager* _p = self._ptr()
         cdef cpp_bool _r
@@ -73,10 +95,15 @@ cdef class TaskManager:
         return _r
 
     def get_task_id_for_browser_id(self, int browser_id):
-        """Returns the task ID associated with the main task for |browser_id|
-        (value from CefBrowser::GetIdentifier). Returns -1 if |browser_id| is
-        invalid, does not currently have an associated task, or the method was
-        called from the incorrect thread.
+        """Return the task ID associated with the main task for ``browser_id`` (value from :meth:`Browser.get_identifier`).
+
+        Returns -1 if ``browser_id`` is invalid, does not currently have an associated task,
+        or the method was called from the incorrect thread.
+
+        Args:
+            browser_id (int): Invalid, does not currently have an associated task, or the method was  called from the incorrect thread.
+        Returns:
+            int: The task ID associated with the main task for ``browser_id``  (value from ``CefBrowser::GetIdentifier``).
         """
         cdef CefTaskManager* _p = self._ptr()
         cdef int64_t _r
@@ -86,8 +113,12 @@ cdef class TaskManager:
 
     @staticmethod
     def get_task_manager():
-        """Returns the global task manager object.
-        Returns nullptr if the method was called from the incorrect thread.
+        """Return the global task manager object.
+
+        Returns ``None`` if the method was called from the incorrect thread.
+
+        Returns:
+            TaskManager | None: The global task manager object.
         """
         cdef CefRefPtr[CefTaskManager] _r
         with nogil:

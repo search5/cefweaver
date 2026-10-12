@@ -5,97 +5,179 @@ class Client:
     """Implement this interface to provide handler implementations."""
 
     def get_audio_handler(self):
-        """Return the handler for audio rendering events."""
+        """Return the handler for audio rendering events.
+
+        Returns:
+            AudioHandler | None: The handler for audio rendering events.
+        """
         return None
 
     def get_command_handler(self):
-        """Return the handler for commands. If no handler is provided the default
-        implementation will be used.
+        """Return the handler for commands.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            CommandHandler | None: The handler for commands.
         """
         return None
 
     def get_context_menu_handler(self):
-        """Return the handler for context menus. If no handler is provided the
-        default implementation will be used.
+        """Return the handler for context menus.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            ContextMenuHandler | None: The handler for context menus.
         """
         return None
 
     def get_dialog_handler(self):
-        """Return the handler for dialogs. If no handler is provided the default
-        implementation will be used.
+        """Return the handler for dialogs.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            DialogHandler | None: The handler for dialogs.
         """
         return None
 
     def get_display_handler(self):
-        """Return the handler for browser display state events."""
+        """Return the handler for browser display state events.
+
+        Returns:
+            DisplayHandler | None: The handler for browser display state events.
+        """
         return None
 
     def get_download_handler(self):
-        """Return the handler for download events. If no handler is returned
-        downloads will be canceled with Alloy style and will proceed with default
-        handling with Chrome style.
+        """Return the handler for download events.
+
+        If no handler is returned downloads will be canceled with Alloy style and will
+        proceed with default handling with Chrome style.
+
+        Returns:
+            DownloadHandler | None: The handler for download events.
         """
         return None
 
     def get_drag_handler(self):
-        """Return the handler for drag events."""
+        """Return the handler for drag events.
+
+        Returns:
+            DragHandler | None: The handler for drag events.
+        """
         return None
 
     def get_find_handler(self):
-        """Return the handler for find result events."""
+        """Return the handler for find result events.
+
+        Returns:
+            FindHandler | None: The handler for find result events.
+        """
         return None
 
     def get_focus_handler(self):
-        """Return the handler for focus events."""
+        """Return the handler for focus events.
+
+        Returns:
+            FocusHandler | None: The handler for focus events.
+        """
         return None
 
     def get_frame_handler(self):
-        """Return the handler for events related to CefFrame lifespan. This method
-        will be called once during CefBrowser creation and the result will be
-        cached for performance reasons.
+        """Return the handler for events related to :class:`Frame` lifespan.
+
+        This method will be called once during :class:`Browser` creation and the result will
+        be cached for performance reasons.
+
+        Returns:
+            FrameHandler | None: The handler for events related to ``CefFrame`` lifespan.
         """
         return None
 
     def get_permission_handler(self):
-        """Return the handler for permission requests."""
+        """Return the handler for permission requests.
+
+        Returns:
+            PermissionHandler | None: The handler for permission requests.
+        """
         return None
 
     def get_js_dialog_handler(self):
-        """Return the handler for JavaScript dialogs. If no handler is provided the
-        default implementation will be used.
+        """Return the handler for JavaScript dialogs.
+
+        If no handler is provided the default implementation will be used.
+
+        Returns:
+            JSDialogHandler | None: The handler for JavaScript dialogs.
         """
         return None
 
     def get_keyboard_handler(self):
-        """Return the handler for keyboard events."""
+        """Return the handler for keyboard events.
+
+        Returns:
+            KeyboardHandler | None: The handler for keyboard events.
+        """
         return None
 
     def get_life_span_handler(self):
-        """Return the handler for browser life span events."""
+        """Return the handler for browser life span events.
+
+        Returns:
+            LifeSpanHandler | None: The handler for browser life span events.
+        """
         return None
 
     def get_load_handler(self):
-        """Return the handler for browser load status events."""
+        """Return the handler for browser load status events.
+
+        Returns:
+            LoadHandler | None: The handler for browser load status events.
+        """
         return None
 
     def get_print_handler(self):
-        """Return the handler for printing on Linux. If a print handler is not
-        provided then printing will not be supported on the Linux platform.
+        """Return the handler for printing on Linux.
+
+        If a print handler is not provided then printing will not be supported on the Linux
+        platform.
+
+        Returns:
+            PrintHandler | None: The handler for printing on Linux.
         """
         return None
 
     def get_render_handler(self):
-        """Return the handler for off-screen rendering events."""
+        """Return the handler for off-screen rendering events.
+
+        Returns:
+            RenderHandler | None: The handler for off-screen rendering events.
+        """
         return None
 
     def get_request_handler(self):
-        """Return the handler for browser request events."""
+        """Return the handler for browser request events.
+
+        Returns:
+            RequestHandler | None: The handler for browser request events.
+        """
         return None
 
     def on_process_message_received(self, browser, frame, source_process, message):
-        """Called when a new message is received from a different process. Return
-        true if the message was handled or false otherwise.  It is safe to keep a
-        reference to |message| outside of this callback.
+        """Called when a new message is received from a different process.
+
+        Return ``True`` if the message was handled or ``False`` otherwise.  It is safe to
+        keep a reference to ``message`` outside of this callback.
+
+        Args:
+            browser (Browser):
+            frame (Frame):
+            source_process (ProcessId):
+            message (ProcessMessage):
+        Returns:
+            bool
         """
         return False
 

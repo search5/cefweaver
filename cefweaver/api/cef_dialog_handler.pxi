@@ -19,9 +19,13 @@ cdef class FileDialogCallback:
         return p
 
     def continue_(self, file_paths):
-        """Continue the file selection. |file_paths| should be a single value or a
-        list of values depending on the dialog mode. An empty |file_paths| value
-        is treated the same as calling Cancel().
+        """Continue the file selection.
+
+        ``file_paths`` should be a single value or a list of values depending on the dialog
+        mode. An empty ``file_paths`` value is treated the same as calling Cancel().
+
+        Args:
+            file_paths (Sequence[str]):
         """
         cdef vector[CefString] _a0
         cdef CefFileDialogCallback* _p = self._ptr()
@@ -65,29 +69,42 @@ cdef inline CefFileDialogCallback* _g_ref_FileDialogCallback(object obj) except?
 
 
 class DialogHandler:
-    """Implement this interface to handle dialog events. The methods of this class
-    will be called on the browser process UI thread.
+    """Implement this interface to handle dialog events.
+
+    The methods of this class will be called on the browser process UI thread.
     """
 
     def on_file_dialog(self, browser, mode, title, default_file_path, accept_filters, accept_extensions, accept_descriptions, callback):
-        """Called to run a file chooser dialog. |mode| represents the type of dialog
-        to display. |title| to the title to be used for the dialog and may be
-        empty to show the default title (\"Open\" or \"Save\" depending on the mode).
-        |default_file_path| is the path with optional directory and/or file name
-        component that should be initially selected in the dialog.
-        |accept_filters| are used to restrict the selectable file types and may be
-        any combination of valid lower-cased MIME types (e.g. \"text/*\" or
-        \"image/*\") and individual file extensions (e.g. \".txt\" or \".png\").
-        |accept_extensions| provides the semicolon-delimited expansion of MIME
-        types to file extensions (if known, or empty string otherwise).
-        |accept_descriptions| provides the descriptions for MIME types (if known,
-        or empty string otherwise). For example, the \"image/*\" mime type might
-        have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
-        |accept_filters|, |accept_extensions| and |accept_descriptions| will all
-        be the same size. To display a custom dialog return true and execute
-        |callback| either inline or at a later time. To display the default dialog
-        return false. If this method returns false it may be called an additional
-        time for the same dialog (both before and after MIME type expansion).
+        """Called to run a file chooser dialog.
+
+        ``mode`` represents the type of dialog to display. ``title`` to the title to be used
+        for the dialog and may be empty to show the default title (\"Open\" or \"Save\"
+        depending on the mode). ``default_file_path`` is the path with optional directory
+        and/or file name component that should be initially selected in the dialog.
+        ``accept_filters`` are used to restrict the selectable file types and may be any
+        combination of valid lower-cased MIME types (e.g. \"text/*\" or \"image/*\") and
+        individual file extensions (e.g. \".txt\" or \".png\"). ``accept_extensions`` provides
+        the semicolon-delimited expansion of MIME types to file extensions (if known, or
+        empty string otherwise). ``accept_descriptions`` provides the descriptions for MIME
+        types (if known, or empty string otherwise). For example, the \"image/*\" mime type
+        might have extensions \".png;.jpg;.bmp;...\" and description \"Image Files\".
+        ``accept_filters``, ``accept_extensions`` and ``accept_descriptions`` will all be
+        the same size. To display a custom dialog return ``True`` and execute ``callback``
+        either inline or at a later time. To display the default dialog return ``False``. If
+        this method returns ``False`` it may be called an additional time for the same
+        dialog (both before and after MIME type expansion).
+
+        Args:
+            browser (Browser):
+            mode (FileDialogMode):
+            title (str):
+            default_file_path (str): The path with optional directory and/or file name  component that should be initially selected in the dialog.
+            accept_filters (list[str]): Used to restrict the selectable file types and may be  any combination of valid lower-cased MIME types (e.
+            accept_extensions (list[str]):
+            accept_descriptions (list[str]):
+            callback (FileDialogCallback):
+        Returns:
+            bool
         """
         return False
 

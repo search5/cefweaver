@@ -19,8 +19,12 @@ cdef class DownloadItem:
         return p
 
     def is_valid(self):
-        """Returns true if this object is valid. Do not call any other methods if
-        this function returns false.
+        """Return ``True`` if this object is valid.
+
+        Do not call any other methods if this function returns ``False``.
+
+        Returns:
+            bool: ``True`` if this object is valid.
         """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
@@ -29,7 +33,11 @@ cdef class DownloadItem:
         return _r
 
     def is_in_progress(self):
-        """Returns true if the download is in progress."""
+        """Return ``True`` if the download is in progress.
+
+        Returns:
+            bool: ``True`` if the download is in progress.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -37,7 +45,11 @@ cdef class DownloadItem:
         return _r
 
     def is_complete(self):
-        """Returns true if the download is complete."""
+        """Return ``True`` if the download is complete.
+
+        Returns:
+            bool: ``True`` if the download is complete.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -45,7 +57,11 @@ cdef class DownloadItem:
         return _r
 
     def is_canceled(self):
-        """Returns true if the download has been canceled."""
+        """Return ``True`` if the download has been canceled.
+
+        Returns:
+            bool: ``True`` if the download has been canceled.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -53,7 +69,11 @@ cdef class DownloadItem:
         return _r
 
     def is_interrupted(self):
-        """Returns true if the download has been interrupted."""
+        """Return ``True`` if the download has been interrupted.
+
+        Returns:
+            bool: ``True`` if the download has been interrupted.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -61,7 +81,11 @@ cdef class DownloadItem:
         return _r
 
     def is_paused(self):
-        """Returns true if the download has been paused."""
+        """Return ``True`` if the download has been paused.
+
+        Returns:
+            bool: ``True`` if the download has been paused.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cpp_bool _r
         with nogil:
@@ -69,7 +93,11 @@ cdef class DownloadItem:
         return _r
 
     def get_interrupt_reason(self):
-        """Returns the most recent interrupt reason."""
+        """Return the most recent interrupt reason.
+
+        Returns:
+            DownloadInterruptReason: The most recent interrupt reason.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef cef_download_interrupt_reason_t _r
         with nogil:
@@ -77,7 +105,11 @@ cdef class DownloadItem:
         return _g_enum(_types.DownloadInterruptReason, <int>_r)
 
     def get_current_speed(self):
-        """Returns a simple speed estimate in bytes/s."""
+        """Return a simple speed estimate in bytes/s.
+
+        Returns:
+            int: A simple speed estimate in bytes/s.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef int64_t _r
         with nogil:
@@ -85,8 +117,10 @@ cdef class DownloadItem:
         return _r
 
     def get_percent_complete(self):
-        """Returns the rough percent complete or -1 if the receive total size is
-        unknown.
+        """Return the rough percent complete or -1 if the receive total size is unknown.
+
+        Returns:
+            int: The rough percent complete or -1 if the receive total size is  unknown.
         """
         cdef CefDownloadItem* _p = self._ptr()
         cdef int _r
@@ -95,7 +129,11 @@ cdef class DownloadItem:
         return _r
 
     def get_total_bytes(self):
-        """Returns the total number of bytes."""
+        """Return the total number of bytes.
+
+        Returns:
+            int: The total number of bytes.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef int64_t _r
         with nogil:
@@ -103,7 +141,11 @@ cdef class DownloadItem:
         return _r
 
     def get_received_bytes(self):
-        """Returns the number of received bytes."""
+        """Return the number of received bytes.
+
+        Returns:
+            int: The number of received bytes.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef int64_t _r
         with nogil:
@@ -111,7 +153,11 @@ cdef class DownloadItem:
         return _r
 
     def get_start_time(self):
-        """Returns the time that the download started."""
+        """Return the time that the download started.
+
+        Returns:
+            datetime.datetime | None: The time that the download started.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefBaseTime _r
         with nogil:
@@ -119,7 +165,11 @@ cdef class DownloadItem:
         return _g_from_basetime(_r.val)
 
     def get_end_time(self):
-        """Returns the time that the download ended."""
+        """Return the time that the download ended.
+
+        Returns:
+            datetime.datetime | None: The time that the download ended.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefBaseTime _r
         with nogil:
@@ -127,7 +177,11 @@ cdef class DownloadItem:
         return _g_from_basetime(_r.val)
 
     def get_full_path(self):
-        """Returns the full path to the downloaded or downloading file."""
+        """Return the full path to the downloaded or downloading file.
+
+        Returns:
+            str: The full path to the downloaded or downloading file.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -135,7 +189,11 @@ cdef class DownloadItem:
         return _g_str(_r)
 
     def get_id(self):
-        """Returns the unique identifier for this download."""
+        """Return the unique identifier for this download.
+
+        Returns:
+            int: The unique identifier for this download.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef uint32_t _r
         with nogil:
@@ -143,7 +201,11 @@ cdef class DownloadItem:
         return _r
 
     def get_url(self):
-        """Returns the URL."""
+        """Return the URL.
+
+        Returns:
+            str: The URL.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -151,7 +213,11 @@ cdef class DownloadItem:
         return _g_str(_r)
 
     def get_original_url(self):
-        """Returns the original URL before any redirections."""
+        """Return the original URL before any redirections.
+
+        Returns:
+            str: The original URL before any redirections.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -159,7 +225,11 @@ cdef class DownloadItem:
         return _g_str(_r)
 
     def get_suggested_file_name(self):
-        """Returns the suggested file name."""
+        """Return the suggested file name.
+
+        Returns:
+            str: The suggested file name.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -167,7 +237,11 @@ cdef class DownloadItem:
         return _g_str(_r)
 
     def get_content_disposition(self):
-        """Returns the content disposition."""
+        """Return the content disposition.
+
+        Returns:
+            str: The content disposition.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
@@ -175,7 +249,11 @@ cdef class DownloadItem:
         return _g_str(_r)
 
     def get_mime_type(self):
-        """Returns the mime type."""
+        """Return the mime type.
+
+        Returns:
+            str: The mime type.
+        """
         cdef CefDownloadItem* _p = self._ptr()
         cdef CefString _r
         with nogil:
