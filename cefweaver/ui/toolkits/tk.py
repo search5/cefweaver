@@ -1,16 +1,17 @@
-"""A Tkinter widget that shows a cefweaver offscreen browser, built on ``cefweaver.ui``.
+"""A Tkinter widget that shows a cefweaver offscreen browser.
 
-``cefweaver.ui`` has the CEF side (``BrowserView``, ``Session``). This file is what Tk adds, the adapter:
+Classes:
+    :class:`TkLoop`: runs functions in the Tk main loop (the loop object :class:`~cefweaver.ui.Session` needs).
+    :class:`TkAdapter`: the :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefCanvas`.
+    :class:`CefCanvas`: a :class:`tkinter.Canvas` that shows the browser and passes mouse, wheel and key events
+    to its :class:`~cefweaver.ui.BrowserView`.
 
-* ``TkLoop``: running something in the Tk loop from any thread (``post``: a queue and a pipe that
-  ``createfilehandler`` watches) and later (``call_later``: ``after``);
-* ``TkAdapter``: size and place of the canvas, drawing the frames with Pillow (``ImageTk``), the cursor and
-  the clipboard of Tk;
-* ``CefCanvas``: a ``tkinter.Canvas`` that passes the events of Tk (mouse, wheel, keys) to the view.
+Frames are drawn with Pillow (``PIL.ImageTk``), which this module requires.
 
-What Tk cannot do is in the README: no input method preedit, no drag out of the page into Tk widgets.
-A drag inside the page is carried out by the view itself (the adapter has no drag source). Drops from other
-programs are not supported: tkinterdnd2 (the tkdnd extension) ends the process when CEF starts in it (README).
+Note:
+    Tk gives no scale (``scale()`` is always 1.0) and no input method preedit. The adapter has no drag source and no
+    native clipboard for CEF, so a drag inside the page and the clipboard keys are carried out by the view. Drops
+    from other programs are not supported.
 
 Checked: Xvfb and xdotool: the 30 checks of examples/tk/smoke.py (Tk 8.6 of uv's CPython, Pillow), also with CEF on Wayland.
 Not checked: a scale other than 1 (Tk gives none), the preedit of an input method (Tk gives none; on a real screen the Korean/English key of the input method does not work: cause not looked for), drops from other programs (tkinterdnd2 ends the process when CEF starts: cause unknown).
@@ -50,10 +51,26 @@ _CURSOR_NAMES = ui.CursorTable(_CURSORS, default="arrow")
 
 
 def windows_key_code(event):
+    """Return the Windows virtual key code for a Tk key event.
+
+    Args:
+        event (tkinter.Event): A key event; its ``keysym`` is looked up.
+
+    Returns:
+        int: A ``cefweaver.ui.keys.VK_*`` code, or 0 if the key has none.
+    """
     return _KEYTABLE.code(event.keysym)
 
 
 def modifier_flags(state):
+    """Return the CEF event flags for a Tk event ``state``.
+
+    Args:
+        state (int): The ``state`` field of a Tk event (modifier and mouse button bits).
+
+    Returns:
+        int: The matching ``cefweaver.ui.keys`` modifier and mouse button flags.
+    """
     return _MODIFIERS.flags(state)
 
 
@@ -73,8 +90,17 @@ class _After:
 
 
 class TkLoop:
-    """What ``ui.Session`` needs of a toolkit: the Tk loop. ``post`` may be called from any thread (Tk's own
-    ``after`` may not), so the function goes into a queue and a byte into a pipe that Tk watches."""
+    """The Tk main loop as the loop object of :class:`~cefweaver.ui.Session`.
+
+    Functions passed to :meth:`post` are queued; a byte is written to a pipe that Tk watches (``createfilehandler``),
+    and the functions run in the Tk main loop.
+
+    Args:
+        root (tkinter.Tk): The root window whose loop runs the functions.
+
+    Attributes:
+        root (tkinter.Tk): The root window.
+    """
 
     def __init__(self, root):
         self.root = root
@@ -84,6 +110,14 @@ class TkLoop:
         root.tk.createfilehandler(self._read, tkinter.READABLE, lambda *args: self._on_wake())
 
     def post(self, function):
+        """Run ``function`` in the Tk main loop.
+
+        Args:
+            function (callable): Called with no arguments.
+
+        Note:
+            Callable from any thread.
+        """
         self._queue.append(function)
         try:
             os.write(self._write, b"x")
@@ -99,15 +133,35 @@ class TkLoop:
             self._queue.popleft()()
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the Tk main loop after a delay, using ``after``.
+
+        Args:
+            seconds (float): The delay in seconds.
+            function (callable): Called with no arguments.
+
+        Returns:
+            object: A handle with ``cancel()``.
+        """
         return _After(self.root, seconds, function)
 
     def release(self):
+        """Remove the file handler that watches the wake-up pipe."""
         self.root.tk.deletefilehandler(self._read)
 
 
 class TkAdapter:
-    """``ui.ToolkitAdapter`` for a ``CefCanvas``. Tk has no drag source for the page and no native clipboard
-    that CEF could use: the view does both."""
+    """The :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefCanvas`.
+
+    Args:
+        widget (CefCanvas): The canvas that shows the browser.
+        loop (TkLoop): The loop that runs posted and delayed functions.
+
+    Attributes:
+        capabilities (frozenset): Empty; the view handles drags out and the clipboard itself.
+        w (CefCanvas): The canvas.
+        loop (TkLoop): The loop.
+        last_menu (tkinter.Menu): The menu most recently shown by :meth:`show_menu`; set after the first call.
+    """
 
     capabilities = frozenset()
 
@@ -115,32 +169,48 @@ class TkAdapter:
         self.w, self.loop = widget, loop
 
     def post(self, function):
+        """Run ``function`` in the Tk main loop; callable from any thread."""
         self.loop.post(function)
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the Tk main loop after ``seconds``; return an object with ``cancel()``."""
         return self.loop.call_later(seconds, function)
 
     def view_size(self):
+        """Return the size of the canvas in logical pixels."""
         return self.w.view_width, self.w.view_height
 
     def scale(self):
+        """Return the scale, always 1.0 (Tk gives none)."""
         return 1.0                                      # Tk gives no scale
 
     def screen_origin(self):
+        """Return the position of the canvas on the screen."""
         return self.w.winfo_rootx(), self.w.winfo_rooty()
 
     def screen_size(self):
+        """Return the size of the screen."""
         return self.w.winfo_screenwidth(), self.w.winfo_screenheight()
 
     def present(self, frame):
+        """Draw ``frame`` on the canvas."""
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
+        """Show the Tk cursor that matches the CEF cursor type."""
         self.w.configure(cursor=_CURSOR_NAMES.get(cursor))
 
     def show_menu(self, items, x, y, done):
-        """The context menu of the page as a ``tkinter.Menu`` at (x, y) of the widget. ``done`` gets the command id of
-        the picked item, or None when the menu is left (the last menu is ``last_menu``, for tests)."""
+        """Show the context menu of the page as a :class:`tkinter.Menu`.
+
+        Args:
+            items (list): The menu entries; each has ``kind``, ``label``, ``enabled``, ``checked``, ``command_id`` and
+                ``children``.
+            x (int): The x coordinate in the widget.
+            y (int): The y coordinate in the widget.
+            done (callable): Called once with the ``command_id`` of the picked item, or None if the menu is left
+                without a pick.
+        """
         picked, variables = [], []
 
         def pick(command_id):
@@ -175,18 +245,37 @@ class TkAdapter:
             menu.grab_release()
 
     def clipboard_get(self):
+        """Return the text of the Tk clipboard, or None if it has none."""
         try:
             return self.w.clipboard_get()
         except tkinter.TclError:
             return None
 
     def clipboard_set(self, text):
+        """Replace the text of the Tk clipboard with ``text``."""
         self.w.clipboard_clear()
         self.w.clipboard_append(text)
 
 
 class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
-    """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
+    """A :class:`tkinter.Canvas` that shows a CEF offscreen browser.
+
+    Args:
+        master (tkinter.Misc): The parent widget.
+        runtime (object): The object with the :class:`TkLoop` as its ``adapter`` attribute.
+        audio (optional): The ``audio`` option of :class:`~cefweaver.ui.BrowserView`.
+        **options: Passed to :class:`tkinter.Canvas`.
+
+    Attributes:
+        view (cefweaver.ui.BrowserView): The browser view.
+        runtime (object): The ``runtime`` argument.
+        view_width (int): The canvas width in pixels (800 until the first ``<Configure>`` event).
+        view_height (int): The canvas height in pixels (600 until the first ``<Configure>`` event).
+        on_title (callable): ``on_title(title)``; called when the page title changes.
+        on_address (callable): ``on_address(url)``; called when the address changes.
+        on_loading (callable): ``on_loading(loading, can_back, can_forward)``; called when the loading state changes.
+        on_ready (callable): ``on_ready()``; called when the browser exists.
+    """
 
     def __init__(self, master, runtime, audio=None, **options):
         super().__init__(master, highlightthickness=0, background="white", takefocus=True, **options)
@@ -224,15 +313,19 @@ class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
     # -- the browser -----------------------------------------------------------------------------
 
     def browser_title(self, title):
+        """Call ``on_title`` with the page title."""
         self.on_title(title)
 
     def browser_address(self, url):
+        """Call ``on_address`` with the address of the page."""
         self.on_address(url)
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Call ``on_loading`` with the loading state."""
         self.on_loading(loading, can_back, can_forward)
 
     def browser_ready(self):
+        """Give the view the focus state of the canvas and call ``on_ready``."""
         self.view.focus(self.focus_get() is self)
         self.on_ready()
 
@@ -244,6 +337,11 @@ class CefCanvas(ui.BrowserWidget, tkinter.Canvas):
     # -- painting --------------------------------------------------------------------------------
 
     def present_frame(self, frame):
+        """Draw a CEF frame (the view or a popup) as a canvas image, or hide the popup.
+
+        Args:
+            frame (cefweaver.ui.Frame): The frame to draw.
+        """
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self.popup_image = None
             if self.popup_item is not None:

@@ -36,6 +36,7 @@
 - [새 클래스를 생성 범위에 추가하기](pages/procedures/add-class-to-generator.md): scope.py에 클래스를 추가하고 확인하는 절차와 한계
 - [새 타입 지원 추가하기](pages/procedures/add-type-to-generator.md): 새 타입 종류를 지원하려고 고칠 곳과 설계 질문
 - [빌드와 설치](pages/procedures/build-and-install.md): prepare.py, uv build --wheel, 설치와 자주 만난 문제
+- [docstring 쓰기 (Sphinx용)](pages/procedures/write-docstrings.md): Google 스타일 영어 docstring의 규칙과 누락 점검
 - [CEF의 한계를 CEF 예제로 검증하기](pages/procedures/verify-cef-limits.md): "CEF의 한계"라고 적기 전에 `cefsimple`과 CEF 소스로 가르는 방법과 지금까지의 검증 결과
 - [충돌 조사 방법](pages/procedures/debug-crashes.md): 서브프로세스 충돌을 조사할 때 효과가 있었던 방법과 쓸 수 없었던 방법
 - [CEF 확보하기](pages/procedures/obtain-cef.md): 버전 조회, prebuilt, 기존 배포본, 소스 빌드 명령
@@ -46,6 +47,7 @@
 
 ## 참조 (reference)
 
+- [docstring 진행 상황](pages/reference/docstring-coverage.md): Python 공개 API별 docstring 작성 상태
 - [설계 결정 기록](pages/reference/design-decisions.md): 빌드, 바인딩, 런타임, 시험, 저장소 운영의 결정과 이유
 - [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 402+3개와 제외 52개, 전체 89% 중 남은 장애물, 생성기의 한계와 다음 단계
 - [커버리지 보고서 (생성됨)](pages/reference/coverage-report.md): 생성기가 쓰는 보고서 전문(제외된 메서드의 사유, 클래스별 지원 비율)

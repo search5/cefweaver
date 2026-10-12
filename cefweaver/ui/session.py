@@ -1,4 +1,4 @@
-"""``Session``: CEF for a toolkit application, driven from the toolkit's event loop."""
+"""The session that runs CEF for a toolkit application from the toolkit's event loop."""
 
 import os
 import posixpath
@@ -11,7 +11,17 @@ from .widget import BrowserWidget
 
 
 def view_of(target):
-    """The ``BrowserView`` of what a toolkit application starts: the view, or the widget that has it."""
+    """Return the view of a view or of a widget.
+
+    Args:
+        target (BrowserView or BrowserWidget): A view, or a widget that has one.
+
+    Returns:
+        BrowserView: ``target`` itself, or ``target.view``.
+
+    Raises:
+        TypeError: If ``target`` is neither.
+    """
     if isinstance(target, BrowserView):
         return target
     if isinstance(target, BrowserWidget):
@@ -20,11 +30,19 @@ def view_of(target):
 
 
 def default_ozone_platform(environ=None, platform=None, exists=os.path.exists):
-    """``"wayland"`` where an offscreen browser should use it, else None (Chromium or ``CefApp`` decides).
+    """Return the Ozone platform an offscreen browser should use.
 
-    There has to be a Wayland compositor: ``WAYLAND_DISPLAY`` names a socket that exists. Offscreen CEF works on Wayland,
-    and on X11 (XWayland) the GPU process of CEF dies on some machines and the video does not play, while Chrome plays
-    it there. (A browser window of ``CefApp`` ends the process on Wayland: it stays on X11.)
+    A Wayland compositor must be present: ``WAYLAND_DISPLAY`` names a socket that exists, either as an absolute
+    path or relative to ``XDG_RUNTIME_DIR``.
+
+    Args:
+        environ (dict, optional): The environment to read. Defaults to ``os.environ``.
+        platform (str, optional): The platform name. Defaults to ``sys.platform``.
+        exists (callable, optional): Tells whether a path exists. Defaults to ``os.path.exists``.
+
+    Returns:
+        str: ``"wayland"`` on Linux where a compositor is present; otherwise ``None``, which leaves the choice
+        to Chromium or :class:`~cefweaver.CefApp`.
     """
     environ = os.environ if environ is None else environ
     if (sys.platform if platform is None else platform) != "linux":
@@ -42,24 +60,41 @@ def default_ozone_platform(environ=None, platform=None, exists=os.path.exists):
 
 
 class Session:
-    """The ``CefApp``, the ``JavascriptBridge`` and the ``MessagePump`` of an application.
+    """The :class:`~cefweaver.CefApp`, the :class:`~cefweaver.JavascriptBridge` and the :class:`~cefweaver.MessagePump` of an application.
 
-    CEF says (from any of its threads) when it wants to run; ``adapter.post`` brings that into the main thread
-    and ``adapter.call_later`` carries the deadline, so there is no polling. One browser (one ``BrowserView``)
-    per session for now::
+    CEF reports from any of its threads when it wants to run; ``adapter.post`` brings that into the main
+    thread and ``adapter.call_later`` carries the deadline, so nothing polls. A session holds one browser
+    (one :class:`~cefweaver.ui.BrowserView`).
 
-        session = ui.Session(adapter, switches=[("disable-gpu", "")])
-        view = ui.BrowserView(adapter)
-        view.on_ready = lambda: view.load_url("https://example.org/")
-        session.start(widget_or_view)
-        ...
-        session.shutdown(done=toolkit_quit)
+    Example:
+        ::
+
+            session = ui.Session(adapter, switches=[("disable-gpu", "")])
+            view = ui.BrowserView(adapter)
+            view.on_ready = lambda: view.load_url("https://example.org/")
+            session.start(widget_or_view)
+            ...
+            session.shutdown(done=toolkit_quit)
+
+    Args:
+        adapter (ToolkitAdapter): The toolkit adapter; only ``post`` and ``call_later`` are needed (and
+            ``release``, if it has one).
+        switches (iterable, optional): Chromium command line switches as ``(name, value)`` pairs. If
+            :func:`default_ozone_platform` returns a platform and neither ``ozone-platform`` nor
+            ``ozone-platform-hint`` is given, ``("ozone-platform", platform)`` is added.
+        cache_path (str, optional): The cache directory, passed to :meth:`~cefweaver.CefApp.set_cache_path`.
+
+    Attributes:
+        adapter (ToolkitAdapter): The toolkit adapter.
+        switches (list): The switches given to CEF, including one added by the session.
+        app (CefApp): The offscreen, non-transparent application.
+        bridge (JavascriptBridge): The JavaScript bridge of ``app``.
+        pump (MessagePump): The message pump of ``app``.
+        started (bool): Whether :meth:`start` has been called and :meth:`shutdown` has not finished.
+        views (list): The views of the session.
     """
 
     def __init__(self, adapter, switches=(), cache_path=None):
-        """``switches``: Chromium command line switches, ``(name, value)``. Where ``default_ozone_platform()`` says
-        ``wayland`` and the application gave no ``ozone-platform`` (or ``ozone-platform-hint``), the session adds it;
-        ``switches`` (a list, after this) tells what CEF was given."""
         self.adapter = adapter
         self.switches = list(switches)
         names = {str(name).lstrip("-") for name, _ in self.switches}
@@ -97,8 +132,17 @@ class Session:
             self._schedule()
 
     def start(self, target, url="about:blank"):
-        """Start CEF and make the browser of ``target``, a ``BrowserView`` or a ``BrowserWidget`` (its ``on_ready``
-        is called when the browser exists)."""
+        """Start CEF and create the browser of a view.
+
+        ``on_ready`` of the view is called when the browser exists.
+
+        Args:
+            target (BrowserView or BrowserWidget): The view, or the widget that has it.
+            url (str, optional): The first URL. Defaults to ``"about:blank"``.
+
+        Raises:
+            TypeError: If ``target`` is neither a view nor a widget.
+        """
         view = view_of(target)
         self.views = [view]
         self.app.set_client(view.client)
@@ -107,7 +151,14 @@ class Session:
         self._schedule()
 
     def shutdown(self, done=None):
-        """Close the browsers, wait until CEF has closed them, shut CEF down and call ``done()``."""
+        """Close the browsers, wait until CEF has closed them, shut CEF down and call ``done``.
+
+        Returns at once; the rest runs from the loop of the toolkit. Calls ``adapter.release()`` if the
+        adapter has it, before ``done``.
+
+        Args:
+            done (callable, optional): Called without arguments when the shutdown is complete.
+        """
         for view in list(self.views):
             view.close_browser()
 

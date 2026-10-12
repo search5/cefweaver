@@ -1,15 +1,19 @@
-"""The sound of a page, for the application: what a sink is and how the planes CEF gives become samples.
+"""Audio sinks: receive the sound of a page as interleaved float32 samples.
 
-CEF captures the sound of a page instead of playing it when the browser has an audio handler (``cefweaver.AudioHandler``):
-it gives a block of 32 bit floats for every channel (planar). ``BrowserView(adapter, audio=sink)`` makes that handler
-and passes the sound to ``sink``, which an application, a toolkit adapter (``audio_sink()``) or ``PygameSink`` provides.
-Without a sink CEF plays the sound itself.
+When a :class:`~cefweaver.ui.BrowserView` is given a sink with ``BrowserView(adapter, audio=sink)``,
+it installs an ``AudioHandler`` and passes the page sound to the sink instead of CEF playing it.
+The sink can be provided by the application, by a toolkit adapter (``audio_sink()``) or be a
+:class:`PygameSink`.
 
-A sink has three methods and is called in the thread of CEF's audio stream, so it must not wait::
+A sink implements three methods:
 
-    sink.start(sample_rate, channels)     # a stream begins (it may begin again later)
-    sink.write(samples, frames)           # frames * channels float32, little endian, interleaved (L R L R ...)
-    sink.stop()                           # the stream is over, or failed
+* ``start(sample_rate, channels)``: A stream begins; may be called again later.
+* ``write(samples, frames)``: ``samples`` is ``bytes`` of ``frames * channels`` interleaved
+  little-endian float32 values (L R L R ...).
+* ``stop()``: The stream ended or failed.
+
+Note:
+    The methods are called on the thread of CEF's audio stream and must not block.
 """
 
 import array
@@ -17,7 +21,15 @@ import sys
 
 
 def interleave(planes):
-    """The planes (a float32 ``memoryview`` for every channel) as one buffer of interleaved samples: (bytes, frames)."""
+    """Interleave per-channel planes into one buffer of samples.
+
+    Args:
+        planes (sequence): One float32 ``memoryview`` (or ``array.array``) per channel.
+
+    Returns:
+        tuple: ``(samples, frames)``, where ``samples`` is ``bytes`` of little-endian float32
+        values interleaved by channel, and ``frames`` is the number of samples per channel.
+    """
     if not planes:
         return b"", 0
     channels = [array.array("f", bytes(plane)) if not isinstance(plane, array.array) else plane for plane in planes]
@@ -35,7 +47,15 @@ def interleave(planes):
 
 
 def apply_volume(samples, volume):
-    """The interleaved float32 samples (bytes) times ``volume``; the same bytes when it is 1.0."""
+    """Scale interleaved float32 samples.
+
+    Args:
+        samples (bytes): Interleaved float32 samples in native byte order.
+        volume (float): The factor to multiply each sample by.
+
+    Returns:
+        bytes: The scaled samples; ``samples`` itself if ``volume`` is 1.0.
+    """
     if volume == 1.0:
         return samples
     data = array.array("f", samples)
@@ -45,6 +65,14 @@ def apply_volume(samples, volume):
 
 
 def is_sink(candidate):
+    """Return whether an object has the ``start``, ``write`` and ``stop`` methods of a sink.
+
+    Args:
+        candidate: The object to test.
+
+    Returns:
+        bool: ``True`` if all three are callable attributes.
+    """
     return all(callable(getattr(candidate, name, None)) for name in ("start", "write", "stop"))
 
 
@@ -80,18 +108,30 @@ def _close_device(device):
 
 
 class PygameSink:
-    """A sink that plays through pygame (``pip install pygame``), for toolkits that cannot play a stream themselves.
+    """A sink that plays through pygame, for toolkits that cannot play a stream themselves.
 
-    It opens the audio device with ``pygame._sdl2.audio.AudioDevice`` (a callback that the device calls for the next
-    block: a latency of a few blocks, so that the sound stays with the picture) and keeps what ``write`` gives in a ring
-    that holds at most ``max_latency`` seconds (older sound is dropped when the application cannot keep up).
-    ``volume`` (0.0 to 1.0) is applied to the samples. A little sound (``prebuffer`` seconds) is collected before it is
-    played, and again after the ring ran empty, so that the jitter of the packets is not heard. ``stats()`` tells what
-    happened.
+    Requires pygame (``pip install pygame``). Samples passed to :meth:`write` are buffered in a
+    ring of at most ``max_latency`` seconds; older samples are dropped when playback falls
+    behind. Playback starts once ``prebuffer`` seconds are buffered, and again after the ring
+    ran empty. A failure to start is reported by ``BrowserView.on_audio_error``.
 
-    pygame starts the audio of SDL through its mixer, which holds the device too; the SDL audio driver ``dummy`` (no
-    sound card) allows a device to be opened once only, so the sink fails to start there, which the view reports
-    (``BrowserView.on_audio_error``).
+    Args:
+        device (str, optional): The name of the output device. Defaults to the first one.
+        volume (float, optional): The factor applied to the samples, 0.0 to 1.0. Defaults to 1.0.
+        max_latency (float, optional): The capacity of the ring, in seconds. Defaults to 0.5.
+        chunk (int, optional): The size of a device block, in frames. Defaults to 1024.
+        prebuffer (float, optional): The seconds of sound collected before playback starts.
+            Defaults to 0.04.
+
+    Raises:
+        ImportError: If pygame is not installed.
+
+    Attributes:
+        device_name (str or None): The ``device`` argument.
+        volume (float): The factor applied to the samples.
+        max_latency (float): The capacity of the ring, in seconds.
+        chunk (int): The size of a device block, in frames.
+        prebuffer (float): The seconds collected before playback starts.
     """
 
     def __init__(self, device=None, volume=1.0, max_latency=0.5, chunk=1024, prebuffer=0.04):
@@ -110,6 +150,12 @@ class PygameSink:
         self._counters = dict(written=0, consumed=0, underruns=0, dropped=0)
 
     def start(self, sample_rate, channels):
+        """Open the audio device and begin playback; any previous stream is stopped.
+
+        Args:
+            sample_rate (int): The sample rate in Hz.
+            channels (int): The number of channels.
+        """
         self.stop()
         pygame, sdl_audio = self._pygame, self._sdl_audio
         if not pygame.mixer.get_init():
@@ -125,6 +171,12 @@ class PygameSink:
         self._device.pause(0)
 
     def write(self, samples, frames):
+        """Queue samples for playback.
+
+        Args:
+            samples (bytes): Interleaved float32 samples.
+            frames (int): The number of samples per channel.
+        """
         samples = apply_volume(samples, self.volume)
         limit = int(self._rate * self.max_latency) * self._channels * 4
         with self._lock:
@@ -136,6 +188,7 @@ class PygameSink:
                 self._counters["dropped"] += extra // (4 * max(1, self._channels))
 
     def stop(self):
+        """Close the audio device and discard queued samples."""
         device, self._device = self._device, None
         if device is not None:
             try:
@@ -160,13 +213,22 @@ class PygameSink:
             self._counters["consumed"] += count // (4 * max(1, self._channels))
 
     def stats(self):
-        """Frames written and consumed, blocks that found nothing to play (``underruns``) and frames dropped."""
+        """Return the playback counters.
+
+        Returns:
+            dict: ``written``, ``consumed``, ``dropped`` and ``queued`` in frames, and
+            ``underruns``, the number of device blocks that found nothing to play.
+        """
         with self._lock:
             return dict(self._counters, queued=len(self._ring) // (4 * max(1, self._channels)))
 
 
 def pygame_sink():
-    """A ``PygameSink`` if pygame is installed, else None."""
+    """Create a :class:`PygameSink` with default arguments.
+
+    Returns:
+        PygameSink or None: The sink, or ``None`` if pygame is not installed.
+    """
     try:
         return PygameSink()
     except ImportError:

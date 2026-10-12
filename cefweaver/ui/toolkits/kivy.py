@@ -1,17 +1,18 @@
-"""A Kivy widget that shows a cefweaver offscreen browser, built on ``cefweaver.ui``.
+"""A Kivy widget that shows a cefweaver offscreen browser, built on :mod:`cefweaver.ui`.
 
-``cefweaver.ui`` has the CEF side (``BrowserView``, ``Session``). This file is what Kivy adds, the adapter:
+:mod:`cefweaver.ui` has the CEF side (:class:`~cefweaver.ui.BrowserView`,
+:class:`~cefweaver.ui.Session`). This module adds the Kivy side:
 
-* ``KivyLoop``: running something in the Kivy thread from any thread (``Clock.schedule_once``, the call that
-  ``@mainthread`` makes) and later;
-* ``KivyAdapter``: size, scale and place of the widget, drawing the frames into a ``Texture``, the cursor
-  and the clipboard of Kivy;
-* ``CefView``: a ``Widget`` that passes the mouse, keys, text, composition and drops of the Kivy window
-  (SDL2) to the view.
+* :class:`KivyLoop`: runs functions in the Kivy thread from any thread, at once or later.
+* :class:`KivyAdapter`: the :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefView` (size,
+  scale and position, drawing frames into a ``Texture``, cursor and clipboard).
+* :class:`CefView`: a ``Widget`` that passes the mouse, keys, text, composition and drops of the
+  Kivy window (SDL2) to the view.
 
-Kivy's window tells the text an input method is composing (``on_textedit``) and what it committed
-(``on_textinput``), and where files and text are dropped (``on_drop_*``). It cannot start a drag, so a drag
-inside the page is carried out by the view.
+Note:
+    The Kivy window reports composition text (``on_textedit``), committed text (``on_textinput``)
+    and drops (``on_drop_*``). It cannot start a drag, so a drag inside the page is carried out by
+    the view.
 
 Checked: Xvfb with SDL_VIDEODRIVER=x11 and xdotool: the 27 checks of examples/kivy/smoke.py, and closing the window of the app (Kivy 2.3.1).
 Not checked: drops of other programs (the checks hand the events of the window to the handlers), a scale other than 1, a real input method.
@@ -52,26 +53,55 @@ _CURSOR_NAMES = ui.CursorTable(_CURSORS, default="arrow")
 
 
 def windows_key_code(key):
+    """Return the Windows virtual key code of a Kivy key code.
+
+    Args:
+        key (int): The key code of a Kivy ``on_key_down`` or ``on_key_up`` event.
+
+    Returns:
+        int: The virtual key code CEF expects. Printable ASCII letters and digits map to their
+        capitals; unmapped keys map to 0.
+    """
     return _KEYTABLE.code(key)
 
 
 def modifier_flags(modifiers, buttons=()):
+    """Convert Kivy modifier and button names to CEF event flags.
+
+    Args:
+        modifiers (list): The modifier names that are down (for example ``["ctrl", "shift"]``).
+        buttons (collection, optional): The names of the mouse buttons that are down
+            (``"left"``, ``"middle"``, ``"right"``). Default: none.
+
+    Returns:
+        int: The combined CEF flags.
+    """
     return _MODIFIERS.flags(modifiers, buttons)
 
 
 class KivyLoop:
-    """What ``ui.Session`` needs of a toolkit: the Kivy clock."""
+    """The loop object :class:`~cefweaver.ui.Session` needs, on the Kivy clock."""
 
     def post(self, function):                           # any thread
+        """Run ``function`` once in the Kivy thread on the next clock tick; callable from any thread."""
         Clock.schedule_once(lambda dt: function(), 0)
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the Kivy thread after ``seconds`` and return a ``ClockEvent`` (it has ``cancel()``)."""
         return Clock.schedule_once(lambda dt: function(), seconds)   # a ClockEvent: it has cancel()
 
 
 class KivyAdapter(KivyLoop):
-    """``ui.ToolkitAdapter`` for a ``CefView``. Kivy has no drag source for the page and no clipboard that
-    CEF could use: the view does both."""
+    """The :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefView`.
+
+    Declares no capabilities: the view carries out drags from the page itself.
+
+    Args:
+        widget (CefView): The widget this adapter serves.
+
+    Attributes:
+        capabilities (frozenset): The empty set.
+    """
 
     capabilities = frozenset()
 
@@ -79,13 +109,18 @@ class KivyAdapter(KivyLoop):
         self.w = widget
 
     def view_size(self):
+        """Return the size of the widget as ``(width, height)`` in Kivy pixels."""
         return int(self.w.width), int(self.w.height)
 
     def scale(self):
+        """Return Kivy's ``Metrics.density`` as the scale factor."""
         return float(Metrics.density)
 
     def screen_origin(self):
-        """The top-left corner of the widget on the screen (Kivy's y runs upwards: the window's height turns it)."""
+        """Return the screen position of the widget's top-left corner as ``(x, y)``.
+
+        The window position is taken as ``(0, 0)`` where SDL2 cannot report it (macOS).
+        """
         try:
             left, top = Window.left, Window.top
         except TypeError:                   # macOS: Kivy's SDL2 window cannot tell where it is
@@ -93,24 +128,48 @@ class KivyAdapter(KivyLoop):
         return int(left + self.w.x), int(top + Window.height - self.w.top)
 
     def screen_size(self):
+        """Return the system size of the Kivy window's screen as ``(width, height)``."""
         return int(Window.system_size[0]), int(Window.system_size[1])
 
     def present(self, frame):
+        """Hand a painted frame to the widget, which uploads it into a texture."""
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
+        """Set the system cursor of the Kivy window for a ``types.CursorType`` (``"arrow"`` if unmapped)."""
         Window.set_system_cursor(_CURSOR_NAMES.get(cursor))
 
     def clipboard_get(self):
+        """Return the text of the Kivy clipboard."""
         return Clipboard.paste()
 
     def clipboard_set(self, text):
+        """Put ``text`` on the Kivy clipboard."""
         Clipboard.copy(text)
 
 
 class CefView(ui.BrowserWidget, Widget):
-    """The browser. Events: ``on_title(title)``, ``on_address(url)``, ``on_loading(loading, back, forward)``,
-    ``on_ready()``."""
+    """A Kivy widget that shows a browser.
+
+    Args:
+        runtime: The runtime (as returned by ``initialize()``) that makes the browser; stored as
+            :attr:`runtime`.
+        audio (optional): The audio handler options passed to the :class:`~cefweaver.ui.BrowserView`.
+            Default None.
+        **kwargs: Passed to ``Widget``.
+
+    Attributes:
+        runtime: The runtime given to the constructor.
+        texture (Texture | None): The texture of the current view frame.
+        popup_texture (Texture | None): The texture of the current popup, if any.
+        picture (tuple): The ``(width, height)`` of the last view frame in pixels.
+
+    Events:
+        on_title(title): The page title changed.
+        on_address(url): The page address changed.
+        on_loading(loading, can_back, can_forward): The loading state or the navigation flags changed.
+        on_ready(): The browser was created.
+    """
 
     __events__ = ("on_title", "on_address", "on_loading", "on_ready")
 
@@ -136,33 +195,42 @@ class CefView(ui.BrowserWidget, Widget):
                     on_minimize=lambda *a: self.view.shown(False), on_restore=lambda *a: self.view.shown(True))
 
     def on_title(self, title):
+        """Handle the ``on_title`` event; does nothing by default."""
         pass
 
     def on_address(self, url):
+        """Handle the ``on_address`` event; does nothing by default."""
         pass
 
     def on_loading(self, loading, can_back, can_forward):
+        """Handle the ``on_loading`` event; does nothing by default."""
         pass
 
     def on_ready(self):
+        """Handle the ``on_ready`` event; does nothing by default."""
         pass
 
     # -- the browser -----------------------------------------------------------------------------
 
     def browser_title(self, title):
+        """Dispatch ``on_title`` with the page title (an empty string for None)."""
         self.dispatch("on_title", title or "")
 
     def browser_address(self, url):
+        """Dispatch ``on_address`` with the page address."""
         self.dispatch("on_address", url)
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Dispatch ``on_loading`` with the loading state and the navigation flags."""
         self.dispatch("on_loading", loading, can_back, can_forward)
 
     def browser_ready(self):
+        """Focus the browser and dispatch ``on_ready``."""
         self.view.focus(True)
         self.dispatch("on_ready")
 
     def screen_origin(self):
+        """Return the screen position of the widget's top-left corner as ``(x, y)``."""
         return self.view.adapter.screen_origin()
 
     def _on_geometry(self, *args):
@@ -181,6 +249,7 @@ class CefView(ui.BrowserWidget, Widget):
         return current
 
     def present_frame(self, frame):
+        """Upload a painted frame (view or popup) into its texture and redraw."""
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self.popup_texture = None
             self._popup_rect_graphic.texture = None
@@ -220,6 +289,12 @@ class CefView(ui.BrowserWidget, Widget):
         self._inside = inside
 
     def on_touch_down(self, touch):
+        """Pass a mouse button press or wheel step inside the widget to the view.
+
+        Returns:
+            bool: True if the view got the event; otherwise the result of the parent handler, or
+            False for an unsupported button.
+        """
         if not self.collide_point(*touch.pos):
             return super().on_touch_down(touch)
         button = getattr(touch, "button", "left")
@@ -240,6 +315,12 @@ class CefView(ui.BrowserWidget, Widget):
         return True
 
     def on_touch_up(self, touch):
+        """Pass the release of a button pressed in this widget to the view.
+
+        Returns:
+            bool: True if the touch was grabbed by this widget; otherwise the result of the parent
+            handler.
+        """
         if touch.grab_current is not self:
             return super().on_touch_up(touch)
         touch.ungrab(self)

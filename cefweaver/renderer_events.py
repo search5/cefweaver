@@ -1,18 +1,17 @@
-"""The events of the renderer process, for a Python program that has no Python in the renderer.
+"""Events of the renderer process, delivered to Python in the browser process.
 
-The renderer of cefweaver is C++: Python code cannot run there, and V8 values cannot be held. What can be done
-is to tell the browser process what happens in the renderer and to let Python react to it. With
-``CefApp.enable_renderer_events()`` the renderer sends a process message for
+The renderer is C++ and runs no Python. With ``CefApp.enable_renderer_events()`` it sends
+process messages that :class:`RendererEvents` decodes and passes to a
+:class:`RendererEventHandler`:
 
-* a JavaScript error that nothing caught (``on_uncaught_exception``: the message, the line of the source, the place
-  and the stack),
-* the node that has the focus (``on_focused_node_changed``: whether it can be edited, the tag and the bounds, or
-  ``None`` when the focus left every node: where an input method or a virtual keyboard should appear),
-* a V8 context made or released (``on_context_created``, ``on_context_released``: each frame of a page has one;
-  the release of the context of a page that the main frame **leaves** is not told: the renderer is taken down
-  and its messages are lost, only the context of the next page comes).
+* An uncaught JavaScript error (``on_uncaught_exception``).
+* A change of the focused node (``on_focused_node_changed``).
+* The creation and release of a V8 context (``on_context_created``,
+  ``on_context_released``).
 
-``RendererEvents`` decodes those messages for the ``Client.on_process_message_received`` of the program::
+The values delivered with an event are copies (named tuples), not live renderer objects.
+
+Example::
 
     class MyClient(cefweaver.Client):
         def __init__(self):
@@ -24,8 +23,6 @@ is to tell the browser process what happens in the renderer and to let Python re
 
     app.enable_renderer_events()
     app.set_client(MyClient())
-
-The values that come with an event are copies (named tuples), not live objects of the renderer.
 """
 
 from typing import NamedTuple
@@ -34,7 +31,14 @@ MESSAGE = "cefweaver-renderer-event"          # the name of the process message 
 
 
 class StackFrame(NamedTuple):
-    """A frame of the stack of a JavaScript error."""
+    """A frame of the stack of a JavaScript error.
+
+    Attributes:
+        function_name (str): The function name.
+        script_name (str): The script name.
+        line (int): The line number.
+        column (int): The column number.
+    """
     function_name: str
     script_name: str
     line: int
@@ -42,8 +46,19 @@ class StackFrame(NamedTuple):
 
 
 class UncaughtException(NamedTuple):
-    """A JavaScript error that nothing caught. ``stack`` is empty unless
-    ``CefApp.settings.uncaught_exception_stack_size`` is above 0 (``enable_renderer_events()`` sets it)."""
+    """A JavaScript error that nothing caught.
+
+    Attributes:
+        message (str): The error message.
+        source_line (str): The source line of the error.
+        script_name (str): The script name.
+        line (int): The line number.
+        start_column (int): The start column of the error in the line.
+        end_column (int): The end column of the error in the line.
+        stack (tuple of StackFrame): The stack trace. Empty unless
+            ``CefApp.settings.uncaught_exception_stack_size`` is above 0, which
+            ``enable_renderer_events()`` sets.
+    """
     message: str
     source_line: str
     script_name: str
@@ -54,33 +69,83 @@ class UncaughtException(NamedTuple):
 
 
 class FocusedNode(NamedTuple):
-    """The node of the page that has the focus: ``bounds`` is ``(x, y, width, height)`` in the page."""
+    """The node of the page that has the focus.
+
+    Attributes:
+        editable (bool): Whether the node can be edited.
+        tag (str): The tag name.
+        bounds (tuple of int): ``(x, y, width, height)`` in the page.
+    """
     editable: bool
     tag: str
     bounds: tuple
 
 
 class RendererEventHandler:
-    """The events of the renderer: override what the program needs. ``browser`` is a ``Browser`` and ``frame`` the
-    ``Frame`` the event is about. Called on the thread that runs the message loop of the browser process."""
+    """Base class for the handlers of renderer events; override the methods needed.
+
+    In every method ``browser`` is the :class:`~cefweaver.Browser` and ``frame`` the
+    :class:`~cefweaver.Frame` that the event is about.
+
+    Note:
+        Called on the thread that runs the message loop of the browser process.
+    """
 
     def on_uncaught_exception(self, browser, frame, exception):
-        """A JavaScript error that nothing caught; ``exception`` is an ``UncaughtException``."""
+        """Handle a JavaScript error that nothing caught.
+
+        Args:
+            browser (Browser): The browser.
+            frame (Frame): The frame.
+            exception (UncaughtException): The error.
+        """
 
     def on_focused_node_changed(self, browser, frame, node):
-        """The focus is on ``node`` (a ``FocusedNode``) or on no node of the page (``None``)."""
+        """Handle a change of the focused node.
+
+        Args:
+            browser (Browser): The browser.
+            frame (Frame): The frame.
+            node (FocusedNode or None): The focused node, or ``None`` if no node of the page
+                has the focus.
+        """
 
     def on_context_created(self, browser, frame, is_main, url):
-        """A V8 context was made for ``frame`` (``is_main``: of the main frame; ``url`` of the frame then)."""
+        """Handle the creation of a V8 context.
+
+        Args:
+            browser (Browser): The browser.
+            frame (Frame): The frame the context was created for.
+            is_main (bool): Whether the frame is the main frame.
+            url (str): The URL of the frame.
+        """
 
     def on_context_released(self, browser, frame, is_main, url):
-        """The V8 context of a frame is gone (an iframe was removed). ``frame`` is the main frame of the browser
-        (the message goes through it: the frame itself is already replaced); ``is_main`` and ``url`` are those of
-        the frame whose context was released. Not sent when the main frame leaves its page."""
+        """Handle the release of a V8 context (e.g. a removed iframe).
+
+        Not sent when the main frame leaves its page.
+
+        Args:
+            browser (Browser): The browser.
+            frame (Frame): The main frame of the browser, not the frame whose context was
+                released.
+            is_main (bool): Whether the frame whose context was released is a main frame.
+            url (str): The URL of the frame whose context was released.
+        """
 
 
 class RendererEvents:
-    """Decodes the process messages of the renderer and calls a ``RendererEventHandler``."""
+    """Decode renderer process messages and call a :class:`RendererEventHandler`.
+
+    Args:
+        handler (RendererEventHandler): The handler to call.
+
+    Attributes:
+        handler (RendererEventHandler): The handler to call.
+
+    Raises:
+        TypeError: If ``handler`` is not a :class:`RendererEventHandler`.
+    """
 
     def __init__(self, handler):
         if not isinstance(handler, RendererEventHandler):
@@ -88,8 +153,18 @@ class RendererEvents:
         self.handler = handler
 
     def on_process_message_received(self, browser, frame, source_process, message):
-        """For ``Client.on_process_message_received``: True if the message was an event of the renderer (it is
-        then not for anyone else), False for any other message."""
+        """Decode a process message; call it from ``Client.on_process_message_received``.
+
+        Args:
+            browser (Browser): The browser.
+            frame (Frame): The frame.
+            source_process (ProcessId): The process that sent the message.
+            message (ProcessMessage): The message.
+
+        Returns:
+            bool: ``True`` if the message was a renderer event, which is then handled;
+            ``False`` for any other message.
+        """
         if message.get_name() != MESSAGE:
             return False
         args = message.get_argument_list()

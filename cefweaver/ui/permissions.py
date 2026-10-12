@@ -1,10 +1,9 @@
-"""The microphone and the camera of a page: the application decides.
+"""Microphone and camera permission requests of a page.
 
-``BrowserView(adapter, media_permissions=policy)``: when a page asks for the microphone or the camera
-(``getUserMedia``), CEF asks ``policy(request)``. The request has ``origin``, ``permissions``
-(``types.MediaAccessPermissionTypes``) and ``is_main_frame``, and the policy answers with ``request.allow()`` or
-``request.deny()``, at once or later (after it asked the user). Without a policy CEF keeps its own answer, which
-refuses. The sound then comes from the microphone of the system through Chromium itself.
+With ``BrowserView(adapter, media_permissions=policy)``, CEF calls ``policy(request)`` when a
+page asks for the microphone or the camera (``getUserMedia``). The policy receives a
+:class:`MediaRequest` and answers with ``request.allow()`` or ``request.deny()``, immediately
+or later. Without a policy CEF keeps its default answer, which refuses.
 """
 
 import sys
@@ -15,7 +14,21 @@ DEVICES = types.MediaAccessPermissionTypes.DEVICE_AUDIO_CAPTURE | types.MediaAcc
 
 
 class MediaRequest:
-    """One request of a page for the microphone or the camera. It is answered once; later answers are ignored."""
+    """A request of a page for the microphone or the camera.
+
+    It is answered once; later answers are ignored.
+
+    Args:
+        origin (str): The origin of the requesting page.
+        permissions (MediaAccessPermissionTypes): The requested permissions.
+        is_main_frame (bool): Whether the request comes from the main frame.
+        answer: The CEF callback that receives the answer.
+
+    Attributes:
+        origin (str): The origin of the requesting page.
+        permissions (~cefweaver.types.MediaAccessPermissionTypes): The requested permissions.
+        is_main_frame (bool): Whether the request comes from the main frame.
+    """
 
     def __init__(self, origin, permissions, is_main_frame, answer):
         self.origin = origin
@@ -24,7 +37,12 @@ class MediaRequest:
         self._answer = answer
 
     def allow(self, permissions=None):
-        """Give the page what it asked for, or ``permissions`` (never more than it asked for)."""
+        """Grant the request.
+
+        Args:
+            permissions (MediaAccessPermissionTypes, optional): The permissions to grant,
+                restricted to those requested. Defaults to everything requested.
+        """
         if self._answer is None:
             return
         given = self.permissions if permissions is None else self.permissions & types.MediaAccessPermissionTypes(int(permissions))
@@ -32,7 +50,7 @@ class MediaRequest:
         answer.continue_(given)
 
     def deny(self):
-        """Refuse the page."""
+        """Refuse the request."""
         if self._answer is None:
             return
         answer, self._answer = self._answer, None
@@ -40,9 +58,17 @@ class MediaRequest:
 
 
 def allow_origins(*origins):
-    """A policy that gives the microphone and the camera (not the screen) to pages of these origins only.
+    """Create a policy that grants the microphone and the camera to the given origins only.
 
-    An origin is ``scheme://host`` with the port if there is one, e.g. ``https://meet.example.org``.
+    Requests from other origins are denied, and permissions other than audio and video capture
+    (such as screen capture) are never granted.
+
+    Args:
+        *origins (str): Origins as ``scheme://host`` with the port if any, e.g.
+            ``https://meet.example.org``.
+
+    Returns:
+        callable: A policy for ``media_permissions``.
     """
     allowed = {origin.rstrip("/") for origin in origins}
 
@@ -57,7 +83,15 @@ def allow_origins(*origins):
 
 
 def ask(policy, request):
-    """Run the policy; an error in it denies the request and is reported like the error of any handler."""
+    """Run a policy for a request.
+
+    An exception raised by the policy denies the request and is reported through
+    ``sys.excepthook``.
+
+    Args:
+        policy (callable): The policy.
+        request (MediaRequest): The request.
+    """
     try:
         policy(request)
     except Exception:

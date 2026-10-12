@@ -1,10 +1,12 @@
-"""The context menu of a page (right click): CEF describes it, the toolkit shows it.
+"""The context menu of a page: CEF describes it, the toolkit shows it.
 
-CEF gives a menu model (the standard items such as Back, Copy and Select all, with their command ids). A toolkit
-adapter that has ``show_menu(items, x, y, done)`` shows it with the menu widget of the toolkit and calls
-``done(command_id)`` for the item that the user picked, or ``done(None)`` if the menu was left. CEF runs the standard
-commands itself. The application can change the menu: ``view.on_context_menu = hook``, where ``hook(info, items)``
-returns the list of items to show (add ``MenuItem("My item", action=function)``, take items out) or None for no menu.
+A toolkit adapter that has ``show_menu(items, x, y, done)`` shows the menu items with its menu
+widget and calls ``done(command_id)`` for the picked item, or ``done(None)`` if the menu was
+dismissed. CEF runs the standard commands itself.
+
+The application can change the menu with ``view.on_context_menu = hook``, where
+``hook(info, items)`` receives a :class:`ContextMenuInfo` and a list of :class:`MenuItem` and
+returns the list of items to show, or ``None`` for no menu.
 """
 
 import itertools
@@ -30,10 +32,30 @@ APP_FIRST = 1_000_000                       # command ids of the items of the ap
 
 
 class MenuItem:
-    """One item of a menu. ``kind``: ``"command"``, ``"check"``, ``"radio"``, ``"separator"`` or ``"submenu"``.
+    """One item of a context menu.
 
-    An item of the application has an ``action`` (called when it is picked, CEF is not told) and no ``command_id``;
-    the view gives it one when the menu is shown.
+    An item added by the application has an ``action`` and no ``command_id``; the view assigns
+    one when the menu is shown.
+
+    Args:
+        label (str, optional): The text of the item. Defaults to ``""``.
+        action (callable, optional): Called without arguments when the item is picked; CEF is
+            not told.
+        command_id (int, optional): The CEF command id.
+        kind (str, optional): ``"command"``, ``"check"``, ``"radio"``, ``"separator"`` or
+            ``"submenu"``. Defaults to ``"command"``.
+        enabled (bool, optional): Whether the item can be picked. Defaults to ``True``.
+        checked (bool, optional): Whether a check or radio item is checked. Defaults to ``False``.
+        children (list of MenuItem, optional): The items of a submenu.
+
+    Attributes:
+        label (str): The text of the item.
+        action (callable or None): Called when the item is picked.
+        command_id (int or None): The command id.
+        kind (str): The kind of the item.
+        enabled (bool): Whether the item can be picked.
+        checked (bool): Whether the item is checked.
+        children (list of MenuItem): The items of a submenu.
     """
 
     def __init__(self, label="", action=None, command_id=None, kind="command", enabled=True, checked=False, children=None):
@@ -45,7 +67,23 @@ class MenuItem:
 
 
 class ContextMenuInfo:
-    """Where the page was clicked and on what (``view.on_context_menu`` gets it)."""
+    """Where the page was clicked and on what; passed to ``view.on_context_menu``.
+
+    Args:
+        params (ContextMenuParams): The CEF context menu parameters.
+
+    Attributes:
+        params (ContextMenuParams): The CEF context menu parameters.
+        x (int): The x coordinate of the click.
+        y (int): The y coordinate of the click.
+        link_url (str): The URL of the link clicked, or ``""``.
+        source_url (str): The URL of the source (image, media) clicked, or ``""``.
+        page_url (str): The URL of the page.
+        selection_text (str): The selected text, or ``""``.
+        is_editable (bool): Whether the clicked node is editable.
+        misspelled_word (str): The misspelled word clicked, or ``""`` if spelled correctly.
+        dictionary_suggestions (list of str): The spelling suggestions for the word.
+    """
 
     def __init__(self, params):
         self.params = params
@@ -66,7 +104,14 @@ def _clean(label):
 
 
 def items_from_model(model):
-    """The visible items of a CEF ``MenuModel`` (separators tidied: none first, last or twice in a row)."""
+    """Convert a CEF menu model to menu items.
+
+    Args:
+        model (MenuModel): The CEF menu model.
+
+    Returns:
+        list of MenuItem: The visible items, tidied by :func:`tidy`.
+    """
     items = []
     for index in range(model.get_count()):
         if not model.is_visible_at(index):
@@ -86,7 +131,15 @@ def items_from_model(model):
 
 
 def tidy(items):
-    """Without a separator at the start or the end, or two in a row."""
+    """Remove superfluous separators.
+
+    Args:
+        items (list of MenuItem): The items.
+
+    Returns:
+        list of MenuItem: ``items`` without separators at the start or the end, and without
+        two in a row.
+    """
     result = []
     for item in items:
         if item.kind == "separator" and (not result or result[-1].kind == "separator"):
@@ -98,7 +151,18 @@ def tidy(items):
 
 
 def give_ids(items, numbers=None, actions=None):
-    """Give the items of the application a command id; returns ``{command_id: action}``."""
+    """Assign command ids to the application's items, including submenus.
+
+    Args:
+        items (list of MenuItem): The items; those with an ``action`` and no ``command_id``
+            get one.
+        numbers (iterator of int, optional): The source of ids. Defaults to a counter from
+            ``APP_FIRST``.
+        actions (dict, optional): The mapping to add to.
+
+    Returns:
+        dict: The mapping ``{command_id: action}``.
+    """
     numbers = itertools.count(APP_FIRST) if numbers is None else numbers
     actions = {} if actions is None else actions
     for item in items:
@@ -111,5 +175,5 @@ def give_ids(items, numbers=None, actions=None):
 
 
 def report():
-    """An error of the application or of the toolkit is reported like the error of any handler."""
+    """Report the exception being handled through ``sys.excepthook``."""
     sys.excepthook(*sys.exc_info())

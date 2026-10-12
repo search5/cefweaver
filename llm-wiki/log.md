@@ -745,3 +745,9 @@ Linux aarch64 러너에는 한국어 글꼴이 없어 한국어 조합 밑줄 �
 
 ## [2026-10-12] ingest | macOS x86_64 CI 실행
 `platform=macos-intel`(macos-15-intel)을 실행(38198907604): 빌드와 설치는 통과, 시험 1개(공유 텍스처 브라우저)가 GPU 초기화 실패 속에서 SIGTRAP으로 실패. `packaging.md`에 반영.
+
+## [2026-10-12] ingest | Sphinx용 영어 docstring 작업 시작
+Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점검 시험(`tests/test_docstrings.py`, 미작성 모듈은 PENDING), 진행 상황 페이지(`reference/docstring-coverage.md`)를 만들었다.
+
+## [2026-10-12] ingest | Sphinx용 영어 docstring 작성
+손으로 쓴 Python(`ui/`, 툴킷, `cast.py` 등), `_cefweaver.pyx`와 `handwritten.pyi`의 docstring을 Google 스타일 영어로 썼다(코드는 AST 비교로 그대로임을 확인). 생성기에 `tools/gen/docs.py`를 더해 헤더의 주석을 같은 스타일로 바꾸고 `Args:`/`Returns:`를 붙이게 했으며(`emit_pyi`, `emit_cython`, `emit_types`, `model`), 열거형 멤버와 값 타입 필드의 주석도 옮긴다. `tests/test_docstrings.py`가 누락을 막는다. 관련 페이지 갱신.

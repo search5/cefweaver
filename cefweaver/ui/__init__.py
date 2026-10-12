@@ -1,8 +1,8 @@
-"""Showing a cefweaver browser in a GUI toolkit (experimental: the interface may change).
+"""Show a cefweaver browser in a GUI toolkit (experimental; the interface may change).
 
-A toolkit implements ``ToolkitAdapter`` (what it can draw, where it is, how to run something in its loop)
-and calls the input methods of ``BrowserView`` from its events; ``Session`` runs CEF in the toolkit's loop.
-``cefweaver.ui.headless`` has an adapter without a toolkit.
+A toolkit implements :class:`ToolkitAdapter` and calls the input methods of
+:class:`BrowserView` from its events. :class:`Session` runs CEF in the toolkit's event loop.
+:mod:`cefweaver.ui.headless` provides an adapter that needs no toolkit.
 """
 
 from .adapter import DragPayload, Frame, ToolkitAdapter

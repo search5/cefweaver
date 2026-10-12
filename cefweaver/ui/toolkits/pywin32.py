@@ -1,21 +1,16 @@
-"""A Win32 window that shows a cefweaver offscreen browser (pywin32), built on ``cefweaver.ui``.
+"""A Win32 window that shows a cefweaver offscreen browser (pywin32).
 
-The Win32 API gives windows, messages and GDI but no widgets, so ``Win32Browser`` is the toolkit side as a whole, like
-``SdlBrowser``: the adapter (size, place, drawing the frames, cursor, clipboard, context menu, candidate window) and
-the message loop. ``step(timeout_ms)`` waits for a message, dispatches what there is, runs what ``post`` and
-``call_later`` were given and returns.
+The Win32 API gives windows, messages and GDI but no widgets, so :class:`Win32Browser` is the toolkit side as a
+whole, like :class:`~cefweaver.ui.toolkits.sdl2.SdlBrowser`: it is the :class:`~cefweaver.ui.ToolkitAdapter` of its
+own :class:`~cefweaver.ui.BrowserView` and runs the message loop (:meth:`Win32Browser.step`,
+:meth:`Win32Browser.run`).
 
-* The window procedure is a table of pywin32 (``WNDCLASS.lpfnWndProc`` as a dict); a message not in it goes to
-  ``DefWindowProc``.
-* CEF asks to run from any of its threads: ``post`` appends to a queue and sends ``WM_APP`` (``PostMessage`` is thread
-  safe). ``call_later`` is one ``SetTimer`` for the earliest deadline. Both are handled in the window procedure, so CEF
-  keeps running while Windows runs a loop of its own (dragging the window by its title bar, a popup menu).
-* The picture is drawn with GDI ``StretchDIBits`` (pywin32 has no call for it, so ``ctypes`` does that one) from a
-  buffer that keeps the last frame; the part of a frame that changed is copied into it.
-* The keys are the Windows key codes CEF wants, so a table is not needed. Typed characters arrive as ``WM_CHAR``; what an
-  input method composes arrives as ``WM_IME_COMPOSITION`` (the preedit is drawn by the page, the candidate window
-  by the IME). Files dropped from the Explorer arrive as ``WM_DROPFILES``; text cannot be dropped (that would need OLE).
-* The process is made per-monitor DPI aware before the window exists, and ``scale()`` is the DPI of the window / 96.
+Note:
+    Windows only; constructing :class:`Win32Browser` on another platform raises :exc:`RuntimeError`. The process is
+    made per-monitor DPI aware (v2) before the window is created, and ``scale()`` is the DPI of the window divided
+    by 96. The picture is drawn with GDI ``StretchDIBits``. Typed characters arrive as ``WM_CHAR``, input method
+    composition as ``WM_IME_COMPOSITION``, and files dropped from the Explorer as ``WM_DROPFILES``. Text cannot be
+    dropped.
 
 Checked: Windows 11 (100 % scale), CPython 3.13, pywin32 312: the 27 checks of examples/pywin32/smoke.py (real input from SendInput), also frozen
 with PyInstaller, cx_Freeze and py2exe.
@@ -141,7 +136,16 @@ def _signed(value):
 
 
 def modifier_flags(state=0):
-    """CEF event flags of the ``MK_*`` bits of a mouse message and of the keys that are down now."""
+    """Return the CEF event flags for a mouse message state and the keys that are down now.
+
+    Args:
+        state (int, optional): The ``MK_*`` bits of a mouse message (the ``wParam`` of one). Defaults to 0.
+
+    Returns:
+        int: The ``cefweaver.ui.keys`` modifier and mouse button flags. Shift, Control and the mouse buttons are set
+        if their bit is in ``state``; Shift, Control and Alt are also set if the key is down according to
+        ``GetKeyState``.
+    """
     flags = 0
     if state & MK_SHIFT or win32api.GetKeyState(win32con.VK_SHIFT) < 0:
         flags |= keys.SHIFT
@@ -177,7 +181,47 @@ class _Timer:
 
 
 class Win32Browser(ui.BrowserWidget):
-    """The window, the browser and the message loop. It is the ``ui.ToolkitAdapter`` of its own ``BrowserView``."""
+    """A Win32 window with a browser and the message loop that drives it.
+
+    The instance is the :class:`~cefweaver.ui.ToolkitAdapter` of its own :class:`~cefweaver.ui.BrowserView`.
+    A :class:`~cefweaver.ui.Session` is created in the constructor and the window is shown; call :meth:`start` to
+    open the browser.
+
+    Args:
+        switches (iterable, optional): Chromium command line switches as ``(name, value)`` pairs, passed to
+            :class:`~cefweaver.ui.Session`.
+        cache_path (str, optional): The CEF cache directory, passed to :class:`~cefweaver.ui.Session`.
+        width (int, optional): The initial client width in logical pixels. Defaults to 900.
+        height (int, optional): The initial client height in logical pixels. Defaults to 640.
+        title (str, optional): The initial window title. Defaults to ``"cefweaver pywin32"``.
+        audio (optional): The ``audio`` option of :class:`~cefweaver.ui.BrowserView`.
+
+    Attributes:
+        capabilities (frozenset): Empty; the view handles drags out and the clipboard itself.
+        view (cefweaver.ui.BrowserView): The browser view.
+        session (cefweaver.ui.Session): The CEF session.
+        app (cefweaver.CefApp): The application of the session.
+        bridge (cefweaver.JavascriptBridge): The JavaScript bridge of the session.
+        hwnd (int): The window handle.
+        width (int): The client width in logical pixels.
+        height (int): The client height in logical pixels.
+        client (tuple): ``(width, height)`` of the client area in device pixels.
+        scale_factor (float): The DPI of the window divided by 96.
+        screen (tuple): ``(width, height)`` of the primary screen in pixels.
+        picture (tuple): ``(width, height)`` of the last view frame in device pixels.
+        popup_size (tuple): ``(width, height)`` of the last popup frame.
+        title (str): The window title.
+        url (str): The current address of the page.
+        can_back (bool): Whether the browser can go back.
+        can_forward (bool): Whether the browser can go forward.
+        on_ready (callable): ``on_ready()``; called when the browser exists. Set by the application.
+        quit (bool): True once a ``WM_QUIT`` message was received.
+        last_menu_ids (dict): The menu item ids of the last :meth:`show_menu` call, mapped to command ids; set after
+            the first call.
+
+    Raises:
+        RuntimeError: If the platform is not Windows.
+    """
 
     capabilities = frozenset()      # no drag source and no clipboard CEF could use: the view does both
     _classes = itertools.count()
@@ -236,6 +280,7 @@ class Win32Browser(ui.BrowserWidget):
     # -- the toolkit side of ui.ToolkitAdapter ---------------------------------------------------------
 
     def post(self, function):                                   # any thread of CEF
+        """Queue ``function`` for the window procedure and wake it with ``WM_APP``; callable from any thread."""
         self._posted.append(function)
         try:
             win32gui.PostMessage(self.hwnd, win32con.WM_APP, 0, 0)
@@ -243,25 +288,31 @@ class Win32Browser(ui.BrowserWidget):
             pass
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the message loop after ``seconds``; return an object with ``cancel()``."""
         timer = _Timer(function)
         heapq.heappush(self._timers, (time.monotonic() + seconds, next(self._sequence), timer))
         self._arm_timer()
         return timer
 
     def view_size(self):
+        """Return the size of the client area in logical pixels."""
         return self.width, self.height
 
     def scale(self):
+        """Return the DPI of the window divided by 96."""
         return self.scale_factor
 
     def screen_origin(self):
+        """Return the position of the client area on the screen."""
         x, y = win32gui.ClientToScreen(self.hwnd, (0, 0))
         return x, y
 
     def screen_size(self):
+        """Return the size of the primary screen."""
         return self.screen
 
     def present(self, frame):
+        """Copy ``frame`` into the buffer of the view or the popup and invalidate the window."""
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self._popup_bits = None
             self._invalidate()
@@ -288,11 +339,13 @@ class Win32Browser(ui.BrowserWidget):
         self._invalidate()
 
     def set_cursor(self, cursor):
+        """Set the Win32 cursor that matches the CEF cursor type and apply it if the pointer is in the client area."""
         self._cursor = win32gui.LoadCursor(0, _CURSOR_SHAPES.get(cursor))
         if self._pointer_in_client():
             win32gui.SetCursor(self._cursor)
 
     def set_ime_rect(self, x, y, width, height):                # where the candidate window goes
+        """Move the composition and candidate windows of the input method to the bottom left of the rectangle."""
         context = _imm32.ImmGetContext(self.hwnd)
         if not context:
             return
@@ -307,6 +360,11 @@ class Win32Browser(ui.BrowserWidget):
             _imm32.ImmReleaseContext(self.hwnd, context)
 
     def clipboard_get(self):
+        """Return the Unicode text of the Windows clipboard.
+
+        Returns:
+            str: The text, or None if the clipboard has no text or stays held by another program.
+        """
         for _ in range(10):                                     # another program may hold the clipboard for a moment
             try:
                 win32clipboard.OpenClipboard(self.hwnd)
@@ -323,6 +381,14 @@ class Win32Browser(ui.BrowserWidget):
             win32clipboard.CloseClipboard()
 
     def clipboard_set(self, text):
+        """Replace the contents of the Windows clipboard with ``text``.
+
+        Args:
+            text (str): The text to store.
+
+        Raises:
+            OSError: If another program holds the clipboard.
+        """
         for _ in range(10):
             try:
                 win32clipboard.OpenClipboard(self.hwnd)
@@ -338,9 +404,21 @@ class Win32Browser(ui.BrowserWidget):
             win32clipboard.CloseClipboard()
 
     def show_menu(self, items, x, y, done):
-        """The context menu of the page as a popup menu at (x, y) of the view. ``done`` gets the command id of the
-        picked item, or None. ``TrackPopupMenu`` runs Windows' own loop until the menu is left; ``post`` and
-        ``call_later`` go on in it (the window procedure handles them)."""
+        """Show the context menu of the page as a Win32 popup menu.
+
+        Returns after the menu is closed.
+
+        Args:
+            items (list): The menu entries; each has ``kind``, ``label``, ``enabled``, ``checked``, ``command_id`` and
+                ``children``.
+            x (int): The x coordinate in the view, in logical pixels.
+            y (int): The y coordinate in the view, in logical pixels.
+            done (callable): Called once with the ``command_id`` of the picked item, or None if nothing was picked.
+
+        Note:
+            Runs ``TrackPopupMenu``, the loop of Windows, until the menu is closed; posted and delayed functions keep
+            running in it.
+        """
         ids = {}
 
         def fill(menu, entries):
@@ -375,26 +453,40 @@ class Win32Browser(ui.BrowserWidget):
 
     @property
     def started(self):
+        """bool: Whether the session has started and has not finished shutting down."""
         return self.session.started
 
     def browser_title(self, title):
+        """Set the window title to ``title``, or ``"cefweaver pywin32"`` if it is empty."""
         self.title = title or "cefweaver pywin32"
         win32gui.SetWindowText(self.hwnd, self.title)
 
     def browser_address(self, url):
+        """Store the address of the page in ``url``."""
         self.url = url
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Store ``can_back`` and ``can_forward``."""
         self.can_back, self.can_forward = can_back, can_forward
 
     def browser_ready(self):
+        """Call ``on_ready``."""
         self.on_ready()
 
     def start(self, url):
+        """Start the session and open the browser.
+
+        Args:
+            url (str): The address to load first.
+        """
         self.session.start(self.view, url)
 
     def close(self):
-        """Close the browser and shut CEF down; ``step()`` goes on until that is done."""
+        """Close the browser and shut CEF down.
+
+        Note:
+            Keep calling :meth:`step` until ``started`` is False.
+        """
         if not self._closing:
             self._closing = True
             self.session.shutdown()
@@ -402,8 +494,14 @@ class Win32Browser(ui.BrowserWidget):
     # -- the loop ------------------------------------------------------------------------------------
 
     def step(self, timeout_ms=None):
-        """One turn: wait for a message (at most ``timeout_ms``), dispatch all there are. What ``post`` and
-        ``call_later`` were given runs in the window procedure."""
+        """Run one turn of the message loop.
+
+        Waits for a message (unless posted functions are pending), dispatches all pending messages, then runs the
+        posted functions and the due timers. Sets ``quit`` if ``WM_QUIT`` is received.
+
+        Args:
+            timeout_ms (int, optional): The longest wait in milliseconds. Defaults to 50.
+        """
         wait = 50 if timeout_ms is None else max(0, int(timeout_ms))
         if not self._posted:
             win32event.MsgWaitForMultipleObjects([], False, wait, win32con.QS_ALLINPUT)
@@ -420,11 +518,13 @@ class Win32Browser(ui.BrowserWidget):
         self._run_timers()
 
     def run(self):
+        """Run :meth:`step` until ``quit`` is set or the browser has closed after :meth:`close`, then call :meth:`destroy`."""
         while not self.quit and not (self._closing and not self.started):
             self.step()
         self.destroy()
 
     def destroy(self):
+        """Destroy the window and unregister its window class; does nothing if already destroyed."""
         if self._destroyed:
             return
         self._destroyed = True
@@ -723,6 +823,11 @@ class Win32Browser(ui.BrowserWidget):
         return buffer.value[:size // 2]
 
     def handle_drop(self, text=None, files=None):
-        """A drop from another program at the pointer (``WM_DROPFILES`` brings files itself)."""
+        """Pass a drop from another program to the view at the pointer position.
+
+        Args:
+            text (str, optional): The dropped text.
+            files (list, optional): The dropped file paths.
+        """
         x, y = win32gui.ScreenToClient(self.hwnd, win32gui.GetCursorPos())
         self.view.drop(int(x / self.scale_factor), int(y / self.scale_factor), text=text, files=files)

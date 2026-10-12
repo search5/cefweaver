@@ -1,10 +1,7 @@
-"""Reading the pixels of a shared texture (``RenderHandler.on_accelerated_paint()``).
+"""Read the pixels of a shared texture from ``RenderHandler.on_accelerated_paint()``.
 
-On Linux a shared texture is made of dmabuf file descriptors that CEF owns: they are valid
-**only during the call**, and the texture is reused afterwards. ``read_plane()`` copies a plane
-to ``bytes`` inside the call. That works for a linear texture (``info.modifier == 0``); a
-texture in a driver's tiled layout is meant for the GPU (import it with
-``EGL_EXT_image_dma_buf_import`` on a duplicate of the descriptor, ``os.dup(plane.fd)``).
+On Linux a shared texture consists of dmabuf file descriptors owned by CEF. They are valid
+only during the ``on_accelerated_paint()`` call.
 """
 
 import errno
@@ -22,9 +19,28 @@ _SYNC_END_READ = 4 | 1
 
 
 def read_plane(plane, length=None):
-    """The bytes of a plane of a shared texture: ``length`` bytes (default ``plane.size``) from
-    ``plane.offset``, rows ``plane.stride`` bytes apart. Raises ``OSError`` if the descriptor
-    cannot be mapped (a tiled texture) or is not valid any more."""
+    """Copy a plane of a shared texture to ``bytes``.
+
+    Only a linear texture (``info.modifier == 0``) can be read this way. A tiled texture is
+    meant for the GPU; import it with ``EGL_EXT_image_dma_buf_import`` on a duplicate of the
+    descriptor (``os.dup(plane.fd)``).
+
+    Args:
+        plane: A plane of the shared texture, with ``fd``, ``offset``, ``stride`` and
+            ``size`` attributes.
+        length (int, optional): The number of bytes to read from ``plane.offset``. Defaults
+            to ``plane.size``.
+
+    Returns:
+        bytes: The ``length`` bytes of the plane, with rows ``plane.stride`` bytes apart.
+
+    Raises:
+        OSError: If the descriptor is invalid or cannot be mapped (a tiled texture).
+        NotImplementedError: On Windows, which provides no dmabuf descriptors.
+
+    Note:
+        Call inside ``on_accelerated_paint()``; the descriptor is invalid afterwards.
+    """
     if sys.platform == "win32":
         raise NotImplementedError("shared textures are dmabuf file descriptors; Windows gives none")
     length = plane.size if length is None else length

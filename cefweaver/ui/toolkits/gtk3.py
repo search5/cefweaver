@@ -1,16 +1,18 @@
-"""A GTK 3 widget that shows a cefweaver offscreen browser, built on ``cefweaver.ui``.
+"""A GTK 3 widget that shows a cefweaver offscreen browser, built on :mod:`cefweaver.ui`.
 
-``cefweaver.ui`` has the CEF side: ``BrowserView`` (handlers, event records, click counts, input method,
-drag and drop) and ``Session`` (CEF in the main loop). This file is what GTK adds, the adapter:
+:mod:`cefweaver.ui` has the CEF side (:class:`~cefweaver.ui.BrowserView`,
+:class:`~cefweaver.ui.Session`). This module adds the GTK side:
 
-* ``GlibLoop``: running something in the main loop (``post``) and later (``call_later``);
-* ``GtkAdapter``: size, scale and place of the widget, drawing the frames with cairo, the cursor, the place
-  of the candidate window, and the drag that GTK starts for the page;
-* ``CefWidget``: a ``Gtk.DrawingArea`` that passes the events of GTK (mouse, wheel, keys, the input method
-  ``Gtk.IMContext``, drag and drop) to the view.
+* :class:`GlibLoop`: runs functions in the GLib main loop, at once or later.
+* :class:`GtkAdapter`: the :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefWidget` (size,
+  scale and position, drawing frames with cairo, cursor, input method candidate window, context
+  menu, clipboard and drags started by the page).
+* :class:`CefWidget`: a ``Gtk.DrawingArea`` that passes mouse, wheel, key, input method and
+  drag-and-drop events to the view.
 
-The widget is for one browser (the one ``initialize()`` makes). More browsers would use
-``CefApp.create_browser()`` and one widget each.
+Note:
+    A widget shows one browser, the one made by ``initialize()``. Use ``CefApp.create_browser()``
+    and one widget each for more browsers.
 
 Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 39 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
@@ -58,7 +60,14 @@ _DRAG_TARGETS = [Gtk.TargetEntry.new("text/plain", 0, 0), Gtk.TargetEntry.new("t
 
 
 def gdk_actions(ops):
-    """The Gdk.DragAction of the drag operations CEF allows."""
+    """Convert CEF drag operations to GDK drag actions.
+
+    Args:
+        ops (types.DragOperationsMask): The operations CEF allows.
+
+    Returns:
+        Gdk.DragAction: The matching COPY, MOVE and LINK actions.
+    """
     actions = Gdk.DragAction(0)
     if ops & _COPY:
         actions |= Gdk.DragAction.COPY
@@ -70,7 +79,14 @@ def gdk_actions(ops):
 
 
 def cef_operations(actions):
-    """The drag operations of a Gdk.DragAction."""
+    """Convert GDK drag actions to CEF drag operations.
+
+    Args:
+        actions (Gdk.DragAction): The GDK actions.
+
+    Returns:
+        types.DragOperationsMask: The matching COPY, MOVE and LINK operations.
+    """
     ops = types.DragOperationsMask(0)
     if actions & Gdk.DragAction.COPY:
         ops |= _COPY
@@ -92,11 +108,29 @@ _CURSOR_NAMES = ui.CursorTable(_CURSORS, default=None)
 
 
 def windows_key_code(event):
-    """The virtual key code of a GTK key event (letters and digits are their ASCII capitals)."""
+    """Return the Windows virtual key code of a GTK key event.
+
+    Letters and digits map to their ASCII capitals; a character with no virtual key maps to its
+    code point; other keys map to 0.
+
+    Args:
+        event (Gdk.EventKey): The key event.
+
+    Returns:
+        int: The virtual key code CEF expects.
+    """
     return _KEYS.code(event.keyval)
 
 
 def key_modifiers(state):
+    """Convert a GDK modifier state to CEF event flags.
+
+    Args:
+        state (Gdk.ModifierType): The ``state`` of a GDK event.
+
+    Returns:
+        int: The CEF flags for Shift, Control, Alt and the mouse buttons that are down.
+    """
     return _MODIFIERS.flags(state)
 
 
@@ -119,18 +153,30 @@ class _Source:
 
 
 class GlibLoop:
-    """What ``ui.Session`` needs of a toolkit: the GLib main loop."""
+    """The loop object :class:`~cefweaver.ui.Session` needs, on the GLib main loop."""
 
     def post(self, function):                           # any thread
+        """Run ``function`` once in the GLib main loop; callable from any thread."""
         GLib.idle_add(lambda: (function(), False)[1])
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the main loop after ``seconds`` and return an object with ``cancel()``."""
         return _Source(seconds, function)
 
 
 class GtkAdapter(GlibLoop):
-    """``ui.ToolkitAdapter`` for a ``CefWidget``. The clipboard keys are the view's, with the clipboard of GTK (the
-    clipboard of CEF is the compositor's on Wayland, and the widget may be an X11 one)."""
+    """The :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefWidget`.
+
+    The view does the clipboard keys, using the GTK clipboard. Declares the ``"drag_out"``
+    capability.
+
+    Args:
+        widget (CefWidget): The widget this adapter serves.
+
+    Attributes:
+        capabilities (frozenset): ``{"drag_out"}``.
+        last_menu (Gtk.Menu): The last context menu shown by :meth:`show_menu` (set on first use).
+    """
 
     capabilities = frozenset({"drag_out"})
 
@@ -138,8 +184,19 @@ class GtkAdapter(GlibLoop):
         self.w = widget
 
     def show_menu(self, items, x, y, done):
-        """The context menu of the page as a ``Gtk.Menu`` at (x, y) of the widget. ``done`` gets the command id of the
-        picked item, or None when the menu is left (the last menu is ``last_menu``, for tests)."""
+        """Show the context menu of the page as a ``Gtk.Menu``.
+
+        The menu pops up for the last right button press of the widget, or at the given position
+        when there was none.
+
+        Args:
+            items (list): The menu entries, with ``kind``, ``label``, ``checked``, ``enabled``,
+                ``command_id`` and ``children`` attributes.
+            x (int): The x position in the widget, used when the widget has no recorded press.
+            y (int): The y position in the widget, used when the widget has no recorded press.
+            done (callable): Called once as ``done(command_id)`` with the command id of the
+                picked item, or None when the menu is left without a pick.
+        """
         picked = []
 
         def pick(command_id):
@@ -188,18 +245,23 @@ class GtkAdapter(GlibLoop):
                                Gdk.Gravity.NORTH_WEST, event)
 
     def clipboard_get(self):
+        """Return the text of the GTK clipboard, or None if it has none."""
         return Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).wait_for_text()
 
     def clipboard_set(self, text):
+        """Put ``text`` on the GTK clipboard."""
         Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text, -1)
 
     def view_size(self):
+        """Return the size of the widget as ``(width, height)`` in logical pixels."""
         return self.w.view_width, self.w.view_height
 
     def scale(self):
+        """Return the scale factor of the widget (device pixels per logical pixel)."""
         return float(self.w.get_scale_factor())
 
     def screen_origin(self):
+        """Return the screen position of the widget's top-left corner, or ``(0, 0)`` if it has no window."""
         window = self.w.get_window()
         if window is None:
             return 0, 0
@@ -207,26 +269,56 @@ class GtkAdapter(GlibLoop):
         return x, y
 
     def screen_size(self):
+        """Return the size of the widget's screen as ``(width, height)``."""
         screen = self.w.get_screen()
         return screen.get_width(), screen.get_height()
 
     def present(self, frame):
+        """Hand a painted frame to the widget, which draws it with cairo."""
         self.w.present_frame(frame)
 
     def set_cursor(self, cursor):
+        """Show the cursor CEF asks for (a ``types.CursorType``) on the widget's window."""
         self.w.set_cef_cursor(cursor)
 
     def set_ime_rect(self, x, y, width, height):         # where the candidate window goes
+        """Place the input method candidate window at the given rectangle of the widget."""
         self.w.im.set_cursor_location(Gdk.Rectangle(x, y, width, height))
 
     def start_drag_out(self, payload, allowed):
+        """Start a GTK drag of what the page drags; return True if it started."""
         return self.w.begin_drag(payload, allowed)
 
     def drag_operation_changed(self, operation):
+        """Tell the widget that CEF's answer to a drag over the view changed."""
         self.w.set_drag_operation(operation)
 
 
 class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
+    """A ``Gtk.DrawingArea`` that shows a browser.
+
+    Args:
+        runtime: The runtime (as returned by ``initialize()``) that makes the browser; stored as
+            :attr:`runtime`.
+        audio (optional): The audio handler options passed to the :class:`~cefweaver.ui.BrowserView`.
+            Default None.
+
+    Attributes:
+        runtime: The runtime given to the constructor.
+        im (Gtk.IMMulticontext): The input method context of the widget.
+        surface (cairo.ImageSurface | None): The surface of the current view frame.
+        popup_surface (cairo.ImageSurface | None): The surface of the current popup, if any.
+        view_width (int): The width of the widget in GTK pixels (800 until the first allocation).
+        view_height (int): The height of the widget in GTK pixels (600 until the first allocation).
+        last_press (Gdk.Event | None): A copy of the last right button press.
+
+    Signals:
+        title-changed (str): The page title changed.
+        address-changed (str): The page address changed.
+        loading-changed (bool, bool, bool): ``loading``, ``can_back``, ``can_forward``.
+        browser-ready: The browser was created.
+    """
+
     __gsignals__ = {
         "title-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
         "address-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
@@ -277,24 +369,30 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
 
     @property
     def drag_operation(self):
+        """types.DragOperationsMask: The operations CEF allows for the drag over the view."""
         return self.view.drag_operation
 
     def browser_title(self, title):
+        """Emit ``title-changed`` with the new page title."""
         self.emit("title-changed", title)
 
     def browser_address(self, url):
+        """Emit ``address-changed`` with the new page address."""
         self.emit("address-changed", url)
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Emit ``loading-changed`` with the loading state and the navigation flags."""
         self.emit("loading-changed", loading, can_back, can_forward)
 
     def browser_ready(self):
+        """Give the browser the widget's focus state and emit ``browser-ready``."""
         self.view.focus(self.has_focus())
         self.emit("browser-ready")
 
     # -- painting ------------------------------------------------------------------------------
 
     def present_frame(self, frame):
+        """Wrap or update the cairo surface for a painted frame and queue a redraw of what changed."""
         change, store = frame.change, self.view.store
         scale = self.get_scale_factor()
         if change.kind == ui.PictureStore.POPUP_HIDDEN:
@@ -315,6 +413,7 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         self.queue_draw()
 
     def do_draw(self, cr):
+        """Paint a white background, the view frame and the popup, if shown."""
         cr.set_source_rgb(1, 1, 1)
         cr.paint()
         if self.surface is not None:
@@ -326,6 +425,7 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         return False
 
     def set_cef_cursor(self, cursor):
+        """Set the cursor of the widget's window for a ``types.CursorType`` (the default cursor if unmapped)."""
         window = self.get_window()
         if window is not None:
             name = _CURSOR_NAMES.get(cursor)
@@ -339,6 +439,7 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     # -- the mouse -----------------------------------------------------------------------------
 
     def do_button_press_event(self, event):
+        """Focus the widget and pass a button press, with its click count, to the view."""
         self.grab_focus()
         if event.button == 3:
             self.last_press = event.copy()            # the event that the context menu is popped up for (CEF answers later)
@@ -353,19 +454,23 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         return True
 
     def do_button_release_event(self, event):
+        """Pass a button release to the view."""
         self.view.mouse_button(int(event.x), int(event.y), _BUTTON_NAMES.get(event.button), False,
                                key_modifiers(event.state), clicks=self._click_count)
         return True
 
     def do_motion_notify_event(self, event):
+        """Pass a pointer move to the view."""
         self.view.mouse_move(int(event.x), int(event.y), key_modifiers(event.state))
         return True
 
     def do_leave_notify_event(self, event):
+        """Tell the view that the pointer left the widget."""
         self.view.mouse_move(int(event.x), int(event.y), key_modifiers(event.state), leave=True)
         return False
 
     def do_scroll_event(self, event):
+        """Pass a scroll event to the view as a wheel delta (smooth deltas are scaled by 100)."""
         if event.direction == Gdk.ScrollDirection.SMOOTH:
             ok, dx, dy = event.get_scroll_deltas()
             dx, dy = int(-dx * 100), int(-dy * 100)
@@ -378,22 +483,26 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     # -- the keyboard and the input method -----------------------------------------------------
 
     def do_focus_in_event(self, event):
+        """Focus the input method and the view."""
         self.im.focus_in()
         self.view.focus(True)
         return False
 
     def do_focus_out_event(self, event):
+        """Unfocus the input method and the view."""
         self.im.focus_out()
         self.view.focus(False)
         return False
 
     def do_key_press_event(self, event):
+        """Pass a key press to the input method first, then to the view if it was not consumed."""
         if self.im.filter_keypress(event):              # composing (Hangul, dead keys): the text arrives as signals
             return True
         self._send_key(event, True)
         return True
 
     def do_key_release_event(self, event):
+        """Pass a key release to the input method first, then to the view if it was not consumed."""
         if self.im.filter_keypress(event):
             return True
         self._send_key(event, False)
@@ -425,9 +534,14 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
         return context.get_suggested_action() if self.drag_operation else Gdk.DragAction(0)
 
     def set_drag_operation(self, operation):
-        """CEF answers a drag over the view later, from the renderer: tell GTK again what the drop
-        would do, or the answer to the motion that came before it is the one GTK keeps (and a drag
-        over a drop zone is refused)."""
+        """Report the new drop action to GTK for the drag over the widget.
+
+        Called when CEF's answer to a drag over the view arrives; does nothing unless a drag has
+        entered the page.
+
+        Args:
+            operation (types.DragOperationsMask): The operations CEF allows for the drop.
+        """
         if self._drop_state == "entered" and self._drag_context is not None:
             Gdk.drag_status(self._drag_context, self._gdk_action(self._drag_context), self._drag_time)
 
@@ -501,7 +615,18 @@ class CefWidget(ui.BrowserWidget, Gtk.DrawingArea):
     # -- drag and drop: out of the page ------------------------------------------------------------
 
     def begin_drag(self, payload, allowed_ops):
-        """``GtkAdapter.start_drag_out``: a GTK drag of what the page drags (text, a link, files, HTML)."""
+        """Start a GTK drag of what the page drags (text, a link, files or HTML).
+
+        This is what :meth:`GtkAdapter.start_drag_out` calls.
+
+        Args:
+            payload (DragPayload): What the page drags and where in the view the drag started.
+            allowed_ops (types.DragOperationsMask): The operations the page allows.
+
+        Returns:
+            bool: True if the drag started; False if the payload had nothing to carry or GTK
+            refused.
+        """
         text = payload.text or payload.url
         uris = [GLib.filename_to_uri(path) for path in payload.files] or ([payload.url] if payload.url else [])
         entries = []

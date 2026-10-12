@@ -1,14 +1,14 @@
-"""A message pump for an application with an event loop of its own (a GUI toolkit).
+"""A message pump for applications with their own event loop, such as a GUI toolkit.
 
-With ``CefApp.settings.external_message_pump`` CEF tells the application through
-``AppHandler.on_schedule_message_pump_work()``, on any of its threads, when
-``CefApp.do_message_loop_work()`` should run. The protocol (as CEF's own cefclient does it):
+With ``CefApp.settings.external_message_pump`` set, CEF reports through
+``AppHandler.on_schedule_message_pump_work()``, on any thread, when
+``CefApp.do_message_loop_work()`` should run. :class:`MessagePump` implements the scheduling
+protocol, so that a toolkit only needs a timer:
 
-* a request replaces the pending one (``delay_ms <= 0``: now);
-* the application never waits longer than 1/30 s between two runs, because not every kind of
-  work is announced.
+* A request replaces the pending one (``delay_ms <= 0`` means now).
+* The interval between two runs never exceeds 1/30 s.
 
-``MessagePump`` keeps that protocol so that a toolkit only needs a timer::
+Example::
 
     pump = cefweaver.MessagePump(app, wake=lambda delay: toolkit_call_later(delay, tick))
     app.initialize(url)
@@ -23,13 +23,21 @@ import time
 from ._cefweaver import AppHandler
 
 # The longest wait between two runs, as cefclient's kMaxTimerDelay (30 fps).
+#: float: The longest wait between two message loop runs, in seconds (1/30).
 MAX_DELAY = 1.0 / 30.0
 
 
 class MessagePump(AppHandler):
-    """Gives CEF the message loop when it asks for it. It is the ``AppHandler`` of ``app``, which
-    must not be initialized yet; ``wake(delay)`` (optional) is called with the seconds until the
-    next run each time CEF asks, from any thread, so that a sleeping event loop can adjust."""
+    """An ``AppHandler`` that schedules ``do_message_loop_work()`` as CEF requests.
+
+    Construction sets ``app.settings.external_message_pump`` and installs the pump as the app
+    handler of ``app``.
+
+    Args:
+        app (CefApp): The application; it must not be initialized yet.
+        wake (callable, optional): Called as ``wake(delay)`` each time CEF requests work, with
+            the seconds until the next run. It may be called from any thread.
+    """
 
     def __init__(self, app, wake=None):
         super().__init__()
@@ -43,6 +51,11 @@ class MessagePump(AppHandler):
         app.set_app_handler(self)
 
     def on_schedule_message_pump_work(self, delay_ms):
+        """Record CEF's request for a message loop run.
+
+        Args:
+            delay_ms (int): Milliseconds until the run; zero or less means now.
+        """
         delay = min(max(delay_ms, 0) / 1000.0, MAX_DELAY)
         with self._lock:
             self._due = time.monotonic() + delay
@@ -51,13 +64,23 @@ class MessagePump(AppHandler):
             self._wake(delay)
 
     def timeout(self):
-        """Seconds until the next run is due (0.0: now). Never more than 1/30."""
+        """Return the seconds until the next run is due.
+
+        Returns:
+            float: The wait, from 0.0 (due now) to ``MAX_DELAY``.
+        """
         with self._lock:
             return max(0.0, self._due - time.monotonic())
 
     def run(self):
-        """Run ``do_message_loop_work()`` if it is due and return True; otherwise do nothing and
-        return False. Call it on the thread that called ``initialize()``."""
+        """Run ``do_message_loop_work()`` if it is due.
+
+        Returns:
+            bool: ``True`` if the message loop ran, ``False`` if nothing was due.
+
+        Note:
+            Call on the thread that called ``initialize()``.
+        """
         with self._lock:
             if self._running or self._due > time.monotonic():
                 return False

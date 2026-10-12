@@ -43,8 +43,14 @@ from .renderer_events import (FocusedNode, RendererEventHandler, RendererEvents,
 
 
 def get_version():
-    """The ``Version`` of cefweaver, CEF and Chromium (callable at any time, also before
-    ``initialize()``; java-cef's ``CefApp.getVersion()``)."""
+    """Return the versions of cefweaver, CEF and Chromium.
+
+    Returns:
+        Version: The version information.
+
+    Note:
+        May be called at any time, also before ``initialize()``.
+    """
     from . import version as _version
     entries = [_cefweaver._cef_version_info(i) for i in range(8)]
     return _version.Version(_version._package_version(), *entries)

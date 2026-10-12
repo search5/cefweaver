@@ -139,34 +139,63 @@ class _StaticResourceFactory(SchemeHandlerFactory):
 
 
 class QueryHandler:
-    """Answers the queries a page sends with ``window.cefQuery({request, persistent,
-    onSuccess, onFailure})`` (CEF's message router, as in java-cef).
+    """Base class for handlers of the queries a page sends with ``window.cefQuery``.
 
-    Subclass it and add an instance with ``CefApp.add_query_handler()`` before
-    ``initialize()``. The names of the two JavaScript functions can be changed with
-    ``CefApp.set_query_functions()``. All methods run on the thread that called
-    ``initialize()``, inside ``do_message_loop_work()``; exceptions go to ``sys.excepthook``
-    and count as "not handled".
+    A page sends a query with ``window.cefQuery({request, persistent, onSuccess,
+    onFailure})`` (CEF's message router, as in java-cef). Subclass this class and
+    register an instance with :meth:`~cefweaver.CefApp.add_query_handler`. The names of
+    the two JavaScript functions can be changed with
+    :meth:`~cefweaver.CefApp.set_query_functions`.
+
+    Note:
+        All methods run on the thread that called :meth:`~cefweaver.CefApp.initialize`,
+        inside :meth:`~cefweaver.CefApp.do_message_loop_work`. An exception goes to
+        ``sys.excepthook`` and counts as "not handled".
     """
 
     def on_query(self, browser, frame, query_id, request, persistent, callback):
-        """A page sent a query. ``request`` is a ``str``, or ``bytes`` if the page sent an
-        ``ArrayBuffer``. Return True to take the query and answer it with
-        ``callback.success()`` or ``callback.failure()``, now or later (from any thread);
-        return False to leave it to the next handler. If no handler takes it, the page's
-        ``onFailure`` gets the error code -1."""
+        """Handle a query sent by a page.
+
+        Args:
+            browser (~cefweaver.Browser): The browser that holds the page.
+            frame (~cefweaver.Frame): The frame that sent the query.
+            query_id (int): The identifier of the query.
+            request (str | bytes): The request; ``bytes`` if the page sent an ``ArrayBuffer``.
+            persistent (bool): Whether the query stays open for further answers.
+            callback (~cefweaver.QueryCallback): Answers the query.
+
+        Returns:
+            bool: ``True`` to take the query and answer it with ``callback``, now or later
+            (from any thread); ``False`` to leave it to the next handler. If no handler
+            takes it, the ``onFailure`` of the page gets the error code -1. The default
+            implementation returns ``False``.
+        """
         return False
 
     def on_query_canceled(self, browser, frame, query_id):
-        """The page canceled a query this handler took (``cefQueryCancel``), left the page,
-        or went away, or the handler was removed. ``callback`` answers nothing any more."""
+        """Handle the end of a query this handler took.
+
+        Called when the page canceled the query (``cefQueryCancel``), left the page or went
+        away, or when the handler was removed. The callback of the query answers nothing any
+        more.
+
+        Args:
+            browser (~cefweaver.Browser): The browser that held the page.
+            frame (~cefweaver.Frame): The frame that sent the query.
+            query_id (int): The identifier of the query.
+        """
 
 
 cdef class QueryCallback:
-    """The answer to one query, given to ``QueryHandler.on_query()``. It can be used from
-    any thread. A query is answered once (a persistent one many times, until it fails or
-    is canceled); the methods return whether the answer was sent. A callback that is
-    dropped without an answer fails the query (error code -1)."""
+    """The answer to one query, given to :meth:`QueryHandler.on_query`.
+
+    Instances are created by CEF; constructing one raises ``TypeError``. A query is
+    answered once (a persistent one many times, until it fails or is canceled). A
+    callback that is dropped without an answer fails the query with the error code -1.
+
+    Note:
+        It can be used from any thread.
+    """
 
     cdef CefRefPtr[QueryCallbackHolder] _holder
 
@@ -178,8 +207,18 @@ cdef class QueryCallback:
         raise TypeError("QueryCallback objects are created by CEF")
 
     def success(self, response):
-        """Answer the page's ``onSuccess`` with a ``str``, or with ``bytes`` (an
-        ``ArrayBuffer`` in the page)."""
+        """Answer the ``onSuccess`` of the page.
+
+        Args:
+            response (str | bytes | bytearray | memoryview): The response; the page gets a
+                string for ``str`` and an ``ArrayBuffer`` for the other types.
+
+        Returns:
+            bool: Whether the answer was sent.
+
+        Raises:
+            TypeError: If ``response`` is none of the accepted types.
+        """
         cdef string text
         cdef bytes data
         cdef const char* raw
@@ -200,7 +239,15 @@ cdef class QueryCallback:
         return done
 
     def failure(self, int error_code, message=""):
-        """Answer the page's ``onFailure`` with an error code and a message."""
+        """Answer the ``onFailure`` of the page.
+
+        Args:
+            error_code (int): The error code.
+            message (str, optional): The error message. Defaults to ``""``.
+
+        Returns:
+            bool: Whether the answer was sent.
+        """
         cdef string text = _utf8(message)
         cdef bint done
         with nogil:
@@ -256,51 +303,105 @@ cdef class _QueryBridge:
 
 
 class AppHandler:
-    """Hooks into the start of the application, as java-cef's ``CefAppHandler``.
+    """Base class for hooks into the start of the application.
 
-    Subclass it and give an instance to ``CefApp.set_app_handler()`` before ``initialize()``.
-    The methods run on the thread that called ``initialize()``.
+    Corresponds to java-cef's ``CefAppHandler``. Subclass it and give an instance to
+    :meth:`~cefweaver.CefApp.set_app_handler`. An exception raised by a method goes to
+    ``sys.excepthook``.
+
+    Note:
+        The methods run on the thread that called :meth:`~cefweaver.CefApp.initialize`,
+        except :meth:`on_schedule_message_pump_work`.
     """
 
     def on_before_command_line_processing(self, process_type, command_line):
-        """The command line of the browser process (``process_type`` is ``""``, as java-cef
-        calls it for the browser process only) can be changed here, before the switches of
-        ``CefApp.add_command_line_switch()`` are added. ``command_line`` is a ``CommandLine``."""
+        """Change the command line of the browser process.
+
+        Called before the switches of :meth:`~cefweaver.CefApp.add_command_line_switch` are
+        added.
+
+        Args:
+            process_type (str): Always ``""`` (the browser process).
+            command_line (~cefweaver.CommandLine): The command line, which may be changed.
+        """
 
     def on_register_custom_schemes(self, registrar):
-        """Register custom schemes with ``registrar.add_custom_scheme(name, options)``
-        (``types.SchemeOptions``). The renderer processes get the same schemes."""
+        """Register custom schemes.
+
+        The renderer processes get the same schemes.
+
+        Args:
+            registrar (~cefweaver.SchemeRegistrar): Registers a scheme with
+                ``add_custom_scheme(name, options)``, where ``options`` combines
+                :class:`~cefweaver.types.SchemeOptions` values. Valid during this call only.
+        """
 
     def on_before_child_process_launch(self, command_line):
-        """The command line of a child process (renderer, GPU, utility) before it starts: ``command_line`` is
-        a ``CommandLine`` (``get_switch_value("type")`` tells the kind of process) and can be changed. Called
-        after the switches of cefweaver itself (the custom schemes, the JavaScript bridge) were added."""
+        """Change the command line of a child process before it starts.
+
+        Called for the renderer, GPU and utility processes, after the switches of cefweaver
+        itself (the custom schemes, the JavaScript bridge) were added.
+
+        Args:
+            command_line (~cefweaver.CommandLine): The command line, which may be changed.
+                ``get_switch_value("type")`` gives the kind of process.
+        """
 
     def on_register_custom_preferences(self, type, registrar):
-        """Register preferences of the application with ``registrar.add_preference(name, default_value)``
-        (``default_value`` is a ``Value``). ``type`` is a ``types.PreferencesType``: ``GLOBAL`` (once, for the
-        global preferences) or ``REQUEST_CONTEXT`` (for each request context). Valid during that call only."""
+        """Register preferences of the application.
+
+        Args:
+            type (~cefweaver.types.PreferencesType): ``GLOBAL`` (called once, for the global
+                preferences) or ``REQUEST_CONTEXT`` (called for each request context).
+            registrar (~cefweaver.PreferenceRegistrar): Registers a preference with
+                ``add_preference(name, default_value)``. Valid during this call only.
+        """
 
     def on_context_initialized(self):
-        """CEF is ready for browsers (the first browser is created right after this)."""
+        """Handle the initialization of the CEF context.
+
+        The first browser is created right after this call.
+        """
 
     def on_schedule_message_pump_work(self, delay_ms):
-        """CEF wants ``do_message_loop_work()`` to run in ``delay_ms`` milliseconds (0: now); with
-        ``CefApp.settings.external_message_pump = True``. Unlike the other methods this one is
-        called on **any thread** of CEF, so it must only note the request and wake the event loop
-        of the application, which then calls ``do_message_loop_work()`` on the thread that called
-        ``initialize()``. Without the setting CEF does not ask and the application polls."""
+        """Handle CEF's request to run the message loop later.
+
+        Called only when ``Settings.external_message_pump`` is ``True``. An implementation
+        should note the request and wake the event loop of the application, which then calls
+        :meth:`~cefweaver.CefApp.do_message_loop_work`.
+
+        Args:
+            delay_ms (int): The delay in milliseconds; 0 means now.
+
+        Note:
+            Unlike the other methods, this one is called on any thread of CEF.
+        """
 
     def on_already_running_app_relaunch(self, command_line, current_directory):
-        """A second start of the application with the same user data (the same ``cache_path``)
-        reached this one; ``command_line`` is the second one's. Return True if it was handled
-        (False: CEF opens a new window)."""
+        """Handle a second start of the application with the same user data.
+
+        Called when a second process with the same ``cache_path`` reaches this one.
+
+        Args:
+            command_line (~cefweaver.CommandLine): The command line of the second start.
+            current_directory (str): The current directory of the second start.
+
+        Returns:
+            bool: ``True`` if the start was handled; ``False`` to let CEF open a new window.
+            The default implementation returns ``False``.
+        """
         return False
 
 
 cdef class SchemeRegistrar:
-    """Registers custom schemes; given to ``AppHandler.on_register_custom_schemes()`` and valid
-    only during that call."""
+    """Registers custom schemes.
+
+    Instances are created by CEF and given to
+    :meth:`AppHandler.on_register_custom_schemes`; constructing one raises ``TypeError``.
+
+    Note:
+        Valid during that call only.
+    """
 
     cdef SchemeRegistrarProxy* _proxy
 
@@ -308,15 +409,33 @@ cdef class SchemeRegistrar:
         raise TypeError("SchemeRegistrar objects are created by CEF")
 
     def add_custom_scheme(self, scheme_name, int options):
-        """Register a scheme. Returns False if CEF refuses it."""
+        """Register a custom scheme.
+
+        Args:
+            scheme_name (str): The name of the scheme.
+            options (int): A combination of :class:`~cefweaver.types.SchemeOptions` values.
+
+        Returns:
+            bool: ``False`` if CEF refuses the scheme.
+
+        Raises:
+            RuntimeError: If called outside :meth:`AppHandler.on_register_custom_schemes`.
+        """
         if self._proxy == NULL:
             raise RuntimeError("the registrar is valid only during on_register_custom_schemes()")
         return bool(self._proxy.Add(_utf8(scheme_name), options))
 
 
 cdef class PreferenceRegistrar:
-    """Registers preferences of the application; given to ``AppHandler.on_register_custom_preferences()`` and
-    valid only during that call."""
+    """Registers preferences of the application.
+
+    Instances are created by CEF and given to
+    :meth:`AppHandler.on_register_custom_preferences`; constructing one raises
+    ``TypeError``.
+
+    Note:
+        Valid during that call only.
+    """
 
     cdef PreferenceRegistrarProxy* _proxy
 
@@ -324,8 +443,19 @@ cdef class PreferenceRegistrar:
         raise TypeError("PreferenceRegistrar objects are created by CEF")
 
     def add_preference(self, name, Value default_value not None):
-        """Register a preference with its default value. Returns False if CEF refuses it (a name that is
-        taken, or a value of a type that a preference cannot have)."""
+        """Register a preference with its default value.
+
+        Args:
+            name (str): The name of the preference.
+            default_value (~cefweaver.Value): The default value; not ``None``.
+
+        Returns:
+            bool: ``False`` if CEF refuses the preference (the name is taken, or the value
+            has a type that a preference cannot have).
+
+        Raises:
+            RuntimeError: If called outside :meth:`AppHandler.on_register_custom_preferences`.
+        """
         if self._proxy == NULL:
             raise RuntimeError("the registrar is valid only during on_register_custom_preferences()")
         return bool(self._proxy.Add(_utf8(name), default_value._ref))
@@ -403,16 +533,23 @@ def _cef_version_info(int entry):
 cdef class CefApp:
     """An embedded Chromium (CEF) instance.
 
-    Usage::
+    The constructor takes no arguments. Configure the instance, call :meth:`initialize`,
+    and run :meth:`do_message_loop_work` regularly until :attr:`is_running` is false.
 
-        app = CefApp()
-        app.add_javascript_binding("hello", print)   # window.hello(...) in pages
-        app.initialize("https://example.com")
-        while app.is_running:
-            app.do_message_loop_work()
-        app.shutdown()
+    Example:
+        ::
 
-    CEF can be initialized only once per process, also after ``shutdown()``.
+            app = CefApp()
+            app.add_javascript_binding("hello", print)   # window.hello(...) in pages
+            app.initialize("https://example.com")
+            while app.is_running:
+                app.do_message_loop_work()
+            app.shutdown()
+
+    Note:
+        CEF can be initialized only once per process, also after :meth:`shutdown`. The
+        thread that calls :meth:`initialize` is the CEF UI thread, and every UI-thread
+        callback runs inside :meth:`do_message_loop_work`.
     """
 
     cdef CefWrapper* _wrapper
@@ -462,19 +599,43 @@ cdef class CefApp:
 
     def create_browser(self, url="about:blank", offscreen=None, transparent=None,
                        request_context=None, settings=None, shared_texture=None, parent_view=None):
-        """Create a further browser (java-cef's ``CefClient.createBrowser()``) and return it as a
-        ``Browser``. It uses the app's client, JavaScript bindings and message router.
+        """Create a further browser.
 
-        ``offscreen`` and ``transparent`` (``True`` or ``False``) decide for this browser; ``None``
-        takes ``CefApp.offscreen`` and ``CefApp.transparent``. ``request_context`` is a
-        ``RequestContext`` for it (``None``: the global one). ``shared_texture`` is ``CefApp.shared_texture`` for this browser. ``settings`` (a ``types.BrowserSettings``)
-        are the ones of this browser (``None``: ``CefApp.browser_settings``). Call it on the thread that called
-        ``initialize()``, after the first browser exists. A windowed browser gets a window of its
-        own. ``load_url()`` and ``execute_javascript()`` address the first browser only; use the
-        returned ``Browser``'s frames for the others. Closing the browsers ends ``is_running``.
+        The browser uses the client, JavaScript bindings and message router of the app
+        (java-cef's ``CefClient.createBrowser()``). A windowed browser gets a window of its
+        own. :meth:`load_url` and :meth:`execute_javascript` address the first browser only;
+        use the frames of the returned browser for the others. Closing the browsers ends
+        :attr:`is_running`.
 
-        ``parent_view`` (macOS): the ``NSView`` this windowed browser becomes a child of, as an
-        integer address (``None``: ``CefApp.parent_view``; ``0``: a window of its own)."""
+        Args:
+            url (str, optional): The URL to load. Defaults to ``"about:blank"``.
+            offscreen (bool, optional): Whether this browser is offscreen; ``None`` takes
+                :attr:`offscreen`.
+            transparent (bool, optional): Whether this browser is transparent; ``None`` takes
+                :attr:`transparent`.
+            request_context (~cefweaver.RequestContext, optional): The request context of
+                the browser; ``None`` means the global one.
+            settings (~cefweaver.types.BrowserSettings, optional): The settings of this
+                browser; ``None`` takes :attr:`browser_settings`.
+            shared_texture (bool, optional): Whether this browser gives shared textures;
+                ``None`` takes :attr:`shared_texture`.
+            parent_view (int, optional): macOS only. The address of the ``NSView`` that this
+                windowed browser becomes a child of; ``0`` means a window of its own;
+                ``None`` takes :attr:`parent_view`.
+
+        Returns:
+            ~cefweaver.Browser: The new browser.
+
+        Raises:
+            TypeError: If an argument has the wrong type.
+            NotImplementedError: If ``parent_view`` is given on a platform other than macOS.
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down, or if
+                the browser cannot be created.
+
+        Note:
+            Call it on the thread that called :meth:`initialize`, after the first browser
+            exists.
+        """
         cdef string value
         cdef int osr = -1
         cdef int clear = -1
@@ -519,16 +680,25 @@ cdef class CefApp:
 
     @staticmethod
     def get_version():
-        """The ``Version`` of cefweaver, CEF and Chromium; the same as ``cefweaver.get_version()``."""
+        """Return the versions of cefweaver, CEF and Chromium.
+
+        Returns:
+            ~cefweaver.Version: The same value as :func:`cefweaver.get_version`.
+        """
         import cefweaver
         return cefweaver.get_version()
 
     @property
     def browser_settings(self):
-        """The ``types.BrowserSettings`` (CEF's ``CefBrowserSettings``: fonts, encoding, JavaScript,
-        images, local storage, ...) of the first browser and of the ones ``create_browser()`` makes
-        without settings of their own. A field left at its default is CEF's choice. Before
-        ``initialize()`` only."""
+        """~cefweaver.types.BrowserSettings: The settings of the browsers.
+
+        They apply to the first browser and to the browsers that :meth:`create_browser` makes
+        without settings of their own. A field left at its default is CEF's choice.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``RuntimeError`` after it;
+            ``TypeError`` for another type).
+        """
         return self._browser_settings
 
     @browser_settings.setter
@@ -540,8 +710,14 @@ cdef class CefApp:
 
     @property
     def settings(self):
-        """The ``Settings`` of CEF (java-cef's ``CefSettings``); change its fields before
-        ``initialize()``, which reads them."""
+        """~cefweaver.Settings: The settings of CEF (java-cef's ``CefSettings``).
+
+        :meth:`initialize` reads them and freezes them.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``RuntimeError`` after it;
+            ``TypeError`` for another type).
+        """
         return self._settings
 
     @settings.setter
@@ -552,49 +728,95 @@ cdef class CefApp:
         self._settings = value
 
     def set_subprocess_path(self, path):
-        """Path of the cefsubprocess executable."""
+        """Set the path of the ``cefsubprocess`` executable.
+
+        Args:
+            path (str | bytes | os.PathLike): The path.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
         self._require_not_initialized()
         self._wrapper.SetCustomCefSubprocessPath(_utf8(path))
 
     def set_cache_path(self, path):
-        """Directory for the browser cache and profile data."""
+        """Set the directory for the browser cache and profile data.
+
+        Args:
+            path (str | bytes | os.PathLike): The directory.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
         self._require_not_initialized()
         self._wrapper.SetCustomCefCachePath(_utf8(path))
 
     def set_resources_path(self, path):
-        """Forward CefSettings.resources_dir_path (and locales/ below it).
+        """Set ``CefSettings.resources_dir_path`` (``locales/`` is looked up below it).
 
-        Optional. On Linux, CEF looks for icudtl.dat next to libcef.so regardless
-        of this setting, so deploy the runtime files together with libcef.so.
+        Optional.
+
+        Args:
+            path (str | bytes | os.PathLike): The directory.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            On Linux, CEF looks for ``icudtl.dat`` next to ``libcef.so`` regardless of this
+            setting, so the runtime files must be deployed together with ``libcef.so``.
         """
         self._require_not_initialized()
         self._wrapper.SetCustomCefResourcesPath(_utf8(path))
 
     def add_command_line_switch(self, name, value=""):
-        """Add a Chromium command line switch, e.g. ``"disable-gpu"`` or
-        ``("renderer-cmd-prefix", "gdb --args")``. Without a value it is a bare switch."""
+        """Add a Chromium command line switch.
+
+        Args:
+            name (str): The switch, for example ``"disable-gpu"``.
+            value (str, optional): The value of the switch. Defaults to ``""``, which adds a
+                bare switch.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
         self._require_not_initialized()
         self._switch_names.add(str(name).lstrip("-"))
         self._wrapper.AddCommandLineSwitch(_utf8(name), _utf8(value))
 
     def set_client(self, client):
-        """Receive the browser events in the handlers of ``client`` (a ``Client``).
+        """Set the client that receives the browser events.
 
         ``client.get_load_handler()``, ``get_life_span_handler()`` and
-        ``get_display_handler()`` are asked each time CEF needs the handler, and the
-        handlers they return get the events (``on_load_end``, ``on_title_change``,
-        ...), on the thread that called ``initialize()``, inside
-        ``do_message_loop_work()``. What the wrapper does for itself (the ready flag, the
-        error page, the JavaScript bindings) keeps working. ``None`` removes the client.
+        ``get_display_handler()`` are asked each time CEF needs the handler, and the handlers
+        they return get the events (``on_load_end``, ``on_title_change``, ...). What the
+        wrapper does for itself (the ready flag, the error page, the JavaScript bindings)
+        keeps working.
+
+        Args:
+            client (~cefweaver.Client | None): The client; ``None`` removes it.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            The events arrive on the thread that called :meth:`initialize`, inside
+            :meth:`do_message_loop_work`.
         """
         self._require_not_initialized()
         self._client = client
         self._wrapper.SetClient(_g_make_Client(client))
 
     def set_app_handler(self, handler):
-        """Hooks into the start of the application (an ``AppHandler``), as java-cef's
-        ``CefAppHandler``: the command line, custom schemes, the initialized context and a
-        second start of the application. Before ``initialize()`` only; ``None`` removes it."""
+        """Set the hooks into the start of the application.
+
+        Args:
+            handler (AppHandler | None): The handler; ``None`` removes it.
+
+        Raises:
+            TypeError: If ``handler`` is neither an :class:`AppHandler` nor ``None``.
+            RuntimeError: If called after :meth:`initialize`.
+        """
         self._require_not_initialized()
         if handler is not None and not isinstance(handler, AppHandler):
             raise TypeError("handler must be an AppHandler, not %s" % type(handler).__name__)
@@ -607,11 +829,21 @@ cdef class CefApp:
                                       _app_on_child_launch, _app_on_preferences)
 
     def enable_renderer_events(self, int stack_size=10):
-        """Make the renderer processes tell the browser process what happens in them: a JavaScript error that
-        nothing caught, the node that has the focus, the V8 contexts that are made and released. They arrive as
-        process messages that ``cefweaver.RendererEvents`` decodes (see ``cefweaver.renderer_events``). Before
-        ``initialize()`` only. ``stack_size`` is ``settings.uncaught_exception_stack_size`` (the frames of the
-        stack of an error; CEF sends no error with 0) unless the program gave that setting."""
+        """Make the renderer processes report what happens in them.
+
+        The browser process gets an uncaught JavaScript error, the node that has the focus,
+        and the V8 contexts that are created and released, as process messages that
+        :class:`cefweaver.RendererEvents` decodes.
+
+        Args:
+            stack_size (int, optional): The value for
+                ``Settings.uncaught_exception_stack_size`` (the frames of the stack of an
+                error; CEF sends no error with 0), unless the program set that setting.
+                Defaults to 10.
+
+        Raises:
+            RuntimeError: If called after :meth:`initialize`.
+        """
         self._require_not_initialized()
         if self._settings.uncaught_exception_stack_size is None:
             self._settings.uncaught_exception_stack_size = stack_size
@@ -619,11 +851,12 @@ cdef class CefApp:
 
     @property
     def devtools_menu(self):
-        """Whether the context menu has the items "Show DevTools", "Close DevTools" and
-        "Inspect Element" (off by default). It can be changed at any time and applies to
-        the menus that are built afterwards. Turning it on or off changes nothing else: the
-        handler of ``set_client()`` gets the same events and menu either way, and the
-        items only come after what it put in the menu."""
+        """bool: Whether the context menu has "Show DevTools", "Close DevTools" and "Inspect Element".
+
+        Off by default. It can be changed at any time and applies to the menus built
+        afterwards. The items come after what the handler of :meth:`set_client` put in the
+        menu; the handler gets the same events either way.
+        """
         return bool(self._wrapper.DevToolsMenuEnabled())
 
     @devtools_menu.setter
@@ -631,9 +864,21 @@ cdef class CefApp:
         self._wrapper.SetDevToolsMenuEnabled(bool(value))
 
     def set_query_functions(self, query="cefQuery", cancel="cefQueryCancel"):
-        """The names of the JavaScript functions of the message router: ``window.<query>(...)``
-        sends a query and ``window.<cancel>(id)`` cancels it. They are ``cefQuery`` and
-        ``cefQueryCancel`` unless changed here, before ``initialize()``."""
+        """Set the names of the JavaScript functions of the message router.
+
+        ``window.<query>(...)`` sends a query and ``window.<cancel>(id)`` cancels it.
+
+        Args:
+            query (str, optional): The name of the query function. Defaults to
+                ``"cefQuery"``.
+            cancel (str, optional): The name of the cancel function. Defaults to
+                ``"cefQueryCancel"``.
+
+        Raises:
+            TypeError: If a name is not a ``str``.
+            ValueError: If a name is not a valid JavaScript identifier.
+            RuntimeError: If called after :meth:`initialize`.
+        """
         for value in (query, cancel):
             if not isinstance(value, str):
                 raise TypeError("the names must be str, not %s" % type(value).__name__)
@@ -648,12 +893,21 @@ cdef class CefApp:
         self._wrapper.SetBridgeNames(_utf8(names))
 
     def add_query_handler(self, handler, first=False):
-        """Let a ``QueryHandler`` answer the queries of pages (``window.cefQuery``).
+        """Add a handler for the queries of pages.
 
-        The pages get ``window.cefQuery`` only if a handler was added before
-        ``initialize()``; after it, further handlers can be added. The handlers are asked
-        in the order they were added (``first=True`` puts this one in front) until one takes
-        the query."""
+        The handlers are asked in the order they were added until one takes the query.
+
+        Args:
+            handler (QueryHandler): The handler.
+            first (bool, optional): Whether to put the handler in front of the others.
+                Defaults to ``False``.
+
+        Raises:
+            TypeError: If ``handler`` is not a :class:`QueryHandler`.
+            ValueError: If ``handler`` was added already.
+            RuntimeError: If called after :meth:`initialize` without a handler added before
+                it (the pages then have no ``window.cefQuery``), or after CEF was shut down.
+        """
         if not isinstance(handler, QueryHandler):
             raise TypeError("handler must be a QueryHandler, not %s" % type(handler).__name__)
         if handler in self._query_bridges:
@@ -670,8 +924,17 @@ cdef class CefApp:
         self._query_bridges[handler] = bridge
 
     def remove_query_handler(self, handler):
-        """Remove a handler. The queries it took are canceled (``on_query_canceled()`` is
-        called and the page's ``onFailure`` gets -1). Returns False if it was not added."""
+        """Remove a query handler.
+
+        The queries it took are canceled: :meth:`QueryHandler.on_query_canceled` is called
+        and the ``onFailure`` of the page gets -1.
+
+        Args:
+            handler (QueryHandler): The handler.
+
+        Returns:
+            bool: ``False`` if the handler was not added.
+        """
         bridge = self._query_bridges.pop(handler, None)
         if bridge is None:
             return False
@@ -681,12 +944,18 @@ cdef class CefApp:
 
     @property
     def parent_view(self):
-        """macOS: the ``NSView`` the windowed browser is made a child of, as the integer address of
-        the object (``0``, the default: CEF makes a window of its own). It fills the view and
-        follows its size. The view is the content view of a window of Cocoa, of SwiftUI's
-        ``NSViewRepresentable`` or of a toolkit (Qt's ``winId()`` is one). Before ``initialize()``
-        only; the first browser is made inside it, so the view must exist, on the main thread.
-        Not used for an offscreen browser."""
+        """int: macOS only. The address of the ``NSView`` that the windowed browser becomes a child of.
+
+        ``0`` (the default) lets CEF make a window of its own. The browser fills the view and
+        follows its size. The view is the content view of a Cocoa window, of SwiftUI's
+        ``NSViewRepresentable`` or of a toolkit (Qt's ``winId()`` is one). It is not used for
+        an offscreen browser.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only, and the view must exist
+            then, on the main thread. It raises ``NotImplementedError`` off macOS and
+            ``TypeError`` for a value that is not a non-negative ``int``.
+        """
         return int(self._wrapper.ParentView())
 
     @parent_view.setter
@@ -696,10 +965,16 @@ cdef class CefApp:
 
     @property
     def offscreen(self):
-        """Whether the browser is rendered offscreen (off by default): it has no window, and CEF
-        draws into the buffer that ``RenderHandler.on_paint()`` of the client receives. The
-        client must have a render handler (``get_view_rect()`` gives the size). Popups are
-        blocked, as in java-cef. It can be changed before ``initialize()`` only."""
+        """bool: Whether the browser is rendered offscreen.
+
+        Off by default. An offscreen browser has no window; CEF draws into the buffer that
+        ``RenderHandler.on_paint()`` of the client receives, and the render handler of the
+        client must give the size with ``get_view_rect()``. Popups are blocked, as in
+        java-cef.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only.
+        """
         return bool(self._wrapper.Offscreen())
 
     @offscreen.setter
@@ -709,9 +984,14 @@ cdef class CefApp:
 
     @property
     def transparent(self):
-        """Whether an offscreen browser paints transparent pixels where the page draws nothing
-        (the default; java-cef's ``isTransparent``). ``False`` paints them in the opaque
-        ``settings.background_color``, white if there is none. Before ``initialize()`` only."""
+        """bool: Whether an offscreen browser paints transparent pixels where the page draws nothing.
+
+        On by default (java-cef's ``isTransparent``). ``False`` paints them in the opaque
+        ``Settings.background_color``, white if there is none.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only.
+        """
         return bool(self._wrapper.Transparent())
 
     @transparent.setter
@@ -721,9 +1001,16 @@ cdef class CefApp:
 
     @property
     def shared_texture(self):
-        """Whether an offscreen browser gives CEF's shared textures (GPU memory, on Linux dmabuf
-        file descriptors) to ``RenderHandler.on_accelerated_paint()`` instead of pixels to
-        ``on_paint()`` (off by default). Needs a GPU. Before ``initialize()`` only."""
+        """bool: Whether an offscreen browser gives shared textures instead of pixels.
+
+        If ``True``, CEF's shared textures (GPU memory; dmabuf file descriptors on Linux) go
+        to ``RenderHandler.on_accelerated_paint()`` instead of pixels to ``on_paint()``. Off
+        by default. Needs a GPU.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``TypeError`` for a value
+            that is not a ``bool``).
+        """
         return bool(self._wrapper.SharedTexture())
 
     @shared_texture.setter
@@ -735,8 +1022,14 @@ cdef class CefApp:
 
     @property
     def windowless_frame_rate(self):
-        """Frames per second of an offscreen browser (1 to 60, 30 by default); it is the
-        upper bound of the ``on_paint()`` calls. Before ``initialize()`` only."""
+        """int: The frames per second of an offscreen browser, from 1 to 60.
+
+        Defaults to 30. It is the upper bound of the ``on_paint()`` calls.
+
+        Note:
+            Assigning is possible before :meth:`initialize` only (``ValueError`` outside
+            1 to 60).
+        """
         return int(self._wrapper.WindowlessFrameRate())
 
     @windowless_frame_rate.setter
@@ -748,17 +1041,41 @@ cdef class CefApp:
         self._wrapper.SetWindowlessFrameRate(value)
 
     def set_request_context(self, RequestContext context):
-        """Use ``context`` (see ``RequestContext.create_context()``) for the first browser, so its
-        ``RequestContextHandler`` is asked about the requests of that browser. Call it from
-        ``AppHandler.on_context_initialized()``, before the browser exists. Returns None."""
+        """Set the request context of the first browser.
+
+        Its ``RequestContextHandler`` is asked about the requests of that browser.
+
+        Args:
+            context (~cefweaver.RequestContext | None): A context, for example from
+                ``RequestContext.create_context()``; ``None`` clears it.
+
+        Raises:
+            RuntimeError: If CEF was shut down.
+
+        Note:
+            Call it from :meth:`AppHandler.on_context_initialized`, before the browser exists.
+        """
         if self._shut_down:
             raise RuntimeError("CEF has been shut down")
         self._wrapper.SetRequestContext(context._ref if context is not None else CefRefPtr[CefRequestContext]())
 
     def cancel_pending_queries(self, Browser browser=None, handler=None):
-        """Cancel the pending queries of ``browser`` and/or of ``handler`` (both ``None``: all of
-        them). ``QueryHandler.on_query_canceled()`` is called and the page's ``onFailure`` gets
-        -1. Returns None. Call it on the thread that called ``initialize()``."""
+        """Cancel pending queries.
+
+        :meth:`QueryHandler.on_query_canceled` is called and the ``onFailure`` of the page
+        gets -1.
+
+        Args:
+            browser (~cefweaver.Browser, optional): Cancel the queries of this browser.
+            handler (QueryHandler, optional): Cancel the queries of this handler. With neither
+                argument all pending queries are canceled.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+
+        Note:
+            Call it on the thread that called :meth:`initialize`.
+        """
         self._require_running()
         cdef CefRefPtr[CefBrowser] ref
         cdef PythonQueryHandler* ptr = NULL
@@ -772,11 +1089,23 @@ cdef class CefApp:
         self._wrapper.CancelPendingQueries(ref, ptr)
 
     def add_javascript_binding(self, name, callback):
-        """Expose ``window.<name>(...)`` to pages; it calls ``callback(*args)``.
+        """Expose a Python callable to pages as ``window.<name>(...)``.
 
-        Arguments are converted to int, bool, float or str. The callback runs
-        inside ``do_message_loop_work()`` on the thread that called
-        ``initialize()``. Exceptions are reported through ``sys.excepthook``.
+        The arguments of the call are converted to ``int``, ``bool``, ``float`` or ``str``;
+        other JavaScript types arrive as ``None``. An exception raised by the callable goes
+        to ``sys.excepthook``.
+
+        Args:
+            name (str): The name of the JavaScript function.
+            callback (Callable[..., Any]): Called with the converted arguments.
+
+        Raises:
+            TypeError: If ``callback`` is not callable.
+            RuntimeError: If called after :meth:`initialize`.
+
+        Note:
+            The callable runs inside :meth:`do_message_loop_work` on the thread that called
+            :meth:`initialize`.
         """
         if not callable(callback):
             raise TypeError("callback must be callable")
@@ -787,17 +1116,26 @@ cdef class CefApp:
     # -- lifecycle -------------------------------------------------------------
 
     def initialize(self, start_url="about:blank"):
-        """Start CEF and create the browser window (once per process).
+        """Start CEF and create the first browser.
 
-        ``start_url=None`` starts CEF **without a first browser**: the application makes its own (a Views
-        ``BrowserView`` in a ``Window``, ``create_browser()``). ``is_running`` then stays true until
-        ``shutdown()``: the application ends its loop itself (for instance when its window is destroyed).
+        If ``start_url`` is ``None`` CEF starts without a first browser: the application makes
+        its own (a Views ``BrowserView`` in a ``Window``, :meth:`create_browser`), and
+        :attr:`is_running` stays true until :meth:`shutdown`. The first browser, if any, is
+        created inside this call and its handlers run before it returns.
 
-        On Linux the browser uses X11 (XWayland on a Wayland desktop) unless
-        ``ozone-platform`` (or ``ozone-platform-hint``) was given with
-        ``add_command_line_switch()``: an Alloy style browser ends the process inside CEF on
-        native Wayland, which Chromium would pick when ``WAYLAND_DISPLAY`` is set. Without an
-        X display (``DISPLAY``) the choice is left to Chromium.
+        On Linux with ``DISPLAY`` set, the browser uses X11 (XWayland on a Wayland desktop)
+        unless ``ozone-platform`` or ``ozone-platform-hint`` was given with
+        :meth:`add_command_line_switch`. If the request handler of the client overrides
+        ``get_auth_credentials``, the switch ``disable-chrome-login-prompt`` is added (unless
+        given) so that the handler is asked for credentials.
+
+        Args:
+            start_url (str | None, optional): The URL of the first browser. Defaults to
+                ``"about:blank"``.
+
+        Raises:
+            RuntimeError: If it was called already, if CEF was shut down earlier in this
+                process, or if ``CefInitialize()`` fails.
         """
         cdef string url = _utf8("about:blank" if start_url is None else start_url)
         cdef bint ok
@@ -841,12 +1179,16 @@ cdef class CefApp:
             raise RuntimeError("CefInitialize() failed")
 
     def do_message_loop_work(self):
-        """Run one iteration of the CEF message loop; call it regularly.
+        """Run one iteration of the CEF message loop.
 
-        On macOS, when the application polls (no ``settings.external_message_pump``), this also
-        handles the pending events of the application: the windows CEF made need them for their
-        input, title and closing. An application with an event loop of its own (Cocoa, a toolkit)
-        uses ``MessagePump`` and keeps its loop; nothing else is done then."""
+        Call it regularly. On macOS, when ``Settings.external_message_pump`` is not set, it
+        also handles the pending events of the application (the windows CEF made need them
+        for input, title and closing). An application with an event loop of its own uses
+        :class:`~cefweaver.MessagePump` and keeps its loop.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
         self._require_running()
         with nogil:
             self._wrapper.DoCefMessageLoopWork()
@@ -854,7 +1196,10 @@ cdef class CefApp:
             self._wrapper.PumpApplicationEvents()
 
     def shutdown(self):
-        """Shut CEF down. Does nothing if CEF is not running."""
+        """Shut CEF down.
+
+        Does nothing if CEF is not running.
+        """
         if not self._initialized or self._shut_down:
             return
         with nogil:
@@ -866,7 +1211,17 @@ cdef class CefApp:
     # -- browser ---------------------------------------------------------------
 
     def load_url(self, url):
-        """Navigate to ``url``. Returns False if the browser does not exist yet."""
+        """Navigate the first browser to a URL.
+
+        Args:
+            url (str): The URL.
+
+        Returns:
+            bool: ``False`` if the browser does not exist yet.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
         cdef string value = _utf8(url)
         cdef bint done
         self._require_running()
@@ -875,8 +1230,18 @@ cdef class CefApp:
         return done
 
     def execute_javascript(self, code):
-        """Run JavaScript in the main frame. Returns False if it was not run
-        because there is no browser yet or the page is still loading."""
+        """Run JavaScript in the main frame of the first browser.
+
+        Args:
+            code (str): The JavaScript.
+
+        Returns:
+            bool: ``False`` if the code was not run because there is no browser yet or the
+            page is still loading.
+
+        Raises:
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down.
+        """
         cdef string value = _utf8(code)
         cdef bint done
         self._require_running()
@@ -885,10 +1250,24 @@ cdef class CefApp:
         return done
 
     def add_resource(self, url, content, mime_type="text/html", headers=None, int status=200):
-        """Serve ``content`` for ``url`` (http or https) without a network access.
+        """Serve content for a URL without network access.
 
-        Call it after ``initialize()`` and before the page is loaded. The query
-        and fragment of a requested URL are ignored.
+        The query and fragment of a requested URL are ignored.
+
+        Args:
+            url (str): An absolute ``http`` or ``https`` URL.
+            content (str | bytes): The body; a ``str`` is encoded as UTF-8.
+            mime_type (str, optional): The MIME type. Defaults to ``"text/html"``.
+            headers (dict[str, str], optional): Further response headers.
+            status (int, optional): The HTTP status. Defaults to 200.
+
+        Raises:
+            ValueError: If ``url`` is not an absolute ``http`` or ``https`` URL.
+            RuntimeError: If :meth:`initialize` was not called or CEF was shut down, or if
+                CEF does not accept the scheme handler.
+
+        Note:
+            Call it after :meth:`initialize` and before the page is loaded.
         """
         self._require_running()
         parts = urlsplit(url)
@@ -910,10 +1289,16 @@ cdef class CefApp:
 
     @property
     def is_running(self):
+        """bool: Whether CEF is running.
+
+        ``True`` from :meth:`initialize` until all browsers are closed or :meth:`shutdown`
+        is called (a popup closing alone leaves it running).
+        """
         return self._initialized and not self._shut_down and self._wrapper.IsRunning()
 
     @property
     def is_ready_to_execute_javascript(self):
+        """bool: Whether the first browser has finished loading and can run JavaScript."""
         return (self._initialized and not self._shut_down
                 and self._wrapper.IsReadyToExecuteJavascript())
 

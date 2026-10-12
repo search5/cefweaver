@@ -1,4 +1,4 @@
-"""``PictureStore``: the pixels of the view and of the popup, kept between frames."""
+"""Storage of the view and popup pixels between frames."""
 
 import struct
 import zlib
@@ -9,8 +9,14 @@ from .adapter import Frame
 
 
 def write_png(path, width, height, bgra):
-    """Write BGRA pixels (``width * height * 4`` bytes, rows from the top) as an 8 bit RGBA PNG file. Needs no
-    imaging library."""
+    """Write BGRA pixels as an 8-bit RGBA PNG file.
+
+    Args:
+        path (str): The file to write.
+        width (int): The width in pixels.
+        height (int): The height in pixels.
+        bgra (bytes): ``width * height * 4`` bytes, rows from the top.
+    """
     rows = []
     for y in range(height):
         row = bytearray(bgra[y * width * 4:(y + 1) * width * 4])
@@ -27,21 +33,43 @@ def write_png(path, width, height, bgra):
 
 
 class PictureChange:
-    """What ``PictureStore.apply`` did: ``kind`` (``NEW``, ``DIRTY``, ``POPUP``, ``POPUP_HIDDEN``) and, for
-    ``DIRTY``, the rectangles that changed (device pixels, cut to the picture)."""
+    """The result of :meth:`PictureStore.apply`.
+
+    Args:
+        kind (str): The kind of change.
+        rects (iterable of Rect, optional): The changed rectangles.
+
+    Attributes:
+        kind (str): ``PictureStore.NEW``, ``DIRTY``, ``POPUP`` or ``POPUP_HIDDEN``.
+        rects (list of Rect): For ``DIRTY``, the changed rectangles in device pixels, clipped
+            to the picture; for ``NEW``, the whole picture; otherwise empty.
+    """
 
     def __init__(self, kind, rects=()):
         self.kind, self.rects = kind, list(rects)
 
 
 class PictureStore:
-    """For a toolkit that wraps the pixels without copying them (cairo, ``QImage``) and wants to know what changed.
+    """A copy of the painted pixels, updated in place frame by frame.
 
-    CEF's buffer is valid during ``present()`` only. The store keeps its own copy as ``pixels`` (BGRA,
-    ``width * height * 4`` bytes) and changes it in place for a frame of the same size, only in the dirty
-    rows, so that a surface made around ``pixels`` stays valid. A frame of another size makes new pixels:
-    ``NEW``, and the toolkit makes a new surface. The popup is kept the same way (``popup_pixels``,
-    ``popup_size``, ``popup_rect``), whole.
+    Meant for toolkits that wrap pixels without copying them (cairo, ``QImage``) and need to
+    know what changed. CEF's buffer is valid only during ``present()``. A frame of the same
+    size updates ``pixels`` in place, only in the dirty rows, so a surface wrapped around
+    ``pixels`` stays valid. A frame of another size allocates new pixels and yields ``NEW``;
+    the toolkit must then create a new surface.
+
+    Attributes:
+        pixels (bytearray or None): The view pixels in BGRA, ``width * height * 4`` bytes, or
+            ``None`` before the first frame.
+        size (tuple): ``(width, height)`` of ``pixels``.
+        popup_pixels (bytearray or None): The popup pixels in BGRA, or ``None`` if no popup is
+            shown.
+        popup_size (tuple): ``(width, height)`` of the popup.
+        popup_rect (Rect or None): The position of the popup in the view.
+        NEW (str): Kind of change: new pixels were allocated.
+        DIRTY (str): Kind of change: rectangles of ``pixels`` changed.
+        POPUP (str): Kind of change: the popup was replaced.
+        POPUP_HIDDEN (str): Kind of change: the popup was hidden.
     """
 
     NEW, DIRTY, POPUP, POPUP_HIDDEN = "new", "dirty", "popup", "popup-hidden"
@@ -54,13 +82,28 @@ class PictureStore:
         self.popup_rect = None
 
     def save_png(self, path):
-        """Save the picture as a PNG file; False if there is none yet."""
+        """Save the view picture as a PNG file.
+
+        Args:
+            path (str): The file to write.
+
+        Returns:
+            bool: ``True`` if written, ``False`` if there is no picture yet.
+        """
         if self.pixels is None:
             return False
         write_png(path, self.size[0], self.size[1], self.pixels)
         return True
 
     def apply(self, frame):
+        """Apply a painted frame to the stored pixels.
+
+        Args:
+            frame (Frame): The frame, from ``ToolkitAdapter.present()``.
+
+        Returns:
+            PictureChange: What changed.
+        """
         if frame.kind == Frame.POPUP_HIDDEN:
             self.popup_pixels = None
             return PictureChange(self.POPUP_HIDDEN)

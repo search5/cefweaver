@@ -1,12 +1,12 @@
-"""``BrowserView``: one offscreen browser and the rules of showing it in a toolkit.
+"""One offscreen browser and the rules of showing it in a toolkit.
 
-A toolkit widget owns a ``BrowserView(adapter)``, passes what the user does to the input methods
-(``mouse_move``, ``mouse_button``, ``key``, ``text`` and so on) and draws what the adapter's ``present()``
-gets. Everything CEF-specific that the toolkits of ``examples/`` had in common is here: the handlers, the
-event records, the click count, the composition of an input method, the clipboard keys and the drag and
-drop sequence. See ``adapter.py`` for what the toolkit supplies.
+A toolkit widget owns a :class:`BrowserView`, passes what the user does to its input methods
+(:meth:`~BrowserView.mouse_move`, :meth:`~BrowserView.mouse_button`, :meth:`~BrowserView.key`,
+:meth:`~BrowserView.text` and so on) and draws what ``present()`` of the adapter receives. The adapter
+interface is :class:`~cefweaver.ui.ToolkitAdapter`.
 
-All of it runs in the main thread of the toolkit (CEF is driven by ``Session`` from the toolkit's loop).
+Note:
+    Everything here runs in the main thread of the toolkit.
 """
 
 import os
@@ -34,9 +34,46 @@ _CLICK_TIME, _CLICK_DISTANCE = 0.4, 4
 class BrowserView:
     """The browser in a toolkit view.
 
-    Set the callables ``on_title(title)``, ``on_address(url)``, ``on_loading(loading, can_back, can_forward)``
-    and ``on_ready()`` (the browser exists: load a page) as needed. ``client`` is what ``Session.start`` gives
-    to CEF.
+    Set the callables ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` as needed. ``client`` is
+    what :meth:`Session.start <cefweaver.ui.Session.start>` gives to CEF.
+
+    Args:
+        adapter (ToolkitAdapter): The adapter of the toolkit.
+        audio (object, optional): ``None`` (CEF plays the sound, the default), a sink (an object with
+            ``start``, ``write`` and ``stop`` methods), or ``"auto"``: the sink of ``adapter.audio_sink()``,
+            else a pygame sink if pygame is installed, else ``None``.
+        pygame_sink (callable, optional): Returns the sink that ``"auto"`` falls back to. Defaults to the
+            pygame sink of :mod:`cefweaver.ui.audio`.
+        media_permissions (callable, optional): The policy for requests of the microphone and the camera
+            (see :mod:`cefweaver.ui.permissions`). Without one CEF refuses them. Set it before the session
+            starts.
+
+    Raises:
+        TypeError: If ``audio`` is neither ``None``, ``"auto"`` nor a sink.
+
+    Attributes:
+        adapter (ToolkitAdapter): The adapter of the toolkit.
+        client (cefweaver.Client): The client for CEF.
+        browser (cefweaver.Browser): The browser; ``None`` until it is created and after it closed.
+        media_permissions (callable): The policy for media requests, or ``None``.
+        on_context_menu (callable): ``hook(info, items)``, called before the context menu is shown; return
+            the items to show or ``None`` to show no menu (see :mod:`cefweaver.ui.menu`). ``None`` by default.
+            The menu is shown only if the adapter has ``show_menu``.
+        audio_sink (object): The sink in use, or ``None``. Set to ``None`` if the sink raised.
+        audio_muted (bool): If true, the sound is not passed to the sink.
+        on_audio_error (callable): Called with a message when the sink or the audio stream failed.
+        on_title (callable): ``on_title(title)``, called when the title changes.
+        on_address (callable): ``on_address(url)``, called when the address of the main frame changes.
+        on_loading (callable): ``on_loading(loading, can_back, can_forward)``, called when the loading state
+            changes.
+        on_ready (callable): ``on_ready()``, called when the browser exists.
+        picture_size (tuple): ``(width, height)`` in pixels of the last painted picture of the view.
+        store: The store of the pixels of the view and of the popup, which backs :meth:`snapshot`.
+        popup_visible (bool): Whether a popup is shown.
+        popup_rect: The rectangle of the popup in view coordinates, or ``None``.
+        selected_text (str): The text selected in the page.
+        drag_operation: The :class:`~cefweaver.types.DragOperationsMask` that CEF last answered to a drag
+            over the view; ``COPY`` otherwise.
     """
 
     def __init__(self, adapter, audio=None, pygame_sink=None, media_permissions=None):
@@ -143,6 +180,7 @@ class BrowserView:
 
     @property
     def capabilities(self):
+        """The ``capabilities`` of the adapter as a frozenset; empty if the adapter has none."""
         return frozenset(getattr(self.adapter, "capabilities", ()))
 
     # -- the sound of the page -------------------------------------------------------------------
@@ -180,53 +218,94 @@ class BrowserView:
     # -- the browser -----------------------------------------------------------------------------
 
     def host(self, function):
-        """Call ``function(browser host)`` if the browser exists."""
+        """Call a function with the browser host if the browser exists.
+
+        Args:
+            function (callable): Called with the :class:`~cefweaver.BrowserHost` of the browser.
+
+        Returns:
+            object: What ``function`` returns, or ``None`` if the browser does not exist.
+        """
         if self.browser is not None:
             return function(self.browser.get_host())
 
     def load_url(self, url):
+        """Load a URL in the main frame; do nothing if the browser does not exist.
+
+        Args:
+            url (str): The URL.
+        """
         if self.browser is not None:
             self.browser.get_main_frame().load_url(url)
 
     def go_back(self):
+        """Go back in the history; do nothing if the browser does not exist."""
         if self.browser is not None:
             self.browser.go_back()
 
     def go_forward(self):
+        """Go forward in the history; do nothing if the browser does not exist."""
         if self.browser is not None:
             self.browser.go_forward()
 
     def reload(self):
+        """Reload the page; do nothing if the browser does not exist."""
         if self.browser is not None:
             self.browser.reload()
 
     def close_browser(self):
+        """Close the browser, forcing the close; do nothing if it does not exist."""
         self.host(lambda h: h.close_browser(True))
 
     # -- state of the view -----------------------------------------------------------------------
 
     def snapshot(self, path):
-        """Save the last picture of the view as a PNG file; False if CEF has not painted yet."""
+        """Save the last picture of the view as a PNG file.
+
+        Args:
+            path (str): The file to write.
+
+        Returns:
+            bool: ``False`` if CEF has not painted yet.
+        """
         return self.store.save_png(path)
 
     def resized(self):
-        """The view has another size (the adapter's ``view_size()`` tells which)."""
+        """Tell CEF that the view has another size, which ``view_size()`` of the adapter returns."""
         self.host(lambda h: h.was_resized())
 
     def focus(self, focused):
+        """Give the page the focus or take it away.
+
+        Args:
+            focused (bool): Whether the view has the focus.
+        """
         self.host(lambda h: h.set_focus(bool(focused)))
 
     def shown(self, visible):
+        """Tell CEF whether the view is visible.
+
+        Args:
+            visible (bool): Whether the view is shown.
+        """
         self.host(lambda h: h.was_hidden(not visible))
 
     # -- the mouse -------------------------------------------------------------------------------
 
     @property
     def dragging_out(self):
-        """True while a drag that the page started goes on (CEF has been told, ``drag_out_finished`` is due)."""
+        """Whether a drag that the page started is going on, so that :meth:`drag_out_finished` is due."""
         return self._outgoing is not None
 
     def mouse_move(self, x, y, mods, leave=False):
+        """Pass a movement of the pointer.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            mods (int): The modifier and mouse button flags of :mod:`cefweaver.ui.keys`.
+            leave (bool, optional): Whether the pointer left the view.
+        """
         self._position = (x, y)
         if self._pending is not None and mods & keys.LEFT_BUTTON:
             payload, allowed = self._pending
@@ -241,8 +320,19 @@ class BrowserView:
         self.host(lambda h: h.send_mouse_move_event(mouse, bool(leave)))
 
     def mouse_button(self, x, y, button, pressed, mods, clicks=None):
-        """``button``: ``"left"``, ``"middle"`` or ``"right"`` (others are ignored). ``clicks``: the toolkit's
-        own count of clicks in a row; without it the view counts (within 0.4 s and 4 pixels, up to 3)."""
+        """Pass a press or a release of a mouse button.
+
+        A press gives the page the focus.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            button (str): ``"left"``, ``"middle"`` or ``"right"``. Others are ignored.
+            pressed (bool): True for a press, False for a release.
+            mods (int): The modifier and mouse button flags of :mod:`cefweaver.ui.keys`.
+            clicks (int, optional): The count of clicks in a row that the toolkit gives. Without it the view
+                counts clicks within 0.4 s and 4 pixels of each other, up to 3.
+        """
         kind = _BUTTONS.get(button)
         if kind is None:
             return
@@ -272,15 +362,34 @@ class BrowserView:
         self._clicks = (now, x, y, clicks)
 
     def wheel(self, x, y, dx, dy, mods):
-        """``dx`` and ``dy`` as CEF has them, 120 for a notch: a positive ``dy`` shows what is above the page."""
+        """Pass a scroll of the wheel.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            dx (int): Horizontal delta as CEF takes it, 120 for a notch.
+            dy (int): Vertical delta as CEF takes it, 120 for a notch. A positive ``dy`` shows what is above.
+            mods (int): The modifier flags of :mod:`cefweaver.ui.keys`.
+        """
         mouse = types.MouseEvent(x, y, mods)
         self.host(lambda h: h.send_mouse_wheel_event(mouse, dx, dy))
 
     # -- the keyboard ------------------------------------------------------------------------------
 
     def key(self, down, windows_key_code, native_code, mods, char=None):
-        """A key went down or up. ``char``: the character it types, if the toolkit tells it with the key.
-        Returns True if the view used the key itself (the clipboard keys) and the toolkit should not go on."""
+        """Pass a key press or release.
+
+        Args:
+            down (bool): True for a press, False for a release.
+            windows_key_code (int): The Windows virtual-key code (see :mod:`cefweaver.ui.keys`).
+            native_code (int): The native key code of the platform.
+            mods (int): The modifier flags of :mod:`cefweaver.ui.keys`.
+            char (str, optional): The character the key types, if the toolkit gives it with the key.
+
+        Returns:
+            bool: True if the view used the key itself (a clipboard key, or Select All, Undo and Redo on
+            macOS), in which case the toolkit should not handle it further.
+        """
         if self._clipboard_key(down, windows_key_code, mods):
             return True
         base = dict(modifiers=mods, windows_key_code=windows_key_code, native_key_code=native_code)
@@ -310,8 +419,13 @@ class BrowserView:
             types.KeyEventType.CHAR, character=character, unmodified_character=character, **base)))
 
     def text(self, text):
-        """Text the toolkit commits (typed letters of a toolkit that gives them apart from the keys, or what
-        an input method composed)."""
+        """Pass text that the toolkit commits, apart from key events.
+
+        A single ASCII character is sent as a typed character, anything else as committed text.
+
+        Args:
+            text (str): The text, such as typed letters or the result of an input method.
+        """
         if not text:
             return
         if len(text) == 1 and ord(text) < 0x80:
@@ -321,13 +435,24 @@ class BrowserView:
             self.commit_text(text)
 
     def commit_text(self, text):
-        """Text an input method committed, always as such (``text()`` makes a key of a single ASCII letter).
-        For a toolkit whose input method also handles the plain keys, like GTK."""
+        """Pass text that an input method committed, always as committed text.
+
+        Unlike :meth:`text`, a single ASCII character is not sent as a typed character. Use this for a toolkit
+        whose input method also handles the plain keys.
+
+        Args:
+            text (str): The committed text. An empty string is ignored.
+        """
         if text:
             self.host(lambda h: h.ime_commit_text(text, cefweaver.Range(*_NOTHING), 0))
 
     def preedit(self, text, cursor):
-        """The text an input method is composing; an empty one ends the composition."""
+        """Set the text an input method is composing.
+
+        Args:
+            text (str): The composition text. An empty string cancels the composition.
+            cursor (int): The cursor position in ``text``.
+        """
         if not text:
             self.host(lambda h: h.ime_cancel_composition())
             return
@@ -408,10 +533,21 @@ class BrowserView:
         return data
 
     def drag_enter(self, x, y, operations, text=None, html=None, url=None, files=None):
-        """A drag from the toolkit entered the view, step by step (``drag_over``, ``drag_leave`` or
-        ``drag_drop`` follow). Without data it is the drag of the page itself, over its own view; a toolkit
-        that has the data only at the drop (wx) calls the steps without it and the view ignores them for a drag
-        of another program, until ``drag_drop`` brings the data."""
+        """Report that a drag from the toolkit entered the view.
+
+        :meth:`drag_over`, :meth:`drag_leave` or :meth:`drag_drop` follow. Without data it is taken as the
+        drag of the page itself over its own view, if one is going on; otherwise the call is ignored, as are
+        the following steps, until :meth:`drag_drop` brings the data.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            operations: The allowed :class:`~cefweaver.types.DragOperationsMask`.
+            text (str, optional): Dragged text.
+            html (str, optional): Dragged HTML fragment.
+            url (str, optional): Dragged link URL.
+            files (list, optional): Paths of dragged files.
+        """
         if self._outgoing is not None:
             data = self._outgoing
         elif text or html or url or files:
@@ -425,14 +561,24 @@ class BrowserView:
         self.host(lambda h: h.drag_target_drag_enter(data, mouse, operations))
 
     def drag_over(self, x, y, operations):
+        """Report that a drag moved over the view; ignored unless :meth:`drag_enter` started one.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            operations: The allowed :class:`~cefweaver.types.DragOperationsMask`.
+        """
         if not self._entered:
             return
         mouse = types.MouseEvent(x, y, 0)
         self.host(lambda h: h.drag_target_drag_over(mouse, operations))
 
     def drag_leave(self):
-        """The drag left. Toolkits (GTK) say so just before a drop, so CEF is told after the next turn of the
-        loop, if no ``drag_drop`` came."""
+        """Report that the drag left the view.
+
+        CEF is told after the next turn of the toolkit loop, and not at all if :meth:`drag_drop` came in
+        between. Ignored unless :meth:`drag_enter` started a drag.
+        """
         if not self._entered:
             return
         self._leaving = True
@@ -445,8 +591,20 @@ class BrowserView:
         self._leaving = False
 
     def drag_drop(self, x, y, operations, text=None, html=None, url=None, files=None):
-        """The drop. If the drag was entered with its data, this ends it. Otherwise (data only now) it is a
-        ``drop()`` with the data given here."""
+        """Report the drop of a drag.
+
+        If :meth:`drag_enter` started the drag, this ends it. Otherwise, if data is given, it acts as
+        :meth:`drop`; without data it is ignored.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            operations: The allowed :class:`~cefweaver.types.DragOperationsMask`.
+            text (str, optional): Dropped text.
+            html (str, optional): Dropped HTML fragment.
+            url (str, optional): Dropped link URL.
+            files (list, optional): Paths of dropped files.
+        """
         self._leaving = False
         if self._entered:
             self._entered = False
@@ -456,9 +614,19 @@ class BrowserView:
             self.drop(x, y, text=text, html=html, url=url, files=files)
 
     def drop(self, x, y, text=None, html=None, url=None, files=None):
-        """A drop of a toolkit that tells only the drop itself, with its data: the view makes the whole drag
-        of it. The drop waits for CEF's answer to the dragover, or the page would see a ``dragleave`` instead
-        (observed with wx)."""
+        """Drop data into the view as a whole drag: enter, over and drop.
+
+        For a toolkit that reports only the drop, with its data. The drop is sent when CEF has answered the
+        drag over, or after 0.5 s.
+
+        Args:
+            x (int): X coordinate in the view.
+            y (int): Y coordinate in the view.
+            text (str, optional): Dropped text.
+            html (str, optional): Dropped HTML fragment.
+            url (str, optional): Dropped link URL.
+            files (list, optional): Paths of dropped files.
+        """
         data = self._drag_data(text, html, url, files)
         operations = types.DragOperationsMask.COPY
         mouse = types.MouseEvent(x, y, 0)
@@ -475,7 +643,20 @@ class BrowserView:
     # -- drag and drop: out of the view ----------------------------------------------------------------
 
     def begin_drag(self, data, allowed, x=0, y=0):
-        """CEF's ``start_dragging``: True if a drag is going on. ``x``, ``y``: where the page started it."""
+        """Start a drag that the page began; called for ``start_dragging`` of CEF.
+
+        Without the capability ``"drag_out"`` the view carries the drag itself, inside the page. With it, the
+        adapter's ``start_drag_out`` starts the drag, at the time given by the adapter's ``drag_start``.
+
+        Args:
+            data (cefweaver.DragData): The dragged data.
+            allowed: The allowed :class:`~cefweaver.types.DragOperationsMask`.
+            x (int, optional): X coordinate in the view where the page started the drag.
+            y (int, optional): Y coordinate in the view where the page started the drag.
+
+        Returns:
+            bool: Whether a drag is going on.
+        """
         if "drag_out" not in self.capabilities:
             self._emulated, self._emulated_ops = data, allowed
             x, y = self._position
@@ -506,7 +687,14 @@ class BrowserView:
             self.drag_out_finished(*self._position, types.DragOperationsMask.NONE)
 
     def drag_out_finished(self, x, y, operation):
-        """The drag the toolkit started (``start_drag_out``) is over, where and with what result."""
+        """Report that the drag started by ``start_drag_out`` of the adapter is over.
+
+        Args:
+            x (int): X coordinate in the view where the drag ended.
+            y (int): Y coordinate in the view where the drag ended.
+            operation: The resulting :class:`~cefweaver.types.DragOperationsMask`; ``NONE`` if the drag was
+                cancelled.
+        """
         self._outgoing = None
         self._pending = None
         self.drag_operation = types.DragOperationsMask.COPY

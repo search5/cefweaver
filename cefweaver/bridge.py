@@ -1,15 +1,13 @@
-"""JSON calls between JavaScript and Python, over the message router (cefpython's
-``JavascriptBindings``).
+"""JSON calls between JavaScript and Python over the message router.
 
-``JavascriptBridge`` exposes Python functions to pages: ``window.<name>(...)`` returns a
-``Promise``; its arguments and the result are JSON values (``None``, ``bool``, numbers, ``str``,
-lists and dicts). A function of the page given as an argument arrives as a ``JsCallback``. The
-other way, ``execute_function()`` calls a function of the page and ``evaluate()`` runs an
-expression and gives its value (a ``Promise`` is awaited) to a callback.
+:class:`JavascriptBridge` exposes Python functions to pages as ``window.<name>(...)``, which
+return a ``Promise``. Arguments and results are JSON values (``None``, ``bool``, numbers,
+``str``, lists and dicts). A page function passed as an argument arrives as a
+:class:`JsCallback`. In the other direction, :meth:`JavascriptBridge.execute_function` calls a
+page function and :meth:`JavascriptBridge.evaluate` evaluates an expression.
 
-Nothing runs in the renderer process but a fixed piece of JavaScript that defines the
-functions; the calls are queries of the message router (``window.cefQuery``), answered on the
-thread that called ``CefApp.initialize()`` in ``do_message_loop_work()``.
+Calls are answered on the thread that called ``CefApp.initialize()``, from
+``do_message_loop_work()``.
 """
 
 import json
@@ -25,9 +23,10 @@ public""".split())
 
 
 class JsCallback:
-    """A function of the page that was given to Python as an argument. ``call(*args)`` runs it in
-    the frame it came from with JSON arguments; ``release()`` lets the page forget it. A call after
-    the frame is gone or the function released does nothing."""
+    """A JavaScript function that a page passed to Python as an argument.
+
+    Calling it after its frame is gone or after :meth:`release` does nothing.
+    """
 
     __slots__ = ("_frame", "_id")
 
@@ -36,6 +35,16 @@ class JsCallback:
         self._id = callback_id
 
     def call(self, *args):
+        """Call the page function in the frame it came from.
+
+        Args:
+            *args: The arguments; JSON-serializable values (``NaN`` and infinities are
+                rejected).
+
+        Raises:
+            ValueError: If an argument is not JSON-serializable as strict JSON.
+            TypeError: If an argument is not JSON-serializable.
+        """
         if self._frame is None or not self._frame.is_valid():
             return
         self._frame.execute_java_script(
@@ -43,6 +52,7 @@ class JsCallback:
             % (json.dumps(self._id), json.dumps(list(args), allow_nan=False)), "", 0)
 
     def release(self):
+        """Let the page forget the function. Later calls do nothing."""
         if self._frame is not None and self._frame.is_valid():
             self._frame.execute_java_script(
                 "window.__cefweaverBridge && window.__cefweaverBridge.release(%s)" % json.dumps(self._id), "", 0)
@@ -77,9 +87,17 @@ class _Expire(Task):
 
 
 class JavascriptBridge:
-    """The bridge of ``app`` (a ``CefApp`` that is not initialized yet). ``origins``, a list of URL
-    prefixes (``["https://example.org/"]``), limits the frames whose calls are answered; the
-    default is every frame, so set it when pages from outside can be loaded."""
+    """The JavaScript bridge of an application.
+
+    Args:
+        app (CefApp): The application; it must not be initialized yet.
+        origins (list of str, optional): URL prefixes such as ``["https://example.org/"]``.
+            Only calls from frames whose URL starts with one of them are answered. The
+            default, ``None``, answers every frame.
+
+    Raises:
+        TypeError: If ``origins`` is neither ``None`` nor a list of ``str``.
+    """
 
     def __init__(self, app, origins=None):
         if origins is not None and (isinstance(origins, str) or
@@ -96,9 +114,23 @@ class JavascriptBridge:
         app._set_bridge_names("[]")
 
     def expose(self, name, function, with_frame=False):
-        """Make ``window.<name>`` call ``function`` (before ``initialize()``). With ``with_frame``
-        the function gets the ``Frame`` of the caller first. An exception in it rejects the
-        ``Promise`` with its type and message."""
+        """Expose a Python function to pages as ``window.<name>``.
+
+        An exception raised by the function rejects the ``Promise`` with its type and message.
+
+        Args:
+            name (str): A JavaScript identifier that is not a reserved word.
+            function (callable): Called with the JSON arguments of the page call.
+            with_frame (bool, optional): If true, ``function`` receives the calling
+                :class:`~cefweaver.Frame` as its first argument. Defaults to ``False``.
+
+        Raises:
+            ValueError: If ``name`` is not a valid name or is exposed already.
+            TypeError: If ``function`` is not callable.
+
+        Note:
+            Call before ``initialize()``.
+        """
         if not isinstance(name, str) or not name.isidentifier() or name in _RESERVED:
             raise ValueError("%r is not a name for a JavaScript function" % (name,))
         if not callable(function):
@@ -109,8 +141,18 @@ class JavascriptBridge:
         self._app._set_bridge_names(json.dumps(sorted(self._functions)))
 
     def execute_function(self, frame, path, *args):
-        """Call the function ``path`` (``"api.greet"``, from ``window``) of the page in ``frame`` with
-        JSON arguments. The result is not wanted; ``evaluate()`` gives it."""
+        """Call a function of the page, discarding its result.
+
+        Use :meth:`evaluate` to obtain a result.
+
+        Args:
+            frame (Frame): The frame whose page defines the function.
+            path (str): The dotted path from ``window``, e.g. ``"api.greet"``.
+            *args: The arguments; JSON-serializable values.
+
+        Raises:
+            ValueError: If ``path`` is not a dotted path of identifiers.
+        """
         parts = path.split(".") if isinstance(path, str) else []
         if not parts or not all(part.isidentifier() for part in parts):
             raise ValueError("%r is not the path of a function" % (path,))
@@ -118,13 +160,25 @@ class JavascriptBridge:
                                   % (json.dumps(path), json.dumps(list(args), allow_nan=False)), "", 0)
 
     def evaluate(self, frame, expression, callback, timeout=30.0):
-        """Run the JavaScript ``expression`` in ``frame`` and call ``callback(value, error)`` later,
-        in ``do_message_loop_work()``: ``value`` is its JSON value (a ``Promise`` is awaited) and
-        ``error`` is ``None``, or the message of the exception and then ``value`` is ``None``.
+        """Evaluate a JavaScript expression in a frame.
 
-        An expression that gets no answer (a ``Promise`` that stays pending, a frame that has no
-        context yet, a page that was left) ends after ``timeout`` seconds with the error
-        ``"TimeoutError: ..."``; a later answer is ignored. ``timeout=None`` waits without limit."""
+        ``callback`` is called later from ``do_message_loop_work()``. A ``Promise`` result is
+        awaited. If no answer arrives within ``timeout`` seconds, ``callback`` gets the error
+        ``"TimeoutError: ..."`` and a later answer is ignored.
+
+        Args:
+            frame (Frame): The frame to evaluate in.
+            expression (str): The JavaScript expression.
+            callback (callable): Called as ``callback(value, error)``. On success ``value`` is
+                the JSON value of the result and ``error`` is ``None``; on failure ``value`` is
+                ``None`` and ``error`` is the message of the exception.
+            timeout (float, optional): Seconds to wait for the answer, or ``None`` to wait
+                without limit. Defaults to 30.0.
+
+        Raises:
+            TypeError: If ``callback`` is not callable.
+            ValueError: If ``timeout`` is neither a positive number nor ``None``.
+        """
         if not callable(callback):
             raise TypeError("callback must be callable")
         if timeout is not None and (isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or timeout <= 0):

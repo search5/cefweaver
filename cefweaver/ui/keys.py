@@ -1,9 +1,10 @@
-"""Key codes and modifier flags for the events a toolkit hands to ``BrowserView``.
+"""Key codes and modifier flags for the input events passed to ``BrowserView``.
 
-The modifier flags are the CEF event flags: a toolkit translates its own modifiers (and mouse buttons held
-down) into a sum of these. The key codes are the Windows virtual key codes that CEF wants; a toolkit gives
-the code of the key (not the character it types), and ``vk_for_char`` and ``vk_for_function`` cover the
-codes that follow a rule so that a toolkit needs a table only for its special keys (arrows and the like).
+The modifier flags are CEF event flags. A toolkit translates its modifiers and held mouse
+buttons into a sum of them. The key codes are Windows virtual key codes; a toolkit passes the
+code of the key, not the character it types. :func:`vk_for_char` and :func:`vk_for_function`
+cover the codes that follow a rule, so a toolkit needs a table only for special keys such as
+arrows.
 """
 
 import sys
@@ -51,27 +52,57 @@ MAC_KEY_CHARS = {
 
 
 def shortcut_modifier():
-    """The modifier of the editing shortcuts (copy, paste, select all, undo): Command on macOS, else Control."""
+    """Return the modifier flag of the editing shortcuts (copy, paste, select all, undo).
+
+    Returns:
+        int: ``COMMAND`` on macOS, otherwise ``CONTROL``.
+    """
     return COMMAND if IS_MAC else CONTROL
 
 
 def native_code_for_key_down(windows_key_code, native_code):
-    """The native key code to send with a key down: the toolkit's own when it gives one, else on
-    macOS the code of an editing key, else 0."""
+    """Return the native key code to send with a key down.
+
+    Args:
+        windows_key_code (int): The Windows virtual key code of the key.
+        native_code (int): The native code given by the toolkit, or 0.
+
+    Returns:
+        int: ``native_code`` if it is not 0 or the platform is not macOS; otherwise the
+        macOS code of an editing key, or 0 for other keys.
+    """
     if native_code or not IS_MAC:
         return native_code
     return MAC_NATIVE_CODES.get(windows_key_code, 0)
 
 
 def vk_for_char(char):
-    """The virtual key code of a printable ASCII character (the key without Shift), 0 for others."""
+    """Return the virtual key code of a printable ASCII character.
+
+    Args:
+        char (str): A single character.
+
+    Returns:
+        int: The code of the key without Shift, or 0 if ``char`` is not a single printable
+        ASCII character.
+    """
     if len(char) == 1 and 0x20 <= ord(char) < 0x7F:
         return ord(char.upper())
     return 0
 
 
 def vk_for_function(number):
-    """The code of F1 to F12."""
+    """Return the virtual key code of a function key.
+
+    Args:
+        number (int): The function key number, 1 to 12.
+
+    Returns:
+        int: The virtual key code.
+
+    Raises:
+        ValueError: If ``number`` is not from 1 to 12.
+    """
     if not 1 <= number <= 12:
         raise ValueError("F%d is not a function key from F1 to F12" % number)
     return VK_F1 + number - 1

@@ -1,15 +1,16 @@
-"""A wxPython window that shows a cefweaver offscreen browser, built on ``cefweaver.ui``.
+"""A wxPython panel and adapter that show a cefweaver offscreen browser.
 
-``cefweaver.ui`` has the CEF side (``BrowserView``, ``Session``). This file is what wx adds, the adapter:
+The module provides:
 
-* ``WxLoop``: running something in the wx loop from any thread (``wx.CallAfter``) and later (``wx.CallLater``);
-* ``WxAdapter``: size, scale and place of the panel, drawing the frames into a ``wx.Bitmap``, the cursor,
-  the clipboard of wx and the drag that wx starts for the page (``wx.DropSource``);
-* ``CefPanel``: a ``wx.Panel`` that passes the mouse, wheel and keys of wx and its drop target to the view.
+* :class:`WxLoop`: the wx implementation of the loop that :class:`~cefweaver.ui.Session` needs.
+* :class:`WxAdapter`: the :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefPanel`.
+* :class:`CefPanel`: a ``wx.Panel`` that forwards mouse, wheel, keyboard and drop events to a
+  :class:`~cefweaver.ui.BrowserView`.
 
-wx hands over the dropped data only at the drop, so a drop from another program reaches the view as
-``drop()``. The drag of the page itself, over its own panel, goes step by step. wx has no input method
-preedit (README); what an input method commits arrives as characters.
+Note:
+    wx reports dropped data only at the drop, so a drop from another program reaches the view as
+    :meth:`~cefweaver.ui.BrowserView.drop`. wx has no input method preedit; text committed by an input
+    method arrives as characters.
 
 Checked: Xvfb with GDK_BACKEND=x11 and xdotool: the 33 checks of examples/wx/smoke.py (wxPython 4.2.5 for GTK 3), also with CEF on Wayland.
 Not checked: wx on Windows or macOS, a real input method, a scale other than 1.
@@ -43,10 +44,26 @@ _CURSOR_SHAPES = ui.CursorTable(_CURSORS, default=wx.CURSOR_ARROW)
 
 
 def windows_key_code(code):
+    """Return the Windows virtual key code of a wx key code.
+
+    Args:
+        code (int): The ``wx.WXK_*`` or character code from ``wx.KeyEvent.GetKeyCode()``.
+
+    Returns:
+        int: The ``VK_*`` code, or 0 if the key has none.
+    """
     return _KEYTABLE.code(code)
 
 
 def modifier_flags(event):
+    """Return the CEF event flags for the modifiers and mouse buttons of a wx event.
+
+    Args:
+        event (wx.KeyEvent or wx.MouseEvent): The event to read.
+
+    Returns:
+        int: The combined ``EVENTFLAG_*`` bit mask.
+    """
     return _MODIFIERS.flags(event)
 
 
@@ -59,18 +76,50 @@ class _Later:
 
 
 class WxLoop:
-    """What ``ui.Session`` needs of a toolkit: the wx loop."""
+    """The wx event loop as the loop of a :class:`~cefweaver.ui.Session`.
+
+    It provides ``post`` and ``call_later`` and needs no panel.
+    """
 
     def post(self, function):                           # any thread
+        """Run ``function`` in the wx main loop with ``wx.CallAfter``.
+
+        Args:
+            function (callable): A callable without arguments.
+
+        Note:
+            Callable from any thread.
+        """
         wx.CallAfter(function)
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the wx main loop after a delay with ``wx.CallLater``.
+
+        Args:
+            seconds (float): The delay in seconds, at least 1 ms.
+            function (callable): A callable without arguments.
+
+        Returns:
+            object: A handle with a ``cancel()`` method.
+        """
         return _Later(seconds, function)
 
 
 class WxAdapter(WxLoop):
-    """``ui.ToolkitAdapter`` for a ``CefPanel``. wx has a drag source for the page (``drag_out``) and a text
-    clipboard, but not one CEF could use from this thread."""
+    """The :class:`~cefweaver.ui.ToolkitAdapter` for a :class:`CefPanel`.
+
+    It supports ``drag_out`` and uses wx's clipboard (there is no ``native_clipboard`` capability).
+
+    Args:
+        panel (CefPanel): The panel that shows the frames.
+
+    Attributes:
+        capabilities (frozenset): ``{"drag_out"}``.
+        drag_start (str): ``"on_motion"``: a drag starts with the next pointer move.
+        p (CefPanel): The panel.
+        menu_open (bool): True while a context menu is shown.
+        last_menu (wx.Menu): The most recent context menu, set by :meth:`show_menu`.
+    """
 
     capabilities = frozenset({"drag_out"})
     drag_start = "on_motion"        # wx (GTK) starts a drag only inside a mouse event handler
@@ -81,29 +130,44 @@ class WxAdapter(WxLoop):
         self.last_menu = self._waiting = None
 
     def view_size(self):
+        """Return the client size of the panel in logical pixels."""
         return tuple(self.p.GetClientSize())
 
     def scale(self):
+        """Return the content scale factor of the panel."""
         return float(self.p.GetContentScaleFactor())
 
     def screen_origin(self):
+        """Return the position of the panel's top left corner in screen coordinates."""
         point = self.p.ClientToScreen(wx.Point(0, 0))
         return point.x, point.y
 
     def screen_size(self):
+        """Return the size of the display."""
         return tuple(wx.GetDisplaySize())
 
     def present(self, frame):
+        """Pass the frame to :meth:`CefPanel.present_frame`."""
         self.p.present_frame(frame)
 
     def set_cursor(self, cursor):
+        """Set the panel's cursor to the wx cursor for the CEF cursor type."""
         self.p.SetCursor(wx.Cursor(_CURSOR_SHAPES.get(cursor)))
 
     def show_menu(self, items, x, y, done):
-        """The context menu of the page as a ``wx.Menu`` at (x, y) of the panel. ``done`` gets the command id of the
-        picked item, or None when the menu is left. ``PopupMenu`` runs an event loop until the menu closes, so it is
-        opened after CEF's callback has returned, and after the right button went up (``menu_open`` and ``last_menu`` are for
-        tests)."""
+        """Pop up the page's context menu as a ``wx.Menu`` at (``x``, ``y``) in panel coordinates.
+
+        The menu opens through ``wx.CallAfter``, after the right mouse button has been released (waiting at most
+        about one second), because ``PopupMenu`` runs a nested event loop.
+
+        Args:
+            items (list): The menu entries, each with ``kind``, ``label``, ``enabled``, ``checked``,
+                ``command_id`` and, for submenus, ``children``.
+            x (int): The horizontal position in panel coordinates.
+            y (int): The vertical position in panel coordinates.
+            done (callable): Called once with the command id of the chosen item, or None if the menu closed
+                without a choice.
+        """
         picked = []
 
         def pick(command_id):
@@ -154,6 +218,7 @@ class WxAdapter(WxLoop):
         wx.CallAfter(when_released)
 
     def clipboard_get(self):
+        """Return the text on the wx clipboard, or None if it is empty or cannot be opened."""
         data = wx.TextDataObject()
         if not wx.TheClipboard.Open():
             return None
@@ -162,18 +227,31 @@ class WxAdapter(WxLoop):
         return data.GetText() if found else None
 
     def clipboard_set(self, text):
+        """Put ``text`` on the wx clipboard; do nothing if the clipboard cannot be opened."""
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(text))
             wx.TheClipboard.Flush()
             wx.TheClipboard.Close()
 
     def start_drag_out(self, payload, allowed):
+        """Start a ``wx.DropSource`` drag for the page's drag through :meth:`CefPanel.run_drag`.
+
+        Returns:
+            bool: Always True.
+
+        Note:
+            Blocks until the drag ends.
+        """
         self.p.run_drag(payload)                        # runs until the drag is over
         return True
 
 
 class _DropTarget(wx.DropTarget):
-    """Text and files from other programs, and what the page itself drags."""
+    """A drop target for text and files from other programs and for the page's own drags.
+
+    Args:
+        panel (CefPanel): The panel that receives the drag events.
+    """
 
     def __init__(self, panel):
         super().__init__()
@@ -186,20 +264,25 @@ class _DropTarget(wx.DropTarget):
         self.both = both
 
     def OnEnter(self, x, y, default):
+        """Tell the panel that a drag entered; propose copying."""
         self.p.drag_enter(x, y)
         return wx.DragCopy
 
     def OnDragOver(self, x, y, default):
+        """Tell the panel that a drag moved; propose copying."""
         self.p.drag_over(x, y)
         return wx.DragCopy
 
     def OnLeave(self):
+        """Tell the panel that the drag left."""
         self.p.drag_leave()
 
     def OnDrop(self, x, y):
+        """Accept the drop so that its data is requested."""
         return True
 
     def OnData(self, x, y, default):
+        """Pass the dropped files or text to the panel; return ``wx.DragNone`` if no data arrived."""
         if not self.GetData():
             return wx.DragNone
         if self.both.GetReceivedFormat().GetType() == wx.DF_FILENAME:
@@ -210,7 +293,26 @@ class _DropTarget(wx.DropTarget):
 
 
 class CefPanel(ui.BrowserWidget, wx.Panel):
-    """The browser. ``on_title``, ``on_address``, ``on_loading`` and ``on_ready`` are set by the application."""
+    """A ``wx.Panel`` that shows a cefweaver browser.
+
+    It is a :class:`~cefweaver.ui.BrowserWidget`, so the navigation methods and ``view`` are available.
+    The application sets the ``on_*`` callbacks to receive browser notifications.
+
+    Args:
+        parent (wx.Window): The parent window.
+        runtime (object): The running runtime.
+        audio (optional): The ``audio`` option of :class:`~cefweaver.ui.BrowserView`.
+
+    Attributes:
+        runtime (object): The runtime passed in.
+        bitmap (wx.Bitmap): The latest view frame, or None.
+        popup_bitmap (wx.Bitmap): The latest popup frame, or None.
+        picture (tuple): ``(width, height)`` of the latest view frame in device pixels.
+        on_title (callable): Called with the page title.
+        on_address (callable): Called with the page URL.
+        on_loading (callable): Called with ``loading``, ``can_go_back`` and ``can_go_forward``.
+        on_ready (callable): Called when the browser has been created.
+    """
 
     def __init__(self, parent, runtime, audio=None):
         super().__init__(parent, style=wx.WANTS_CHARS)
@@ -237,15 +339,19 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
     # -- the browser -----------------------------------------------------------------------------
 
     def browser_title(self, title):
+        """Call :attr:`on_title` with the page title."""
         self.on_title(title)
 
     def browser_address(self, url):
+        """Call :attr:`on_address` with the page URL."""
         self.on_address(url)
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Call :attr:`on_loading` with the loading state and the navigation flags."""
         self.on_loading(loading, can_back, can_forward)
 
     def browser_ready(self):
+        """Pass the panel's focus state to the view and call :attr:`on_ready`."""
         self.view.focus(self.HasFocus())
         self.on_ready()
 
@@ -262,6 +368,11 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
         return bitmap
 
     def present_frame(self, frame):
+        """Store a frame as a ``wx.Bitmap`` and refresh the panel.
+
+        Args:
+            frame (Frame): The frame to show.
+        """
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self.popup_bitmap = None
         elif frame.kind == ui.Frame.POPUP:
@@ -320,22 +431,39 @@ class CefPanel(ui.BrowserWidget, wx.Panel):
     # -- drag and drop: into the page ------------------------------------------------------------
 
     def drag_enter(self, x, y):
+        """Tell the view that a drag entered at (``x``, ``y``); the operation offered is copy."""
         self.view.drag_enter(x, y, types.DragOperationsMask.COPY)     # the view ignores it for another program
 
     def drag_over(self, x, y):
+        """Tell the view that a drag moved to (``x``, ``y``); the operation offered is copy."""
         self.view.drag_over(x, y, types.DragOperationsMask.COPY)
 
     def drag_leave(self):
+        """Tell the view that the drag left."""
         self.view.drag_leave()
 
     def drag_drop(self, x, y, text=None, files=None):
+        """Send a drop at (``x``, ``y``) with its data to the view.
+
+        Args:
+            x (int): The horizontal position in panel coordinates.
+            y (int): The vertical position in panel coordinates.
+            text (str, optional): Dropped text.
+            files (list, optional): Dropped file names.
+        """
         self.view.drag_drop(x, y, types.DragOperationsMask.COPY, text=text, files=files)   # data only now
 
     # -- drag and drop: out of the page ------------------------------------------------------------
 
     def run_drag(self, payload):
-        """``WxAdapter.start_drag_out``, called by the view with the next move of the pointer: DoDragDrop() runs
-        a loop of its own, in which CEF goes on through the timers."""
+        """Run a ``wx.DropSource`` drag for data the page drags out, then report the result to the view.
+
+        Args:
+            payload (DragPayload): What the page drags; files are dragged if present, otherwise its text or URL.
+
+        Note:
+            Blocks in ``DoDragDrop()`` until the drag ends. Only copying is offered.
+        """
         if payload.files:
             data = wx.FileDataObject()
             for name in payload.files:

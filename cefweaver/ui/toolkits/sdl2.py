@@ -1,16 +1,13 @@
-"""An SDL2 window that shows a cefweaver offscreen browser (PySDL2), built on ``cefweaver.ui``.
+"""An SDL2 window that shows a cefweaver offscreen browser (PySDL2).
 
-SDL gives windows, events and textures but no widgets, so ``SdlBrowser`` is the toolkit side as a whole: the
-adapter (size, place, drawing the frames to a texture, cursor, clipboard, candidate window) and the event
-loop. ``step(timeout_ms)`` waits for an SDL event (or for the next timer), turns it into a call of
-``BrowserView``, runs what ``post`` and ``call_later`` were given and draws what changed. CEF's request to
-run (from any thread of CEF) comes through ``post``: a queue and an SDL user event pushed with
-``SDL_PushEvent``, which is thread safe.
+SDL gives windows, events and textures but no widgets, so :class:`SdlBrowser` is the toolkit side as a whole: it is
+the :class:`~cefweaver.ui.ToolkitAdapter` of its own :class:`~cefweaver.ui.BrowserView` and runs the event loop
+(:meth:`SdlBrowser.step`, :meth:`SdlBrowser.run`). :class:`SdlSink` plays the audio of the page through SDL.
 
-SDL tells the text an input method is composing (``SDL_TEXTEDITING``) and what it committed
-(``SDL_TEXTINPUT``), so Hangul composition is real here. Drops of text and files from other programs
-arrive (``SDL_DROPTEXT``, ``SDL_DROPFILE``); SDL cannot start a drag out of its window, so a drag inside the
-page is carried out by the view.
+Note:
+    Input method composition is supported (``SDL_TEXTEDITING``, ``SDL_TEXTINPUT``). Text and files dropped by
+    other programs are handled (``SDL_DROPTEXT``, ``SDL_DROPFILE``). SDL cannot start a drag out of its window, so
+    a drag inside the page is carried out by the view.
 
 Checked: Xvfb with SDL_VIDEODRIVER=x11 and xdotool: the 28 checks of examples/sdl2/smoke.py (PySDL2 0.9.17, SDL 2.32).
 Not checked: drops of other programs (the checks feed SDL_DROPTEXT to the handler, no real XDND), a scale other than 1, a real input method.
@@ -63,18 +60,46 @@ _CURSOR_SHAPES = ui.CursorTable(_CURSORS, default=sdl2.SDL_SYSTEM_CURSOR_ARROW)
 
 
 def windows_key_code(sym):
+    """Return the Windows virtual key code for an SDL key symbol.
+
+    Args:
+        sym (int): An ``SDLK_*`` key symbol.
+
+    Returns:
+        int: A ``cefweaver.ui.keys.VK_*`` code, or 0 if the key has none.
+    """
     return _KEYTABLE.code(sym)
 
 
 def modifier_flags(mod, buttons=0):
+    """Return the CEF event flags for SDL modifier and mouse button states.
+
+    Args:
+        mod (int): The SDL key modifier state (``KMOD_*`` bits).
+        buttons (int, optional): The SDL mouse button state (``SDL_BUTTON_*MASK`` bits). Defaults to 0.
+
+    Returns:
+        int: The matching ``cefweaver.ui.keys`` modifier and mouse button flags.
+    """
     return _MODIFIERS.flags(mod, buttons)
 
 
 class SdlSink:
-    """An audio sink of SDL: the device is opened in queue mode (``SDL_QueueAudio``, no Python callback in SDL's audio
-    thread), at most ``max_latency`` seconds are queued (older sound is dropped) and a little sound (``prebuffer``) is
-    collected before it plays, and again after the queue ran empty. ``volume`` (0.0 to 1.0) is applied to the samples.
-    ``stats()`` tells what happened."""
+    """An audio sink that plays the sound of a page through SDL.
+
+    The device is opened in queue mode (``SDL_QueueAudio``). Queued sound above ``max_latency`` is dropped, and
+    playback starts once ``prebuffer`` seconds are queued, again after the queue ran empty.
+
+    Args:
+        volume (float, optional): The gain applied to the samples, 0.0 to 1.0. Defaults to 1.0.
+        max_latency (float, optional): The longest queue in seconds. Defaults to 0.5.
+        prebuffer (float, optional): The seconds of sound to queue before playback starts. Defaults to 0.1.
+
+    Attributes:
+        volume (float): The gain applied to the samples.
+        max_latency (float): The longest queue in seconds.
+        prebuffer (float): The seconds of sound queued before playback starts.
+    """
 
     def __init__(self, volume=1.0, max_latency=0.5, prebuffer=0.1):
         self.volume, self.max_latency, self.prebuffer = volume, max_latency, prebuffer
@@ -84,6 +109,15 @@ class SdlSink:
         self._counters = dict(written=0, dropped=0, underruns=0)
 
     def start(self, sample_rate, channels):
+        """Open the audio device, closing any previous one.
+
+        Args:
+            sample_rate (int): The sample rate in Hz.
+            channels (int): The number of channels.
+
+        Raises:
+            RuntimeError: If SDL audio cannot be initialized or no audio device can be opened.
+        """
         self.stop()
         if sdl2.SDL_InitSubSystem(sdl2.SDL_INIT_AUDIO) != 0:
             raise RuntimeError("SDL audio: %s" % sdl2.SDL_GetError().decode())
@@ -95,6 +129,15 @@ class SdlSink:
         self._device, self._rate, self._channels, self._playing = device, sample_rate, channels, False
 
     def write(self, samples, frames):
+        """Queue samples for playback.
+
+        Args:
+            samples (bytes): Interleaved 32 bit float samples.
+            frames (int): The number of sample frames in ``samples``.
+
+        Note:
+            Does nothing if the sink is not started.
+        """
         device = self._device
         if not device:
             return
@@ -116,12 +159,19 @@ class SdlSink:
             self._playing = True
 
     def stop(self):
+        """Close the audio device."""
         device, self._device = self._device, 0
         if device:
             sdl2.SDL_CloseAudioDevice(device)
         self._playing = False
 
     def stats(self):
+        """Return the counters of the sink.
+
+        Returns:
+            dict: ``written``, ``dropped``, ``underruns``, ``queued`` and ``consumed``; all but ``underruns`` count
+            sample frames.
+        """
         queued = (sdl2.SDL_GetQueuedAudioSize(self._device) // (4 * self._channels)) if self._device else 0
         counters = dict(self._counters)
         counters["queued"] = queued
@@ -138,7 +188,43 @@ class _Timer:
 
 
 class SdlBrowser(ui.BrowserWidget):
-    """The window, the browser and the event loop. It is the ``ui.ToolkitAdapter`` of its own ``BrowserView``."""
+    """An SDL2 window with a browser and the event loop that drives it.
+
+    The instance is the :class:`~cefweaver.ui.ToolkitAdapter` of its own :class:`~cefweaver.ui.BrowserView`.
+    A :class:`~cefweaver.ui.Session` is created in the constructor; call :meth:`start` to open the browser.
+
+    Args:
+        switches (iterable, optional): Chromium command line switches as ``(name, value)`` pairs, passed to
+            :class:`~cefweaver.ui.Session`.
+        cache_path (str, optional): The CEF cache directory, passed to :class:`~cefweaver.ui.Session`.
+        width (int, optional): The initial window width in pixels. Defaults to 900.
+        height (int, optional): The initial window height in pixels. Defaults to 640.
+        title (str, optional): The initial window title. Defaults to ``"cefweaver SDL2"``.
+        audio (optional): The ``audio`` option of :class:`~cefweaver.ui.BrowserView`.
+
+    Attributes:
+        capabilities (frozenset): Empty; the view handles drags out and the clipboard itself.
+        view (cefweaver.ui.BrowserView): The browser view.
+        session (cefweaver.ui.Session): The CEF session.
+        app (cefweaver.CefApp): The application of the session.
+        bridge (cefweaver.JavascriptBridge): The JavaScript bridge of the session.
+        window: The ``SDL_Window``.
+        renderer: The ``SDL_Renderer`` (software).
+        driver (str): The name of the SDL video driver.
+        width (int): The window width in logical pixels.
+        height (int): The window height in logical pixels.
+        scale_factor (int): Device pixels per logical pixel.
+        screen (tuple): ``(width, height)`` of the desktop display.
+        title (str): The window title.
+        url (str): The current address of the page.
+        can_back (bool): Whether the browser can go back.
+        can_forward (bool): Whether the browser can go forward.
+        on_ready (callable): ``on_ready()``; called when the browser exists. Set by the application.
+        quit (bool): True once the application should leave :meth:`run`.
+
+    Raises:
+        RuntimeError: If SDL cannot be initialized.
+    """
 
     capabilities = frozenset()      # no drag source and no clipboard CEF could use: the view does both
 
@@ -179,35 +265,46 @@ class SdlBrowser(ui.BrowserWidget):
     # -- the toolkit side of ui.ToolkitAdapter ---------------------------------------------------------
 
     def post(self, function):                           # any thread of CEF
+        """Queue ``function`` for the event loop and wake it with an SDL user event; callable from any thread."""
         self._posted.append(function)
         event = sdl2.SDL_Event()
         event.type = self._wake_event
         sdl2.SDL_PushEvent(ctypes.byref(event))
 
     def call_later(self, seconds, function):
+        """Run ``function`` in the event loop after ``seconds``; return an object with ``cancel()``."""
         timer = _Timer(function)
         heapq.heappush(self._timers, (time.monotonic() + seconds, next(self._sequence), timer))
         return timer
 
     def audio_sink(self):
-        """``BrowserView(audio="auto")`` plays the sound of the page with the audio of SDL."""
+        """Return an :class:`SdlSink` for ``BrowserView(audio="auto")``.
+
+        Returns:
+            SdlSink: A new sink with the default settings.
+        """
         return SdlSink()
 
     def view_size(self):
+        """Return the size of the window in logical pixels."""
         return self.width, self.height
 
     def scale(self):
+        """Return the device pixels per logical pixel of the window."""
         return float(self.scale_factor)
 
     def screen_origin(self):
+        """Return the position of the window on the screen."""
         x, y = ctypes.c_int(), ctypes.c_int()
         sdl2.SDL_GetWindowPosition(self.window, ctypes.byref(x), ctypes.byref(y))
         return x.value, y.value
 
     def screen_size(self):
+        """Return the size of the desktop display."""
         return self.screen
 
     def present(self, frame):
+        """Update the texture of the view or the popup with ``frame``; the next :meth:`step` draws it."""
         if frame.kind == ui.Frame.POPUP_HIDDEN:
             self.popup_texture = None
             self._dirty = True
@@ -242,46 +339,64 @@ class SdlBrowser(ui.BrowserWidget):
         self._dirty = True
 
     def set_cursor(self, cursor):
+        """Show the SDL system cursor that matches the CEF cursor type."""
         shape = _CURSOR_SHAPES.get(cursor)
         if shape not in self._cursors:
             self._cursors[shape] = sdl2.SDL_CreateSystemCursor(shape)
         sdl2.SDL_SetCursor(self._cursors[shape])
 
     def set_ime_rect(self, x, y, width, height):         # where the candidate window goes
+        """Set the SDL text input rectangle, where the input method puts its candidate window."""
         rect = sdl2.SDL_Rect(x, y, width, height)
         sdl2.SDL_SetTextInputRect(ctypes.byref(rect))
 
     def clipboard_get(self):
+        """Return the text of the SDL clipboard, or None if it has none."""
         text = sdl2.SDL_GetClipboardText()
         return text.decode("utf-8", "replace") if text else None
 
     def clipboard_set(self, text):
+        """Replace the text of the SDL clipboard with ``text``."""
         sdl2.SDL_SetClipboardText(text.encode("utf-8"))
 
     # -- the application ---------------------------------------------------------------------------------
 
     @property
     def started(self):
+        """bool: Whether the session has started and has not finished shutting down."""
         return self.session.started
 
     def browser_title(self, title):
+        """Set the window title to ``title``, or ``"cefweaver SDL2"`` if it is empty."""
         self.title = title or "cefweaver SDL2"
         sdl2.SDL_SetWindowTitle(self.window, self.title.encode("utf-8"))
 
     def browser_address(self, url):
+        """Store the address of the page in ``url``."""
         self.url = url
 
     def browser_loading(self, loading, can_back, can_forward):
+        """Store ``can_back`` and ``can_forward``."""
         self.can_back, self.can_forward = can_back, can_forward
 
     def browser_ready(self):
+        """Call ``on_ready``."""
         self.on_ready()
 
     def start(self, url):
+        """Start the session and open the browser.
+
+        Args:
+            url (str): The address to load first.
+        """
         self.session.start(self.view, url)
 
     def close(self):
-        """Close the browser and shut CEF down; ``step()`` goes on until that is done."""
+        """Close the browser and shut CEF down.
+
+        Note:
+            Keep calling :meth:`step` until ``started`` is False.
+        """
         if not self._closing:
             self._closing = True
             self.session.shutdown()
@@ -289,8 +404,14 @@ class SdlBrowser(ui.BrowserWidget):
     # -- the loop ------------------------------------------------------------------------------------
 
     def step(self, timeout_ms=None):
-        """One turn: wait for an event (at most until the next timer), handle all there are, run what was
-        posted and what is due, draw."""
+        """Run one turn of the event loop.
+
+        Waits for an SDL event (at most until the next timer is due), handles all pending events, runs the posted
+        functions and the due timers, and draws if anything changed.
+
+        Args:
+            timeout_ms (int, optional): The longest wait in milliseconds. Defaults to 50.
+        """
         wait = 50 if timeout_ms is None else timeout_ms
         if self._timers:
             wait = min(wait, max(0, int((self._timers[0][0] - time.monotonic()) * 1000)))
@@ -309,11 +430,13 @@ class SdlBrowser(ui.BrowserWidget):
         self._draw()
 
     def run(self):
+        """Run :meth:`step` until ``quit`` is set or the browser has closed after :meth:`close`, then call :meth:`destroy`."""
         while not self.quit and not (self._closing and not self.started):
             self.step()
         self.destroy()
 
     def destroy(self):
+        """Destroy the textures, the renderer and the window, and quit SDL."""
         sdl2.SDL_StopTextInput()
         for texture in (self.texture, self.popup_texture):
             if texture:
@@ -397,7 +520,12 @@ class SdlBrowser(ui.BrowserWidget):
         self.view.key(down, windows_key_code(sym), key.keysym.scancode, modifier_flags(mod))
 
     def handle_drop(self, text=None, files=None):
-        """A drop from another program: SDL tells what was dropped, not where; the pointer is where."""
+        """Pass a drop from another program to the view at the pointer position.
+
+        Args:
+            text (str, optional): The dropped text.
+            files (list, optional): The dropped file paths.
+        """
         x, y, _ = self._pointer()
         self.view.drop(x, y, text=text, files=files)
 
