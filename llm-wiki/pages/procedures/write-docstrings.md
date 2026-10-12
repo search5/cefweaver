@@ -77,7 +77,7 @@ make update-po       # 원문이 바뀌었을 때 locale/ko의 .po 갱신
 - 쿡북이 보이는 스크립트 `docs/guide/recipes/headless.py`는 설치된 wheel로 `xvfb-run python -P`를 써서 실제로 실행해 `evaluate: {'v': 'hello', 'e': None}`, `snapshot: True True`, `ok [..., 'sum=5']`가 나오는 것을 확인했습니다(2026-10-13).
 - **문서는 소스에서 새로 빌드한 wheel로 빌드하고 확인합니다.** 오래된 wheel(2026-10-11 빌드)로 빌드하면 `_cefweaver.*` docstring이 소스와 달라 경고가 나고, 그 상태로 `make update-po`를 돌리면 api 카탈로그가 훼손됩니다. 2026-10-13에 `CEF_ROOT=... uv build --wheel`로 새 wheel을 만든 뒤 영어와 한국어 `-W` 빌드가 경고 없이 통과했고(Qt와 Tk 툴킷 모듈은 PyQt6와 Pillow가 있어야 import됩니다), 전체 `update-po`가 기존 카탈로그를 바꾸지 않았습니다.
 - 2026-10-13에 자매 프로젝트 cefloom과 주제를 맞추려고 개념, 메시지 루프, JavaScript 브리지, 인쇄, 구성, 문제 해결 6쪽을 더했습니다. 예제는 `docs/guide/recipes/`에 있고 모두 새 wheel로 3회 같은 결과를 냈습니다. 쪽의 서술은 소스를 읽거나 실행해서 확인한 것만 썼고, 확인하지 못한 것은 쪽에 "not tried"로 적었습니다.
-- 게시: `.github/workflows/docs.yml`이 main에 푸시될 때(`docs/`, `cefweaver/`, `native/` 변경) wheel을 빌드하고 `make -C docs site`로 영어와 한국어 사이트를 만들어 GitHub Pages(https://search5.github.io/cefweaver/)에 올립니다. 첫 실행은 빌드 7분 13초, 배포 11초로 성공했습니다. 러너에는 PyQt6와 Pillow도 설치합니다.
+- 게시: `.github/workflows/docs.yml`은 수동으로 실행할 때만 돕니다(Actions 탭의 docs, Run workflow. 푸시로는 돌지 않습니다). 실행하면 wheel을 빌드하고 `make -C docs site`로 영어와 한국어 사이트를 만들어 GitHub Pages(https://search5.github.io/cefweaver/)에 올립니다. 첫 실행은 빌드 7분 13초, 배포 11초로 성공했습니다. 러너에는 PyQt6와 Pillow도 설치합니다.
 - 기능이나 동작을 바꾸면 해당 guide 쪽을 같은 작업에서 고칩니다. 쪽이 목차에서 빠지지 않았는지는 `tests/test_docs.py`가 확인합니다.
 
 ## 누락 점검

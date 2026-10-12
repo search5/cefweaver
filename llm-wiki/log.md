@@ -772,3 +772,6 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-13] ingest | GitHub Pages 배포
 사용자 요청으로 `.github/workflows/docs.yml`과 `docs/Makefile`의 `site` 대상을 더하고 저장소 Pages의 Source를 main `/docs`에서 GitHub Actions로 바꿨다. 첫 실행이 성공했고 영어와 한국어 사이트의 주요 주소가 200으로 응답한다. `known-constraints.md`의 `docs/` 항목과 `write-docstrings.md`를 갱신했다.
+
+## [2026-10-13] ingest | 워크플로를 수동 실행으로, 액션을 Node 24로
+사용자 요청으로 docs 워크플로의 푸시 트리거를 없애고 `workflow_dispatch`만 남겼다(`build-test.yml`은 원래 수동). 두 워크플로의 액션을 Node 24 기반 최신 메이저로 올렸다(checkout v7, setup-uv v10.3.0은 메이저 태그가 없어 전체 버전으로 고정, configure-pages v6, upload-pages-artifact v5, deploy-pages v5, upload-artifact v7). `development.rst`와 한국어 카탈로그, 위키를 갱신했다.
