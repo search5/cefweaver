@@ -739,3 +739,6 @@ Linux만 실행(38180556005)해서 manylinux_2_28 컨테이너 빌드와 auditwh
 
 ## [2026-10-12] ingest | Linux aarch64 CI 실행
 `CMakeLists.txt`에 ARM 호스트의 CEF 배포본 선택(linuxarm64, windowsarm64)을 더하고 `platform=linux-arm`을 실행(38181679332). 빌드와 manylinux repair는 통과, 시험은 한국어 조합 밑줄 1개 실패. `packaging.md`에 반영.
+
+## [2026-10-12] ingest | 한국어 밑줄 시험 실패의 원인
+Linux aarch64 러너에는 한국어 글꼴이 없어 한국어 조합 밑줄 시험이 실패했고, `fonts-noto-cjk`를 설치하자 547개가 통과(38189969143). `packaging.md`에 반영.
