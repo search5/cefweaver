@@ -34,7 +34,7 @@
 ## 문서는 두 종류입니다
 
 - **`llm-wiki/`** (저장소 루트): LLM과 함께 쓰는 작업 위키입니다. 게시하지 않는 내부 기록(구조, 설계 결정, 실험으로 확인한 사실과 확인하지 못한 것)이고, 위의 규칙을 따릅니다.
-- **`docs/`**: docstring에서 만드는 Sphinx 문서입니다(테마 `sphinx_rtd_theme`, 영어가 원문이고 한국어는 `sphinx-intl`의 gettext 카탈로그 `docs/locale/ko`). `api/*.rst`는 모듈을 나열할 뿐이고 내용은 소스의 docstring입니다. 쓰는 방법을 설명하는 `guide/*.rst`(설치, 시작하기, 쿡북, 툴킷별 상태, 한계 등)는 손으로 쓴 영어 원문이며, 쿡북의 `guide/recipes/headless.py`는 wheel로 실제 실행해 확인한 스크립트입니다. 기능이나 동작이 바뀌면 같은 작업에서 guide도 맞춥니다. 공개 API를 바꾸면 docstring을 같은 작업에서 맞추고(`llm-wiki/pages/procedures/write-docstrings.md`), 쪽이 모듈을 빠뜨리지 않았는지는 `tests/test_docs.py`가 지킵니다. 빌드는 `docs/Makefile`(`make html`은 `-W`로 경고 없음을 확인, `make html-all`은 영어와 한국어, `make update-po`는 카탈로그 갱신)이고, autodoc이 설치된 wheel(컴파일된 확장 포함)을 import하므로 wheel을 설치한 환경에서 `docs/`로 이동해 돌립니다.
+- **`docs/`**: docstring에서 만드는 Sphinx 문서입니다(테마 `sphinx_rtd_theme`, 영어가 원문이고 한국어는 `sphinx-intl`의 gettext 카탈로그 `docs/locale/ko`). `api/*.rst`는 모듈을 나열할 뿐이고 내용은 소스의 docstring입니다. 쓰는 방법을 설명하는 `guide/*.rst`(설치, 시작하기, 쿡북, 개념, 메시지 루프, 브리지, 인쇄, 구성, 문제 해결, 툴킷별 상태, 한계 등)는 손으로 쓴 영어 원문이며, 쿡북의 `guide/recipes/headless.py`는 wheel로 실제 실행해 확인한 스크립트입니다. 기능이나 동작이 바뀌면 같은 작업에서 guide도 맞춥니다. 공개 API를 바꾸면 docstring을 같은 작업에서 맞추고(`llm-wiki/pages/procedures/write-docstrings.md`), 쪽이 모듈을 빠뜨리지 않았는지는 `tests/test_docs.py`가 지킵니다. 빌드는 `docs/Makefile`(`make html`은 `-W`로 경고 없음을 확인, `make html-all`은 영어와 한국어, `make update-po`는 카탈로그 갱신)이고, autodoc이 설치된 wheel(컴파일된 확장 포함)을 import하므로 wheel을 설치한 환경에서 `docs/`로 이동해 돌립니다.
 
 ## 빌드와 시험
 

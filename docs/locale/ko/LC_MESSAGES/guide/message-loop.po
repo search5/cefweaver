@@ -1,0 +1,301 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 08:04+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/message-loop.rst:2
+msgid "The message loop"
+msgstr "메시지 루프"
+
+#: ../../guide/message-loop.rst:4
+msgid ""
+"CEF does its work when the program lets it: nothing happens (no page "
+"loads, no callback runs) unless "
+":meth:`~cefweaver.CefApp.do_message_loop_work` is called on the thread "
+"that called :meth:`~cefweaver.CefApp.initialize`. Every handler, binding "
+"and exposed function of :doc:`concepts` runs inside that call. There are "
+"three ways to call it:"
+msgstr ""
+"CEF는 프로그램이 허용할 때 일을 합니다. :meth:`~cefweaver.CefApp.do_message_loop_work`\\"
+" 가 :meth:`~cefweaver.CefApp.initialize`\\ 를 호출한 스레드에서 호출되지 않으면 아무 일도 일어나지"
+" 않습니다(페이지 로딩도, 콜백 실행도 없습니다). :doc:`concepts`\\ 의 모든 핸들러, 바인딩, 노출된 함수는 이 "
+"호출 안에서 실행됩니다. 호출하는 방법은 세 가지입니다:"
+
+#: ../../guide/message-loop.rst:6
+msgid ""
+"**Under a toolkit** you do nothing: :class:`~cefweaver.ui.Session` runs "
+"it from the event loop of the toolkit (:doc:`embedding`)."
+msgstr ""
+"**툴킷 아래에서는** 할 일이 없습니다. :class:`~cefweaver.ui.Session`\\ 이 툴킷의 이벤트 루프에서 "
+"이를 실행합니다(:doc:`embedding`)."
+
+#: ../../guide/message-loop.rst:7
+msgid ""
+"**A loop of your own** that calls ``do_message_loop_work()`` over and "
+"over (below)."
+msgstr "**직접 만든 루프**\\ 에서 ``do_message_loop_work()``\\ 를 계속 반복 호출합니다(아래)."
+
+#: ../../guide/message-loop.rst:8
+msgid ""
+"**A loop of your own with** :class:`~cefweaver.MessagePump`, which tells "
+"you when CEF wants to run, so the loop can sleep in between."
+msgstr ""
+"**직접 만든 루프에서** :class:`~cefweaver.MessagePump`\\ 를 **사용합니다.** 이 클래스는 CEF가"
+" 실행되길 원하는 때를 알려 주므로 루프가 그 사이에 잠들 수 있습니다."
+
+#: ../../guide/message-loop.rst:11
+msgid "A loop that polls"
+msgstr "폴링하는 루프"
+
+#: ../../guide/message-loop.rst:16
+msgid ""
+"The page calls ``finish()`` after 100 ms; the binding closes the browser,"
+" :attr:`~cefweaver.CefApp.is_running` becomes ``False`` and the loop "
+"ends. The script was run against the built wheel on a virtual X server "
+"(``xvfb-run python -P message_loop.py``) and printed, in three runs in a "
+"row:"
+msgstr ""
+"페이지는 100 ms 뒤에 ``finish()``\\ 를 호출합니다. 바인딩이 브라우저를 닫고, "
+":attr:`~cefweaver.CefApp.is_running`\\ 은 ``False``\\ 가 되며 루프가 끝납니다. 스크립트는"
+" 가상 X 서버에서 빌드된 wheel을 대상으로 실행했고(``xvfb-run python -P message_loop.py``), "
+"연속 세 번 실행에서 다음을 출력했습니다:"
+
+#: ../../guide/message-loop.rst:24
+msgid "Points about this loop:"
+msgstr "이 루프에 관한 요점입니다:"
+
+#: ../../guide/message-loop.rst:26
+msgid ""
+"The call returns after one round of CEF's work. How often to call it is "
+"up to the program; the docstring says to call it regularly. The scripts "
+"of this guide sleep 5 ms between calls."
+msgstr ""
+"호출은 CEF 작업을 한 차례 수행한 뒤 반환합니다. 얼마나 자주 호출할지는 프로그램이 정하며, 독스트링은 정기적으로 호출하라고 "
+"합니다. 이 안내서의 스크립트는 호출 사이에 5 ms 동안 잡니다."
+
+#: ../../guide/message-loop.rst:27
+msgid ""
+"A callback runs inside the call, so a callback that takes a second delays"
+" every page and window by a second."
+msgstr "콜백은 호출 안에서 실행되므로, 1초 걸리는 콜백은 모든 페이지와 창을 1초 지연시킵니다."
+
+#: ../../guide/message-loop.rst:28
+msgid ""
+"On macOS, when ``Settings.external_message_pump`` is not set, "
+"``do_message_loop_work()`` also handles the pending events of the "
+"application, which the windows made by CEF need for input, title and "
+"closing."
+msgstr ""
+"macOS에서 ``Settings.external_message_pump``\\ 를 설정하지 않으면, "
+"``do_message_loop_work()``\\ 가 애플리케이션의 대기 중인 이벤트도 처리합니다. CEF가 만든 창이 입력, "
+"제목, 닫기를 위해 이 이벤트를 필요로 합니다."
+
+#: ../../guide/message-loop.rst:29
+msgid ""
+"``do_message_loop_work()`` raises ``RuntimeError`` before "
+"``initialize()`` and after ``shutdown()``."
+msgstr ""
+"``do_message_loop_work()``\\ 는 ``initialize()`` 전과 ``shutdown()`` 후에 "
+"``RuntimeError``\\ 를 발생시킵니다."
+
+#: ../../guide/message-loop.rst:31
+msgid ""
+"The loop is the place to put your own work too, as long as each turn "
+"stays short. :doc:`quickstart` shows the same loop with the window of "
+"CEF, and the headless adapter of :doc:`cookbook` has its own "
+"(``run_until``)."
+msgstr ""
+"루프는 직접 하는 작업을 넣을 곳이기도 합니다. 단 한 번의 순회가 짧아야 합니다. :doc:`quickstart`\\ 는 CEF의"
+" 창을 쓰는 같은 루프를 보여 주고, :doc:`cookbook`\\ 의 헤드리스 어댑터에는 자체 루프(``run_until``)가"
+" 있습니다."
+
+#: ../../guide/message-loop.rst:34
+msgid "A loop that waits for CEF"
+msgstr "CEF를 기다리는 루프"
+
+#: ../../guide/message-loop.rst:36
+msgid ""
+"A program with an event loop of its own (a GUI toolkit, ``asyncio``, a "
+"``select`` loop) should not poll. With ``Settings.external_message_pump``"
+" set, CEF calls "
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work` when it wants"
+" a run, from any of its threads, with the delay in milliseconds. "
+":class:`~cefweaver.MessagePump` implements the protocol around that hook:"
+msgstr ""
+"자체 이벤트 루프가 있는 프로그램(GUI 툴킷, ``asyncio``, ``select`` 루프)은 폴링하지 말아야 합니다. "
+"``Settings.external_message_pump``\\ 를 설정하면 CEF는 실행이 필요할 때 CEF의 임의의 스레드에서"
+" 밀리초 단위 지연과 함께 "
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work`\\ 를 호출합니다. "
+":class:`~cefweaver.MessagePump`\\ 가 이 훅을 둘러싼 프로토콜을 구현합니다:"
+
+#: ../../guide/message-loop.rst:38
+msgid ""
+"A new request replaces the pending one (a delay of zero or less means "
+"now)."
+msgstr "새 요청은 대기 중인 요청을 대체합니다(0 이하의 지연은 즉시를 뜻합니다)."
+
+#: ../../guide/message-loop.rst:39
+msgid ""
+"The wait between two runs never exceeds 1/30 s, because not every kind of"
+" work is announced."
+msgstr "모든 종류의 작업이 알려지는 것은 아니므로, 두 실행 사이의 대기는 1/30초를 넘지 않습니다."
+
+#: ../../guide/message-loop.rst:40
+msgid ""
+"``wake(delay)``, the optional second argument of the constructor, is "
+"called for each request with the seconds until the run. It may be called "
+"from any thread, so it should only wake your loop (set an event, write to"
+" a pipe, ask the toolkit to call a function later)."
+msgstr ""
+"생성자의 선택적 두 번째 인자인 ``wake(delay)``\\ 는 요청마다 실행까지 남은 초를 받아 호출됩니다. 어느 스레드에서나"
+" 호출될 수 있으므로 루프를 깨우는 일만 해야 합니다(이벤트 설정, 파이프에 쓰기, 툴킷에 함수를 나중에 호출하라고 요청하기)."
+
+#: ../../guide/message-loop.rst:41
+msgid ""
+":meth:`~cefweaver.MessagePump.timeout` gives the seconds until the next "
+"run is due."
+msgstr ":meth:`~cefweaver.MessagePump.timeout`\\ 은 다음 실행 기한까지 남은 초를 줍니다."
+
+#: ../../guide/message-loop.rst:42
+msgid ""
+":meth:`~cefweaver.MessagePump.run` calls ``do_message_loop_work()`` if a "
+"run is due and returns whether it did. Call it on the thread that called "
+"``initialize()``."
+msgstr ""
+":meth:`~cefweaver.MessagePump.run`\\ 은 실행 기한이 되었으면 "
+"``do_message_loop_work()``\\ 를 호출하고 호출했는지를 반환합니다. ``initialize()``\\ 를 "
+"호출한 스레드에서 호출하십시오."
+
+#: ../../guide/message-loop.rst:44
+msgid ""
+"The constructor sets ``external_message_pump`` and installs the pump as "
+"the app handler, so create it **before** ``initialize()``. The loop below"
+" sleeps on an event until CEF asks for work:"
+msgstr ""
+"생성자는 ``external_message_pump``\\ 를 설정하고 펌프를 앱 핸들러로 설치하므로, "
+"``initialize()`` **전에** 만드십시오. 아래 루프는 CEF가 작업을 요청할 때까지 이벤트에서 잠듭니다:"
+
+#: ../../guide/message-loop.rst:49
+msgid "It printed, in three runs in a row:"
+msgstr "연속 세 번 실행에서 다음을 출력했습니다:"
+
+#: ../../guide/message-loop.rst:59
+msgid ""
+"The loop never polls: it sleeps for ``pump.timeout()`` at most, and the "
+"event ends the sleep early when CEF announces work. The page loaded and "
+"the binding ran this way. The task that a timer thread posted with "
+":func:`~cefweaver.post_task` ran on the thread of the loop, inside a "
+"``pump.run()``. A task posted from another thread makes CEF announce "
+"work, which wakes a sleeping loop; the test "
+"``test_a_task_from_a_thread_wakes_the_message_pump_of_the_application`` "
+"of the repository checks it."
+msgstr ""
+"이 루프는 폴링하지 않습니다. 최대 ``pump.timeout()`` 동안 잠들며, CEF가 작업을 알리면 이벤트가 잠을 일찍 "
+"끝냅니다. 페이지 로딩과 바인딩 실행이 이 방식으로 이루어졌습니다. 타이머 스레드가 "
+":func:`~cefweaver.post_task`\\ 로 게시한 태스크는 루프의 스레드에서 ``pump.run()`` 안에서 "
+"실행되었습니다. 다른 스레드에서 게시한 태스크는 CEF가 작업을 알리게 하여 잠든 루프를 깨우며, 저장소의 테스트 "
+"``test_a_task_from_a_thread_wakes_the_message_pump_of_the_application``\\"
+" 가 이를 확인합니다."
+
+#: ../../guide/message-loop.rst:61
+msgid ""
+":class:`~cefweaver.ui.Session` is this loop for a toolkit: its ``wake`` "
+"posts a function to the main thread with ``adapter.post``, that function "
+"arms ``adapter.call_later(pump.timeout(), ...)``, and the timer calls "
+"``pump.run()``."
+msgstr ""
+":class:`~cefweaver.ui.Session`\\ 은 툴킷용으로 이 루프를 구현한 것입니다. ``wake``\\ 가 "
+"``adapter.post``\\ 로 메인 스레드에 함수를 게시하고, 그 함수가 "
+"``adapter.call_later(pump.timeout(), ...)``\\ 를 설정하며, 타이머가 "
+"``pump.run()``\\ 을 호출합니다."
+
+#: ../../guide/message-loop.rst:64
+msgid "When CEF owns the window"
+msgstr "CEF가 창을 소유할 때"
+
+#: ../../guide/message-loop.rst:66
+msgid ""
+"The external pump is meant for programs where a toolkit owns the window "
+"and its events (offscreen rendering, or a native window of the toolkit). "
+"With windows that CEF makes itself (Views), mouse and key input of the "
+"window did not arrive when the loop was driven by a pump; use a polling "
+"loop there. This was found on Linux X11 only and the cause was not looked"
+" for in the source of CEF. Details are in :doc:`views` and "
+":doc:`limitations`."
+msgstr ""
+"외부 펌프는 툴킷이 창과 그 이벤트를 소유하는 프로그램(오프스크린 렌더링이나 툴킷의 네이티브 창)을 위한 것입니다. CEF가 직접 "
+"만드는 창(Views)에서는 펌프로 루프를 구동했을 때 창의 마우스와 키 입력이 도착하지 않았습니다. 그런 경우에는 폴링 루프를 "
+"사용하십시오. 이는 Linux X11에서만 확인되었으며 원인은 CEF 소스에서 찾지 않았습니다. 자세한 내용은 "
+":doc:`views`\\ 와 :doc:`limitations`\\ 에 있습니다."
+
+#: ../../guide/message-loop.rst:69
+msgid "Stopping"
+msgstr "종료"
+
+#: ../../guide/message-loop.rst:71
+msgid ""
+"A loop ends for one of these reasons, and after it you call "
+":meth:`~cefweaver.CefApp.shutdown`:"
+msgstr "루프는 다음 이유 중 하나로 끝나며, 그 뒤에 :meth:`~cefweaver.CefApp.shutdown`\\ 을 호출합니다:"
+
+#: ../../guide/message-loop.rst:73
+msgid ""
+"``is_running`` became ``False``: every browser is closed. Closing the "
+"browser from code (``browser.get_host().close_browser(True)``, as in the "
+"script) does it, and so does the user closing the window of a browser "
+"that CEF made. A popup closing alone leaves ``is_running`` true."
+msgstr ""
+"``is_running``\\ 이 ``False``\\ 가 되었습니다. 모든 브라우저가 닫힌 것입니다. 스크립트처럼 코드에서 "
+"브라우저를 닫거나(``browser.get_host().close_browser(True)``), 사용자가 CEF가 만든 브라우저의"
+" 창을 닫으면 그렇게 됩니다. 팝업 하나만 닫혀도 ``is_running``\\ 은 참으로 남습니다."
+
+#: ../../guide/message-loop.rst:74
+msgid ""
+"Your own condition holds (a flag set by a callback, a quit command of the"
+" toolkit)."
+msgstr "직접 정한 조건이 성립합니다(콜백이 설정한 플래그, 툴킷의 종료 명령)."
+
+#: ../../guide/message-loop.rst:75
+msgid ""
+"With ``initialize(None)`` there is no first browser and ``is_running`` "
+"stays true until ``shutdown()``. Watch for the end of your windows "
+"yourself (for Views, ``WindowDelegate.on_window_destroyed``, see "
+":doc:`views`)."
+msgstr ""
+"``initialize(None)``\\ 에서는 첫 브라우저가 없고 ``is_running``\\ 은 ``shutdown()``\\"
+" 까지 참으로 유지됩니다. 창이 끝나는 때를 직접 지켜보십시오(Views에서는 "
+"``WindowDelegate.on_window_destroyed``, :doc:`views`\\ 를 참고하십시오)."
+
+#: ../../guide/message-loop.rst:77
+msgid ""
+"``shutdown()`` closes the browsers that are left and waits for them by "
+"running the message loop itself (up to about 5 seconds for the browsers "
+"of the application, then up to about 5 seconds more for any others that "
+"are still open, such as a Views window), so it needs no loop of yours "
+"around it; both scripts above call it as the last step. Under a toolkit "
+"call :meth:`~cefweaver.ui.Session.shutdown`, which returns at once and "
+"calls ``done`` when CEF has shut down; do not end the toolkit before "
+"that."
+msgstr ""
+"``shutdown()``\\ 은 남은 브라우저를 닫고 메시지 루프를 직접 실행하면서 브라우저가 닫히기를 기다리므로(애플리케이션의 "
+"브라우저는 최대 약 5초, 그 뒤 Views 창처럼 아직 열려 있는 다른 브라우저는 다시 최대 약 5초) 별도의 루프가 필요하지 "
+"않습니다. 위 두 스크립트 모두 마지막 단계로 이것을 호출합니다. 툴킷 아래에서는 "
+":meth:`~cefweaver.ui.Session.shutdown`\\ 을 호출합니다. 이것은 즉시 반환하고 CEF가 종료되면 "
+"``done``\\ 을 호출합니다. 그 전에 툴킷을 끝내면 안 됩니다."
+

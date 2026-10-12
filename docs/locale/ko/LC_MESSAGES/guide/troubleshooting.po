@@ -1,0 +1,600 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 08:04+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/troubleshooting.rst:2
+msgid "Troubleshooting"
+msgstr "문제 해결"
+
+#: ../../guide/troubleshooting.rst:4
+msgid ""
+"Messages you may see, what CEFWeaver does in some situations, and where "
+"the known problems are listed. A message is on this page because it was "
+"produced on purpose and the condition is given. The runs used the "
+"installed wheel (CEF 154, Python 3.13) on Linux x86_64 on a virtual X "
+"server (``xvfb-run -a``, ``WAYLAND_DISPLAY`` unset), and each result was "
+"the same in three runs in a row. The scripts are in "
+"``docs/guide/recipes/``. Where a message could not be reproduced the line"
+" of the source that prints it is the evidence, and it says so."
+msgstr ""
+"볼 수 있는 메시지, 몇몇 상황에서 CEFWeaver가 하는 일, 알려진 문제가 정리된 곳을 안내합니다. 메시지는 의도적으로 "
+"발생시켰고 조건이 제시되어 있기 때문에 이 페이지에 있습니다. 실행에는 설치된 wheel(CEF 154, Python 3.13)을 "
+"사용했으며 Linux x86_64의 가상 X 서버(``xvfb-run -a``, ``WAYLAND_DISPLAY`` 미설정)에서 "
+"실행했고, 각 결과는 연속 세 번 실행에서 같았습니다. 스크립트는 ``docs/guide/recipes/``\\ 에 있습니다. "
+"메시지를 재현하지 못한 곳에서는 그 메시지를 출력하는 소스의 줄이 근거이며, 그렇다고 밝혀 두었습니다."
+
+#: ../../guide/troubleshooting.rst:7
+msgid "Messages"
+msgstr "메시지"
+
+#: ../../guide/troubleshooting.rst:10
+msgid "Exceptions of the Python side"
+msgstr "Python 쪽 예외"
+
+#: ../../guide/troubleshooting.rst:15
+msgid "It prints:"
+msgstr "다음을 출력합니다."
+
+#: ../../guide/troubleshooting.rst:39
+msgid "Message"
+msgstr "메시지"
+
+#: ../../guide/troubleshooting.rst:40
+msgid "What to do"
+msgstr "해야 할 일"
+
+#: ../../guide/troubleshooting.rst:41
+msgid "``initialize() has not been called``"
+msgstr "``initialize() has not been called``"
+
+#: ../../guide/troubleshooting.rst:42
+msgid ""
+"The call needs a running CEF. ``add_resource()`` and ``load_url()`` work "
+"after ``initialize()``; with :class:`~cefweaver.ui.Session` that is "
+":meth:`~cefweaver.ui.Session.start`, and the browser exists when the "
+"view's ``on_ready`` is called (:doc:`cookbook`)."
+msgstr ""
+"호출에는 실행 중인 CEF가 필요합니다. ``add_resource()``\\ 와 ``load_url()``\\ 은 "
+"``initialize()`` 뒤에 동작합니다. :class:`~cefweaver.ui.Session`\\ 에서는 그것이 "
+":meth:`~cefweaver.ui.Session.start`\\ 이며, 브라우저는 뷰의 ``on_ready``\\ 가 호출될 때"
+" 존재합니다(:doc:`cookbook`)."
+
+#: ../../guide/troubleshooting.rst:43
+msgid "``this must be done before initialize()``"
+msgstr "``this must be done before initialize()``"
+
+#: ../../guide/troubleshooting.rst:44
+msgid ""
+"Move the call before ``initialize()`` / ``session.start()``: switches, "
+"cache and resource paths, the app handler, JavaScript bindings, "
+"``offscreen`` and the other properties. The same for the settings: ``the "
+"settings cannot change after initialize()``. See :doc:`configuration`."
+msgstr ""
+"호출을 ``initialize()`` / ``session.start()`` 앞으로 옮기십시오. 스위치, 캐시와 리소스 경로, 앱 "
+"핸들러, JavaScript 바인딩, ``offscreen``, 그 밖의 속성이 해당합니다. 설정도 마찬가지입니다: ``the "
+"settings cannot change after initialize()``. :doc:`configuration`\\ 을 "
+"참고하십시오."
+
+#: ../../guide/troubleshooting.rst:45
+msgid "``initialize() was already called``"
+msgstr "``initialize() was already called``"
+
+#: ../../guide/troubleshooting.rst:46
+msgid "One ``CefApp`` starts once."
+msgstr "하나의 ``CefApp``\\ 은 한 번만 시작합니다."
+
+#: ../../guide/troubleshooting.rst:47
+msgid ""
+"``CEF can be initialized only once per process, and it was shut down "
+"already``"
+msgstr ""
+"``CEF can be initialized only once per process, and it was shut down "
+"already``"
+
+#: ../../guide/troubleshooting.rst:48
+msgid ""
+"CEF cannot start again in a process after ``shutdown()``, not even with a"
+" new ``CefApp``. Start a new process."
+msgstr ""
+"``shutdown()`` 뒤에는 새 ``CefApp``\\ 으로도 같은 프로세스에서 CEF를 다시 시작할 수 없습니다. 새 "
+"프로세스를 시작하십시오."
+
+#: ../../guide/troubleshooting.rst:49
+msgid "``CEF has been shut down``"
+msgstr "``CEF has been shut down``"
+
+#: ../../guide/troubleshooting.rst:50
+msgid "The call came after ``shutdown()``."
+msgstr "호출이 ``shutdown()`` 뒤에 왔습니다."
+
+#: ../../guide/troubleshooting.rst:51
+msgid "``expected an absolute http or https URL``"
+msgstr "``expected an absolute http or https URL``"
+
+#: ../../guide/troubleshooting.rst:52
+msgid ""
+"``add_resource()`` serves ``http`` and ``https`` URLs only. For another "
+"scheme see \"Custom schemes\" in :doc:`configuration`."
+msgstr ""
+"``add_resource()``\\ 는 ``http``\\ 와 ``https`` URL만 제공합니다. 다른 스킴은 "
+":doc:`configuration`\\ 의 \"사용자 정의 스킴\"을 참고하십시오."
+
+#: ../../guide/troubleshooting.rst:54
+msgid ""
+"The wheel and the source use the same texts for the lines above. The port"
+" check allows 0 to 65535 in both, while the docstring of "
+"``remote_debugging_port`` in the source says 1024 to 65535."
+msgstr ""
+"위 줄들의 문구는 wheel과 소스가 같습니다. 포트 검사는 둘 다 0에서 65535까지 허용하지만, 소스의 "
+"``remote_debugging_port`` docstring은 1024에서 65535라고 합니다."
+
+#: ../../guide/troubleshooting.rst:57
+msgid "``RuntimeError: CefInitialize() failed``"
+msgstr "``RuntimeError: CefInitialize() failed``"
+
+#: ../../guide/troubleshooting.rst:59
+msgid ""
+"A second process started CEF with the cache folder that a running process"
+" uses:"
+msgstr "두 번째 프로세스가, 실행 중인 프로세스가 사용하는 캐시 폴더로 CEF를 시작했습니다."
+
+#: ../../guide/troubleshooting.rst:64
+msgid "With ``LANGUAGE=en LANG=en_US.UTF-8`` it prints:"
+msgstr "``LANGUAGE=en LANG=en_US.UTF-8``\\ 로 실행하면 다음을 출력합니다."
+
+#: ../../guide/troubleshooting.rst:72
+msgid ""
+"The second process hands its command line to the first and fails with "
+"this error; the first gets "
+":meth:`~cefweaver.AppHandler.on_already_running_app_relaunch` with the "
+"switches and the working directory of the second. The hook is not "
+"required: without an app handler the second process failed the same way. "
+"But when the hook is missing or returns ``False`` (the default; the "
+"docstring says CEF then opens a new window), ``is_running`` of the first "
+"process stayed true and :meth:`~cefweaver.ui.Session.shutdown` did not "
+"finish within the 30 seconds of the script's wait in three runs, because "
+"it closes the views only; ``app.shutdown()`` closed everything in about "
+"0.06 s. Give each process its own ``cache_path``, or use the hook to pass"
+" the work to the first process. ``CefInitialize() failed`` is also what "
+"the source raises when CEF does not start for another reason "
+"(``_cefweaver.pyx``, in ``initialize()``); the reasons other than this "
+"one were not reproduced."
+msgstr ""
+"두 번째 프로세스는 자신의 명령줄을 첫 번째 프로세스에 넘기고 이 오류로 실패합니다. 첫 번째 프로세스는 두 번째 프로세스의 "
+"스위치와 작업 디렉터리와 함께 "
+":meth:`~cefweaver.AppHandler.on_already_running_app_relaunch`\\ 를 받습니다. 이"
+" 훅은 필수가 아닙니다. 앱 핸들러가 없어도 두 번째 프로세스는 똑같이 실패했습니다. 다만 훅이 없거나 ``False``\\ 를 "
+"반환하면(기본값이며, 독스트링은 이때 CEF가 새 창을 연다고 말합니다) 첫 번째 프로세스의 ``is_running``\\ 은 계속"
+" true였고, :meth:`~cefweaver.ui.Session.shutdown`\\ 은 뷰만 닫기 때문에 세 번 실행에서 모두"
+" 스크립트가 기다리는 30초 안에 끝나지 않았습니다. ``app.shutdown()``\\ 은 약 0.06초에 모두 닫았습니다. "
+"프로세스마다 고유한 ``cache_path``\\ 를 주거나, 훅을 사용해 작업을 첫 번째 프로세스에 넘깁니다. "
+"``CefInitialize() failed``\\ 는 CEF가 다른 이유로 시작되지 않을 때 소스가 발생시키는 오류이기도 "
+"합니다(``_cefweaver.pyx``\\ 의 ``initialize()``). 이 경우 외의 이유는 재현하지 않았습니다."
+
+#: ../../guide/troubleshooting.rst:75
+msgid "The process stops at start"
+msgstr "시작할 때 프로세스가 멈추는 경우"
+
+#: ../../guide/troubleshooting.rst:77
+msgid ""
+"If the files of the runtime are not where CEF looks, the failure depends "
+"on the file. This was tried by removing one file at a time from a copy of"
+" the package made of links (``start_only.py`` starts CEF and shuts down; "
+"its argument is the folder to import from):"
+msgstr ""
+"런타임 파일이 CEF가 찾는 위치에 없으면 실패는 파일에 따라 다릅니다. 링크로 만든 패키지 복사본에서 파일을 하나씩 제거하며 "
+"시험했습니다(``start_only.py``\\ 는 CEF를 시작하고 종료하며, 인자는 import할 폴더입니다)."
+
+#: ../../guide/troubleshooting.rst:93
+msgid "Removed"
+msgstr "제거한 파일"
+
+#: ../../guide/troubleshooting.rst:94
+msgid "Result"
+msgstr "결과"
+
+#: ../../guide/troubleshooting.rst:95
+msgid "``libcef.so``"
+msgstr "``libcef.so``"
+
+#: ../../guide/troubleshooting.rst:96
+msgid ""
+"``import cefweaver`` fails: ``ImportError: libcef.so: cannot open shared "
+"object file: No such file or directory`` (exit status 1)."
+msgstr ""
+"``import cefweaver``\\ 가 실패합니다: ``ImportError: libcef.so: cannot open "
+"shared object file: No such file or directory`` (종료 상태 1)."
+
+#: ../../guide/troubleshooting.rst:97
+msgid "``icudtl.dat``"
+msgstr "``icudtl.dat``"
+
+#: ../../guide/troubleshooting.rst:98
+msgid ""
+"Exit status 133 (``Trace/breakpoint trap (core dumped)``); before it "
+"``Invalid file descriptor to ICU data received.``"
+msgstr ""
+"종료 상태 133(``Trace/breakpoint trap (core dumped)``)이며, 그 앞에 ``Invalid file"
+" descriptor to ICU data received.`` 메시지가 있습니다."
+
+#: ../../guide/troubleshooting.rst:99
+msgid "``locales/``"
+msgstr "``locales/``"
+
+#: ../../guide/troubleshooting.rst:100
+msgid "Exit status 133 with no message before it."
+msgstr "종료 상태 133이며 그 앞에 메시지가 없습니다."
+
+#: ../../guide/troubleshooting.rst:101
+msgid "``cefsubprocess``"
+msgstr "``cefsubprocess``"
+
+#: ../../guide/troubleshooting.rst:102
+msgid ""
+"Exit status 133. Standard error has many ``LaunchProcess: failed to "
+"execvp:`` lines with the path, ``GPU process launch failed: "
+"error_code=1002``, ``Network service crashed or was terminated, "
+"restarting service.`` and finally ``GPU process isn't usable. Goodbye.``"
+msgstr ""
+"종료 상태 133입니다. 표준 오류에 경로가 포함된 ``LaunchProcess: failed to execvp:`` 줄이 많이 "
+"나오고, 이어서 ``GPU process launch failed: error_code=1002``, ``Network "
+"service crashed or was terminated, restarting service.``, 마지막으로 ``GPU "
+"process isn't usable. Goodbye.`` 메시지가 나옵니다."
+
+#: ../../guide/troubleshooting.rst:103
+msgid "``resources.pak``"
+msgstr "``resources.pak``"
+
+#: ../../guide/troubleshooting.rst:104
+msgid ""
+"The browser started and shut down (exit status 0). Standard error had "
+"``Failed to load .../resources.pak``, ``Some features may not be "
+"available.`` and ``Failed to parse extension manifest.``"
+msgstr ""
+"브라우저가 시작하고 종료했습니다(종료 상태 0). 표준 오류에 ``Failed to load .../resources.pak``, "
+"``Some features may not be available.``, ``Failed to parse extension "
+"manifest.`` 메시지가 있었습니다."
+
+#: ../../guide/troubleshooting.rst:105
+msgid "``v8_context_snapshot.bin``"
+msgstr "``v8_context_snapshot.bin``"
+
+#: ../../guide/troubleshooting.rst:106
+msgid "The browser started and shut down; no message."
+msgstr "브라우저가 시작하고 종료했으며 메시지는 없었습니다."
+
+#: ../../guide/troubleshooting.rst:108
+msgid ""
+"With nothing removed the script prints ``browser ready`` and ``shut down;"
+" log file in the cache folder: True`` and writes nothing to standard "
+"error. Other missing files were not tried. Status 133 is the shell's 128 "
+"plus signal 5 (SIGTRAP). Reinstall the wheel, and check the layout in "
+":doc:`installation` if you copied the files yourself."
+msgstr ""
+"아무것도 제거하지 않으면 스크립트는 ``browser ready``\\ 와 ``shut down; log file in the "
+"cache folder: True``\\ 를 출력하고 표준 오류에는 아무것도 쓰지 않습니다. 다른 누락 파일은 시험하지 않았습니다."
+" 상태 133은 셸의 128에 시그널 5(SIGTRAP)를 더한 값입니다. wheel을 다시 설치하십시오. 파일을 직접 복사했다면 "
+":doc:`installation`\\ 에서 배치를 확인하십시오."
+
+#: ../../guide/troubleshooting.rst:111
+msgid "No display"
+msgstr "디스플레이 없음"
+
+#: ../../guide/troubleshooting.rst:113
+msgid "With ``DISPLAY`` and ``WAYLAND_DISPLAY`` both unset:"
+msgstr "``DISPLAY``\\ 와 ``WAYLAND_DISPLAY``\\ 를 모두 설정하지 않으면 다음과 같습니다."
+
+#: ../../guide/troubleshooting.rst:115
+msgid ""
+"An offscreen browser (:class:`~cefweaver.ui.Session`, ``start_only.py``) "
+"started and shut down. Standard error had one line: ``GLib-GObject: "
+"g_object_set_is_valid_property: object class 'GtkSettings' has no "
+"property named 'gtk-modules'``."
+msgstr ""
+"오프스크린 브라우저(:class:`~cefweaver.ui.Session`, ``start_only.py``)는 시작하고 "
+"종료했습니다. 표준 오류에는 한 줄이 있었습니다: ``GLib-GObject: "
+"g_object_set_is_valid_property: object class 'GtkSettings' has no "
+"property named 'gtk-modules'``."
+
+#: ../../guide/troubleshooting.rst:116
+msgid ""
+"The window of :class:`~cefweaver.CefApp` (``window_mode.py``) ended the "
+"process in ``initialize()`` with exit status 133, after that same line. "
+"There was no ``Missing X server`` message. Run it on a virtual display "
+"(``xvfb-run -a``) or in a graphical session. On a Wayland desktop the "
+"window mode uses X11 unless you say otherwise (:doc:`wayland-gpu`)."
+msgstr ""
+":class:`~cefweaver.CefApp`\\ 의 창(``window_mode.py``)은 같은 줄이 출력된 뒤 "
+"``initialize()``\\ 에서 종료 상태 133으로 프로세스를 끝냈습니다. ``Missing X server`` 메시지는 "
+"없었습니다. 가상 디스플레이(``xvfb-run -a``)나 그래픽 세션에서 실행하십시오. Wayland 데스크톱에서는 달리 "
+"지정하지 않으면 창 모드가 X11을 사용합니다(:doc:`wayland-gpu`)."
+
+#: ../../guide/troubleshooting.rst:121
+msgid ""
+"On a virtual X server the script prints ``initialize() returned`` and "
+"``shut down`` and exits with status 0."
+msgstr ""
+"가상 X 서버에서 스크립트는 ``initialize() returned``\\ 와 ``shut down``\\ 을 출력하고 종료 "
+"상태 0으로 끝납니다."
+
+#: ../../guide/troubleshooting.rst:124
+msgid "Printing"
+msgstr "인쇄"
+
+#: ../../guide/troubleshooting.rst:126
+msgid ""
+"All from ``print_handler.py`` and ``print_pdf.py``; the conditions are on"
+" :doc:`printing`:"
+msgstr ""
+"모두 ``print_handler.py``\\ 와 ``print_pdf.py``\\ 에서 나온 것이며, 조건은 "
+":doc:`printing`\\ 에 있습니다."
+
+#: ../../guide/troubleshooting.rst:128
+msgid ""
+"``The selected printer is not available or not installed correctly. Check"
+" your printer or try selecting another printer.``: the handler did not "
+"fill the settings in ``on_print_settings(get_defaults=True)``. The text "
+"is in the language of the process."
+msgstr ""
+"``The selected printer is not available or not installed correctly. Check"
+" your printer or try selecting another printer.``: 핸들러가 "
+"``on_print_settings(get_defaults=True)``\\ 에서 설정을 채우지 않았습니다. 이 텍스트는 프로세스의"
+" 언어로 나옵니다."
+
+#: ../../guide/troubleshooting.rst:129
+msgid ""
+"``Error rendering printed document via service for document N: kFailed`` "
+"followed by ``Something went wrong when trying to print.  Please check "
+"your printer and try again.``: CEF was not started with ``disable-"
+"features=EnableOopPrintDrivers``."
+msgstr ""
+"``Error rendering printed document via service for document N: "
+"kFailed``\\ 다음에 ``Something went wrong when trying to print.  Please "
+"check your printer and try again.``\\ 가 나옵니다: CEF를 ``disable-"
+"features=EnableOopPrintDrivers``\\ 로 시작하지 않았습니다."
+
+#: ../../guide/troubleshooting.rst:130
+msgid ""
+"``PrintToPDF failed with error: Page range exceeds page count`` and ``..."
+" Page range is invalid (start > end)``: the ``page_ranges`` of "
+":meth:`~cefweaver.BrowserHost.print_to_pdf`; ``on_pdf_print_finished`` "
+"gets ``ok=False``."
+msgstr ""
+"``PrintToPDF failed with error: Page range exceeds page count``\\ 와 ``..."
+" Page range is invalid (start > end)``: "
+":meth:`~cefweaver.BrowserHost.print_to_pdf`\\ 의 ``page_ranges``\\ 에서 "
+"나옵니다. ``on_pdf_print_finished``\\ 는 ``ok=False``\\ 를 받습니다."
+
+#: ../../guide/troubleshooting.rst:131
+msgid ""
+"Nothing at all after ``host.print()``: no print handler is found; set it "
+"on the class of the client."
+msgstr "``host.print()`` 뒤에 아무것도 나오지 않습니다: 인쇄 핸들러를 찾지 못한 것입니다. 클라이언트의 클래스에 설정하십시오."
+
+#: ../../guide/troubleshooting.rst:134
+msgid "Lines on standard error that are not errors of your program"
+msgstr "표준 오류에 나오지만 프로그램의 오류가 아닌 줄"
+
+#: ../../guide/troubleshooting.rst:136
+msgid ""
+"Chromium writes its log to ``chrome_debug.log`` in the cache folder, and "
+"standard error stays quiet unless something prints there (see "
+"\"Behavior\"). These were seen and the program went on, with exit status "
+"0:"
+msgstr ""
+"Chromium은 로그를 캐시 폴더의 ``chrome_debug.log``\\ 에 쓰며, 표준 오류에 무언가가 출력되지 않는 한 "
+"표준 오류는 조용합니다(\"동작\" 참고). 다음 줄들이 관찰되었고 프로그램은 종료 상태 0으로 계속 실행되었습니다."
+
+#: ../../guide/troubleshooting.rst:142
+msgid "Line"
+msgstr "줄"
+
+#: ../../guide/troubleshooting.rst:143
+msgid "Seen when"
+msgstr "관찰된 경우"
+
+#: ../../guide/troubleshooting.rst:144
+msgid "``DevTools listening on ws://127.0.0.1:PORT/devtools/browser/ID``"
+msgstr "``DevTools listening on ws://127.0.0.1:PORT/devtools/browser/ID``"
+
+#: ../../guide/troubleshooting.rst:145
+msgid ""
+"``remote_debugging_port`` is set (three runs of a script that sets only "
+"the port)."
+msgstr "``remote_debugging_port``\\ 가 설정된 경우입니다(포트만 설정하는 스크립트를 세 번 실행했습니다)."
+
+#: ../../guide/troubleshooting.rst:146
+msgid ""
+"``Message 6 rejected by interface blink.mojom.WidgetHost`` and the same "
+"for ``Message 7``"
+msgstr ""
+"``Message 6 rejected by interface blink.mojom.WidgetHost``, 그리고 ``Message"
+" 7``\\ 에 대한 같은 줄"
+
+#: ../../guide/troubleshooting.rst:147
+msgid ""
+"Printed in ``configuration.py`` (custom scheme, evaluate, user agent and "
+"the other settings); not printed by ``start_only.py`` or the cookbook "
+"script. Which setting causes it was not found."
+msgstr ""
+"``configuration.py``\\ (사용자 정의 스킴, evaluate, 사용자 에이전트와 그 밖의 설정)에서 출력되었고, "
+"``start_only.py``\\ 나 쿡북 스크립트에서는 출력되지 않았습니다. 어떤 설정이 원인인지는 찾지 못했습니다."
+
+#: ../../guide/troubleshooting.rst:148
+msgid "``Check failed: observers_.empty().`` (``base/observer_list.h:330``)"
+msgstr "``Check failed: observers_.empty().`` (``base/observer_list.h:330``)"
+
+#: ../../guide/troubleshooting.rst:149
+msgid ""
+"At the end of a run in which a print cycle failed (``empty`` and ``no-"
+"switch`` of ``print_handler.py``); not in the run that succeeded. The "
+"cause was not investigated."
+msgstr ""
+"인쇄 사이클이 실패한 실행의 끝에서(``print_handler.py``\\ 의 ``empty``\\ 와 ``no-switch``)"
+" 나왔고, 성공한 실행에서는 나오지 않았습니다. 원인은 조사하지 않았습니다."
+
+#: ../../guide/troubleshooting.rst:150
+msgid "``GLib-GObject: ... 'gtk-modules'``"
+msgstr "``GLib-GObject: ... 'gtk-modules'``"
+
+#: ../../guide/troubleshooting.rst:151
+msgid "No display (above)."
+msgstr "디스플레이 없음(위)."
+
+#: ../../guide/troubleshooting.rst:152
+msgid ""
+"In ``chrome_debug.log``: ``dri3 extension not supported.``, "
+"``InitializeSandbox() called with multiple threads in process gpu-"
+"process.``, ``Failed to register with "
+"org.freedesktop.host.portal.Registry``, ``Desktop Identity Consistency "
+"cannot be enabled as no OAuth client ID and client secret have been "
+"configured.``"
+msgstr ""
+"``chrome_debug.log``\\ 에서: ``dri3 extension not supported.``, "
+"``InitializeSandbox() called with multiple threads in process gpu-"
+"process.``, ``Failed to register with "
+"org.freedesktop.host.portal.Registry``, ``Desktop Identity Consistency "
+"cannot be enabled as no OAuth client ID and client secret have been "
+"configured.``"
+
+#: ../../guide/troubleshooting.rst:153
+msgid ""
+"In each of three starts on this machine under ``xvfb-run`` with the "
+"default log level (WARNING lines)."
+msgstr "이 컴퓨터에서 ``xvfb-run`` 아래에 기본 로그 수준(WARNING 줄)으로 시작한 세 번 모두에서 나왔습니다."
+
+#: ../../guide/troubleshooting.rst:155
+msgid ""
+"Messages that are not on this page were not produced. In particular the "
+"errors of the ``bridge.evaluate`` timeout and of "
+"``DragData.get_file_name()`` are in :doc:`limitations`."
+msgstr ""
+"이 페이지에 없는 메시지는 발생시키지 않았습니다. 특히 ``bridge.evaluate`` 타임아웃의 오류와 "
+"``DragData.get_file_name()``\\ 의 오류는 :doc:`limitations`\\ 에 있습니다."
+
+#: ../../guide/troubleshooting.rst:158
+msgid "Behavior"
+msgstr "동작"
+
+#: ../../guide/troubleshooting.rst:160
+msgid ""
+"**Exceptions in your callbacks do not stop CEF.** An exception raised in "
+"a hook of the view (``on_title`` here) was passed to ``sys.excepthook`` "
+"and the loop went on; the hook was called twice for one page and both "
+"exceptions arrived (``hook_errors.py``). The docstring of "
+":class:`~cefweaver.AppHandler` says the same for its methods (source)."
+msgstr ""
+"**콜백의 예외는 CEF를 멈추지 않습니다.** 뷰의 훅(여기서는 ``on_title``)에서 발생한 예외는 "
+"``sys.excepthook``\\ 으로 전달되었고 루프는 계속되었습니다. 훅은 한 페이지에 두 번 호출되었고 두 예외가 모두 "
+"도착했습니다(``hook_errors.py``). :class:`~cefweaver.AppHandler`\\ 의 docstring도"
+" 그 메서드에 대해 같은 말을 합니다(소스)."
+
+#: ../../guide/troubleshooting.rst:165
+msgid "Output:"
+msgstr "출력은 다음과 같습니다."
+
+#: ../../guide/troubleshooting.rst:173
+msgid ""
+"**Callbacks run inside the message loop.** CEF's UI-thread callbacks are "
+"called from ``do_message_loop_work()`` on the thread that called "
+"``initialize()`` (docstring of :class:`~cefweaver.CefApp`, source). If "
+"the loop does not run, no callback arrives; see :doc:`message-loop`. The "
+"print and PDF callbacks above arrived inside ``run_until`` of the "
+"headless adapter."
+msgstr ""
+"**콜백은 메시지 루프 안에서 실행됩니다.** CEF의 UI 스레드 콜백은 ``initialize()``\\ 를 호출한 스레드의 "
+"``do_message_loop_work()``\\ 에서 호출됩니다(:class:`~cefweaver.CefApp`\\ 의 "
+"docstring, 소스). 루프가 실행되지 않으면 콜백이 오지 않습니다. :doc:`message-loop`\\ 를 참고하십시오."
+" 위의 인쇄와 PDF 콜백은 헤드리스 어댑터의 ``run_until`` 안에서 도착했습니다."
+
+#: ../../guide/troubleshooting.rst:174
+msgid ""
+"**Standard error is quiet.** The log goes to ``chrome_debug.log`` in the "
+"cache folder unless ``log_file`` is set; the cookbook script and "
+"``start_only.py`` wrote nothing to standard error. For a log on standard "
+"error Chromium has the switch ``enable-logging=stderr``; with it the four"
+" ``chrome_debug.log`` lines of the table above appeared on standard error"
+" in three runs of a script that only starts and shuts down (not kept as a"
+" script); other scripts were not tried with it. The log level is "
+"``Settings.log_severity``."
+msgstr ""
+"**표준 오류는 조용합니다.** ``log_file``\\ 을 설정하지 않으면 로그는 캐시 폴더의 "
+"``chrome_debug.log``\\ 로 갑니다. 쿡북 스크립트와 ``start_only.py``\\ 는 표준 오류에 아무것도 "
+"쓰지 않았습니다. 표준 오류로 로그를 받으려면 Chromium의 스위치 ``enable-logging=stderr``\\ 가 "
+"있습니다. 시작하고 종료하기만 하는 스크립트를 세 번 실행했을 때(스크립트로 남기지 않았습니다) 이 스위치를 쓰자 위 표의 "
+"``chrome_debug.log`` 네 줄이 표준 오류에 나타났습니다. 다른 스크립트에는 시험하지 않았습니다. 로그 수준은 "
+"``Settings.log_severity``\\ 입니다."
+
+#: ../../guide/troubleshooting.rst:175
+msgid ""
+"**The cache folder is** ``cache/`` **in the working directory** when no "
+"``cache_path`` is given (:doc:`configuration`). Two processes cannot "
+"share a cache folder (above)."
+msgstr ""
+"``cache_path``\\ 를 주지 않으면 **캐시 폴더는 작업 디렉터리의** ``cache/`` **입니다**\\ "
+"(:doc:`configuration`). 두 프로세스는 캐시 폴더를 공유할 수 없습니다(위)."
+
+#: ../../guide/troubleshooting.rst:176
+msgid ""
+"**The language of the pages follows** ``LANGUAGE`` / ``LANG``, not "
+"``Settings.locale``, on Linux (:doc:`configuration`)."
+msgstr ""
+"**페이지의 언어는 다음 값을 따릅니다.** Linux에서는 ``Settings.locale``\\ 이 아니라 "
+"``LANGUAGE`` / ``LANG``\\ 을 따릅니다(:doc:`configuration`)."
+
+#: ../../guide/troubleshooting.rst:177
+msgid "**Offscreen runs without a display, window mode does not** (above)."
+msgstr "**오프스크린은 디스플레이 없이 실행되지만 창 모드는 실행되지 않습니다**\\ (위)."
+
+#: ../../guide/troubleshooting.rst:180
+msgid "Known problems"
+msgstr "알려진 문제"
+
+#: ../../guide/troubleshooting.rst:182
+msgid "They are kept in two places, with their causes where the cause was found:"
+msgstr "알려진 문제는 두 곳에 정리되어 있으며, 원인을 찾은 경우에는 원인도 함께 있습니다."
+
+#: ../../guide/troubleshooting.rst:184
+msgid ""
+":doc:`limitations`: platforms, Windows and macOS differences, features "
+"that are not there, the API restrictions (``bridge.evaluate`` before the "
+"context exists, ``DragData.get_file_name()``, ``Image`` before "
+"initialization, views with an external message pump), and the scope of "
+"the tests."
+msgstr ""
+":doc:`limitations`\\ 에는 플랫폼, Windows와 macOS의 차이, 없는 기능, API 제약(컨텍스트가 존재하기"
+" 전의 ``bridge.evaluate``, ``DragData.get_file_name()``, 초기화 전의 ``Image``, "
+"외부 메시지 펌프를 쓰는 뷰), 테스트의 범위가 있습니다."
+
+#: ../../guide/troubleshooting.rst:185
+msgid ""
+":doc:`wayland-gpu`: the window mode on Wayland that cannot be closed from"
+" code, and the GPU process on X11."
+msgstr ":doc:`wayland-gpu`\\ 에는 코드에서 닫을 수 없는 Wayland의 창 모드와 X11의 GPU 프로세스가 있습니다."
+
+#: ../../guide/troubleshooting.rst:187
+msgid ""
+"Not tried for this page: a real Wayland session, Windows and macOS, "
+"window-mode printing, a printer, and the many Chromium switches not named"
+" here."
+msgstr ""
+"이 페이지를 위해 실제 Wayland 세션, Windows와 macOS, 창 모드 인쇄, 프린터, 여기에 이름이 나오지 않은 많은 "
+"Chromium 스위치는 시험하지 않았습니다."
+

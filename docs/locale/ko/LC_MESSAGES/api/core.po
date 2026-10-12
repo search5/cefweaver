@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: cefweaver \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-13 01:01+0900\n"
+"POT-Creation-Date: 2026-10-13 08:14+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: cefweaver contributors\n"
 "Language: ko\n"
@@ -77,7 +77,7 @@ msgid "Raises"
 msgstr "예외"
 
 #: ../../docstring cefweaver._cefweaver.CefApp.add_command_line_switch:9
-#: cefweaver._cefweaver.CefApp.add_javascript_binding:13
+#: cefweaver._cefweaver.CefApp.add_javascript_binding:14
 #: cefweaver._cefweaver.CefApp.enable_renderer_events:13 cefweaver._cefweaver.CefApp.set_app_handler:7
 #: cefweaver._cefweaver.CefApp.set_cache_path:6 cefweaver._cefweaver.CefApp.set_client:12
 #: cefweaver._cefweaver.CefApp.set_query_functions:14 cefweaver._cefweaver.CefApp.set_resources_path:8
@@ -91,27 +91,27 @@ msgstr "Python callable을 페이지에 ``window.<name>(...)``\\ 으로 노출�
 
 #: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:3 of
 msgid ""
-"The arguments of the call are converted to ``int``, ``bool``, ``float`` or ``str``; other "
-"JavaScript types arrive as ``None``. An exception raised by the callable goes to "
-"``sys.excepthook``."
+"The arguments of the call that are ``int``, ``bool``, ``float`` or ``str`` are passed on; an "
+"argument of another type (``null``, an array, an object) is left out, so the callable receives "
+"fewer arguments. An exception raised by the callable goes to ``sys.excepthook``."
 msgstr ""
-"호출의 인자는 ``int``, ``bool``, ``float`` 또는 ``str``\\ 로 변환되며, 다른 JavaScript 타입은 ``None``\\ 으로 전달됩니다. "
-"callable에서 발생한 예외는 ``sys.excepthook``\\ 으로 전달됩니다."
+"호출의 인자 중 ``int``, ``bool``, ``float`` 또는 ``str``\\ 인 것은 그대로 전달되고, 다른 타입(``null``, 배열, 객체)의 인자는 "
+"빠지므로 callable이 받는 인자가 줄어듭니다. callable에서 발생한 예외는 ``sys.excepthook``\\ 으로 전달됩니다."
 
-#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:7 of
+#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:8 of
 msgid "The name of the JavaScript function."
 msgstr "JavaScript 함수의 이름."
 
-#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:9 of
+#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:10 of
 msgid "Called with the converted arguments."
 msgstr "변환된 인자와 함께 호출됩니다."
 
-#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:12
+#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:13
 #: cefweaver.bridge.JavascriptBridge.evaluate:19 of
 msgid "If ``callback`` is not callable."
 msgstr "``callback``\\ 이 callable이 아닌 경우."
 
-#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:17 of
+#: ../../docstring cefweaver._cefweaver.CefApp.add_javascript_binding:18 of
 msgid ""
 "The callable runs inside :meth:`do_message_loop_work` on the thread that called "
 ":meth:`initialize`."

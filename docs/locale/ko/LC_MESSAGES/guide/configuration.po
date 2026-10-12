@@ -1,0 +1,827 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 08:04+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/configuration.rst:2
+msgid "Configuration"
+msgstr "구성"
+
+#: ../../guide/configuration.rst:4
+msgid ""
+"What you can set before CEF starts, where each setting goes, the "
+"environment variables that matter and where files are. The statements "
+"were checked with the installed wheel (CEF 154, Python 3.13) on Linux "
+"x86_64 on a virtual X server, offscreen. A statement that comes from the "
+"source or a docstring and was not run is marked \"source\". Windows and "
+"macOS were not tried for this page; see :doc:`limitations`."
+msgstr ""
+"CEF를 시작하기 전에 설정할 수 있는 것, 각 설정이 들어가는 위치, 중요한 환경변수, 파일이 있는 위치를 설명합니다. 설치된 "
+"wheel(CEF 154, Python 3.13)을 Linux x86_64의 가상 X 서버에서 오프스크린으로 실행하여 각 서술을 "
+"확인했습니다. 소스나 docstring에서 가져왔고 실행하지 않은 서술에는 \"source\"라고 표시했습니다. 이 페이지를 위해 "
+"Windows와 macOS는 시험하지 않았습니다. 자세한 내용은 :doc:`limitations`\\ 에 있습니다."
+
+#: ../../guide/configuration.rst:6
+msgid ""
+"Everything here must be set **before** CEF is initialized "
+"(``CefApp.initialize()``, which :meth:`~cefweaver.ui.Session.start` "
+"calls). After that the setters raise ``RuntimeError`` (the messages are "
+"in :doc:`troubleshooting`)."
+msgstr ""
+"여기에 나오는 모든 것은 CEF가 초기화되기 **전에** 설정해야 합니다(``CefApp.initialize()``, 이 함수는 "
+":meth:`~cefweaver.ui.Session.start`\\ 가 호출합니다). 그 뒤에는 setter가 "
+"``RuntimeError``\\ 를 발생시킵니다(메시지는 :doc:`troubleshooting`\\ 에 있습니다)."
+
+#: ../../guide/configuration.rst:12
+msgid "Where"
+msgstr "위치"
+
+#: ../../guide/configuration.rst:13 ../../guide/configuration.rst:180
+msgid "What"
+msgstr "내용"
+
+#: ../../guide/configuration.rst:14
+msgid "``CefApp.settings`` (:class:`~cefweaver.Settings`)"
+msgstr "``CefApp.settings`` (:class:`~cefweaver.Settings`)"
+
+#: ../../guide/configuration.rst:15
+msgid ""
+"The fields of CEF's settings struct: user agent, log, remote debugging, "
+"locale and others."
+msgstr "CEF 설정 구조체의 필드입니다: 사용자 에이전트, 로그, 원격 디버깅, 로케일 등이 있습니다."
+
+#: ../../guide/configuration.rst:16
+msgid "``CefApp.add_command_line_switch()``, ``Session(switches=...)``"
+msgstr "``CefApp.add_command_line_switch()``, ``Session(switches=...)``"
+
+#: ../../guide/configuration.rst:17
+msgid "Chromium command line switches."
+msgstr "Chromium 명령줄 스위치입니다."
+
+#: ../../guide/configuration.rst:18
+msgid "``set_cache_path()``, ``set_resources_path()``, ``set_subprocess_path()``"
+msgstr "``set_cache_path()``, ``set_resources_path()``, ``set_subprocess_path()``"
+
+#: ../../guide/configuration.rst:19
+msgid ""
+"Folders and the helper executable. ``Session(cache_path=...)`` calls the "
+"first."
+msgstr "폴더와 헬퍼 실행 파일입니다. ``Session(cache_path=...)``\\ 는 첫 번째 함수를 호출합니다."
+
+#: ../../guide/configuration.rst:20
+msgid ":class:`~cefweaver.AppHandler`"
+msgstr ":class:`~cefweaver.AppHandler`"
+
+#: ../../guide/configuration.rst:21
+msgid ""
+"Hooks into the command line, the custom schemes and the start of the "
+"context."
+msgstr "명령줄, 사용자 정의 스킴, 컨텍스트의 시작에 끼어드는 훅입니다."
+
+#: ../../guide/configuration.rst:22
+msgid ""
+"``CefApp.offscreen``, ``transparent``, ``shared_texture``, "
+"``windowless_frame_rate``, ``parent_view``, ``browser_settings``"
+msgstr ""
+"``CefApp.offscreen``, ``transparent``, ``shared_texture``, "
+"``windowless_frame_rate``, ``parent_view``, ``browser_settings``"
+
+#: ../../guide/configuration.rst:23
+msgid ""
+"Properties of the browsers; see the docstrings of "
+":class:`~cefweaver.CefApp`."
+msgstr "브라우저의 속성입니다. 자세한 내용은 :class:`~cefweaver.CefApp`\\ 의 docstring에 있습니다."
+
+#: ../../guide/configuration.rst:25
+msgid ""
+"One script sets several of them and reads the result back from the page "
+"and from CEF:"
+msgstr "스크립트 하나가 이 가운데 여러 개를 설정하고, 그 결과를 페이지와 CEF에서 다시 읽습니다."
+
+#: ../../guide/configuration.rst:30
+msgid ""
+"Run with ``LANGUAGE=en LANG=en_US.UTF-8 xvfb-run -a python -P "
+"configuration.py`` it prints:"
+msgstr ""
+"``LANGUAGE=en LANG=en_US.UTF-8 xvfb-run -a python -P configuration.py``\\"
+" 로 실행하면 다음을 출력합니다."
+
+#: ../../guide/configuration.rst:43
+msgid ""
+"The output is the same in three runs in a row. The sections below explain"
+" it."
+msgstr "연속으로 세 번 실행해도 출력은 같았습니다. 아래 절에서 이 출력을 설명합니다."
+
+#: ../../guide/configuration.rst:46
+msgid "Settings"
+msgstr "설정"
+
+#: ../../guide/configuration.rst:48
+msgid ""
+":class:`~cefweaver.Settings` holds the fields below. A field left at "
+"``None`` is not given to CEF, which uses its own default. A wrong type "
+"raises ``TypeError``, a value out of range ``ValueError``, a name that is"
+" not a field ``AttributeError`` (``Settings(foo=1)`` raises "
+"``TypeError``). Assigning after initialization raises ``RuntimeError``. "
+"The messages are in :doc:`troubleshooting`. The fields are the ones of "
+"``Settings`` in the wheel and in the source; the meaning is the docstring"
+" (source):"
+msgstr ""
+":class:`~cefweaver.Settings`\\ 는 아래의 필드를 가집니다. ``None``\\ 으로 둔 필드는 CEF에 "
+"전달되지 않으며, CEF는 자체 기본값을 사용합니다. 잘못된 타입은 ``TypeError``\\ 를, 범위를 벗어난 값은 "
+"``ValueError``\\ 를, 필드가 아닌 이름은 ``AttributeError``\\ 를 "
+"발생시킵니다(``Settings(foo=1)``\\ 은 ``TypeError``\\ 를 발생시킵니다). 초기화 뒤에 값을 대입하면 "
+"``RuntimeError``\\ 가 발생합니다. 메시지는 :doc:`troubleshooting`\\ 에 있습니다. 필드는 "
+"wheel과 소스의 ``Settings``\\ 에 있는 것과 같으며, 의미는 docstring을 따랐습니다(source)."
+
+#: ../../guide/configuration.rst:54
+msgid "Field"
+msgstr "필드"
+
+#: ../../guide/configuration.rst:55
+msgid "Type"
+msgstr "타입"
+
+#: ../../guide/configuration.rst:56
+msgid "Meaning"
+msgstr "의미"
+
+#: ../../guide/configuration.rst:57
+msgid "``user_agent``"
+msgstr "``user_agent``"
+
+#: ../../guide/configuration.rst:58 ../../guide/configuration.rst:61
+#: ../../guide/configuration.rst:64 ../../guide/configuration.rst:70
+#: ../../guide/configuration.rst:76 ../../guide/configuration.rst:88
+msgid "``str``"
+msgstr "``str``"
+
+#: ../../guide/configuration.rst:59
+msgid "Replaces the default user agent."
+msgstr "기본 사용자 에이전트를 대체합니다."
+
+#: ../../guide/configuration.rst:60
+msgid "``user_agent_product``"
+msgstr "``user_agent_product``"
+
+#: ../../guide/configuration.rst:62
+msgid "The product token of the default user agent, such as ``Product/1.2``."
+msgstr "기본 사용자 에이전트의 제품 토큰이며, ``Product/1.2``\\ 가 그 예입니다."
+
+#: ../../guide/configuration.rst:63
+msgid "``locale``"
+msgstr "``locale``"
+
+#: ../../guide/configuration.rst:65
+msgid ""
+"The UI locale, such as ``ko``. On Linux the language of the pages follows"
+" ``LANGUAGE`` and ``LANG`` instead (see below)."
+msgstr ""
+"UI 로케일이며, ``ko``\\ 가 그 예입니다. Linux에서 페이지의 언어는 대신 ``LANGUAGE``\\ 와 "
+"``LANG``\\ 을 따릅니다(아래 참조)."
+
+#: ../../guide/configuration.rst:66
+msgid "``log_file``, ``log_severity``"
+msgstr "``log_file``, ``log_severity``"
+
+#: ../../guide/configuration.rst:67
+msgid "``str``, :class:`~cefweaver.types.LogSeverity`"
+msgstr "``str``, :class:`~cefweaver.types.LogSeverity`"
+
+#: ../../guide/configuration.rst:68
+msgid ""
+"The log file and the level. The levels are ``DEFAULT``, ``VERBOSE``, "
+"``INFO``, ``WARNING``, ``ERROR``, ``FATAL`` and ``DISABLE``, which writes"
+" nothing."
+msgstr ""
+"로그 파일과 수준입니다. 수준은 ``DEFAULT``, ``VERBOSE``, ``INFO``, ``WARNING``, "
+"``ERROR``, ``FATAL``, ``DISABLE``\\ 이며, ``DISABLE``\\ 은 아무것도 쓰지 않습니다."
+
+#: ../../guide/configuration.rst:69
+msgid "``javascript_flags``"
+msgstr "``javascript_flags``"
+
+#: ../../guide/configuration.rst:71
+msgid "Flags for V8, such as ``--expose-gc``."
+msgstr "V8에 전달하는 플래그이며, ``--expose-gc``\\ 가 그 예입니다."
+
+#: ../../guide/configuration.rst:72
+msgid "``remote_debugging_port``"
+msgstr "``remote_debugging_port``"
+
+#: ../../guide/configuration.rst:73 ../../guide/configuration.rst:91
+#: ../../guide/configuration.rst:94
+msgid "``int``"
+msgstr "``int``"
+
+#: ../../guide/configuration.rst:74
+msgid "The port of the remote debugging server; 0 or unset turns it off."
+msgstr "원격 디버깅 서버의 포트입니다. 0이거나 설정하지 않으면 서버를 끕니다."
+
+#: ../../guide/configuration.rst:75
+msgid "``root_cache_path``"
+msgstr "``root_cache_path``"
+
+#: ../../guide/configuration.rst:77
+msgid "The folder of the profile data (see \"Files\")."
+msgstr "프로필 데이터의 폴더입니다(\"Files\" 참조)."
+
+#: ../../guide/configuration.rst:78
+msgid "``persist_session_cookies``"
+msgstr "``persist_session_cookies``"
+
+#: ../../guide/configuration.rst:79 ../../guide/configuration.rst:82
+#: ../../guide/configuration.rst:85
+msgid "``bool``"
+msgstr "``bool``"
+
+#: ../../guide/configuration.rst:80
+msgid "Keep session cookies in the cache folder across restarts."
+msgstr "재시작 후에도 세션 쿠키를 캐시 폴더에 유지합니다."
+
+#: ../../guide/configuration.rst:81
+msgid "``command_line_args_disabled``"
+msgstr "``command_line_args_disabled``"
+
+#: ../../guide/configuration.rst:83
+msgid "Ignore the command line arguments of the process."
+msgstr "프로세스의 명령줄 인자를 무시합니다."
+
+#: ../../guide/configuration.rst:84
+msgid "``external_message_pump``"
+msgstr "``external_message_pump``"
+
+#: ../../guide/configuration.rst:86
+msgid ""
+"The application runs the message loop when "
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work` says so. See "
+":doc:`message-loop`. :class:`~cefweaver.ui.Session` uses a "
+":class:`~cefweaver.MessagePump`."
+msgstr ""
+"애플리케이션은 :meth:`~cefweaver.AppHandler.on_schedule_message_pump_work`\\ 가 "
+"알릴 때 메시지 루프를 실행합니다. :doc:`message-loop`\\ 에 자세한 내용이 있습니다. "
+":class:`~cefweaver.ui.Session`\\ 은 :class:`~cefweaver.MessagePump`\\ 를 "
+"사용합니다."
+
+#: ../../guide/configuration.rst:87
+msgid "``chrome_policy_id``"
+msgstr "``chrome_policy_id``"
+
+#: ../../guide/configuration.rst:89
+msgid "The id of the Chrome policy that applies to the app."
+msgstr "앱에 적용되는 Chrome 정책의 id입니다."
+
+#: ../../guide/configuration.rst:90
+msgid "``uncaught_exception_stack_size``"
+msgstr "``uncaught_exception_stack_size``"
+
+#: ../../guide/configuration.rst:92
+msgid ""
+"The number of frames in the stack trace of an uncaught JavaScript "
+"exception."
+msgstr "잡히지 않은 JavaScript 예외의 스택 트레이스에 담기는 프레임의 수입니다."
+
+#: ../../guide/configuration.rst:93
+msgid "``background_color``"
+msgstr "``background_color``"
+
+#: ../../guide/configuration.rst:95
+msgid "ARGB (``0xAARRGGBB``) where the page draws nothing."
+msgstr "ARGB(``0xAARRGGBB``)이며, 페이지가 아무것도 그리지 않는 곳에 쓰입니다."
+
+#: ../../guide/configuration.rst:96
+msgid "``cookieable_schemes_list``, ``cookieable_schemes_exclude_defaults``"
+msgstr "``cookieable_schemes_list``, ``cookieable_schemes_exclude_defaults``"
+
+#: ../../guide/configuration.rst:97
+msgid "``str``, ``bool``"
+msgstr "``str``, ``bool``"
+
+#: ../../guide/configuration.rst:98
+msgid ""
+"The schemes that may have cookies, separated by commas, and whether "
+"``http``, ``https``, ``ws`` and ``wss`` are left out of the default list."
+msgstr ""
+"쿠키를 가질 수 있는 스킴을 쉼표로 구분한 목록과, ``http``, ``https``, ``ws``, ``wss``\\ 를 기본 "
+"목록에서 제외할지 여부입니다."
+
+#: ../../guide/configuration.rst:100
+msgid "What the script above showed:"
+msgstr "위 스크립트가 보여 준 것은 다음과 같습니다."
+
+#: ../../guide/configuration.rst:102
+msgid ""
+"``user_agent`` reached the page (``navigator.userAgent``), and "
+"``javascript_flags=\"--expose-gc\"`` made ``gc`` a function in the page."
+msgstr ""
+"``user_agent``\\ 는 페이지에 전달되었고(``navigator.userAgent``), "
+"``javascript_flags=\"--expose-gc\"``\\ 로 인해 페이지에서 ``gc``\\ 가 함수가 되었습니다."
+
+#: ../../guide/configuration.rst:103
+msgid ""
+"``log_file`` was written, and ``remote_debugging_port`` opened a server: "
+"``/json/version`` on that port answered with the Chromium version. The "
+"port number must be free (the script picks one)."
+msgstr ""
+"``log_file``\\ 이 기록되었고, ``remote_debugging_port``\\ 가 서버를 열었습니다. 그 포트의 "
+"``/json/version``\\ 이 Chromium 버전으로 응답했습니다. 포트 번호는 비어 있어야 합니다(스크립트가 하나를 "
+"고릅니다)."
+
+#: ../../guide/configuration.rst:104
+msgid ""
+"``locale=\"ko\"`` became the switch ``lang=ko`` on the command line, and "
+"**the page language stayed** ``en-US`` while ``LANGUAGE=en``. In a run "
+"with ``LANGUAGE=ko:en`` and the same setting the page language was ``ko-"
+"KR``. So on Linux the language of pages is set through ``LANGUAGE`` and "
+"``LANG``, not through this field. The docstring of ``locale`` (the same "
+"in the wheel and in the source) says the same."
+msgstr ""
+"``locale=\"ko\"``\\ 는 명령줄에서 ``lang=ko`` 스위치가 되었고, ``LANGUAGE=en``\\ 인 동안 "
+"**페이지 언어는** ``en-US`` **그대로였습니다**. ``LANGUAGE=ko:en``\\ 으로 같은 설정을 쓴 실행에서는"
+" 페이지 언어가 ``ko-KR``\\ 이었습니다. 따라서 Linux에서 페이지의 언어는 이 필드가 아니라 ``LANGUAGE``\\"
+" 와 ``LANG``\\ 으로 정해집니다. ``locale``\\ 의 독스트링(wheel과 소스가 같습니다)도 같은 내용을 "
+"말합니다."
+
+#: ../../guide/configuration.rst:105
+msgid ""
+"The settings that have a switch appear on the command line of the browser"
+" process: ``js-flags``, ``lang``, ``log-file``, ``log-severity``, "
+"``remote-debugging-port``, ``user-agent``, and ``no-sandbox`` (below)."
+msgstr ""
+"스위치가 있는 설정은 브라우저 프로세스의 명령줄에 나타납니다: ``js-flags``, ``lang``, ``log-file``, "
+"``log-severity``, ``remote-debugging-port``, ``user-agent``, 그리고 ``no-"
+"sandbox``\\ (아래 참조)."
+
+#: ../../guide/configuration.rst:106
+msgid ""
+"The fields that were not run: ``user_agent_product``, ``root_cache_path``"
+" (see \"Files\"), ``persist_session_cookies``, "
+"``command_line_args_disabled``, ``chrome_policy_id``, "
+"``uncaught_exception_stack_size``, ``background_color``, "
+"``cookieable_schemes_*``, and ``external_message_pump``. "
+":class:`~cefweaver.ui.Session` sets ``external_message_pump`` itself: "
+"printing ``session.app.settings`` right after creating a session shows "
+"``external_message_pump=True``."
+msgstr ""
+"실행하지 않은 필드는 ``user_agent_product``, ``root_cache_path``\\ (\"Files\" 참조),"
+" ``persist_session_cookies``, ``command_line_args_disabled``, "
+"``chrome_policy_id``, ``uncaught_exception_stack_size``, "
+"``background_color``, ``cookieable_schemes_*``, "
+"``external_message_pump``\\ 입니다. :class:`~cefweaver.ui.Session`\\ 은 "
+"``external_message_pump``\\ 를 스스로 설정합니다. 세션을 만든 직후 "
+"``session.app.settings``\\ 를 출력하면 ``external_message_pump=True``\\ 로 "
+"나옵니다."
+
+#: ../../guide/configuration.rst:107
+msgid ""
+"Not a field: the sandbox, the cache path (``set_cache_path()``), the "
+"resources and subprocess paths."
+msgstr "필드가 아닌 것은 샌드박스, 캐시 경로(``set_cache_path()``), 리소스 경로와 서브프로세스 경로입니다."
+
+#: ../../guide/configuration.rst:110
+msgid "Command line switches"
+msgstr "명령줄 스위치"
+
+#: ../../guide/configuration.rst:119
+msgid ""
+"``add_command_line_switch(name, value=\"\")`` adds a switch; an empty "
+"value adds a bare switch (``no-sandbox`` shows as ``''`` in the output "
+"above). ``Session(switches=...)`` takes ``(name, value)`` pairs and keeps"
+" the list as ``session.switches``; it holds the ``ozone-"
+"platform=wayland`` that ``Session`` adds (see below), and not the "
+"``ozone-platform=x11`` that ``CefApp`` adds on its own. The switch that "
+"was given reached the browser process (``autoplay-policy`` above)."
+msgstr ""
+"``add_command_line_switch(name, value=\"\")``\\ 은 스위치를 추가합니다. 값이 비어 있으면 값"
+" 없는 스위치를 추가합니다(위 출력에서 ``no-sandbox``\\ 는 ``''``\\ 로 나옵니다). "
+"``Session(switches=...)``\\ 는 ``(name, value)`` 쌍을 받아 그 목록을 "
+"``session.switches``\\ 로 유지합니다. 이 목록에는 ``Session``\\ 이 추가하는 ``ozone-"
+"platform=wayland``\\ 가 들어 있고(아래 참고), ``CefApp``\\ 이 스스로 추가하는 ``ozone-"
+"platform=x11``\\ 은 들어 있지 않습니다. 지정한 스위치는 브라우저 프로세스에 전달되었습니다(위의 ``autoplay-"
+"policy``)."
+
+#: ../../guide/configuration.rst:121
+msgid ""
+"**Added by cefweaver.** If neither ``ozone-platform`` nor ``ozone-"
+"platform-hint`` is given, ``CefApp.initialize()`` adds ``ozone-"
+"platform=x11`` when ``DISPLAY`` is set (the output above has it), and "
+"``Session`` adds ``ozone-platform=wayland`` when a Wayland compositor "
+"exists. See :doc:`wayland-gpu`. If the request handler of the client "
+"overrides ``get_auth_credentials``, ``CefApp.initialize()`` adds "
+"``disable-chrome-login-prompt`` (source)."
+msgstr ""
+"**cefweaver가 추가하는 것.** ``ozone-platform``\\ 도 ``ozone-platform-hint``\\ 도"
+" 지정하지 않았다면, ``DISPLAY``\\ 가 설정된 경우 ``CefApp.initialize()``\\ 가 ``ozone-"
+"platform=x11``\\ 을 추가하고(위 출력에 있습니다), Wayland 컴포지터가 있으면 ``Session``\\ 이 "
+"``ozone-platform=wayland``\\ 를 추가합니다. 자세한 내용은 :doc:`wayland-gpu`\\ 에 "
+"있습니다. 클라이언트의 요청 핸들러가 ``get_auth_credentials``\\ 를 오버라이드하면 "
+"``CefApp.initialize()``\\ 가 ``disable-chrome-login-prompt``\\ 를 "
+"추가합니다(source)."
+
+#: ../../guide/configuration.rst:122
+msgid ""
+"**Hooks.** "
+":meth:`~cefweaver.AppHandler.on_before_command_line_processing` gets the "
+"command line of the browser process (``process_type`` is ``''``) and may "
+"change it; it is called before the switches of "
+"``add_command_line_switch`` are added (``autoplay-policy`` was not yet in"
+" it in the script above). "
+":meth:`~cefweaver.AppHandler.on_before_child_process_launch` changes the "
+"command line of the renderer, GPU and utility processes (source; not run "
+"here). Give the handler with :meth:`~cefweaver.CefApp.set_app_handler`."
+msgstr ""
+"**훅.** :meth:`~cefweaver.AppHandler.on_before_command_line_processing`\\ "
+"은 브라우저 프로세스의 명령줄을 받으며(``process_type``\\ 은 ``''``\\ 입니다) 이를 바꿀 수 있습니다. 이 "
+"훅은 ``add_command_line_switch``\\ 의 스위치가 추가되기 전에 호출됩니다(위 스크립트에서 "
+"``autoplay-policy``\\ 는 아직 들어 있지 않았습니다). "
+":meth:`~cefweaver.AppHandler.on_before_child_process_launch`\\ 는 렌더러, "
+"GPU, 유틸리티 프로세스의 명령줄을 바꿉니다(source, 여기서는 실행하지 않았습니다). 핸들러는 "
+":meth:`~cefweaver.CefApp.set_app_handler`\\ 로 지정합니다."
+
+#: ../../guide/configuration.rst:123
+msgid ""
+"**Read back.** "
+"``cefweaver.CommandLine.get_global_command_line().get_switches()`` is "
+"what the browser process has."
+msgstr ""
+"**다시 읽기.** "
+"``cefweaver.CommandLine.get_global_command_line().get_switches()``\\ 는 "
+"브라우저 프로세스가 가진 스위치입니다."
+
+#: ../../guide/configuration.rst:124
+msgid ""
+"**Used in this guide:** ``autoplay-policy`` (:doc:`cookbook`), ``disable-"
+"gpu``, ``disable-accelerated-video-decode`` and ``ozone-platform`` (:doc"
+":`wayland-gpu`), ``disable-features=EnableOopPrintDrivers`` "
+"(:doc:`printing`). Other Chromium switches were not tried."
+msgstr ""
+"**이 가이드에서 쓰인 것:** ``autoplay-policy``\\ (:doc:`cookbook`), ``disable-"
+"gpu``, ``disable-accelerated-video-decode``, ``ozone-platform``\\ (:doc"
+":`wayland-gpu`), ``disable-features=EnableOopPrintDrivers``\\ "
+"(:doc:`printing`). 그 밖의 Chromium 스위치는 시험하지 않았습니다."
+
+#: ../../guide/configuration.rst:127
+msgid "Custom schemes"
+msgstr "사용자 정의 스킴"
+
+#: ../../guide/configuration.rst:129
+msgid ""
+"A scheme of your own (``myapp://app/index.html``) needs three things, "
+"shown in the script: register the scheme in "
+":meth:`~cefweaver.AppHandler.on_register_custom_schemes`, register a "
+":class:`~cefweaver.SchemeHandlerFactory` with "
+":func:`cefweaver.register_scheme_handler_factory`, and answer the request"
+" with a :class:`~cefweaver.ResourceHandler`."
+msgstr ""
+"자신의 스킴(``myapp://app/index.html``)에는 세 가지가 필요하며 스크립트에 나와 있습니다. "
+":meth:`~cefweaver.AppHandler.on_register_custom_schemes`\\ 에서 스킴을 등록하고, "
+":func:`cefweaver.register_scheme_handler_factory`\\ 로 "
+":class:`~cefweaver.SchemeHandlerFactory`\\ 를 등록하고, "
+":class:`~cefweaver.ResourceHandler`\\ 로 요청에 응답합니다."
+
+#: ../../guide/configuration.rst:141
+msgid ""
+"The options are :class:`~cefweaver.types.SchemeOptions` flags "
+"(``STANDARD``, ``LOCAL``, ``DISPLAY_ISOLATED``, ``SECURE``, "
+"``CORS_ENABLED``, ``CSP_BYPASSING``, ``FETCH_ENABLED``). The renderer "
+"processes get the same schemes: with ``STANDARD | SECURE`` the page saw "
+"``location.host == 'app'`` and ``isSecureContext`` true. Without "
+"``STANDARD`` only the ``scheme:`` part is parsed (docstring of "
+"``SchemeOptions``; not run)."
+msgstr ""
+"옵션은 :class:`~cefweaver.types.SchemeOptions` 플래그입니다(``STANDARD``, "
+"``LOCAL``, ``DISPLAY_ISOLATED``, ``SECURE``, ``CORS_ENABLED``, "
+"``CSP_BYPASSING``, ``FETCH_ENABLED``). 렌더러 프로세스도 같은 스킴을 받습니다. ``STANDARD "
+"| SECURE``\\ 일 때 페이지에서 ``location.host == 'app'``\\ 이고 "
+"``isSecureContext``\\ 가 true였습니다. ``STANDARD``\\ 가 없으면 ``scheme:`` 부분만 "
+"파싱됩니다(``SchemeOptions``\\ 의 docstring, 실행하지 않았습니다)."
+
+#: ../../guide/configuration.rst:142
+msgid ""
+"``add_custom_scheme`` returns ``True`` when CEF took the scheme, and it "
+"raises ``RuntimeError`` outside the hook. The registrar is valid during "
+"the hook only."
+msgstr ""
+"``add_custom_scheme``\\ 은 CEF가 스킴을 받아들이면 ``True``\\ 를 반환하고, 훅 밖에서 호출하면 "
+"``RuntimeError``\\ 를 발생시킵니다. 등록기는 훅 안에서만 유효합니다."
+
+#: ../../guide/configuration.rst:143
+msgid ""
+"The domain argument of ``register_scheme_handler_factory`` matches the "
+"host of a standard scheme; an empty one matches every host, and it is "
+"ignored for a non-standard scheme (docstring)."
+msgstr ""
+"``register_scheme_handler_factory``\\ 의 domain 인자는 표준 스킴의 호스트와 일치시킵니다. 비어"
+" 있으면 모든 호스트와 일치하며, 표준이 아닌 스킴에서는 무시됩니다(docstring)."
+
+#: ../../guide/configuration.rst:144
+msgid ""
+"For ``http`` and ``https`` URLs served from memory there is a shorter "
+"way: ``CefApp.add_resource()`` (:doc:`cookbook`)."
+msgstr ""
+"메모리에서 제공하는 ``http``, ``https`` URL에는 더 짧은 방법이 있습니다: "
+"``CefApp.add_resource()``\\ (:doc:`cookbook`)."
+
+#: ../../guide/configuration.rst:147
+msgid "Environment variables"
+msgstr "환경변수"
+
+#: ../../guide/configuration.rst:153
+msgid "Variable"
+msgstr "변수"
+
+#: ../../guide/configuration.rst:154
+msgid "Effect"
+msgstr "효과"
+
+#: ../../guide/configuration.rst:155
+msgid "``DISPLAY``"
+msgstr "``DISPLAY``"
+
+#: ../../guide/configuration.rst:156
+msgid ""
+"``CefApp.initialize()`` adds ``ozone-platform=x11`` when it is set (run)."
+" Offscreen browsers ran with it unset (the browser started and shut down;"
+" one ``GLib-GObject`` line was printed), but the window of ``CefApp`` "
+"ended the process with exit status 133 (see :doc:`troubleshooting`)."
+msgstr ""
+"설정되어 있으면 ``CefApp.initialize()``\\ 가 ``ozone-platform=x11``\\ 을 "
+"추가합니다(실행). 오프스크린 브라우저는 설정하지 않은 채로도 실행되었지만(브라우저가 시작되고 종료되었으며 ``GLib-"
+"GObject`` 줄이 하나 출력되었습니다), ``CefApp``\\ 의 창은 종료 상태 133으로 프로세스를 "
+"끝냈습니다(:doc:`troubleshooting`\\ 에 있습니다)."
+
+#: ../../guide/configuration.rst:157
+msgid "``WAYLAND_DISPLAY``, ``XDG_RUNTIME_DIR``"
+msgstr "``WAYLAND_DISPLAY``, ``XDG_RUNTIME_DIR``"
+
+#: ../../guide/configuration.rst:158
+msgid ""
+"``ui.Session`` chooses ``ozone-platform=wayland`` if ``WAYLAND_DISPLAY`` "
+"names a socket that exists, as an absolute path or relative to "
+"``XDG_RUNTIME_DIR``. :func:`cefweaver.ui.session.default_ozone_platform` "
+"returned ``'wayland'`` for an existing socket, in both forms, and "
+"``None`` for a missing socket, a relative name without "
+"``XDG_RUNTIME_DIR``, and an empty environment (run). The Wayland session "
+"itself was not used for this page."
+msgstr ""
+"``ui.Session``\\ 은 ``WAYLAND_DISPLAY``\\ 가 존재하는 소켓을 가리키면 ``ozone-"
+"platform=wayland``\\ 를 선택합니다. 소켓은 절대 경로이거나 ``XDG_RUNTIME_DIR``\\ 에 상대적인 "
+"경로입니다. :func:`cefweaver.ui.session.default_ozone_platform`\\ 은 존재하는 소켓에 "
+"대해서는 두 형태 모두 ``'wayland'``\\ 를 반환했고, 없는 소켓, ``XDG_RUNTIME_DIR`` 없는 상대 이름,"
+" 빈 환경에 대해서는 ``None``\\ 을 반환했습니다(실행). Wayland 세션 자체는 이 페이지를 위해 사용하지 않았습니다."
+
+#: ../../guide/configuration.rst:159
+msgid "``LANGUAGE``, ``LANG``"
+msgstr "``LANGUAGE``, ``LANG``"
+
+#: ../../guide/configuration.rst:160
+msgid ""
+"The language of the pages and the language of Chromium's own messages on "
+"Linux (run: the text of a print error was English with ``LANGUAGE=en`` "
+"and Korean in the default environment of the machine, "
+"``LANGUAGE=ko:en``)."
+msgstr ""
+"Linux에서 페이지의 언어와 Chromium 자체 메시지의 언어입니다(실행: 인쇄 오류의 텍스트가 ``LANGUAGE=en``\\"
+" 에서는 영어였고, 기기의 기본 환경인 ``LANGUAGE=ko:en``\\ 에서는 한국어였습니다)."
+
+#: ../../guide/configuration.rst:161
+msgid "``CEFQT_BINDING``"
+msgstr "``CEFQT_BINDING``"
+
+#: ../../guide/configuration.rst:162
+msgid ""
+"``pyqt6`` or ``pyside6``. Without it, or with another value, PyQt6 is "
+"used if installed and otherwise PySide6 (source: "
+"``cefweaver.ui.toolkits.qt``; not run)."
+msgstr ""
+"``pyqt6`` 또는 ``pyside6``\\ 입니다. 설정하지 않거나 다른 값이면 PyQt6가 설치되어 있을 때 PyQt6를 "
+"쓰고, 아니면 PySide6를 씁니다(source: ``cefweaver.ui.toolkits.qt``, 실행하지 않았습니다)."
+
+#: ../../guide/configuration.rst:163
+msgid "``SDL_VIDEODRIVER``, ``SDL_HINT_RENDER_DRIVER``"
+msgstr "``SDL_VIDEODRIVER``, ``SDL_HINT_RENDER_DRIVER``"
+
+#: ../../guide/configuration.rst:164
+msgid ""
+"``cefweaver.ui.toolkits.sdl2`` sets them with ``setdefault``: ``x11`` on "
+"Linux (never the real Wayland session) and ``software``. A value you set "
+"first is kept (source; not run)."
+msgstr ""
+"``cefweaver.ui.toolkits.sdl2``\\ 는 ``setdefault``\\ 로 이 변수들을 설정합니다. "
+"Linux에서는 ``x11``\\ (실제 Wayland 세션은 절대 쓰지 않습니다)과 ``software``\\ 입니다. 먼저 "
+"설정한 값은 유지됩니다(source, 실행하지 않았습니다)."
+
+#: ../../guide/configuration.rst:165
+msgid "``PYGAME_HIDE_SUPPORT_PROMPT``"
+msgstr "``PYGAME_HIDE_SUPPORT_PROMPT``"
+
+#: ../../guide/configuration.rst:166
+msgid ""
+"Set with ``setdefault`` to ``1`` when the pygame audio fallback is used "
+"(source)."
+msgstr "pygame 오디오 대체 경로를 사용할 때 ``setdefault``\\ 로 ``1``\\ 로 설정됩니다(source)."
+
+#: ../../guide/configuration.rst:167
+msgid "``CEF_ROOT``"
+msgstr "``CEF_ROOT``"
+
+#: ../../guide/configuration.rst:168
+msgid ""
+"Build time only: the CEF distribution that ``uv build --wheel`` and "
+"``tools/prepare.py`` use (:doc:`installation`)."
+msgstr ""
+"빌드할 때만 쓰입니다. ``uv build --wheel``\\ 과 ``tools/prepare.py``\\ 가 사용하는 CEF "
+"배포본입니다(:doc:`installation`)."
+
+#: ../../guide/configuration.rst:170
+msgid ""
+"The examples read a few of their own (``CEFSDL_SWITCHES``, "
+"``CEFKIVY_SWITCHES``, ``KIVY_NO_ARGS``); they are not part of the "
+"package."
+msgstr ""
+"예제는 자체 변수 몇 개(``CEFSDL_SWITCHES``, ``CEFKIVY_SWITCHES``, "
+"``KIVY_NO_ARGS``)를 읽습니다. 이 변수들은 패키지의 일부가 아닙니다."
+
+#: ../../guide/configuration.rst:173
+msgid "Files"
+msgstr "파일"
+
+#: ../../guide/configuration.rst:179
+msgid "Path"
+msgstr "경로"
+
+#: ../../guide/configuration.rst:181
+msgid "``site-packages/cefweaver/``"
+msgstr "``site-packages/cefweaver/``"
+
+#: ../../guide/configuration.rst:182
+msgid ""
+"The package and the runtime. In the installed wheel: ``libcef.so``, "
+"``icudtl.dat``, ``resources.pak``, ``chrome_100_percent.pak``, "
+"``chrome_200_percent.pak``, ``v8_context_snapshot.bin``, ``locales/``, "
+"``libvk_swiftshader.so``, ``libvulkan.so.1``, ``vk_swiftshader_icd.json``"
+" and ``cefsubprocess`` next to ``_cefweaver.*.so``. There is no ``chrome-"
+"sandbox``. (``ls`` of the installed package.)"
+msgstr ""
+"패키지와 런타임입니다. 설치된 wheel에는 ``libcef.so``, ``icudtl.dat``, "
+"``resources.pak``, ``chrome_100_percent.pak``, "
+"``chrome_200_percent.pak``, ``v8_context_snapshot.bin``, ``locales/``, "
+"``libvk_swiftshader.so``, ``libvulkan.so.1``, "
+"``vk_swiftshader_icd.json``\\ 이 있고, ``_cefweaver.*.so`` 옆에 "
+"``cefsubprocess``\\ 가 있습니다. ``chrome-sandbox``\\ 는 없습니다(설치된 패키지의 ``ls``)."
+
+#: ../../guide/configuration.rst:183
+msgid "``./cache/``"
+msgstr "``./cache/``"
+
+#: ../../guide/configuration.rst:184
+msgid ""
+"The cache and profile folder when no ``cache_path`` is given: relative to"
+" the **working directory** of the process (run). Pass ``cache_path`` "
+"(:class:`~cefweaver.ui.Session`) or ``set_cache_path()``."
+msgstr ""
+"``cache_path``\\ 를 지정하지 않았을 때의 캐시 및 프로필 폴더입니다. 프로세스의 **작업 디렉터리**\\ 에 "
+"상대적입니다(실행). ``cache_path``\\ (:class:`~cefweaver.ui.Session`)나 "
+"``set_cache_path()``\\ 를 지정하십시오."
+
+#: ../../guide/configuration.rst:185
+msgid "``<cache>/Default/``, ``<cache>/Local State``, ``<cache>/SingletonLock``"
+msgstr "``<cache>/Default/``, ``<cache>/Local State``, ``<cache>/SingletonLock``"
+
+#: ../../guide/configuration.rst:186
+msgid ""
+"Created by CEF in the cache folder (run; a few of the many entries). "
+"``Default/`` and ``Local State`` are the profile. The singleton files are"
+" what makes a second process with the same folder fail "
+"(:doc:`troubleshooting`)."
+msgstr ""
+"CEF가 캐시 폴더에 만듭니다(실행, 많은 항목 가운데 일부입니다). ``Default/``\\ 와 ``Local State``\\"
+" 가 프로필입니다. 싱글턴 파일 때문에 같은 폴더를 쓰는 두 번째 프로세스가 실패합니다(:doc:`troubleshooting`)."
+
+#: ../../guide/configuration.rst:187
+msgid "``<cache>/chrome_debug.log``"
+msgstr "``<cache>/chrome_debug.log``"
+
+#: ../../guide/configuration.rst:188
+msgid ""
+"The log when ``log_file`` is not set (run: present after a start and "
+"shutdown with no log settings). The docstring of ``Settings.log_file`` "
+"says the default is ``debug.log`` in the executable's directory; on Linux"
+" with a cache folder the file was ``chrome_debug.log`` in the cache "
+"folder, and no ``debug.log`` was found in the folder of the ``python`` "
+"executable."
+msgstr ""
+"``log_file``\\ 을 지정하지 않았을 때의 로그입니다(실행: 로그 설정 없이 시작하고 종료한 뒤에 있었습니다). "
+"``Settings.log_file``\\ 의 docstring은 기본값이 실행 파일 디렉터리의 ``debug.log``\\ 라고 "
+"하지만, Linux에서 캐시 폴더가 있을 때 파일은 캐시 폴더의 ``chrome_debug.log``\\ 였으며, "
+"``python`` 실행 파일의 폴더에서는 ``debug.log``\\ 를 찾지 못했습니다."
+
+#: ../../guide/configuration.rst:189
+msgid "``log_file``"
+msgstr "``log_file``"
+
+#: ../../guide/configuration.rst:190
+msgid "The path you give; written (run)."
+msgstr "지정한 경로이며, 기록되었습니다(실행)."
+
+#: ../../guide/configuration.rst:191
+msgid "Standard error"
+msgstr "표준 오류"
+
+#: ../../guide/configuration.rst:192
+msgid ""
+"Nearly silent by default: the cookbook script and ``start_only.py`` wrote"
+" no byte there in three runs. Lines appear for some errors (see "
+":doc:`troubleshooting`), and with ``remote_debugging_port`` set Chromium "
+"prints ``DevTools listening on ws://...``."
+msgstr ""
+"기본적으로 거의 출력하지 않습니다. 쿡북 스크립트와 ``start_only.py``\\ 는 세 번 실행하는 동안 이곳에 한 바이트도"
+" 쓰지 않았습니다. 일부 오류에서는 줄이 나타나며(:doc:`troubleshooting`), "
+"``remote_debugging_port``\\ 를 설정하면 Chromium이 ``DevTools listening on "
+"ws://...``\\ 를 출력합니다."
+
+#: ../../guide/configuration.rst:194
+msgid ""
+"``set_resources_path()`` sets ``resources_dir_path`` and "
+"``locales_dir_path`` (the ``locales`` folder below it); it is optional, "
+"and the docstring and a comment in the source say that on Linux CEF looks"
+" for ``icudtl.dat`` next to ``libcef.so`` whatever it is set to (source; "
+"the path setters were not run). ``set_subprocess_path()`` sets the helper"
+" executable, which by default is ``cefsubprocess`` next to the extension "
+"module (source)."
+msgstr ""
+"``set_resources_path()``\\ 는 ``resources_dir_path``\\ 와 "
+"``locales_dir_path``\\ (그 아래의 ``locales`` 폴더)를 설정합니다. 이 함수는 선택 사항이며, "
+"docstring과 소스의 주석에 따르면 Linux에서 CEF는 설정값과 관계없이 ``libcef.so`` 옆에서 "
+"``icudtl.dat``\\ 를 찾습니다(source, 경로 setter는 실행하지 않았습니다). "
+"``set_subprocess_path()``\\ 는 헬퍼 실행 파일을 설정하며, 기본값은 확장 모듈 옆의 "
+"``cefsubprocess``\\ 입니다(source)."
+
+#: ../../guide/configuration.rst:196
+msgid ""
+"**Root cache path.** ``root_cache_path`` is the folder of the profile "
+"data. Source: a ``cache_path`` that lies outside it gives way to the "
+"root. Run (three times each, with ``root_cache_path`` set to ``root`` and"
+" ``cache_path`` either ``root/profile-a`` or a folder outside ``root``): "
+"in both cases ``Default/`` and the other entries were created in "
+"``root``, and ``root/profile-a`` stayed empty. What a second profile "
+"folder is for in CEF 154 was not explored."
+msgstr ""
+"**루트 캐시 경로.** ``root_cache_path``\\ 는 프로필 데이터의 폴더입니다. 소스에 따르면 그 바깥에 있는 "
+"``cache_path``\\ 는 루트에 밀립니다. 실행(각각 세 번, ``root_cache_path``\\ 는 "
+"``root``\\ 로, ``cache_path``\\ 는 ``root/profile-a`` 또는 ``root`` 바깥의 폴더로 "
+"설정): 두 경우 모두 ``Default/``\\ 와 다른 항목이 ``root``\\ 에 만들어졌고 "
+"``root/profile-a``\\ 는 비어 있었습니다. CEF 154에서 두 번째 프로필 폴더가 무엇을 위한 것인지는 조사하지 "
+"않았습니다."
+
+#: ../../guide/configuration.rst:198
+msgid ""
+"**Two processes.** Two processes with the same cache folder cannot both "
+"run CEF; the second one fails in ``initialize()`` "
+"(:doc:`troubleshooting`). Give each its own ``cache_path``."
+msgstr ""
+"**프로세스 두 개.** 같은 캐시 폴더를 쓰는 두 프로세스는 CEF를 함께 실행할 수 없으며, 두 번째 프로세스는 "
+"``initialize()``\\ 에서 실패합니다(:doc:`troubleshooting`). 각각 자신의 "
+"``cache_path``\\ 를 지정하십시오."
+
+#: ../../guide/configuration.rst:201
+msgid "The sandbox"
+msgstr "샌드박스"
+
+#: ../../guide/configuration.rst:203
+msgid ""
+"CEFWeaver starts CEF with ``no_sandbox`` set (source: "
+"``native/cefwrapper/library.cpp``). In a run with a renderer, a GPU "
+"process, utility processes and the zygote, every ``cefsubprocess`` child "
+"had ``--no-sandbox`` on its command line (three runs; the browser process"
+" shows ``no-sandbox`` in the output above). The wheel does not contain "
+"``chrome-sandbox``, and :class:`~cefweaver.Settings` has no field to turn"
+" the sandbox on. So the processes that run the pages you load are started"
+" without the Chromium sandbox. Whether a build with a sandbox is possible"
+" was not tried. On Windows the sandbox library of CEF is not linked "
+"(:doc:`limitations`)."
+msgstr ""
+"CEFWeaver는 ``no_sandbox``\\ 를 설정하여 CEF를 시작합니다(source: "
+"``native/cefwrapper/library.cpp``). 렌더러, GPU 프로세스, 유틸리티 프로세스, zygote가 있는 "
+"실행에서 모든 ``cefsubprocess`` 자식의 명령줄에 ``--no-sandbox``\\ 가 있었습니다(세 번 실행했고, "
+"브라우저 프로세스는 위 출력에서 ``no-sandbox``\\ 를 보여 줍니다). wheel에는 ``chrome-"
+"sandbox``\\ 가 없고, :class:`~cefweaver.Settings`\\ 에는 샌드박스를 켜는 필드가 없습니다. "
+"따라서 로드하는 페이지를 실행하는 프로세스는 Chromium 샌드박스 없이 시작됩니다. 샌드박스가 있는 빌드가 가능한지는 시험하지 "
+"않았습니다. Windows에서는 CEF의 샌드박스 라이브러리를 링크하지 않습니다(:doc:`limitations`)."
+

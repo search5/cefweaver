@@ -72,9 +72,11 @@ make update-po       # 원문이 바뀌었을 때 locale/ko의 .po 갱신
 
 ## 사용 안내 (guide)
 
-`docs/guide/*.rst`는 docstring이 아니라 손으로 쓴 사용 안내입니다(설치, 시작하기, 쿡북, GUI 툴킷에 넣기, Views, 툴킷별 상태, 소리와 권한, 컨텍스트 메뉴, Cast, 핸들러와 이벤트, Wayland와 GPU, 한계, 개발하기). 이전 Jekyll 쪽의 주제를 이어받되 문장은 영어로 새로 썼고, 사실은 위키와 소스, 예제(`examples/`)에서 확인한 것만 적었습니다. 한국어는 `locale/ko/LC_MESSAGES/guide/*.po`입니다.
+`docs/guide/*.rst`는 docstring이 아니라 손으로 쓴 사용 안내입니다(설치, 시작하기, 쿡북, 개념, 메시지 루프, GUI 툴킷에 넣기, 핸들러와 이벤트, JavaScript 브리지, Views, 툴킷별 상태, 컨텍스트 메뉴, 소리와 권한, 인쇄, Cast, 구성, Wayland와 GPU, 문제 해결, 한계, 개발하기). 이전 Jekyll 쪽의 주제를 이어받되 문장은 영어로 새로 썼고, 사실은 위키와 소스, 예제(`examples/`)에서 확인한 것만 적었습니다. 한국어는 `locale/ko/LC_MESSAGES/guide/*.po`입니다.
 
 - 쿡북이 보이는 스크립트 `docs/guide/recipes/headless.py`는 설치된 wheel로 `xvfb-run python -P`를 써서 실제로 실행해 `evaluate: {'v': 'hello', 'e': None}`, `snapshot: True True`, `ok [..., 'sum=5']`가 나오는 것을 확인했습니다(2026-10-13).
+- **문서는 소스에서 새로 빌드한 wheel로 빌드하고 확인합니다.** 오래된 wheel(2026-10-11 빌드)로 빌드하면 `_cefweaver.*` docstring이 소스와 달라 경고가 나고, 그 상태로 `make update-po`를 돌리면 api 카탈로그가 훼손됩니다. 2026-10-13에 `CEF_ROOT=... uv build --wheel`로 새 wheel을 만든 뒤 영어와 한국어 `-W` 빌드가 경고 없이 통과했고(Qt와 Tk 툴킷 모듈은 PyQt6와 Pillow가 있어야 import됩니다), 전체 `update-po`가 기존 카탈로그를 바꾸지 않았습니다.
+- 2026-10-13에 자매 프로젝트 cefloom과 주제를 맞추려고 개념, 메시지 루프, JavaScript 브리지, 인쇄, 구성, 문제 해결 6쪽을 더했습니다. 예제는 `docs/guide/recipes/`에 있고 모두 새 wheel로 3회 같은 결과를 냈습니다. 쪽의 서술은 소스를 읽거나 실행해서 확인한 것만 썼고, 확인하지 못한 것은 쪽에 "not tried"로 적었습니다.
 - 기능이나 동작을 바꾸면 해당 guide 쪽을 같은 작업에서 고칩니다. 쪽이 목차에서 빠지지 않았는지는 `tests/test_docs.py`가 확인합니다.
 
 ## 누락 점검

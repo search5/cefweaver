@@ -1,0 +1,367 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 08:04+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/javascript-bridge.rst:2
+msgid "JavaScript bridge"
+msgstr "JavaScript 브리지"
+
+#: ../../guide/javascript-bridge.rst:4
+msgid ""
+"JavaScript in a page can call Python functions that you expose, and "
+"Python can call functions of a page and evaluate expressions in it. Both "
+"directions are on :class:`~cefweaver.JavascriptBridge`; a "
+":class:`~cefweaver.ui.Session` has one as ``session.bridge``. Values "
+"travel as JSON. The examples of this page were run against the built "
+"wheel on a virtual X server (``xvfb-run python -P script.py``); each "
+"printed the same output in three runs in a row."
+msgstr ""
+"페이지의 JavaScript는 노출된 Python 함수를 호출할 수 있고, Python은 페이지의 함수를 호출하거나 페이지에서 "
+"표현식을 평가할 수 있습니다. 두 방향 모두 :class:`~cefweaver.JavascriptBridge`\\ 에 있으며, "
+":class:`~cefweaver.ui.Session`\\ 은 이를 ``session.bridge``\\ 로 가지고 있습니다. 값은"
+" JSON으로 전달됩니다. 이 페이지의 예제는 가상 X 서버에서 빌드된 wheel을 대상으로 실행했고(``xvfb-run "
+"python -P script.py``), 각각 연속 세 번 실행에서 같은 출력을 냈습니다."
+
+#: ../../guide/javascript-bridge.rst:6
+msgid ""
+"The bridge sits on the message router (``window.cefQuery``) and needs no "
+"Python in the renderer process. The older and simpler "
+":meth:`~cefweaver.CefApp.add_javascript_binding` passes only ``int``, "
+"``bool``, ``float`` and ``str`` arguments, it leaves out an argument of "
+"any other type (``bind(1, [1], 2)`` arrives as ``(1, 2)``, ``bind(null)``"
+" as ``()``), and it returns nothing to the page. The bridge replaces it "
+"when you need a result, lists, dictionaries or callbacks."
+msgstr ""
+"브리지는 메시지 라우터(``window.cefQuery``) 위에 놓이며 렌더러 프로세스에 Python이 필요하지 않습니다. 더 "
+"오래되고 단순한 :meth:`~cefweaver.CefApp.add_javascript_binding`\\ 은 ``int``, "
+"``bool``, ``float``, ``str`` 인자만 전달하고, 다른 타입의 인자는 빼 버리며(``bind(1, [1], "
+"2)``\\ 는 ``(1, 2)``\\ 로, ``bind(null)``\\ 은 ``()``\\ 로 도착합니다), 페이지에 아무것도 "
+"반환하지 않습니다. 결과, 리스트, 딕셔너리 또는 콜백이 필요하면 브리지가 이를 대체합니다."
+
+#: ../../guide/javascript-bridge.rst:9
+msgid "JavaScript calls Python"
+msgstr "JavaScript가 Python을 호출"
+
+#: ../../guide/javascript-bridge.rst:11
+msgid ""
+":meth:`~cefweaver.JavascriptBridge.expose` defines ``window.<name>`` in "
+"every frame of every page, before the scripts of the page run. Call it "
+"**before** ``initialize()`` (with a session: before ``session.start()``),"
+" or it raises ``RuntimeError``. The name must be a JavaScript identifier "
+"that is not a reserved word and is not exposed already (``ValueError`` "
+"otherwise); the function must be callable (``TypeError``)."
+msgstr ""
+":meth:`~cefweaver.JavascriptBridge.expose`\\ 는 페이지의 스크립트가 실행되기 전에 모든 페이지의"
+" 모든 frame에 ``window.<name>``\\ 을 정의합니다. ``initialize()`` **전에**\\ (세션에서는 "
+"``session.start()`` 전에) 호출하십시오. 그러지 않으면 ``RuntimeError``\\ 가 발생합니다. 이름은 "
+"예약어가 아니고 아직 노출되지 않은 JavaScript 식별자여야 하며(아니면 ``ValueError``), 함수는 호출 가능해야 "
+"합니다(``TypeError``)."
+
+#: ../../guide/javascript-bridge.rst:16
+msgid ""
+"The page of the script calls the functions with ``await``. This is the "
+"first half of the output, what the page got:"
+msgstr "스크립트의 페이지는 ``await``\\ 로 함수를 호출합니다. 다음은 출력의 전반부이며, 페이지가 받은 내용입니다:"
+
+#: ../../guide/javascript-bridge.rst:31
+msgid "What the lines show:"
+msgstr "각 줄이 보여 주는 내용입니다:"
+
+#: ../../guide/javascript-bridge.rst:33
+msgid ""
+"``window.add(2, 3)`` returns a ``Promise``. The arguments are encoded as "
+"JSON and arrive in Python as ``int``, ``float``, ``str``, ``bool``, "
+"``None``, ``list`` and ``dict``. The result is encoded with "
+"``json.dumps(..., allow_nan=False)``, so a function returning ``None`` "
+"resolves to ``null`` and a dictionary becomes an object."
+msgstr ""
+"``window.add(2, 3)``\\ 은 ``Promise``\\ 를 반환합니다. 인자는 JSON으로 인코딩되어 Python에 "
+"``int``, ``float``, ``str``, ``bool``, ``None``, ``list``, ``dict``\\ 로 "
+"도착합니다. 결과는 ``json.dumps(..., allow_nan=False)``\\ 로 인코딩되므로, ``None``\\ 을 "
+"반환하는 함수는 ``null``\\ 로 이행되고 딕셔너리는 객체가 됩니다."
+
+#: ../../guide/javascript-bridge.rst:34
+msgid ""
+"Floats keep their full precision (``0.1 + 0.2``). ``undefined`` as an "
+"argument arrives as ``None``."
+msgstr ""
+"부동소수점 수는 전체 정밀도를 유지합니다(``0.1 + 0.2``). 인자로 넘긴 ``undefined``\\ 는 "
+"``None``\\ 으로 도착합니다."
+
+#: ../../guide/javascript-bridge.rst:35
+msgid ""
+"``with_frame=True`` passes the calling :class:`~cefweaver.Frame` as the "
+"first argument (``where`` returned its URL)."
+msgstr ""
+"``with_frame=True``\\ 는 호출한 :class:`~cefweaver.Frame`\\ 을 첫 번째 인자로 "
+"전달합니다(``where``\\ 가 그 URL을 반환했습니다)."
+
+#: ../../guide/javascript-bridge.rst:36
+msgid ""
+"**A failure rejects the** ``Promise`` **with an** ``Error`` **whose** "
+"``message`` **is** ``Type: message``: the exception of the function "
+"(``ValueError: no good``), or the error of encoding a result that is not "
+"JSON (``object()``, ``NaN``). The ``Error`` has no ``code`` property."
+msgstr ""
+"**실패하면** ``Promise``\\ 가 **거부됩니다.** 거부 값은 ``Error``\\ 이고 그 ``message``\\ "
+"는 ``Type: message``\\ 입니다. 이는 함수의 예외(``ValueError: no good``)이거나 JSON이 아닌"
+" 결과를 인코딩할 때의 오류(``object()``, ``NaN``)입니다. 이 ``Error``\\ 에는 ``code`` 속성이 "
+"없습니다."
+
+#: ../../guide/javascript-bridge.rst:37
+msgid ""
+"Calls are answered on the thread that called ``initialize()``, from "
+"``do_message_loop_work()``, so the functions run one after another and a "
+"slow function blocks the message loop (:doc:`message-loop`). Do slow work"
+" in a thread of your own and hand the result back to the thread of the "
+"loop with a task (:doc:`concepts`), where you can answer through a "
+":class:`~cefweaver.JsCallback` (below)."
+msgstr ""
+"호출은 ``initialize()``\\ 를 호출한 스레드에서 ``do_message_loop_work()``\\ 를 통해 "
+"응답되므로, 함수는 차례로 실행되고 느린 함수는 메시지 루프를 막습니다(:doc:`message-loop`). 느린 작업은 직접 "
+"만든 스레드에서 하고, 결과는 태스크(:doc:`concepts`)로 루프의 스레드에 돌려주십시오. 거기서 "
+":class:`~cefweaver.JsCallback`\\ 으로 응답할 수 있습니다(아래)."
+
+#: ../../guide/javascript-bridge.rst:38
+msgid ""
+"The bridge works in iframes and in every browser of the application, also"
+" in a frame of another site, which has a renderer process of its own (the"
+" test suite covers these cases)."
+msgstr ""
+"브리지는 iframe과 애플리케이션의 모든 브라우저에서 동작하며, 자체 렌더러 프로세스를 가진 다른 사이트의 frame에서도 "
+"동작합니다(테스트 스위트가 이 경우들을 다룹니다)."
+
+#: ../../guide/javascript-bridge.rst:39
+msgid ""
+"A name that is not exposed is not defined in the page at all: calling it "
+"is the page's own ``ReferenceError``."
+msgstr ""
+"노출되지 않은 이름은 페이지에 아예 정의되지 않습니다. 그 이름을 호출하면 페이지 자체의 ``ReferenceError``\\ 가 "
+"발생합니다."
+
+#: ../../guide/javascript-bridge.rst:42
+msgid "Functions as arguments"
+msgstr "인자로 넘기는 함수"
+
+#: ../../guide/javascript-bridge.rst:44
+msgid ""
+"A function that the page passes as an argument arrives as a "
+":class:`~cefweaver.JsCallback`. ``call(*args)`` runs it in the frame it "
+"came from with JSON arguments, and you may keep the object and call it "
+"later, after the exposed function has returned; ``release()`` lets the "
+"page forget it. A call after the frame is gone or after ``release()`` "
+"does nothing. In the script ``listen`` stored the callback, and "
+"``callbacks[0].call(\"hello from Python\")`` ran the page's function (the"
+" second half of the output below shows ``heard``)."
+msgstr ""
+"페이지가 인자로 넘긴 함수는 :class:`~cefweaver.JsCallback`\\ 으로 도착합니다. "
+"``call(*args)``\\ 는 JSON 인자로 그 함수를 원래의 frame에서 실행하며, 객체를 보관했다가 노출된 함수가 "
+"반환된 뒤에 나중에 호출해도 됩니다. ``release()``\\ 는 페이지가 이를 잊게 합니다. frame이 사라진 뒤나 "
+"``release()`` 뒤의 호출은 아무 일도 하지 않습니다. 스크립트에서 ``listen``\\ 이 콜백을 저장했고 "
+"``callbacks[0].call(\"hello from Python\")``\\ 이 페이지의 함수를 실행했습니다(아래 출력의 "
+"후반부에 ``heard``\\ 가 나옵니다)."
+
+#: ../../guide/javascript-bridge.rst:46
+msgid ""
+"Only a function that is itself an argument is converted. This second "
+"script shows what happens to a function inside a list or an object, and "
+"what ``evaluate`` makes of various results (next section):"
+msgstr ""
+"인자 자체인 함수만 변환됩니다. 이 두 번째 스크립트는 리스트나 객체 안의 함수가 어떻게 되는지, 그리고 ``evaluate``\\"
+" 가 여러 결과를 어떻게 처리하는지 보여 줍니다(다음 절):"
+
+#: ../../guide/javascript-bridge.rst:63
+msgid ""
+"A function inside a list arrives as ``None`` and one inside an object "
+"disappears (the JSON of the page drops it). After ``release()`` the call "
+"of the script did nothing: the page heard only ``one``."
+msgstr ""
+"리스트 안의 함수는 ``None``\\ 으로 도착하고 객체 안의 함수는 사라집니다(페이지의 JSON이 이를 버립니다). "
+"``release()`` 뒤에 스크립트의 호출은 아무 일도 하지 않았으며, 페이지는 ``one``\\ 만 들었습니다."
+
+#: ../../guide/javascript-bridge.rst:66
+msgid "Which pages may call"
+msgstr "호출할 수 있는 페이지"
+
+#: ../../guide/javascript-bridge.rst:68
+msgid ""
+"**By default every frame of every page loaded in the application can call"
+" every exposed function**, whatever its origin. ``ui.Session`` makes its "
+"bridge this way. Expose only functions that are safe for all pages you "
+"load, validate their arguments, and do not load untrusted pages in a "
+"program that exposes functions with side effects."
+msgstr ""
+"**기본적으로 애플리케이션에 로드된 모든 페이지의 모든 frame이 노출된 모든 함수를 호출할 수 있습니다.** 출처는 "
+"상관없습니다. ``ui.Session``\\ 은 브리지를 이렇게 만듭니다. 로드하는 모든 페이지에 안전한 함수만 노출하고, 인자를 "
+"검증하며, 부작용이 있는 함수를 노출하는 프로그램에서는 신뢰할 수 없는 페이지를 로드하지 마십시오."
+
+#: ../../guide/javascript-bridge.rst:70
+msgid ""
+"To restrict the bridge, build it yourself with ``origins``, a list of URL"
+" prefixes, before ``initialize()``. Only frames whose URL starts with one"
+" of them are answered; the others get a rejected ``Promise``. A string "
+"instead of a list raises ``TypeError``."
+msgstr ""
+"브리지를 제한하려면 ``initialize()`` 전에 URL 접두사 리스트인 ``origins``\\ 를 주어 직접 만드십시오. "
+"URL이 그 접두사 중 하나로 시작하는 frame만 응답을 받고, 나머지는 거부된 ``Promise``\\ 를 받습니다. 리스트 "
+"대신 문자열을 주면 ``TypeError``\\ 가 발생합니다."
+
+#: ../../guide/javascript-bridge.rst:80
+msgid ""
+"The page of the second address could still use ``report``, a plain "
+"binding of :meth:`~cefweaver.CefApp.add_javascript_binding`: only the "
+"bridge is restricted. Queries that are not the bridge's go on to the "
+"handlers added with :meth:`~cefweaver.CefApp.add_query_handler`; the "
+"bridge hands them on."
+msgstr ""
+"두 번째 주소의 페이지도 여전히 ``report``\\ 를 사용할 수 있었습니다. 이것은 "
+":meth:`~cefweaver.CefApp.add_javascript_binding`\\ 의 일반 바인딩이며, 제한되는 것은 "
+"브리지뿐입니다. 브리지의 것이 아닌 쿼리는 :meth:`~cefweaver.CefApp.add_query_handler`\\ 로 "
+"추가한 핸들러로 넘어갑니다. 브리지가 그것들을 넘겨 줍니다."
+
+#: ../../guide/javascript-bridge.rst:83
+msgid "Python calls JavaScript"
+msgstr "Python이 JavaScript를 호출"
+
+#: ../../guide/javascript-bridge.rst:85
+msgid ""
+"Both methods need the :class:`~cefweaver.Frame` of the page: "
+"``view.browser.get_main_frame()`` for a "
+":class:`~cefweaver.ui.BrowserView` (as in the script), or "
+"``browser.get_main_frame()`` from a handler such as "
+"``LifeSpanHandler.on_after_created``. A bridge with nothing exposed works"
+" for these calls too."
+msgstr ""
+"두 메서드 모두 페이지의 :class:`~cefweaver.Frame`\\ 이 필요합니다. "
+":class:`~cefweaver.ui.BrowserView`\\ 에서는 "
+"``view.browser.get_main_frame()``\\ 을 쓰고(스크립트에서처럼), "
+"``LifeSpanHandler.on_after_created`` 같은 핸들러에서는 "
+"``browser.get_main_frame()``\\ 을 씁니다. 아무것도 노출하지 않은 브리지도 이 호출에는 동작합니다."
+
+#: ../../guide/javascript-bridge.rst:87
+msgid ""
+":meth:`~cefweaver.JavascriptBridge.execute_function` ``(frame, path, "
+"*args)`` calls the function at a dotted path below ``window`` "
+"(``\"api.greet\"``) with JSON arguments and drops the result. It returns "
+"nothing and reports nothing back to Python; a path that is not made of "
+"identifiers raises ``ValueError``."
+msgstr ""
+":meth:`~cefweaver.JavascriptBridge.execute_function` ``(frame, path, "
+"*args)``\\ 는 ``window`` 아래의 점으로 구분된 경로(``\"api.greet\"``)에 있는 함수를 JSON "
+"인자로 호출하고 결과는 버립니다. 아무것도 반환하지 않고 Python에 아무것도 알리지 않습니다. 식별자로 이루어지지 않은 경로는 "
+"``ValueError``\\ 를 발생시킵니다."
+
+#: ../../guide/javascript-bridge.rst:89
+msgid ""
+":meth:`~cefweaver.JavascriptBridge.evaluate` ``(frame, expression, "
+"callback, timeout=30.0)`` evaluates an expression and calls "
+"``callback(value, error)`` later, from ``do_message_loop_work()``. This "
+"is the second half of the output of ``bridge_calls.py``:"
+msgstr ""
+":meth:`~cefweaver.JavascriptBridge.evaluate` ``(frame, expression, "
+"callback, timeout=30.0)``\\ 은 표현식을 평가하고 나중에 ``do_message_loop_work()``\\ "
+"에서 ``callback(value, error)``\\ 를 호출합니다. 다음은 ``bridge_calls.py`` 출력의 "
+"후반부입니다:"
+
+#: ../../guide/javascript-bridge.rst:105
+#, python-brace-format
+msgid ""
+"On success ``value`` is the JSON value of the result and ``error`` is "
+"``None``. A ``Promise`` is awaited (``later``). ``undefined`` is "
+"``None``. The conversions of the other script above apply: ``NaN`` is "
+"``None``, a ``Date`` is its ISO string, a ``Map`` is ``{}``."
+msgstr ""
+"성공하면 ``value``\\ 는 결과의 JSON 값이고 ``error``\\ 는 ``None``\\ 입니다. "
+"``Promise``\\ 는 기다립니다(``later``). ``undefined``\\ 는 ``None``\\ 입니다. 위 다른 "
+"스크립트의 변환이 적용됩니다. ``NaN``\\ 은 ``None``, ``Date``\\ 는 ISO 문자열, ``Map``\\ 은 "
+"``{}``\\ 입니다."
+
+#: ../../guide/javascript-bridge.rst:106
+msgid ""
+"On failure ``value`` is ``None`` and ``error`` is ``\"Name: message\"`` "
+"of the JavaScript error, for a syntax error or a thrown error. A result "
+"that cannot be sent (a cycle, a ``BigInt``, a ``Symbol``) comes as a "
+"``TypeError`` string."
+msgstr ""
+"실패하면 ``value``\\ 는 ``None``\\ 이고 ``error``\\ 는 구문 오류나 던져진 오류에 대한 "
+"JavaScript 오류의 ``\"Name: message\"``\\ 입니다. 보낼 수 없는 결과(순환, ``BigInt``, "
+"``Symbol``)는 ``TypeError`` 문자열로 옵니다."
+
+#: ../../guide/javascript-bridge.rst:107
+msgid ""
+"If no answer comes, the callback gets ``TimeoutError: no answer in N s`` "
+"after ``timeout`` seconds, and a later answer is ignored. Typical causes "
+"are a ``Promise`` that never settles, a frame without a script context "
+"yet, and a page that was left. ``timeout=None`` waits without limit (the "
+"callback may then never be called). A ``timeout`` that is not a positive "
+"number raises ``ValueError``; a ``callback`` that is not callable raises "
+"``TypeError``."
+msgstr ""
+"응답이 없으면 콜백은 ``timeout``\\ 초 뒤에 ``TimeoutError: no answer in N s``\\ 를 받고,"
+" 나중에 오는 응답은 무시됩니다. 흔한 원인은 끝나지 않는 ``Promise``, 아직 스크립트 컨텍스트가 없는 frame, 떠난 "
+"페이지입니다. ``timeout=None``\\ 은 제한 없이 기다립니다(그러면 콜백이 호출되지 않을 수도 있습니다). 양수가 아닌"
+" ``timeout``\\ 은 ``ValueError``\\ 를, 호출할 수 없는 ``callback``\\ 은 "
+"``TypeError``\\ 를 발생시킵니다."
+
+#: ../../guide/javascript-bridge.rst:108
+msgid ""
+"The syntax error shows ``Unexpected token '}'`` for ``1 +``: the bridge "
+"puts the expression in a block before it runs, which is why a top-level "
+"``let`` or ``const`` lives only in that call (see :doc:`embedding`)."
+msgstr ""
+"구문 오류는 ``1 +``\\ 에 대해 ``Unexpected token '}'``\\ 를 보여 줍니다. 브리지가 표현식을 실행 "
+"전에 블록에 넣기 때문이며, 그래서 최상위 ``let``\\ 이나 ``const``\\ 는 그 호출 안에서만 살아 "
+"있습니다(:doc:`embedding`\\ 을 참고하십시오)."
+
+#: ../../guide/javascript-bridge.rst:109
+msgid "It works on pages that forbid ``eval``, as :doc:`embedding` explains."
+msgstr ":doc:`embedding`\\ 이 설명하듯 ``eval``\\ 을 금지하는 페이지에서도 동작합니다."
+
+#: ../../guide/javascript-bridge.rst:110
+msgid ""
+"An exception in your callback goes to ``sys.excepthook`` "
+"(:doc:`concepts`)."
+msgstr "콜백의 예외는 ``sys.excepthook``\\ 으로 갑니다(:doc:`concepts`)."
+
+#: ../../guide/javascript-bridge.rst:113
+msgid "Frames and navigation"
+msgstr "frame과 내비게이션"
+
+#: ../../guide/javascript-bridge.rst:115
+msgid ""
+"Wait until the page can answer before you evaluate. In the script the "
+"page calls an exposed ``ready`` function at its end, and Python waits for"
+" it. An expression left unanswered because the page was left ends with "
+"the timeout (run: a ``Promise`` that never settles, the page replaced by "
+"another URL, ``TimeoutError: no answer in 1 s``). The renderer also "
+"ignores an expression that arrives before the script context of the frame"
+" exists, which ends the same way (source: ``cefweaver-eval`` in "
+"``native/cefwrapper/cef_wrapper_render_process_handler.cc``); this was "
+"not reproduced, because an expression sent as soon as the view's "
+"``on_ready`` was called was answered, by the context of ``about:blank``."
+msgstr ""
+"평가하기 전에 페이지가 응답할 수 있을 때까지 기다립니다. 스크립트에서는 페이지가 끝에서 노출된 ``ready`` 함수를 호출하고,"
+" Python이 그것을 기다립니다. 페이지를 떠나서 응답을 받지 못한 식은 타임아웃으로 끝납니다(실행: 끝나지 않는 "
+"``Promise``\\ 와 다른 URL로 바뀐 페이지에서 ``TimeoutError: no answer in 1 s``). "
+"렌더러는 프레임의 스크립트 컨텍스트가 생기기 전에 도착한 식도 무시하며, 이 경우에도 같은 방식으로 끝납니다(근거는 "
+"``native/cefwrapper/cef_wrapper_render_process_handler.cc``\\ 의 "
+"``cefweaver-eval``\\ 입니다). 이것은 재현하지 못했습니다. 뷰의 ``on_ready``\\ 가 호출되자마자 보낸 "
+"식은 ``about:blank``\\ 의 컨텍스트가 응답했기 때문입니다."
+

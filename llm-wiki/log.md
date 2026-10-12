@@ -763,3 +763,9 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-13] ingest | 사용 안내(guide)와 쿡북
 사용자가 API 레퍼런스 외에 Jekyll 때처럼 사용 방법을 설명하는 문서(가이드와 쿡북)를 요청했다. `docs/guide/`에 영어 원문 13쪽을 새로 썼다(설치, 시작하기, 쿡북, GUI 툴킷에 넣기, Views, 툴킷별 상태, 소리와 권한, 컨텍스트 메뉴, Cast, 핸들러와 이벤트, Wayland와 GPU, 한계, 개발하기). 이전 Jekyll 쪽의 사실을 옮기되 소스와 `examples/`로 이름을 대조했고, 쿡북의 스크립트는 wheel로 실제 실행해 확인했다. `write-docstrings.md`와 `CLAUDE.md`, `tests/test_docs.py` 갱신. 한국어는 449개 고유 문장을 서브에이전트가 번역하고 다른 서브에이전트가 대조해 10개를 고쳤다. 검수가 미진하다는 지적으로 문장마다 판정을 남기게 한 엄격한 재검수를 서브에이전트 15개가 했고(449개 모두 판정, 70개 수정) 반영했다(모델 검수만, 사람의 감수 없음). 영어와 한국어 `-W` 빌드 통과.
+
+## [2026-10-13] ingest | 가이드 6쪽 추가(cefloom과 주제 맞추기)
+사용자 요청으로 cefloom 문서와 주제를 맞췄다. `docs/guide/`에 개념, 메시지 루프, JavaScript 브리지, 인쇄, 구성, 문제 해결 6쪽과 `recipes/` 스크립트 14개를 더했다. 처음에는 오래된 wheel(10월 11일 빌드)로 예제를 실행했는데, 사용자의 지적으로 소스에서 새 wheel을 빌드해 모든 예제를 다시 실행했고 서술 10곳(종료 대기 시간이 두 단계인 점, `add_javascript_binding`의 인자 처리 등)을 고쳤다. 새 wheel로 전체 `update-po`가 기존 카탈로그를 바꾸지 않음을 확인했고, 바뀐 문장 10개를 다시 번역했다. 새 쪽의 한국어는 서브에이전트가 번역했다(모델 번역만, 사람의 감수 없음). 한국어 빌드에서 reST 경고(굵게 표시 뒤의 조사 등)를 고쳐 영어와 한국어 `-W` 빌드가 통과한다. `known-constraints.md`에 `add_javascript_binding` docstring의 불일치를 기록했다.
+
+## [2026-10-13] ingest | add_javascript_binding docstring 수정
+새 wheel로 확인한 불일치를 고쳤다. docstring이 "다른 JavaScript 타입은 `None`으로 도착한다"고 했으나 실제로는 그 인자가 빠진다(`bind(1, [1], 2)`는 `(1, 2)`, `bind(null)`은 `()`로 도착. `javascript_python_binding_handler.h`가 건너뛴다). `_cefweaver.pyx`와 `tools/gen/handwritten.pyi`를 고치고 `generate.py`로 `_cefweaver.pyi`를 다시 만들었으며(`--check` 통과), wheel을 다시 빌드해 `update-po`로 `api/core.po`의 해당 문장을 다시 번역했다(`-w 100`으로 기존 줄바꿈 폭을 유지해 변경이 10줄로 그쳤다). 회귀 시험 `test_binding_leaves_out_arguments_of_other_types`를 더했고 새 wheel로 3회 통과했다. 영어와 한국어 `-E -W` 빌드, `test_docs`, `test_docstrings`, `test_wiki`, `test_generator` 통과.

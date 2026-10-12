@@ -1,0 +1,576 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) cefweaver contributors, BSD-3-Clause
+# This file is distributed under the same license as the cefweaver package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: cefweaver \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-13 08:04+0900\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ko\n"
+"Language-Team: ko <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: ../../guide/concepts.rst:2
+msgid "Concepts"
+msgstr "개념"
+
+#: ../../guide/concepts.rst:4
+msgid ""
+"What to know before writing handlers: which thread runs your code, which "
+"processes exist, what kinds of classes the package has, what a handler "
+"method receives and returns, how a program ends and what happens to an "
+"error. The examples on this page come from one script, which was run "
+"against the built wheel on a virtual X server (``xvfb-run python -P "
+"concepts.py``):"
+msgstr ""
+"핸들러를 작성하기 전에 알아야 할 내용입니다. 어느 스레드가 코드를 실행하는지, 어떤 프로세스가 있는지, 패키지에 어떤 종류의 "
+"클래스가 있는지, 핸들러 메서드가 무엇을 받고 반환하는지, 프로그램이 어떻게 끝나는지, 오류가 나면 어떻게 되는지를 다룹니다. 이 "
+"페이지의 예제는 하나의 스크립트에서 나왔으며, 가상 X 서버에서 빌드된 wheel을 대상으로 실행했습니다(``xvfb-run "
+"python -P concepts.py``):"
+
+#: ../../guide/concepts.rst:9
+msgid "It prints:"
+msgstr "출력은 다음과 같습니다:"
+
+#: ../../guide/concepts.rst:26
+msgid ""
+"Three runs in a row printed the same lines. For the first steps see "
+":doc:`quickstart` and :doc:`cookbook`."
+msgstr ""
+"연속 세 번 실행했을 때 같은 줄이 출력되었습니다. 첫 단계는 :doc:`quickstart`\\ 와 "
+":doc:`cookbook`\\ 을 참고하십시오."
+
+#: ../../guide/concepts.rst:29
+msgid "Threads and where code runs"
+msgstr "스레드와 코드가 실행되는 곳"
+
+#: ../../guide/concepts.rst:31
+msgid ""
+"**The thread that calls** :meth:`~cefweaver.CefApp.initialize` **is the "
+"UI thread of CEF.** Python calls CEF from it, and the callbacks that CEF "
+"makes on the UI thread run on it, inside "
+":meth:`~cefweaver.CefApp.do_message_loop_work`. This covers the handlers "
+"of the ``Client`` given to :meth:`~cefweaver.CefApp.set_client`, the "
+"functions of :meth:`~cefweaver.CefApp.add_javascript_binding` and "
+":meth:`~cefweaver.JavascriptBridge.expose`, the "
+":class:`~cefweaver.QueryHandler` methods and the "
+":class:`~cefweaver.AppHandler` methods other than "
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work`. In the "
+"script above the JavaScript binding ``hello`` ran on that thread (the two"
+" ``True`` lines)."
+msgstr ""
+"**CEF의 UI 스레드는** :meth:`~cefweaver.CefApp.initialize`\\ 를 **호출한 스레드입니다.**"
+" Python은 이 스레드에서 CEF를 호출하며, CEF가 UI 스레드에서 하는 콜백도 이 스레드의 "
+":meth:`~cefweaver.CefApp.do_message_loop_work`\\ 안에서 실행됩니다. 여기에는 "
+":meth:`~cefweaver.CefApp.set_client`\\ 에 넘긴 ``Client``\\ 의 핸들러, "
+":meth:`~cefweaver.CefApp.add_javascript_binding`\\ 과 "
+":meth:`~cefweaver.JavascriptBridge.expose`\\ 의 함수, "
+":class:`~cefweaver.QueryHandler`\\ 의 메서드, 그리고 "
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work`\\ 를 제외한 "
+":class:`~cefweaver.AppHandler`\\ 의 메서드가 포함됩니다. 위 스크립트에서는 JavaScript 바인딩 "
+"``hello``\\ 가 이 스레드에서 실행되었습니다(``True``\\ 가 출력된 두 줄)."
+
+#: ../../guide/concepts.rst:33
+msgid ""
+"Because a callback runs inside ``do_message_loop_work()``, that call "
+"returns only when the callback has returned. A callback that takes long "
+"delays everything else CEF has to do, and the exposed functions of the "
+"bridge run synchronously in the same way (see :doc:`javascript-bridge`)."
+msgstr ""
+"콜백은 ``do_message_loop_work()`` 안에서 실행되므로, 이 호출은 콜백이 반환해야 돌아옵니다. 오래 걸리는 "
+"콜백은 CEF가 해야 하는 다른 모든 일을 지연시키며, 브리지의 노출된 함수도 같은 방식으로 동기적으로 실행됩니다(:doc"
+":`javascript-bridge`\\ 를 참고하십시오)."
+
+#: ../../guide/concepts.rst:35
+msgid ""
+"**Some callbacks come on other threads of CEF.** The docstring of each "
+"handler class names the thread. For example ``ResourceHandler`` says its "
+"methods are called on the IO thread unless indicated otherwise, and "
+"``SchemeHandlerFactory`` says its methods are always called on the IO "
+"thread. In the script the ``open`` method of the resource handler ran on "
+"a thread that is not the one that called ``initialize()``. Such a method "
+"runs Python on a thread that Python did not create. The objects of a "
+"toolkit belong to its main thread, so pass results there instead of "
+"touching them (the ``post`` method of the toolkit adapter, see "
+":doc:`embedding`)."
+msgstr ""
+"**일부 콜백은 CEF의 다른 스레드에서 옵니다.** 각 핸들러 클래스의 독스트링에 스레드가 명시되어 있습니다. 예를 들어 "
+"``ResourceHandler``\\ 는 달리 표시하지 않는 한 메서드가 IO 스레드에서 호출된다고 하고, "
+"``SchemeHandlerFactory``\\ 는 메서드가 항상 IO 스레드에서 호출된다고 합니다. 스크립트에서 리소스 핸들러의 "
+"``open`` 메서드는 ``initialize()``\\ 를 호출한 스레드가 아닌 다른 스레드에서 실행되었습니다. 이런 메서드는 "
+"Python이 만들지 않은 스레드에서 Python을 실행합니다. 툴킷의 객체는 해당 툴킷의 메인 스레드에 속하므로, 객체를 직접 "
+"만지지 말고 결과를 그 스레드로 넘기십시오(툴킷 어댑터의 ``post`` 메서드, :doc:`embedding`\\ 을 "
+"참고하십시오)."
+
+#: ../../guide/concepts.rst:37
+msgid "Two other places where the thread matters:"
+msgstr "스레드가 중요한 다른 두 곳입니다:"
+
+#: ../../guide/concepts.rst:39
+msgid ""
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work` is called on "
+"any thread of CEF, unlike the other methods of "
+":class:`~cefweaver.AppHandler`. :class:`~cefweaver.QueryCallback` can be "
+"used from any thread."
+msgstr ""
+":meth:`~cefweaver.AppHandler.on_schedule_message_pump_work`\\ 는 "
+":class:`~cefweaver.AppHandler`\\ 의 다른 메서드와 달리 CEF의 임의의 스레드에서 호출됩니다. "
+":class:`~cefweaver.QueryCallback`\\ 은 어느 스레드에서나 사용할 수 있습니다."
+
+#: ../../guide/concepts.rst:40
+msgid ""
+":meth:`~cefweaver.CefApp.create_browser` and "
+":meth:`~cefweaver.CefApp.cancel_pending_queries` say in their docstrings "
+"that they are called on the thread that called ``initialize()``. The "
+"docstrings of the other :class:`~cefweaver.CefApp` methods do not name a "
+"thread, so call them from that thread too."
+msgstr ""
+":meth:`~cefweaver.CefApp.create_browser`\\ 와 "
+":meth:`~cefweaver.CefApp.cancel_pending_queries`\\ 는 독스트링에서 "
+"``initialize()``\\ 를 호출한 스레드에서 호출한다고 밝히고 있습니다. 다른 "
+":class:`~cefweaver.CefApp` 메서드의 독스트링에는 스레드가 명시되어 있지 않으므로, 이들도 그 스레드에서 "
+"호출하십시오."
+
+#: ../../guide/concepts.rst:43
+msgid "Tasks"
+msgstr "태스크"
+
+#: ../../guide/concepts.rst:45
+msgid ""
+":func:`~cefweaver.post_task` queues a :class:`~cefweaver.Task` for a "
+"thread of CEF (``cefweaver.types.ThreadId.UI``, ``IO``, ...), "
+":func:`~cefweaver.post_delayed_task` adds a delay in milliseconds, and "
+":func:`~cefweaver.currently_on` tells whether the calling thread is the "
+"named one. The script posted three tasks and each one recorded where it "
+"ran:"
+msgstr ""
+":func:`~cefweaver.post_task`\\ 는 CEF의 "
+"스레드(``cefweaver.types.ThreadId.UI``, ``IO``, ...)에 "
+":class:`~cefweaver.Task`\\ 를 큐에 넣고, "
+":func:`~cefweaver.post_delayed_task`\\ 는 밀리초 단위의 지연을 더하며, "
+":func:`~cefweaver.currently_on`\\ 은 호출한 스레드가 지정한 스레드인지 알려 줍니다. 스크립트는 태스크 "
+"세 개를 게시했고, 각 태스크는 자신이 실행된 곳을 기록했습니다:"
+
+#: ../../guide/concepts.rst:47
+msgid ""
+"A task for ``ThreadId.UI`` runs on the thread that called "
+"``initialize()``, inside ``do_message_loop_work()``, never inside "
+"``post_task()`` itself. It does so also when it is posted from a Python "
+"thread of your own (the second line of the group)."
+msgstr ""
+"``ThreadId.UI``\\ 용 태스크는 ``initialize()``\\ 를 호출한 스레드의 "
+"``do_message_loop_work()`` 안에서 실행되며, ``post_task()`` 자체 안에서는 절대 실행되지 "
+"않습니다. 직접 만든 Python 스레드에서 게시해도 마찬가지입니다(그룹의 두 번째 줄)."
+
+#: ../../guide/concepts.rst:48
+msgid ""
+"A task for ``ThreadId.IO`` runs on another thread, where "
+"``currently_on(ThreadId.IO)`` is true."
+msgstr ""
+"``ThreadId.IO``\\ 용 태스크는 다른 스레드에서 실행되며, 그 스레드에서는 "
+"``currently_on(ThreadId.IO)``\\ 가 참입니다."
+
+#: ../../guide/concepts.rst:49
+msgid ""
+"``post_task`` returns ``True`` when the task was queued. Before "
+":meth:`~cefweaver.CefApp.initialize` it returned ``False`` and CEF "
+"printed a warning (``No task runner for threadId 0``)."
+msgstr ""
+"``post_task``\\ 는 태스크가 큐에 들어가면 ``True``\\ 를 반환합니다. "
+":meth:`~cefweaver.CefApp.initialize` 전에는 ``False``\\ 를 반환했고 CEF가 경고(``No "
+"task runner for threadId 0``)를 출력했습니다."
+
+#: ../../guide/concepts.rst:51
+msgid "This is the way to hand work to the UI thread from a thread of your own."
+msgstr "직접 만든 스레드에서 UI 스레드로 작업을 넘기는 방법입니다."
+
+#: ../../guide/concepts.rst:54
+msgid "Processes"
+msgstr "프로세스"
+
+#: ../../guide/concepts.rst:56
+msgid ""
+"CEF runs several processes. In cefweaver the Python process is the "
+"**browser process**: it calls ``initialize()``, owns the windows and the "
+"browsers, and runs all your Python. The renderer, GPU and utility "
+"processes are started from the executable ``cefsubprocess`` that is "
+"installed with the package (:meth:`~cefweaver.CefApp.set_subprocess_path`"
+" changes the path). They run no Python."
+msgstr ""
+"CEF는 여러 프로세스를 실행합니다. cefweaver에서 Python 프로세스는 **브라우저 프로세스**\\ 입니다. "
+"``initialize()``\\ 를 호출하고, 창과 브라우저를 소유하며, 모든 Python 코드를 실행합니다. 렌더러, GPU, "
+"유틸리티 프로세스는 패키지와 함께 설치되는 실행 파일 ``cefsubprocess``\\ 로 "
+"시작됩니다(:meth:`~cefweaver.CefApp.set_subprocess_path`\\ 로 경로를 바꿉니다). 이 "
+"프로세스들은 Python을 실행하지 않습니다."
+
+#: ../../guide/concepts.rst:58
+msgid ""
+"The page's JavaScript runs in a renderer process. So :doc:`javascript-"
+"bridge` sends JSON messages over the message router and defines the "
+"exposed functions with a fixed piece of JavaScript in the renderer, and "
+"the renderer events of :doc:`events` report to Python instead of running "
+"Python there."
+msgstr ""
+"페이지의 JavaScript는 렌더러 프로세스에서 실행됩니다. 그래서 :doc:`javascript-bridge`\\ 는 메시지 "
+"라우터로 JSON 메시지를 보내고 렌더러에서 고정된 JavaScript 조각으로 노출된 함수를 정의하며, "
+":doc:`events`\\ 의 렌더러 이벤트는 그곳에서 Python을 실행하지 않고 Python에 보고합니다."
+
+#: ../../guide/concepts.rst:60
+msgid ""
+"CEF can be initialized **once per process**. After "
+":meth:`~cefweaver.CefApp.shutdown` a new ``CefApp().initialize()`` raises"
+" ``RuntimeError`` (the last line of the output above), so a test suite or"
+" a job that needs CEF several times uses one Python process for each."
+msgstr ""
+"CEF는 **프로세스당 한 번**\\ 만 초기화할 수 있습니다. :meth:`~cefweaver.CefApp.shutdown` 뒤에"
+" 새 ``CefApp().initialize()``\\ 를 호출하면 ``RuntimeError``\\ 가 발생하므로(위 출력의 "
+"마지막 줄), CEF가 여러 번 필요한 테스트 스위트나 작업은 각각 별도의 Python 프로세스를 사용합니다."
+
+#: ../../guide/concepts.rst:63
+msgid "Classes you use"
+msgstr "사용하는 클래스"
+
+#: ../../guide/concepts.rst:69
+msgid "Kind"
+msgstr "종류"
+
+#: ../../guide/concepts.rst:70
+msgid "What it is"
+msgstr "설명"
+
+#: ../../guide/concepts.rst:71
+msgid "The application"
+msgstr "애플리케이션"
+
+#: ../../guide/concepts.rst:72
+msgid ""
+":class:`~cefweaver.CefApp`, written by hand: configure it, call "
+"``initialize()``, run the message loop, call ``shutdown()``. "
+":class:`~cefweaver.Settings` (``app.settings``), "
+":class:`~cefweaver.MessagePump` and :class:`~cefweaver.JavascriptBridge` "
+"are plain Python helpers around it."
+msgstr ""
+":class:`~cefweaver.CefApp`\\ 은 직접 작성합니다. 구성하고, ``initialize()``\\ 를 호출하고,"
+" 메시지 루프를 실행하고, ``shutdown()``\\ 을 호출합니다. :class:`~cefweaver.Settings`\\ "
+"(``app.settings``), :class:`~cefweaver.MessagePump`, "
+":class:`~cefweaver.JavascriptBridge`\\ 는 이를 둘러싼 순수 Python 도우미입니다."
+
+#: ../../guide/concepts.rst:73
+msgid "Library classes"
+msgstr "라이브러리 클래스"
+
+#: ../../guide/concepts.rst:74
+msgid ""
+"Implemented by CEF and given to you: :class:`~cefweaver.Browser`, "
+":class:`~cefweaver.Frame`, :class:`~cefweaver.Request`, "
+":class:`~cefweaver.Response`, :class:`~cefweaver.ListValue` and so on. "
+"You do not construct them: ``cefweaver.Request()`` and "
+"``cefweaver.Browser()`` raise ``TypeError`` (``Browser objects are "
+"created by CEF or by a create() function``). You get them as arguments of"
+" handler methods or from a ``create()`` function such as "
+"``Request.create()``, which also works before ``initialize()``. A method "
+"of such a class calls CEF."
+msgstr ""
+"CEF가 구현해서 사용자에게 주는 클래스입니다: :class:`~cefweaver.Browser`, "
+":class:`~cefweaver.Frame`, :class:`~cefweaver.Request`, "
+":class:`~cefweaver.Response`, :class:`~cefweaver.ListValue` 등. 직접 생성하지 "
+"않습니다. ``cefweaver.Request()``\\ 와 ``cefweaver.Browser()``\\ 는 "
+"``TypeError``\\ (``Browser objects are created by CEF or by a create() "
+"function``)를 발생시킵니다. 이 객체는 핸들러 메서드의 인자로 받거나, ``initialize()`` 전에도 동작하는 "
+"``Request.create()`` 같은 ``create()`` 함수로 얻습니다. 이런 클래스의 메서드는 CEF를 호출합니다."
+
+#: ../../guide/concepts.rst:75
+msgid "Handler classes"
+msgstr "핸들러 클래스"
+
+#: ../../guide/concepts.rst:76
+msgid ""
+"The ones you subclass to answer CEF: :class:`~cefweaver.Client`, "
+":class:`~cefweaver.LoadHandler`, :class:`~cefweaver.LifeSpanHandler`, "
+":class:`~cefweaver.ResourceHandler`, "
+":class:`~cefweaver.SchemeHandlerFactory`, :class:`~cefweaver.Task`, "
+":class:`~cefweaver.QueryHandler`, :class:`~cefweaver.AppHandler` and so "
+"on. Override the methods you need. A method you do not override keeps the"
+" behavior CEF has without a handler."
+msgstr ""
+"CEF에 응답하기 위해 서브클래스로 만드는 클래스입니다: :class:`~cefweaver.Client`, "
+":class:`~cefweaver.LoadHandler`, :class:`~cefweaver.LifeSpanHandler`, "
+":class:`~cefweaver.ResourceHandler`, "
+":class:`~cefweaver.SchemeHandlerFactory`, :class:`~cefweaver.Task`, "
+":class:`~cefweaver.QueryHandler`, :class:`~cefweaver.AppHandler` 등. 필요한 "
+"메서드를 오버라이드하십시오. 오버라이드하지 않은 메서드는 핸들러가 없을 때 CEF가 하는 동작을 그대로 유지합니다."
+
+#: ../../guide/concepts.rst:77
+msgid "Value types and enumerations"
+msgstr "값 타입과 열거형"
+
+#: ../../guide/concepts.rst:78
+msgid ""
+"In :mod:`cefweaver.types`. The value types are named tuples (``Rect(x=1, "
+"y=2, width=3, height=4)``) and the enumerations are ``IntEnum`` or "
+"``IntFlag`` classes (``ThreadId.UI`` is ``0``). A plain integer or a "
+"tuple with the same fields is accepted where one is expected."
+msgstr ""
+":mod:`cefweaver.types`\\ 에 있습니다. 값 타입은 네임드 튜플(``Rect(x=1, y=2, width=3, "
+"height=4)``)이고 열거형은 ``IntEnum`` 또는 ``IntFlag`` 클래스(``ThreadId.UI``\\ 는 "
+"``0``)입니다. 이런 타입이 필요한 곳에는 일반 정수나 필드가 같은 튜플도 받아들여집니다."
+
+#: ../../guide/concepts.rst:80
+msgid ""
+"The names follow PEP 8: the ``Cef`` prefix of the C++ classes is dropped,"
+" methods and arguments are in snake_case (``GetURL`` is ``get_url``), and"
+" a name that is a Python keyword gets an underscore "
+"(``Callback.continue_``)."
+msgstr ""
+"이름은 PEP 8을 따릅니다. C++ 클래스의 ``Cef`` 접두사는 없애고, 메서드와 인자는 snake_case로 "
+"씁니다(``GetURL``\\ 은 ``get_url``). Python 키워드인 이름에는 밑줄을 "
+"붙입니다(``Callback.continue_``)."
+
+#: ../../guide/concepts.rst:83
+msgid "What a handler method receives and returns"
+msgstr "핸들러 메서드가 받는 것과 반환하는 것"
+
+#: ../../guide/concepts.rst:85
+msgid ""
+"A handler method gets the inputs of the C++ method in order. The C++ "
+"output parameters become **return values**: if the method also returns a "
+"value, that value comes first."
+msgstr ""
+"핸들러 메서드는 C++ 메서드의 입력을 순서대로 받습니다. C++의 출력 매개변수는 **반환값**\\ 이 됩니다. 메서드가 값도 "
+"반환하면 그 값이 먼저 옵니다."
+
+#: ../../guide/concepts.rst:91
+msgid "The C++ method"
+msgstr "C++ 메서드"
+
+#: ../../guide/concepts.rst:92
+msgid "The Python method returns"
+msgstr "Python 메서드의 반환값"
+
+#: ../../guide/concepts.rst:93
+msgid "Returns nothing, has no output parameters"
+msgstr "반환값이 없고 출력 매개변수도 없음"
+
+#: ../../guide/concepts.rst:94
+msgid "Nothing (``None``)."
+msgstr "없음(``None``)."
+
+#: ../../guide/concepts.rst:95
+msgid "Returns a value, no output parameters"
+msgstr "값을 반환하고 출력 매개변수는 없음"
+
+#: ../../guide/concepts.rst:96
+msgid "The value."
+msgstr "그 값."
+
+#: ../../guide/concepts.rst:97
+msgid "Has one output parameter and returns nothing"
+msgstr "출력 매개변수가 하나이고 반환값은 없음"
+
+#: ../../guide/concepts.rst:98
+msgid "The output value."
+msgstr "출력 값."
+
+#: ../../guide/concepts.rst:99
+msgid "Returns a value and outputs, or has several outputs"
+msgstr "값과 출력을 모두 갖거나, 출력이 여럿임"
+
+#: ../../guide/concepts.rst:100
+msgid "A tuple, the return value first."
+msgstr "튜플. 반환값이 맨 앞."
+
+#: ../../guide/concepts.rst:102
+msgid ""
+"The script's resource handler shows it. ``ResourceHandler.open(request, "
+"callback)`` returns ``(result, handle_request)``, "
+"``get_response_headers(response)`` returns ``(response_length, "
+"redirect_url)`` and ``read(data_out, callback)`` returns ``(result, "
+"bytes_read)``: the first item is the C++ return value and the names of "
+"the others are those of the C++ parameters in the docstrings. In ``read``"
+" the C++ pointer and size pair is one writable ``memoryview`` named "
+"``data_out``; copy into it with a slice. The exact signature and the "
+"return annotation of every method are in ``cefweaver/_cefweaver.pyi`` and"
+" in the reference."
+msgstr ""
+"스크립트의 리소스 핸들러가 이를 보여 줍니다. ``ResourceHandler.open(request, callback)``\\ 은"
+" ``(result, handle_request)``\\ 를, ``get_response_headers(response)``\\ 는"
+" ``(response_length, redirect_url)``\\ 을, ``read(data_out, callback)``\\ "
+"은 ``(result, bytes_read)``\\ 를 반환합니다. 첫 번째 값은 C++의 반환값이고, 나머지 이름은 독스트링에 "
+"있는 C++ 매개변수의 이름입니다. ``read``\\ 에서 C++의 포인터와 크기 쌍은 쓰기 가능한 ``memoryview`` "
+"하나이며 이름은 ``data_out``\\ 입니다. 슬라이스로 여기에 복사합니다. 모든 메서드의 정확한 시그니처와 반환 어노테이션은"
+" ``cefweaver/_cefweaver.pyi``\\ 와 레퍼런스에 있습니다."
+
+#: ../../guide/concepts.rst:104
+msgid ""
+"The library classes follow the same rule for their output parameters: "
+"``MenuModel.get_accelerator(command_id)`` returns ``(ok, key_code, shift,"
+" ctrl, alt)``."
+msgstr ""
+"라이브러리 클래스도 출력 매개변수에 같은 규칙을 따릅니다. "
+"``MenuModel.get_accelerator(command_id)``\\ 는 ``(ok, key_code, shift, "
+"ctrl, alt)``\\ 를 반환합니다."
+
+#: ../../guide/concepts.rst:106
+msgid ""
+"``None`` is accepted as an argument or a return value only where the CEF "
+"header marks the parameter optional; elsewhere it is a ``TypeError``."
+msgstr ""
+"``None``\\ 은 CEF 헤더가 매개변수를 선택 사항으로 표시한 곳에서만 인자나 반환값으로 받아들여집니다. 그 밖의 곳에서는 "
+"``TypeError``\\ 입니다."
+
+#: ../../guide/concepts.rst:109
+msgid "Lifetime and shutdown"
+msgstr "수명과 종료"
+
+#: ../../guide/concepts.rst:111
+msgid ""
+"The order is: create :class:`~cefweaver.CefApp`, configure it, "
+"``initialize()``, run the message loop (:doc:`message-loop`), "
+"``shutdown()``."
+msgstr ""
+"순서는 다음과 같습니다. :class:`~cefweaver.CefApp`\\ 을 만들고, 구성하고, "
+"``initialize()``\\ 를 호출하고, 메시지 루프(:doc:`message-loop`)를 실행하고, "
+"``shutdown()``\\ 을 호출합니다."
+
+#: ../../guide/concepts.rst:113
+msgid ""
+"The configuration methods and the settings work **before** "
+"``initialize()`` only. Afterwards "
+":meth:`~cefweaver.CefApp.add_javascript_binding`, "
+":meth:`~cefweaver.JavascriptBridge.expose`, "
+":meth:`~cefweaver.CefApp.set_client` and the others raise "
+"``RuntimeError(\"this must be done before initialize()\")``, and a change"
+" to ``app.settings`` raises ``RuntimeError(\"the settings cannot change "
+"after initialize()\")``. Before ``initialize()``, ``load_url()`` and "
+"``do_message_loop_work()`` raise ``RuntimeError(\"initialize() has not "
+"been called\")``."
+msgstr ""
+"구성 메서드와 설정은 ``initialize()`` **전**\\ 에만 동작합니다. 그 뒤에 "
+":meth:`~cefweaver.CefApp.add_javascript_binding`, "
+":meth:`~cefweaver.JavascriptBridge.expose`, "
+":meth:`~cefweaver.CefApp.set_client` 등을 호출하면 ``RuntimeError(\"this must "
+"be done before initialize()\")``\\ 가 발생하고, ``app.settings``\\ 를 바꾸면 "
+"``RuntimeError(\"the settings cannot change after initialize()\")``\\ 가 "
+"발생합니다. ``initialize()`` 전에 ``load_url()``\\ 과 "
+"``do_message_loop_work()``\\ 를 호출하면 ``RuntimeError(\"initialize() has not"
+" been called\")``\\ 가 발생합니다."
+
+#: ../../guide/concepts.rst:114
+msgid ""
+":attr:`~cefweaver.CefApp.is_running` is true from ``initialize()`` until "
+"every browser is closed or ``shutdown()`` is called. A popup closing "
+"alone leaves it true. ``initialize(None)`` starts without a first "
+"browser, and then ``is_running`` stays true until ``shutdown()``."
+msgstr ""
+":attr:`~cefweaver.CefApp.is_running`\\ 은 ``initialize()``\\ 부터 모든 브라우저가 "
+"닫히거나 ``shutdown()``\\ 이 호출될 때까지 참입니다. 팝업 하나만 닫혀도 계속 참입니다. "
+"``initialize(None)``\\ 은 첫 브라우저 없이 시작하며, 이 경우 ``is_running``\\ 은 "
+"``shutdown()``\\ 까지 참으로 유지됩니다."
+
+#: ../../guide/concepts.rst:115
+msgid ""
+":meth:`~cefweaver.CefApp.shutdown` does nothing if CEF is not running, so"
+" a second call is harmless (the last line of the script). It closes "
+"browsers that are still open before it stops CEF, waiting at most about 5"
+" seconds for the browsers of the application and then at most about 5 "
+"seconds for any others that are still open, such as a Views window "
+"(source: ``ShutdownCefSimple`` in ``native/cefwrapper/library.cpp``; with"
+" the window of ``CefApp`` open it returned in under 0.1 s in three runs)."
+" It is called from the thread that called ``initialize()``. Under a "
+"toolkit, :meth:`~cefweaver.ui.Session.shutdown` does it for you after "
+"closing the view."
+msgstr ""
+":meth:`~cefweaver.CefApp.shutdown`\\ 은 CEF가 실행 중이 아니면 아무 일도 하지 않으므로 두 번째 "
+"호출은 무해합니다(스크립트의 마지막 줄). CEF를 멈추기 전에 아직 열려 있는 브라우저를 닫으며, 애플리케이션의 브라우저를 최대 "
+"약 5초 기다린 뒤 Views 창처럼 아직 열려 있는 다른 브라우저를 다시 최대 약 5초 기다립니다(근거는 "
+"``native/cefwrapper/library.cpp``\\ 의 ``ShutdownCefSimple``\\ 이며, "
+"``CefApp`` 창이 열린 상태에서 세 번 실행했을 때 0.1초 미만에 반환했습니다). ``initialize()``\\ 를 "
+"호출한 스레드에서 호출합니다. 툴킷 아래에서는 :meth:`~cefweaver.ui.Session.shutdown`\\ 이 뷰를 "
+"닫은 뒤 이 작업을 대신 해 줍니다."
+
+#: ../../guide/concepts.rst:116
+msgid ""
+"After ``shutdown()``, calls that need CEF raise ``RuntimeError(\"CEF has "
+"been shut down\")``, and ``is_running`` is ``False``."
+msgstr ""
+"``shutdown()`` 뒤에 CEF가 필요한 호출은 ``RuntimeError(\"CEF has been shut "
+"down\")``\\ 를 발생시키며, ``is_running``\\ 은 ``False``\\ 입니다."
+
+#: ../../guide/concepts.rst:117
+msgid ""
+"A script with the window of ``CefApp`` that ends without ``shutdown()`` "
+"ended with exit status 0 and wrote nothing to standard error in three "
+"runs. (A GPU error line, ``ContextResult::kTransientFailure``, appeared "
+"in one of three runs of the same script with ``shutdown()``, so such a "
+"line is not a sign of the missing call.) Call ``shutdown()`` anyway: the "
+"wrapper closes the browsers in it in the order CEF needs."
+msgstr ""
+"``CefApp`` 창이 있는 스크립트가 ``shutdown()`` 없이 끝났을 때 세 번 실행에서 모두 종료 상태 0으로 끝났고 "
+"표준 오류에는 아무것도 쓰지 않았습니다. (같은 스크립트를 ``shutdown()``\\ 과 함께 세 번 실행했을 때 한 번 GPU"
+" 오류 줄 ``ContextResult::kTransientFailure``\\ 가 나타났으므로, 그런 줄은 호출을 빠뜨렸다는 "
+"표시가 아닙니다.) 그래도 ``shutdown()``\\ 을 호출합니다. 래퍼가 그 안에서 CEF에 필요한 순서로 브라우저를 "
+"닫습니다."
+
+#: ../../guide/concepts.rst:120
+msgid "Errors"
+msgstr "오류"
+
+#: ../../guide/concepts.rst:122
+msgid ""
+"**An exception in a handler is not passed to CEF.** It goes to "
+"``sys.excepthook`` and the callbacks that follow keep running. In the "
+"script ``fail()`` raised ``ValueError`` in a binding; ``sys.excepthook`` "
+"received it once and the second ``hello()`` after it still ran. The same "
+"holds for the callbacks of :meth:`~cefweaver.JavascriptBridge.evaluate` "
+"and the methods of :class:`~cefweaver.QueryHandler`. In a query handler "
+"an exception counts as \"not handled\"."
+msgstr ""
+"**핸들러의 예외는 CEF로 전달되지 않습니다.** 예외는 ``sys.excepthook``\\ 으로 가고 뒤따르는 콜백은 계속 "
+"실행됩니다. 스크립트에서 ``fail()``\\ 이 바인딩에서 ``ValueError``\\ 를 발생시켰고, "
+"``sys.excepthook``\\ 이 이를 한 번 받았으며 그 뒤의 두 번째 ``hello()``\\ 도 실행되었습니다. "
+":meth:`~cefweaver.JavascriptBridge.evaluate`\\ 의 콜백과 "
+":class:`~cefweaver.QueryHandler`\\ 의 메서드도 마찬가지입니다. 쿼리 핸들러에서는 예외가 \"처리되지 "
+"않음\"으로 간주됩니다."
+
+#: ../../guide/concepts.rst:123
+msgid ""
+"**Wrong state raises** ``RuntimeError`` (see the previous section). A "
+"value of the wrong type raises ``TypeError``, an invalid value "
+"``ValueError``; the docstring of each method lists them under ``Raises``."
+msgstr ""
+"**잘못된 상태**\\ 에서는 ``RuntimeError``\\ 가 발생합니다(앞 절 참고). 잘못된 타입의 값은 "
+"``TypeError``\\ 를, 유효하지 않은 값은 ``ValueError``\\ 를 발생시키며, 각 메서드의 독스트링이 "
+"``Raises`` 아래에 이를 나열합니다."
+
+#: ../../guide/concepts.rst:124
+msgid ""
+"**Calls that cannot work yet return** ``False``: "
+":meth:`~cefweaver.CefApp.load_url` when the first browser does not exist,"
+" :meth:`~cefweaver.CefApp.execute_javascript` when there is no browser or"
+" the page is still loading."
+msgstr ""
+"**아직 동작할 수 없는 호출은** ``False``\\ 를 **반환합니다.** 첫 브라우저가 없을 때의 "
+":meth:`~cefweaver.CefApp.load_url`\\ 과 브라우저가 없거나 페이지가 아직 로딩 중일 때의 "
+":meth:`~cefweaver.CefApp.execute_javascript`\\ 가 그렇습니다."
+
+#: ../../guide/concepts.rst:125
+msgid ""
+"**Errors in the page** are not Python exceptions. An uncaught JavaScript "
+"error can be reported with ``enable_renderer_events()`` (:doc:`events`), "
+"and :meth:`~cefweaver.JavascriptBridge.evaluate` returns the error of its"
+" expression as a string (:doc:`javascript-bridge`)."
+msgstr ""
+"**페이지의 오류는** Python 예외가 아닙니다. 잡히지 않은 JavaScript 오류는 "
+"``enable_renderer_events()``\\ 로 보고받을 수 있고(:doc:`events`), "
+":meth:`~cefweaver.JavascriptBridge.evaluate`\\ 는 표현식의 오류를 문자열로 반환합니다(:doc"
+":`javascript-bridge`)."
+

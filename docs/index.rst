@@ -31,14 +31,20 @@ browser into the widgets of GUI toolkits (Qt, GTK 3, Tk, SDL2, wxPython, Kivy, p
    guide/installation
    guide/quickstart
    guide/cookbook
+   guide/concepts
+   guide/message-loop
    guide/embedding
+   guide/events
+   guide/javascript-bridge
    guide/views
    guide/toolkits
-   guide/media
    guide/context-menu
+   guide/media
+   guide/printing
    guide/cast
-   guide/events
+   guide/configuration
    guide/wayland-gpu
+   guide/troubleshooting
    guide/limitations
    guide/development
 

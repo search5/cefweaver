@@ -816,6 +816,20 @@ class WithCef(unittest.TestCase):
         self.assertClean(result)
         self.assertIn("OK", result.stdout)
 
+    def test_binding_leaves_out_arguments_of_other_types(self):
+        # The docstring of add_javascript_binding says so: only int, bool, float and str are passed on.
+        result = run_cef("""
+            got = []
+            app.add_javascript_binding("report", lambda *a: got.append(a))
+            app.initialize(page('<script>addEventListener("load",()=>{report(1,[1],2);report(null);report({a:1},"s")})</script>'))
+            wait_until(app, lambda: len(got) == 3, "the three JavaScript calls")
+            assert got == [(1, 2), (), ("s",)], got
+            app.shutdown()
+            print("OK")
+        """)
+        self.assertClean(result)
+        self.assertIn("OK", result.stdout)
+
     def test_zero_argument_call_and_exceptions_do_not_crash(self):
         result = run_cef("""
             got = []

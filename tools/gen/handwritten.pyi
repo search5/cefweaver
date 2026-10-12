@@ -601,9 +601,10 @@ class CefApp:
     def add_javascript_binding(self, name: str, callback: Callable[..., Any]) -> None:
         """Expose a Python callable to pages as ``window.<name>(...)``.
 
-        The arguments of the call are converted to ``int``, ``bool``, ``float`` or ``str``;
-        other JavaScript types arrive as ``None``. An exception raised by the callable goes
-        to ``sys.excepthook``.
+        The arguments of the call that are ``int``, ``bool``, ``float`` or ``str`` are passed
+        on; an argument of another type (``null``, an array, an object) is left out, so the
+        callable receives fewer arguments. An exception raised by the callable goes to
+        ``sys.excepthook``.
 
         Args:
             name (str): The name of the JavaScript function.
