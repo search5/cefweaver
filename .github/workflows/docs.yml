@@ -1,0 +1,67 @@
+name: docs
+
+# Builds the Sphinx site (English and Korean) and publishes it to GitHub Pages.
+# Needs Settings -> Pages -> Source: "GitHub Actions". The reference is written from the docstrings of the compiled
+# package, so the wheel is built first (this takes a while: CMake downloads CEF).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "cefweaver/**"
+      - "native/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libx11-dev libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 \
+            libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 \
+            libasound2t64 libgtk-3-0t64 libgl1 libegl1
+
+      - name: Build the wheel
+        run: uv build --wheel --python 3.13 -o dist
+
+      # autodoc imports the package, and the Qt and Tk toolkit modules need PyQt6 and Pillow to import.
+      - name: Install the wheel and the documentation tools
+        run: |
+          uv venv --python 3.13 .venv-docs
+          uv pip install --python .venv-docs/bin/python dist/cefweaver-*.whl PyQt6 Pillow -r docs/requirements.txt
+
+      - name: Build the site (warnings are errors)
+        working-directory: docs
+        run: env -u WAYLAND_DISPLAY xvfb-run -a make site SPHINXBUILD="../.venv-docs/bin/python -P -m sphinx"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/_build/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

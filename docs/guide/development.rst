@@ -56,6 +56,8 @@ The documentation is made from the docstrings in the source, with Sphinx and the
 
 The autodoc extension imports the compiled extension, so install the wheel into the environment first. To read the Qt modules, PyQt6 and Pillow are also needed.
 
+``make site`` builds both languages and a start page, the way GitHub Pages serves them. The workflow ``.github/workflows/docs.yml`` builds the wheel on a Linux runner, runs ``make site`` with it and publishes ``docs/_build/html``; it needs Settings, Pages, Source set to "GitHub Actions".
+
 The wiki
 --------
 
