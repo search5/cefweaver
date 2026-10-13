@@ -4,20 +4,25 @@ type: summary
 sources:
   - README.rst
   - CLAUDE.md
-updated: 2026-10-08
+updated: 2026-10-13
 ---
 
 # README와 CLAUDE.md 요약
 
 ## README.rst
 
-프로젝트 소개와 사용법입니다.
+프로젝트 소개와 사용법입니다. 2026-10-13에 cefpython의 README 구성(목차, 소개, 설치, 예제, 문서)을 참고해 다시 썼습니다.
 
+- 목차: 소개, 문서, 지원 플랫폼, 설치, GUI 툴킷에 페이지 보이기, 예제, 소스에서 빌드, Python API, 관련 프로젝트, 라이선스.
 - 상태: 개발 중이며 프로덕션용이 아니라고 밝힙니다.
-- 소개: 2023년 Lee Ji-Ho가 시작한 CEF의 Python 바인딩. GUI 툴킷 임베딩 예제가 있다고 쓰는 문단이 있으나 실제로 예제는 없습니다([알려진 제약과 미검증 항목](../reference/known-constraints.md)).
-- 지원 플랫폼: Linux x86_64(개발 중), macOS arm64(개발 중), Windows(미검증).
+- **문서 사이트(GitHub Pages)**: 영어 https://search5.github.io/cefweaver/en/index.html, 한국어 https://search5.github.io/cefweaver/ko/index.html. 자매 프로젝트 cefloom의 사이트는 https://search5.github.io/cefloom/ 입니다(관련 프로젝트에 링크).
+- 지원 플랫폼 표: Linux x86_64, macOS arm64, Windows 11 x86_64(모두 개발 중). Python 3.11 이상.
+- 설치: PyPI에 없고(프로젝트 페이지가 404) GitHub 릴리스도 없어서 소스에서 wheel을 빌드해 설치한다고 씁니다. 툴킷은 선택 의존성(`cefweaver[qt]` 등).
+- 예제: `examples/` 폴더별 표(툴킷 11개, Views, 인쇄, Cocoa, SwiftUI, common).
 - 빌드: `python tools/prepare.py`(prebuilt, `--cef-root`, `--build-cef`), 다음에 `uv build --wheel`. `--list-versions`와 `--cef-version`, 소스 빌드의 요구 자원과 `--dry-run`.
 - Python API 예: `CefApp`, `add_javascript_binding`, `add_resource`, 생성된 PEP 8 래퍼, 메시지 펌프 설명, 런타임 파일 배치.
+- 라이선스: BSD 3-Clause(`LICENSE`).
+- `tests/test_ui.py`가 README의 Tk 빠른 시작 코드가 `examples/tk/quickstart.py`와 같은지 확인하므로, 그 코드를 고칠 때는 둘을 함께 고칩니다.
 
 ## CLAUDE.md
 

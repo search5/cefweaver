@@ -3,19 +3,49 @@ CEFWeaver
 
 Warning: This project is under development and not available for production.
 
-CEFWeaver is an open source project founded by Lee Ji-Ho in 2023 to provide python bindings for the Chromium Embedded Framework. Examples of embedding CEF browser are available for many popular GUI toolkits including: wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL and PyWin32. (not ready: Panda3D)
+.. contents:: Table of contents
+   :local:
+   :depth: 1
+
+Introduction
+============
+
+CEFWeaver is an open source project founded by Lee Ji-Ho in 2023 to provide python bindings for the Chromium Embedded Framework (CEF). The CEF API is generated from the CEF headers (``tools/gen``), and the descriptions in the reference are the comments of those headers. Examples of embedding CEF browser are available for many popular GUI toolkits including: wxPython, PyQt, PySide, Kivy, PyGObject, PyGame/PyOpenGL and PyWin32. (not ready: Panda3D)
 
 There are many use cases for CEF. You can embed a web browser control based on Chromium with great HTML 5 support. You can use it to create a HTML 5 based GUI in an application, this can act as a replacement for standard GUI toolkits like wxWidgets, Qt or GTK. You can render web content off-screen in application that use custom drawing frameworks. You can use it for automated testing of existing applications. You can use it for web scraping or as a web crawler, or other kind of internet bots.
+
+Documentation
+=============
+
+The guide, the cookbook and the API reference are published on GitHub Pages, in English and Korean:
+
+- English: https://search5.github.io/cefweaver/en/index.html
+- Korean: https://search5.github.io/cefweaver/ko/index.html
+
+The same text is in ``docs/`` (Sphinx, Read the Docs theme; ``make -C docs site`` builds both languages, see ``docs/Makefile``). The reference is generated from the docstrings of the installed package.
 
 Supported platforms
 ===================
 
-- Linux (x86_64): supported (under development)
-- macOS (arm64, Apple Silicon): supported (under development). It builds and runs offscreen and with a native window,
-  and works in Tk; other toolkits and the differences from Linux are in ``llm-wiki/pages/reference/known-constraints.md``. macOS x86_64 is not built yet.
-- Windows (11, x86_64): supported (under development). It builds and runs offscreen and in a Win32 window
-  (``cefweaver.ui.toolkits.pywin32``); the differences are in ``llm-wiki/pages/reference/known-constraints.md``. It is frozen with PyInstaller,
-  cx_Freeze and py2exe. Not done: a browser window as the child of another program's window.
+=============================  ======================  ===============================================================
+OS                             Architecture            Status
+=============================  ======================  ===============================================================
+Linux                          x86_64                  Supported (under development)
+macOS                          arm64 (Apple Silicon)   Supported (under development); x86_64 is not built yet
+Windows 11                     x86_64                  Supported (under development)
+=============================  ======================  ===============================================================
+
+Python 3.11 or later is required (``requires-python`` in ``pyproject.toml``). The differences between the platforms are in ``llm-wiki/pages/reference/known-constraints.md``. On macOS the browser builds and runs offscreen and with a native window, and works in Tk; on Windows it builds and runs offscreen and in a Win32 window (``cefweaver.ui.toolkits.pywin32``), and it is frozen with PyInstaller, cx_Freeze and py2exe. Not done: a browser window as the child of another program's window on Windows.
+
+Install
+=======
+
+CEFWeaver is not on PyPI (the project page returns 404) and has no GitHub release yet, so the wheel is built from source (next section) and installed from ``dist/``::
+
+    uv pip install dist/cefweaver-*.whl
+    uv pip install "cefweaver[qt]"      # the toolkit you use, see below
+
+The wheel carries the CEF runtime (the Linux wheel built here is 156 MB). The toolkits are optional extras: ``cefweaver[qt]``, ``[gtk3]``, ``[tk]``, ``[sdl2]``, ``[kivy]``, ``[pywin32]``, ``[pygame]``; wxPython: see ``examples/wx``.
 
 Showing a page in a GUI toolkit
 ===============================
@@ -44,9 +74,29 @@ Tk, SDL2, wxPython, Kivy and, on Windows, pywin32 are in ``cefweaver.ui.toolkits
 
 Each ``examples/<toolkit>/quickstart.py`` is the same for its toolkit. This is experimental: the adapters have been
 checked on a virtual X server with real X events, and the menus, clipboard and sound on a real desktop for most of
-them; a real input method (Korean) only with GTK 3 (each module says what it was checked on). The API reference
-is generated from the docstrings with Sphinx (``docs/``, Read the Docs theme, English and Korean; see
-``docs/Makefile``).
+them; a real input method (Korean) only with GTK 3 (each module says what it was checked on).
+
+Examples
+========
+
+Each folder of ``examples/`` has a ``README.md`` and, for the toolkits, a ``quickstart.py`` (the smallest program), a ``browser.py`` and a ``smoke.py``.
+
+=============  ==========================================================================
+Folder         What it shows
+=============  ==========================================================================
+``gtk3``       GTK 3
+``qt``         Qt (PyQt6; PySide6 with ``CEFQT_BINDING=pyside6``)
+``tk``         Tk
+``sdl2``       SDL2
+``wx``         wxPython
+``kivy``       Kivy
+``pywin32``    A Win32 window (Windows)
+``views``      A window made by CEF's own Views framework, without a toolkit
+``print``      Printing a page on Linux with CUPS (the dialog is drawn with Tk)
+``cocoa``      A browser as a child ``NSView`` of a Cocoa window (macOS)
+``swiftui``    A Swift app that embeds Python and gives a SwiftUI view to ``CefApp.parent_view`` (macOS)
+``common``     Code shared by the examples
+=============  ==========================================================================
 
 Building from source
 ====================
@@ -147,6 +197,17 @@ CEF runs with an external message pump: the thread that calls ``initialize()`` i
 the CEF UI thread, and JavaScript bindings are called inside ``do_message_loop_work()``.
 On Linux ``libcef.so``, ``icudtl.dat``, the ``.pak`` files, ``locales/`` and the
 ``cefsubprocess`` executable must be deployed next to the extension module.
+
+Related projects
+================
+
+- `cefloom <https://github.com/search5/cefloom>`_: the same CEF binding for PHP, with documentation at https://search5.github.io/cefloom/. Its guide covers the same topics as this one.
+- `cefpython <https://github.com/cztomczak/cefpython>`_: an earlier CEF binding for Python with the same purpose; this project's structure and build were compared with it (``llm-wiki/pages/reference/related-projects.md``).
+
+License
+=======
+
+BSD 3-Clause License, see ``LICENSE``.
 
 Project website:
 https://github.com/search5/cefweaver

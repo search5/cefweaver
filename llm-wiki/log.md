@@ -775,3 +775,6 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-13] ingest | 워크플로를 수동 실행으로, 액션을 Node 24로
 사용자 요청으로 docs 워크플로의 푸시 트리거를 없애고 `workflow_dispatch`만 남겼다(`build-test.yml`은 원래 수동). 두 워크플로의 액션을 Node 24 기반 최신 메이저로 올렸다(checkout v7, setup-uv v10.3.0은 메이저 태그가 없어 전체 버전으로 고정, configure-pages v6, upload-pages-artifact v5, deploy-pages v5, upload-artifact v7). `development.rst`와 한국어 카탈로그, 위키를 갱신했다.
+
+## [2026-10-13] ingest | README 다시 쓰기와 Pages 링크
+사용자 요청으로 cefpython의 README 구성을 참고해 `README.rst`를 다시 썼다(목차, 소개, 문서 사이트 링크, 지원 플랫폼 표, 설치, 예제 표, 관련 프로젝트, 라이선스). 영어와 한국어 문서 사이트(GitHub Pages) 링크와 cefloom 사이트 링크를 넣었고, 요약 페이지 `summaries/readme-and-claude-md.md`에도 적었다. README의 reST는 docutils로 경고 없이 통과하고 Tk 빠른 시작 코드 시험도 통과했다.
