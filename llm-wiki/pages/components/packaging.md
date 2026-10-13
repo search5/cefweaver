@@ -10,7 +10,7 @@ sources:
   - CMakeLists.txt
   - .github/workflows/build-test.yml
   - .gitattributes
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 패키징
@@ -66,10 +66,12 @@ updated: 2026-10-11
 - macOS x86_64: `platform=macos-intel`(러너 `macos-15-intel`)을 2026-10-12에 실행(`38198907604`)했습니다. 러너 레이블은 실제로 있었고, `cefweaver-0.1.0-cp311-abi3-macosx_12_0_x86_64.whl`이 만들어졌으며(`CMakeLists.txt` 수정 없이 호스트가 Intel이면 `macosx64`를 고름), 설치도 되었습니다. 시험은 547개 중 1개가 실패했습니다(건너뜀 141, 예상된 실패 3, 소요 19분). 실패한 것은 `test_a_shared_texture_browser_gets_a_frame_one_way_or_the_other`이고, 자식 프로세스의 종료 코드가 `-5`(SIGTRAP)였으며 로그에 `Initialization of all (1) EGL display types failed`와 `Exiting GPU process due to errors during initialization`가 남았습니다. 이 러너의 GPU 초기화 실패와 관련이 있다고 보지만 원인은 확인하지 못했습니다. 한국어 조합 밑줄 시험은 이번에 통과했습니다. 산출물 보관 단계는 건너뛰었습니다.
 - 푸시에는 토큰의 `workflow` 범위가 필요합니다. 이 컴퓨터의 `gh` 토큰에는 `gist`, `read:org`, `repo`, `write:packages`만 있습니다.
 
-## abi3 (Linux x86_64만 확인)
+## abi3 (Linux x86_64와 Windows 11 x86_64에서 확인)
 
 - `pyproject.toml`의 `wheel.py-api = "cp311"`과 `CefweaverExtension.cmake`의 `USE_SABI 3.11`(`Development.SABIModule`)로 확장 모듈 `_cefweaver.abi3.so`를 만듭니다. Python 3.11 이상이면 wheel 하나(`cp311-abi3-<플랫폼>`)가 모두 받아서 Python 버전마다 wheel을 따로 내지 않습니다. Cython이 `Py_LIMITED_API`를 감지해 limited API 모드로 컴파일합니다. 시험 결과는 [F123](../reference/verified-findings-opened.md)에 있습니다.
-- 저장소에서 만든 wheel(Python 3.12로 빌드)로 3.14 전체 시험 547개가 통과했습니다. macOS와 Windows의 abi3 빌드, 성능은 확인하지 못했습니다.
+- 저장소에서 만든 wheel(Python 3.12로 빌드)로 3.14 전체 시험 547개가 통과했습니다. macOS의 abi3 빌드, 성능은 확인하지 못했습니다.
+- **Windows(2026-10-13, Windows 지원 세션이 알려 온 결과)**: Windows 11에서 `cefweaver-0.1.0-cp311-abi3-win_amd64.whl`이 만들어졌고, 이 wheel 하나로 Python 3.13과 3.14에서 최소 앱(CEF 시작, 페이지, 페이지에서 Python 호출, 종료)이 각각 3회 통과했습니다. 3.11과 3.12는 그 컴퓨터에 없어 해 보지 못했습니다. 이 세션이 직접 돌린 것은 아니고 보고받은 결과입니다.
+- **CI의 점검 단계**: `build-test.yml`에 `abi3 check (Windows, other Python versions)` 단계를 더했습니다(2026-10-13). Windows에서 wheel을 만든 뒤 입력 `abi3-versions`(기본 `3.11 3.12 3.14`, 비우면 건너뜀)의 각 버전으로 가상 환경을 만들어 **같은 wheel**을 설치하고, `tools/stability/cycle.py`를 3회씩 실행해 `ok`가 나오는지 봅니다. 시험 단계가 실패해도 wheel이 있으면 실행합니다(`!cancelled()`). 이 단계는 **아직 Actions에서 실행하지 않았습니다**. Linux에서 같은 논리(abi3 wheel 하나를 3.11과 3.14 가상 환경에 설치해 `cycle.py`를 2회씩)는 통과했습니다.
 
 ## manylinux (Linux x86_64만 확인)
 

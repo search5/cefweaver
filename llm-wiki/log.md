@@ -785,3 +785,5 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 ## [2026-10-13] ingest | 다른 플랫폼 배포본에서 생성 결과가 달라지던 문제
 Windows 세션이 `generate.py --check`가 실패한다고 알렸다. 원인: 320ed71에서 docstring을 헤더 주석에서 읽게 한 뒤, Linux 헤더가 없는 배포본(Windows, macOS)에서는 내장한 Linux 구조체 본문(`LINUX_STRUCT_BODIES`)에 주석이 없어 `AcceleratedPaintNativePixmapPlane`의 docstring이 비었다. `tools/gen/model.py`에 `LINUX_STRUCT_COMMENTS`를 더하고 본문에 Linux 헤더의 주석을 그대로 넣었다. `*_linux.h`를 지운 배포본 복사본으로 고치기 전에는 실패하고 고친 뒤에는 통과하는 것을 Linux에서 확인했고(Windows 실기는 못 함), 같은 검사를 `tests/test_generator.py`에 더했다.
 
+## [2026-10-13] ingest | Windows abi3 확인을 CI에 반영
+Windows 지원 세션이 `cp311-abi3-win_amd64` wheel 하나로 Python 3.13과 3.14에서 최소 앱이 통과했다고 알려 왔다(보고받은 결과). `build-test.yml`에 Windows 전용 `abi3 check` 단계와 입력 `abi3-versions`를 더했다. 같은 논리를 Linux에서 3.11과 3.14로 확인했고, Actions 실행은 하지 않았다. `packaging.md` 갱신.

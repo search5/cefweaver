@@ -17,6 +17,10 @@ on:
         description: "Run the tests after the build"
         type: boolean
         default: true
+      abi3-versions:
+        description: "Windows: other Python versions to start the same abi3 wheel with, separated by spaces (empty to skip)"
+        type: string
+        default: "3.11 3.12 3.14"
       upload-wheel:
         description: "Keep the wheel as an artifact"
         type: boolean
@@ -118,6 +122,23 @@ jobs:
       - name: Tests (Windows)
         if: inputs.run-tests && matrix.name == 'windows'
         run: .venv-test\Scripts\python.exe -P -m unittest discover -s tests -v
+
+      # The wheel is tagged cp311-abi3, so the one built above must also run on other Python versions.
+      # Start the minimal app (tools/stability/cycle.py: CEF, a page, a call from the page into Python, shutdown) with each.
+      - name: abi3 check (Windows, other Python versions)
+        if: ${{ !cancelled() && inputs.run-tests && matrix.name == 'windows' && inputs.abi3-versions != '' && hashFiles('dist/*.whl') != '' }}
+        shell: bash
+        run: |
+          ls dist/*-cp311-abi3-*.whl
+          for v in ${{ inputs.abi3-versions }}; do
+            uv venv --python "$v" ".venv-abi3-$v"
+            uv pip install --python ".venv-abi3-$v/Scripts/python.exe" dist/cefweaver-*.whl
+            ".venv-abi3-$v/Scripts/python.exe" -c "import sys, cefweaver; print(sys.version.split()[0], cefweaver.__file__)"
+            for i in 1 2 3; do
+              test "$(".venv-abi3-$v/Scripts/python.exe" -P tools/stability/cycle.py)" = ok
+              echo "python $v run $i ok"
+            done
+          done
 
       - name: Keep the wheel
         if: inputs.upload-wheel
