@@ -787,3 +787,6 @@ Windows 세션이 `generate.py --check`가 실패한다고 알렸다. 원인: 32
 
 ## [2026-10-13] ingest | Windows abi3 확인을 CI에 반영
 Windows 지원 세션이 `cp311-abi3-win_amd64` wheel 하나로 Python 3.13과 3.14에서 최소 앱이 통과했다고 알려 왔다(보고받은 결과). `build-test.yml`에 Windows 전용 `abi3 check` 단계와 입력 `abi3-versions`를 더했다. 같은 논리를 Linux에서 3.11과 3.14로 확인했고, Actions 실행은 하지 않았다. `packaging.md` 갱신.
+
+## [2026-10-13] ingest | README를 기능과 프로덕션 준비 상태가 보이게 확장
+사용자가 README가 너무 간소해 코드 수준에 비해 프로덕션에 못 쓸 제품처럼 보인다고 지적했다. 한 줄 경고를 상태 문단으로 바꾸고, 기능 절과 프로덕션 준비 상태 절(안정성 시험 결과와 샌드박스 없음, 메모리 증가 같은 한계), 시험 절을 더했다. 내용은 커버리지 보고서, 안정성 시험, 패키징 기록에서 가져왔고 확인하지 않은 것(macOS 인쇄, Windows 밖의 동결 등)은 그렇게 적었다. `readme-and-claude-md.md` 갱신.
