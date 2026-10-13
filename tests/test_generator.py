@@ -1398,6 +1398,19 @@ class WithHeaders(unittest.TestCase):
         self.assertRegex(pyi, r"def get_delegate_for_popup_browser_view\(self, browser_view: BrowserView, settings: BrowserSettings, "
                               r"client: Client \| None, is_devtools: bool\) -> BrowserViewDelegate \| None:")
 
+    def test_a_distribution_of_another_platform_gives_the_same_files(self):
+        # Windows and macOS distributions have no cef_types_linux.h: the Linux structs are built in
+        # (model.LINUX_STRUCT_BODIES, with their comments) and the generated files must not change.
+        import generate
+        with tempfile.TemporaryDirectory() as tmp:
+            shutil.copytree(os.path.join(CEF_ROOT, "include"), os.path.join(tmp, "include"))
+            internal = os.path.join(tmp, "include", "internal")
+            for name in os.listdir(internal):
+                if name.endswith("_linux.h"):
+                    os.remove(os.path.join(internal, name))
+            other = generate.build_all(tmp)
+        self.assertEqual(other, generate.build_all(CEF_ROOT))
+
     def test_generated_files_are_up_to_date(self):
         import generate
         files = generate.build_all(CEF_ROOT)

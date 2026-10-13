@@ -778,3 +778,10 @@ Google 스타일 docstring 규칙(`procedures/write-docstrings.md`), 누락 점�
 
 ## [2026-10-13] ingest | README 다시 쓰기와 Pages 링크
 사용자 요청으로 cefpython의 README 구성을 참고해 `README.rst`를 다시 썼다(목차, 소개, 문서 사이트 링크, 지원 플랫폼 표, 설치, 예제 표, 관련 프로젝트, 라이선스). 영어와 한국어 문서 사이트(GitHub Pages) 링크와 cefloom 사이트 링크를 넣었고, 요약 페이지 `summaries/readme-and-claude-md.md`에도 적었다. README의 reST는 docutils로 경고 없이 통과하고 Tk 빠른 시작 코드 시험도 통과했다.
+
+## [2026-10-13] ingest | 프로덕션 배포 가능성 시험
+사용자 요청으로 최소 안정 조건을 정해 시험했다. 기존 시험 549개 통과, 기동과 종료 180회 실패 0, 20분 soak(페이지 4,610번, 오류 0, 종료 코드 0, 파일 기술자와 스레드 안정, RSS 1,037에서 1,191 MB로 증가), 렌더러 크래시와 Python 예외와 네트워크 실패와 `SIGKILL`/`SIGTERM` 처리 통과. 렌더러에 seccomp가 없어 샌드박스가 꺼진 것을 확인했다. 시험 스크립트를 `tools/stability/`에 두었다. 새 페이지 `production-readiness.md`와 `known-constraints.md` 포인터, 색인 갱신.
+
+## [2026-10-13] ingest | 다른 플랫폼 배포본에서 생성 결과가 달라지던 문제
+Windows 세션이 `generate.py --check`가 실패한다고 알렸다. 원인: 320ed71에서 docstring을 헤더 주석에서 읽게 한 뒤, Linux 헤더가 없는 배포본(Windows, macOS)에서는 내장한 Linux 구조체 본문(`LINUX_STRUCT_BODIES`)에 주석이 없어 `AcceleratedPaintNativePixmapPlane`의 docstring이 비었다. `tools/gen/model.py`에 `LINUX_STRUCT_COMMENTS`를 더하고 본문에 Linux 헤더의 주석을 그대로 넣었다. `*_linux.h`를 지운 배포본 복사본으로 고치기 전에는 실패하고 고친 뒤에는 통과하는 것을 Linux에서 확인했고(Windows 실기는 못 함), 같은 검사를 `tests/test_generator.py`에 더했다.
+

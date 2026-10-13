@@ -144,21 +144,14 @@ RAW_STRUCTS = {
 # the C++ code reaches them through the platform neutral type of native/cefwrapper/
 # platform_structs.h (Cython and the proxies use PLATFORM_STRUCTS' names, not CEF's).
 LINUX_STRUCT_BODIES = {
-    "cef_accelerated_paint_native_pixmap_plane_t": """
-  uint32_t stride;
-  uint64_t offset;
-  uint64_t size;
-  int fd;
-""",
-    "cef_accelerated_paint_info_t": """
-  size_t size;
-  cef_accelerated_paint_native_pixmap_plane_t
-      planes[kAcceleratedPaintMaxPlanes];
-  int plane_count;
-  uint64_t modifier;
-  cef_color_type_t format;
-  cef_accelerated_paint_info_common_t extra;
-""",
+    'cef_accelerated_paint_native_pixmap_plane_t': '\n  ///\n  /// The strides and offsets in bytes to be used when accessing the buffers via\n  /// a memory mapping. One per plane per entry. Size in bytes of the plane is\n  /// necessary to map the buffers.\n  ///\n  uint32_t stride;\n  uint64_t offset;\n  uint64_t size;\n\n  ///\n  /// File descriptor for the underlying memory object (usually dmabuf).\n  ///\n  int fd;\n',
+    'cef_accelerated_paint_info_t': '\n  ///\n  /// Size of this structure.\n  ///\n  size_t size;\n\n  ///\n  /// Planes of the shared texture, usually file descriptors of dmabufs.\n  ///\n  cef_accelerated_paint_native_pixmap_plane_t\n      planes[kAcceleratedPaintMaxPlanes];\n\n  ///\n  /// Plane count.\n  ///\n  int plane_count;\n\n  ///\n  /// Modifier could be used with EGL driver.\n  ///\n  uint64_t modifier;\n\n  ///\n  /// The pixel format of the texture.\n  ///\n  cef_color_type_t format;\n\n  ///\n  /// The extra common info.\n  ///\n  cef_accelerated_paint_info_common_t extra;\n',
+}
+# The comments above the Linux structs (the documentation of the Python types comes from them, so a distribution of
+# another platform must give the same text).
+LINUX_STRUCT_COMMENTS = {
+    'cef_accelerated_paint_native_pixmap_plane_t': '///\n/// Structure containing the plane information of the shared texture.\n/// Sync with native_pixmap_handle.h\n///\n',
+    'cef_accelerated_paint_info_t': '///\n/// Structure containing shared texture information for the OnAcceleratedPaint\n/// callback. Resources will be released to the underlying pool for reuse when\n/// the callback returns from client code.\n///\n',
 }
 LINUX_STRUCT_CONSTANTS = {"kAcceleratedPaintMaxPlanes": 4}
 
@@ -543,6 +536,7 @@ class Model:
             constants.update((n, int(v)) for n, v in re.findall(r"^#define\s+(k\w+)\s+(\d+)\s*$", text, re.M))
         if not has_linux:  # a distribution of another platform: the Linux form is built in
             bodies.update(LINUX_STRUCT_BODIES)
+            struct_comments.update(LINUX_STRUCT_COMMENTS)
             constants.update(LINUX_STRUCT_CONSTANTS)
         # `class CefRect : public cef_rect_t {`, and the ones with a size header:
         # `class CefScreenInfo : public CefStructBaseSimple<cef_screen_info_t> {` and

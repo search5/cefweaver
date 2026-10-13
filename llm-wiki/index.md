@@ -52,6 +52,7 @@
 - [생성 범위와 커버리지](pages/reference/generated-api-coverage.md): 지금 생성되는 402+3개와 제외 52개, 전체 89% 중 남은 장애물, 생성기의 한계와 다음 단계
 - [커버리지 보고서 (생성됨)](pages/reference/coverage-report.md): 생성기가 쓰는 보고서 전문(제외된 메서드의 사유, 클래스별 지원 비율)
 - [용어집](pages/reference/glossary.md): CEF, 프로세스, 생성기, 위키 용어 정의
+- [프로덕션 배포 가능성](pages/reference/production-readiness.md): 최소 안정 조건(반복 기동, 20분 soak, 렌더러 크래시, 예외, 신호)의 시험 결과와 샌드박스 없음, 메모리 증가 같은 미통과 항목
 - [알려진 제약과 미검증 항목](pages/reference/known-constraints.md): 미검증 항목, 한계, 문서와 메타데이터의 불일치, 환경 제약
 - [types 모듈 (열거형과 값 타입)](pages/reference/types-module.md): 헤더에서 만든 IntEnum, IntFlag, NamedTuple, 이름과 값을 읽는 규칙, 정수와 튜플과의 호환
 - [Python API 참조](pages/reference/python-api.md): CefApp의 메서드 표(set_client 포함)와 생성된 이름, 규칙, 브라우저 이벤트 받기 예
