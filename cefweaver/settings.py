@@ -120,8 +120,8 @@ def _check(name, kind, value):
         return types.LogSeverity(value)
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError("%s must be an int" % name)
-    if kind == "port" and not 0 <= value <= 65535:
-        raise ValueError("%s must be a port number" % name)
+    if kind == "port" and value != 0 and not 1024 <= value <= 65535:
+        raise ValueError("%s must be 0 (off) or a port from 1024 to 65535" % name)
     if kind == "color" and not 0 <= value <= 0xFFFFFFFF:
         raise ValueError("%s must be ARGB (0 to 0xFFFFFFFF)" % name)
     if kind == "int" and value < 0:

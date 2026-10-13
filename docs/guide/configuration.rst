@@ -71,7 +71,7 @@ Settings
      - Flags for V8, such as ``--expose-gc``.
    * - ``remote_debugging_port``
      - ``int``
-     - The port of the remote debugging server; 0 or unset turns it off.
+     - The port of the remote debugging server, 1024 to 65535; 0 or unset turns it off. A port below 1024 raises ``ValueError``.
    * - ``root_cache_path``
      - ``str``
      - The folder of the profile data (see "Files").

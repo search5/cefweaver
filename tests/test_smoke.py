@@ -313,6 +313,11 @@ class ApiWithoutCef(unittest.TestCase):
         with self.assertRaises(ValueError):
             settings.remote_debugging_port = 70000
         with self.assertRaises(ValueError):
+            settings.remote_debugging_port = 80                    # below 1024: CEF takes 1024 to 65535
+        settings.remote_debugging_port = 0                         # 0 is off
+        settings.remote_debugging_port = 1024
+        settings.remote_debugging_port = None
+        with self.assertRaises(ValueError):
             settings.background_color = -1
         fresh = cefweaver.Settings(locale="ko", remote_debugging_port=9333)
         self.assertEqual((fresh.locale, fresh.remote_debugging_port), ("ko", 9333))

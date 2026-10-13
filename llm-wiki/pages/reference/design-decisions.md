@@ -10,7 +10,7 @@ sources:
   - cmake/CefweaverExtension.cmake
   - cefweaver/ui/toolkits/pywin32.py
   - .gitattributes
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 설계 결정 기록
@@ -76,7 +76,7 @@ updated: 2026-10-11
 | 래퍼의 DevTools 컨텍스트 메뉴 항목은 **기본 끔**, `app.devtools_menu`로 언제든 켜고 끌 수 있고 켜고 꺼도 다른 동작은 같아야 함 | 라이브러리가 사용자 몰래 메뉴를 바꾸지 않게 하고, 켜고 끔이 사용자 핸들러의 동작에 영향을 주지 않게 합니다. 사용자 핸들러가 먼저 메뉴를 고치고 래퍼가 그 뒤에 항목을 더하며, 래퍼의 명령 ID는 허용 범위의 맨 끝(28498~28500)입니다. | 사용자(요구), 순서와 ID는 구현 중 판단 |
 | 컨텍스트 메뉴는 `run_context_menu` + `callback.continue_()`로 코드에서 열고 고름 | CEF가 제공하는 사용자 정의 메뉴 방법이라 별도 장치 없이 시험할 수 있습니다. | 사용자(제안), 구현 중 판단 |
 | 프로세스 메시지는 **이름으로 나눔**: 래퍼의 두 이름은 래퍼가, 그 밖은 사용자에게 | 충돌이 없고 결정할 것이 없습니다. 사용자가 없으면 `false`. | 구현 중 판단(사용자의 진행 요청) |
-| 렌더러에 **진단용 ping/pong**(`cefweaver-ping` → `cefweaver-pong`, 같은 인자) | Python은 렌더러에 없어서 사용자 정의 메시지의 보내는 쪽이 필요하고, 렌더러가 응답하는지 알아보는 데도 쓸 수 있습니다. 시험 전용 장치가 아니라 문서화된 동작입니다. | 구현 중 판단 |
+| 렌더러에 **진단용 ping/pong**(`cefweaver-ping` → `cefweaver-pong`, 같은 인자. 렌더러가 다루는 다른 메시지는 `cefweaver-eval`, `cefweaver-renderer-event`) | Python은 렌더러에 없어서 사용자 정의 메시지의 보내는 쪽이 필요하고, 렌더러가 응답하는지 알아보는 데도 쓸 수 있습니다. 시험 전용 장치가 아니라 문서화된 동작입니다. | 구현 중 판단 |
 | `set_client()`는 `initialize()` 전에만 | 브라우저를 만들 때 클라이언트가 정해져야 합니다. 이후에는 `RuntimeError`. | 구현 중 판단 |
 | JavaScript 통신은 **CEF의 메시지 라우터**를 손으로 감싸서 엽니다(`QueryHandler`, `window.cefQuery`) | 비용 대비 효과가 가장 큽니다: 질의 번호, 취소, 구독, 정리를 CEF가 맡고 java-cef와 같은 모델입니다. cefpython식 값 변환 중계는 더 크고 콜백 수명이 어렵습니다([분석](../analyses/js-python-messaging.md)). `add_javascript_binding`은 가벼운 호출용으로 유지. | 사용자(선택) |
 | ~~사용자가 주는 명령줄 스위치를 자식 프로세스(렌더러, GPU 등)에 보내는 옵션은 만들지 않음~~ (2026-10-10에 `AppHandler.on_before_child_process_launch`로 열음) | 당시 java-cef도 `args`와 브라우저 프로세스 한정 훅뿐이고 `OnBeforeChildProcessLaunch`가 없었습니다(F36). 사용자가 "java-cef만큼만" 가기로 했습니다. 이후 남은 API를 여는 작업에서 자식 프로세스의 명령줄을 고치는 훅이 열렸습니다. 래퍼가 자기 스위치를 먼저 붙이고 그 뒤에 사용자의 훅을 부릅니다([F105](verified-findings-opened.md)). 래퍼 내부의 메시지 라우터 설정은 처음부터 `OnBeforeChildProcessLaunch`로 보내며, java-cef는 이를 `extra_info`로 보내 팝업 같은 `extra_info` 없는 브라우저에서 빠지는 점이 다릅니다([메시지 라우터](message-router.md)). | 사용자 |

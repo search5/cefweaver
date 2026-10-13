@@ -17,7 +17,8 @@ Note:
 Checked: Xvfb with GDK_BACKEND=x11 and real X events from xdotool: the 39 checks of examples/gtk3/smoke.py at scale 1 and 2
 (at scale 2 on a screen of 2560x2048).
 At scale 1 also with CEF on Wayland (ozone-platform=wayland, the widget on X11): the 39 checks.
-Not checked: a real input method (ibus, fcitx), GTK on Wayland, rich text and images in the clipboard.
+Not checked: a real input method (ibus, fcitx) by the smoke (typing Korean was tried by hand once on a real screen), GTK on
+Wayland, rich text and images in the clipboard.
 """
 
 import os

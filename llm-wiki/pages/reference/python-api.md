@@ -6,7 +6,7 @@ sources:
   - cefweaver/_cefweaver.pyi
   - tools/gen/handwritten.pyi
   - cefweaver/__init__.py
-updated: 2026-10-10
+updated: 2026-10-13
 ---
 
 # Python API 참조
@@ -155,7 +155,7 @@ class MyClient(cefweaver.Client):
         return True
 ```
 
-사용자가 받는 메시지는 이름이 래퍼의 `javascript-binding`, `javascript-python-binding`이 아닌 것뿐입니다. 렌더러는 C++라서 Python에서 렌더러 쪽 동작을 정할 수 없고, 진단용으로 `cefweaver-ping`에 `cefweaver-pong`으로 답합니다([래퍼와 사용자가 핸들러를 나눠 쓰는 방법](../analyses/sharing-handlers-with-the-wrapper.md)).
+사용자가 받는 메시지는 이름이 래퍼의 `javascript-binding`, `javascript-python-binding`이 아닌 것뿐입니다. 렌더러는 C++라서 Python에서 렌더러 쪽 동작을 정할 수 없습니다. 렌더러가 다루는 메시지는 `cefweaver-ping`(`cefweaver-pong`으로 답하는 진단용), `JavascriptBridge.evaluate`가 쓰는 `cefweaver-eval`, `app.enable_renderer_events()` 뒤에 렌더러가 보내는 `cefweaver-renderer-event`입니다([래퍼와 사용자가 핸들러를 나눠 쓰는 방법](../analyses/sharing-handlers-with-the-wrapper.md)).
 
 출력 인자와 목록을 주고받는 메서드의 규칙은 [출력 인자와 목록](python-api-values.md)에 있습니다.
 

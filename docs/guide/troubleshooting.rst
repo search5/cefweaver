@@ -22,7 +22,7 @@ It prints:
    settings.foo = 1                       AttributeError: unknown setting 'foo'
    settings.log_file = 5                  TypeError: log_file must be a str
    settings.persist_session_cookies = 1   TypeError: persist_session_cookies must be a bool
-   settings.remote_debugging_port = 70000 ValueError: remote_debugging_port must be a port number
+   settings.remote_debugging_port = 70000 ValueError: remote_debugging_port must be 0 (off) or a port from 1024 to 65535
    initialize() twice                     RuntimeError: initialize() was already called
    set_cache_path() after initialize()    RuntimeError: this must be done before initialize()
    add_command_line_switch() after it     RuntimeError: this must be done before initialize()
@@ -51,7 +51,7 @@ It prints:
    * - ``expected an absolute http or https URL``
      - ``add_resource()`` serves ``http`` and ``https`` URLs only. For another scheme see "Custom schemes" in :doc:`configuration`.
 
-The wheel and the source use the same texts for the lines above. The port check allows 0 to 65535 in both, while the docstring of ``remote_debugging_port`` in the source says 1024 to 65535.
+The wheel and the source use the same texts for the lines above.
 
 ``RuntimeError: CefInitialize() failed``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
