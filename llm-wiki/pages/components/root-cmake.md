@@ -2,13 +2,15 @@
 title: 루트 CMake와 CEF 다운로드
 type: component
 sources:
+  - tests/test_download_cef.py
+  - tools/safe_extract.py
   - CMakeLists.txt
   - cmake/DownloadCEF.cmake
   - native/cefwrapper/CMakeLists.txt
   - native/cefsubprocess/CMakeLists.txt
   - third_party/cef/README.txt
   - native/cefwrapper/mac_runtime.mm
-updated: 2026-10-09
+updated: 2026-10-13
 ---
 
 # 루트 CMake와 CEF 다운로드
@@ -35,8 +37,11 @@ updated: 2026-10-09
 `DownloadCEF(platform version download_dir)` 함수입니다.
 
 - 배포본 이름은 `cef_binary_<버전>_<플랫폼>`이고 풀린 위치는 `third_party/cef/` 아래입니다.
-- 디렉터리가 없으면 `https://cef-builds.spotifycdn.com/<이름>.tar.bz2`를 받습니다. 이름의 `+`는 `%2B`로 바꿉니다. 먼저 `.sha1`을 받고 본 파일을 `EXPECTED_HASH SHA1=...`로 검증합니다.
-- `cmake -E tar xzf`로 풉니다. 옵션에 `z`(gzip)가 있지만 `.tar.bz2`도 실제로 풀렸습니다.
+- 디렉터리가 없으면 `https://cef-builds.spotifycdn.com/<이름>.tar.bz2`를 받습니다(`CEF_DOWNLOAD_BASE_URL`로 바꿀 수 있고 시험은 `file:` 주소를 씁니다). 이름의 `+`는 `%2B`로 바꿉니다.
+- **검증 (2026-10-13에 고침)**: `.sha1`을 받아 40자리 16진수인지 확인하고, 아카이브를 `.part` 파일로 받아 SHA1을 직접 계산해 맞을 때만 제 이름으로 옮깁니다. 틀리면 지우고 `FATAL_ERROR`입니다. 이전 구현은 `file(DOWNLOAD ... EXPECTED_HASH)`를 썼는데, 해시가 틀려 멈춰도 파일이 남아 다음 실행이 `NOT EXISTS` 조건 때문에 검증 없이 그 파일을 풀었습니다. 이미 있는 아카이브도 쓰기 전에 `.sha1`과 다시 대조하고 맞지 않으면 다시 받습니다.
+- **추출 (2026-10-13에 고침)**: `tools/safe_extract.py`(Python)가 풉니다. 모든 멤버를 먼저 검사해 `..`, 절대 경로, 앞선 심볼릭 링크를 따라가서 밖으로 나가는 이름, 밖을 가리키는 링크, 장치 파일을 거부하고(하나라도 있으면 아무것도 풀지 않음) 통과하면 Python의 `data` 필터까지 걸어 풉니다. 이전의 `cmake -E tar xzf`는 이런 쓰기를 막지 못했습니다. 임시 폴더(`.unpack-<이름>`)에 풀고 배포본 폴더를 통째로 옮겨서, 중간에 끊긴 추출을 끝난 것으로 오인하지 않습니다.
+- 버전과 플랫폼 이름은 글자, 숫자, `.+_-`만 받고 `..`는 거부합니다(파일 이름과 URL에 쓰이므로).
+- 시험 `tests/test_download_cef.py` 24개(`tools/safe_extract.py` 13개, DownloadCEF 11개)가 직접 만든 아카이브와 `file:` 주소로 경로 탈출 일곱 가지, 틀린 해시의 우회, 비정상 `.sha1`, 경로 모양의 버전을 확인합니다(CEF와 네트워크 불필요). 이전 구현에서는 DownloadCEF 쪽 10개 중 8개가 실패합니다.
 - `CEF_ROOT`를 `PARENT_SCOPE` 일반 변수로만 설정합니다. 이전에는 `CACHE INTERNAL`이었고, 그 때문에 옛 버전이 고정되는 결함이 있었습니다.
 - 표준(`standard`) 배포본만 받습니다. `minimal`과 `client` 배포본은 쓰지 않습니다.
 

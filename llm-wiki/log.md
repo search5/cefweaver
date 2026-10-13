@@ -802,3 +802,13 @@ Windows 지원 세션이 `cp311-abi3-win_amd64` wheel 하나로 Python 3.13과 3
 
 ## [2026-10-13] ingest | README 검증에서 나온 코드 문제 두 가지 수정
 1) `Settings.remote_debugging_port`가 필드 설명(1024~65535)과 달리 1~1023(예: 80)도 받던 것을 고쳤다. CEF 헤더(`cef_types.h`)가 1024~65535를 말하므로 `cefweaver/settings.py`의 검사를 0(끔) 또는 1024~65535로 바꾸고, 오류 문구를 `must be 0 (off) or a port from 1024 to 65535`로 했으며, `tests/test_smoke.py`에 80, 0, 1024, `None` 확인을 더했다. 가이드(`configuration.rst`, `troubleshooting.rst`)의 설명과 "소스와 wheel이 어긋난다"는 문장을 맞췄다. 2) `cefweaver/ui/toolkits/gtk3.py` 모듈 docstring이 "실제 입력기는 확인하지 않았다"고만 적어 실제 화면에서 한글을 입력해 본 기록(F76)과 어긋났다. "스모크로는 확인하지 못했고 한글 입력은 손으로 한 번 해 봤다"로 고쳤다. 한국어 카탈로그(`api/toolkits.po`, `guide/configuration.po`, `guide/troubleshooting.po`)를 함께 갱신했다. 카탈로그를 갱신하려고 wheel을 다시 만들어 설치했다(전의 설치본이 소스의 docstring보다 낡아 있었음). 수정 뒤 전체 시험 550개가 통과했고(건너뜀 9, 예상된 실패 3), 영어와 한국어 문서 빌드가 `-W`로 통과했다.
+
+## [2026-10-13] query | cefpython PR 691 읽기
+사용자가 cefpython의 PR 691(CEF 147 갱신)과 댓글을 모두 읽고 상황을 확인하라고 했다. 본문, 일반 댓글 68개, 리뷰 183개, 코드 리뷰 댓글 342개를 받아 읽고 `pages/analyses/cefpython-pr691-status.md`에 정리했다. PR은 열려 있고(2026-05-03 개설) 소유자의 변경 요청이 이어지는 중이다. cefweaver에 대해 두 가지를 직접 확인했다: cefpython #699(재로드 뒤 바인딩이 깨짐)는 재현되지 않았고(`tools/stability/reload_bindings.py`), `browser`/`frame`이 NULL일 수 있는 쿠키 콜백은 None으로 Python에 전달된다.
+
+## [2026-10-13] query | cefpython PR 691이 지적한 보안 항목의 cefweaver 대조
+사용자가 소유자가 지적한 보안 문제와 필수 검증을 우리 코드에서 확인하라고 했다. `cmake/DownloadCEF.cmake`를 실험으로 확인해 두 약점을 찾았다: 해시가 틀려 멈춘 뒤 남은 아카이브가 다음 실행에서 검증 없이 추출되는 것(같은 논리를 복제해 재현), `cmake -E tar`가 `../`, 절대 경로, 심볼릭 링크를 통한 경로 탈출을 막지 않는 것(CMake 4.2.3, 시험용 아카이브). 해시가 빈 값이거나 틀리면 오류로 멈추는 것, 원격 디버깅이 `127.0.0.1`에만 열리는 것, 환경 변수와 셸 실행에 문제가 없는 것도 확인했다. 고치지는 않았고 `known-constraints.md`와 `cefpython-pr691-status.md`에 기록했다.
+
+## [2026-10-13] ingest | CEF 내려받기와 추출의 방어
+사용자가 확인된 약점(해시 검증 우회, 추출 경로 탈출)을 모두 방어하라고 했다. `cmake/DownloadCEF.cmake`를 다시 쓰고(`.part`로 받아 직접 SHA1 대조, 남은 파일 재검증, 형식 검사, 임시 폴더에서 추출 후 이동, 이름 검증, `CEF_DOWNLOAD_BASE_URL`) `tools/safe_extract.py`를 더했다. `tests/test_download_cef.py` 24개가 이전 구현에서는 8개 실패한다. 실제 CDN의 CEF 154 배포본으로 받고 풀어 기존 추출본과 같음을 확인했다. `known-constraints.md`, `cefpython-pr691-status.md`, `root-cmake.md`, `tests.md` 갱신.
+

@@ -95,6 +95,7 @@
 - [java-cef를 바닥으로 보았을 때 어디까지 왔는가](pages/analyses/beyond-java-cef.md): 바닥(389개)은 닫혔고 304개를 더 열어 708개, 툴킷 어댑터 7개와 macOS 네이티브 뷰, 뒤처진 곳(Windows, 성숙도, Linux의 창 모드 임베딩, 배포 형식)
 - [열지 않은 CEF 메서드와 cefpython의 비교](pages/analyses/unopened-cef-api.md): 열지 않은 약 1,547개의 묶음(Views, 시험용, V8, DOM 등)과 cefpython이 여는 약 40개(렌더러의 Python, Views 창, 접근성, 이미지)
 - [cefpython과 cefweaver의 API 차이](pages/analyses/cefpython-comparison.md): cefpython의 API 459개와 대조한 결과(창 임베딩, JS 바인딩, 렌더러의 Python 등 없는 것, 이름만 다른 것, cefweaver에만 있는 것)
+- [cefpython PR 691의 상황](pages/analyses/cefpython-pr691-status.md): cefpython의 CEF 147 갱신 PR(열림, 변경 요청 중)을 댓글까지 읽은 요약, cefweaver에서 직접 확인한 것(재로드 뒤 바인딩, NULL browser)
 - [UI 어댑터 설계](pages/analyses/ui-adapter-design.md): 여섯 예제의 공통인 것과 툴킷마다 다른 것의 비교, `BrowserView`와 `ToolkitAdapter` 인터페이스 초안, 능력 선언, 이식으로 검증할 것
 - [scikit-build-core로 setup.py 없이 빌드하기](pages/analyses/scikit-build-core-prototype.md): 프로토타입 기록과 증분 빌드 시간. 이 방식을 2026-10-11에 채택했고(F113) Linux에서만 확인, macOS와 Windows는 확인하지 못함
 - [cefpython의 CEF 패치와 cefweaver](pages/analyses/cefpython-patches.md): cefpython의 CEF 패치가 현재 CEF에 적용되는지, 가져오지 않은 이유

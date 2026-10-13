@@ -235,7 +235,8 @@ Building from source
 ====================
 
 ``uv build --wheel`` alone builds everything on Linux, macOS and Windows (scikit-build-core and CMake; CEF is taken
-from ``$CEF_ROOT`` or downloaded, and the download is checked against the SHA1 published with it; Windows needs the
+from ``$CEF_ROOT`` or downloaded, and the download is checked against the SHA1 published with it and unpacked by ``tools/safe_extract.py``, which refuses
+archive members that would write outside the destination; Windows needs the
 Visual Studio C++ build tools). Building needs a C++20 compiler, CMake 3.28.1 or later and Cython 3, which ``uv build``
 installs as build requirements. ``tools/prepare.py`` resolves CEF in advance and builds the native libraries in
 ``build/native`` (on macOS also the helper apps); it links the CEF it used at ``build/native/cef``, and the wheel build

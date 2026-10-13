@@ -75,3 +75,4 @@ cefpython의 API 문서(`api/*.md`, 위키 `docs/llm-wiki`)의 항목 459개를 
 - [java-cef 동등성](../reference/java-cef-parity.md)
 - [알려진 제약과 미검증 항목](../reference/known-constraints.md)
 - [cefpython의 CEF 패치와 cefweaver](cefpython-patches.md)
+- [cefpython PR 691의 상황](cefpython-pr691-status.md)

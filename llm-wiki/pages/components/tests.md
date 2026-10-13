@@ -7,12 +7,12 @@ sources:
   - tests/test_ui.py
   - tests/test_cast.py
   - CLAUDE.md
-updated: 2026-10-11
+updated: 2026-10-13
 ---
 
 # 시험 (tests/)
 
-`unittest`로 작성한 시험이 여섯 파일에 547개(통합 226, 생성기 125, UI 165, Cast 14, 위키 점검 2, 문서 점검 15) 있습니다. `unittest` 로더로 2026-10-11에 센 값입니다. 같은 날 Linux와 macOS에서 돌린 실행은 546개(건너뜀 9, 예상된 실패 3)였고(UI에 Windows용 quickstart 시험 1개를 더하기 전), Windows 실행은 [F117](../reference/verified-findings-windows.md)에 있습니다. 통합 시험은 이전 서술(221개)보다 5개 많습니다. 이전 값이 낡았던 것으로 보이며 원인은 확인하지 않았습니다([F108](../reference/verified-findings-opened.md)).
+`unittest`로 작성한 시험이 여섯 파일에(이후 `test_download_cef.py` 24개가 더해짐, [루트 CMake](root-cmake.md)의 DownloadCEF 절) (이 개수는 2026-10-11 값이고 이후 `test_download_cef.py` 23개가 더해졌습니다. 아래 "CEF 내려받기와 추출" 참고) 547개(통합 226, 생성기 125, UI 165, Cast 14, 위키 점검 2, 문서 점검 15) 있습니다. `unittest` 로더로 2026-10-11에 센 값입니다. 같은 날 Linux와 macOS에서 돌린 실행은 546개(건너뜀 9, 예상된 실패 3)였고(UI에 Windows용 quickstart 시험 1개를 더하기 전), Windows 실행은 [F117](../reference/verified-findings-windows.md)에 있습니다. 통합 시험은 이전 서술(221개)보다 5개 많습니다. 이전 값이 낡았던 것으로 보이며 원인은 확인하지 않았습니다([F108](../reference/verified-findings-opened.md)).
 
 macOS에서는 `test_smoke.py`가 `cefsubprocess.app`이 있으면 CEF 시험을 실행하고(`RUNTIME_OK`), Linux 전용인 `ozone-platform` 스위치를 주지 않으며, 일부는 `skipIf`로 건너뜁니다. `test_generator.py`에는 플랫폼마다 다른 구조체를 중립 형식으로 읽는지 보는 시험이 하나 있습니다. 결과는 [F81~F82](../reference/verified-findings-macos.md)에 있습니다. Windows에서는 `test_smoke.py`가 `libcef.dll`이 있으면 CEF 시험을 실행하고, 시험마다 임시 폴더를 `ignore_cleanup_errors=True`로 지우며(CEF 자식 프로세스가 파일을 잠시 쥠), Linux 전용인 시험(X11, `/proc`, 인쇄 핸들러, `c++`)은 건너뛰거나 PowerShell 같은 대체 방법을 씁니다. Windows의 `CHAR` 키 이벤트는 `windows_key_code`에 문자를 둡니다([F118](../reference/verified-findings-windows.md)). `test_ui.py`의 `Quickstarts`에 Windows용 시험이 있어 `examples/pywin32`의 quickstart를 띄우고 `WM_CLOSE`를 보내 종료 코드 0을 확인합니다.
 
